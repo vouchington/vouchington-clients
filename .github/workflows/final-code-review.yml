@@ -156,6 +156,7 @@ jobs:
             artifact: opencode-zen
             enabled: ${{ vars.OPENCODE_ZEN_CODE_REVIEW_ENABLED }}
             model: ${{ vars.OPENCODE_ZEN_CODE_REVIEW_MODEL }}
+    # The required gate waits for this attempt but never requires provider success.
     continue-on-error: true
     runs-on: [self-hosted, Linux]
     timeout-minutes: 35
@@ -263,4 +264,5 @@ jobs:
           [ "$SETTINGS_RESULT" = success ] || { echo '::error::Code review settings are invalid.'; exit 1; }
           current="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)"
           [ "$current" = "$SELECTED_HEAD_SHA" ] || { echo '::error::PR head changed before completion.'; exit 1; }
-          echo 'Provider and poster outcomes are advisory; exact-head validation and orchestration are authoritative.'
+          echo '::notice::Provider and poster outcomes are advisory; exact-head validation and orchestration are authoritative.'
+          echo 'Provider and poster outcomes are advisory; exact-head validation and orchestration are authoritative.' >> "$GITHUB_STEP_SUMMARY"
