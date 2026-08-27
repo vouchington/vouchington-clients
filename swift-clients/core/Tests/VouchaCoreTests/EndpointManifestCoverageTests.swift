@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAPI
+import VouchaTestSupport
 import XCTest
 
 final class EndpointManifestCoverageTests: XCTestCase {

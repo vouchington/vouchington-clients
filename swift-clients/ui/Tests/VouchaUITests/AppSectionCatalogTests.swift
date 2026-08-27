@@ -1,6 +1,7 @@
 import Foundation
 @testable import VouchaFeatures
 import VouchaLocalization
+import VouchaTestSupport
 import XCTest
 
 // MARK: - AppSection

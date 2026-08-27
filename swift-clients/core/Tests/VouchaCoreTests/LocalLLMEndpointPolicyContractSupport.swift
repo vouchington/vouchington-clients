@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 struct LocalLLMEndpointPolicyContract: Decodable {
     let hostPolicyRows: [LocalLLMHostPolicyRow]

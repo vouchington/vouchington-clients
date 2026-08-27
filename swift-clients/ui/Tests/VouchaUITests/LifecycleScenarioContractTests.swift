@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaTestSupport
 import XCTest
 
 @MainActor

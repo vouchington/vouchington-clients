@@ -10,5 +10,8 @@ directory with no symlinks. It stages each generated localization copy, preserve
 directory as a sibling backup during replacement, and automatically recovers that backup if a sync
 is interrupted before publication. Run the sync again after an interruption.
 
+Swift test targets share the same root, required-path, and fixture-path validation through the
+repository-local `swift-clients/test-support` package.
+
 `contracts:check` is fail-closed: a missing root or source tree, a symlink, or output mismatch
 fails the command. It never fetches or writes. Only `contracts:sync` replaces generated outputs.

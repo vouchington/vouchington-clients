@@ -131,6 +131,26 @@ public sealed class FilamentsContractPathsTests
     }
   }
 
+  [Fact]
+  public void ApiFixtureRejectsBrokenSymbolicLinks()
+  {
+    var root = FixtureRoot();
+    try
+    {
+      var fixturePath = Path.Combine(root, "api-fixtures", "v1", "fixture.json");
+      File.CreateSymbolicLink(fixturePath, Path.Combine(root, "missing.json"));
+
+      var error = Assert.Throws<InvalidOperationException>(() =>
+          FilamentsContractPaths.ApiFixture(root, "fixture.json"));
+
+      Assert.Contains("symbolic link", error.Message, StringComparison.Ordinal);
+    }
+    finally
+    {
+      Directory.Delete(root, recursive: true);
+    }
+  }
+
   private static string FixtureRoot()
   {
     var root = TemporaryDirectory();

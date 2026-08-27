@@ -1,56 +1,5 @@
 import Foundation
-
-private enum FilamentsContractRoot {
-    static func url() throws -> URL {
-        let environment = ProcessInfo.processInfo.environment
-        let configuredValue = environment["VOUCHA_FILAMENTS_CONTRACT_ROOT"]?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        guard
-            let value = configuredValue,
-            !value.isEmpty
-        else {
-            throw LocalLLMEndpointPolicyError.invalid(
-                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
-            )
-        }
-
-        let root = URL(fileURLWithPath: value).standardizedFileURL
-        if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
-            throw LocalLLMEndpointPolicyError.invalid(
-                "API fixture paths must not contain symbolic links, found \(root.path)."
-            )
-        }
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            throw LocalLLMEndpointPolicyError.invalid(
-                "VOUCHA_FILAMENTS_CONTRACT_ROOT must name an existing directory, got \(root.path)."
-            )
-        }
-        return root
-    }
-
-    static func fixtureURL(_ path: String, root: URL) throws -> URL {
-        if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
-            throw LocalLLMEndpointPolicyError.invalid(
-                "API fixture paths must not contain symbolic links, found \(root.path)."
-            )
-        }
-        var candidate = root
-        for component in path.split(separator: "/").map(String.init) {
-            candidate = candidate.appendingPathComponent(component)
-            if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
-                throw LocalLLMEndpointPolicyError.invalid(
-                    "API fixture paths must not contain symbolic links, found \(candidate.path)."
-                )
-            }
-        }
-        guard FileManager.default.fileExists(atPath: candidate.path) else {
-            throw LocalLLMEndpointPolicyError.invalid("Filaments contract root is missing required path \(path).")
-        }
-        return candidate
-    }
-}
+import VouchaTestSupport
 
 struct LocalLLMEndpointPolicyContract: Decodable {
     let hostPolicyRows: [LocalLLMHostPolicyRow]
@@ -61,11 +10,11 @@ struct LocalLLMEndpointPolicyContract: Decodable {
     }
 
     static func load(root: URL) throws -> Self {
-        let contract = try FilamentsContractRoot.fixtureURL(
+        let contract = try FilamentsContractRoot.requiredURL(
             "api-fixtures/v1/local-llm-endpoint-policy.json",
             root: root
         )
-        _ = try FilamentsContractRoot.fixtureURL(
+        _ = try FilamentsContractRoot.requiredURL(
             "api-fixtures/v1/local-llm-endpoint-policy.schema.json",
             root: root
         )
@@ -117,15 +66,4 @@ struct LocalLLMOriginPair: Decodable {
     let variantB: String
     let expectedOrigin: String
     let notes: String
-}
-
-enum LocalLLMEndpointPolicyError: Error, CustomStringConvertible {
-    case invalid(String)
-
-    var description: String {
-        switch self {
-        case let .invalid(message):
-            message
-        }
-    }
 }

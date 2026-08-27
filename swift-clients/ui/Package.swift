@@ -15,6 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "VouchaCore", path: "../core"),
+        .package(name: "VouchaTestSupport", path: "../test-support"),
         .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.6")),
         .package(url: "https://github.com/nalexn/ViewInspector.git", .upToNextMinor(from: "0.10.3"))
     ],
@@ -53,6 +54,7 @@ let package = Package(
                 .product(name: "VouchaCore", package: "VouchaCore"),
                 .product(name: "VouchaAPI", package: "VouchaCore"),
                 .product(name: "VouchaAuth", package: "VouchaCore"),
+                .product(name: "VouchaTestSupport", package: "VouchaTestSupport"),
                 .product(name: "ViewInspector", package: "ViewInspector")
             ]
         )

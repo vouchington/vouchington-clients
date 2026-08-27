@@ -38,8 +38,8 @@ async function directory(path, label) {
   } catch (error) {
     fail(`cannot read ${label} at ${path}: ${error.message}`)
   }
-  if (info.isSymbolicLink() || !info.isDirectory())
-    fail(`${label} is not a real directory: ${path}`)
+  if (info.isSymbolicLink()) fail(`${label} must not be a symbolic link: ${path}`)
+  if (!info.isDirectory()) fail(`${label} is not a real directory: ${path}`)
 }
 
 async function filesUnder(root, label) {

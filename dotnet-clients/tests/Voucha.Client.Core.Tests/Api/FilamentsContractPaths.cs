@@ -87,6 +87,11 @@ internal static class FilamentsContractPaths
 
   private static void RejectSymbolicLink(string path)
   {
+    if (new FileInfo(path).LinkTarget is not null || new DirectoryInfo(path).LinkTarget is not null)
+    {
+      throw new InvalidOperationException($"Fixture path contains a symbolic link: {path}");
+    }
+
     try
     {
       if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)

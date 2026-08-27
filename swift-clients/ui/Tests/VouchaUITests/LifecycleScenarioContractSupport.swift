@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 struct LifecycleScenarioContract: Decodable {
     let scenarios: [LifecycleScenario]

@@ -1,6 +1,7 @@
 import Foundation
 @testable import VouchaAuth
 @testable import VouchaCore
+import VouchaTestSupport
 import XCTest
 
 // MARK: - AppConfig

@@ -1,5 +1,6 @@
 import Foundation
 import VouchaFeatures
+import VouchaTestSupport
 import XCTest
 
 final class ClientIntentParityTests: XCTestCase {

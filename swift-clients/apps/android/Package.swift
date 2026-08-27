@@ -12,6 +12,7 @@ let package = Package(
     dependencies: [
         .package(path: "../../core"),
         .package(path: "../../ui"),
+        .package(name: "VouchaTestSupport", path: "../../test-support"),
         .package(url: "https://source.skip.tools/skip.git", exact: "1.9.7"),
         .package(url: "https://source.skip.tools/skip-fuse-ui.git", from: "1.0.0"),
         .package(url: "https://source.skip.tools/skip-keychain.git", exact: "0.3.2")
@@ -25,7 +26,8 @@ let package = Package(
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "VouchaAndroidTests", dependencies: [
             "VouchaAndroid",
-            .product(name: "VouchaLocalization", package: "ui")
+            .product(name: "VouchaLocalization", package: "ui"),
+            .product(name: "VouchaTestSupport", package: "VouchaTestSupport")
         ])
     ]
 )
