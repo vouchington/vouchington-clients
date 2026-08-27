@@ -59,6 +59,43 @@ public sealed class FilamentsContractPathsTests
     }
   }
 
+  [Fact]
+  public void ApiFixtureAllowsMissingIntermediateDirectoriesForTheReaderToReport()
+  {
+    var root = FixtureRoot();
+    try
+    {
+      var fixture = FilamentsContractPaths.ApiFixture(root, "responses/missing/fixture.json");
+
+      Assert.Equal(
+          Path.Combine(root, "api-fixtures", "v1", "responses", "missing", "fixture.json"),
+          fixture);
+    }
+    finally
+    {
+      Directory.Delete(root, recursive: true);
+    }
+  }
+
+  [Fact]
+  public void IsStrictDescendantRejectsTheRootAndSiblingPaths()
+  {
+    var root = TemporaryDirectory();
+    try
+    {
+      var parent = Directory.GetParent(root)!.FullName;
+      var sibling = Path.Combine(parent, $"{Path.GetFileName(root)}-sibling");
+
+      Assert.True(FilamentsContractPaths.IsStrictDescendant(root, Path.Combine(root, "fixture.json")));
+      Assert.False(FilamentsContractPaths.IsStrictDescendant(root, root));
+      Assert.False(FilamentsContractPaths.IsStrictDescendant(root, sibling));
+    }
+    finally
+    {
+      Directory.Delete(root, recursive: true);
+    }
+  }
+
   [Theory]
   [InlineData(true)]
   [InlineData(false)]

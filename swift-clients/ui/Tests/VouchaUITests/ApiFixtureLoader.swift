@@ -18,19 +18,41 @@ enum FilamentsContractRoot {
         }
 
         let root = URL(fileURLWithPath: value).standardizedFileURL
+        try rejectSymbolicLinks(beneath: root, components: [])
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else {
             throw FilamentsContractRootError.invalidRoot(root.path)
         }
 
         for requiredPath in requiredPaths {
-            let candidate = root.appendingPathComponent(requiredPath)
-            guard FileManager.default.fileExists(atPath: candidate.path) else {
-                throw FilamentsContractRootError.missingPath(requiredPath)
-            }
+            _ = try requiredURL(requiredPath, root: root)
         }
 
         return root
+    }
+
+    static func requiredURL(_ requiredPath: String, root: URL) throws -> URL {
+        let components = requiredPath.split(separator: "/").map(String.init)
+        try rejectSymbolicLinks(beneath: root, components: components)
+        let candidate = root.appendingPathComponent(requiredPath)
+        guard FileManager.default.fileExists(atPath: candidate.path) else {
+            throw FilamentsContractRootError.missingPath(requiredPath)
+        }
+        return candidate
+    }
+
+    private static func rejectSymbolicLinks(beneath root: URL, components: [String]) throws {
+        if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
+            throw FilamentsContractRootError.symbolicLink(root.path)
+        }
+
+        var candidate = root
+        for component in components {
+            candidate = candidate.appendingPathComponent(component)
+            if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
+                throw FilamentsContractRootError.symbolicLink(candidate.path)
+            }
+        }
     }
 }
 
@@ -123,13 +145,7 @@ enum ApiFixtureLoader {
 
         let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
         let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
-        let fixture = fixtureRoot.appendingPathComponent(bodyFile)
-        let components = ["api-fixtures", "v1"] + bodyFile.split(separator: "/").map(String.init)
-        try rejectSymbolicLinks(beneath: root, components: components)
-
-        guard FileManager.default.fileExists(atPath: fixture.path) else {
-            throw FilamentsContractRootError.missingPath("api-fixtures/v1/\(bodyFile)")
-        }
+        let fixture = try FilamentsContractRoot.requiredURL("api-fixtures/v1/\(bodyFile)", root: root)
 
         let resolvedRoot = fixtureRoot.resolvingSymlinksInPath().standardizedFileURL
         let resolvedFixture = fixture.resolvingSymlinksInPath().standardizedFileURL
@@ -143,23 +159,11 @@ enum ApiFixtureLoader {
         !path.isEmpty &&
             !path.hasPrefix("/") &&
             !path.hasPrefix("\\") &&
+            !path.contains(":") &&
+            !path.contains("\\") &&
             path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component in
                 !component.isEmpty && component != "." && component != ".."
             }
-    }
-
-    private static func rejectSymbolicLinks(beneath root: URL, components: [String]) throws {
-        if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
-            throw FilamentsContractRootError.symbolicLink(root.path)
-        }
-
-        var candidate = root
-        for component in components {
-            candidate.appendPathComponent(component)
-            if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
-                throw FilamentsContractRootError.symbolicLink(candidate.path)
-            }
-        }
     }
 
     private static func isDescendant(_ candidate: URL, of root: URL) -> Bool {

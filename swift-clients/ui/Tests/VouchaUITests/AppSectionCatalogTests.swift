@@ -134,6 +134,27 @@ final class AppSectionTests: XCTestCase {
 // MARK: - ApiFixtureLoader
 
 final class ApiFixtureLoaderTests: XCTestCase {
+    func testContractRootRejectsSymbolicLinkedRequiredPath() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("filaments-ui-contract-\(UUID().uuidString)", isDirectory: true)
+        let fixtures = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+        try FileManager.default.createDirectory(at: fixtures, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let outside = root.appendingPathComponent("manifest.json")
+        try Data("{\"fixtures\":[]}".utf8).write(to: outside)
+        let manifest = fixtures.appendingPathComponent("manifest.json")
+        try FileManager.default.createSymbolicLink(at: manifest, withDestinationURL: outside)
+
+        XCTAssertThrowsError(
+            try FilamentsContractRoot.url(
+                environment: [FilamentsContractRoot.environmentKey: root.path],
+                requiredPaths: ["api-fixtures/v1/manifest.json"]
+            )
+        ) { error in
+            XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+        }
+    }
+
     func testMissingFixtureReportsFailureAndReturnsFallbackData() {
         XCTExpectFailure("Missing API fixtures should report XCTest failures and return fallback data.") {
             XCTAssertEqual(

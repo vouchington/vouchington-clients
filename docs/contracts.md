@@ -6,9 +6,9 @@ then supplies its root explicitly through `VOUCHA_FILAMENTS_CONTRACT_ROOT`; the 
 validates the required layout and never performs repository acquisition itself.
 
 The contract command verifies the explicit root and every allowlisted source tree is a real
-directory with no symlinks. It stages each generated localization copy before replacing the tracked
-Swift and .NET directory. If a local sync is interrupted between replacements, restore the tracked
-outputs with Git and run the sync again.
+directory with no symlinks. It stages each generated localization copy, preserves the previous
+directory as a sibling backup during replacement, and automatically recovers that backup if a sync
+is interrupted before publication. Run the sync again after an interruption.
 
 `contracts:check` is fail-closed: a missing root or source tree, a symlink, or output mismatch
 fails the command. It never fetches or writes. Only `contracts:sync` replaces generated outputs.

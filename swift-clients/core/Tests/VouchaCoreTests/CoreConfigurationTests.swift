@@ -91,16 +91,37 @@ final class ApiFixtureLoaderTests: XCTestCase {
         }
     }
 
+    func testContractRootRejectsSymbolicLinkedRequiredPath() throws {
+        let root = try makeFixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let manifest = root.appendingPathComponent("api-fixtures/v1/manifest.json")
+        let movedManifest = root.appendingPathComponent("manifest.json")
+        try FileManager.default.moveItem(at: manifest, to: movedManifest)
+        try FileManager.default.createSymbolicLink(at: manifest, withDestinationURL: movedManifest)
+
+        XCTAssertThrowsError(
+            try FilamentsContractRoot.url(
+                environment: [FilamentsContractRoot.environmentKey: root.path],
+                requiredPaths: ["api-fixtures/v1/manifest.json"]
+            )
+        ) { error in
+            XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+        }
+    }
+
     func testFixtureBodyFileRejectsAbsoluteAndTraversalPaths() throws {
         let root = try makeFixtureRoot()
         defer { try? FileManager.default.removeItem(at: root) }
 
         for path in [
             "/outside.json",
+            "C:fixture.json",
             "../outside.json",
             "nested/../../outside.json",
             "./fixture.json",
-            "nested//fixture.json"
+            "nested//fixture.json",
+            "nested\\\\fixture.json",
+            "nested/fixture:copy.json"
         ] {
             XCTAssertThrowsError(try ApiFixtureLoader.fixtureURL(path, root: root), path) { error in
                 XCTAssertTrue(String(describing: error).contains("must be a relative path"))

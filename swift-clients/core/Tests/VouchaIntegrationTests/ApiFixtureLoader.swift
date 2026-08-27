@@ -134,6 +134,8 @@ enum ApiFixtureLoader {
         !path.isEmpty &&
             !path.hasPrefix("/") &&
             !path.hasPrefix("\\") &&
+            !path.contains(":") &&
+            !path.contains("\\") &&
             path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component in
                 !component.isEmpty && component != "." && component != ".."
             }
@@ -146,7 +148,7 @@ enum ApiFixtureLoader {
 
         var candidate = root
         for component in components {
-            candidate.appendPathComponent(component)
+            candidate = candidate.appendingPathComponent(component)
             if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
                 throw ContractRootError.symbolicLink(candidate.path)
             }

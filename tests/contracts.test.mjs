@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import assert from 'node:assert/strict'
@@ -16,7 +16,7 @@ async function writeTree(root, files) {
   }
 }
 
-async function fixture() {
+async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-filaments-'))
   await writeTree(root, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
@@ -28,12 +28,18 @@ async function fixture() {
       'public class UiMessageKey {}\n',
     'client-contracts/v1/native-localization/dotnet/UiMessages.resx': '<root />\n',
   })
-  const config = join(await mkdtemp(join(tmpdir(), 'voucha-contract-config-')), 'filaments.json')
+  const configRoot = await mkdtemp(join(tmpdir(), 'voucha-contract-config-'))
+  const config = join(configRoot, 'filaments.json')
   await writeFile(
     config,
     JSON.stringify({ schemaVersion: 1, repository: 'jonathanong/filaments', ref: 'main', paths }),
   )
   const generatedRoot = await mkdtemp(join(tmpdir(), 'voucha-generated-'))
+  t.after(async () => {
+    await Promise.all(
+      [root, configRoot, generatedRoot].map(path => rm(path, { recursive: true, force: true })),
+    )
+  })
   const targets = [
     {
       source: 'client-contracts/v1/native-localization/swift',
@@ -51,9 +57,10 @@ async function fixture() {
   return { config, root, targets }
 }
 
-test('requires an explicit Filaments checkout root', async () => {
+test('requires an explicit Filaments checkout root', async t => {
   const previous = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
   const ancestor = await mkdtemp(join(tmpdir(), 'voucha-contract-ancestor-'))
+  t.after(() => rm(ancestor, { recursive: true, force: true }))
   await writeTree(ancestor, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
     'client-contracts/v1/native-localization/swift/UiMessageKey.swift':
@@ -75,9 +82,10 @@ test('requires an explicit Filaments checkout root', async () => {
   }
 })
 
-test('validates the exact declared full-checkout paths', async () => {
-  const { config, root } = await fixture()
+test('validates the exact declared full-checkout paths', async t => {
+  const { config, root } = await fixture(t)
   assert.equal(await verifyContract({ config, root }), root)
+  assert.equal(await verifyContract({ config, root: `  ${root}  ` }), root)
   await rm(join(root, 'api-fixtures/v1'), { recursive: true, force: true })
   await assert.rejects(
     verifyContract({ config, root }),
@@ -85,8 +93,8 @@ test('validates the exact declared full-checkout paths', async () => {
   )
 })
 
-test('rejects symlinks within a declared source tree', async () => {
-  const { config, root } = await fixture()
+test('rejects symlinks within a declared source tree', async t => {
+  const { config, root } = await fixture(t)
   await symlink(
     'swift/UiMessageKey.swift',
     join(root, 'client-contracts/v1/native-localization/alias.swift'),
@@ -94,8 +102,8 @@ test('rejects symlinks within a declared source tree', async () => {
   await assert.rejects(verifyContract({ config, root }), /symlink found/)
 })
 
-test('sync replaces both generated localization trees and remains repeatable', async () => {
-  const { config, root, targets } = await fixture()
+test('sync replaces both generated localization trees and remains repeatable', async t => {
+  const { config, root, targets } = await fixture(t)
   const options = { config, root, targets }
   await assert.rejects(checkContracts(options), /generated localization differs/)
   await syncContracts(options)
@@ -104,17 +112,26 @@ test('sync replaces both generated localization trees and remains repeatable', a
   await checkContracts(options)
 })
 
-test('check catches changed generated localization content', async () => {
-  const { config, root, targets } = await fixture()
+test('sync recovers an interrupted replacement without Git', async t => {
+  const { config, root, targets } = await fixture(t)
+  const destination = targets[0].destination
+  await rename(destination, `${destination}.contracts-backup`)
+  await syncContracts({ config, root, targets })
+  await checkContracts({ config, root, targets })
+})
+
+test('check catches changed generated localization content', async t => {
+  const { config, root, targets } = await fixture(t)
   const options = { config, root, targets }
   await syncContracts(options)
   await writeFile(join(targets[0].destination, 'UiMessageKey.swift'), 'changed\n')
   await assert.rejects(checkContracts(options), /generated localization differs/)
 })
 
-test('does not accept a copied source bundle in place of the checkout layout', async () => {
-  const { config, root } = await fixture()
+test('does not accept a copied source bundle in place of the checkout layout', async t => {
+  const { config, root } = await fixture(t)
   const copied = await mkdtemp(join(tmpdir(), 'voucha-copied-contracts-'))
+  t.after(() => rm(copied, { recursive: true, force: true }))
   await cp(
     join(root, 'client-contracts/v1/native-localization'),
     join(copied, 'native-localization'),

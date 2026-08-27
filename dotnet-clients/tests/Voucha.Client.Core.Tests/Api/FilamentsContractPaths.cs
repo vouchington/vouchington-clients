@@ -39,7 +39,7 @@ internal static class FilamentsContractPaths
   {
     var segments = FixturePathSegments(relativePath);
     var fixturePath = Path.GetFullPath(Path.Combine([apiFixturesRoot, .. segments]));
-    if (!IsDescendant(apiFixturesRoot, fixturePath))
+    if (!IsStrictDescendant(apiFixturesRoot, fixturePath))
     {
       throw new InvalidOperationException($"Fixture path escapes api-fixtures/v1: {relativePath}");
     }
@@ -71,17 +71,36 @@ internal static class FilamentsContractPaths
     return segments;
   }
 
-  private static bool IsDescendant(string root, string path)
+  internal static bool IsStrictDescendant(string root, string path)
   {
-    var relative = Path.GetRelativePath(root, path);
-    return relative is not ".." && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+    var normalizedRoot = Path.GetFullPath(root);
+    var normalizedPath = Path.GetFullPath(path);
+    var rootWithSeparator = Path.EndsInDirectorySeparator(normalizedRoot)
+        ? normalizedRoot
+        : $"{normalizedRoot}{Path.DirectorySeparatorChar}";
+    var comparison = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
+    return normalizedPath.StartsWith(rootWithSeparator, comparison);
   }
 
   private static void RejectSymbolicLink(string path)
   {
-    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+    try
     {
-      throw new InvalidOperationException($"Fixture path contains a symbolic link: {path}");
+      if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+      {
+        throw new InvalidOperationException($"Fixture path contains a symbolic link: {path}");
+      }
+    }
+    catch (FileNotFoundException)
+    {
+      // A missing fixture is reported by the caller that reads it.
+    }
+    catch (DirectoryNotFoundException)
+    {
+      // A missing fixture is reported by the caller that reads it.
     }
   }
 }

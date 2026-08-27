@@ -5,11 +5,12 @@ struct LocalLLMEndpointPolicyContract: Decodable {
     let originPairs: [LocalLLMOriginPair]
 
     static func load() throws -> Self {
-        let root = try FilamentsContractRoot.url(requiredPaths: [
-            "api-fixtures/v1/local-llm-endpoint-policy.json",
-            "api-fixtures/v1/local-llm-endpoint-policy.schema.json"
-        ])
-        let contract = root.appendingPathComponent("api-fixtures/v1/local-llm-endpoint-policy.json")
+        try load(root: FilamentsContractRoot.url())
+    }
+
+    static func load(root: URL) throws -> Self {
+        let contract = try ApiFixtureLoader.fixtureURL("local-llm-endpoint-policy.json", root: root)
+        _ = try ApiFixtureLoader.fixtureURL("local-llm-endpoint-policy.schema.json", root: root)
         return try JSONDecoder().decode(Self.self, from: Data(contentsOf: contract))
     }
 

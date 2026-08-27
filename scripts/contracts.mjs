@@ -22,6 +22,15 @@ function fail(message) {
   throw new Error(`Contract check failed: ${message}`)
 }
 
+async function pathInfo(path) {
+  try {
+    return await lstat(path)
+  } catch (error) {
+    if (error.code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
 async function directory(path, label) {
   let info
   try {
@@ -39,10 +48,10 @@ async function filesUnder(root, label) {
   async function walk(path) {
     for (const entry of await readdir(path, { withFileTypes: true })) {
       const child = join(path, entry.name)
-      if (entry.isSymbolicLink()) fail(`symlink found at ${relative(root, child)}`)
+      if (entry.isSymbolicLink()) fail(`symlink found at ${relative(root, child) || '.'}`)
       if (entry.isDirectory()) await walk(child)
       else if (entry.isFile()) files.push(relative(root, child))
-      else fail(`unsupported filesystem entry at ${relative(root, child)}`)
+      else fail(`unsupported filesystem entry at ${relative(root, child) || '.'}`)
     }
   }
   await walk(root)
@@ -56,7 +65,7 @@ async function contractRoot({
   const configuredRoot = root ?? process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
   if (typeof configuredRoot !== 'string' || configuredRoot.trim() === '')
     fail('VOUCHA_FILAMENTS_CONTRACT_ROOT is required')
-  const checkoutRoot = resolve(configuredRoot)
+  const checkoutRoot = resolve(configuredRoot.trim())
   await directory(checkoutRoot, 'Filaments contract root')
   let parsed
   try {
@@ -109,13 +118,30 @@ export async function checkContracts(options = {}) {
 export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
   for (const target of options.targets ?? localizationTargets) {
+    const backup = `${target.destination}.contracts-backup`
+    const backupInfo = await pathInfo(backup)
+    if (backupInfo) {
+      if (backupInfo.isSymbolicLink() || !backupInfo.isDirectory())
+        fail(`generated localization backup is not a real directory: ${backup}`)
+      const destinationInfo = await pathInfo(target.destination)
+      if (destinationInfo) {
+        await directory(target.destination, 'generated localization target')
+        await rm(backup, { recursive: true })
+      } else await rename(backup, target.destination)
+    }
     await directory(target.destination, 'generated localization target')
     const stagingRoot = await mkdtemp(join(dirname(target.destination), '.contracts-stage-'))
     const staged = join(stagingRoot, 'generated')
     try {
       await cp(join(root, target.source), staged, { recursive: true, dereference: false })
-      await rm(target.destination, { recursive: true })
-      await rename(staged, target.destination)
+      await rename(target.destination, backup)
+      try {
+        await rename(staged, target.destination)
+      } catch (error) {
+        await rename(backup, target.destination)
+        throw error
+      }
+      await rm(backup, { recursive: true })
     } finally {
       await rm(stagingRoot, { recursive: true, force: true })
     }
