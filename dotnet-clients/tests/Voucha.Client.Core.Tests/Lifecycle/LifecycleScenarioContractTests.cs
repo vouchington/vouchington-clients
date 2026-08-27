@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Tests.Api;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Navigation;
@@ -391,9 +391,9 @@ internal sealed class LifecycleScenarioContract
       IReadOnlyList<(string ScenarioId, string Consumer, string Adapter)> claims) =>
       (this.scenarios, this.claims) = (scenarios, claims);
 
-  public static LifecycleScenarioContract Load([CallerFilePath] string sourceFile = "")
+  public static LifecycleScenarioContract Load()
   {
-    var path = FindContract(sourceFile);
+    var path = FilamentsContractPaths.ApiFixture("lifecycle-scenarios.json");
     using var document = JsonDocument.Parse(File.ReadAllText(path));
     var root = document.RootElement;
     return new(
@@ -425,20 +425,4 @@ internal sealed class LifecycleScenarioContract
   private bool IsRequired(string scenarioId, string consumer) => scenarios.Single(
       scenario => scenario.Id == scenarioId).RequiredConsumers.Contains(consumer);
 
-  private static string FindContract(string sourceFile)
-  {
-    foreach (var start in new[] {
-        Path.GetDirectoryName(sourceFile) ?? string.Empty,
-        AppContext.BaseDirectory,
-        Directory.GetCurrentDirectory(),
-    })
-    {
-      for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
-      {
-        var path = Path.Combine(directory.FullName, "api-fixtures", "v1", "lifecycle-scenarios.json");
-        if (File.Exists(path)) return path;
-      }
-    }
-    throw new FileNotFoundException("Could not locate lifecycle-scenarios.json.");
-  }
 }

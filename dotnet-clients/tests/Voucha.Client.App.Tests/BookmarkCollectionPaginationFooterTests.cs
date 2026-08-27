@@ -1,5 +1,4 @@
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -9,6 +8,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -79,19 +79,8 @@ public sealed class BookmarkCollectionPaginationFooterTests
     Assert.True(condition());
   }
 
-  private static string Fixture(string file, [CallerFilePath] string sourceFile = "") =>
-      File.ReadAllText(Path.Combine(RepoRoot(sourceFile), "api-fixtures", "v1", "responses", file));
-
-  private static string RepoRoot(string sourceFile)
-  {
-    var directory = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (directory is not null)
-    {
-      if (Directory.Exists(Path.Combine(directory.FullName, "api-fixtures"))) return directory.FullName;
-      directory = directory.Parent;
-    }
-    throw new DirectoryNotFoundException("Could not find repository root from test source path.");
-  }
+  private static string Fixture(string file) =>
+      File.ReadAllText(FilamentsContractPaths.ApiFixture(Path.Combine("responses", file)));
 
   private sealed class SessionStore : ISessionStore
   {

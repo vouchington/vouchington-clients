@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Voucha.Client.Core.Navigation;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Navigation;
@@ -92,27 +93,11 @@ public sealed class ClientIntentParityTests
   {
     public static ClientIntentParityContract Load()
     {
-      var repoRoot = FindRepoRoot(AppContext.BaseDirectory);
-      var path = Path.Combine(repoRoot, "api-fixtures", "v1", "client-intents.json");
+      var path = FilamentsContractPaths.ApiFixture("client-intents.json");
       return JsonSerializer.Deserialize<ClientIntentParityContract>(File.ReadAllText(path))
           ?? throw new InvalidOperationException("api-fixtures/v1/client-intents.json is empty.");
     }
 
-    private static string FindRepoRoot(string startDirectory)
-    {
-      var directory = new DirectoryInfo(startDirectory);
-      while (directory is not null)
-      {
-        if (File.Exists(Path.Combine(directory.FullName, "api-fixtures", "v1", "client-intents.json")))
-        {
-          return directory.FullName;
-        }
-
-        directory = directory.Parent;
-      }
-
-      throw new DirectoryNotFoundException("Could not find repository root from test output directory.");
-    }
   }
 
   private sealed record ClientIntentParityIntent(

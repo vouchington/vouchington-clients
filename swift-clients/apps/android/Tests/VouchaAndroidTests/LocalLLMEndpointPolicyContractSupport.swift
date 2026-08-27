@@ -1,19 +1,47 @@
 import Foundation
 
+private enum FilamentsContractRoot {
+    static func url() throws -> URL {
+        let environment = ProcessInfo.processInfo.environment
+        let configuredValue = environment["VOUCHA_FILAMENTS_CONTRACT_ROOT"]?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        guard
+            let value = configuredValue,
+            !value.isEmpty
+        else {
+            throw LocalLLMEndpointPolicyError.invalid(
+                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+            )
+        }
+
+        let root = URL(fileURLWithPath: value).standardizedFileURL
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw LocalLLMEndpointPolicyError.invalid(
+                "VOUCHA_FILAMENTS_CONTRACT_ROOT must name an existing directory, got \(root.path)."
+            )
+        }
+        for path in [
+            "api-fixtures/v1/local-llm-endpoint-policy.json",
+            "api-fixtures/v1/local-llm-endpoint-policy.schema.json"
+        ] {
+            guard FileManager.default.fileExists(atPath: root.appendingPathComponent(path).path) else {
+                throw LocalLLMEndpointPolicyError.invalid("Filaments contract root is missing required path \(path).")
+            }
+        }
+        return root
+    }
+}
+
 struct LocalLLMEndpointPolicyContract: Decodable {
     let hostPolicyRows: [LocalLLMHostPolicyRow]
     let originPairs: [LocalLLMOriginPair]
 
-    static func load(file: StaticString = #filePath) throws -> Self {
-        var directory = URL(fileURLWithPath: "\(file)").deletingLastPathComponent()
-        for _ in 0 ..< 12 {
-            let candidate = directory.appendingPathComponent("api-fixtures/v1/local-llm-endpoint-policy.json")
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return try JSONDecoder().decode(Self.self, from: Data(contentsOf: candidate))
-            }
-            directory.deleteLastPathComponent()
-        }
-        throw LocalLLMEndpointPolicyError.invalid("Could not locate local-llm-endpoint-policy.json")
+    static func load() throws -> Self {
+        let contract = try FilamentsContractRoot.url()
+            .appendingPathComponent("api-fixtures/v1/local-llm-endpoint-policy.json")
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: contract))
     }
 
     func hostPolicyRows(for consumer: String) -> [LocalLLMHostPolicyRow] {

@@ -3,6 +3,54 @@ import XCTest
 
 // Duplicated across Swift test targets so each package stays independently testable.
 
+enum FilamentsContractRoot {
+    static let environmentKey = "VOUCHA_FILAMENTS_CONTRACT_ROOT"
+
+    static func url(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        requiredPaths: [String] = []
+    ) throws -> URL {
+        guard
+            let value = environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !value.isEmpty
+        else {
+            throw FilamentsContractRootError.missingEnvironment(environmentKey)
+        }
+
+        let root = URL(fileURLWithPath: value).standardizedFileURL
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw FilamentsContractRootError.invalidRoot(root.path)
+        }
+
+        for requiredPath in requiredPaths {
+            let candidate = root.appendingPathComponent(requiredPath)
+            guard FileManager.default.fileExists(atPath: candidate.path) else {
+                throw FilamentsContractRootError.missingPath(requiredPath)
+            }
+        }
+
+        return root
+    }
+}
+
+enum FilamentsContractRootError: Error, CustomStringConvertible {
+    case missingEnvironment(String)
+    case invalidRoot(String)
+    case missingPath(String)
+
+    var description: String {
+        switch self {
+        case let .missingEnvironment(key):
+            "Missing required \(key). Fetch Filaments contracts before running native contract tests."
+        case let .invalidRoot(path):
+            "\(FilamentsContractRoot.environmentKey) must name an existing directory, got \(path)."
+        case let .missingPath(path):
+            "Filaments contract root is missing required path \(path)."
+        }
+    }
+}
+
 enum ApiFixtureLoader {
     static func data(
         _ id: String,
@@ -38,8 +86,8 @@ enum ApiFixtureLoader {
 
     private static let manifest: [ApiFixtureManifestEntry] = {
         guard
-            let url = ancestorPath(withRelativePath: "api-fixtures/v1/manifest.json", startingFrom: #filePath),
-            let data = try? Data(contentsOf: url),
+            let root = try? FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"]),
+            let data = try? Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/manifest.json")),
             let decoded = try? JSONDecoder().decode(ApiFixtureManifest.self, from: data)
         else {
             XCTFail("Could not load api-fixtures/v1/manifest.json")
@@ -53,52 +101,18 @@ enum ApiFixtureLoader {
         file: StaticString,
         line: UInt
     ) -> URL {
-        if let found = ancestorPath(withRelativePath: "api-fixtures/v1/\(bodyFile)", startingFrom: file) {
-            return found
+        do {
+            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+            let fixture = root.appendingPathComponent("api-fixtures/v1/\(bodyFile)")
+            guard FileManager.default.fileExists(atPath: fixture.path) else {
+                throw FilamentsContractRootError.missingPath("api-fixtures/v1/\(bodyFile)")
+            }
+            return fixture
+        } catch {
+            XCTFail("Could not load API fixture \(bodyFile): \(error)", file: file, line: line)
         }
-
-        XCTFail("Could not locate repo root for API fixture \(bodyFile)", file: file, line: line)
         return FileManager.default.temporaryDirectory
             .appendingPathComponent("missing-api-fixture-\(UUID().uuidString).json")
-    }
-
-    private static func ancestorPath(withRelativePath relativePath: String, startingFrom file: StaticString) -> URL? {
-        for root in repoRootCandidates(startingFrom: file) {
-            let candidate = root.appendingPathComponent(relativePath)
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return candidate
-            }
-        }
-        return nil
-    }
-
-    private static func repoRootCandidates(startingFrom file: StaticString) -> [URL] {
-        let filePath = "\(file)"
-        var roots: [URL] = []
-
-        if let githubWorkspace = ProcessInfo.processInfo.environment["GITHUB_WORKSPACE"] {
-            roots.append(URL(fileURLWithPath: githubWorkspace))
-        }
-
-        let currentDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        roots.append(currentDirectory)
-        roots.append(contentsOf: ancestors(of: currentDirectory))
-
-        let fileURL = URL(fileURLWithPath: filePath, relativeTo: currentDirectory).standardizedFileURL
-        roots.append(fileURL.deletingLastPathComponent())
-        roots.append(contentsOf: ancestors(of: fileURL.deletingLastPathComponent()))
-
-        return roots
-    }
-
-    private static func ancestors(of url: URL) -> [URL] {
-        var directory = url
-        var result: [URL] = []
-        for _ in 0 ..< 16 {
-            directory.deleteLastPathComponent()
-            result.append(directory)
-        }
-        return result
     }
 }
 

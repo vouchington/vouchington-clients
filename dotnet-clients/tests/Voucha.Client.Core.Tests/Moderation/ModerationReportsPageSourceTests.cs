@@ -27,7 +27,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void ReportsPageRendersErrorState()
   {
-    var root = RepoRoot();
+    var root = ClientRepositoryRoot();
     var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
     var cards = CardsSource();
 
@@ -39,7 +39,7 @@ public sealed class ModerationReportsPageSourceTests
   public void BulkActionsRequireConfirmationBeforeMutation()
   {
     var actions = Source(
-        RepoRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs");
+        ClientRepositoryRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs");
 
     var confirmation = actions.IndexOf("DisplayAlertAsync", StringComparison.Ordinal);
     var mutation = actions.IndexOf("await action().ConfigureAwait(true)", StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void GroupedRenderingUsesActiveReportsAndEligibleActions()
   {
-    var root = RepoRoot();
+    var root = ClientRepositoryRoot();
     var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
     var cards = CardsSource();
     var actions = Source(
@@ -71,7 +71,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void MauiReportsRouteUsesDedicatedNativeTriageSurface()
   {
-    var root = RepoRoot();
+    var root = ClientRepositoryRoot();
     var route = Source(root, "dotnet-clients/src/Voucha.Client.App/AppShell.ModerationRoutes.cs");
     var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
     var cards = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs");
@@ -110,7 +110,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void ModePickerUsesTypedOptionsAndSafeMapping()
   {
-    var root = RepoRoot();
+    var root = ClientRepositoryRoot();
     var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
     var filters = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Filters.cs");
 
@@ -126,17 +126,17 @@ public sealed class ModerationReportsPageSourceTests
       File.ReadAllText(Path.Combine(root, relativePath));
 
   private static string CardsSource() => Source(
-      RepoRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs");
+      ClientRepositoryRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs");
 
-  private static string RepoRoot([CallerFilePath] string sourcePath = "")
+  private static string ClientRepositoryRoot([CallerFilePath] string sourcePath = "")
   {
     DirectoryInfo? directory = new(Path.GetDirectoryName(sourcePath)!);
     while (directory is not null)
     {
-      if (File.Exists(Path.Combine(directory.FullName, "api-fixtures", "v1", "manifest.json")))
+      if (File.Exists(Path.Combine(directory.FullName, "dotnet-clients", "Voucha.DotNet.sln")))
         return directory.FullName;
       directory = directory.Parent;
     }
-    throw new DirectoryNotFoundException("Could not find repository root from source path.");
+    throw new DirectoryNotFoundException("Could not find client repository root from source path.");
   }
 }
