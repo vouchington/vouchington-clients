@@ -1,0 +1,65 @@
+name: Validate
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet-core:
+    name: .NET core build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Check changed lines
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git diff --check "$BASE_SHA...HEAD"
+      - name: Restore locked dependencies
+        working-directory: dotnet-clients
+        run: dotnet restore tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --locked-mode
+      - name: Build core client
+        working-directory: dotnet-clients
+        run: dotnet build tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --configuration Release --no-restore
+
+  swift-core:
+    name: Swift manifest
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate core package manifest
+        run: swift package --package-path swift-clients/core dump-package >/dev/null
+
+  validate:
+    name: validate
+    if: always()
+    needs: [dotnet-core, swift-core]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require client validation
+        env:
+          DOTNET_RESULT: ${{ needs.dotnet-core.result }}
+          SWIFT_RESULT: ${{ needs.swift-core.result }}
+        run: |
+          set -euo pipefail
+          [ "$DOTNET_RESULT" = success ] || { echo "::error::.NET core validation failed."; exit 1; }
+          [ "$SWIFT_RESULT" = success ] || { echo "::error::Swift core validation failed."; exit 1; }
