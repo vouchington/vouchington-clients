@@ -2,14 +2,5 @@
   "schemaVersion": 1,
   "repository": "jonathanong/filaments",
   "ref": "main",
-  "paths": [
-    {
-      "source": "api-fixtures/v1",
-      "destination": "api-fixtures/v1"
-    },
-    {
-      "source": "client-contracts/v1/native-localization",
-      "destination": "native-localization"
-    }
-  ]
+  "paths": ["api-fixtures/v1", "client-contracts/v1/native-localization"]
 }

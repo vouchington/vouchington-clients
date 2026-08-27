@@ -6,10 +6,7 @@ import test from 'node:test'
 
 import { checkContracts, syncContracts, verifyContract } from '../scripts/contracts.mjs'
 
-const paths = [
-  { source: 'api-fixtures/v1', destination: 'api-fixtures/v1' },
-  { source: 'client-contracts/v1/native-localization', destination: 'native-localization' },
-]
+const paths = ['api-fixtures/v1', 'client-contracts/v1/native-localization']
 
 async function writeTree(root, files) {
   for (const [path, contents] of Object.entries(files)) {
@@ -56,10 +53,23 @@ async function fixture() {
 
 test('requires an explicit Filaments checkout root', async () => {
   const previous = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  const ancestor = await mkdtemp(join(tmpdir(), 'voucha-contract-ancestor-'))
+  await writeTree(ancestor, {
+    'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'client-contracts/v1/native-localization/swift/UiMessageKey.swift':
+      'public enum UiMessageKey {}\n',
+    'client-contracts/v1/native-localization/dotnet/UiMessageKey.g.cs':
+      'public enum UiMessageKey {}\n',
+  })
+  const nested = join(ancestor, 'nested', 'client')
+  await mkdir(nested, { recursive: true })
+  const previousDirectory = process.cwd()
   delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
   try {
+    process.chdir(nested)
     await assert.rejects(verifyContract(), /VOUCHA_FILAMENTS_CONTRACT_ROOT is required/)
   } finally {
+    process.chdir(previousDirectory)
     if (previous === undefined) delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
     else process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT = previous
   }

@@ -70,6 +70,89 @@ final class ApiFixtureLoaderTests: XCTestCase {
         }
     }
 
+    func testContractRootNeverDiscoversFilamentsLookingAncestorOrSiblingWithoutEnvironment() throws {
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
+        let ancestor = temporaryRoot.appendingPathComponent("filaments", isDirectory: true)
+        let sibling = temporaryRoot.appendingPathComponent("filaments-sibling", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: temporaryRoot) }
+
+        for root in [ancestor, sibling] {
+            let fixtures = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+            try FileManager.default.createDirectory(at: fixtures, withIntermediateDirectories: true)
+            try Data("{\"fixtures\":[]}".utf8).write(to: fixtures.appendingPathComponent("manifest.json"))
+        }
+
+        XCTAssertThrowsError(try FilamentsContractRoot.url(environment: [:])) { error in
+            XCTAssertEqual(
+                String(describing: error),
+                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+            )
+        }
+    }
+
+    func testFixtureBodyFileRejectsAbsoluteAndTraversalPaths() throws {
+        let root = try makeFixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        for path in [
+            "/outside.json",
+            "../outside.json",
+            "nested/../../outside.json",
+            "./fixture.json",
+            "nested//fixture.json"
+        ] {
+            XCTAssertThrowsError(try ApiFixtureLoader.fixtureURL(path, root: root), path) { error in
+                XCTAssertTrue(String(describing: error).contains("must be a relative path"))
+            }
+        }
+    }
+
+    func testFixtureBodyFileRejectsSymbolicLinkComponentsAndFiles() throws {
+        let root = try makeFixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+        let outside = root.appendingPathComponent("outside.json")
+        try Data("{}".utf8).write(to: outside)
+        try FileManager.default.createSymbolicLink(
+            at: fixtureRoot.appendingPathComponent("linked-directory"),
+            withDestinationURL: root
+        )
+        try FileManager.default.createSymbolicLink(
+            at: fixtureRoot.appendingPathComponent("linked-file.json"),
+            withDestinationURL: outside
+        )
+
+        for path in ["linked-directory/outside.json", "linked-file.json"] {
+            XCTAssertThrowsError(try ApiFixtureLoader.fixtureURL(path, root: root), path) { error in
+                XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+            }
+        }
+    }
+
+    func testFixtureBodyFileRejectsSymbolicLinkedConfiguredRoot() throws {
+        let root = try makeFixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let configuredRoot = root.appendingPathComponent("configured-root", isDirectory: true)
+        try FileManager.default.createSymbolicLink(at: configuredRoot, withDestinationURL: root)
+
+        XCTAssertThrowsError(try ApiFixtureLoader.fixtureURL("fixture.json", root: configuredRoot)) { error in
+            XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+        }
+    }
+
+    private func makeFixtureRoot() throws -> URL {
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
+        let fixtureRoot = temporaryRoot.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+        try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
+        try Data("{\"fixtures\":[]}".utf8).write(to: fixtureRoot.appendingPathComponent("manifest.json"))
+        try Data("{}".utf8).write(to: fixtureRoot.appendingPathComponent("fixture.json"))
+        return temporaryRoot
+    }
+
     func testMissingFixtureReportsFailureAndReturnsFallbackData() {
         XCTExpectFailure("Missing API fixtures should report XCTest failures and return fallback data.") {
             XCTAssertEqual(

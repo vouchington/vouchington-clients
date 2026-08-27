@@ -1,12 +1,9 @@
-import { cp, lstat, readdir, readFile, rm } from 'node:fs/promises'
-import { join, relative, resolve } from 'node:path'
+import { cp, lstat, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const declaredPaths = [
-  { source: 'api-fixtures/v1', destination: 'api-fixtures/v1' },
-  { source: 'client-contracts/v1/native-localization', destination: 'native-localization' },
-]
+const declaredPaths = ['api-fixtures/v1', 'client-contracts/v1/native-localization']
 const localizationTargets = [
   {
     source: 'client-contracts/v1/native-localization/swift',
@@ -75,10 +72,7 @@ async function contractRoot({
   )
     fail('contract configuration does not match the client contract')
   for (const path of declaredPaths)
-    await filesUnder(
-      join(checkoutRoot, path.source),
-      `declared Filaments contract source ${path.source}`,
-    )
+    await filesUnder(join(checkoutRoot, path), `declared Filaments contract source ${path}`)
   return checkoutRoot
 }
 
@@ -116,8 +110,15 @@ export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
   for (const target of options.targets ?? localizationTargets) {
     await directory(target.destination, 'generated localization target')
-    await rm(target.destination, { recursive: true })
-    await cp(join(root, target.source), target.destination, { recursive: true, dereference: false })
+    const stagingRoot = await mkdtemp(join(dirname(target.destination), '.contracts-stage-'))
+    const staged = join(stagingRoot, 'generated')
+    try {
+      await cp(join(root, target.source), staged, { recursive: true, dereference: false })
+      await rm(target.destination, { recursive: true })
+      await rename(staged, target.destination)
+    } finally {
+      await rm(stagingRoot, { recursive: true, force: true })
+    }
   }
 }
 

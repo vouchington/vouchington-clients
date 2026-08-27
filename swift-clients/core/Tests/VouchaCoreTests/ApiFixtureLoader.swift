@@ -38,6 +38,8 @@ enum FilamentsContractRootError: Error, CustomStringConvertible {
     case missingEnvironment(String)
     case invalidRoot(String)
     case missingPath(String)
+    case invalidFixturePath(String)
+    case symbolicLink(String)
 
     var description: String {
         switch self {
@@ -47,6 +49,10 @@ enum FilamentsContractRootError: Error, CustomStringConvertible {
             "\(FilamentsContractRoot.environmentKey) must name an existing directory, got \(path)."
         case let .missingPath(path):
             "Filaments contract root is missing required path \(path)."
+        case let .invalidFixturePath(path):
+            "API fixture bodyFile must be a relative path beneath api-fixtures/v1, got \(path)."
+        case let .symbolicLink(path):
+            "API fixture paths must not contain symbolic links, found \(path)."
         }
     }
 }
@@ -116,8 +122,8 @@ enum ApiFixtureLoader {
 
     private static let manifest: [ApiFixtureManifestEntry] = {
         guard
-            let root = try? FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"]),
-            let data = try? Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/manifest.json")),
+            let manifestURL = try? fixtureURL("manifest.json"),
+            let data = try? Data(contentsOf: manifestURL),
             let decoded = try? JSONDecoder().decode(ApiFixtureManifest.self, from: data)
         else {
             XCTFail("Could not load api-fixtures/v1/manifest.json")
@@ -126,24 +132,76 @@ enum ApiFixtureLoader {
         return decoded.fixtures
     }()
 
-    private static func fixtureURL(
+    static func fixtureURL(
         _ bodyFile: String,
         file: StaticString,
         line: UInt
     ) -> URL {
         do {
-            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-            let fixture = root.appendingPathComponent("api-fixtures/v1/\(bodyFile)")
-            guard FileManager.default.fileExists(atPath: fixture.path) else {
-                throw FilamentsContractRootError.missingPath("api-fixtures/v1/\(bodyFile)")
-            }
-            return fixture
+            return try fixtureURL(bodyFile)
         } catch {
             XCTFail("Could not load API fixture \(bodyFile): \(error)", file: file, line: line)
         }
 
         return FileManager.default.temporaryDirectory
             .appendingPathComponent("missing-api-fixture-\(UUID().uuidString).json")
+    }
+
+    static func fixtureURL(_ bodyFile: String) throws -> URL {
+        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+        return try fixtureURL(bodyFile, root: root)
+    }
+
+    static func fixtureURL(_ bodyFile: String, root: URL) throws -> URL {
+        guard isRelativeFixturePath(bodyFile) else {
+            throw FilamentsContractRootError.invalidFixturePath(bodyFile)
+        }
+
+        let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+        let fixture = fixtureRoot.appendingPathComponent(bodyFile)
+        let components = ["api-fixtures", "v1"] + bodyFile.split(separator: "/").map(String.init)
+        try rejectSymbolicLinks(beneath: root, components: components)
+
+        guard FileManager.default.fileExists(atPath: fixture.path) else {
+            throw FilamentsContractRootError.missingPath("api-fixtures/v1/\(bodyFile)")
+        }
+
+        let resolvedRoot = fixtureRoot.resolvingSymlinksInPath().standardizedFileURL
+        let resolvedFixture = fixture.resolvingSymlinksInPath().standardizedFileURL
+        guard isDescendant(resolvedFixture, of: resolvedRoot) else {
+            throw FilamentsContractRootError.invalidFixturePath(bodyFile)
+        }
+        return fixture
+    }
+
+    private static func isRelativeFixturePath(_ path: String) -> Bool {
+        !path.isEmpty &&
+            !path.hasPrefix("/") &&
+            !path.hasPrefix("\\") &&
+            path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component in
+                !component.isEmpty && component != "." && component != ".."
+            }
+    }
+
+    private static func rejectSymbolicLinks(beneath root: URL, components: [String]) throws {
+        if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
+            throw FilamentsContractRootError.symbolicLink(root.path)
+        }
+
+        var candidate = root
+        for component in components {
+            candidate.appendPathComponent(component)
+            if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
+                throw FilamentsContractRootError.symbolicLink(candidate.path)
+            }
+        }
+    }
+
+    private static func isDescendant(_ candidate: URL, of root: URL) -> Bool {
+        let rootComponents = root.pathComponents
+        let candidateComponents = candidate.pathComponents
+        return candidateComponents.count > rootComponents.count &&
+            candidateComponents.starts(with: rootComponents)
     }
 }
 

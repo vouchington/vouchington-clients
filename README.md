@@ -5,8 +5,8 @@ This repository contains the Swift and .NET native clients for Voucha.
 ## Filaments contracts
 
 The native clients consume a deliberately narrow contract from the private
-[`jonathanong/filaments`](https://github.com/jonathanong/filaments) repository. The allowlist in
-[`contracts/filaments.json`](contracts/filaments.json) is the only cross-repository input:
+[`jonathanong/filaments`](https://github.com/jonathanong/filaments) repository. The source-path
+allowlist in [`contracts/filaments.json`](contracts/filaments.json) is the only cross-repository input:
 `api-fixtures/v1` and the native-localization bundle.
 
 `VOUCHA_FILAMENTS_CONTRACT_ROOT` is required for every command and explicitly identifies a full

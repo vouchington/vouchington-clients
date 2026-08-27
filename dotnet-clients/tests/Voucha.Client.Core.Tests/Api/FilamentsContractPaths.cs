@@ -23,9 +23,65 @@ internal static class FilamentsContractPaths
           $"{ContractRootEnvironmentVariable} must contain api-fixtures/v1: {root}");
     }
 
+    RejectSymbolicLink(root);
+    RejectSymbolicLink(Path.Combine(root, "api-fixtures"));
+    RejectSymbolicLink(apiFixturesRoot);
     return apiFixturesRoot;
   }
 
   internal static string ApiFixture(string relativePath) =>
-      Path.Combine(ApiFixturesV1Root(), relativePath);
+      ApiFixtureAtRoot(ApiFixturesV1Root(), relativePath);
+
+  internal static string ApiFixture(string contractRoot, string relativePath) =>
+      ApiFixtureAtRoot(ApiFixturesV1Root(contractRoot), relativePath);
+
+  private static string ApiFixtureAtRoot(string apiFixturesRoot, string relativePath)
+  {
+    var segments = FixturePathSegments(relativePath);
+    var fixturePath = Path.GetFullPath(Path.Combine([apiFixturesRoot, .. segments]));
+    if (!IsDescendant(apiFixturesRoot, fixturePath))
+    {
+      throw new InvalidOperationException($"Fixture path escapes api-fixtures/v1: {relativePath}");
+    }
+
+    var current = apiFixturesRoot;
+    foreach (var segment in segments)
+    {
+      current = Path.Combine(current, segment);
+      RejectSymbolicLink(current);
+    }
+
+    return fixturePath;
+  }
+
+  private static string[] FixturePathSegments(string relativePath)
+  {
+    if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath))
+    {
+      throw new InvalidOperationException($"Fixture path must be relative: {relativePath}");
+    }
+
+    var segments = relativePath.Split(['/', '\\'], StringSplitOptions.None);
+    if (segments.Any(segment =>
+            string.IsNullOrEmpty(segment) || segment is "." or ".." || segment.Contains(':')))
+    {
+      throw new InvalidOperationException($"Fixture path contains an unsafe segment: {relativePath}");
+    }
+
+    return segments;
+  }
+
+  private static bool IsDescendant(string root, string path)
+  {
+    var relative = Path.GetRelativePath(root, path);
+    return relative is not ".." && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+  }
+
+  private static void RejectSymbolicLink(string path)
+  {
+    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+    {
+      throw new InvalidOperationException($"Fixture path contains a symbolic link: {path}");
+    }
+  }
 }
