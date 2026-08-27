@@ -156,6 +156,8 @@ jobs:
             artifact: opencode-zen
             enabled: ${{ vars.OPENCODE_ZEN_CODE_REVIEW_ENABLED }}
             model: ${{ vars.OPENCODE_ZEN_CODE_REVIEW_MODEL }}
+    # The required gate waits for this attempt but never requires provider success.
+    continue-on-error: true
     runs-on: [self-hosted, Linux]
     timeout-minutes: 35
     permissions:
@@ -247,7 +249,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SELECT_RESULT: ${{ needs.select-final-review.result }}
           SETTINGS_RESULT: ${{ needs.validate-review-settings.result }}
-          PROVIDER_RESULT: ${{ needs.provider-review.result }}
           MODE: ${{ needs.select-final-review.outputs.mode }}
           PR_NUMBER: ${{ needs.select-final-review.outputs.pr_number }}
           SELECTED_HEAD_SHA: ${{ needs.select-final-review.outputs.head_sha }}
@@ -261,9 +262,7 @@ jobs:
             *) echo "::error::Unknown final review mode: $MODE"; exit 1 ;;
           esac
           [ "$SETTINGS_RESULT" = success ] || { echo '::error::Code review settings are invalid.'; exit 1; }
-          [ "$PROVIDER_RESULT" = success ] || {
-            echo '::error::Provider orchestration did not complete.'
-            exit 1
-          }
           current="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)"
           [ "$current" = "$SELECTED_HEAD_SHA" ] || { echo '::error::PR head changed before completion.'; exit 1; }
+          echo '::notice::Provider and poster outcomes are advisory; exact-head validation and orchestration are authoritative.'
+          echo 'Provider and poster outcomes are advisory; exact-head validation and orchestration are authoritative.' >> "$GITHUB_STEP_SUMMARY"
