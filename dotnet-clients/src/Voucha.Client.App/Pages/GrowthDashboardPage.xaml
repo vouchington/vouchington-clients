@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.GrowthDashboardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:growth="clr-namespace:Voucha.Client.Core.Growth;assembly=Voucha.Client.Core"
+    Title="{DynamicResource native.swift.navigationTitles.growth}"
+    x:DataType="growth:GrowthDashboardViewModel">
+  <Grid RowDefinitions="Auto,*" Padding="16" RowSpacing="16">
+    <HorizontalStackLayout Spacing="8">
+      <Button Text="{DynamicResource native.swift.growthDashboard.today}" Clicked="OnTodayClicked" />
+      <Button Text="{DynamicResource native.swift.growthDashboard.message7d}" Clicked="OnSevenDaysClicked" />
+      <Button Text="{DynamicResource native.swift.growthDashboard.message30d}" Clicked="OnThirtyDaysClicked" />
+      <Button Text="{DynamicResource native.swift.growthDashboard.message90d}" Clicked="OnNinetyDaysClicked" />
+      <Button Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" />
+    </HorizontalStackLayout>
+
+    <RefreshView Grid.Row="1" IsRefreshing="{Binding IsLoading}" Refreshing="OnRefresh">
+      <ScrollView>
+        <VerticalStackLayout Spacing="12">
+          <Border IsVisible="{Binding HasError}" Stroke="#D92D20" StrokeThickness="1" Padding="12">
+            <Label Text="{Binding ErrorMessage}" TextColor="#B42318" />
+          </Border>
+          <CollectionView ItemsSource="{Binding Rows}" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+              <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="growth:GrowthMetricRow">
+                <Border Stroke="#D0D5DD" StrokeThickness="1" Padding="12">
+                  <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding Group}" FontSize="12" TextColor="#667085" />
+                    <Label Text="{Binding Label}" FontSize="13" TextColor="#475467" />
+                    <Label Text="{app:UiLocalizedValue Path=Value, Format=number}" FontSize="22" FontAttributes="Bold" />
+                    <Label Text="{Binding Detail}" FontSize="12" TextColor="#667085" />
+                  </VerticalStackLayout>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </ScrollView>
+    </RefreshView>
+  </Grid>
+</ContentPage>

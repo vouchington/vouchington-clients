@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.PostDetailPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    xmlns:hn="clr-namespace:Voucha.Client.Core.HnDiscussions;assembly=Voucha.Client.Core"
+    x:DataType="pages:PostDetailPageBinding"
+    Title="{DynamicResource native.dotnet.posts.post}">
+    <ContentPage.Resources>
+        <pages:FollowerDistributionVisibilityConverter x:Key="FollowerDistributionVisibilityConverter" />
+    </ContentPage.Resources>
+    <ScrollView
+        x:Name="PostDetailScroll"
+        Loaded="OnPostDetailViewportChanged"
+        Scrolled="OnPostDetailScrolled"
+        SizeChanged="OnPostDetailViewportChanged">
+        <VerticalStackLayout Padding="20" Spacing="16" SizeChanged="OnPostDetailViewportChanged">
+            <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1" IsVisible="{Binding HasRoot}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding RootRow.LocalizedTitle}" Style="{StaticResource Headline}" />
+                    <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
+                    <controls:NativeHtmlContentView Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" />
+                    <HorizontalStackLayout Spacing="10" IsVisible="{Binding RootRow.CanInteractWithVotes}">
+                        <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanCreateVote}" MinimumHeightRequest="44" />
+                        <Label Text="{Binding RootRow.VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                        <Label Text="{Binding RootRow.VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                        <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVoteClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanClearVote}" MinimumHeightRequest="44" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource native.swift.commentThreadActionRow.reply}" Clicked="OnReplyClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanReply}" />
+                        <Button Text="{DynamicResource native.swift.commentThreadActionRow.quote}" Clicked="OnQuoteClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanReply}" />
+                        <Button Text="{DynamicResource native.dotnet.postDetail.permalink}" Clicked="OnCopyPermalinkTextClicked" CommandParameter="{Binding RootRow}" />
+                        <Button Text="{DynamicResource native.dotnet.postDetail.path}" Clicked="OnCopyPermalinkPathClicked" CommandParameter="{Binding RootRow}" />
+                        <Button Text="{DynamicResource common.save}" Clicked="OnSaveClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanSave}" />
+                        <Button Text="{DynamicResource native.swift.commentThreadActionRow.report}" Clicked="OnReportClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanReport}" />
+                        <Button Text="{DynamicResource native.swift.common.edit}" Clicked="OnEditClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanEdit}" />
+                        <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanDelete}" />
+                        <Button Text="{DynamicResource native.dotnet.postDetail.lock}" Clicked="OnLockToggleClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanLock}" />
+                        <Button Text="{DynamicResource native.swift.followerDistribution.actions}" Clicked="OnFollowerSendClicked" CommandParameter="{Binding RootRow}">
+                            <Button.IsVisible>
+                                <MultiBinding Converter="{StaticResource FollowerDistributionVisibilityConverter}">
+                                    <Binding Path="RootRow.IsEligibleForFollowerDistribution" />
+                                    <Binding Path="CanCompose" />
+                                    <Binding Path="RootRow.Post.CreatedById" />
+                                    <Binding Path="CurrentUserId" />
+                                </MultiBinding>
+                            </Button.IsVisible>
+                        </Button>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding HnDiscussions.HasThreads}">
+                <Label Text="{Binding HnDiscussions.LocalizedHeading}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding HnDiscussions.Threads}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="hn:HnDiscussionRow">
+                            <VerticalStackLayout Padding="0,0,0,8" Spacing="2">
+                                <Button Text="{Binding Title}" Clicked="OnHnDiscussionClicked" CommandParameter="{Binding .}" />
+                                <Label Text="{Binding LocalizedMetadata}" Style="{StaticResource Metadata}" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasAncestors}">
+                <Label Text="{DynamicResource native.swift.commentThread.ancestorChain}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding AncestorRows}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="pages:PostDetailPageRow">
+                            <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
+                                <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Body}" />
+                                <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="{DynamicResource native.swift.commentThread.comments}" Style="{StaticResource Headline}" VerticalTextAlignment="Center" />
+                <Picker Title="{DynamicResource native.swift.commentThread.sort}" SelectedItem="{Binding Sort}" WidthRequest="120">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>best</x:String>
+                            <x:String>new</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+            </HorizontalStackLayout>
+
+            <CollectionView ItemsSource="{Binding CommentRows}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:PostDetailPageRow">
+                        <Border Margin="{Binding Indent}" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" />
+                                    <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                </HorizontalStackLayout>
+                                <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" />
+                                <HorizontalStackLayout Spacing="10">
+                                    <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanCreateVote}" MinimumHeightRequest="44" />
+                                    <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanClearVote}" MinimumHeightRequest="44" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{DynamicResource native.swift.commentThreadActionRow.reply}" Clicked="OnReplyClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanReply}" />
+                                    <Button Text="{DynamicResource native.swift.commentThreadActionRow.quote}" Clicked="OnQuoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanReply}" />
+                                    <Button Text="{DynamicResource native.dotnet.postDetail.permalink}" Clicked="OnCopyPermalinkTextClicked" CommandParameter="{Binding .}" />
+                                    <Button Text="{DynamicResource native.dotnet.postDetail.path}" Clicked="OnCopyPermalinkPathClicked" CommandParameter="{Binding .}" />
+                                    <Button Text="{DynamicResource common.save}" Clicked="OnSaveClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanSave}" />
+                                    <Button Text="{DynamicResource native.swift.commentThreadActionRow.report}" Clicked="OnReportClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanReport}" />
+                                    <Button Text="{DynamicResource native.swift.common.edit}" Clicked="OnEditClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanEdit}" />
+                                    <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanDelete}" />
+                                    <Button Text="{DynamicResource native.dotnet.postDetail.lock}" Clicked="OnLockToggleClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanLock}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <controls:HybridPaginationControl
+                x:Name="DescendantsPagination"
+                PaginationId="post-descendants"
+                HasMore="{Binding HasMoreDescendants}"
+                IsLoading="{Binding IsLoadingMoreDescendants}"
+                HasError="{Binding HasDescendantPaginationError}"
+                LoadNextPageRequested="OnLoadMoreDescendantsRequested" />
+
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextColor="#991B1B" Style="{StaticResource Metadata}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

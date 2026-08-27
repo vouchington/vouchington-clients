@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ProfilePage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:landing="clr-namespace:Voucha.Client.Core.LandingPages;assembly=Voucha.Client.Core"
+    xmlns:posts="clr-namespace:Voucha.Client.Core.Posts;assembly=Voucha.Client.Core"
+    xmlns:profiles="clr-namespace:Voucha.Client.Core.Profiles;assembly=Voucha.Client.Core"
+    xmlns:friends="clr-namespace:Voucha.Client.Core.Friends;assembly=Voucha.Client.Core"
+    xmlns:topics="clr-namespace:Voucha.Client.Core.Topics;assembly=Voucha.Client.Core"
+    xmlns:communities="clr-namespace:Voucha.Client.Core.Communities;assembly=Voucha.Client.Core"
+    x:DataType="profiles:ProfileViewModel"
+    Title="{DynamicResource nav.profile}">
+    <ScrollView
+        x:Name="ProfileScroll"
+        Loaded="OnProfileViewportChanged"
+        Scrolled="OnProfileScrolled"
+        SizeChanged="OnProfileViewportChanged">
+        <VerticalStackLayout Padding="20" Spacing="18" SizeChanged="OnProfileViewportChanged">
+            <Grid ColumnDefinitions="96,*" ColumnSpacing="16">
+                <Border HeightRequest="96" WidthRequest="96" Stroke="#D8DEE9" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <Image Source="{Binding AvatarUrl}" Aspect="AspectFill" />
+                </Border>
+                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <Label Text="{Binding DisplayName}" Style="{StaticResource Headline}" />
+                    <Label Text="{Binding UsernameLabel}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+                        <Button Text="{DynamicResource native.dotnet.dynamic.follow}" Clicked="OnFollowUserClicked" IsVisible="{Binding CanFollowUser}" />
+                        <Button Text="{DynamicResource native.dotnet.dynamic.unfollow}" Clicked="OnFollowUserClicked" IsVisible="{Binding CanUnfollowUser}" />
+                        <Button Text="{DynamicResource native.dotnet.profile.uploadAvatar}" Clicked="OnUploadAvatarClicked" IsVisible="{Binding CanEdit}" />
+                        <Button Text="{DynamicResource native.dotnet.profile.removeAvatar}" Clicked="OnRemoveAvatarClicked" IsVisible="{Binding CanEdit}" />
+                        <Button Text="{DynamicResource native.swift.identityVerification.admin}" Clicked="OnUserAdminClicked" IsVisible="{Binding CanViewAdminLandingPages}" AutomationId="user-profile-admin" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Grid>
+
+            <FlexLayout BindableLayout.ItemsSource="{Binding PrimaryTabs}" Direction="Row" Wrap="Wrap" IsVisible="{Binding Source={x:Reference PageRoot}, Path=IsPublicProfile}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfileScopeTabRow">
+                        <VerticalStackLayout IsVisible="{Binding IsVisible}" Margin="0,0,8,8" Spacing="2">
+                            <Button Text="{Binding Label}" CommandParameter="{Binding .}" Clicked="OnProfileScopeClicked" />
+                            <Label Text="{DynamicResource native.dotnet.profile.selected}" IsVisible="{Binding IsSelected}" Style="{StaticResource Metadata}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+            <FlexLayout BindableLayout.ItemsSource="{Binding ContextualTabs}" Direction="Row" Wrap="Wrap">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfileScopeTabRow">
+                        <VerticalStackLayout IsVisible="{Binding IsVisible}" Margin="0,0,8,8" Spacing="2">
+                            <Button Text="{Binding Label}" CommandParameter="{Binding .}" Clicked="OnProfileScopeClicked" />
+                            <Label Text="{DynamicResource native.dotnet.profile.selected}" IsVisible="{Binding IsSelected}" Style="{StaticResource Metadata}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverviewScope}">
+                <Label Text="{DynamicResource native.swift.profile.bio}" Style="{StaticResource Headline}" />
+                <controls:NativeHtmlContentView
+                    Html="{Binding BioHtml}"
+                    Fallback="{Binding BioMarkdown}"
+                    IsVisible="{Binding Source={x:Reference PageRoot}, Path=IsPublicProfile}" />
+                <controls:NativeMarkdownEditorView
+                    x:Name="BioMarkdownEditor"
+                    Markdown="{Binding BioMarkdown}"
+                    IsVisible="{Binding CanEdit}" />
+                <Button Text="{DynamicResource native.dotnet.profile.saveBio}" Clicked="OnSaveBioClicked" IsVisible="{Binding CanEdit}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding CanActOnUser}">
+                <Label Text="{DynamicResource native.dotnet.profile.userSafety}" Style="{StaticResource Headline}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{Binding MuteUserButtonText}" Clicked="OnMuteUserClicked" />
+                    <Button Text="{Binding BlockUserButtonText}" Clicked="OnBlockUserClicked" />
+                    <Button Text="{DynamicResource native.swift.commentThreadActionRow.report}" Clicked="OnReportUserClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding CanVoteUserTrust}">
+                <Label Text="{DynamicResource extracted.votes.semanticVote.vote}" Style="{StaticResource Headline}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnUserTrustVoteClicked" MinimumHeightRequest="44" IsVisible="{Binding CanCreateUserTrustVote}" />
+                    <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearUserTrustVoteClicked" MinimumHeightRequest="44" IsVisible="{Binding CanClearUserTrustVote}" />
+                </HorizontalStackLayout>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding LocalizedPositiveSignalsFromFollowing}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding LocalizedNegativeSignalsFromFollowing}" Style="{StaticResource Metadata}" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding CanViewUserTags}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="{DynamicResource native.swift.detail.userTags}" Style="{StaticResource Headline}" />
+                    <Button Grid.Column="1" Text="{DynamicResource native.swift.common.manage}" Clicked="OnManageUserTagsClicked" />
+                </Grid>
+                <CollectionView ItemsSource="{Binding UserTags}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="profiles:ProfileUserTagRow">
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding Title}" Style="{StaticResource Body}" />
+                                <Label Grid.Column="1" Text="{Binding VoteCountUp}" VerticalTextAlignment="Center" />
+                                <Label Grid.Column="2" Text="{Binding VoteCountDown}" VerticalTextAlignment="Center" />
+                                <Button Grid.Column="3" Text="{DynamicResource extracted.votes.semanticVote.vote}" CommandParameter="{Binding .}" Clicked="OnUserTagVoteClicked" IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanCreateUserTagVotes}" MinimumHeightRequest="44" />
+                                <Button Grid.Column="4" Text="{DynamicResource extracted.votes.semanticVote.clear}" CommandParameter="{Binding .}" Clicked="OnClearUserTagVoteClicked" MinimumHeightRequest="44">
+                                    <Button.IsEnabled>
+                                        <MultiBinding>
+                                            <MultiBinding.Converter>
+                                                <app:VoteClearEligibilityConverter />
+                                            </MultiBinding.Converter>
+                                            <Binding Path="MyVote" />
+                                            <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanClearUserTagVotes" />
+                                        </MultiBinding>
+                                    </Button.IsEnabled>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <controls:HybridPaginationControl
+                    x:Name="UserTagsPagination"
+                    PaginationId="profile-user-tags"
+                    HasMore="{Binding HasMoreUserTags}"
+                    IsLoading="{Binding IsLoadingMoreUserTags}"
+                    HasError="{Binding HasUserTagPaginationError}"
+                    LoadNextPageRequested="OnLoadMoreUserTagsRequested" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverviewScope}">
+                <Label Text="{DynamicResource native.dotnet.settings.links}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding ProfileLinks}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="{DynamicResource native.dotnet.profile.noLinks}" Style="{StaticResource Metadata}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ProfileLink">
+                            <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding Name}" Style="{StaticResource Body}" />
+                                    <Label Text="{Binding Url}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Handle}" Style="{StaticResource Metadata}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding CanShowAdminLandingPages}">
+                <Label Text="{DynamicResource native.swift.routeMetadata.libraryLandingPagesLandingPagesTitle}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding AdminLandingPages}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="{DynamicResource native.dotnet.profile.noLandingPages}" Style="{StaticResource Metadata}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="landing:LandingPageRow">
+                            <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Title}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding Slug}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{DynamicResource native.dotnet.settings.defaultOption}" Style="{StaticResource Metadata}" IsVisible="{Binding IsDefault}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.landingPages.analytics}" Clicked="OnLandingPageAnalyticsClicked" CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label Text="{Binding AdminLandingPagesError}" TextColor="#991B1B" Style="{StaticResource Body}" IsVisible="{Binding HasAdminLandingPagesError}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding IsPostsScope}">
+                <Label Text="{DynamicResource native.dotnet.profile.history}" Style="{StaticResource Headline}" />
+                <FlexLayout BindableLayout.ItemsSource="{Binding HistoryTabs}" Direction="Row" Wrap="Wrap" IsVisible="{Binding IsOverviewScope}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="profiles:ProfileHistoryTabRow">
+                            <Button Text="{Binding Label}" Clicked="OnHistoryTabClicked" CommandParameter="{Binding .}" Margin="0,0,8,8" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+                <CollectionView ItemsSource="{Binding HistoryItems}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="{DynamicResource native.dotnet.posts.noPostsYet}" Style="{StaticResource Metadata}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="posts:PostRow">
+                            <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnPostClicked" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                    <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding Body}" MaxLines="3" />
+                                    <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <CollectionView ItemsSource="{Binding FriendItems}" SelectionMode="None" IsVisible="{Binding IsFriendsScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="friends:FriendRow">
+                        <Button Text="{Binding PrimaryLabel}" CommandParameter="{Binding .}" Clicked="OnProfileFriendClicked" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
+            <CollectionView ItemsSource="{Binding TopicItems}" SelectionMode="None" IsVisible="{Binding IsTopicsScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="topics:TopicRow">
+                        <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileTopicClicked" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
+            <CollectionView ItemsSource="{Binding SourceItems}" SelectionMode="None" IsVisible="{Binding IsSourcesScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="api:RssFeedSource">
+                        <Button Text="{Binding Title}" CommandParameter="{Binding .}" Clicked="OnProfileSourceClicked" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
+            <CollectionView ItemsSource="{Binding CommunityItems}" SelectionMode="None" IsVisible="{Binding IsCommunitiesScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="communities:CommunityBrowseRow">
+                        <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileCommunityClicked" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
+            <Label Text="{app:UiLocalizedValue Path=CollectionErrorMessage, Format=message:native.dotnet.profile.collectionError}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            <Button Text="{DynamicResource native.swift.common.loadMore}" Clicked="OnLoadMoreClicked" IsVisible="{Binding CanLoadMore}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

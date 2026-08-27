@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.HouseholdPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:households="clr-namespace:Voucha.Client.Core.Households;assembly=Voucha.Client.Core"
+    x:DataType="households:HouseholdViewModel"
+    Title="{DynamicResource native.swift.householdsBookmarks.household}">
+    <ScrollView
+        x:Name="HouseholdScroll"
+        Loaded="OnHouseholdViewportChanged"
+        Scrolled="OnHouseholdScrolled"
+        SizeChanged="OnHouseholdViewportChanged">
+        <VerticalStackLayout x:Name="HouseholdContent" Padding="20" Spacing="16" SizeChanged="OnHouseholdViewportChanged">
+            <Label Text="{DynamicResource native.swift.householdsBookmarks.household}" Style="{StaticResource Headline}" />
+            <Label Text="{DynamicResource native.swift.householdsBookmarks.householdDescription}" Style="{StaticResource Metadata}" />
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+            <VerticalStackLayout IsVisible="{Binding HasError}" Spacing="8">
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+                <Button Text="{DynamicResource native.swift.householdsBookmarks.retryHousehold}" Clicked="OnRetryHouseholdClicked" />
+            </VerticalStackLayout>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sections}" Spacing="16">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="households:HouseholdSection">
+                        <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <VerticalStackLayout Spacing="8">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Headline}" />
+                                    <Label Text="{DynamicResource native.swift.householdsBookmarks.readOnly}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource Metadata}" />
+                                </HorizontalStackLayout>
+                                <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+                                <VerticalStackLayout IsVisible="{Binding HasError}" Spacing="6">
+                                    <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Members}" Spacing="8">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="households:HouseholdMemberRow">
+                                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                <Label Text="{Binding LocalizedDisplayName}" />
+                                                <Label Grid.Row="1" Text="{Binding ProtocolRelationship}" Style="{StaticResource Metadata}" />
+                                                <Button Grid.Column="1" Grid.RowSpan="2" Text="{DynamicResource native.swift.householdsBookmarks.remove}" IsVisible="{Binding CanRemove}"
+                                                        Clicked="OnRemoveClicked" CommandParameter="{Binding .}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                                <controls:HybridPaginationControl
+                                    PaginationId="{Binding MemberPaginationId}"
+                                    HasMore="{Binding HasMoreMembers}"
+                                    HasError="{Binding HasError}"
+                                    IsLoading="{Binding IsLoading}"
+                                    LoadNextPageRequested="OnLoadMoreMembersRequested" />
+                                <Label Text="{DynamicResource native.swift.householdsBookmarks.noHouseholdMembers}" IsVisible="{Binding ShowsEmptyState}" Style="{StaticResource Metadata}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <controls:HybridPaginationControl
+                x:Name="MemberHouseholdsPagination"
+                PaginationId="member-households"
+                HasMore="{Binding HasMoreMemberHouseholds}"
+                HasError="{Binding HasMemberHouseholdError}"
+                IsLoading="{Binding IsLoadingMoreMemberHouseholds}"
+                LoadNextPageRequested="OnLoadMoreHouseholdsRequested" />
+            <Label
+                Text="{Binding ExternalContentMemberHouseholdError}"
+                IsVisible="{Binding HasMemberHouseholdError}"
+                TextColor="#991B1B" />
+            <VerticalStackLayout IsVisible="{Binding CanCreate}" Spacing="8">
+                <Label Text="{DynamicResource native.swift.householdsBookmarks.yourHousehold}" Style="{StaticResource Headline}" />
+                <Label Text="{DynamicResource native.swift.householdsBookmarks.createHouseholdDescription}" Style="{StaticResource Metadata}" />
+                <Button Text="{DynamicResource native.swift.householdsBookmarks.createHousehold}" Clicked="OnCreateClicked" />
+            </VerticalStackLayout>
+            <Label Text="{Binding ExternalContentMutationError}" IsVisible="{Binding HasMutationError}" TextColor="#991B1B" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

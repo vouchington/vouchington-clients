@@ -1,0 +1,114 @@
+import Foundation
+import VouchaAPI
+import VouchaModels
+
+extension NativeReviewQueueViewModel {
+    private static let minimumCooldownRefetchDelayNanoseconds: UInt64 = 5_000_000_000
+
+    func canRevealMedia(postId: String) -> Bool {
+        guard !revealedPostIds.contains(postId),
+              let item = items.first(where: { $0.id == postId }),
+              item.post.mediaContext?.requiresReveal == true,
+              item.post.mediaContext?.images.isEmpty == false,
+              exposureState != nil,
+              !exposureIsStale,
+              inFlightRevealPostId == nil
+        else { return false }
+        return exposureState?.inCooldown == false
+    }
+
+    func isMediaRevealed(postId: String) -> Bool {
+        revealedPostIds.contains(postId)
+    }
+
+    func revealMedia(postId: String) async {
+        guard canRevealMedia(postId: postId), let client else { return }
+        revealedPostIds.insert(postId)
+        inFlightRevealPostId = postId
+        defer { inFlightRevealPostId = nil }
+        do {
+            let response: ModerationExposureResponse = try await client.send(
+                .recordModerationReveal(postId: postId, surface: .reviewQueue)
+            )
+            guard !Task.isCancelled else {
+                exposureOutcomeRevision += 1
+                markExposureStale()
+                return
+            }
+            exposureOutcomeRevision += 1
+            acceptExposure(response.exposure)
+        } catch {
+            exposureOutcomeRevision += 1
+            markExposureStale()
+        }
+    }
+
+    func refetchExposure() async {
+        guard isAuthorized, let client else { return }
+        exposureRequestRevision += 1
+        let requestRevision = exposureRequestRevision
+        let observedOutcomeRevision = exposureOutcomeRevision
+        do {
+            let response: ModerationExposureResponse = try await client.send(.moderationExposure())
+            guard !Task.isCancelled,
+                  requestRevision == exposureRequestRevision,
+                  observedOutcomeRevision == exposureOutcomeRevision
+            else { return }
+            acceptExposure(response.exposure)
+        } catch {
+            guard !Task.isCancelled,
+                  requestRevision == exposureRequestRevision,
+                  observedOutcomeRevision == exposureOutcomeRevision
+            else { return }
+            exposureIsStale = true
+        }
+    }
+
+    func cooldownExpiryReached() async {
+        cancelScheduledCooldownRefetch()
+        await refetchExposure()
+    }
+
+    private func acceptExposure(_ exposure: ModerationExposureState) {
+        exposureState = exposure
+        exposureIsStale = false
+        scheduleCooldownRefetch(for: exposure)
+    }
+
+    private func markExposureStale() {
+        exposureIsStale = true
+        cancelScheduledCooldownRefetch()
+    }
+
+    private func scheduleCooldownRefetch(for exposure: ModerationExposureState) {
+        cancelScheduledCooldownRefetch()
+        guard exposure.inCooldown, let cooldownEndsAt = exposure.cooldownEndsAt else { return }
+        let scheduleRevision = cooldownRefetchRevision
+        let serverDelayNanoseconds = UInt64(max(0, cooldownEndsAt.timeIntervalSinceNow) * 1_000_000_000)
+        let delayNanoseconds = max(Self.minimumCooldownRefetchDelayNanoseconds, serverDelayNanoseconds)
+        let cooldownSleep = cooldownSleep
+        cooldownRefetchTask = Task { [weak self] in
+            do {
+                try await cooldownSleep(delayNanoseconds)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await self?.scheduledCooldownExpiryReached(scheduleRevision: scheduleRevision)
+        }
+    }
+
+    func cancelScheduledCooldownRefetch() {
+        cooldownRefetchRevision += 1
+        cooldownRefetchTask?.cancel()
+        cooldownRefetchTask = nil
+    }
+
+    private func scheduledCooldownExpiryReached(scheduleRevision: Int) async {
+        guard scheduleRevision == cooldownRefetchRevision else { return }
+        await refetchExposure()
+        if scheduleRevision == cooldownRefetchRevision {
+            cooldownRefetchTask = nil
+        }
+    }
+}

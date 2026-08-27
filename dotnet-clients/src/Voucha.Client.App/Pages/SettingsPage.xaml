@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    xmlns:settings="clr-namespace:Voucha.Client.Core.Settings;assembly=Voucha.Client.Core"
+    x:DataType="settings:SettingsViewModel"
+    Title="{DynamicResource nav.settings}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ScrollView
+        x:Name="SettingsScroll"
+        Loaded="OnSettingsViewportChanged"
+        Scrolled="OnSettingsScrolled"
+        SizeChanged="OnSettingsViewportChanged">
+        <VerticalStackLayout Padding="20" Spacing="20" SizeChanged="OnSettingsViewportChanged">
+            <HorizontalStackLayout Spacing="12">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="FillAndExpand">
+                    <Label Text="{DynamicResource nav.settings}" Style="{StaticResource Headline}" />
+                    <Label Text="{Binding IdentitySummary}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding ProfileSummary}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding MembershipSummary}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding LocalizedDataRequestStatus}" Style="{StaticResource Metadata}" />
+                </VerticalStackLayout>
+                <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+            </HorizontalStackLayout>
+
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+
+            <VerticalStackLayout x:Name="BlueskySection" Spacing="12" IsVisible="False">
+                <Label Text="{DynamicResource native.swift.settings.bluesky}" Style="{StaticResource Headline}" />
+                <Label x:Name="BlueskyLinkedHandle" Style="{StaticResource Metadata}" />
+                <Entry
+                    x:Name="BlueskyHandleEntry"
+                    Placeholder="{DynamicResource native.swift.settings.blueskyHandlePlaceholder}" />
+                <Label x:Name="BlueskyStatus" Style="{StaticResource Metadata}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button x:Name="BlueskyConnectButton" Text="{DynamicResource native.swift.settings.blueskyConnect}" Clicked="OnConnectBlueskyClicked" />
+                    <Button x:Name="BlueskyCancelButton" Text="{DynamicResource native.swift.settings.blueskyCancel}" Clicked="OnCancelBlueskyClicked" IsVisible="False" />
+                    <Button x:Name="BlueskyDisconnectButton" Text="{DynamicResource native.swift.settings.blueskyDisconnect}" Clicked="OnDisconnectBlueskyClicked" IsVisible="False" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="OAuthAccountsSection" Spacing="12">
+                <Label Text="{DynamicResource native.dotnet.settings.identity}" Style="{StaticResource Headline}" />
+                <Label x:Name="OAuthAccountsStatus" Style="{StaticResource Metadata}" />
+                <Button
+                    x:Name="RetryOAuthAccountCapabilitiesButton"
+                    Text="{DynamicResource native.common.retry}"
+                    Clicked="OnRetryOAuthCapabilitiesClicked"
+                    IsVisible="False" />
+                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
+                    <VerticalStackLayout>
+                        <Label Text="{DynamicResource native.taxonomy.settings.facebook}" Style="{StaticResource Body}" />
+                        <Label x:Name="FacebookOAuthIdentity" Style="{StaticResource Metadata}" />
+                    </VerticalStackLayout>
+                    <Button
+                        x:Name="FacebookOAuthAccountButton"
+                        Grid.Column="1"
+                        CommandParameter="facebook"
+                        Clicked="OnOAuthAccountClicked" />
+                    <VerticalStackLayout Grid.Row="1">
+                        <Label Text="{DynamicResource native.taxonomy.settings.x}" Style="{StaticResource Body}" />
+                        <Label x:Name="XOAuthIdentity" Style="{StaticResource Metadata}" />
+                    </VerticalStackLayout>
+                    <Button
+                        x:Name="XOAuthAccountButton"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        CommandParameter="x"
+                        Clicked="OnOAuthAccountClicked" />
+                    <VerticalStackLayout Grid.Row="2">
+                        <Label Text="{DynamicResource native.taxonomy.settings.github}" Style="{StaticResource Body}" />
+                        <Label x:Name="GithubOAuthIdentity" Style="{StaticResource Metadata}" />
+                    </VerticalStackLayout>
+                    <Button
+                        x:Name="GithubOAuthAccountButton"
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        CommandParameter="github"
+                        Clicked="OnOAuthAccountClicked" />
+                </Grid>
+                <Button
+                    x:Name="CancelOAuthAccountButton"
+                    Text="{DynamicResource native.swift.settings.blueskyCancel}"
+                    Clicked="OnCancelOAuthAccountClicked"
+                    IsVisible="False" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="IdentitySection" Spacing="12">
+                <Label Text="{DynamicResource native.dotnet.settings.identity}" Style="{StaticResource Headline}" />
+                <Entry Text="{Binding Username}" Placeholder="{DynamicResource native.swift.settings.username}" />
+                <Picker
+                    ItemsSource="{Binding DisplayNameSourceOptions}"
+                    ItemDisplayBinding="{Binding DisplayLabel}"
+                    SelectedItem="{Binding SelectedDisplayNameSourceOption}"
+                    Title="{DynamicResource native.dotnet.settings.displayNameSource}" />
+                <Entry
+                    Text="{Binding ProfileImageId}"
+                    Placeholder="{DynamicResource native.dotnet.settings.currentAvatarId}"
+                    IsReadOnly="True" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.dotnet.settings.saveIdentity}" Clicked="OnSaveIdentityClicked" />
+                    <Button Text="{DynamicResource native.dotnet.settings.clearAvatar}" Clicked="OnClearAvatarClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <pages:EmailAddressManagerView x:Name="EmailAddressManager" />
+
+            <VerticalStackLayout x:Name="ProfileSection" Spacing="12">
+                <Label Text="{DynamicResource nav.profile}" Style="{StaticResource Headline}" />
+                <controls:NativeMarkdownEditorView
+                    x:Name="ProfileMarkdownEditor"
+                    Markdown="{Binding ProfileMarkdown}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.dotnet.settings.openProfile}" Clicked="OnOpenProfileClicked" />
+                    <Button Text="{DynamicResource native.dotnet.profile.saveProfile}" Clicked="OnSaveProfileClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="ProfileLinksSection" Spacing="12">
+                <Label Text="{DynamicResource native.dotnet.settings.profileLinks}" Style="{StaticResource Headline}" />
+                <Picker
+                    ItemsSource="{Binding ProfileLinkTypeOptions}"
+                    ItemDisplayBinding="{Binding DisplayLabel}"
+                    SelectedItem="{Binding SelectedProfileLinkTypeOption}"
+                    Title="{DynamicResource native.dotnet.settings.linkType}" />
+                <Entry Text="{Binding ProfileLinkAddressText}" Placeholder="{DynamicResource native.swift.settings.url}" />
+                <Entry Text="{Binding ProfileLinkHandle}" Placeholder="{DynamicResource native.swift.settings.handle}" />
+                <Entry Text="{Binding ProfileLinkName}" Placeholder="{DynamicResource native.swift.communities.name}" />
+                <Entry Text="{Binding ProfileLinkImageId}" Placeholder="{DynamicResource native.swift.settings.imageId}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.dotnet.settings.saveLink}" Clicked="OnSaveProfileLinkClicked" />
+                    <Button Text="{DynamicResource native.dotnet.settings.clearDraft}" Clicked="OnClearProfileLinkDraftClicked" />
+                </HorizontalStackLayout>
+                <CollectionView ItemsSource="{Binding LocalizedProfileLinks}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:SettingsProfileLinkRow">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding UserContentName}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding LocalizedLinkType}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding UserContentAddress}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding UserContentHandle}" Style="{StaticResource Metadata}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.common.edit}" Clicked="OnEditProfileLinkClicked" CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="2" Text="{DynamicResource native.swift.common.up}" Clicked="OnMoveProfileLinkUpClicked" CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="3" Text="{DynamicResource native.swift.common.down}" Clicked="OnMoveProfileLinkDownClicked" CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="4" Text="{DynamicResource native.swift.common.remove}" Clicked="OnDeleteProfileLinkClicked" CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="PrivacySection" Spacing="12">
+                <Label Text="{DynamicResource native.swift.settings.privacy}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding SupportedUiLocaleCount}" Style="{StaticResource Metadata}" />
+                <CollectionView ItemsSource="{Binding PrivacySelections}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:SettingsSelectionRowViewModel">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                    <Picker
+                                        ItemsSource="{Binding Options}"
+                                        ItemDisplayBinding="{Binding DisplayLabel}"
+                                        SelectedItem="{Binding SelectedOption}"
+                                        SelectedIndexChanged="OnPrivacySelectionChanged" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <CollectionView ItemsSource="{Binding PrivacyToggles}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:SettingsToggleRowViewModel">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <HorizontalStackLayout Spacing="12">
+                                    <Switch IsToggled="{Binding IsChecked}" Toggled="OnPrivacyToggleChanged" />
+                                    <VerticalStackLayout Spacing="2" HorizontalOptions="FillAndExpand">
+                                        <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding Description}" Style="{StaticResource Metadata}" />
+                                    </VerticalStackLayout>
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <pages:NotificationPreferencesView x:Name="NotificationPreferencesSection" IsVisible="False" />
+
+            <VerticalStackLayout x:Name="ApiKeysSection" Spacing="12">
+                <Label Text="{DynamicResource native.swift.settings.apiKeys}" Style="{StaticResource Headline}" />
+                <Entry Text="{Binding ApiKeyLabel}" Placeholder="{DynamicResource native.dotnet.settings.keyLabel}" />
+                <Picker
+                    ItemsSource="{Binding ApiKeyTypeOptions}"
+                    ItemDisplayBinding="{Binding DisplayLabel}"
+                    SelectedItem="{Binding SelectedApiKeyTypeOption}"
+                    Title="{DynamicResource native.dotnet.settings.keyType}" />
+                <Button Text="{DynamicResource native.dotnet.settings.createApiKey}" Clicked="OnCreateApiKeyClicked" />
+                <Label Text="{Binding ApiKeySecretDisplay}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                <Button Text="{DynamicResource native.dotnet.settings.copyApiKey}" Clicked="OnCopyApiKeyClicked" IsEnabled="{Binding HasApiKeySecret}" />
+                <CollectionView ItemsSource="{Binding LocalizedApiKeys}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:SettingsApiKeyRow">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding Prefix}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding LocalizedApiKeyType}" Style="{StaticResource Metadata}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokeApiKeyClicked" CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <controls:HybridPaginationControl
+                    PaginationId="settings-api-keys"
+                    HasMore="{Binding HasMoreApiKeys}"
+                    IsLoading="{Binding IsLoadingMoreApiKeys}"
+                    HasError="{Binding HasApiKeyPaginationError}"
+                    LoadNextPageRequested="OnLoadMoreApiKeysRequested" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="LocalLLMSection" Spacing="12" IsVisible="{Binding LocalLLMSettingsAvailable}">
+                <Label Text="{DynamicResource native.swift.settings.localModels}" Style="{StaticResource Headline}" />
+                <Entry Text="{Binding LocalLLMDisplayName}" Placeholder="{DynamicResource native.swift.settings.displayName}" />
+                <HorizontalStackLayout Spacing="12">
+                    <Switch IsToggled="{Binding LocalLLMEnabled}" />
+                    <Label Text="{DynamicResource native.swift.settings.useLocalModel}" Style="{StaticResource Body}" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <Entry Text="{Binding LocalLLMEndpoint}" Placeholder="{DynamicResource native.swift.settings.responsesApiEndpoint}" />
+                <Entry Text="{Binding LocalLLMApiKey}" Placeholder="{DynamicResource native.swift.settings.apiKey}" IsPassword="True" />
+                <Editor
+                    Text="{Binding LocalLLMModelsText}"
+                    Placeholder="{DynamicResource native.dotnet.settings.modelsOnePerLine}"
+                    AutoSize="TextChanges"
+                    MinimumHeightRequest="96" />
+                <Entry Text="{Binding LocalLLMSelectedModel}" Placeholder="{DynamicResource native.swift.settings.selectedModel}" />
+                <Label Text="{Binding LocalLLMStatusMessage}" Style="{StaticResource Metadata}" LineBreakMode="WordWrap" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.swift.common.save}" Clicked="OnSaveLocalLLMClicked" />
+                    <Button Text="{DynamicResource native.dotnet.settings.clearDraft}" Clicked="OnClearLocalLLMDraftClicked" />
+                    <Button Text="{DynamicResource native.swift.common.test}" Clicked="OnTestLocalLLMClicked" />
+                </HorizontalStackLayout>
+                <CollectionView ItemsSource="{Binding LocalizedLocalLLMEndpoints}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:SettingsLocalLLMEndpointRow">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding DisplayName}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding UserContentEndpoint}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{DynamicResource native.swift.common.current}" Style="{StaticResource Metadata}" IsVisible="{Binding IsSelected}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.common.edit}" Clicked="OnEditLocalLLMEndpointClicked" CommandParameter="{Binding .}" />
+                                    <Button Grid.Column="2" Text="{DynamicResource native.swift.common.activate}" Clicked="OnActivateLocalLLMEndpointClicked" CommandParameter="{Binding .}" IsVisible="{Binding IsNotSelected}" />
+                                    <Button Grid.Column="3" Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteLocalLLMEndpointClicked" CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="LegalSupportSection" Spacing="12">
+                <Label Text="{DynamicResource native.swift.settings.legalAndSupport}" Style="{StaticResource Headline}" />
+                <Button Text="{DynamicResource native.legal.privacyPolicy}" Clicked="OnPrivacyPolicyClicked" />
+                <Button Text="{DynamicResource native.legal.termsOfService}" Clicked="OnTermsOfServiceClicked" />
+                <Button Text="{DynamicResource native.legal.communityGuidelines}" Clicked="OnCommunityGuidelinesClicked" />
+                <Button Text="{DynamicResource native.dotnet.support.title}" Clicked="OnContactSupportClicked" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="MembershipSection" Spacing="12">
+                <Label Text="{DynamicResource native.swift.membership.membership}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding MembershipSummary}" Style="{StaticResource Metadata}" />
+                <CollectionView ItemsSource="{Binding MembershipPlanOptions}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:MembershipPlanOptionViewModel">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="10">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Name}" Style="{StaticResource Body}" />
+                                            <Label Text="{Binding PriceOptionsText}" Style="{StaticResource Headline}" LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding StateLabel}" Style="{StaticResource Metadata}" VerticalOptions="Center" />
+                                    </Grid>
+                                    <Label Text="{Binding PurchaseExplanation}" Style="{StaticResource Metadata}" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding FeatureBulletsText}" Style="{StaticResource Metadata}" LineBreakMode="WordWrap" />
+                                    <Button Text="{Binding PurchaseButtonLabel}" IsEnabled="False" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="SessionsSection" Spacing="12">
+                <Label Text="{DynamicResource native.swift.settings.sessions}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding Sessions}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:AuthSession">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding DeviceName}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding UserAgent}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding IpAddress}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{DynamicResource native.swift.settings.currentSession}" Style="{StaticResource Metadata}" IsVisible="{Binding IsCurrent}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokeSessionClicked" CommandParameter="{Binding .}">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding IsCurrent}" Value="True">
+                                                <Setter Property="Text" Value="Sign out" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <controls:HybridPaginationControl
+                    PaginationId="settings-sessions"
+                    HasMore="{Binding HasMoreSessions}"
+                    IsLoading="{Binding IsLoadingMoreSessions}"
+                    HasError="{Binding HasSessionPaginationError}"
+                    LoadNextPageRequested="OnLoadMoreSessionsRequested" />
+                <Button Text="{DynamicResource native.dotnet.settings.revokeAllSessions}" Clicked="OnRevokeAllSessionsClicked" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="DataSection" Spacing="12">
+                <Label Text="{DynamicResource native.dotnet.settings.accountData}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding LocalizedDataRequestStatus}" Style="{StaticResource Metadata}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.dotnet.settings.createExport}" Clicked="OnCreateDataRequestClicked" />
+                    <Button Text="{DynamicResource native.dotnet.settings.refreshExport}" Clicked="OnRefreshDataRequestClicked" />
+                    <Button Text="{DynamicResource native.dotnet.settings.downloadExport}" Clicked="OnDownloadDataRequestClicked" IsVisible="{Binding CanDownloadDataRequest}" />
+                </HorizontalStackLayout>
+                <Label Text="{DynamicResource native.dotnet.settings.deleteWarning}" Style="{StaticResource Metadata}" />
+                <Entry Text="{Binding DeleteConfirmation}" Placeholder="{DynamicResource native.dotnet.settings.deleteConfirmation}" />
+                <Button Text="{DynamicResource native.dotnet.settings.deleteAccount}" Clicked="OnDeleteAccountClicked" IsEnabled="{Binding CanDeleteAccount}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="PushSubscriptionsSection" Spacing="12">
+                <Label Text="{DynamicResource native.dotnet.settings.pushSubscriptions}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding PushSubscriptions}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:WebPushSubscription">
+                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Endpoint}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding UserAgent}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokePushSubscriptionClicked" CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <controls:HybridPaginationControl
+                    PaginationId="settings-push-subscriptions"
+                    HasMore="{Binding HasMorePushSubscriptions}"
+                    IsLoading="{Binding IsLoadingMorePushSubscriptions}"
+                    HasError="{Binding HasPushSubscriptionPaginationError}"
+                    LoadNextPageRequested="OnLoadMorePushSubscriptionsRequested" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

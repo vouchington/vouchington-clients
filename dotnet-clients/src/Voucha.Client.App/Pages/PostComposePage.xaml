@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.PostComposePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:posts="clr-namespace:Voucha.Client.Core.Posts;assembly=Voucha.Client.Core"
+    x:DataType="posts:PostComposeViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.mainPostComposeComposeTitle}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Picker
+                Title="{DynamicResource native.dotnet.postCompose.type}"
+                ItemsSource="{Binding AvailablePostTypes}"
+                SelectedItem="{Binding PostType}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.swift.landingPages.title}"
+                Text="{Binding Title}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.swift.communities.slug}"
+                Text="{Binding Slug}"
+                IsVisible="{Binding CanEditSlug}" />
+
+            <controls:NativeMarkdownEditorView
+                x:Name="MarkdownEditor"
+                Markdown="{Binding Markdown}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.communityIdOrSlug}"
+                Text="{Binding CommunitySlug}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Entry Placeholder="{DynamicResource native.dotnet.postCompose.broadcast}" Text="{Binding Broadcast}" />
+                <Entry Grid.Column="1" Placeholder="{DynamicResource native.swift.settings.privacy}" Text="{Binding Privacy}" />
+            </Grid>
+
+            <HorizontalStackLayout Spacing="8">
+                <CheckBox IsChecked="{Binding IsAnonymous}" />
+                <Label Text="{DynamicResource native.dotnet.posts.postAnonymously}" VerticalOptions="Center" Style="{StaticResource Body}" />
+            </HorizontalStackLayout>
+
+            <Entry
+                Placeholder="{DynamicResource native.swift.landingPages.linkUrl}"
+                Text="{Binding LinkAddress}"
+                IsVisible="{Binding IsLinkType}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.existingUrlId}"
+                Text="{Binding LinkIdentifier}"
+                IsVisible="{Binding IsLinkType}" />
+
+            <VerticalStackLayout IsVisible="{Binding IsReviewType}" Spacing="8">
+                <Entry
+                    Placeholder="{DynamicResource native.dotnet.postCompose.reviewTopicId}"
+                    Text="{Binding ReviewTopicId}" />
+                <Entry
+                    Placeholder="{DynamicResource native.dotnet.postCompose.reviewRating}"
+                    Text="{Binding ReviewRating}" />
+            </VerticalStackLayout>
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.discussionTopicId}"
+                Text="{Binding DiscussionCategoryTopicId}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.relatedUrlId}"
+                Text="{Binding RelatedLinkIdentifier}" />
+
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Label Text="{DynamicResource native.swift.postCompose.images}" Style="{StaticResource Metadata}" />
+                <Label Grid.Column="1" Text="{Binding ImageCountLabel}" Style="{StaticResource Metadata}" />
+            </Grid>
+
+            <Button
+                Text="{DynamicResource native.swift.postCompose.addImages}"
+                Clicked="OnAddImageClicked"
+                IsEnabled="{Binding CanAddImages}" />
+
+            <VerticalStackLayout
+                Spacing="12"
+                BindableLayout.ItemsSource="{Binding Images}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="posts:PostComposeImageDraft">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                            <Label
+                                Text="{Binding DisplayLabel}"
+                                Style="{StaticResource Metadata}" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <Button Text="{DynamicResource native.swift.common.up}" Clicked="OnMoveImageUpClicked" />
+                                <Button Text="{DynamicResource native.swift.common.down}" Clicked="OnMoveImageDownClicked" />
+                                <Button Text="{DynamicResource native.swift.common.remove}" Clicked="OnRemoveImageClicked" />
+                            </HorizontalStackLayout>
+
+                            <Entry
+                                Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                Placeholder="{DynamicResource native.swift.postCompose.caption}"
+                                Text="{Binding Caption, Mode=OneWay}"
+                                MaxLength="1000"
+                                TextChanged="OnImageCaptionTextChanged" />
+
+                            <Label
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Text="{app:UiLocalizedValue Path=UploadProgress, Format=message:native.dotnet.postCompose.uploading|percent}"
+                                IsVisible="{Binding IsUploading}"
+                                Style="{StaticResource Metadata}" />
+
+                            <Label
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Text="{Binding UploadError}"
+                                IsVisible="{Binding HasUploadError}"
+                                TextColor="#991B1B"
+                                Style="{StaticResource Metadata}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.dataPointVertical}"
+                Text="{Binding DataPointVertical}"
+                IsVisible="{Binding IsDataPointType}" />
+
+            <Editor
+                Placeholder="{DynamicResource native.dotnet.postCompose.structuredDataJson}"
+                Text="{Binding StructuredDataJson}"
+                MinimumHeightRequest="120"
+                IsVisible="{Binding IsDataPointType}" />
+
+            <Entry
+                Placeholder="{DynamicResource native.dotnet.postCompose.declaredLanguage}"
+                Text="{Binding DeclaredLanguage}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Entry Placeholder="{DynamicResource native.dotnet.newsFeeds.website}" Text="{Binding HpWebsite}" IsVisible="False" />
+                <Entry Grid.Column="1" Placeholder="{DynamicResource native.swift.crmContacts.phone}" Text="{Binding HpPhone}" IsVisible="False" />
+            </Grid>
+
+            <Label
+                Text="{DynamicResource native.dotnet.postCompose.published}"
+                IsVisible="{Binding HasPublished}"
+                Style="{StaticResource Metadata}" />
+
+            <Label
+                Text="{Binding ErrorMessage}"
+                IsVisible="{Binding HasError}"
+                TextColor="#991B1B"
+                Style="{StaticResource Metadata}" />
+
+            <HorizontalStackLayout Spacing="8">
+                <Button
+                    Text="{DynamicResource native.swift.common.clear}"
+                    Clicked="OnClearClicked" />
+                <Button
+                    Text="{DynamicResource native.swift.postCompose.publish}"
+                    Clicked="OnPublishClicked"
+                    IsEnabled="{Binding IsValidExceptCaptcha}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

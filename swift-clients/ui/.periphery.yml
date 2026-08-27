@@ -1,0 +1,16 @@
+retain_public: true
+retain_codable_properties: true
+report_exclude:
+  - ../core/Sources/VouchaAPI/APIClient+ResponseLinesDataDelegate.swift
+  - Tests/**
+  - ../core/Sources/VouchaAPI/Endpoint+UserFacing.swift
+  - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport.swift
+  - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+Finish.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteDestinationSurfaces.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteDestinationView.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteFamilyDirectoryView.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelLoading.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelLoadingCommunication.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelLoadingLibrary.swift
+  - Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelLoadingRecommendations.swift
+  - Sources/VouchaFeatures/Sources/SourcesListViewModel.swift

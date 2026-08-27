@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework Condition="'$(MSBuildProjectName)' != 'Voucha.Client.App'">net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsVouchaTestProject Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Tests'))">true</IsVouchaTestProject>
+    <AnalysisMode Condition="'$(IsVouchaTestProject)' != 'true' and '$(MSBuildProjectName)' != 'Voucha.Client.App'">AllEnabledByDefault</AnalysisMode>
+    <AnalysisMode Condition="'$(MSBuildProjectName)' == 'Voucha.Client.App'">None</AnalysisMode>
+    <EnforceCodeStyleInBuild Condition="'$(IsVouchaTestProject)' != 'true'">true</EnforceCodeStyleInBuild>
+    <MeziantouAnalysisMode>None</MeziantouAnalysisMode>
+    <DisableImplicitLibraryPacksFolder>true</DisableImplicitLibraryPacksFolder>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+    <NuGetLockFilePath Condition="'$(RuntimeIdentifier)' != ''">$(MSBuildProjectDirectory)/packages.$(TargetFramework).$(RuntimeIdentifier).lock.json</NuGetLockFilePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Voucha.Client.App' and '$(RuntimeIdentifier)' == ''">
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Voucha.Client.App'">
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

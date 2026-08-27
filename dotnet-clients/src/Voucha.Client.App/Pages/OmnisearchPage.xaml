@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.OmnisearchPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:nav="clr-namespace:Voucha.Client.Core.Navigation;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    xmlns:search="clr-namespace:Voucha.Client.Core.Search;assembly=Voucha.Client.Core"
+    x:DataType="pages:OmnisearchPageBinding"
+    Title="{DynamicResource nav.search}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="20" RowSpacing="16">
+        <SearchBar
+            Placeholder="{DynamicResource nav.search}"
+            Text="{Binding Query}"
+            SearchButtonPressed="OnSearchButtonPressed" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" IsVisible="{Binding SupportsWebSearchNavigation}">
+            <Button Text="{DynamicResource nav.search}" Clicked="OnSearchSectionClicked" />
+            <Button Text="{DynamicResource native.swift.routeMetadata.mainDomainsBrowseDomainsTitle}" Clicked="OnDomainsSectionClicked" />
+            <Button Text="{DynamicResource native.swift.routeMetadata.mainUrlsBrowseUrlsTitle}" Clicked="OnUrlsSectionClicked" IsVisible="{Binding CanBrowseUrls}" />
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="8" IsVisible="{Binding SupportsFediverseProviders}">
+            <RadioButton AutomationId="FediverseProviderAll" GroupName="FediverseProviders" Content="{DynamicResource native.swift.routeSurface.allProviders}" IsChecked="{Binding IsAllProvidersSelected, Mode=OneWay}" CheckedChanged="OnAllProvidersChecked" />
+            <RadioButton AutomationId="FediverseProviderPeerTube" GroupName="FediverseProviders" Content="PeerTube" IsChecked="{Binding IsPeerTubeSelected, Mode=OneWay}" CheckedChanged="OnPeerTubeChecked" />
+            <RadioButton AutomationId="FediverseProviderMastodon" GroupName="FediverseProviders" Content="Mastodon" IsChecked="{Binding IsMastodonSelected, Mode=OneWay}" CheckedChanged="OnMastodonChecked" />
+            <RadioButton AutomationId="FediverseProviderLemmy" GroupName="FediverseProviders" Content="Lemmy" IsChecked="{Binding IsLemmySelected, Mode=OneWay}" CheckedChanged="OnLemmyChecked" />
+            <RadioButton AutomationId="FediverseProviderBluesky" GroupName="FediverseProviders" Content="Bluesky" IsChecked="{Binding IsBlueskySelected, Mode=OneWay}" CheckedChanged="OnBlueskyChecked" />
+        </HorizontalStackLayout>
+
+        <Border
+            Grid.Row="3"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label
+                Text="{Binding ErrorMessage}"
+                TextColor="#991B1B"
+                Style="{StaticResource Body}" />
+        </Border>
+
+        <CollectionView Grid.Row="4" ItemsSource="{Binding Groups}">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24" Spacing="8">
+                    <Label Text="{DynamicResource native.swift.routeMetadata.mainWebSearchSearchResultsTitle}" Style="{StaticResource Headline}" />
+                    <Label Text="{DynamicResource native.dotnet.omnisearch.prompt}" Style="{StaticResource Body}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="search:OmnisearchResultGroup">
+                    <VerticalStackLayout Spacing="10" Margin="0,0,0,18">
+                        <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="search:OmnisearchResultRow">
+                                    <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="{Binding Kind}" Style="{StaticResource Eyebrow}" />
+                                            <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                            <Label Text="{Binding Detail}" Style="{StaticResource Metadata}" />
+                                            <Button Text="{DynamicResource native.swift.communityActions.open}" Clicked="OnOpenRowClicked" IsVisible="{Binding CanOpen}" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <VerticalStackLayout Grid.Row="5" Spacing="12">
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanVoteSelectedHostname}">
+                <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseDomainVoteClicked" MinimumHeightRequest="44" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanClearSelectedHostnameVote}">
+                <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearDomainVoteClicked" MinimumHeightRequest="44" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanUseSelectedHostnameActions}">
+                <Button Text="{DynamicResource native.dotnet.omnisearch.mute}" Clicked="OnMuteDomainClicked" />
+                <Button Text="{DynamicResource native.dotnet.omnisearch.block}" Clicked="OnBlockDomainClicked" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanTriggerSelectedUrlCrawl}">
+                <Button Text="{DynamicResource native.dotnet.omnisearch.triggerCrawl}" Clicked="OnTriggerCrawlClicked" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding HasSelectedReportTarget}">
+                <Button
+                    Text="{Binding LocalizedReportButtonText}"
+                    IsEnabled="{Binding CanReportSelectedHostname}"
+                    Clicked="OnReportDomainClicked" />
+            </HorizontalStackLayout>
+            <CollectionView
+                ItemsSource="{Binding LinkGroups}"
+                SelectionMode="None"
+                IsVisible="{Binding HasLinkGroups}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="nav:NavigationGroupViewModel">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="{Binding Label}" Style="{StaticResource Headline}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="nav:NavigationItemViewModel">
+                                            <VerticalStackLayout Padding="0,6" Spacing="2">
+                                                <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                                <Label Text="{Binding Href}" Style="{StaticResource Metadata}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

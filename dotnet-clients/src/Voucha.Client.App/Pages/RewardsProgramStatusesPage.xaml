@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.RewardsProgramStatusesPage"
+    x:Name="RewardsProgramStatusesPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:statuses="clr-namespace:Voucha.Client.Core.RewardsProgramStatuses;assembly=Voucha.Client.Core"
+    x:DataType="statuses:RewardsProgramStatusesViewModel"
+    Title="{DynamicResource extracted.intents.productOther.rewardsProgramStatuses_b2a04de2}">
+    <ScrollView x:Name="StatusesScroll" Scrolled="OnScrolled">
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="{DynamicResource extracted.intents.productOther.rewardsProgramStatuses_b2a04de2}" Style="{StaticResource Headline}" />
+            <Label Text="{DynamicResource extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de}" />
+            <Entry
+                AutomationId="reward-statuses-search-input"
+                Placeholder="{DynamicResource extracted.rewardsProgramStatusesManager.addStatusForm.searchRewardsProgramStatuses_a9286328}"
+                Text="{Binding SearchQuery, Mode=TwoWay}" />
+            <Button AutomationId="reward-statuses-search" Text="{DynamicResource nav.search}" Clicked="OnSearchClicked" />
+            <VerticalStackLayout AutomationId="reward-statuses-search-error" IsVisible="{Binding HasSearchError}">
+                <Label Text="{Binding LocalizedSearchErrorMessage}" />
+                <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetrySearchClicked" />
+            </VerticalStackLayout>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding SearchRows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="statuses:RewardsProgramStatusOptionRow">
+                        <HorizontalStackLayout>
+                            <Label Text="{Binding LocalizedName}" />
+                            <Button
+                                AutomationId="reward-statuses-create"
+                                Text="{DynamicResource extracted.rewardsProgramStatusesManager.addStatusForm.add_9fd728c6}"
+                                Clicked="OnCreateClicked"
+                                CommandParameter="{Binding .}"
+                                IsEnabled="{Binding Source={x:Reference RewardsProgramStatusesPageRoot}, Path=BindingContext.CanCreate}" />
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <ActivityIndicator IsVisible="{Binding IsLoading}" IsRunning="{Binding IsLoading}" />
+            <VerticalStackLayout AutomationId="reward-statuses-error" IsVisible="{Binding HasError}">
+                <Label Text="{Binding LocalizedErrorMessage}" />
+                <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetryClicked" />
+            </VerticalStackLayout>
+            <Label
+                AutomationId="reward-statuses-empty"
+                IsVisible="{Binding ShowsEmptyState}"
+                Text="{DynamicResource extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de}" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="statuses:RewardsProgramStatusRow">
+                        <Border Padding="14"><VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding LocalizedName}" />
+                            <Label Text="{Binding LocalizedSince}" />
+                            <Label Text="{Binding LocalizedUntil}" />
+                            <HorizontalStackLayout>
+                                <Button
+                                    AutomationId="reward-statuses-edit"
+                                    Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusSummary.edit_464c4ffd}"
+                                    Clicked="OnEditClicked"
+                                    CommandParameter="{Binding .}"
+                                    IsEnabled="{Binding CanMutate}" />
+                                <Button
+                                    AutomationId="reward-statuses-delete"
+                                    Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusSummary.remove_c3812fc4}"
+                                    Clicked="OnDeleteClicked"
+                                    CommandParameter="{Binding .}"
+                                    IsEnabled="{Binding CanMutate}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout></Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <controls:HybridPaginationControl PaginationId="reward-statuses" HasMore="{Binding HasNextPage}" HasError="{Binding HasContinuationError}" IsLoading="{Binding IsLoadingMore}" LoadNextPageRequested="OnLoadMoreRequested" />
+            <VerticalStackLayout IsVisible="{Binding HasEditDraft}">
+                <HorizontalStackLayout>
+                    <Label Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusList.since_98af1ed6}" />
+                    <Switch AutomationId="reward-statuses-edit-since-enabled" IsToggled="{Binding EditDraft.SinceEnabled}" />
+                </HorizontalStackLayout>
+                <DatePicker AutomationId="reward-statuses-edit-since" Date="{Binding EditDraft.SinceDate}" IsEnabled="{Binding EditDraft.SinceEnabled}" />
+                <HorizontalStackLayout>
+                    <Label Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusList.until_7caf856e}" />
+                    <Switch AutomationId="reward-statuses-edit-until-enabled" IsToggled="{Binding EditDraft.UntilEnabled}" />
+                </HorizontalStackLayout>
+                <DatePicker AutomationId="reward-statuses-edit-until" Date="{Binding EditDraft.UntilDate}" IsEnabled="{Binding EditDraft.UntilEnabled}" />
+                <HorizontalStackLayout>
+                    <Button
+                        AutomationId="reward-statuses-save"
+                        Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusList.save_1509f561}"
+                        Clicked="OnSaveClicked"
+                        IsEnabled="{Binding CanSave}" />
+                    <Button
+                        AutomationId="reward-statuses-cancel"
+                        Text="{DynamicResource extracted.rewardsProgramStatusesManager.statusList.cancel_19766ed6}"
+                        Clicked="OnCancelClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

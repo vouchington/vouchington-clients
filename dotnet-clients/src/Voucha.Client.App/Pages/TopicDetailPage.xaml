@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.TopicDetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:topics="clr-namespace:Voucha.Client.Core.Topics;assembly=Voucha.Client.Core"
+    x:DataType="topics:TopicDetailViewModel"
+    Title="{DynamicResource native.swift.topicRecommendation.topic}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="{Binding Topic.Name}" Style="{StaticResource Headline}" />
+            <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
+            <controls:NativeHtmlContentView Html="{Binding Topic.Html}" Fallback="{Binding Topic.Markdown}" />
+            <HorizontalStackLayout Spacing="10">
+                <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" MinimumHeightRequest="44" />
+                <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVoteClicked" MinimumHeightRequest="44" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{Binding TopicFollowActionLabel}" Clicked="OnToggleTopicFollowClicked" />
+                <Button Text="{Binding TopicMuteActionLabel}" Clicked="OnToggleTopicMuteClicked" IsVisible="{Binding CanMuteTopic}" />
+                <Button Text="{Binding SourceFollowActionLabel}" Clicked="OnToggleSourceFollowClicked" IsVisible="{Binding CanFollowSource}" />
+                <Button Text="{Binding SourceMuteActionLabel}" Clicked="OnToggleSourceMuteClicked" IsVisible="{Binding CanMuteSource}" />
+                <Button Text="{DynamicResource native.dotnet.residual.crawlHistory}" Clicked="OnShowSourceCrawlsClicked" IsVisible="{Binding CanViewSourceCrawlHistory}" />
+            </HorizontalStackLayout>
+            <CollectionView ItemsSource="{Binding SourceCrawls}" IsVisible="{Binding HasLoadedSourceCrawlHistory}">
+                <CollectionView.EmptyView>
+                    <Label Text="{DynamicResource native.dotnet.residual.crawlHistoryEmpty}" Style="{StaticResource Body}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="api:RssFeedCrawl">
+                        <HorizontalStackLayout Spacing="8">
+                            <HorizontalStackLayout.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSourceCrawlTapped" CommandParameter="{Binding Id}" />
+                            </HorizontalStackLayout.GestureRecognizers>
+                            <Label Text="{app:UiLocalizedValue Path=CreatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                            <Label Text="{app:UiLocalizedValue Path=ResponseCode, Format=message:native.dotnet.profile.collectionError}" Style="{StaticResource Metadata}" />
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <VerticalStackLayout IsVisible="{Binding HasSelectedSourceCrawl}">
+                <Label Text="{app:UiLocalizedValue Path=SelectedSourceCrawl.CreatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                <Label Text="{app:UiLocalizedValue Path=SelectedSourceCrawl.ResponseCode, Format=message:native.dotnet.profile.collectionError}" Style="{StaticResource Metadata}" />
+            </VerticalStackLayout>
+            <Label Text="{app:UiLocalizedValue Path=SourceCrawlsContinuationErrorMessage, Format=message:native.dotnet.profile.collectionError}" IsVisible="{Binding HasSourceCrawlsContinuationError}" TextColor="#991B1B" Style="{StaticResource Metadata}" />
+            <Label Text="{app:UiLocalizedValue Path=SourceCrawlHistoryAccessErrorMessage, Format=message:native.dotnet.profile.collectionError}" IsVisible="{Binding HasSourceCrawlHistoryAccessError}" TextColor="#991B1B" Style="{StaticResource Metadata}" />
+            <Label Text="{app:UiLocalizedValue Path=SourceCrawlHistoryRequestErrorMessage, Format=message:native.dotnet.profile.collectionError}" IsVisible="{Binding HasSourceCrawlHistoryRequestError}" TextColor="#991B1B" Style="{StaticResource Metadata}" />
+            <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetrySourceCrawlHistoryClicked" IsVisible="{Binding HasSourceCrawlHistoryRequestError}" />
+            <controls:HybridPaginationControl
+                HasMore="{Binding HasMoreSourceCrawls}"
+                IsLoading="{Binding IsLoadingMoreSourceCrawls}"
+                HasError="{Binding HasSourceCrawlsContinuationError}"
+                LoadNextPageRequested="OnLoadMoreSourceCrawlsClicked"
+                PaginationId="source-crawls" />
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextColor="#991B1B" Style="{StaticResource Metadata}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

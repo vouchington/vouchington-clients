@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="Voucha.Client.App.Pages.NotificationPreferencesView" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:settings="clr-namespace:Voucha.Client.Core.Settings;assembly=Voucha.Client.Core" x:DataType="settings:NotificationPreferencesViewModel">
+  <VerticalStackLayout Spacing="12">
+    <Label x:Name="NotificationPreferencesHeading" AutomationId="notification-preferences-heading" Text="{DynamicResource extracted.intents.productCommunication.notifications_78801183}" SemanticProperties.HeadingLevel="Level1" Style="{StaticResource Headline}" />
+    <Label AutomationId="notification-preferences-error" IsVisible="{Binding HasErrorMessage}" Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+    <Label Text="{DynamicResource native.dotnet.settings.engagementEmails}" Style="{StaticResource Body}" />
+    <Switch x:Name="EngagementSwitch" AutomationId="notification-engagement" IsEnabled="{Binding IsEngagementEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.engagementEmails}" Toggled="OnEngagementChanged" />
+    <Label Text="{DynamicResource native.dotnet.settings.newsDigest}" Style="{StaticResource Body}" />
+    <Picker x:Name="NewsPicker" AutomationId="notification-news-digest" IsEnabled="{Binding IsNewsEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.newsDigest}" ItemsSource="{Binding DigestOptions}" ItemDisplayBinding="{Binding DisplayLabel}" SelectedIndexChanged="OnNewsChanged" />
+    <Label Text="{DynamicResource native.dotnet.settings.moderationEmails}" Style="{StaticResource Body}" />
+    <Switch x:Name="ModerationSwitch" AutomationId="notification-moderation" IsEnabled="{Binding IsModerationEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmails}" Toggled="OnModerationChanged" />
+    <Label Text="{DynamicResource native.dotnet.settings.communityDigest}" Style="{StaticResource Body}" />
+    <Picker x:Name="CommunityPicker" AutomationId="notification-community-digest" IsEnabled="{Binding IsCommunityEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.communityDigest}" ItemsSource="{Binding DigestOptions}" ItemDisplayBinding="{Binding DisplayLabel}" SelectedIndexChanged="OnCommunityChanged" />
+    <VerticalStackLayout IsVisible="{Binding ShowsModerationSchedule}" Spacing="8">
+      <Label Text="{DynamicResource native.dotnet.settings.moderationEmailCadence}" Style="{StaticResource Body}" />
+      <Picker x:Name="CadencePicker" AutomationId="notification-cadence" IsEnabled="{Binding IsCadenceEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmailCadence}" ItemsSource="{Binding CadenceOptions}" ItemDisplayBinding="{Binding DisplayLabel}" SelectedIndexChanged="OnCadenceChanged" />
+      <HorizontalStackLayout x:Name="DaysControls" IsVisible="{Binding ShowsSelectedDays}" Spacing="4">
+        <Button CommandParameter="1" Clicked="OnDayClicked" /><Button CommandParameter="2" Clicked="OnDayClicked" /><Button CommandParameter="3" Clicked="OnDayClicked" /><Button CommandParameter="4" Clicked="OnDayClicked" /><Button CommandParameter="5" Clicked="OnDayClicked" /><Button CommandParameter="6" Clicked="OnDayClicked" /><Button CommandParameter="7" Clicked="OnDayClicked" />
+      </HorizontalStackLayout>
+      <Label AutomationId="notification-time-label" Text="{DynamicResource native.dotnet.settings.moderationEmailTime}" Style="{StaticResource Body}" />
+      <TimePicker x:Name="TimeControl" AutomationId="notification-time" IsEnabled="{Binding IsTimeEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmailTime}" PropertyChanged="OnTimeChanged" />
+      <Label AutomationId="notification-timezone-label" Text="{DynamicResource native.dotnet.settings.moderationEmailTimezone}" Style="{StaticResource Body}" />
+      <Picker x:Name="TimezonePicker" AutomationId="notification-timezone" IsEnabled="{Binding IsTimezoneEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmailTimezone}" SelectedIndexChanged="OnTimezoneChanged" />
+    </VerticalStackLayout>
+  </VerticalStackLayout>
+</ContentView>

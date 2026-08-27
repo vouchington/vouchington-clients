@@ -1,0 +1,105 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <UseMaui>true</UseMaui>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.analyzers" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/DynamicConfigPage.xaml" Link="Pages/DynamicConfigPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/DynamicConfigPage.xaml.cs" Link="Pages/DynamicConfigPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/DynamicConfigRoutePageFactory.cs" Link="DynamicConfigRoutePageFactory.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/FeatureFlagOverridesPage.xaml" Link="Pages/FeatureFlagOverridesPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FeatureFlagOverridesPage.xaml.cs" Link="Pages/FeatureFlagOverridesPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/FeatureFlagOverridesPageFactory.cs" Link="FeatureFlagOverridesPageFactory.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ReviewQueuePage.xaml" Link="Pages/ReviewQueuePage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReviewQueuePage.xaml.cs" Link="Pages/ReviewQueuePage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml" Link="Pages/AiCostsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml.cs" Link="Pages/AiCostsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.cs" Link="Pages/MemberAppealsPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Form.cs" Link="Pages/MemberAppealsPage.Form.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Lifecycle.cs" Link="Pages/MemberAppealsPage.Lifecycle.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Loading.cs" Link="Pages/MemberAppealsPage.Loading.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Lifetime.cs" Link="Pages/MemberAppealsPage.Lifetime.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Pagination.cs" Link="Pages/MemberAppealsPage.Pagination.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPageFactory.cs" Link="Pages/MemberAppealsPageFactory.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputesPage.cs" Link="Pages/ModerationDisputesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputesPage.Lifecycle.cs" Link="Pages/ModerationDisputesPage.Lifecycle.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputesPageLifetime.cs" Link="Pages/ModerationDisputesPageLifetime.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardView.cs" Link="Pages/ModerationDisputeCardView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardView.Actions.cs" Link="Pages/ModerationDisputeCardView.Actions.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardPresentation.cs" Link="Pages/ModerationDisputeCardPresentation.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardPresentation.cs" Link="Pages/ModerationAppealCardPresentation.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardPresentation.Context.cs" Link="Pages/ModerationAppealCardPresentation.Context.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/PaymentCardsPage.xaml" Link="Pages/PaymentCardsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PaymentCardsPage.xaml.cs" Link="Pages/PaymentCardsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/MauiProgram.PaymentCards.cs" Link="MauiProgram.PaymentCards.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/PointValuationsPage.xaml" Link="Pages/PointValuationsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PointValuationsPage.xaml.cs" Link="Pages/PointValuationsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/MauiProgram.PointValuations.cs" Link="MauiProgram.PointValuations.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/SpendingCategoriesPage.xaml" Link="Pages/SpendingCategoriesPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SpendingCategoriesPage.xaml.cs" Link="Pages/SpendingCategoriesPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/MauiProgram.SpendingCategories.cs" Link="MauiProgram.SpendingCategories.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml" Link="Pages/RewardsProgramStatusesPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml.cs" Link="Pages/RewardsProgramStatusesPage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml" Link="Pages/NotificationPreferencesView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml.cs" Link="Pages/NotificationPreferencesView.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/NotificationSettingsAccessibilityCoordinator.cs" Link="NotificationSettingsAccessibilityCoordinator.cs" />
+    <Compile Include="../../src/Voucha.Client.App/NotificationSettingsRouteEpoch.cs" Link="NotificationSettingsRouteEpoch.cs" />
+    <Compile Include="../../src/Voucha.Client.App/NotificationSettingsInboxAction.cs" Link="NotificationSettingsInboxAction.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsRoutePresentation.cs" Link="Pages/SettingsRoutePresentation.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPageInitialLoad.cs" Link="Pages/SettingsPageInitialLoad.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionInitialRouteState.cs" Link="Pages/CommunitySectionInitialRouteState.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityModerationTransparencyControls.cs" Link="Pages/CommunityModerationTransparencyControls.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/ViewportPaginationTrigger.cs" Link="Controls/ViewportPaginationTrigger.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeMarkdownEditorView.cs" Link="Controls/NativeMarkdownEditorView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeMarkdownEditorView.Autocomplete.cs" Link="Controls/NativeMarkdownEditorView.Autocomplete.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeMarkdownAutocompleteModels.cs" Link="Controls/NativeMarkdownAutocompleteModels.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.cs" Link="Controls/NativeHtmlContentView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Spans.cs" Link="Controls/NativeHtmlContentView.Spans.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Localization.cs" Link="Controls/NativeHtmlContentView.Localization.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/AgentListsPage.cs" Link="Pages/AgentListsPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/AgentDetailPage.cs" Link="Pages/AgentDetailPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/AgentConversationPage.cs" Link="Pages/AgentConversationPage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml" Link="Pages/HouseholdPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml.cs" Link="Pages/HouseholdPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MembershipGrantOptions.cs" Link="Pages/MembershipGrantOptions.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/MembershipGrantPage.cs" Link="Pages/MembershipGrantPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/IdentityVerificationAttemptGrantPage.cs" Link="Pages/IdentityVerificationAttemptGrantPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/UsersBrowsePage.cs" Link="Pages/UsersBrowsePage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/LandingPagesPage.xaml" Link="Pages/LandingPagesPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/LandingPagesPage.xaml.cs" Link="Pages/LandingPagesPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/InvertedBooleanConverter.cs" Link="Pages/InvertedBooleanConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/LandingPageItemDescriptionConverter.cs" Link="Pages/LandingPageItemDescriptionConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/VoteClearEligibilityConverter.cs" Link="Pages/VoteClearEligibilityConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionVisibilityConverter.cs" Link="Pages/FollowerDistributionVisibilityConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TagRelationVoteEligibilityConverter.cs" Link="Pages/TagRelationVoteEligibilityConverter.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Moderation/ReviewQueueModerationServiceStub.cs" Link="TestSupport/ReviewQueueModerationServiceStub.cs" />
+    <Compile Include="../../src/Voucha.Client.App/BottomTabFactory.cs" Link="BottomTabFactory.cs" />
+    <Compile Include="../../src/Voucha.Client.App/UiLocalizedValueExtension.cs" Link="UiLocalizedValueExtension.cs" />
+    <Compile Include="../../src/Voucha.Client.App/UiLocalizedValueConverter.cs" Link="UiLocalizedValueConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/UiLocaleVersion.cs" Link="UiLocaleVersion.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPageViews.cs" Link="Pages/IntegrityPageViews.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/BookmarkCollectionPaginationFooter.cs" Link="Pages/BookmarkCollectionPaginationFooter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.cs" Link="Pages/ReportIntegrityPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.Render.cs" Link="Pages/ReportIntegrityPage.Render.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPage.cs" Link="Pages/VoteIntegrityPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPage.Render.cs" Link="Pages/VoteIntegrityPage.Render.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPenaltiesPageBase.cs" Link="Pages/IntegrityPenaltiesPageBase.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPenaltiesPage.cs" Link="Pages/ReportIntegrityPenaltiesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPenaltiesPage.cs" Link="Pages/VoteIntegrityPenaltiesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/StaffSupportPageOperation.cs" Link="Pages/StaffSupportPageOperation.cs" />
+  </ItemGroup>
+</Project>

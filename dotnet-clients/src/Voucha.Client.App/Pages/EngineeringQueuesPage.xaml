@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.EngineeringQueuesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:eng="clr-namespace:Voucha.Client.Core.Engineering;assembly=Voucha.Client.Core"
+    x:DataType="eng:EngineeringQueuesViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.staffEngineeringQueuesQueuesTitle}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <HorizontalStackLayout Spacing="12">
+                <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringQueuesQueuesTitle}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+            </HorizontalStackLayout>
+
+            <Border Padding="12" Stroke="#FCA5A5" StrokeThickness="1" IsVisible="{Binding HasError}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+                <Label Text="{app:UiLocalizedValue Path=Stats.TotalWaiting, Format=message:native.dotnet.engineeringQueues.waitingCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.TotalActive, Format=message:native.dotnet.engineeringQueues.activeCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="1" Text="{app:UiLocalizedValue Path=Stats.TotalCompleted, Format=message:native.dotnet.engineeringQueues.completedCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="1" Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.TotalFailed, Format=message:native.dotnet.engineeringQueues.failedCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="2" Text="{app:UiLocalizedValue Path=Stats.QueueCount, Format=message:native.dotnet.engineeringQueues.queueCount|number}" Style="{StaticResource Metadata}" />
+            </Grid>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.dotnet.engineeringQueues.stats}" Style="{StaticResource Headline}" />
+                    <CollectionView ItemsSource="{Binding Queues}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:QueueStats">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Waiting, Format=message:native.dotnet.engineeringQueues.waitingCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Active, Format=message:native.dotnet.engineeringQueues.activeCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Completed, Format=message:native.dotnet.engineeringQueues.completedCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Failed, Format=message:native.dotnet.engineeringQueues.failedCount|number}" Style="{StaticResource Metadata}" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Button Text="{DynamicResource native.dotnet.engineeringQueues.togglePause}" Clicked="OnTogglePauseClicked" CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.dotnet.engineeringQueues.scheduledJobs}" Style="{StaticResource Headline}" />
+                    <CollectionView ItemsSource="{Binding ScheduledJobs}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:ScheduledJob">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Description}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding QueueName}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding Schedule}" Style="{StaticResource Metadata}" />
+                                        <Button Text="{DynamicResource native.dotnet.engineeringQueues.trigger}" Clicked="OnTriggerScheduledJobClicked" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.dotnet.engineeringQueues.backfills}" Style="{StaticResource Headline}" />
+                    <CollectionView ItemsSource="{Binding Backfills}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:Backfill">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Description}" Style="{StaticResource Body}" />
+                                        <Label Text="{app:UiLocalizedValue Path=SourceTable, Format=message:native.dotnet.engineeringQueues.source}" Style="{StaticResource Metadata}" />
+                                        <Button Text="{DynamicResource native.dotnet.engineeringQueues.runBackfill}" Clicked="OnTriggerBackfillClicked" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

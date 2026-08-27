@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ListsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:lists="clr-namespace:Voucha.Client.Core.Lists;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:ListsPageBinding"
+    Title="{DynamicResource native.swift.lists.lists}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Padding="20" RowSpacing="14">
+        <HorizontalStackLayout Spacing="8">
+            <Entry
+                x:Name="ListNameEntry"
+                Placeholder="{DynamicResource native.dotnet.lists.name}"
+                WidthRequest="180" />
+            <Button Text="{DynamicResource native.swift.common.create}" Clicked="OnCreateClicked" />
+            <Entry
+                x:Name="CommunitySlugEntry"
+                Placeholder="{DynamicResource native.swift.lists.communitySlug}"
+                WidthRequest="180"
+                IsEnabled="{Binding HasSelectedList}" />
+            <Button Text="{DynamicResource native.swift.common.import}" Clicked="OnImportClicked" IsEnabled="{Binding HasSelectedList}" />
+            <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" IsEnabled="{Binding HasSelectedList}" />
+        </HorizontalStackLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#F8FAFC"
+            Stroke="#D8DEE9"
+            StrokeThickness="1"
+            IsVisible="{Binding HasSelectedList}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10" ColumnSpacing="12">
+                <Entry
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Text="{Binding SelectedListName, Mode=TwoWay}"
+                    Placeholder="{DynamicResource native.dotnet.lists.selectedName}" />
+                <Button
+                    Grid.RowSpan="2"
+                    Grid.Column="1"
+                    Text="{DynamicResource common.save}"
+                    Clicked="OnSaveClicked"
+                    IsEnabled="{Binding CanSaveSelectedList}" />
+                <Editor
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Text="{Binding SelectedListDescription, Mode=TwoWay}"
+                    Placeholder="{DynamicResource native.dotnet.lists.description}"
+                    HeightRequest="72" />
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="2"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <HorizontalStackLayout Grid.Row="3" Spacing="8">
+            <Button Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" />
+            <Button Text="{DynamicResource native.dotnet.mediaPlayback.reading}" Clicked="OnReadingClicked" />
+            <Button Text="{DynamicResource native.dotnet.mediaPlayback.watch}" Clicked="OnWatchClicked" />
+            <Button Text="{DynamicResource native.dotnet.mediaPlayback.listen}" Clicked="OnListenClicked" />
+        </HorizontalStackLayout>
+
+        <Grid Grid.Row="4" ColumnDefinitions="260,*" ColumnSpacing="16">
+            <CollectionView
+                ItemsSource="{Binding Lists}"
+                SelectedItem="{Binding SelectedList, Mode=OneWay}"
+                SelectionMode="Single"
+                SelectionChanged="OnListSelectionChanged"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnListsThresholdReached">
+                <CollectionView.EmptyView>
+                    <Label Text="{DynamicResource native.dotnet.lists.empty}" Style="{StaticResource Body}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="lists:ListSummaryRow">
+                        <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding LocalizedVisibility}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding Description}" Style="{StaticResource Body}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="ListsPaginationControl"
+                        PaginationId="lists"
+                        HasMore="{Binding HasMoreLists}"
+                        IsLoading="{Binding IsLoadingListPage}"
+                        HasError="{Binding HasListPaginationError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <CollectionView
+                Grid.Column="1"
+                ItemsSource="{Binding Items}"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <Label Text="{DynamicResource native.dotnet.lists.emptyItems}" Style="{StaticResource Body}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="lists:ListItemRow">
+                        <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding LocalizedItemType}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding EntityId}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding LocalizedMediaType}" Style="{StaticResource Metadata}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="ItemsPaginationControl"
+                        PaginationId="list-items"
+                        HasMore="{Binding HasMoreItems}"
+                        IsLoading="{Binding IsLoadingItemPage}"
+                        HasError="{Binding HasItemPaginationError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentPage>

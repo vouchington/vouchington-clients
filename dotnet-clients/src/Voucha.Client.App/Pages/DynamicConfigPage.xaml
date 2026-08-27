@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.DynamicConfigPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:eng="clr-namespace:Voucha.Client.Core.Engineering;assembly=Voucha.Client.Core"
+    x:DataType="eng:DynamicConfigViewModel"
+    Title="{DynamicResource native.swift.dynamicConfigFeatureFlags.dynamicConfig}">
+    <Grid Padding="20" ColumnDefinitions="280,*" ColumnSpacing="20">
+        <VerticalStackLayout Grid.Column="0" Spacing="12">
+            <Label Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.dynamicConfig}" Style="{StaticResource Headline}" />
+            <SearchBar AutomationId="dynamic-config-namespace-search" Placeholder="{DynamicResource native.swift.dynamicConfigFeatureFlags.searchNamespaces}" Text="{Binding SearchText}" />
+            <CollectionView AutomationId="dynamic-config-namespaces" ItemsSource="{Binding FilteredNamespaceOptions}" SelectionChanged="OnNamespaceSelected" SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="eng:DynamicConfigNamespaceOption">
+                        <VerticalStackLayout Padding="8" Spacing="2">
+                            <Label Text="{Binding ExternalContentLabel}" Style="{StaticResource Body}" />
+                            <Label Text="{Binding ProtocolNamespace}" Style="{StaticResource Metadata}" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+        <ScrollView Grid.Column="1">
+            <VerticalStackLayout Spacing="14">
+                <HorizontalStackLayout Spacing="12">
+                    <Label Text="{Binding SelectedNamespace.Label}" Style="{StaticResource Headline}" />
+                    <Label Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.readOnly}" IsVisible="{Binding IsReadOnly}" />
+                    <Button AutomationId="dynamic-config-refresh" Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+                </HorizontalStackLayout>
+                <Label Text="{Binding SelectedNamespace.Description}" Style="{StaticResource Body}" />
+                <Border Padding="12" Stroke="#FCA5A5" IsVisible="{Binding HasError}">
+                    <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+                </Border>
+                <Label Text="{Binding LocalizedFeedbackMessage}" TextColor="#166534" />
+                <VerticalStackLayout x:Name="FieldsLayout" Spacing="12" />
+                <Label Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.history}" Style="{StaticResource Headline}" />
+                <VerticalStackLayout x:Name="HistoryLayout" Spacing="8" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

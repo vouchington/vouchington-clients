@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.TopicsPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:topics="clr-namespace:Voucha.Client.Core.Topics;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:TopicsPageBinding"
+    Title="{DynamicResource native.swift.navigationTitles.topics}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <pages:VoteClearEligibilityConverter x:Key="VoteClearEligibilityConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+            <SearchBar
+                Placeholder="{DynamicResource native.dotnet.topicManagement.searchTopics}"
+                Text="{Binding SearchQuery}"
+                SearchButtonPressed="OnSearchButtonPressed" />
+            <Button
+                Grid.Column="1"
+                Text="{DynamicResource native.dotnet.topicManagement.createTopic}"
+                Clicked="OnCreateClicked"
+                IsVisible="{Binding CanManageTopics}" />
+            <Button
+                Grid.Column="2"
+                Text="{DynamicResource native.swift.importExport.title}"
+                Clicked="OnImportExportClicked"
+                IsVisible="{Binding CanImportExport}" />
+        </Grid>
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+        <RefreshView Grid.Row="2" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.topics.empty}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.topics.emptyDescription}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="topics:TopicRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Description}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />
+                                <Label Text="{Binding Slug}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasVoteCounts}">
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.vote}"
+                                        Clicked="OnChooseVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanVote}"
+                                        WidthRequest="42" />
+                                    <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.clear}"
+                                        Clicked="OnClearVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        WidthRequest="42">
+                                        <Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource VoteClearEligibilityConverter}">
+                                                <Binding Path="CurrentVoteChoice" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanClearVote" />
+                                            </MultiBinding>
+                                        </Button.IsEnabled>
+                                    </Button>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button
+                                        Text="{DynamicResource native.swift.communityActions.open}"
+                                        Clicked="OnOpenClicked"
+                                        CommandParameter="{Binding .}" />
+                                    <Button
+                                        Text="{DynamicResource nav.settings}"
+                                        Clicked="OnSettingsClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanManageTopics}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

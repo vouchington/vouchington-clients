@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.TurnstileChallengePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="{DynamicResource native.dotnet.turnstile.title}">
+    <Grid Padding="20" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+        <Grid ColumnDefinitions="*,Auto">
+            <Label Text="{DynamicResource native.dotnet.turnstile.title}" Style="{StaticResource Headline}" />
+            <Button
+                Grid.Column="1"
+                Text="{DynamicResource native.dotnet.support.close}"
+                Clicked="OnCloseClicked" />
+        </Grid>
+
+        <WebView
+            x:Name="TurnstileWebView"
+            Grid.Row="1"
+            Navigating="OnNavigating" />
+
+        <Label
+            Grid.Row="2"
+            Text="{DynamicResource native.dotnet.turnstile.description}"
+            Style="{StaticResource Body}" />
+    </Grid>
+</ContentPage>

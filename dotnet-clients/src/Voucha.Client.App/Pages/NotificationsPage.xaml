@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.NotificationsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:notifications="clr-namespace:Voucha.Client.Core.Notifications;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:NotificationsPageBinding"
+    Title="{DynamicResource nav.notifications}">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
+        <HorizontalStackLayout Spacing="8">
+            <Button
+                Text="{DynamicResource native.dotnet.notifications.markAllRead}"
+                Clicked="OnMarkAllReadClicked"
+                IsEnabled="{Binding CanMarkAllRead}" />
+            <Button Text="{DynamicResource nav.settings}" Clicked="OnNotificationSettingsClicked" />
+        </HorizontalStackLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <RefreshView Grid.Row="2" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.notifications.empty}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.notifications.emptyDescription}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="notifications:NotificationRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnNotificationTapped" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="12,*" ColumnSpacing="10">
+                                <Ellipse
+                                    WidthRequest="8"
+                                    HeightRequest="8"
+                                    Fill="{StaticResource AccentColor}"
+                                    IsVisible="{Binding IsUnread}"
+                                    VerticalOptions="Start"
+                                    Margin="0,6,0,0" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                    <Label Text="{Binding ReadStateLabel}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding UserContentBody}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />
+                                    <Label Text="{app:UiLocalizedValue Path=CreatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                                    <Button
+                                        Text="{Binding MarkReadActionLabel}"
+                                        Clicked="OnMarkReadClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding IsUnread}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="PaginationControl"
+                        PaginationId="notifications"
+                        HasMore="{Binding HasMore}"
+                        IsLoading="{Binding PaginationIsLoading}"
+                        HasError="{Binding HasError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

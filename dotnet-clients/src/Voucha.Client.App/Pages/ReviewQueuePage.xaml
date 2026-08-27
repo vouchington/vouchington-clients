@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ReviewQueuePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:moderation="clr-namespace:Voucha.Client.Core.Moderation;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    x:DataType="moderation:ReviewQueueViewModel"
+    Title="{DynamicResource native.dotnet.moderation.reviewQueue}">
+    <Grid RowDefinitions="Auto,*" Padding="20" RowSpacing="12">
+        <Border AutomationId="review-queue-error" Padding="12" BackgroundColor="#FEF2F2" Stroke="#FCA5A5" IsVisible="{Binding HasError}">
+            <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+        </Border>
+        <Grid Grid.Row="1">
+            <RefreshView IsRefreshing="{Binding IsRefreshing}" Refreshing="OnRefreshing">
+                <CollectionView
+                    AutomationId="review-queue-items"
+                    ItemsSource="{Binding Items}"
+                    SelectionMode="None"
+                    RemainingItemsThreshold="2"
+                    RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.Header>
+                    <Label Text="{DynamicResource native.dotnet.moderation.reviewQueue}" Style="{StaticResource Headline}" Margin="0,0,0,12" />
+                </CollectionView.Header>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="PaginationControl"
+                        PaginationId="review-queue"
+                        HasMore="{Binding HasMore}"
+                        IsLoading="{Binding IsLoading}"
+                        HasError="{Binding HasError}" />
+                </CollectionView.Footer>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="moderation:ReviewQueueRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <Label AutomationId="review-queue-row-title" Text="{Binding DisplayTitle}" Style="{StaticResource Headline}" />
+                                <Label AutomationId="review-queue-row-preview" Text="{Binding UserContentPreview}" Style="{StaticResource Body}" />
+                                <Label AutomationId="review-queue-row-author" Text="{Binding AuthorPresentation}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="review-queue-row-post-type" Text="{Binding PostTypePresentation}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="review-queue-row-root" Text="{Binding RootContextPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding CreatedPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding StatusPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding SpamPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding OpenAIModerationPresentation}" Style="{StaticResource Metadata}" />
+                                <VerticalStackLayout
+                                    AutomationId="review-queue-media"
+                                    Spacing="8"
+                                    IsVisible="{Binding ShowMedia}"
+                                    BindableLayout.ItemsSource="{Binding Media}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="moderation:ReviewQueueMediaRow">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Image
+                                                    AutomationId="review-queue-media-image"
+                                                    Source="{Binding Source}"
+                                                    Aspect="AspectFit"
+                                                    HeightRequest="260" />
+                                                <Label
+                                                    AutomationId="review-queue-media-caption"
+                                                    Text="{Binding CaptionPresentation}"
+                                                    IsVisible="{Binding HasCaption}"
+                                                    Style="{StaticResource Metadata}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                                <Label
+                                    Text="{DynamicResource native.swift.moderationReports.reviewQueueSensitiveMediaHidden}"
+                                    IsVisible="{Binding ShowRevealGate}"
+                                    Style="{StaticResource Metadata}" />
+                                <Label
+                                    Text="{DynamicResource native.swift.moderationReports.reviewQueueExposureStale}"
+                                    IsVisible="{Binding ShowExposureStale}"
+                                    Style="{StaticResource Metadata}" />
+                                <Label
+                                    Text="{DynamicResource native.swift.moderationReports.reviewQueueCooldownPrompt}"
+                                    IsVisible="{Binding ShowExposureCooldown}"
+                                    Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout
+                                    AutomationId="review-queue-exposure-controls"
+                                    Spacing="8">
+                                    <Button
+                                        AutomationId="review-queue-reveal"
+                                        Text="{DynamicResource native.swift.moderationReports.reviewQueueReveal}"
+                                        Clicked="OnRevealClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding ShowRevealGate}"
+                                        IsEnabled="{Binding CanRevealMedia}" />
+                                    <Button
+                                        AutomationId="review-queue-check-exposure"
+                                        Text="{DynamicResource native.swift.moderationReports.reviewQueueCheckExposure}"
+                                        Clicked="OnCheckExposureClicked"
+                                        IsVisible="{Binding ShowExposureStale}" />
+                                    <Button
+                                        AutomationId="review-queue-check-again"
+                                        Text="{DynamicResource native.swift.moderationReports.reviewQueueCheckAgain}"
+                                        Clicked="OnCheckExposureClicked"
+                                        IsVisible="{Binding ShowExposureCooldown}" />
+                                    <ActivityIndicator
+                                        AutomationId="review-queue-reveal-loading"
+                                        IsRunning="{Binding IsRevealInFlight}"
+                                        IsVisible="{Binding IsRevealInFlight}" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button AutomationId="review-queue-approve" Text="{DynamicResource native.swift.moderationReports.reviewQueueApprove}" Clicked="OnApproveClicked" CommandParameter="{Binding .}" IsEnabled="{Binding CanAct}" />
+                                    <Button AutomationId="review-queue-reject" Text="{DynamicResource native.swift.moderationReports.reviewQueueReject}" Clicked="OnRejectClicked" CommandParameter="{Binding .}" IsEnabled="{Binding CanAct}" />
+                                    <Button AutomationId="review-queue-re-review" Text="{DynamicResource native.swift.moderationReports.reviewQueueMarkForReview}" Clicked="OnReReviewClicked" CommandParameter="{Binding .}" IsEnabled="{Binding CanMarkForReReview}" />
+                                    <ActivityIndicator AutomationId="review-queue-row-mutating" IsRunning="{Binding IsMutating}" IsVisible="{Binding IsMutating}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+            <ActivityIndicator AutomationId="review-queue-loading" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+            <Label
+                AutomationId="review-queue-empty"
+                Text="{DynamicResource native.swift.moderationReports.reviewQueueEmptyMessage}"
+                Style="{StaticResource Body}"
+                Padding="16"
+                IsVisible="{Binding ShowEmptyState}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentPage>

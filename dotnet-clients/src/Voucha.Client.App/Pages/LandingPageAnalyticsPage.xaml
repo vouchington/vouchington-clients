@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.LandingPageAnalyticsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:landing="clr-namespace:Voucha.Client.Core.LandingPages;assembly=Voucha.Client.Core"
+    x:DataType="landing:LandingPageAnalyticsViewModel"
+    Title="{DynamicResource native.dotnet.landingPages.title}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding PageTitle}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding PageSlug}" Style="{StaticResource Metadata}" />
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            </VerticalStackLayout>
+            <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1" IsVisible="{Binding HasAnalytics}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.visits}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding Analytics.TotalVisits}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.clicks}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding Analytics.TotalClicks}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.visitors}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding Analytics.UniqueVisitors}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="3" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.ctr}" Style="{StaticResource Metadata}" />
+                            <Label Text="{app:UiLocalizedValue Path=Analytics.Ctr, Format=percent}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Label Text="{app:UiLocalizedValue Path=Analytics.ConversionFunnel.TotalSignups, Format=message:native.dotnet.landingPages.signupCount|number}" Style="{StaticResource Metadata}" />
+                    <CollectionView ItemsSource="{Binding LocalizedItemClicks}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="landing:LandingPageItemClickRow">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding LocalizedItemType}" Style="{StaticResource Body}" />
+                                    <Label Text="{Binding ProtocolItemId}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{app:UiLocalizedValue Path=ClickCount, Format=message:native.dotnet.landingPages.clickCount|number}" Style="{StaticResource Metadata}" />
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <CollectionView ItemsSource="{Binding Analytics.DailyStats}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:LandingPageDailyStats">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding Date}" Style="{StaticResource Body}" />
+                                    <Label Text="{app:UiLocalizedValue Path=Visits, Format=message:native.dotnet.landingPages.visitCount|number}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{app:UiLocalizedValue Path=UniqueVisitors, Format=message:native.dotnet.landingPages.visitorCount|number}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{app:UiLocalizedValue Path=Clicks, Format=message:native.dotnet.landingPages.clickCount|number}" Style="{StaticResource Metadata}" />
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <CollectionView ItemsSource="{Binding Analytics.UtmSources}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:LandingPageUtmSourceStats">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding UtmSource}" Style="{StaticResource Body}" />
+                                    <Label Text="{app:UiLocalizedValue Path=Visits, Format=message:native.dotnet.landingPages.visitCount|number}" Style="{StaticResource Metadata}" />
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

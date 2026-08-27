@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.PaymentCardsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:cards="clr-namespace:Voucha.Client.Core.PaymentCards;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    x:DataType="cards:PaymentCardsViewModel"
+    Title="{DynamicResource native.dotnet.paymentCards.title}">
+    <ScrollView
+        x:Name="PaymentCardsScroll"
+        Loaded="OnPaymentCardsViewportChanged"
+        Scrolled="OnPaymentCardsScrolled"
+        SizeChanged="OnPaymentCardsViewportChanged">
+        <VerticalStackLayout x:Name="PaymentCardsContent" Padding="20" Spacing="14" SizeChanged="OnPaymentCardsViewportChanged">
+            <Label Text="{DynamicResource native.dotnet.paymentCards.title}" Style="{StaticResource Headline}" />
+            <Label Text="{DynamicResource native.dotnet.paymentCards.description}" Style="{StaticResource Metadata}" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Entry x:Name="TopicSearchEntry" AutomationId="payment-cards-search-input" Text="{Binding TopicSearchQuery, Mode=TwoWay}" Placeholder="{DynamicResource native.dotnet.paymentCards.searchPlaceholder}" />
+                <Button Grid.Column="1" AutomationId="payment-cards-search" Text="{DynamicResource native.dotnet.paymentCards.search}" Clicked="OnSearchClicked" />
+            </Grid>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopicRows}" Spacing="6">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="cards:PaymentCardTopicOption">
+                        <Button Text="{Binding LocalizedName}" Clicked="OnAddTopicClicked" CommandParameter="{Binding .}" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+            <VerticalStackLayout AutomationId="payment-cards-error" IsVisible="{Binding HasError}" Spacing="6">
+                <Label AutomationId="payment-cards-error-message" Text="{Binding LocalizedErrorMessage}" TextColor="#991B1B" />
+                <Button AutomationId="payment-cards-retry" Text="{DynamicResource native.dotnet.paymentCards.retry}" Clicked="OnRetryClicked" />
+            </VerticalStackLayout>
+            <Label Text="{DynamicResource native.dotnet.paymentCards.empty}" IsVisible="{Binding ShowsEmptyState}" Style="{StaticResource Metadata}" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}" Spacing="10">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="cards:PaymentCardRow">
+                        <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <VerticalStackLayout Spacing="6">
+                                <Label AutomationId="payment-card-name" Text="{Binding LocalizedName}" Style="{StaticResource Headline}" />
+                                <Label AutomationId="payment-card-limit" Text="{Binding LocalizedCreditLimitDetail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="payment-card-opened" Text="{Binding LocalizedOpenedOnDetail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="payment-card-closed" Text="{Binding LocalizedClosedOnDetail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="payment-card-bonus" Text="{Binding LocalizedBonusOnDetail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="payment-card-parent" Text="{Binding LocalizedAuthorizedUserDetail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="payment-card-note" Text="{Binding LocalizedNoteDetail}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{DynamicResource native.dotnet.paymentCards.edit}" Clicked="OnEditClicked" CommandParameter="{Binding .}" />
+                                    <Button Text="{DynamicResource native.dotnet.paymentCards.delete}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <controls:HybridPaginationControl
+                PaginationId="payment-cards"
+                HasMore="{Binding HasNextPage}"
+                HasError="{Binding HasContinuationError}"
+                IsLoading="{Binding IsLoadingMore}"
+                LoadNextPageRequested="OnLoadMoreRequested" />
+            <VerticalStackLayout IsVisible="{Binding HasDraft}" Spacing="10">
+                <Label Text="{DynamicResource native.dotnet.paymentCards.editDetails}" Style="{StaticResource Headline}" />
+                <HorizontalStackLayout Spacing="8"><Switch IsToggled="{Binding Draft.HasOpenedOn}" /><Label Text="{DynamicResource native.dotnet.paymentCards.openedOn}" /></HorizontalStackLayout>
+                <DatePicker Date="{Binding Draft.OpenedOnDate}" IsEnabled="{Binding Draft.HasOpenedOn}" />
+                <HorizontalStackLayout Spacing="8"><Switch IsToggled="{Binding Draft.HasClosedOn}" /><Label Text="{DynamicResource native.dotnet.paymentCards.closedOn}" /></HorizontalStackLayout>
+                <DatePicker Date="{Binding Draft.ClosedOnDate}" IsEnabled="{Binding Draft.HasClosedOn}" />
+                <HorizontalStackLayout Spacing="8"><Switch IsToggled="{Binding Draft.HasBonusOn}" /><Label Text="{DynamicResource native.dotnet.paymentCards.bonusOn}" /></HorizontalStackLayout>
+                <DatePicker Date="{Binding Draft.BonusOnDate}" IsEnabled="{Binding Draft.HasBonusOn}" />
+                <Entry Text="{Binding Draft.CreditLimit}" Keyboard="Numeric" Placeholder="{DynamicResource native.dotnet.paymentCards.creditLimit}" />
+                <Picker ItemsSource="{Binding Draft.SupportedCurrencies}" SelectedItem="{Binding Draft.CreditLimitCurrency}" />
+                <HorizontalStackLayout Spacing="8"><Switch IsToggled="{Binding Draft.IsAuthorizedUser}" /><Label Text="{DynamicResource native.dotnet.paymentCards.authorizedUser}" /></HorizontalStackLayout>
+                <Picker x:Name="ParentPicker" AutomationId="payment-cards-parent-picker" Title="{DynamicResource native.dotnet.paymentCards.parentCard}" ItemsSource="{Binding ParentCandidates}" ItemDisplayBinding="{Binding LocalizedName}" SelectedIndexChanged="OnParentSelected" IsEnabled="{Binding Draft.IsAuthorizedUser}" />
+                <controls:HybridPaginationControl
+                    x:Name="ParentCardsPagination"
+                    PaginationId="payment-card-parent-options"
+                    HasMore="{Binding HasNextPage}"
+                    HasError="{Binding HasContinuationError}"
+                    IsLoading="{Binding IsLoadingMore}"
+                    LoadNextPageRequested="OnLoadMoreRequested" />
+                <Editor Text="{Binding Draft.Note}" Placeholder="{DynamicResource native.dotnet.paymentCards.note}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource native.dotnet.paymentCards.save}" Clicked="OnSaveClicked" />
+                    <Button Text="{DynamicResource common.cancel}" Clicked="OnCancelClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

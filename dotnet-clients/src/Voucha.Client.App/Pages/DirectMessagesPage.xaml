@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.DirectMessagesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:messages="clr-namespace:Voucha.Client.Core.Messages;assembly=Voucha.Client.Core"
+    x:DataType="messages:DirectMessagesViewModel"
+    Title="{DynamicResource nav.messages}">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{DynamicResource nav.notifications}" Clicked="OnNotificationsClicked" />
+    </ContentPage.ToolbarItems>
+    <Grid Padding="20" ColumnDefinitions="280,*,300" ColumnSpacing="16">
+        <VerticalStackLayout Spacing="8">
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+            <Label
+                Text="{Binding ErrorMessage}"
+                IsVisible="{Binding HasError}"
+                Style="{StaticResource Metadata}"
+                TextColor="#B00020" />
+            <CollectionView
+                ItemsSource="{Binding Conversations}"
+                SelectionMode="Single"
+                SelectionChanged="OnConversationSelectionChanged"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingConversationsThresholdReached">
+                <CollectionView.EmptyView>
+                    <Label Text="{DynamicResource native.dotnet.directMessages.empty}" Style="{StaticResource Body}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="messages:DirectConversationRow">
+                        <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{app:UiLocalizedValue Path=UpdatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="ConversationPaginationControl"
+                        PaginationId="direct-messages"
+                        HasMore="{Binding HasMoreConversations}"
+                        IsLoading="{Binding IsLoading}"
+                        HasError="{Binding HasError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </VerticalStackLayout>
+
+        <Grid Grid.Column="1" RowDefinitions="*,Auto" RowSpacing="12">
+            <VerticalStackLayout Spacing="8">
+                <ActivityIndicator IsRunning="{Binding IsThreadLoading}" IsVisible="{Binding IsThreadLoading}" />
+                <Label
+                    Text="{Binding ThreadErrorMessage}"
+                    IsVisible="{Binding HasThreadError}"
+                    Style="{StaticResource Metadata}"
+                    TextColor="#B00020" />
+                <CollectionView ItemsSource="{Binding Messages}">
+                    <CollectionView.EmptyView>
+                        <Label Text="{DynamicResource native.dotnet.directMessages.selectPrompt}" Style="{StaticResource Body}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="messages:DirectMessageRow">
+                            <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding SenderLabel}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{Binding BodyText}" Style="{StaticResource Body}" />
+                                    <Label Text="{app:UiLocalizedValue Path=CreatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Button
+                    Text="{DynamicResource native.swift.directMessages.loadOlderMessages}"
+                    IsVisible="{Binding HasMoreMessages}"
+                    Clicked="OnLoadMoreMessagesClicked" />
+            </VerticalStackLayout>
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Editor x:Name="MessageEditor" Placeholder="{DynamicResource native.swift.directMessages.writeAMessage}" AutoSize="TextChanges" />
+                <Button Grid.Column="1" Text="{DynamicResource native.swift.common.send}" Clicked="OnSendClicked" />
+            </Grid>
+        </Grid>
+
+        <ScrollView Grid.Column="2">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="{DynamicResource native.swift.directMessages.newMessage}" Style="{StaticResource Headline}" />
+                <Entry x:Name="RecipientSearchEntry" Placeholder="{DynamicResource native.swift.directMessages.searchUsers}" />
+                <Button Text="{DynamicResource nav.search}" Clicked="OnRecipientSearchClicked" />
+                <HorizontalStackLayout Spacing="8">
+                    <Label x:Name="SelectedRecipientsLabel" Text="{DynamicResource native.dotnet.directMessages.noRecipients}" Style="{StaticResource Metadata}" VerticalOptions="Center" />
+                    <Button x:Name="ClearRecipientsButton" Text="{DynamicResource native.swift.common.clear}" Clicked="OnClearRecipientsClicked" IsVisible="False" />
+                </HorizontalStackLayout>
+                <CollectionView ItemsSource="{Binding ComposerUserResults}" HeightRequest="160">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="messages:DirectMessageUserRow">
+                            <Button Text="{app:UiLocalizedValue Path=Username, Format=message:native.dotnet.directMessages.addUser}" Clicked="OnAddRecipientClicked" CommandParameter="{Binding .}" />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Editor x:Name="ComposeEditor" Placeholder="{DynamicResource native.swift.communities.message}" AutoSize="TextChanges" />
+                <Button x:Name="CreateConversationButton" Text="{DynamicResource native.dotnet.directMessages.create}" Clicked="OnCreateConversationClicked" />
+
+                <Label Text="{DynamicResource native.swift.directMessages.participants}" Style="{StaticResource Headline}" />
+                <CollectionView ItemsSource="{Binding Participants}" HeightRequest="220">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="messages:DirectMessageParticipantRow">
+                            <Grid ColumnDefinitions="*,Auto" Padding="0,0,0,8">
+                                <VerticalStackLayout>
+                                    <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                    <Label Text="{Binding Role}" Style="{StaticResource Metadata}" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" Text="{Binding RemoveActionLabel}" IsEnabled="{Binding CanRemove}" Clicked="OnRemoveParticipantClicked" CommandParameter="{Binding .}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding CanAddParticipants}">
+                    <Label Text="{DynamicResource native.dotnet.directMessages.addParticipant}" Style="{StaticResource Body}" />
+                    <Entry x:Name="ParticipantSearchEntry" Placeholder="{DynamicResource native.swift.directMessages.searchUsers}" />
+                    <Button Text="{DynamicResource nav.search}" Clicked="OnParticipantSearchClicked" />
+                    <CollectionView ItemsSource="{Binding ParticipantUserResults}" HeightRequest="160">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="messages:DirectMessageUserRow">
+                                <Button Text="{app:UiLocalizedValue Path=Username, Format=message:native.dotnet.directMessages.addUser}" Clicked="OnAddParticipantClicked" CommandParameter="{Binding .}" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOwner}">
+                    <Button Text="{DynamicResource native.dotnet.directMessages.allowAllMembers}" Clicked="OnAllowAllMembersClicked" />
+                    <Button Text="{DynamicResource native.dotnet.directMessages.ownerOnly}" Clicked="OnOwnerOnlyClicked" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

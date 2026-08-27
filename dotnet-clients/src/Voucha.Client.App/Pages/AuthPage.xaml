@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.AuthPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:auth="clr-namespace:Voucha.Client.Core.Auth;assembly=Voucha.Client.Core"
+    x:DataType="auth:AuthViewModel"
+    Title="{DynamicResource native.dotnet.auth.session}">
+    <ScrollView>
+        <VerticalStackLayout x:Name="ContentStack" Padding="20" Spacing="18">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding SessionLabel}" Style="{StaticResource Body}" />
+                <Label Text="{Binding StatusMessage}" Style="{StaticResource Metadata}" />
+            </VerticalStackLayout>
+
+            <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.dotnet.auth.emailCode}" Style="{StaticResource Headline}" />
+                    <Entry Placeholder="{DynamicResource native.auth.emailAddress}" Text="{Binding Email}" Keyboard="Email" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource native.dotnet.auth.sendEmailCode}" Clicked="OnSendEmailCodeClicked" />
+                        <Button
+                            Text="{DynamicResource native.dotnet.auth.resendCode}"
+                            Clicked="OnResendEmailCodeClicked"
+                            IsVisible="{Binding CanResendEmailOtp}" />
+                    </HorizontalStackLayout>
+                    <Entry Placeholder="{DynamicResource native.dotnet.auth.oneTimeCode}" Text="{Binding Code}" Keyboard="Numeric" />
+                    <Button Text="{DynamicResource native.dotnet.auth.verifyEmailCode}" Clicked="OnVerifyEmailOtpClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
+                    <Label x:Name="OAuthStatus" Style="{StaticResource Metadata}" />
+                    <Button
+                        x:Name="RetryOAuthCapabilitiesButton"
+                        Text="{DynamicResource native.common.retry}"
+                        Clicked="OnRetryOAuthCapabilitiesClicked"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="FacebookOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.facebook}"
+                        Clicked="OnFacebookOAuthClicked"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="XOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.x}"
+                        Clicked="OnXOAuthClicked"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="GithubOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.github}"
+                        Clicked="OnGithubOAuthClicked"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="CancelOAuthButton"
+                        Text="{DynamicResource native.swift.settings.blueskyCancel}"
+                        Clicked="OnCancelOAuthClicked"
+                        IsVisible="False" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.dotnet.auth.appleSignIn}" Style="{StaticResource Headline}" />
+                    <Button Text="{DynamicResource native.dotnet.auth.signInWithApple}" Clicked="OnAppleSignInClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.dotnet.auth.passkey}" Style="{StaticResource Headline}" />
+                    <Button Text="{DynamicResource native.dotnet.auth.signInWithPasskey}" Clicked="OnPasskeyClicked" />
+                    <Entry Placeholder="{DynamicResource native.dotnet.auth.mfaTotpCode}" Text="{Binding TotpCode}" Keyboard="Numeric" />
+                    <Button Text="{DynamicResource native.dotnet.auth.verifyMfa}" Clicked="OnVerifyTotpClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{DynamicResource native.legal.title}" Style="{StaticResource Headline}" />
+                <Button Text="{DynamicResource native.legal.privacyPolicy}" Clicked="OnPrivacyPolicyClicked" />
+                <Button Text="{DynamicResource native.legal.termsOfService}" Clicked="OnTermsOfServiceClicked" />
+                <Button Text="{DynamicResource native.legal.communityGuidelines}" Clicked="OnCommunityGuidelinesClicked" />
+            </VerticalStackLayout>
+
+            <Button Text="{DynamicResource native.dotnet.settings.signOut}" Clicked="OnSignOutClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

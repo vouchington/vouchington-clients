@@ -1,0 +1,11 @@
+root = false
+
+[*.cs]
+dotnet_analyzer_diagnostic.category-Roslynator.severity = none
+dotnet_analyzer_diagnostic.category-Roslynator.CSharp.severity = none
+dotnet_analyzer_diagnostic.category-Roslynator.Formatting.Analyzers.severity = none
+dotnet_diagnostic.RCS1213.severity = error
+dotnet_diagnostic.MA0182.severity = error
+dotnet_diagnostic.MA0134.severity = error
+dotnet_diagnostic.MA0147.severity = error
+dotnet_diagnostic.MA0100.severity = error

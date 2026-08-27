@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-maccatalyst;net10.0-windows10.0.26100.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Voucha.Client.App</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationTitle>Voucha</ApplicationTitle>
+    <ApplicationId>ai.voucha.dotnet</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <!-- MAUI generated code and platform APIs trip these design analyzers in the thin app shell. -->
+    <!-- CA2007 is suppressed here because MAUI page code must resume on the captured UI context. -->
+    <NoWarn>$(NoWarn);CA1001;CA1031;CA1062;CA1515;CA1711;CA1724;CA1859;CA2007</NoWarn>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <CodesignEntitlements Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">Platforms/MacCatalyst/Entitlements.plist</CodesignEntitlements>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#2563EB" />
+    <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#2563EB" BaseSize="128,128" />
+    <BundleResource Include="Platforms/MacCatalyst/en.lproj/InfoPlist.strings" LogicalName="en.lproj/InfoPlist.strings" />
+    <BundleResource Include="Platforms/MacCatalyst/es.lproj/InfoPlist.strings" LogicalName="es.lproj/InfoPlist.strings" />
+    <BundleResource Include="Platforms/MacCatalyst/fr.lproj/InfoPlist.strings" LogicalName="fr.lproj/InfoPlist.strings" />
+    <BundleResource Include="Platforms/MacCatalyst/pt.lproj/InfoPlist.strings" LogicalName="pt.lproj/InfoPlist.strings" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Maui.MediaElement" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="Microsoft.Maui.Controls" />
+  </ItemGroup>
+
+  <!-- CI or trusted local build injection only; neither credential has a repository value. -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <AssemblyMetadata Include="WindowsSystemLanguageModelLafToken" Value="$(WindowsSystemLanguageModelLafToken)" Condition="'$(WindowsSystemLanguageModelLafToken)' != ''" />
+    <AssemblyMetadata Include="WindowsSystemLanguageModelLafAttestation" Value="$(WindowsSystemLanguageModelLafAttestation)" Condition="'$(WindowsSystemLanguageModelLafAttestation)' != ''" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Voucha.Client.Core/Voucha.Client.Core.csproj" />
+  </ItemGroup>
+</Project>

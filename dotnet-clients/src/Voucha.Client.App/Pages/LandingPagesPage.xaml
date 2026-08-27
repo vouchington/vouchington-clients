@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.LandingPagesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:landing="clr-namespace:Voucha.Client.Core.LandingPages;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="landing:LandingPagesViewModel"
+    Title="{DynamicResource native.swift.landingPages.landingPages}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <pages:LandingPageItemDescriptionConverter x:Key="LandingPageItemDescriptionConverter" />
+            <pages:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ScrollView>
+        <Grid Padding="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="16">
+            <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{DynamicResource native.swift.landingPages.createLandingPage}" Style="{StaticResource Headline}" />
+                    <Entry x:Name="NewTitleEntry" Placeholder="{DynamicResource native.swift.landingPages.title}" />
+                    <Entry x:Name="NewSubtitleEntry" Placeholder="{DynamicResource native.swift.landingPages.subtitle}" />
+                    <Entry x:Name="NewSlugEntry" Placeholder="{DynamicResource native.swift.communities.slug}" />
+                    <Button Text="{DynamicResource native.swift.common.create}" Clicked="OnCreateClicked" IsEnabled="{Binding CanCreatePage}" />
+                </VerticalStackLayout>
+            </Border>
+            <Border
+                Grid.Row="1"
+                Padding="12"
+                BackgroundColor="#FEF2F2"
+                Stroke="#FCA5A5"
+                StrokeThickness="1"
+                IsVisible="{Binding HasError}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            </Border>
+            <CollectionView
+                Grid.Row="2"
+                ItemsSource="{Binding Pages}"
+                IsEnabled="{Binding IsNotLoading}"
+                SelectionMode="Single"
+                SelectionChanged="OnPageSelectionChanged">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="landing:LandingPageRow">
+                        <Border Margin="0,0,0,8" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Slug}" Style="{StaticResource Metadata}" />
+                                <Label Text="{DynamicResource native.dotnet.settings.defaultOption}" Style="{StaticResource Metadata}" IsVisible="{Binding IsDefault}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <Border Grid.Row="3" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{DynamicResource native.swift.landingPages.details}" Style="{StaticResource Headline}" />
+                    <Entry Text="{Binding Title}" Placeholder="{DynamicResource native.swift.landingPages.title}" IsEnabled="{Binding IsContentEditable}" />
+                    <Entry Text="{Binding Subtitle}" Placeholder="{DynamicResource native.swift.landingPages.subtitle}" IsEnabled="{Binding IsContentEditable}" />
+                    <Entry Text="{Binding Slug}" Placeholder="{DynamicResource native.swift.communities.slug}" IsEnabled="{Binding IsContentEditable}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource common.save}" Clicked="OnSaveDetailsClicked" IsEnabled="{Binding IsContentEditable}" />
+                        <Button Text="{DynamicResource native.dotnet.landingPages.makeDefault}" Clicked="OnMakeDefaultClicked" IsEnabled="{Binding IsContentEditable}" />
+                        <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" IsEnabled="{Binding IsContentEditable}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="4" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{DynamicResource native.swift.landingPages.content}" Style="{StaticResource Headline}" />
+                    <CollectionView AutomationId="landing-pages-draft-items" ItemsSource="{Binding DraftItems}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:LandingPageItem">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding ., Converter={StaticResource LandingPageItemDescriptionConverter}}" Style="{StaticResource Body}" />
+                                    <Button Text="{DynamicResource native.swift.common.up}" Clicked="OnMoveItemUpClicked" IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsContentEditable}" />
+                                    <Button Text="{DynamicResource native.swift.common.down}" Clicked="OnMoveItemDownClicked" IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsContentEditable}" />
+                                    <Button Text="{DynamicResource native.swift.common.remove}" Clicked="OnRemoveItemClicked" IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsContentEditable}" />
+                                </HorizontalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Picker
+                        AutomationId="landing-pages-item-type-picker"
+                        Title="{DynamicResource native.swift.landingPages.itemType}"
+                        ItemsSource="{Binding ItemTypeOptions}"
+                        ItemDisplayBinding="{Binding LocalizedLabel}"
+                        SelectedItem="{Binding SelectedItemTypeOption, Mode=TwoWay}" />
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsLinkType}">
+                        <Entry
+                            AutomationId="landing-pages-link-label"
+                            Text="{Binding LinkLabel}"
+                            Placeholder="{DynamicResource native.swift.landingPages.linkLabel}" />
+                        <Entry
+                            AutomationId="landing-pages-link-url"
+                            Text="{Binding LinkAddressText}"
+                            Keyboard="Url"
+                            Placeholder="{DynamicResource native.swift.landingPages.linkUrl}" />
+                    </VerticalStackLayout>
+                    <Picker
+                        AutomationId="landing-pages-candidate-picker"
+                        Title="{DynamicResource native.swift.landingPages.item}"
+                        ItemsSource="{Binding CandidateOptions}"
+                        ItemDisplayBinding="{Binding LocalizedLabel}"
+                        SelectedItem="{Binding SelectedCandidateOption, Mode=TwoWay}"
+                        IsVisible="{Binding IsCandidateType}" />
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsTopicGroupType}">
+                        <Picker
+                            AutomationId="landing-pages-topic-picker"
+                            Title="{DynamicResource native.swift.landingPages.topic}"
+                            ItemsSource="{Binding TopicOptions}"
+                            ItemDisplayBinding="{Binding LocalizedLabel}"
+                            SelectedItem="{Binding SelectedTopicOption, Mode=TwoWay}" />
+                        <VerticalStackLayout Spacing="6" IsVisible="{Binding HasSelectedTopic}">
+                            <Label Text="{DynamicResource native.swift.landingPages.reviews}" Style="{StaticResource Metadata}" />
+                            <CollectionView AutomationId="landing-pages-group-reviews" ItemsSource="{Binding GroupReviewOptions}" SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="landing:LandingPageGroupMemberOption">
+                                        <HorizontalStackLayout Spacing="8">
+                                            <CheckBox AutomationId="landing-pages-group-review-member" IsChecked="{Binding IsSelected, Mode=OneWay}" CheckedChanged="OnGroupMemberCheckedChanged" IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsContentEditable}" />
+                                            <Label Text="{Binding LocalizedLabel}" Style="{StaticResource Body}" />
+                                        </HorizontalStackLayout>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                            <Label Text="{DynamicResource native.swift.landingPages.referralLinks}" Style="{StaticResource Metadata}" />
+                            <CollectionView AutomationId="landing-pages-group-referral-links" ItemsSource="{Binding GroupReferralLinkOptions}" SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="landing:LandingPageGroupMemberOption">
+                                        <HorizontalStackLayout Spacing="8">
+                                            <CheckBox AutomationId="landing-pages-group-referral-member" IsChecked="{Binding IsSelected, Mode=OneWay}" CheckedChanged="OnGroupMemberCheckedChanged" IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsContentEditable}" />
+                                            <Label Text="{Binding LocalizedLabel}" Style="{StaticResource Body}" />
+                                        </HorizontalStackLayout>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                    <HorizontalStackLayout Spacing="8">
+                        <Button AutomationId="landing-pages-add-item" Text="{Binding LocalizedAddButtonText}" Clicked="OnAddItemClicked" IsEnabled="{Binding CanAddItem}" />
+                        <Button AutomationId="landing-pages-save-content" Text="{DynamicResource native.dotnet.landingPages.saveContent}" Clicked="OnSaveContentClicked" IsEnabled="{Binding IsContentEditable}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Row="5" Padding="12" Stroke="#D8DEE9" StrokeThickness="1" IsVisible="{Binding HasSelectedPageAnalyticsSection}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.swift.landingPages.analytics}" Style="{StaticResource Headline}" />
+                    <Label Text="{Binding SelectedPageAnalyticsError}" TextColor="#991B1B" Style="{StaticResource Body}" IsVisible="{Binding HasSelectedPageAnalyticsError}" />
+                    <Label AutomationId="landing-pages-analytics-upgrade-required" Text="{DynamicResource native.swift.landingPages.analyticsPaidAccessRequired}" Style="{StaticResource Body}" IsVisible="{Binding IsAnalyticsPaidAccessRequired}" />
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.visits}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding SelectedPageAnalytics.TotalVisits}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.clicks}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding SelectedPageAnalytics.TotalClicks}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.visitors}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding SelectedPageAnalytics.UniqueVisitors}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="3" Spacing="2">
+                            <Label Text="{DynamicResource native.dotnet.landingPages.ctr}" Style="{StaticResource Metadata}" />
+                            <Label Text="{app:UiLocalizedValue Path=SelectedPageAnalytics.Ctr, Format=percent}" Style="{StaticResource Headline}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Label Text="{app:UiLocalizedValue Path=SelectedPageAnalytics.ConversionFunnel.TotalSignups, Format=message:native.dotnet.landingPages.signupCount|number}" Style="{StaticResource Metadata}" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{DynamicResource native.dotnet.landingPages.itemClicks}" Style="{StaticResource Metadata}" />
+                        <CollectionView ItemsSource="{Binding SelectedAnalyticsItemClicks}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="landing:LandingPageItemClickRow">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding LocalizedItemType}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding ProtocolItemId}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{app:UiLocalizedValue Path=ClickCount, Format=message:native.dotnet.landingPages.clickCount|number}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{DynamicResource native.dotnet.landingPages.dailyStats}" Style="{StaticResource Metadata}" />
+                        <CollectionView ItemsSource="{Binding SelectedPageAnalytics.DailyStats}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="api:LandingPageDailyStats">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding Date}" Style="{StaticResource Body}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Visits, Format=message:native.dotnet.landingPages.visitCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=UniqueVisitors, Format=message:native.dotnet.landingPages.visitorCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Clicks, Format=message:native.dotnet.landingPages.clickCount|number}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{DynamicResource native.dotnet.landingPages.utmSources}" Style="{StaticResource Metadata}" />
+                        <CollectionView ItemsSource="{Binding SelectedPageAnalytics.UtmSources}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="api:LandingPageUtmSourceStats">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding UtmSource}" Style="{StaticResource Body}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Visits, Format=message:native.dotnet.landingPages.visitCount|number}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.FeatureFlagOverridesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="{DynamicResource native.swift.dynamicConfigFeatureFlags.featureFlags}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.deviceFeatureFlags}" Style="{StaticResource Headline}" />
+            <Label Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.deviceOverridesDescription}" Style="{StaticResource Body}" />
+            <ActivityIndicator x:Name="LoadingIndicator" AutomationId="feature-flag-loading" />
+            <Border x:Name="ErrorPanel" AutomationId="feature-flag-error" Padding="12" Stroke="#FCA5A5" IsVisible="False">
+                <Label x:Name="ErrorLabel" TextColor="#991B1B" />
+            </Border>
+            <Label x:Name="AccessRequiredLabel" AutomationId="feature-flag-access-required" Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.accessRequiredDescription}" IsVisible="False" />
+            <VerticalStackLayout x:Name="OverridesLayout" AutomationId="feature-flag-overrides" Spacing="10" />
+            <Button x:Name="ClearOverridesButton" AutomationId="feature-flag-clear-overrides" Text="{DynamicResource native.swift.dynamicConfigFeatureFlags.clearOverrides}" Clicked="OnClearOverridesClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

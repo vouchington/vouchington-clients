@@ -1,0 +1,39 @@
+# Swift build
+.build/
+*.resolved
+!apps/android/Package.resolved
+!core/Package.resolved
+!ui/Package.resolved
+
+# Xcode (generated — never commit)
+apps/Voucha.local.xcconfig
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+DerivedData/
+*.xcuserdata/
+*.xcscheme
+xcuserdata/
+*.moved-aside
+
+# Signing
+*.p12
+*.mobileprovision
+*.cer
+
+# OS
+.DS_Store
+
+# Re-include app icons / asset catalogs that the root .gitignore globally ignores
+# (root ignores *.png *.jpg *.jpeg *.webp *.gif *.tiff globally)
+!**/*.png
+!**/*.jpg
+!**/*.jpeg
+!**/*.webp
+!**/*.gif
+!**/*.tiff
+!**/*.imageset/
+!**/*.imageset/**
+!**/*.appiconset/
+!**/*.appiconset/**
+!**/Assets.xcassets/**

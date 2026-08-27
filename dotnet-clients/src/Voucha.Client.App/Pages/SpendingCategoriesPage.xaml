@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.SpendingCategoriesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:spending="clr-namespace:Voucha.Client.Core.SpendingCategories;assembly=Voucha.Client.Core"
+    x:DataType="spending:SpendingCategoriesViewModel"
+    Title="{DynamicResource extracted.spendingCategories.page.spendingCategories_3ed30dfb}">
+  <ScrollView x:Name="SpendingCategoriesScroll" Scrolled="OnScrolled"><VerticalStackLayout Padding="20" Spacing="12">
+    <Label Text="{DynamicResource extracted.spendingCategories.page.spendingCategories_3ed30dfb}" Style="{StaticResource Headline}" />
+    <Label Text="{DynamicResource extracted.spendingCategories.page.manageYourSpendingCategoriesAndAmounts_72fd1919}" Style="{StaticResource Metadata}" />
+    <Entry AutomationId="spending-categories-search-input" Text="{Binding SearchQuery, Mode=TwoWay}" Placeholder="{DynamicResource extracted.spendingCategoriesManager.addCategoryForm.searchSpendingCategories_a0c47f67}" />
+    <Button AutomationId="spending-categories-search" Text="{DynamicResource nav.search}" Clicked="OnSearchClicked" />
+    <VerticalStackLayout AutomationId="spending-categories-search-error" IsVisible="{Binding HasSearchError}" Spacing="6"><Label Text="{Binding LocalizedSearchErrorMessage}" TextColor="#991B1B" /><Button Text="{DynamicResource native.common.retry}" Clicked="OnRetrySearchClicked" /></VerticalStackLayout>
+    <Entry AutomationId="spending-categories-create-amount" Text="{Binding CreateDraft.Amount}" Keyboard="Numeric" Placeholder="{DynamicResource extracted.spendingCategoriesManager.addCategoryForm.amount_49e96d7c}" />
+    <Picker AutomationId="spending-categories-create-currency" ItemsSource="{Binding CreateDraft.SupportedCurrencies}" SelectedItem="{Binding CreateDraft.Currency, Mode=TwoWay}" />
+    <Picker x:Name="CreateFrequencyPicker" Title="{DynamicResource extracted.spendingCategoriesManager.addCategoryForm.frequency_16b6668d}" SelectedIndexChanged="OnCreateFrequencyChanged" />
+    <Editor AutomationId="spending-categories-create-note" Text="{Binding CreateDraft.Note}" Placeholder="{DynamicResource extracted.spendingCategoriesManager.addCategoryForm.optionalNote_951ddd37}" />
+    <VerticalStackLayout BindableLayout.ItemsSource="{Binding SearchRows}"><BindableLayout.ItemTemplate><DataTemplate x:DataType="spending:SpendingCategoryOptionRow"><Button Text="{Binding LocalizedName}" Clicked="OnCreateClicked" CommandParameter="{Binding .}" /></DataTemplate></BindableLayout.ItemTemplate></VerticalStackLayout>
+    <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+    <VerticalStackLayout AutomationId="spending-categories-error" IsVisible="{Binding HasError}" Spacing="6"><Label Text="{Binding Error}" TextColor="#991B1B" /><Button Text="{DynamicResource native.common.retry}" Clicked="OnRetryClicked" /></VerticalStackLayout>
+    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}"><BindableLayout.ItemTemplate><DataTemplate x:DataType="spending:SpendingCategoryRow"><Border Padding="14"><VerticalStackLayout><Label AutomationId="spending-category-name" Text="{Binding LocalizedName}" /><Label AutomationId="spending-category-amount-frequency" Text="{Binding LocalizedAmountAndFrequency}" /><Label AutomationId="spending-category-note" Text="{Binding LocalizedNote}" /><Label Text="{DynamicResource extracted.spendingCategoriesManager.categorySummary.householdReadOnly_7898}" IsVisible="{Binding IsReadOnlyHousehold}" /><HorizontalStackLayout IsVisible="{Binding CanManage}"><Button Text="{DynamicResource extracted.spendingCategoriesManager.categorySummary.edit_464c4ffd}" Clicked="OnEditClicked" CommandParameter="{Binding .}" /><Button Text="{DynamicResource extracted.spendingCategoriesManager.categorySummary.remove_c3812fc4}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" /></HorizontalStackLayout></VerticalStackLayout></Border></DataTemplate></BindableLayout.ItemTemplate></VerticalStackLayout>
+    <controls:HybridPaginationControl PaginationId="spending-categories" HasMore="{Binding HasNextPage}" HasError="{Binding HasContinuationError}" IsLoading="{Binding IsLoadingMore}" LoadNextPageRequested="OnLoadMoreRequested" />
+    <VerticalStackLayout IsVisible="{Binding HasEditDraft}"><Entry AutomationId="spending-categories-edit-amount" Text="{Binding EditDraft.Amount}" Keyboard="Numeric" Placeholder="{DynamicResource extracted.spendingCategoriesManager.categoryList.amount_49e96d7c}" /><Picker AutomationId="spending-categories-edit-currency" ItemsSource="{Binding EditDraft.SupportedCurrencies}" SelectedItem="{Binding EditDraft.Currency, Mode=TwoWay}" /><Picker x:Name="EditFrequencyPicker" Title="{DynamicResource extracted.spendingCategoriesManager.categoryList.frequency_16b6668d}" SelectedIndexChanged="OnEditFrequencyChanged" /><Editor AutomationId="spending-categories-edit-note" Text="{Binding EditDraft.Note}" Placeholder="{DynamicResource extracted.spendingCategoriesManager.categoryList.optionalNote_951ddd37}" /><Button Text="{DynamicResource extracted.spendingCategoriesManager.categoryList.save_1509f561}" Clicked="OnSaveClicked" /><Button Text="{DynamicResource extracted.spendingCategoriesManager.categoryList.cancel_19766ed6}" Clicked="OnCancelClicked" /></VerticalStackLayout>
+  </VerticalStackLayout></ScrollView>
+</ContentPage>

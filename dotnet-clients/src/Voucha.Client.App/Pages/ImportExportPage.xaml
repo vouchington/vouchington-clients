@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ImportExportPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:feature="clr-namespace:Voucha.Client.Core.ImportExport;assembly=Voucha.Client.Core"
+    x:DataType="feature:ImportExportViewModel"
+    Title="{DynamicResource native.swift.importExport.title}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="{Binding Context.Title}" Style="{StaticResource Title}" />
+            <Label Text="{DynamicResource native.swift.importExport.description}" Style="{StaticResource Body}" />
+            <Editor
+                Text="{Binding InputText}"
+                AutoSize="TextChanges"
+                MinimumHeightRequest="140"
+                Placeholder="{DynamicResource native.swift.importExport.itemsOnePerLine}" />
+            <HorizontalStackLayout IsVisible="{Binding IsSources}" Spacing="8">
+                <Button Text="{DynamicResource native.swift.importExport.importUrls}" Clicked="OnUrlsClicked" />
+                <Button Text="{DynamicResource native.swift.importExport.csv}" Clicked="OnCsvClicked" />
+                <Button Text="{DynamicResource native.swift.importExport.opmlOrXml}" Clicked="OnOpmlClicked" />
+                <Button Text="{DynamicResource native.swift.importExport.chooseFile}" Clicked="OnChooseFileClicked" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{DynamicResource native.swift.importExport.import}" Clicked="OnImportClicked" IsEnabled="{Binding CanImport}" />
+                <Button Text="{DynamicResource common.cancel}" Clicked="OnCancelClicked" IsVisible="{Binding CanCancelActiveOperation}" />
+                <Button Text="{DynamicResource native.swift.importExport.stopMonitoring}" Clicked="OnStopClicked" IsVisible="{Binding IsMonitoring}" />
+                <Button Text="{DynamicResource native.swift.importExport.resumeMonitoring}" Clicked="OnResumeClicked" IsVisible="{Binding CanResume}" />
+                <Button Text="{DynamicResource native.swift.importExport.tryStatusAgain}" Clicked="OnRetryStatusClicked" IsVisible="{Binding CanRetryStatus}" />
+            </HorizontalStackLayout>
+            <ProgressBar Progress="{Binding ProgressValue}" IsVisible="{Binding IsSources}" />
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+            <Label Text="{DynamicResource native.swift.importExport.someItemsFailed}" TextColor="#991B1B" IsVisible="{Binding HasPartialFailures}" />
+            <Picker
+                Title="{DynamicResource native.swift.importExport.sourceType}"
+                ItemsSource="{Binding SourceExportFeedTypeOptions}"
+                ItemDisplayBinding="{Binding DisplayLabel}"
+                SelectedItem="{Binding SelectedSourceExportFeedTypeOption}"
+                IsVisible="{Binding IsSources}" />
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{DynamicResource native.swift.importExport.exportJson}" Clicked="OnExportTopicsClicked" IsVisible="{Binding IsTopics}" IsEnabled="{Binding CanExport}" />
+                <Button Text="{DynamicResource native.swift.importExport.exportCsv}" Clicked="OnExportCsvClicked" IsVisible="{Binding IsSources}" IsEnabled="{Binding CanExport}" />
+                <Button Text="{DynamicResource native.swift.importExport.exportOpml}" Clicked="OnExportOpmlClicked" IsVisible="{Binding IsSources}" IsEnabled="{Binding CanExport}" />
+                <Button Text="{DynamicResource native.swift.importExport.shareExport}" Clicked="OnShareClicked" IsVisible="{Binding HasExportDocument}" />
+            </HorizontalStackLayout>
+            <CollectionView ItemsSource="{Binding PresentationResults}" HeightRequest="320">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="feature:ImportResultPresentation">
+                        <Border Padding="10" Margin="0,0,0,8" Stroke="#D8DEE9">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding UserInput}" Style="{StaticResource Body}" />
+                                <Label Text="{Binding LocalizedDisplayStatus}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ExternalContentError}" TextColor="#991B1B" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.FediverseInstancesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:fediverse="clr-namespace:Voucha.Client.Core.Fediverse;assembly=Voucha.Client.Core"
+    x:DataType="fediverse:FediverseInstancesViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.fediverseFediverseInstancesFediverseInstancesTitle}">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20" RowSpacing="12">
+        <SearchBar x:Name="Query" Placeholder="{DynamicResource nav.search}" SearchButtonPressed="OnSearch" />
+        <Label AutomationId="FediverseInstancesError" Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+        <ActivityIndicator AutomationId="FediverseInstancesLoading" Grid.Row="2" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+        <CollectionView AutomationId="FediverseInstancesResults" Grid.Row="3" ItemsSource="{Binding Items}" SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label Text="{DynamicResource native.swift.routeSurface.noResults}" Style="{StaticResource Body}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="fediverse:FediverseInstanceRow">
+                    <Border Padding="12" Margin="0,0,0,10" Stroke="#D8DEE9">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                            <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                            <Label Grid.Row="1" Text="{Binding LocalizedSoftwareLabel}" Style="{StaticResource Metadata}" />
+                            <Label Grid.Row="2" Text="{Binding LocalizedTrustLabel}" Style="{StaticResource Metadata}" />
+                            <Button Grid.Column="1" Grid.RowSpan="3" Text="{DynamicResource native.swift.communityActions.open}" Clicked="OnOpen" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Button AutomationId="FediverseInstancesLoadMore" Grid.Row="4" Text="{DynamicResource native.swift.common.loadMore}" IsVisible="{Binding CanLoadMore}" Clicked="OnLoadMore" />
+    </Grid>
+</ContentPage>

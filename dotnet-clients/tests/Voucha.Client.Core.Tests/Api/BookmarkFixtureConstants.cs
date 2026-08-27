@@ -1,0 +1,7 @@
+namespace Voucha.Client.Core.Tests.Api;
+
+internal static class BookmarkFixtureConstants
+{
+  public const string SavedPostsPageOneEndCursor =
+      "eyJ0aW1lc3RhbXAiOjE3NjcyMjU2MDAwMDAwMDAsImlkIjoiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwic2NvcGUiOiJ1c2VyLXBvc3RzOjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDA5OTpzYXZlZDpjcmVhdGVkLWF0LWRlc2Mtb2JqZWN0LWlkLWRlc2MifQ";
+}

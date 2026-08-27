@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.NewsFeedsPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:newsFeeds="clr-namespace:Voucha.Client.Core.NewsFeeds;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:NewsFeedsPageBinding"
+    Title="{Binding PageTitle}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <pages:VoteClearEligibilityConverter x:Key="VoteClearEligibilityConverter" />
+            <pages:FollowerDistributionVisibilityConverter x:Key="FollowerDistributionVisibilityConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="20" RowSpacing="16">
+        <HorizontalStackLayout Spacing="8">
+            <Button
+                Text="{Binding PrimaryScopeLabel}"
+                Clicked="OnYourFeedClicked"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827"
+                SemanticProperties.Hint="{DynamicResource native.dotnet.newsFeeds.showFollowedItemsHint}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsYourFeedSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
+                Text="{Binding AllItemsScopeLabel}"
+                Clicked="OnAllNewsClicked"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827"
+                SemanticProperties.Hint="{DynamicResource native.dotnet.newsFeeds.showAllItemsHint}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsAllNewsSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
+                Text="{Binding SourcesScopeLabel}"
+                Clicked="OnYourSourcesClicked"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827"
+                SemanticProperties.Hint="{DynamicResource native.dotnet.newsFeeds.showFollowedSourcesHint}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsYourSourcesSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
+                Text="{Binding AllSourcesScopeLabel}"
+                Clicked="OnAllSourcesClicked"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827"
+                SemanticProperties.Hint="{DynamicResource native.dotnet.newsFeeds.showAllSourcesHint}">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsAllSourcesSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
+                Text="{DynamicResource native.swift.importExport.title}"
+                Clicked="OnImportExportClicked"
+                IsVisible="{Binding CanImportExport}" />
+        </HorizontalStackLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="2"
+            BackgroundColor="#E5E7EB"
+            Stroke="#D1D5DB"
+            StrokeThickness="1"
+            IsVisible="{Binding IsSourceScopeSelected}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="1" BackgroundColor="#D1D5DB">
+                <Button
+                    Text="{DynamicResource native.dotnet.newsFeeds.article}"
+                    Clicked="OnArticleSourceFeedTypeClicked"
+                    BackgroundColor="#F9FAFB"
+                    TextColor="#111827">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsArticleSourceFeedTypeSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Text="{DynamicResource native.dotnet.newsFeeds.podcast}"
+                    Clicked="OnPodcastSourceFeedTypeClicked"
+                    BackgroundColor="#F9FAFB"
+                    TextColor="#111827">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsPodcastSourceFeedTypeSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Grid.Column="2"
+                    Text="{DynamicResource native.dotnet.mediaPlayback.video}"
+                    Clicked="OnVideoSourceFeedTypeClicked"
+                    BackgroundColor="#F9FAFB"
+                    TextColor="#111827">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsVideoSourceFeedTypeSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="2"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label
+                Text="{Binding ErrorMessage}"
+                TextColor="#991B1B"
+                Style="{StaticResource Body}" />
+        </Border>
+
+        <RefreshView
+            Grid.Row="3"
+            Command="{Binding RefreshCommand}"
+            IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView
+                x:Name="FeedItemsView"
+                ItemsSource="{Binding Items}"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label
+                            Text="{DynamicResource native.dotnet.newsFeeds.empty}"
+                            Style="{StaticResource Headline}" />
+                        <Label
+                            Text="{DynamicResource native.dotnet.newsFeeds.emptyDescription}"
+                            Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="newsFeeds:NewsFeedItem">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Summary}" Style="{StaticResource Body}" />
+                                <Label Text="{Binding Link}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding LocalizedMediaType}" Style="{StaticResource Metadata}" IsVisible="{Binding IsMedia}" />
+                                <Label Text="{app:UiLocalizedValue Path=VideoPlatform, Format=message:native.dotnet.newsFeeds.platform}" Style="{StaticResource Metadata}" IsVisible="{Binding IsMedia}" />
+                                <Label Text="{app:UiLocalizedValue Path=PublishedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasVoteCounts}">
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.vote}"
+                                        Clicked="OnChooseVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanVote}"
+                                        WidthRequest="42" />
+                                    <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.clear}"
+                                        Clicked="OnClearVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        WidthRequest="42">
+                                        <Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource VoteClearEligibilityConverter}">
+                                                <Binding Path="CurrentVoteChoice" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanClearVote" />
+                                            </MultiBinding>
+                                        </Button.IsEnabled>
+                                    </Button>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{DynamicResource native.swift.followerDistribution.actions}" Clicked="OnFollowerSendClicked" CommandParameter="{Binding .}">
+                                        <Button.IsVisible>
+                                            <MultiBinding Converter="{StaticResource FollowerDistributionVisibilityConverter}">
+                                                <Binding Path="HasItemActions" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanRelate" />
+                                            </MultiBinding>
+                                        </Button.IsVisible>
+                                    </Button>
+                                    <Button
+                                        Text="{DynamicResource native.dotnet.mediaPlayback.play}"
+                                        Clicked="OnPlayClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasMediaPlayback}" />
+                                    <Label
+                                        Text="{DynamicResource native.dotnet.mediaPlayback.videoUnavailable}"
+                                        Style="{StaticResource Metadata}"
+                                        IsVisible="{Binding IsEmbedOnlyVideo}" />
+                                    <Button
+                                        Text="{DynamicResource native.swift.podcastPlayback.openSource}"
+                                        Clicked="OnOpenClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanOpenExternally}" />
+                                    <Button
+                                        Text="{Binding SourceFollowActionLabel}"
+                                        Clicked="OnToggleSourceClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding IsSource}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding SourceMuteActionLabel}"
+                                        Clicked="OnToggleSourceMuteClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding IsSource}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding TopicFollowActionLabel}"
+                                        Clicked="OnToggleTopicClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasTopic}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding TopicMuteActionLabel}"
+                                        Clicked="OnToggleTopicMuteClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasTopic}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding ReadActionLabel}"
+                                        Clicked="OnToggleReadClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasItemActions}" />
+                                    <Button
+                                        Text="{Binding SaveActionLabel}"
+                                        Clicked="OnSaveClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasItemActions}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding HideActionLabel}"
+                                        Clicked="OnHideClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding HasItemActions}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding StoryDiscussionActionLabel}"
+                                        Clicked="OnStartStoryDiscussionClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanStartStoryDiscussion}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{DynamicResource native.swift.rssFeedList.openDiscussion}"
+                                        Clicked="OnOpenStoryDiscussionClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanOpenStoryDiscussion}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="PaginationControl"
+                        PaginationId="news-feeds"
+                        HasMore="{Binding HasMore}"
+                        IsLoading="{Binding IsLoadingMore}"
+                        HasError="{Binding HasPaginationError}"
+                        LoadNextPageRequested="OnLoadNextPageRequested" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

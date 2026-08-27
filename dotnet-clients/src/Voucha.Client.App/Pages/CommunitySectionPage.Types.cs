@@ -1,0 +1,23 @@
+using Voucha.Client.Core.Communities;
+using Voucha.Client.Core.Localization;
+
+namespace Voucha.Client.App.Pages;
+
+public sealed class CommunityOverviewPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Overview, UiMessageKey.NativeDotnetResidualCommunity);
+public sealed class CommunityPostsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Posts, UiMessageKey.NativeDotnetCsharpCommunitiesCommunityPosts);
+public sealed class CommunityNewsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.News, UiMessageKey.NativeDotnetCsharpCommunitiesCommunityNews);
+public sealed class CommunityListsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Lists, UiMessageKey.NativeDotnetCsharpCommunitiesCommunityLists);
+public sealed class CommunityMembersPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Members, UiMessageKey.NativeDotnetCsharpCommunitiesCommunityMembers);
+public sealed class CommunitySettingsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Settings, UiMessageKey.NativeDotnetCsharpCommunitiesCommunitySettings);
+public sealed class CommunityPinnedPostsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.PinnedPosts, UiMessageKey.NativeDotnetCsharpCommunitiesPinnedPosts);
+public sealed class CommunityApplicationsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Applications, UiMessageKey.NativeDotnetCsharpCommunitiesApplications);
+public sealed class CommunityInvitesPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Invites, UiMessageKey.NativeDotnetCsharpCommunitiesInvites);
+public sealed class CommunityModerationPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Moderation, UiMessageKey.NativeDotnetCsharpCommunitiesModeration);
+public sealed class CommunityBansPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Bans, UiMessageKey.NativeDotnetCsharpCommunitiesBans);
+public sealed class CommunityRestrictionsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Restrictions, UiMessageKey.NativeDotnetCsharpCommunitiesRestrictions);
+public sealed class CommunityModeratorVacationPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.ModeratorVacation, UiMessageKey.NativeDotnetCsharpCommunitiesModeratorVacation);
+public sealed class CommunityAiAgentsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.AiAgents, UiMessageKey.NativeDotnetCsharpCommunitiesAiAgents);
+public sealed class CommunityAgentPromptsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.AgentPrompts, UiMessageKey.NativeDotnetCsharpCommunitiesAgentPrompts);
+public sealed class CommunityModlogPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Modlog, UiMessageKey.NativeDotnetCsharpCommunitiesModLog);
+public sealed class CommunityModmailPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.Modmail, UiMessageKey.NativeDotnetCsharpCommunitiesModmail);
+public sealed class CommunityModerationAnalyticsPage(CommunityDetailViewModel viewModel) : CommunitySectionPage(viewModel, CommunityDetailSurfaceSection.ModerationAnalytics, UiMessageKey.NativeDotnetCsharpCommunitiesModerationAnalytics);

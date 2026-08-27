@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.EngineeringPostgreSqlPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:eng="clr-namespace:Voucha.Client.Core.Engineering;assembly=Voucha.Client.Core"
+    x:DataType="eng:EngineeringPostgreSqlViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <HorizontalStackLayout Spacing="12">
+                <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+            </HorizontalStackLayout>
+
+            <Border Padding="12" Stroke="#FCA5A5" StrokeThickness="1" IsVisible="{Binding HasError}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.swift.engineeringPostgresql.migrations}" Style="{StaticResource Headline}" />
+                    <Label Text="{app:UiLocalizedValue Path=Migrations.Total, Format=message:native.dotnet.engineeringPostgresql.total|number}" Style="{StaticResource Metadata}" />
+                    <Label Text="{DynamicResource native.dotnet.engineeringPostgresql.applied}" Style="{StaticResource Metadata}" />
+                    <CollectionView ItemsSource="{Binding Migrations.Applied}" SelectionMode="None" HeightRequest="120">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Label Text="{Binding .}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Label Text="{DynamicResource native.dotnet.engineeringPostgresql.pending}" Style="{StaticResource Metadata}" />
+                    <CollectionView ItemsSource="{Binding Migrations.Pending}" SelectionMode="None" HeightRequest="120">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Label Text="{Binding .}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.swift.engineeringPostgresql.partitions}" Style="{StaticResource Headline}" />
+                    <CollectionView ItemsSource="{Binding Partitions.Tables}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:PartitionTable">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding Name}" Style="{StaticResource Body}" />
+                                        <Label Text="{app:UiLocalizedValue Path=PartitionCount, Format=message:native.dotnet.engineeringPostgresql.partitionCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{app:UiLocalizedValue Path=TotalSizeBytes, Format=message:native.dotnet.engineeringPostgresql.totalBytes|number}" Style="{StaticResource Metadata}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.swift.engineeringPostgresql.jobs}" Style="{StaticResource Headline}" />
+                    <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start">
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.runMigrations}" Clicked="OnRunMigrationsClicked" Margin="0,0,8,8" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.runViews}" Clicked="OnRunViewsClicked" Margin="0,0,8,8" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.runConfig}" Clicked="OnRunConfigDrivenClicked" Margin="0,0,8,8" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.createPartitions}" Clicked="OnCreatePartitionsClicked" Margin="0,0,8,8" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.cleanupPartitions}" Clicked="OnCleanupPartitionsClicked" Margin="0,0,8,8" />
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{DynamicResource native.dotnet.engineeringPostgresql.articleSync}" Style="{StaticResource Headline}" />
+                    <Entry Text="{Binding ArticleSyncJobId}" Placeholder="{DynamicResource native.dotnet.engineeringPostgresql.jobId}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.triggerSync}" Clicked="OnTriggerArticleSyncClicked" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringPostgresql.refreshStatus}" Clicked="OnRefreshArticleSyncClicked" />
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding ArticleSyncStatusMessage}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

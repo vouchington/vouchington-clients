@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.PointValuationsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:points="clr-namespace:Voucha.Client.Core.PointValuations;assembly=Voucha.Client.Core"
+    x:DataType="points:PointValuationsViewModel"
+    Title="{DynamicResource extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2}">
+    <ScrollView x:Name="PointValuationsScroll" Scrolled="OnScrolled">
+        <VerticalStackLayout Padding="20" Spacing="14">
+            <Label Text="{DynamicResource extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2}" Style="{StaticResource Headline}" />
+            <Label Text="{DynamicResource extracted.rewardsProgramPointValuations.page.manageYourRewardsProgramPointValuations_e3bcc429}" Style="{StaticResource Metadata}" />
+            <Entry AutomationId="point-valuations-search-input" Text="{Binding SearchQuery, Mode=TwoWay}" Placeholder="{DynamicResource extracted.pointValuationsManager.addValuationForm.searchRewardsPrograms_990e4fa0}" />
+            <Button AutomationId="point-valuations-search" Text="{DynamicResource nav.search}" Clicked="OnSearchClicked" />
+            <VerticalStackLayout AutomationId="point-valuations-search-error" IsVisible="{Binding HasSearchError}" Spacing="6">
+                <Label Text="{Binding LocalizedSearchErrorMessage}" TextColor="#991B1B" />
+                <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetrySearchClicked" />
+            </VerticalStackLayout>
+            <Entry AutomationId="point-valuations-create-value" Text="{Binding CreateDraft.ValuePerPoint}" Keyboard="Numeric" Placeholder="{DynamicResource extracted.pointValuationsManager.addValuationForm.valuePerPoint_fa9d9f8a}" />
+            <Picker ItemsSource="{Binding CreateDraft.SupportedCurrencies}" SelectedItem="{Binding CreateDraft.Currency}" />
+            <Editor AutomationId="point-valuations-create-note" Text="{Binding CreateDraft.Note}" Placeholder="{DynamicResource extracted.pointValuationsManager.addValuationForm.optionalNote_951ddd37}" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding SearchRows}" Spacing="6">
+                <BindableLayout.ItemTemplate><DataTemplate x:DataType="points:RewardsProgramRow">
+                    <Button Text="{Binding LocalizedName}" Clicked="OnCreateClicked" CommandParameter="{Binding .}" />
+                </DataTemplate></BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
+            <VerticalStackLayout AutomationId="point-valuations-error" IsVisible="{Binding HasError}" Spacing="6">
+                <Label Text="{Binding LocalizedErrorMessage}" TextColor="#991B1B" />
+                <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetryClicked" />
+            </VerticalStackLayout>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}" Spacing="10">
+                <BindableLayout.ItemTemplate><DataTemplate x:DataType="points:PointValuationRow">
+                    <Border Padding="14" Stroke="#D8DEE9"><VerticalStackLayout Spacing="6">
+                        <Label AutomationId="point-valuation-name" Text="{Binding LocalizedName}" Style="{StaticResource Headline}" />
+                        <Label AutomationId="point-valuation-value" Text="{Binding LocalizedValue}" />
+                        <Label AutomationId="point-valuation-note" Text="{Binding LocalizedNote}" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Button Text="{DynamicResource extracted.pointValuationsManager.valuationSummary.edit_464c4ffd}" Clicked="OnEditClicked" CommandParameter="{Binding .}" />
+                            <Button Text="{DynamicResource extracted.pointValuationsManager.valuationSummary.remove_c3812fc4}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout></Border>
+                </DataTemplate></BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <controls:HybridPaginationControl PaginationId="point-valuations" HasMore="{Binding HasNextPage}" HasError="{Binding HasContinuationError}" IsLoading="{Binding IsLoadingMore}" LoadNextPageRequested="OnLoadMoreRequested" />
+            <VerticalStackLayout IsVisible="{Binding HasEditDraft}" Spacing="8">
+                <Entry AutomationId="point-valuations-edit-value" Text="{Binding EditDraft.ValuePerPoint}" Keyboard="Numeric" />
+                <Picker ItemsSource="{Binding EditDraft.SupportedCurrencies}" SelectedItem="{Binding EditDraft.Currency}" />
+                <Editor AutomationId="point-valuations-edit-note" Text="{Binding EditDraft.Note}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="{DynamicResource extracted.pointValuationsManager.valuationList.save_1509f561}" Clicked="OnSaveClicked" />
+                    <Button Text="{DynamicResource extracted.pointValuationsManager.valuationList.cancel_19766ed6}" Clicked="OnCancelClicked" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

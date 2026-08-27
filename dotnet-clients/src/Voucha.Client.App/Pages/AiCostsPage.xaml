@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.AiCostsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:engineering="clr-namespace:Voucha.Client.Core.Engineering;assembly=Voucha.Client.Core"
+    x:DataType="engineering:AiCostsViewModel"
+    Title="{DynamicResource extracted.aiCosts.page.aiCosts_75cce222}">
+    <RefreshView IsRefreshing="{Binding IsRefreshing}" Refreshing="OnRefreshing">
+        <CollectionView ItemsSource="{Binding Rows}" AutomationId="ai-costs-list">
+            <CollectionView.Header>
+                <VerticalStackLayout Padding="20,20,20,10" Spacing="6">
+                    <Label Text="{DynamicResource extracted.aiCosts.page.aiCosts_75cce222}" Style="{StaticResource Headline}" />
+                    <Label Text="{DynamicResource extracted.aiCosts.page.perCommunityLlmModerationUsage_4d9a2c81}" Style="{StaticResource Metadata}" />
+                    <ActivityIndicator AutomationId="ai-costs-loading" IsRunning="{Binding IsRefreshing}" IsVisible="{Binding IsRefreshing}" />
+                    <VerticalStackLayout AutomationId="ai-costs-error" IsVisible="{Binding HasError}" Spacing="6">
+                        <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+                        <Button Text="{DynamicResource native.common.retry}" Clicked="OnRetryClicked" />
+                    </VerticalStackLayout>
+                    <Label AutomationId="ai-costs-empty" IsVisible="{Binding ShowsEmptyState}" Text="{DynamicResource extracted.aiCosts.page.noAiUsageRecordedYet_87b1e2ea}" />
+                </VerticalStackLayout>
+            </CollectionView.Header>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="engineering:AiCostRow">
+                    <Border AutomationId="ai-cost-row" Margin="20,6" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="5">
+                            <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding InvariantCommunitySlug}" Style="{StaticResource Headline}" />
+                            <Label Grid.Row="1" Grid.Column="0" Text="{DynamicResource extracted.aiCosts.page.totalCostUsd_eed03fbf}" Style="{StaticResource Metadata}" />
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                                <Label AutomationId="ai-cost-row-cost" Text="{Binding LocalizedCost}" HorizontalTextAlignment="End" />
+                                <Label AutomationId="ai-cost-row-unpriced" IsVisible="{Binding HasUnpricedRequests}" Text="{Binding LocalizedUnpriced}" Style="{StaticResource Metadata}" HorizontalTextAlignment="End" />
+                            </VerticalStackLayout>
+                            <Label Grid.Row="2" Grid.Column="0" Text="{DynamicResource extracted.aiCosts.page.requests_ada27592}" Style="{StaticResource Metadata}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{Binding LocalizedRequests}" HorizontalTextAlignment="End" />
+                            <Label Grid.Row="3" Grid.Column="0" Text="{DynamicResource extracted.aiCosts.page.inputTokens_c54a41f6}" Style="{StaticResource Metadata}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{Binding LocalizedInputTokens}" HorizontalTextAlignment="End" />
+                            <Label Grid.Row="4" Grid.Column="0" Text="{DynamicResource extracted.aiCosts.page.outputTokens_a0a1074f}" Style="{StaticResource Metadata}" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="{Binding LocalizedOutputTokens}" HorizontalTextAlignment="End" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.Footer>
+                <VerticalStackLayout Padding="20,10,20,20" Spacing="6">
+                    <controls:HybridPaginationControl PaginationId="ai-costs" HasMore="{Binding HasMore}" HasError="{Binding HasContinuationError}" IsLoading="{Binding IsLoadingMore}" LoadNextPageRequested="OnLoadMoreRequested" />
+                </VerticalStackLayout>
+            </CollectionView.Footer>
+        </CollectionView>
+    </RefreshView>
+</ContentPage>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ReferralLinksPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:referrals="clr-namespace:Voucha.Client.Core.ReferralLinks;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:ReferralLinksPageBinding"
+    Title="{DynamicResource native.dotnet.referralLinks.title}">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="20" RowSpacing="16">
+        <HorizontalStackLayout Spacing="8" FlowDirection="LeftToRight">
+            <Button Text="{DynamicResource native.swift.navigationTitles.following}" Clicked="OnFollowingClicked" />
+            <Button Text="{DynamicResource native.dotnet.referralLinks.mutual}" Clicked="OnMutualClicked" />
+            <Button Text="{DynamicResource native.dotnet.referralLinks.mine}" Clicked="OnMineClicked" />
+            <Button Text="{DynamicResource native.dotnet.referralLinks.programs}" Clicked="OnProgramsClicked" />
+            <Button
+                Text="{DynamicResource native.swift.landingPages.analytics}"
+                IsVisible="{Binding HasAuthenticatedActions}"
+                Clicked="OnAnalyticsClicked" />
+        </HorizontalStackLayout>
+        <Button
+            Grid.Row="1"
+            Text="{DynamicResource native.swift.referralLinksManagement.addReferralLink}"
+            IsVisible="{Binding HasAuthenticatedActions}"
+            Clicked="OnAddClicked" />
+        <Border
+            Grid.Row="2"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+        <RefreshView Grid.Row="3" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.referralLinks.empty}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.referralLinks.emptyDescription}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="referrals:ReferralLinkRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Url}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Detail}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding LocalizedSignupStatus}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanManage}">
+                                    <Button Text="{DynamicResource native.swift.chat.rename}" Clicked="OnRenameClicked" />
+                                    <Button Text="{DynamicResource native.dotnet.referralLinks.toggleActive}" Clicked="OnToggleActiveClicked" />
+                                    <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <HorizontalStackLayout Grid.Row="4" Spacing="8">
+            <controls:HybridPaginationControl
+                x:Name="LinksPaginationControl"
+                PaginationId="referral-links"
+                HasMore="{Binding HasMoreLinks}"
+                IsLoading="{Binding PaginationIsLoading}"
+                HasError="{Binding HasError}" />
+            <controls:HybridPaginationControl
+                x:Name="AnalyticsPaginationControl"
+                PaginationId="referral-analytics"
+                HasMore="{Binding HasMoreAnalytics}"
+                IsLoading="{Binding PaginationIsLoading}"
+                HasError="{Binding HasError}" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

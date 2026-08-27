@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.ChatConversationPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:chat="clr-namespace:Voucha.Client.Core.Chat;assembly=Voucha.Client.Core"
+    x:DataType="chat:ChatConversationViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.mainChatChatTitle}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="16">
+        <VerticalStackLayout Spacing="6">
+            <Label Text="{Binding DisplayTitle}" Style="{StaticResource Headline}" />
+            <Label Text="{Binding ConversationId}" Style="{StaticResource Metadata}" />
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="{DynamicResource native.swift.crmContacts.provider}" Style="{StaticResource Metadata}" VerticalOptions="Center" />
+                <Picker
+                    Title="{DynamicResource native.dotnet.settings.selectProvider}"
+                    ItemsSource="{Binding ProviderStatuses}"
+                    ItemDisplayBinding="{Binding DisplayName}"
+                    SelectedItem="{Binding SelectedProviderStatus}"
+                    SelectedIndexChanged="OnProviderSelected"
+                    MinimumWidthRequest="220" />
+            </HorizontalStackLayout>
+            <Label Text="{Binding ProviderStatusText}" Style="{StaticResource Metadata}" />
+            <Button Text="{DynamicResource native.dotnet.chatConversation.setUpWindowsModel}" Clicked="OnSetUpWindowsModelClicked" IsVisible="{Binding CanSetUpSelectedWindowsSystemLanguageModel}" />
+        </VerticalStackLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Entry x:Name="TitleEntry" Text="{Binding Title}" Placeholder="{DynamicResource native.swift.chat.conversationTitle}" />
+                <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                    <Button Text="{DynamicResource native.swift.chat.rename}" Clicked="OnRenameClicked" IsEnabled="{Binding CanRename}" />
+                    <Button Text="{DynamicResource native.swift.landingPages.title}" Clicked="OnGenerateTitleClicked" IsEnabled="{Binding CanRename}" />
+                    <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" IsEnabled="{Binding CanDelete}" />
+                </HorizontalStackLayout>
+            </Grid>
+
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Messages}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.chatConversation.noMessages}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.chatConversation.empty}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="chat:ChatMessageRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Role}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding Content}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
+                                <Label Text="{Binding Error}" Style="{StaticResource Metadata}" TextColor="#991B1B" IsVisible="{Binding HasError}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <VerticalStackLayout Grid.Row="2" Spacing="8">
+                <Button
+                    Text="{DynamicResource native.swift.directMessages.loadOlderMessages}"
+                    Clicked="OnLoadOlderMessagesClicked"
+                    IsVisible="{Binding ShowLoadOlderMessages}"
+                    IsEnabled="{Binding CanLoadOlderMessages}" />
+                <Label
+                    Text="{Binding ExternalContentOlderMessagesErrorMessage}"
+                    TextColor="#991B1B"
+                    Style="{StaticResource Body}"
+                    IsVisible="{Binding HasOlderMessagesError}" />
+                <Button
+                    Text="{DynamicResource native.common.retry}"
+                    Clicked="OnLoadOlderMessagesClicked"
+                    IsVisible="{Binding HasOlderMessagesError}"
+                    IsEnabled="{Binding CanLoadOlderMessages}" />
+                <CollectionView ItemsSource="{Binding ToolCalls}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ChatStreamToolCallEvent">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{DynamicResource native.dotnet.chatConversation.toolCall}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding Name}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding Arguments}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <CollectionView ItemsSource="{Binding ToolResults}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ChatStreamToolResultEvent">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{DynamicResource native.dotnet.chatConversation.toolResult}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding ToolCallId}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding DisplayResult}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <CollectionView ItemsSource="{Binding SubagentSteps}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ChatStreamSubagentStepEvent">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{DynamicResource native.dotnet.chatConversation.subagentStep}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding AgentName}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ToolName}" Style="{StaticResource Body}" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <CollectionView ItemsSource="{Binding SubagentTextChunks}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="api:ChatStreamSubagentTextEvent">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{DynamicResource native.swift.chatMessageBubble.subagentText}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding AgentName}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding Content}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="12" BackgroundColor="#F8FAFC" Stroke="#D8DEE9" StrokeThickness="1">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                <Editor
+                    x:Name="MessageEditor"
+                    Placeholder="{DynamicResource native.dotnet.chatConversation.messagePlaceholder}"
+                    AutoSize="TextChanges"
+                    MinimumHeightRequest="96"
+                    MaxLength="32768"
+                    IsEnabled="{Binding CanSend}" />
+                <HorizontalStackLayout Grid.Row="1" Spacing="8">
+                    <Button Text="{DynamicResource native.swift.common.send}" Clicked="OnSendClicked" IsVisible="{Binding CanSend}" />
+                    <Button Text="{DynamicResource native.swift.chat.stop}" Clicked="OnStopClicked" IsVisible="{Binding IsStreaming}" />
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

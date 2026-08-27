@@ -1,0 +1,141 @@
+import Foundation
+@testable import VouchaAPI
+@testable import VouchaAuth
+@testable import VouchaCore
+@testable import VouchaModels
+import XCTest
+
+@MainActor
+final class SessionManagerLocalizationTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        MockURLProtocol.handlers = [:]
+    }
+
+    func testRefreshRestoresLocaleAndSignedInIdentity() async throws {
+        MockURLProtocol.handlers["/api/v1/my/identity"] = try (
+            identityEnvelope(uiLocale: "es"),
+            200
+        )
+        let sessionManager = makeSessionManager()
+
+        let refreshed = await sessionManager.refresh()
+
+        XCTAssertTrue(refreshed)
+        XCTAssertTrue(sessionManager.isSignedIn)
+        XCTAssertEqual(sessionManager.currentUserId, "user-abc")
+        XCTAssertEqual(sessionManager.currentUserRoles, ["user"])
+        XCTAssertFalse(sessionManager.currentUserIsOfficialAccount)
+        XCTAssertEqual(sessionManager.uiLocale, "es")
+    }
+
+    func testRefreshRetainsComputedOfficialAccountEligibility() async throws {
+        MockURLProtocol.handlers["/api/v1/my/identity"] = try (
+            identityEnvelope(uiLocale: "en", isOfficialAccount: true),
+            200
+        )
+        let sessionManager = makeSessionManager()
+
+        let refreshed = await sessionManager.refresh()
+
+        XCTAssertTrue(refreshed)
+        XCTAssertTrue(sessionManager.currentUserIsOfficialAccount)
+    }
+
+    func testUnauthorizedRefreshClearsSynchronizedLocaleAndIdentity() async throws {
+        let sessionManager = makeSessionManager()
+        try sessionManager.synchronize(with: identity(uiLocale: "fr"))
+        MockURLProtocol.handlers["/api/v1/my/identity"] = (Data("{}".utf8), 401)
+
+        let refreshed = await sessionManager.refresh()
+
+        XCTAssertFalse(refreshed)
+        XCTAssertFalse(sessionManager.isSignedIn)
+        XCTAssertNil(sessionManager.currentUserId)
+        XCTAssertTrue(sessionManager.currentUserRoles.isEmpty)
+        XCTAssertNil(sessionManager.uiLocale)
+    }
+
+    func testSignOutClearsCookiesAndSynchronizedLocaleWhenRequestFails() async throws {
+        let cookieStorage = SessionTestCookieStorage()
+        let sessionManager = makeSessionManager(cookieStorage: cookieStorage)
+        try sessionManager.synchronize(with: identity(uiLocale: "pt"))
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "localhost",
+            .path: "/",
+            .name: "st",
+            .value: "session-token"
+        ]))
+        cookieStorage.setCookie(cookie)
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 500)
+
+        await sessionManager.signOut()
+
+        XCTAssertFalse(sessionManager.isSignedIn)
+        XCTAssertNil(sessionManager.uiLocale)
+        XCTAssertTrue(cookieStorage.cookies?.isEmpty ?? true)
+    }
+
+    private func makeSessionManager(
+        cookieStorage: HTTPCookieStorage = HTTPCookieStorage()
+    ) -> SessionManager {
+        let client = APIClient(
+            config: AppConfig(
+                baseURL: URL(string: "http://localhost:2999")!,
+                turnstileSiteKey: "test-site-key"
+            ),
+            cookieStorage: cookieStorage,
+            protocolClasses: [MockURLProtocol.self]
+        )
+        return SessionManager(client: client, cookieStorage: cookieStorage)
+    }
+
+    private func identity(uiLocale: String) throws -> PrivateUser {
+        try makeVouchaDecoder().decode(
+            IdentityEnvelope.self,
+            from: identityEnvelope(uiLocale: uiLocale)
+        ).identity
+    }
+
+    private func identityEnvelope(uiLocale: String, isOfficialAccount: Bool = false) throws -> Data {
+        var envelope = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: ApiFixtureLoader.data("swift.my.identity.default")
+            ) as? [String: Any]
+        )
+        var identity = try XCTUnwrap(envelope["identity"] as? [String: Any])
+        identity["ui_locale"] = uiLocale
+        identity["is_official_account"] = isOfficialAccount
+        envelope["identity"] = identity
+        return try JSONSerialization.data(withJSONObject: envelope)
+    }
+}
+
+private struct IdentityEnvelope: Decodable {
+    let identity: PrivateUser
+}
+
+private final class SessionTestCookieStorage: HTTPCookieStorage, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedCookies: [HTTPCookie] = []
+
+    override var cookies: [HTTPCookie]? {
+        lock.withLock { storedCookies }
+    }
+
+    override func setCookie(_ cookie: HTTPCookie) {
+        lock.withLock {
+            storedCookies.append(cookie)
+        }
+    }
+
+    override func deleteCookie(_ cookie: HTTPCookie) {
+        lock.withLock {
+            storedCookies.removeAll { storedCookie in
+                storedCookie.name == cookie.name &&
+                    storedCookie.domain == cookie.domain &&
+                    storedCookie.path == cookie.path
+            }
+        }
+    }
+}

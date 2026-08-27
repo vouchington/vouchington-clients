@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.FediverseInstanceDetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:fediverse="clr-namespace:Voucha.Client.Core.Fediverse;assembly=Voucha.Client.Core"
+    x:DataType="fediverse:FediverseInstanceDetailViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.fediverseFediverseInstancesFediverseInstancesTitle}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+            <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+            <Label Text="{Binding Description}" Style="{StaticResource Body}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.software}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding LocalizedSoftwareLabel}" Style="{StaticResource Metadata}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.protocol}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding ProtocolLabel}" Style="{StaticResource Metadata}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.users}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding LocalizedTotalUsers}" Style="{StaticResource Metadata}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.monthlyActiveUsers}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding LocalizedMonthlyActiveUsers}" Style="{StaticResource Metadata}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.registrations}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding LocalizedRegistrationsLabel}" Style="{StaticResource Metadata}" />
+            <Label Text="{DynamicResource native.swift.routeSurface.trust}" Style="{StaticResource Eyebrow}" />
+            <Label Text="{Binding LocalizedTrustLabel}" Style="{StaticResource Metadata}" />
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVote" MinimumHeightRequest="44" />
+                <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVote" MinimumHeightRequest="44" />
+                <Button Text="{Binding Actions.TopicFollowActionLabel}" Clicked="OnFollow" />
+                <Button Text="{Binding Actions.TopicMuteActionLabel}" Clicked="OnMute" />
+            </HorizontalStackLayout>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
+            <Label Text="{Binding Actions.ErrorMessage}" TextColor="#991B1B" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.FriendRecommendationsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:friends="clr-namespace:Voucha.Client.Core.Friends;assembly=Voucha.Client.Core"
+    x:DataType="friends:FriendRecommendationsViewModel"
+    Title="{DynamicResource extracted.intents.productSocial.findFriends_d4864039}">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="16">
+        <Border
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <RefreshView Grid.Row="1" Refreshing="OnRefreshing" IsRefreshing="{Binding IsLoading, Mode=OneWay}">
+            <Grid RowDefinitions="*,Auto" RowSpacing="12">
+                <CollectionView
+                    ItemsSource="{Binding Items}"
+                    SelectionMode="None"
+                    RemainingItemsThreshold="2"
+                    RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout Padding="24" Spacing="12">
+                            <Label
+                                Text="{DynamicResource extracted.my.friendRecommendationsList.noFriendRecommendationsAtThisTime_fb21db17}"
+                                Style="{StaticResource Body}" />
+                            <Button
+                                Text="{DynamicResource extracted.my.friendRecommendationsList.connectYourFacebookXOrGithub_e3d61a65}"
+                                Clicked="OnConnectAccountsClicked" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="friends:FriendRecommendationRow">
+                            <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
+                                    <Border
+                                        WidthRequest="40"
+                                        HeightRequest="40"
+                                        BackgroundColor="#E0F2FE"
+                                        Stroke="#BAE6FD"
+                                        StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="20" />
+                                        </Border.StrokeShape>
+                                        <Label
+                                            Text="{Binding AvatarInitial}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Style="{StaticResource Headline}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                        <Label Text="{Binding PrimaryLabel}" Style="{StaticResource Headline}" />
+                                        <Label Text="{Binding SecondaryLabel}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding ProviderPresentation}" Style="{StaticResource Metadata}" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="6">
+                                        <Button
+                                            Text="{DynamicResource native.dotnet.dynamic.follow}"
+                                            Clicked="OnFollowClicked"
+                                            CommandParameter="{Binding .}" />
+                                        <Button
+                                            Text="{DynamicResource native.swift.integrity.dismiss}"
+                                            Clicked="OnDismissClicked"
+                                            CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <controls:HybridPaginationControl
+                    x:Name="PaginationControl"
+                    Grid.Row="1"
+                    PaginationId="friend-recommendations"
+                    HasMore="{Binding HasMore}"
+                    IsLoading="{Binding IsLoading}"
+                    HasError="{Binding HasError}" />
+            </Grid>
+        </RefreshView>
+        <Button
+            Grid.Row="2"
+            Text="{DynamicResource native.dotnet.bookmarks.dismissedFriendRecommendations}"
+            Clicked="OnDismissedRecommendationsClicked" />
+    </Grid>
+</ContentPage>

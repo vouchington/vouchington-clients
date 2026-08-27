@@ -1,0 +1,16 @@
+--swiftversion 5.9
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen balanced
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes prev-line
+--decimalgrouping 3,4
+--commas inline
+--semicolons never
+--header strip
+--disable blankLinesAtStartOfScope,blankLinesAtEndOfScope,wrapMultilineStatementBraces
+--exclude ui/Sources/VouchaLocalization/Generated

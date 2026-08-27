@@ -1,0 +1,185 @@
+using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Api;
+
+namespace Voucha.Client.Core.Moderation;
+
+public sealed partial class ReviewQueueViewModel
+{
+  private readonly IModerationExposureService? exposureService;
+  private readonly AppConfig appConfig;
+  private readonly Func<DateTimeOffset> utcNow;
+  private readonly Func<TimeSpan, CancellationToken, Task> delay;
+  private readonly HashSet<string> revealedPostIds = new(StringComparer.Ordinal);
+  private ModerationExposureState? exposureState;
+  private string? revealInFlightPostId;
+  private bool isExposureRefreshInFlight;
+  private bool isExposureStale = true;
+  private long exposureLifecycleVersion;
+  private long acceptedExposureLifecycleVersion = -1;
+  private long revealOutcomeVersion;
+
+  public Task RefreshExposureAsync(CancellationToken cancellationToken = default) =>
+      QueueExposureRefreshAsync(scheduleCooldownRefresh: true, cancellationToken);
+
+  public Task RevealMediaAsync(
+      ReviewQueueRow row,
+      CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(row);
+    if (exposureService is null || revealInFlightPostId is not null) return Task.CompletedTask;
+    var current = Items.FirstOrDefault(item => item.Id == row.Id);
+    if (current is not { CanRevealMedia: true } || !revealedPostIds.Add(current.Id))
+    {
+      return Task.CompletedTask;
+    }
+
+    revealInFlightPostId = current.Id;
+    RefreshExposureRows();
+    return RecordRevealAsync(current.Id, cancellationToken);
+  }
+
+  public void CancelExposureOperations()
+  {
+    Interlocked.Increment(ref exposureLifecycleVersion);
+    CancelExposureSchedule();
+    if (exposureService is not null) SetExposureStale();
+  }
+
+  [SuppressMessage(
+      "Design",
+      "CA1031:Do not catch general exception types",
+      Justification = "Any reveal response failure is ambiguous and must preserve media while gating later reveals.")]
+  private async Task RecordRevealAsync(
+      string postId,
+      CancellationToken cancellationToken)
+  {
+    var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
+    var outcomeVersionAdvanced = false;
+    try
+    {
+      var response = await exposureService!.RecordReviewQueueRevealAsync(
+          postId,
+          cancellationToken).ConfigureAwait(true);
+      Interlocked.Increment(ref revealOutcomeVersion);
+      outcomeVersionAdvanced = true;
+      if (AcceptsReveal(observedExposureLifecycleVersion, cancellationToken))
+      {
+        AcceptExposure(response.Exposure, scheduleCooldownRefresh: true);
+      }
+      else
+      {
+        RejectRevealOutcome(observedExposureLifecycleVersion);
+      }
+    }
+    catch (Exception)
+    {
+      if (!outcomeVersionAdvanced) Interlocked.Increment(ref revealOutcomeVersion);
+      RejectRevealOutcome(observedExposureLifecycleVersion);
+    }
+    finally
+    {
+      revealInFlightPostId = null;
+      RefreshExposureRows();
+    }
+  }
+
+  private bool AcceptsReveal(
+      long observedExposureLifecycleVersion,
+      CancellationToken cancellationToken) =>
+      !cancellationToken.IsCancellationRequested &&
+      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion);
+
+  private void RejectRevealOutcome(long observedExposureLifecycleVersion)
+  {
+    var currentLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
+    if (observedExposureLifecycleVersion == currentLifecycleVersion)
+    {
+      CancelExposureSchedule();
+      SetExposureStale();
+    }
+    else if (Volatile.Read(ref acceptedExposureLifecycleVersion) !=
+        currentLifecycleVersion)
+    {
+      SetExposureStale();
+    }
+  }
+
+  [SuppressMessage(
+      "Design",
+      "CA1031:Do not catch general exception types",
+      Justification = "Any exposure refresh failure must leave sensitive reveals gated.")]
+  private async Task FetchExposureAsync(
+      bool scheduleCooldownRefresh,
+      CancellationToken cancellationToken)
+  {
+    if (exposureService is null) return;
+    var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
+    var observedRevealOutcomeVersion = Volatile.Read(ref revealOutcomeVersion);
+    isExposureRefreshInFlight = true;
+    RefreshExposureRows();
+    try
+    {
+      var response = await exposureService.FetchExposureAsync(cancellationToken)
+          .ConfigureAwait(true);
+      if (AcceptsExposureRefresh(
+          observedExposureLifecycleVersion,
+          observedRevealOutcomeVersion,
+          cancellationToken))
+      {
+        AcceptExposure(response.Exposure, scheduleCooldownRefresh);
+      }
+    }
+    catch (Exception)
+    {
+      if (AcceptsExposureRefresh(
+          observedExposureLifecycleVersion,
+          observedRevealOutcomeVersion,
+          cancellationToken))
+      {
+        SetExposureStale();
+      }
+    }
+    finally
+    {
+      isExposureRefreshInFlight = false;
+      RefreshExposureRows();
+    }
+  }
+
+  private bool AcceptsExposureRefresh(
+      long observedExposureLifecycleVersion,
+      long observedRevealOutcomeVersion,
+      CancellationToken cancellationToken) =>
+      !cancellationToken.IsCancellationRequested &&
+      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion) &&
+      observedRevealOutcomeVersion == Volatile.Read(ref revealOutcomeVersion);
+
+  private void AcceptExposure(
+      ModerationExposureState next,
+      bool scheduleCooldownRefresh)
+  {
+    exposureState = next;
+    Volatile.Write(
+        ref acceptedExposureLifecycleVersion,
+        Volatile.Read(ref exposureLifecycleVersion));
+    isExposureStale = false;
+    RefreshExposureRows();
+    if (scheduleCooldownRefresh) ScheduleCooldownRefresh(next);
+  }
+
+  private void SetExposureStale()
+  {
+    isExposureStale = true;
+    RefreshExposureRows();
+  }
+
+  private void RefreshExposureRows() =>
+      Items = Items.Select(row => row with
+      {
+        IsExposureStale = isExposureStale,
+        IsInExposureCooldown = exposureState?.InCooldown == true,
+        IsMediaRevealed = revealedPostIds.Contains(row.Id),
+        IsRevealInFlight = revealInFlightPostId == row.Id,
+        IsRevealAvailable = revealInFlightPostId is null && !isExposureRefreshInFlight,
+      }).ToArray();
+}

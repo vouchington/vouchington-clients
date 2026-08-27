@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.MediaPlaybackPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    Title="{DynamicResource native.dotnet.mediaPlayback.title}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Label x:Name="TitleLabel" Style="{StaticResource Headline}" />
+            <Label x:Name="SourceLabel" Style="{StaticResource Eyebrow}" />
+            <Label x:Name="SummaryLabel" Style="{StaticResource Body}" />
+            <Label x:Name="LinkLabel" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
+
+            <Border x:Name="ExternalAudioFallbackPanel" IsVisible="False" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.dotnet.mediaPlayback.noDirectStream}" Style="{StaticResource Body}" />
+                    <Button Text="{DynamicResource native.dotnet.mediaPlayback.openBrowser}" Clicked="OnOpenExternalAudioClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border x:Name="VideoUnavailablePanel" IsVisible="False" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label Text="{DynamicResource native.dotnet.mediaPlayback.videoUnavailable}" Style="{StaticResource Body}" />
+            </Border>
+
+            <Border x:Name="PlayerPanel" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <toolkit:MediaElement
+                        x:Name="Player"
+                        HeightRequest="260"
+                        ShouldAutoPlay="False"
+                        ShouldShowPlaybackControls="False"
+                        ShouldKeepScreenOn="True"
+                        MediaOpened="OnMediaOpened"
+                        MediaEnded="OnMediaEnded"
+                        MediaFailed="OnMediaFailed"
+                        PositionChanged="OnPositionChanged"
+                        StateChanged="OnStateChanged" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                        <Button Grid.Row="0" Grid.Column="0" Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnPlayClicked" />
+                        <Button Grid.Row="0" Grid.Column="2" Text="{DynamicResource native.dotnet.mediaPlayback.pause}" Clicked="OnPauseClicked" />
+                        <Label Grid.Row="1" Grid.Column="0" x:Name="PositionLabel" Style="{StaticResource Metadata}" />
+                        <Slider Grid.Row="1" Grid.Column="1" x:Name="SeekSlider" ValueChanged="OnSeekValueChanged" />
+                        <Label Grid.Row="1" Grid.Column="2" x:Name="DurationLabel" Style="{StaticResource Metadata}" />
+                    </Grid>
+
+                    <Border x:Name="ChapterPanel" IsVisible="False" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="{DynamicResource native.dotnet.mediaPlayback.chapters}" Style="{StaticResource Eyebrow}" />
+                            <VerticalStackLayout x:Name="ChapterButtonsLayout" Spacing="8" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="0.75x" Clicked="OnSpeed075Clicked" />
+                        <Button Text="1x" Clicked="OnSpeed1Clicked" />
+                        <Button Text="1.25x" Clicked="OnSpeed125Clicked" />
+                        <Button Text="1.5x" Clicked="OnSpeed15Clicked" />
+                    </HorizontalStackLayout>
+
+                    <Label x:Name="StatusLabel" Style="{StaticResource Metadata}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

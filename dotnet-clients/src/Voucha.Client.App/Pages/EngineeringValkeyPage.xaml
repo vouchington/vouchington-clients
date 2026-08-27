@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.EngineeringValkeyPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:eng="clr-namespace:Voucha.Client.Core.Engineering;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="eng:EngineeringValkeyViewModel"
+    Title="{DynamicResource native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <pages:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <HorizontalStackLayout Spacing="12">
+                <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
+            </HorizontalStackLayout>
+
+            <Border Padding="12" Stroke="#FCA5A5" StrokeThickness="1" IsVisible="{Binding HasError}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.engineeringValkey.bloomFilters}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start">
+                        <Button Text="url-blocklist" Clicked="OnRebuildClicked" CommandParameter="url-blocklist" Margin="0,0,8,8" />
+                        <Button Text="email-blocklist" Clicked="OnRebuildClicked" CommandParameter="email-blocklist" Margin="0,0,8,8" />
+                        <Button Text="embedding" Clicked="OnRebuildClicked" CommandParameter="embedding" Margin="0,0,8,8" />
+                        <Button Text="entity-cache" Clicked="OnRebuildClicked" CommandParameter="entity-cache" Margin="0,0,8,8" />
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.engineeringValkey.cacheGroups}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                        <Button Text="{DynamicResource native.dotnet.engineeringValkey.clearAll}" Clicked="OnClearAllClicked" />
+                    </HorizontalStackLayout>
+                    <CollectionView ItemsSource="{Binding CacheGroups}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="api:CacheGroup">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Name}" Style="{StaticResource Body}" />
+                                        <Label Text="{app:UiLocalizedValue Path=Prefixes.Count, Format=message:native.dotnet.engineeringValkey.prefixCount|number}" Style="{StaticResource Metadata}" />
+                                        <Button Text="{DynamicResource native.swift.common.clear}" Clicked="OnClearGroupClicked" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{DynamicResource native.swift.engineeringValkey.flush}" Style="{StaticResource Headline}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <Label Text="{app:UiLocalizedValue Path=FlushingConcern, Format=message:native.dotnet.engineeringValkey.flushingConcern}" Style="{StaticResource Metadata}" IsVisible="{Binding IsFlushing}" />
+                    <CollectionView ItemsSource="{Binding FlushConcerns}" SelectionMode="None" IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBooleanConverter}}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="eng:FlushConcernOption">
+                                <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                        <Label Text="{Binding Description}" Style="{StaticResource Metadata}" />
+                                        <Button Text="{DynamicResource native.swift.engineeringValkey.flush}" Clicked="OnFlushClicked" CommandParameter="{Binding .}">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button" Binding="{Binding RequiresForce}" Value="True">
+                                                    <Setter Property="BackgroundColor" Value="#DC2626" />
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

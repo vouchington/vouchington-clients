@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.FriendsPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:friends="clr-namespace:Voucha.Client.Core.Friends;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:FriendsPageBinding"
+    Title="{DynamicResource native.swift.friends.friends}">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
+        <Border Padding="4" BackgroundColor="#E5E7EB" StrokeThickness="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                <Button
+                    Text="{DynamicResource native.swift.navigationTitles.following}"
+                    Clicked="OnFollowingClicked"
+                    BackgroundColor="#E5E7EB"
+                    TextColor="#111827"
+                    SemanticProperties.Hint="{DynamicResource native.dotnet.friends.showFollowingHint}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFollowingSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Text="{DynamicResource native.swift.navigationTitles.followers}"
+                    Clicked="OnFollowersClicked"
+                    BackgroundColor="#E5E7EB"
+                    TextColor="#111827"
+                    SemanticProperties.Hint="{DynamicResource native.dotnet.friends.showFollowersHint}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFollowersSelected}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                            <Setter Property="TextColor" Value="White" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <RefreshView Grid.Row="2" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                SelectionMode="None"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{Binding EmptyTitle}" Style="{StaticResource Headline}" />
+                        <Label Text="{Binding EmptyMessage}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="friends:FriendRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
+                                <Border
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    BackgroundColor="#E0F2FE"
+                                    Stroke="#BAE6FD"
+                                    StrokeThickness="1"
+                                    VerticalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="20" />
+                                    </Border.StrokeShape>
+                                    <Label
+                                        Text="{Binding AvatarInitial}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        Style="{StaticResource Headline}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="{Binding PrimaryLabel}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding SecondaryLabel}" Style="{StaticResource Metadata}" />
+                                </VerticalStackLayout>
+                                <Button
+                                    Grid.Column="2"
+                                    Text="{Binding FollowActionLabel}"
+                                    Clicked="OnFollowClicked"
+                                    CommandParameter="{Binding .}"
+                                    VerticalOptions="Start"
+                                    IsVisible="{Binding CanToggleFollow}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="PaginationControl"
+                        PaginationId="friends"
+                        HasMore="{Binding HasMore}"
+                        IsLoading="{Binding PaginationIsLoading}"
+                        HasError="{Binding HasError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

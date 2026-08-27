@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.PostsPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:posts="clr-namespace:Voucha.Client.Core.Posts;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
+    x:DataType="pages:PostsPageBinding"
+    Title="{DynamicResource native.swift.postsList.posts}">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <pages:VoteClearEligibilityConverter x:Key="VoteClearEligibilityConverter" />
+            <pages:FollowerDistributionVisibilityConverter x:Key="FollowerDistributionVisibilityConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
+        <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start">
+            <Button Text="{DynamicResource native.dotnet.posts.feed}" Clicked="OnFeedClicked" Margin="0,0,8,8" />
+            <Button Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" Margin="0,0,8,8" />
+            <Button Text="{DynamicResource native.swift.navigationTitles.reviews}" Clicked="OnReviewsClicked" Margin="0,0,8,8" />
+            <Button Text="{DynamicResource native.swift.navigationTitles.discussions}" Clicked="OnDiscussionsClicked" Margin="0,0,8,8" />
+            <Button Text="{DynamicResource native.swift.routeMetadata.mainPostComposeComposeTitle}" Clicked="OnComposeClicked" Margin="0,0,8,8" IsVisible="{Binding CanCompose}" />
+        </FlexLayout>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="#FEF2F2"
+            Stroke="#FCA5A5"
+            StrokeThickness="1"
+            IsVisible="{Binding HasError}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        </Border>
+
+        <RefreshView Grid.Row="2" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                RemainingItemsThreshold="2"
+                RemainingItemsThresholdReached="OnRemainingItemsThresholdReached">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8">
+                        <Label Text="{DynamicResource native.dotnet.posts.empty}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.posts.emptyDescription}" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="posts:PostRow">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPostClicked" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <controls:NativeHtmlContentView
+                                    Html="{Binding BodyHtml}"
+                                    Fallback="{Binding Body}"
+                                    MaxLines="3" />
+                                <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="10">
+                                    <Button Text="{DynamicResource native.swift.followerDistribution.actions}" Clicked="OnFollowerSendClicked" CommandParameter="{Binding .}">
+                                        <Button.IsVisible>
+                                            <MultiBinding Converter="{StaticResource FollowerDistributionVisibilityConverter}">
+                                                <Binding Path="IsEligibleForFollowerDistribution" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanRelate" />
+                                                <Binding Path="CreatedById" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CurrentUserId" />
+                                            </MultiBinding>
+                                        </Button.IsVisible>
+                                    </Button>
+                                    <Button
+                                        Text="{Binding SaveActionLabel}"
+                                        Clicked="OnSaveClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                    <Button
+                                        Text="{Binding HideActionLabel}"
+                                        Clicked="OnHideClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasVoteCounts}">
+                                    <Button
+                                        Text="{DynamicResource native.swift.communityActions.open}"
+                                        Clicked="OnOpenClicked"
+                                        CommandParameter="{Binding .}" />
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.vote}"
+                                        Clicked="OnChooseVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanVote}"
+                                        WidthRequest="42" />
+                                    <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Button
+                                        Text="{DynamicResource extracted.votes.semanticVote.clear}"
+                                        Clicked="OnClearVoteClicked"
+                                        CommandParameter="{Binding .}"
+                                        WidthRequest="42">
+                                        <Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource VoteClearEligibilityConverter}">
+                                                <Binding Path="CurrentVoteChoice" />
+                                                <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanClearVote" />
+                                            </MultiBinding>
+                                        </Button.IsEnabled>
+                                    </Button>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <controls:HybridPaginationControl
+                        x:Name="PaginationControl"
+                        PaginationId="posts"
+                        HasMore="{Binding HasMore}"
+                        IsLoading="{Binding PaginationIsLoading}"
+                        HasError="{Binding HasError}" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

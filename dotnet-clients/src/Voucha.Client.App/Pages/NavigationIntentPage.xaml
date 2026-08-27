@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.NavigationIntentPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:nav="clr-namespace:Voucha.Client.Core.Navigation;assembly=Voucha.Client.Core"
+    x:DataType="nav:NavigationIntentViewModel"
+    Title="{Binding Label}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding Label}" Style="{StaticResource Headline}" />
+                <Label Text="{Binding LandingHref}" Style="{StaticResource Metadata}" />
+            </VerticalStackLayout>
+
+            <CollectionView ItemsSource="{Binding Groups}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="nav:NavigationGroupViewModel">
+                        <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="{Binding Label}" Style="{StaticResource Headline}" />
+                                <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="nav:NavigationItemViewModel">
+                                            <VerticalStackLayout Padding="0,6" Spacing="2">
+                                                <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                                                <Label Text="{Binding Href}" Style="{StaticResource Metadata}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

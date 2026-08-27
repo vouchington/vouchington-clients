@@ -1,0 +1,16 @@
+included:
+  - core/Tests
+  - ui/Tests
+
+excluded:
+  - .build
+  - DerivedData
+
+only_rules:
+  - file_length
+  - sorted_imports
+  - toggle_bool
+
+file_length:
+  # The harness runs SwiftLint with --strict, so this warning is a hard cap.
+  warning: 500

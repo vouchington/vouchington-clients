@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Voucha.Client.App.Pages.EngineeringPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="{DynamicResource native.swift.navigationTitles.engineering}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{DynamicResource native.swift.navigationTitles.engineering}" Style="{StaticResource Headline}" />
+                <Label Text="{DynamicResource native.dotnet.engineering.description}" Style="{StaticResource Body}" />
+            </VerticalStackLayout>
+
+            <Border x:Name="FeatureFlagOverridesCard" AutomationId="engineering-feature-flag-overrides" Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigFlagsTitle}" Style="{StaticResource Headline}" />
+                    <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigFlagsDescription}" Style="{StaticResource Body}" />
+                    <Button AutomationId="engineering-open-feature-flag-overrides" Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigFlagsTitle}" Clicked="OnFeatureFlagOverridesClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border x:Name="DynamicConfigCard" AutomationId="engineering-dynamic-config" Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigDynamicConfigTitle}" Style="{StaticResource Headline}" />
+                    <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigDynamicConfigDescription}" Style="{StaticResource Body}" />
+                    <Button AutomationId="engineering-open-dynamic-config" Text="{DynamicResource native.swift.routeMetadata.staffEngineeringDynamicConfigDynamicConfigTitle}" Clicked="OnDynamicConfigClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout x:Name="OperationsCards" AutomationId="engineering-operations" Spacing="16">
+                <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{DynamicResource native.dotnet.engineering.messageQueues}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.engineering.queuesDescription}" Style="{StaticResource Body}" />
+                        <Button Text="{DynamicResource native.dotnet.engineering.openQueues}" Clicked="OnQueuesClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.engineering.databaseDescription}" Style="{StaticResource Body}" />
+                        <Button Text="{DynamicResource native.dotnet.engineering.openPostgresql}" Clicked="OnPostgreSqlClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{DynamicResource native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource native.dotnet.engineering.valkeyDescription}" Style="{StaticResource Body}" />
+                        <Button Text="{DynamicResource native.dotnet.engineering.openValkey}" Clicked="OnValkeyClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{DynamicResource extracted.aiCosts.page.aiCosts_75cce222}" Style="{StaticResource Headline}" />
+                        <Label Text="{DynamicResource extracted.aiCosts.page.perCommunityLlmModerationUsage_4d9a2c81}" Style="{StaticResource Body}" />
+                        <Button AutomationId="engineering-open-ai-costs" Text="{DynamicResource extracted.aiCosts.page.aiCosts_75cce222}" Clicked="OnAiCostsClicked" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

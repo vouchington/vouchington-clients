@@ -1,0 +1,6 @@
+retain_public: true
+retain_encodable_properties: true
+report_exclude:
+  - Sources/VouchaAPI/APIClient+ResponseLinesDataDelegate.swift
+  - Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport.swift
+  - Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+Finish.swift

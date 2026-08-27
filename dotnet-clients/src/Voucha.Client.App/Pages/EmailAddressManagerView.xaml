@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="Voucha.Client.App.Pages.EmailAddressManagerView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
+    xmlns:settings="clr-namespace:Voucha.Client.Core.Settings;assembly=Voucha.Client.Core"
+    x:DataType="settings:EmailAddressManagerViewModel">
+    <VerticalStackLayout Spacing="10">
+        <Label Text="{DynamicResource native.swift.settings.emailAddresses}" Style="{StaticResource Headline}" />
+        <Label Text="{Binding EmptyStateMessage}" Style="{StaticResource Metadata}" />
+        <CollectionView ItemsSource="{Binding EmailAddresses}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="api:EmailAddress">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{Binding Address}" Style="{StaticResource Body}" />
+                        <Label Text="{DynamicResource native.swift.settings.primary}" Style="{StaticResource Metadata}" IsVisible="{Binding IsPrimary}" />
+                    </HorizontalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <controls:HybridPaginationControl
+            PaginationId="settings-email-addresses"
+            HasMore="{Binding HasMoreEmailAddresses}"
+            IsLoading="{Binding IsLoadingMoreEmailAddresses}"
+            HasError="{Binding HasEmailAddressPaginationError}"
+            LoadNextPageRequested="OnLoadMoreRequested" />
+        <Entry Text="{Binding EmailAddress}" Placeholder="{DynamicResource native.auth.emailAddress}" Keyboard="Email" />
+        <Button Text="{DynamicResource native.swift.settings.sendVerificationCode}" Clicked="OnRequestClicked" />
+        <VerticalStackLayout Spacing="8" IsVisible="{Binding IsAwaitingVerification}">
+            <Entry Text="{Binding Otp}" Placeholder="{DynamicResource native.swift.settings.message8CharacterCode}" MaxLength="8" />
+            <Button Text="{DynamicResource native.dotnet.settings.verifyEmail}" Clicked="OnVerifyClicked" />
+        </VerticalStackLayout>
+        <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+        <Label Text="{Binding SuccessMessage}" TextColor="#166534" Style="{StaticResource Body}" />
+    </VerticalStackLayout>
+</ContentView>

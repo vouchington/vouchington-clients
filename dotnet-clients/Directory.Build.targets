@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    MSBuild's built-in resource and satellite-copy item transforms single-quote their output
+    paths. Escape the evaluated paths so apostrophes remain data instead of transform syntax.
+    Task parameters unescape the values before touching the filesystem.
+  -->
+  <Target Name="EscapeDotnetItemTransformOutputPaths" BeforeTargets="CoreResGen">
+    <PropertyGroup>
+      <IntermediateOutputPath>$([MSBuild]::Escape($(IntermediateOutputPath)))</IntermediateOutputPath>
+      <OutDir>$([MSBuild]::Escape($(OutDir)))</OutDir>
+    </PropertyGroup>
+  </Target>
+</Project>

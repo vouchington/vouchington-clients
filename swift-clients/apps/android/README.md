@@ -1,0 +1,52 @@
+# Voucha Android
+
+The Android client is a Skip Fuse 1.9+ app targeting Android API 28 and newer. Skip's Swift Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
+Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the SwiftUI shell.
+
+## Local models
+
+- Android AICore uses ML Kit Prompt API (beta; see `skip.yml` and the app Gradle file).
+- The model downloads only after the user selects **Download on-device model**.
+- Chat history is bounded before inference.
+- Generation failures restore the draft. They do not retry through another provider.
+- The provider-validation shell keeps successful responses in memory because it has no signed-in session or server conversation context. #6745 owns integration into authenticated canonical chat persistence before this shell becomes the full Android client.
+- OpenAI-compatible endpoint settings validate the shared native endpoint policy. Cleartext
+  requests also re-validate the resolved peer address in `VouchaCore` before `URLSession`
+  connects. API keys use SkipKeychain.
+
+Play Integrity, Play Store signing, and release packaging remain tracked by #6620 and #6745.
+
+## Checks
+
+```sh
+skip android sdk install
+skip checkup --native
+swift test --package-path swift-clients/apps/android
+bash swift-clients/apps/android/tooling/pre-push.sh
+```
+
+The pre-push wrapper runs the host Swift tests, compiles the generated Android project with Gradle
+`assembleDebug`, then builds Skip test libraries without ADB device discovery.
+CI prefetches every pinned `skip-macos.zip` (source.skip.tools and the GitHub releases alias,
+same checksum) into SwiftPM's artifact cache so two `buildAndroidSwiftPackageDebug` tasks do not
+race a missing zip dest.
+It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
+CI provisions checksum-verified Swiftly plus Swift in `RUNNER_TEMP`; the wrapper keeps
+that toolchain and SwiftPM SDK state job-scoped. Host archives, including `skip-macos.zip`, are
+reused from `$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
+`cached-archive.sh`. Only these immutable, checksum-verified archives persist across jobs;
+each job materializes the Swift toolchain, SDK, and NDK into job-scoped `$RUNNER_TEMP` before
+use, so an untrusted job cannot leave those extracted executables for a later trusted job. CI then seeds SwiftPM's
+shared artifacts cache and runs
+`swift package resolve --force-resolved-versions` so unlocked `swift test` does not live-fetch
+Skip's CDN. Gradle uses
+`$HOME/.cache/voucha/gradle` so job-scoped `HOME` remapping does not throw away the
+dependency cache. Its non-default toolchain directory makes Swiftly verify and extract the signed
+package without macOS Installer writing to the runner account. Local runs continue to use the
+developer's existing Skip and Swiftly installations. Skip's Gradle bridge lists
+`$HOME/Library/Developer/Toolchains`; that path stays a real job-scoped directory and the wrapper
+links only the verified `.xctoolchain` into it because Foundation rejects a directory-level
+symlink (NSPOSIX Code 20).
+
+The ML Kit Prompt API requires supported physical hardware for inference evidence. An emulator can
+validate the shell and unavailable-device state, but it cannot prove AICore generation.

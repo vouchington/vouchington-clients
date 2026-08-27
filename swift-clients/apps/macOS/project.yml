@@ -1,0 +1,114 @@
+name: Voucha
+options:
+  bundleIdPrefix: ai.voucha
+  deploymentTarget:
+    macOS: '14.0'
+  xcodeVersion: '16.0'
+  generateEmptyDirectories: true
+settings:
+  base:
+    SWIFT_VERSION: '5.9'
+    MACOSX_DEPLOYMENT_TARGET: '14.0'
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_APP_SANDBOX: YES
+
+packages:
+  VouchaCore:
+    path: ../../core
+  VouchaUI:
+    path: ../../ui
+
+targets:
+  Voucha:
+    type: application
+    platform: macOS
+    deploymentTarget: '14.0'
+    sources:
+      - path: Sources
+      - path: ../shared-app
+      - path: Resources
+        buildPhase: resources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: ai.voucha.macos
+            CFBundleURLSchemes:
+              - voucha
+        UTImportedTypeDeclarations:
+          - UTTypeConformsTo:
+              - public.xml
+            UTTypeDescription: Outline Processor Markup Language
+            UTTypeIdentifier: ai.voucha.opml
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - opml
+              public.mime-type:
+                - text/x-opml
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: false
+        NSLocalNetworkUsageDescription: Voucha connects to language models on your local network.
+        NSHumanReadableCopyright: Copyright © 2026 Voucha. All rights reserved.
+    entitlements:
+      path: Voucha.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.developer.associated-domains:
+          - applinks:voucha.ai
+          - webcredentials:voucha.ai
+        com.apple.developer.applesignin:
+          - Default
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)ai.voucha.macos
+    configFiles:
+      Debug: ../Voucha.local.xcconfig
+      Release: ../Voucha.local.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos
+        PRODUCT_NAME: Voucha
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: Voucha.entitlements
+    dependencies:
+      - package: VouchaCore
+        product: VouchaCore
+      - package: VouchaCore
+        product: VouchaModels
+      - package: VouchaCore
+        product: VouchaAPI
+      - package: VouchaCore
+        product: VouchaAuth
+      - package: VouchaCore
+        product: VouchaPersistence
+      - package: VouchaUI
+        product: VouchaDesignSystem
+      - package: VouchaUI
+        product: VouchaFeatures
+      - package: VouchaUI
+        product: VouchaLocalization
+    scheme:
+      testTargets:
+        - VouchaLaunchSmokeTests
+      environmentVariables:
+        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+
+  VouchaLaunchSmokeTests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: '14.0'
+    sources:
+      - path: ../shared-tests
+    dependencies:
+      - target: Voucha
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.launch-smoke-tests
+        PRODUCT_NAME: VouchaLaunchSmokeTests
