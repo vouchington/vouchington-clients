@@ -168,11 +168,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.select-final-review.outputs.base_sha }}
-          clean: false
+          clean: true
           persist-credentials: false
-      - uses: ./.github/actions/clean-workspace
-        with:
-          preserve-node-modules: 'false'
 
       - name: Run advisory review
         id: review

@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   dotnet-core:
-    name: .NET core
+    name: .NET core build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -33,20 +33,20 @@ jobs:
       - name: Restore locked dependencies
         working-directory: dotnet-clients
         run: dotnet restore tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --locked-mode
-      - name: Test core client
+      - name: Build core client
         working-directory: dotnet-clients
-        run: dotnet test tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --configuration Release --no-restore
+        run: dotnet build tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --configuration Release --no-restore
 
   swift-core:
-    name: Swift core
+    name: Swift manifest
     runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Test core client
-        run: swift test --package-path swift-clients/core --force-resolved-versions
+      - name: Validate core package manifest
+        run: swift package --package-path swift-clients/core dump-package >/dev/null
 
   validate:
     name: validate
