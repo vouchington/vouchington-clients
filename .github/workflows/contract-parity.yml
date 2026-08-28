@@ -35,6 +35,7 @@ jobs:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           path: candidate-clients
           persist-credentials: false
+          # Candidate files remain data; only trusted base-revision tooling is executed.
           allow-unsafe-pr-checkout: true
       - name: Check out Filaments
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -3,13 +3,13 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const declaredPaths = [
-  'api-fixtures/v1',
+const localizationPaths = [
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
+const declaredPaths = ['api-fixtures/v1', ...localizationPaths]
 function localizationTargets(destinationRoot = repositoryRoot) {
-  return declaredPaths.slice(1).map(source => ({
+  return localizationPaths.map(source => ({
     source,
     destination: resolve(destinationRoot, source),
   }))
@@ -181,7 +181,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const command = process.argv[2]
   const extra = process.argv.slice(3)
   const usage =
-    'Usage: node scripts/contracts.mjs check [--destination-root <absolute-client-checkout>] | sync'
+    'Usage: node scripts/contracts.mjs check [--destination-root <absolute-client-checkout>]\n' +
+    'Usage: node scripts/contracts.mjs sync'
   if (
     !(
       extra.length === 0 ||
