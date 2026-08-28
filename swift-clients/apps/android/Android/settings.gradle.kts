@@ -37,14 +37,18 @@ buildCache {
         // pre-push.sh selects a user-private cache shared across workspaces. Android Studio keeps
         // Gradle's default GRADLE_USER_HOME cache when the environment variable is absent.
         System.getenv("GRADLE_BUILD_CACHE_DIR")?.takeIf { it.isNotBlank() }?.let {
-            val cacheDirectory = File(it)
-            require(cacheDirectory.isAbsolute && cacheDirectory.path != File.separator) {
+            val cachePath = File(it).toPath().normalize()
+            require(cachePath.isAbsolute && cachePath.nameCount > 0) {
                 "GRADLE_BUILD_CACHE_DIR must be an absolute non-root path: $it"
             }
-            require(!java.nio.file.Files.isSymbolicLink(cacheDirectory.toPath())) {
-                "GRADLE_BUILD_CACHE_DIR must not be a symlink: $it"
-            }
-            directory = cacheDirectory
+            generateSequence(cachePath) { path -> path.parent }
+                .takeWhile { path -> path != cachePath.root }
+                .forEach { path ->
+                    require(!java.nio.file.Files.isSymbolicLink(path)) {
+                        "GRADLE_BUILD_CACHE_DIR must not traverse a symlink: $it"
+                    }
+                }
+            directory = cachePath.toFile()
         }
     }
 }
