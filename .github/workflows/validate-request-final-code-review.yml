@@ -44,7 +44,8 @@ jobs:
           set -euo pipefail
           [[ "$TESTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::Invalid CI head SHA'; exit 1; }
           [ -n "${GH_TOKEN:-}" ] || { echo '::error::github.token is required for router reads'; exit 1; }
-          [ -n "${{ secrets.CODE_REVIEW_TRIGGER_TOKEN }}" ] || { echo '::error::CODE_REVIEW_TRIGGER_TOKEN is required'; exit 1; }
+          mutation_token="${{ secrets.CODE_REVIEW_TRIGGER_TOKEN }}"
+          [ -n "$mutation_token" ] || { echo '::error::CODE_REVIEW_TRIGGER_TOKEN is required'; exit 1; }
           # Token presence does not prove the read scopes; the first API calls below assert
           # the configured actions, checks, and pull-requests permissions in order.
           gh_capture_retry() {
@@ -77,7 +78,7 @@ jobs:
             done
           }
           gh_mutate_retry() {
-            GH_TOKEN="${{ secrets.CODE_REVIEW_TRIGGER_TOKEN }}" gh_capture_retry "$@"
+            GH_TOKEN="$mutation_token" gh_capture_retry "$@"
           }
 
           if [ -z "$PR_NUMBER" ]; then
