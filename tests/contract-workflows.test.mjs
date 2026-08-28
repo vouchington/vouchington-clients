@@ -115,7 +115,10 @@ describe("native contract workflow boundary", () => {
     const consumer = await readWorkflow("native-contract-tests.yml");
     const gate = await readWorkflow("contract-parity.yml");
 
-    assert.match(producer, /Native contract producer for PR/u);
+    assert.match(
+      producer,
+      /run-name: >-\n\s+Native contract producer for PR #\$\{\{ github\.event\.pull_request\.number \}\} at \$\{\{ github\.event\.pull_request\.head\.sha \}\} updated \$\{\{ github\.event\.pull_request\.updated_at \}\}/u,
+    );
     assert.match(producer, /pull_request\.updated_at/u);
     assert.match(gate, /EXPECTED_UPDATED_AT/u);
     assert.match(producer, /retention-days: 1/u);

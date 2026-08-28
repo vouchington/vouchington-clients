@@ -1,5 +1,6 @@
 name: Native contract producer
-run-name: Native contract producer for PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }} updated ${{ github.event.pull_request.updated_at }}
+run-name: >-
+  Native contract producer for PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }} updated ${{ github.event.pull_request.updated_at }}
 
 on:
   pull_request_target:
