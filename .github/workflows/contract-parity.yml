@@ -1,0 +1,64 @@
+name: Contract parity
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-parity-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Filaments contract parity
+    runs-on: [self-hosted]
+    timeout-minutes: 10
+    steps:
+      - name: Clean isolated checkout paths
+        run: >-
+          rm -rf --
+          "${{ github.workspace }}/trusted-clients"
+          "${{ github.workspace }}/candidate-clients"
+          "${{ github.workspace }}/filaments"
+      - name: Check out trusted client tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted-clients
+          persist-credentials: false
+      - name: Check out candidate clients as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          path: candidate-clients
+          persist-credentials: false
+          # Candidate files remain data; only trusted base-revision tooling is executed.
+          allow-unsafe-pr-checkout: true
+      - name: Check out Filaments
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: jonathanong/filaments
+          ref: main
+          path: filaments
+          ssh-key: ${{ secrets.FILAMENTS_DEPLOY_KEY }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+      - name: Assert candidate generated localization parity
+        env:
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ github.workspace }}/filaments
+        run: >-
+          node trusted-clients/scripts/contracts.mjs check
+          --destination-root "${{ github.workspace }}/candidate-clients"
+      - name: Clean isolated checkout paths
+        if: always()
+        run: >-
+          rm -rf --
+          "${{ github.workspace }}/trusted-clients"
+          "${{ github.workspace }}/candidate-clients"
+          "${{ github.workspace }}/filaments"

@@ -2,5 +2,9 @@
   "schemaVersion": 1,
   "repository": "jonathanong/filaments",
   "ref": "main",
-  "paths": ["api-fixtures/v1", "client-contracts/v1/native-localization"]
+  "paths": [
+    "api-fixtures/v1",
+    "swift-clients/ui/Sources/VouchaLocalization/Generated",
+    "dotnet-clients/src/Voucha.Client.Core/Localization/Generated"
+  ]
 }

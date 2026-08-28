@@ -1,22 +1,19 @@
 import { cp, lstat, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const declaredPaths = ['api-fixtures/v1', 'client-contracts/v1/native-localization']
-const localizationTargets = [
-  {
-    source: 'client-contracts/v1/native-localization/swift',
-    destination: resolve(repositoryRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated'),
-  },
-  {
-    source: 'client-contracts/v1/native-localization/dotnet',
-    destination: resolve(
-      repositoryRoot,
-      'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
-    ),
-  },
+const localizationPaths = [
+  'swift-clients/ui/Sources/VouchaLocalization/Generated',
+  'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
+const declaredPaths = ['api-fixtures/v1', ...localizationPaths]
+function localizationTargets(destinationRoot = repositoryRoot) {
+  return localizationPaths.map(source => ({
+    source,
+    destination: resolve(destinationRoot, source),
+  }))
+}
 
 function fail(message) {
   throw new Error(`Contract check failed: ${message}`)
@@ -40,6 +37,38 @@ async function directory(path, label) {
   }
   if (info.isSymbolicLink()) fail(`${label} must not be a symbolic link: ${path}`)
   if (!info.isDirectory()) fail(`${label} is not a real directory: ${path}`)
+}
+
+async function descendantDirectory(root, path, label) {
+  await directory(root, 'client checkout root')
+  const child = relative(root, path)
+  if (child === '' || child === '..' || child.startsWith(`..${sep}`) || isAbsolute(child))
+    fail(`${label} must be inside the client checkout root: ${path}`)
+  let current = root
+  for (const component of child.split(sep).filter(Boolean)) {
+    current = join(current, component)
+    await directory(current, label)
+  }
+}
+
+async function descendantParentDirectory(root, path, label) {
+  const parent = dirname(path)
+  if (parent === root) await directory(root, 'client checkout root')
+  else await descendantDirectory(root, parent, label)
+}
+
+function candidateRoot(value) {
+  if (value === undefined) return repositoryRoot
+  if (
+    typeof value !== 'string' ||
+    value.includes('\0') ||
+    value.trim() === '' ||
+    !isAbsolute(value.trim())
+  )
+    fail('destination root must be an absolute client checkout path')
+  const resolved = resolve(value.trim())
+  if (resolved === resolve(sep)) fail('destination root must not be the filesystem root')
+  return resolved
 }
 
 async function filesUnder(root, label) {
@@ -108,7 +137,14 @@ export async function verifyContract(options = {}) {
 
 export async function checkContracts(options = {}) {
   const root = await contractRoot(options)
-  for (const target of options.targets ?? localizationTargets) {
+  const destinationRoot = candidateRoot(options.destinationRoot)
+  const targets = options.targets ?? localizationTargets(destinationRoot)
+  for (const target of targets) {
+    await descendantDirectory(
+      destinationRoot,
+      target.destination,
+      'generated localization target',
+    )
     if (!(await sameTree(join(root, target.source), target.destination))) {
       fail(`generated localization differs at ${target.destination}; run pnpm run contracts:sync`)
     }
@@ -117,7 +153,13 @@ export async function checkContracts(options = {}) {
 
 export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
-  for (const target of options.targets ?? localizationTargets) {
+  if (options.destinationRoot !== undefined) fail('sync destination root is not configurable')
+  for (const target of options.targets ?? localizationTargets()) {
+    await descendantParentDirectory(
+      repositoryRoot,
+      target.destination,
+      'generated localization target parent',
+    )
     const backup = `${target.destination}.contracts-backup`
     const backupInfo = await pathInfo(backup)
     if (backupInfo) {
@@ -150,7 +192,22 @@ export async function syncContracts(options = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const command = process.argv[2]
-  if (command === 'check') await checkContracts()
-  else if (command === 'sync') await syncContracts()
-  else throw new Error('Usage: node scripts/contracts.mjs <check|sync>')
+  const extra = process.argv.slice(3)
+  const usage =
+    'Usage: node scripts/contracts.mjs check [--destination-root <absolute-client-checkout>]\n' +
+    'Usage: node scripts/contracts.mjs sync'
+  if (
+    !(
+      extra.length === 0 ||
+      (command === 'check' &&
+        extra.length === 2 &&
+        extra[0] === '--destination-root' &&
+        extra[1]?.trim())
+    )
+  )
+    throw new Error(usage)
+  const options = extra.length === 2 ? { destinationRoot: extra[1] } : {}
+  if (command === 'check') await checkContracts(options)
+  else if (command === 'sync' && extra.length === 0) await syncContracts()
+  else throw new Error(usage)
 }
