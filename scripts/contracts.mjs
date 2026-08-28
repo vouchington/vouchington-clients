@@ -3,20 +3,29 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const declaredPaths = ['api-fixtures/v1', 'client-contracts/v1/native-localization']
-const localizationTargets = [
-  {
-    source: 'client-contracts/v1/native-localization/swift',
-    destination: resolve(repositoryRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated'),
-  },
-  {
-    source: 'client-contracts/v1/native-localization/dotnet',
-    destination: resolve(
-      repositoryRoot,
-      'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
-    ),
-  },
+const declaredPaths = [
+  'api-fixtures/v1',
+  'swift-clients/ui/Sources/VouchaLocalization/Generated',
+  'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
+function localizationTargets(destinationRoot = repositoryRoot) {
+  return [
+    {
+      source: 'swift-clients/ui/Sources/VouchaLocalization/Generated',
+      destination: resolve(
+        destinationRoot,
+        'swift-clients/ui/Sources/VouchaLocalization/Generated',
+      ),
+    },
+    {
+      source: 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
+      destination: resolve(
+        destinationRoot,
+        'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
+      ),
+    },
+  ]
+}
 
 function fail(message) {
   throw new Error(`Contract check failed: ${message}`)
@@ -108,7 +117,7 @@ export async function verifyContract(options = {}) {
 
 export async function checkContracts(options = {}) {
   const root = await contractRoot(options)
-  for (const target of options.targets ?? localizationTargets) {
+  for (const target of options.targets ?? localizationTargets(options.destinationRoot)) {
     if (!(await sameTree(join(root, target.source), target.destination))) {
       fail(`generated localization differs at ${target.destination}; run pnpm run contracts:sync`)
     }
@@ -117,7 +126,7 @@ export async function checkContracts(options = {}) {
 
 export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
-  for (const target of options.targets ?? localizationTargets) {
+  for (const target of options.targets ?? localizationTargets(options.destinationRoot)) {
     const backup = `${target.destination}.contracts-backup`
     const backupInfo = await pathInfo(backup)
     if (backupInfo) {
@@ -150,7 +159,21 @@ export async function syncContracts(options = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const command = process.argv[2]
-  if (command === 'check') await checkContracts()
-  else if (command === 'sync') await syncContracts()
-  else throw new Error('Usage: node scripts/contracts.mjs <check|sync>')
+  const extra = process.argv.slice(3)
+  if (
+    !(
+      extra.length === 0 ||
+      (extra.length === 2 && extra[0] === '--destination-root' && extra[1])
+    )
+  )
+    throw new Error(
+      'Usage: node scripts/contracts.mjs <check|sync> [--destination-root <client-checkout>]',
+    )
+  const options = extra.length === 2 ? { destinationRoot: extra[1] } : {}
+  if (command === 'check') await checkContracts(options)
+  else if (command === 'sync') await syncContracts(options)
+  else
+    throw new Error(
+      'Usage: node scripts/contracts.mjs <check|sync> [--destination-root <client-checkout>]',
+    )
 }

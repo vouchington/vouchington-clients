@@ -6,7 +6,11 @@ import test from 'node:test'
 
 import { checkContracts, syncContracts, verifyContract } from '../scripts/contracts.mjs'
 
-const paths = ['api-fixtures/v1', 'client-contracts/v1/native-localization']
+const paths = [
+  'api-fixtures/v1',
+  'swift-clients/ui/Sources/VouchaLocalization/Generated',
+  'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
+]
 
 async function writeTree(root, files) {
   for (const [path, contents] of Object.entries(files)) {
@@ -20,13 +24,13 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-filaments-'))
   await writeTree(root, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
-    'client-contracts/v1/native-localization/swift/Resources/en.lproj/Localizable.strings':
+    'swift-clients/ui/Sources/VouchaLocalization/Generated/Resources/en.lproj/Localizable.strings':
       '"example" = "Example";\n',
-    'client-contracts/v1/native-localization/swift/UiMessageKey.swift':
+    'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
       'public struct UiMessageKey {}\n',
-    'client-contracts/v1/native-localization/dotnet/UiMessageKey.g.cs':
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
       'public class UiMessageKey {}\n',
-    'client-contracts/v1/native-localization/dotnet/UiMessages.resx': '<root />\n',
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessages.resx': '<root />\n',
   })
   const configRoot = await mkdtemp(join(tmpdir(), 'voucha-contract-config-'))
   const config = join(configRoot, 'filaments.json')
@@ -42,11 +46,11 @@ async function fixture(t) {
   })
   const targets = [
     {
-      source: 'client-contracts/v1/native-localization/swift',
+      source: 'swift-clients/ui/Sources/VouchaLocalization/Generated',
       destination: join(generatedRoot, 'swift'),
     },
     {
-      source: 'client-contracts/v1/native-localization/dotnet',
+      source: 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
       destination: join(generatedRoot, 'dotnet'),
     },
   ]
@@ -63,9 +67,9 @@ test('requires an explicit Filaments checkout root', async t => {
   t.after(() => rm(ancestor, { recursive: true, force: true }))
   await writeTree(ancestor, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
-    'client-contracts/v1/native-localization/swift/UiMessageKey.swift':
+    'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
       'public enum UiMessageKey {}\n',
-    'client-contracts/v1/native-localization/dotnet/UiMessageKey.g.cs':
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
       'public enum UiMessageKey {}\n',
   })
   const nested = join(ancestor, 'nested', 'client')
@@ -97,7 +101,7 @@ test('rejects symlinks within a declared source tree', async t => {
   const { config, root } = await fixture(t)
   await symlink(
     'swift/UiMessageKey.swift',
-    join(root, 'client-contracts/v1/native-localization/alias.swift'),
+    join(root, 'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift'),
   )
   await assert.rejects(verifyContract({ config, root }), /symlink found/)
 })
@@ -128,13 +132,35 @@ test('check catches changed generated localization content', async t => {
   await assert.rejects(checkContracts(options), /generated localization differs/)
 })
 
+test('checks a candidate client checkout without executing it', async t => {
+  const { config, root } = await fixture(t)
+  const candidate = await mkdtemp(join(tmpdir(), 'voucha-candidate-'))
+  t.after(() => rm(candidate, { recursive: true, force: true }))
+  const swift = join(candidate, 'swift-clients/ui/Sources/VouchaLocalization/Generated')
+  const dotnet = join(
+    candidate,
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
+  )
+  await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
+  await Promise.all([
+    cp(join(root, paths[1]), swift, { recursive: true }),
+    cp(join(root, paths[2]), dotnet, { recursive: true }),
+  ])
+  await checkContracts({ config, root, destinationRoot: candidate })
+  await writeFile(join(swift, 'UiMessageKey.swift'), 'changed\n')
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: candidate }),
+    /generated localization differs/,
+  )
+})
+
 test('does not accept a copied source bundle in place of the checkout layout', async t => {
   const { config, root } = await fixture(t)
   const copied = await mkdtemp(join(tmpdir(), 'voucha-copied-contracts-'))
   t.after(() => rm(copied, { recursive: true, force: true }))
   await cp(
-    join(root, 'client-contracts/v1/native-localization'),
-    join(copied, 'native-localization'),
+    join(root, 'swift-clients/ui/Sources/VouchaLocalization/Generated'),
+    join(copied, 'Generated'),
     { recursive: true },
   )
   await assert.rejects(
