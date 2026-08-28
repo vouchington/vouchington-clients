@@ -1,0 +1,90 @@
+# A URLProtocol test double that Thread.sleep()s before delivering a canned response, combined
+# with a no-op stopLoading(), lets a delayed delivery call back into a client whose owning
+# URLSession/APIClient may already be torn down (use-after-free / TOCTOU) — this crashed CI as an
+# intermittent SIGSEGV in `test-ui` (PR #8349). Not every empty stopLoading() is dangerous: a
+# purely synchronous protocol (no Thread.sleep) has nothing in flight for a cancel to race, so this
+# rule only flags the combination. See CannedFeedURLProtocol.swift for the guarded reference
+# pattern: a stateLock-guarded `stopped` flag checked immediately before every client callback.
+id: swift-no-thread-sleep-with-empty-stop-loading
+language: Swift
+severity: error
+message: >-
+  URLProtocol test doubles that Thread.sleep() before delivering a response must not leave
+  stopLoading() empty — a cancelled/torn-down client can still receive the delayed callback after
+  being freed (use-after-free/TOCTOU; caused an intermittent CI SIGSEGV in PR #8349). Guard
+  delivery with a lock-checked stopped flag, like CannedFeedURLProtocol.swift's
+  deliverIfNotStopped(_:).
+files:
+  - "swift-clients/**/*.swift"
+rule:
+  kind: class_declaration
+  all:
+    - has:
+        stopBy: end
+        kind: function_declaration
+        pattern: override func stopLoading() {}
+    - has:
+        stopBy: end
+        pattern: Thread.sleep($$$ARGS)
+examples:
+  - code: |
+      final class ImageUploadURLProtocol: URLProtocol {
+          override func startLoading() {
+              let responseTuple: (Data, Int, TimeInterval) = (Data(), 200, 0)
+              if responseTuple.2 > 0 {
+                  Thread.sleep(forTimeInterval: responseTuple.2)
+              }
+              client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+              client?.urlProtocol(self, didLoad: responseTuple.0)
+              client?.urlProtocolDidFinishLoading(self)
+          }
+
+          override func stopLoading() {}
+      }
+    isValid: false
+    file: "swift-clients/core/Tests/VouchaCoreTests/ImageUploadURLProtocol.swift"
+  - code: |
+      final class CannedFeedURLProtocol: URLProtocol {
+          private let stateLock = NSLock()
+          private var stopped = false
+
+          private func deliverIfNotStopped(_ callback: () -> Void) {
+              stateLock.lock()
+              defer { stateLock.unlock() }
+              guard !stopped else { return }
+              callback()
+          }
+
+          private func deliver(path: String, data: Data, status: Int, delay: TimeInterval) {
+              if delay > 0 {
+                  Thread.sleep(forTimeInterval: delay)
+              }
+              deliverIfNotStopped { client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
+              deliverIfNotStopped { client?.urlProtocol(self, didLoad: data) }
+              deliverIfNotStopped { client?.urlProtocolDidFinishLoading(self) }
+          }
+
+          override func stopLoading() {
+              stateLock.lock()
+              stopped = true
+              stateLock.unlock()
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Tests/VouchaUITests/CannedFeedURLProtocol.swift"
+  - code: |
+      final class MockURLProtocol: URLProtocol {
+          static var handlers: [String: (Data, Int)] = [:]
+
+          override func startLoading() {
+              let path = request.url?.path ?? ""
+              let (data, status) = Self.handlers[path] ?? (Data("{}".utf8), 200)
+              client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+              client?.urlProtocol(self, didLoad: data)
+              client?.urlProtocolDidFinishLoading(self)
+          }
+
+          override func stopLoading() {}
+      }
+    isValid: true
+    file: "swift-clients/core/Tests/VouchaCoreTests/MockURLProtocol.swift"

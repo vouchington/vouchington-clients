@@ -1,0 +1,167 @@
+id: swift-no-hardcoded-view-copy
+language: Swift
+severity: error
+message: "SwiftUI and app presentation helpers must receive UiMessageKey, UiMessage, or UiVerbatimText instead of hardcoded visible copy."
+files:
+  - "swift-clients/ui/Sources/VouchaDesignSystem/**/*.swift"
+  - "swift-clients/ui/Sources/VouchaFeatures/**/*.swift"
+  - "swift-clients/apps/shared-app/**/*.swift"
+  - "swift-clients/apps/iOS/Sources/**/*.swift"
+  - "swift-clients/apps/macOS/Sources/**/*.swift"
+rule:
+  any:
+    - all:
+        - kind: call_expression
+        - regex: '^(?:Text|Label|Button|TextField|SecureField|Picker|Toggle|Section|GroupBox|ContentUnavailableView)\s*\(\s*(?:"[^"]*[A-Za-z]|[^,\n]+(?:\?|\?\?)\s*"[^"]*[A-Za-z])'
+    - all:
+        - kind: call_expression
+        - regex: '^Text\s*\(\s*verbatim\s*:\s*"[^"]*[A-Za-z]'
+    - all:
+        - kind: call_expression
+        - regex: '^(?:UiVerbatimText)?\.verbatim\s*\(\s*"[^"]*[A-Za-z]'
+    - all:
+        - kind: value_argument
+        - not:
+            has:
+              field: name
+              regex: ".+"
+        - regex: '^"[^"]*[A-Za-z]'
+        - inside:
+            kind: call_expression
+            regex: '\.(?:navigationTitle|accessibilityLabel|accessibilityHint|confirmationDialog|alert)\s*\('
+            stopBy:
+              kind: call_expression
+    - all:
+        - kind: value_argument
+        - regex: '^(?:title|message|actionTitle|label|saveTitle|hideTitle)\s*:\s*(?:"[^"]*[A-Za-z]|[^,\n]+\?\s*"[^"]*[A-Za-z])'
+        - inside:
+            kind: call_expression
+            regex: '^(?:EmptyStateView|LoadingStateView|ErrorStateView|RelationActionButtons|relationButton)\s*\('
+            stopBy:
+              kind: call_expression
+examples:
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Text("Hardcoded title")
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Text(verbatim: "Hardcoded title")
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      let title = UiVerbatimText.verbatim("App-owned title")
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeChatViewModel.swift"
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Label("Upload photo", systemImage: "photo")
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      struct Example: View {
+          let hasPhoto: Bool
+          var body: some View {
+              Label(
+                  hasPhoto ? "Replace photo" : "Upload photo",
+                  systemImage: "photo"
+              )
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Button("Save") {}
+                  .accessibilityHint("Saves the changes")
+          }
+      }
+    isValid: false
+    file: "swift-clients/apps/shared-app/RootView.swift"
+  - code: |
+      RelationActionButtons(
+          isSaved: false,
+          isHidden: false,
+          saveTitle: "Save",
+          hideTitle: "Hide"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaDesignSystem/RelationActionButtons.swift"
+  - code: |
+      EmptyStateView(
+          icon: "tray",
+          title: "Nothing here",
+          message: "Try another search",
+          actionTitle: "Retry"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Search/SearchView.swift"
+  - code: |
+      ErrorStateView(
+          title: condition ? "Could not load" : "Unavailable",
+          message: "Try again later"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Search/SearchView.swift"
+  - code: |
+      struct Example: View {
+          let userName: String
+          var body: some View {
+              Text(verbatim: userName)
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      let title = UiVerbatimText.externalProvider("OpenAI")
+      let status = UiVerbatimText.protocolValue("pending_review")
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeChatTitleProvider.swift"
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Label(
+                  UiMessages.string(.nativeSwiftCommonSave, locale: locale),
+                  systemImage: "bookmark"
+              )
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      struct Example: View {
+          var body: some View {
+              Picker(selection: $selection) {
+                  Text(UiMessages.string(.nativeSwiftCommonSave, locale: locale))
+                      .tag("protocol_identifier")
+              } label: {
+                  Text(UiMessages.string(.nativeSwiftCommonChoose, locale: locale))
+              }
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      EmptyStateView(
+          icon: "tray",
+          title: .message(.nativeSwiftCommonEmpty),
+          message: .verbatim(serverMessage),
+          actionTitle: .message(.nativeSwiftCommonRetry)
+      )
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Search/SearchView.swift"
+  - code: |
+      Text("fixture path is outside the native app")
+    isValid: true
+    file: "swift-clients/ui/Tests/VouchaUITests/ExampleTests.swift"

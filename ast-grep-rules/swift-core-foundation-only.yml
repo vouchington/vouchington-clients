@@ -1,0 +1,35 @@
+id: swift-core-foundation-only
+language: Swift
+severity: error
+message: "`core/` is Foundation-only — do not import platform frameworks (SwiftUI, AppKit, UIKit, SwiftData, Network). Move platform code to `ui/` or a platform-specific store."
+files:
+  - "swift-clients/core/**/*.swift"
+rule:
+  any:
+    - pattern: import SwiftUI
+    - pattern: import AppKit
+    - pattern: import UIKit
+    - pattern: import SwiftData
+    - pattern: import Network
+examples:
+  - code: "import SwiftUI"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaCore/Logging.swift"
+  - code: "import AppKit"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaModels/User.swift"
+  - code: "import UIKit"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"
+  - code: "import SwiftData"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaPersistence/CacheStore.swift"
+  - code: "import Network"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaCore/Logging.swift"
+  - code: "import Foundation"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaCore/Logging.swift"
+  - code: "import SwiftUI"
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaDesignSystem/DesignTokens.swift"

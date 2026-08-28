@@ -1,0 +1,34 @@
+id: swift-authenticationservices-in-auth-only
+language: Swift
+severity: error
+message: "`AuthenticationServices` in `core/` belongs in `VouchaAuth` only; keep other core modules Foundation-only and pass platform ceremony through auth boundaries."
+files:
+  - "swift-clients/core/**/*.swift"
+ignores:
+  - "swift-clients/core/Sources/VouchaAuth/**/*.swift"
+rule:
+  all:
+    - kind: import_declaration
+    - regex: '\bAuthenticationServices\b'
+examples:
+  - code: "import AuthenticationServices"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaModels/User.swift"
+  - code: "import AuthenticationServices"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"
+  - code: "import class AuthenticationServices.ASAuthorizationController"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaCore/Logging.swift"
+  - code: "import Foundation"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaModels/User.swift"
+  - code: "import AuthenticationServices"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAuth/SignInService.swift"
+  - code: "import class AuthenticationServices.ASAuthorizationController"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAuth/PasskeyAssertionController.swift"
+  - code: "import AuthenticationServices"
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Auth/SignInView.swift"

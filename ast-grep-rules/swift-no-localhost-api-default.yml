@@ -1,0 +1,39 @@
+id: swift-no-localhost-api-default
+language: Swift
+severity: error
+message: "Native Swift API defaults must use production origins; use VOUCHA_API_BASE_URL for local development."
+files:
+  - "swift-clients/core/Sources/VouchaCore/AppConfig.swift"
+rule:
+  all:
+    - kind: line_string_literal
+    - regex: '"http://localhost:2999"'
+examples:
+  - code: |
+      import Foundation
+
+      public struct AppConfig {
+          public static func from(environment: [String: String]) -> URL {
+              let raw = environment["VOUCHA_API_BASE_URL"] ?? "http://localhost:2999"
+              return URL(string: raw)!
+          }
+      }
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaCore/AppConfig.swift"
+  - code: |
+      import Foundation
+
+      public struct AppConfig {
+          public static func from(environment: [String: String]) -> URL {
+              let raw = environment["VOUCHA_API_BASE_URL"] ?? "https://api.voucha.ai"
+              return URL(string: raw)!
+          }
+      }
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaCore/AppConfig.swift"
+  - code: |
+      import Foundation
+
+      let testBaseURL = URL(string: "http://localhost:2999")!
+    isValid: true
+    file: "swift-clients/core/Tests/VouchaCoreTests/CoreConfigurationTests.swift"

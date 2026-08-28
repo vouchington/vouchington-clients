@@ -1,0 +1,25 @@
+# NOTE: This is a prevention guard on an already-clean surface — `URLSession.shared`
+# has zero usages anywhere in swift-clients/ today, including inside APIClient itself.
+# Zero live hits from `ast-grep scan` is therefore expected and correct; the rule's ability
+# to fire is proven by the `isValid: false` example below, not by live scan hits.
+id: swift-no-urlsession-shared
+language: Swift
+severity: error
+message: "Use the APIClient actor's configured URLSession — `URLSession.shared` bypasses cookie/keychain storage and auth. Route networking through VouchaAPI."
+files:
+  - "swift-clients/**/*.swift"
+rule:
+  any:
+    - pattern: URLSession.shared
+    - pattern: Foundation.URLSession.shared
+    - pattern: FoundationNetworking.URLSession.shared
+examples:
+  - code: "let (data, _) = try await URLSession.shared.data(for: request)"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"
+  - code: "let (data, _) = try await Foundation.URLSession.shared.data(for: request)"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"
+  - code: "let session = URLSession(configuration: sessionConfig)"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"

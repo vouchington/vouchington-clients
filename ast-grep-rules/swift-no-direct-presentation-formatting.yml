@@ -1,0 +1,79 @@
+id: swift-no-direct-presentation-formatting
+language: Swift
+severity: error
+message: "Visible native values must use UiMessages locale-aware number/date/currency formatting instead of direct formatted() or String(format:)."
+files:
+  - "swift-clients/ui/Sources/VouchaDesignSystem/**/*.swift"
+  - "swift-clients/ui/Sources/VouchaFeatures/**/*.swift"
+  - "swift-clients/apps/shared-app/**/*.swift"
+  - "swift-clients/apps/iOS/Sources/**/*.swift"
+  - "swift-clients/apps/macOS/Sources/**/*.swift"
+rule:
+  any:
+    - all:
+        - kind: call_expression
+        - regex: '\.formatted\s*\('
+    - all:
+        - kind: call_expression
+        - regex: '^String\s*\(\s*format\s*:'
+        - not:
+            inside:
+              kind: property_declaration
+              has:
+                field: name
+                regex: "^sha256HexDigest$"
+              stopBy: end
+examples:
+  - code: |
+      Text(value.formatted())
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      Label(date.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailView.swift"
+  - code: |
+      let detail = value.formatted()
+      let row = NativeRouteDestinationRow(
+          icon: "chart.bar",
+          title: .verbatim("Total"),
+          detail: .verbatim(detail)
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      func timeLabel(_ seconds: Double) -> String {
+          String(format: "%d:%02d", minutes, remainingSeconds)
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/PodcastPlayback/PodcastMiniPlayerView.swift"
+  - code: |
+      let detail = String(format: "%.1f%% success", rate)
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      Text(UiMessages.number(value, locale: locale))
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      let detail = UiMessages.percent(rate, locale: locale)
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      let protocolTimestamp = instant.ISO8601Format()
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurface.swift"
+  - code: |
+      private extension String {
+          var sha256HexDigest: String {
+              SHA256.hash(data: Data(utf8)).map {
+                  String(format: "%02x", $0)
+              }.joined()
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Auth/SignInView+Apple.swift"
+  - code: |
+      Text(value.formatted())
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaLocalization/UiMessageFormatting.swift"

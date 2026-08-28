@@ -1,0 +1,243 @@
+id: swift-no-hardcoded-presentation-data
+language: Swift
+severity: error
+message: "App-owned presentation fields must carry UiMessageKey, UiMessage, or UiVerbatimText; raw String is reserved for typed protocol/user/server data."
+files:
+  - "swift-clients/ui/Sources/VouchaDesignSystem/**/*.swift"
+  - "swift-clients/ui/Sources/VouchaFeatures/**/*.swift"
+  - "swift-clients/apps/shared-app/**/*.swift"
+  - "swift-clients/apps/iOS/Sources/**/*.swift"
+  - "swift-clients/apps/macOS/Sources/**/*.swift"
+rule:
+  any:
+    - all:
+        - kind: value_argument
+        - regex: '^(?:title|subtitle|message|detail|label|status|error|validation|family|reason|actionTitle|placeholder)\s*:\s*(?:"[^"]*[A-Za-z]|[^,\n]+\?\s*"[^"]*[A-Za-z])'
+        - inside:
+            kind: call_expression
+            regex: '^(?:\.init|\.(?:included|excluded)|NativeRouteCatalogEntry\.(?:included|excluded)|CommentThreadPostSection|NativeRouteDestinationRow|NativeRouteFamilyGroup|NativeProfileReportReason|NativeTag[A-Za-z0-9_]*|[A-Za-z0-9_]*(?:Row|Card|Action|Report|Catalog|Metadata|Presentation))\s*\('
+            stopBy: end
+    - all:
+        - kind: call_expression
+        - regex: '^(?:GrowthMetricRow|GrowthMetricSection|GrowthMiniBars)\s*\(\s*"[^"]*[A-Za-z]'
+    - all:
+        - kind: assignment
+        - has:
+            field: target
+            regex: "^(?:navigationTitle|title|subtitle|label|message|detail|placeholder|[A-Za-z0-9_]*Error|(?:status|error|validation|[A-Za-z0-9_]*(?:Status|Error|Validation))Message)$"
+        - regex: '=\s*(?:"[^"]*[A-Za-z]|[^,\n]+\?\s*"[^"]*[A-Za-z])'
+    - all:
+        - kind: assignment
+        - has:
+            field: target
+            regex: "^(?:[A-Za-z0-9_]*Error|(?:error|[A-Za-z0-9_]*Error)Message)$"
+        - regex: '=\s*[A-Za-z0-9_(). ]+\.localizedDescription\s*$'
+    - all:
+        - kind: call_expression
+        - regex: '\.rawValue(?:\.replacingOccurrences\s*\([^)]*\))?(?:\.capitalized)?$'
+        - any:
+            - regex: '\.rawValue\.capitalized$'
+            - regex: '\.rawValue\.replacingOccurrences\s*\('
+            - regex: '\.rawValue\.replacingOccurrences\s*\([^)]*\)\.capitalized$'
+    - all:
+        - kind: call_expression
+        - regex: '^(?:Text|Label|Button|TextField|SecureField|Picker|Toggle|Section|GroupBox|ContentUnavailableView|rawText|UiVerbatimText\.verbatim|\.verbatim)\s*\([^)]*\.rawValue'
+        - not:
+            regex: '\.protocolValue\s*\('
+    - all:
+        - kind: value_argument
+        - regex: '^(?:title|subtitle|message|detail|label|status|placeholder)\s*:\s*[^,\n]*\.rawValue'
+    - all:
+        - kind: call_expression
+        - regex: '^(?:Text|Label|Button|TextField|SecureField|Picker|Toggle|Section|GroupBox|ContentUnavailableView)\s*\('
+        - has:
+            kind: navigation_expression
+            regex: '\.capitalized$'
+            stopBy: end
+    - all:
+        - kind: property_declaration
+        - has:
+            field: name
+            regex: "^(?:navigationTitle|title|subtitle|label|message|detail|placeholder|(?:status|error|validation|[A-Za-z0-9_]*(?:Status|Error|Validation))Message|[A-Za-z0-9_]*(?:Title|Subtitle|Label|Detail))$"
+        - not:
+            regex: ':\s*(?:UiMessageKey|UiMessage|UiVerbatimText)\s*\{'
+        - any:
+            - regex: '(?:=|\{)\s*"[^"]*[A-Za-z]'
+            - regex: '(?:=|\{)[^{}\n]*(?:\?|\?\?)\s*"[^"]*[A-Za-z]'
+            - has:
+                kind: switch_entry
+                regex: ':\s*"[^"]*[A-Za-z]'
+                stopBy: end
+    - all:
+        - kind: function_declaration
+        - has:
+            field: name
+            regex: "^(?:navigationTitle|title|subtitle|label|message|detail|placeholder|(?:status|error|validation|[A-Za-z0-9_]*(?:Status|Error|Validation))Message|[A-Za-z0-9_]*(?:Title|Subtitle|Label|Detail))$"
+        - any:
+            - has:
+                kind: control_transfer_statement
+                regex: '^return\s*"[^"]*[A-Za-z]'
+                stopBy: end
+            - has:
+                kind: switch_entry
+                regex: ':\s*"[^"]*[A-Za-z]'
+                stopBy: end
+            - regex: '\{\s*"[^"]*[A-Za-z]'
+examples:
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "person.3",
+          title: "Community members",
+          detail: "Manage the roster"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailViewModel.SectionRows.swift"
+  - code: |
+      let entry = NativeRouteCatalogEntry.included(
+          family: "Growth dashboard",
+          destinationIdentifier: .growth,
+          representativePath: "/growth",
+          patterns: []
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeRoutes/NativeRouteCatalogStaff.swift"
+  - code: |
+      let entry: NativeRouteCatalogEntry = .included(
+          family: "Growth dashboard",
+          destinationIdentifier: .growth,
+          representativePath: "/growth",
+          patterns: []
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeRoutes/NativeRouteCatalogStaff.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "magnifyingglass",
+          title: query.isEmpty ? "Search" : "Search results",
+          detail: "Matching native routes"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
+  - code: |
+      let metric = GrowthMetricRow("Users", "42", "Active accounts")
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
+  - code: |
+      statusMessage = "Source followed"
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Sources/SourcesListViewModel.swift"
+  - code: |
+      appleSignInError = error.localizedDescription
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Auth/SignInView+Apple.swift"
+  - code: |
+      Text(role.rawValue.capitalized)
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailContentControls.swift"
+  - code: |
+      Text(type.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativePostComposeSurface.swift"
+  - code: |
+      Text(list.visibility.rawValue)
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Lists/ListsRows.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "doc.text",
+          title: .verbatim(post.title),
+          detail: .verbatim(post.postType.rawValue)
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailViewModel.Rows.swift"
+  - code: |
+      let detail = rawText(appeal.status.rawValue)
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelLoadingModeration.swift"
+  - code: |
+      let row = CommentThreadPostSection(
+          title: post.title ?? "Comment thread",
+          post: post
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeCommentThreadSurface.swift"
+  - code: |
+      var navigationTitle: String {
+          switch contentType {
+          case .news: "News"
+          case .video: "Videos"
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/RSSFeedList/RSSFeedListView.swift"
+  - code: |
+      func validationMessage() -> String {
+          return "CSV is required."
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/CRMContactsViewModel.swift"
+  - code: |
+      let reason = NativeProfileReportReason(title: "Spam", value: "spam")
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeDetailSurface+Reporting.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "person.3",
+          title: .message(.nativeSwiftCommunitiesMembers),
+          detail: .verbatim(serverStatus)
+      )
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailViewModel.SectionRows.swift"
+  - code: |
+      statusMessage = .message(.nativeSwiftSourcesSourceFollowed)
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Sources/SourcesListViewModel.swift"
+  - code: |
+      appleSignInError = .verbatim(error.localizedDescription)
+      let title = UiVerbatimText.verbatim(serverTitle)
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Auth/SignInView+Apple.swift"
+  - code: |
+      Text(UiMessages.string(role.titleKey, locale: locale))
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailContentControls.swift"
+  - code: |
+      Text(verbatim: UiMessages.string(
+          .protocolValue(destination.rawValue),
+          locale: locale
+      ))
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteDestinationHeader.swift"
+  - code: |
+      let reason = NativeProfileReportReason(
+          title: UiMessage(.nativeSwiftCommentThreadSpam),
+          value: "spam"
+      )
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeDetailSurface+Reporting.swift"
+  - code: |
+      var signalLabel: UiVerbatimText {
+          .message(
+              signal == "embeddings_similarity"
+                  ? .nativeSwiftModerationReportsSimilarContentWave
+                  : .nativeSwiftModerationReportsDuplicateContentWave
+          )
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/ModerationReportDuplicateClusterCard.swift"
+  - code: |
+      let request = Endpoint.bookmark(predicate: "mute", entityType: "rss_feed")
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Sources/SourcesListViewModel.swift"
+  - code: |
+      let route = NativeRoutePattern("/communities/:slug")
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeRoutes/NativeRouteCatalog.swift"
+  - code: |
+      let rawTitle = UiVerbatimText.verbatim("External provider title")
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeChatViewModel.swift"
+  - code: |
+      let title = "test-only fixture"
+    isValid: true
+    file: "swift-clients/ui/Tests/VouchaUITests/ExampleTests.swift"
