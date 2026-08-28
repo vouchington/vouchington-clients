@@ -1,17 +1,17 @@
 # First matching rule owns a changed path.
 rules:
   # Rendered MAUI pages are compiled and tested separately, but Coverlet cannot instrument the app shell.
-  - paths: 'dotnet-clients/src/Voucha.Client.App/**'
+  - paths: "dotnet-clients/src/Voucha.Client.App/**"
     patch_coverage_min: 0
-  - paths: 'dotnet-clients/src/Voucha.Client.Core/**'
+  - paths: "dotnet-clients/src/Voucha.Client.Core/**"
     patch_coverage_min: 80
-  - paths: 'swift-clients/apps/**'
+  - paths: "swift-clients/apps/**"
     patch_coverage_min: 0
-  - paths: 'swift-clients/**/Package.swift'
+  - paths: "swift-clients/**/Package.swift"
     patch_coverage_min: 0
-  - paths: 'swift-clients/**/Tests/VouchaIntegrationTests/**'
+  - paths: "swift-clients/**/Tests/VouchaIntegrationTests/**"
     patch_coverage_min: 0
-  - paths: 'swift-clients/core/Sources/VouchaAPI/PublicKeyPinningURLSessionDelegate.swift'
+  - paths: "swift-clients/core/Sources/VouchaAPI/PublicKeyPinningURLSessionDelegate.swift"
     patch_coverage_min: 0
-  - paths: 'swift-clients/**'
+  - paths: "swift-clients/**"
     patch_coverage_min: 90
