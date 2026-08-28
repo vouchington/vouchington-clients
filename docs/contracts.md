@@ -19,4 +19,6 @@ repository-local `swift-clients/test-support` package.
 fails the command. In CI this is the byte-for-byte assertion that the clients remain synchronized
 with Filaments. The privileged parity workflow executes only assertion code from the trusted base
 revision; the pull request checkout is treated as data and is never executed on the self-hosted
-runner. It never fetches or writes. Only `contracts:sync` replaces generated outputs.
+runner. The candidate destination must be an absolute checkout path, and every path component is
+verified as a real directory rather than a symlink. It never fetches or writes. Only
+`contracts:sync` replaces generated outputs in this repository.

@@ -154,6 +154,43 @@ test('checks a candidate client checkout without executing it', async t => {
   )
 })
 
+test('rejects symlinks within and above a candidate localization tree', async t => {
+  const { config, root } = await fixture(t)
+  const candidate = await mkdtemp(join(tmpdir(), 'voucha-candidate-symlink-'))
+  t.after(() => rm(candidate, { recursive: true, force: true }))
+  const swift = join(candidate, 'swift-clients/ui/Sources/VouchaLocalization/Generated')
+  const dotnet = join(
+    candidate,
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
+  )
+  await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
+  await Promise.all([
+    cp(join(root, paths[1]), swift, { recursive: true }),
+    cp(join(root, paths[2]), dotnet, { recursive: true }),
+  ])
+  const alias = join(swift, 'alias.swift')
+  await symlink('UiMessageKey.swift', alias)
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: candidate }),
+    /symlink found/,
+  )
+  await rm(alias)
+  await rm(join(candidate, 'swift-clients/ui'), { recursive: true })
+  await symlink(join(root, 'swift-clients/ui'), join(candidate, 'swift-clients/ui'))
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: candidate }),
+    /must not be a symbolic link/,
+  )
+})
+
+test('requires destination-root to be absolute and check-only', async t => {
+  const { config, root } = await fixture(t)
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: '../candidate' }),
+    /destination root must be an absolute client checkout path/,
+  )
+})
+
 test('does not accept a copied source bundle in place of the checkout layout', async t => {
   const { config, root } = await fixture(t)
   const copied = await mkdtemp(join(tmpdir(), 'voucha-copied-contracts-'))

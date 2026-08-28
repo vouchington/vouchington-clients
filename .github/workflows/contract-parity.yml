@@ -17,6 +17,12 @@ jobs:
     runs-on: [self-hosted]
     timeout-minutes: 10
     steps:
+      - name: Clean isolated checkout paths
+        run: >-
+          rm -rf --
+          "${{ github.workspace }}/trusted-clients"
+          "${{ github.workspace }}/candidate-clients"
+          "${{ github.workspace }}/filaments"
       - name: Check out trusted client tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,4 +53,4 @@ jobs:
           VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ github.workspace }}/filaments
         run: >-
           node trusted-clients/scripts/contracts.mjs check
-          --destination-root candidate-clients
+          --destination-root "${{ github.workspace }}/candidate-clients"
