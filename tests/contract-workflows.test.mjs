@@ -15,7 +15,7 @@ const preparedCandidateInputs = [
 
 const cleanupWorkspace = (workflow) => {
   assert.match(workflow, /Clean persistent runner workspace/u);
-  assert.match(workflow, /PRESERVE_NODE_MODULES: 'false'/u);
+  assert.match(workflow, /PRESERVE_NODE_MODULES: ["']false["']/u);
 };
 
 describe("native contract workflow boundary", () => {
@@ -68,7 +68,7 @@ describe("native contract workflow boundary", () => {
     ])
       assert.match(action, expectation);
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 2);
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 10);
   });
 
   it("runs native .NET tests on the supported runner matrix with coverage and cleanup", async () => {
@@ -94,6 +94,119 @@ describe("native contract workflow boundary", () => {
       assert.match(workflow, command);
     cleanupWorkspace(action);
     cleanupWorkspace(workflow);
+  });
+
+  it("installs each candidate .NET SDK at its exact global.json version", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
+
+    assert.equal(workflow.split("name: Read exact .NET SDK version").length - 1, 2);
+    assert.equal(workflow.split("id: dotnet-sdk").length - 1, 2);
+    assert.equal(workflow.split("name: Reset exact .NET SDK root").length - 1, 2);
+    assert.equal(
+      workflow.split('[[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]').length - 1,
+      2,
+    );
+    assert.equal(workflow.split('rm -rf -- "$DOTNET_INSTALL_DIR"').length - 1, 2);
+    assert.equal(workflow.split("working-directory: candidate-clients").length - 1 >= 2, true);
+    assert.equal(
+      workflow.split("jq -er '.sdk.version | select(type == \"string\" and test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\"))' global.json").length - 1,
+      2,
+    );
+    assert.equal(
+      workflow.split("dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}").length - 1,
+      2,
+    );
+    assert.doesNotMatch(workflow, /global-json-file: candidate-clients\/global\.json/u);
+    assert.doesNotMatch(workflow, /dotnet-version:\s*["']?\d/u);
+  });
+
+  it("runs the complete standalone Swift consumer matrix without trusted coverage transport", async () => {
+    const [action, workflow, validation] = await Promise.all([
+      readAction("prepare-native-contract"),
+      readWorkflow("native-contract-tests.yml"),
+      readWorkflow("validate.yml"),
+    ]);
+
+    for (const job of [
+      "lint-swift:",
+      "periphery-swift-core:",
+      "periphery-swift-ui:",
+      "test-swift-core:",
+      "test-swift-ui:",
+      "swift-patch-coverage:",
+      "build-android-core:",
+      "build-macos-app:",
+    ])
+      assert.match(workflow, new RegExp(`^  ${job}`, "mu"));
+    assert.match(workflow, /swiftformat --lint swift-clients\//u);
+    assert.match(workflow, /swiftlint --strict --cache-path/u);
+    assert.match(workflow, /periphery scan --strict/u);
+    assert.match(workflow, /--enable-code-coverage/u);
+    assert.match(
+      workflow,
+      /write-lcov\.sh swift-clients\/core VouchaCorePackageTests coverage\/core\/lcov\.info/u,
+    );
+    assert.match(
+      workflow,
+      /write-lcov\.sh swift-clients\/ui VouchaUIPackageTests coverage\/ui\/lcov\.info/u,
+    );
+    assert.match(workflow, /pnpm run coverage:swift/u);
+    assert.match(
+      workflow,
+      /android-actions\/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699/u,
+    );
+    assert.match(
+      workflow,
+      /swiftly_sha256="fade009739a84f18ee30e524793f927019fc9c2e16b2ad958da50d3f9ff7a7f8"/u,
+    );
+    assert.match(workflow, /export SWIFTLY_HOME_DIR="\$skip_swift_home\/\.swiftly"/u);
+    assert.match(workflow, /materialize-skip-sdk\.sh/u);
+    assert.match(workflow, /VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: ["']1["']/u);
+    assert.match(workflow, /Record swift test start marker/u);
+    assert.match(workflow, /Collect xctest crash reports[\s\S]*if: \$\{\{ failure\(\) \}\}/u);
+    assert.match(workflow, /Upload core LCOV[\s\S]*swift-core-lcov/u);
+    assert.match(workflow, /Upload UI LCOV[\s\S]*swift-ui-lcov/u);
+    assert.match(workflow, /Upload xctest crash reports[\s\S]*swift-ui-crash-reports/u);
+    assert.match(
+      workflow,
+      /swift:6\.3\.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259/u,
+    );
+    assert.match(workflow, /xcodegen-\$XCODEGEN_VERSION\.zip/u);
+    assert.match(
+      workflow,
+      /test "\$\("\$xcodegen_bin" --version\)" = "Version: \$\{XCODEGEN_VERSION\}"/u,
+    );
+    assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u);
+    assert.match(workflow, /#6705[\s\S]*iOS[\s\S]*Simulator destination/u);
+    assert.doesNotMatch(workflow, /coverage-transport|s3_transport|secrets\./u);
+    assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u);
+    assert.match(validation, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u);
+    assert.equal(
+      workflow.split("candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}").length - 1,
+      10,
+    );
+  });
+
+  it("uses the exact native runner labels for Swift jobs", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
+    for (const job of [
+      "lint-swift",
+      "periphery-swift-core",
+      "periphery-swift-ui",
+      "test-swift-core",
+      "test-swift-ui",
+      "swift-patch-coverage",
+      "build-macos-app",
+    ])
+      assert.match(
+        workflow,
+        new RegExp(`  ${job}:[\\s\\S]*?    runs-on: \\[self-hosted, macOS, Tests\\]`, "u"),
+      );
+    assert.match(
+      workflow,
+      /  build-android-core:[\s\S]*?    runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
+    );
+    assert.equal(workflow.split("clean: false").length - 1, 10);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {
