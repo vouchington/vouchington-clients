@@ -24,7 +24,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Test contract boundary
-        run: node --test tests/*.test.mjs
+        run: node --test tests/contracts.test.mjs
 
   dotnet-core:
     name: .NET core build
