@@ -1,0 +1,123 @@
+import { cp, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import test from "node:test";
+
+import { createContractArtifact, verifyContractArtifact } from "../scripts/contract-artifact.mjs";
+
+const paths = [
+  "api-fixtures/v1",
+  "swift-clients/ui/Sources/VouchaLocalization/Generated",
+  "dotnet-clients/src/Voucha.Client.Core/Localization/Generated",
+];
+
+async function writeTree(root, files) {
+  for (const [path, contents] of Object.entries(files)) {
+    const file = join(root, path);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, contents);
+  }
+}
+
+async function fixture(t) {
+  const filamentsRoot = await mkdtemp(join(tmpdir(), "voucha-artifact-filaments-"));
+  const artifactRoot = join(await mkdtemp(join(tmpdir(), "voucha-artifact-")), "artifact");
+  t.after(() => rm(filamentsRoot, { recursive: true, force: true }));
+  t.after(() => rm(dirname(artifactRoot), { recursive: true, force: true }));
+  await writeTree(filamentsRoot, {
+    "api-fixtures/v1/manifest.json": '{"fixtures":[]}\n',
+    "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift":
+      "enum UiMessageKey {}\n",
+    "dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs":
+      "class UiMessageKey {}\n",
+  });
+  const identity = {
+    filamentsRoot,
+    outputRoot: artifactRoot,
+    filamentsSha: "a".repeat(40),
+    clientsRepository: "vouchington/vouchington-clients",
+    prNumber: 17,
+    baseSha: "b".repeat(40),
+    headSha: "c".repeat(40),
+    mergeSha: "d".repeat(40),
+    producerRunId: "12345",
+    producerRunAttempt: "2",
+  };
+  return identity;
+}
+
+function expected(identity) {
+  return {
+    artifactRoot: identity.outputRoot,
+    expectedClientsRepository: identity.clientsRepository,
+    expectedFilamentsSha: identity.filamentsSha,
+    expectedPrNumber: identity.prNumber,
+    expectedBaseSha: identity.baseSha,
+    expectedHeadSha: identity.headSha,
+    expectedMergeSha: identity.mergeSha,
+    expectedProducerRunId: identity.producerRunId,
+    expectedProducerRunAttempt: identity.producerRunAttempt,
+  };
+}
+
+test("creates a narrow, deterministic manifest and verifies it", async (t) => {
+  const identity = await fixture(t);
+  const manifest = await createContractArtifact(identity);
+  assert.deepEqual(manifest.allowlistedPaths, [...paths].sort());
+  assert.deepEqual(
+    manifest.files.map((file) => file.path),
+    [...manifest.files.map((file) => file.path)].sort(),
+  );
+  assert.equal(manifest.files.length, 3);
+  assert.equal((await verifyContractArtifact(expected(identity))).files.length, 3);
+  assert.deepEqual(
+    JSON.parse(await readFile(join(identity.outputRoot, "manifest.json"), "utf8")),
+    manifest,
+  );
+});
+
+test("rejects tampered content, size, unexpected paths, and symlinks", async (t) => {
+  const identity = await fixture(t);
+  await createContractArtifact(identity);
+  const target = join(identity.outputRoot, paths[0], "manifest.json");
+  await writeFile(target, "tampered\n");
+  await assert.rejects(verifyContractArtifact(expected(identity)), /hash mismatch|size mismatch/);
+  await createContractArtifact({
+    ...identity,
+    outputRoot: join(dirname(identity.outputRoot), "second"),
+  });
+  const second = { ...identity, outputRoot: join(dirname(identity.outputRoot), "second") };
+  await writeFile(join(second.outputRoot, "unexpected.txt"), "nope\n");
+  await assert.rejects(verifyContractArtifact(expected(second)), /unexpected artifact path/);
+  await rm(join(second.outputRoot, "unexpected.txt"));
+  await symlink("manifest.json", join(second.outputRoot, "link.json"));
+  await assert.rejects(verifyContractArtifact(expected(second)), /symbolic link/);
+});
+
+test("rejects metadata identity changes and malformed manifests", async (t) => {
+  const identity = await fixture(t);
+  await createContractArtifact(identity);
+  await assert.rejects(
+    verifyContractArtifact({ ...expected(identity), expectedHeadSha: "e".repeat(40) }),
+    /head SHA mismatch/,
+  );
+  const manifestPath = join(identity.outputRoot, "manifest.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.files[0].path = "../outside";
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(verifyContractArtifact(expected(identity)), /invalid artifact path/);
+});
+
+test("rejects symlinked Filaments sources before copying", async (t) => {
+  const identity = await fixture(t);
+  await symlink(
+    "UiMessageKey.swift",
+    join(
+      identity.filamentsRoot,
+      "swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift",
+    ),
+  );
+  await assert.rejects(createContractArtifact(identity), /symbolic link/);
+  await assert.rejects(lstat(identity.outputRoot), { code: "ENOENT" });
+});
