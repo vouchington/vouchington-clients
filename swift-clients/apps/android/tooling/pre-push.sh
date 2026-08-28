@@ -45,12 +45,29 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
 
   if [[ -z "${GRADLE_BUILD_CACHE_DIR:-}" ]]; then
     if [[ "$(uname -s)" == "Darwin" ]]; then
-      GRADLE_BUILD_CACHE_DIR="$(getconf DARWIN_USER_TEMP_DIR)gradle-build-cache"
+      if ! gradle_cache_parent="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null)"; then
+        echo "getconf DARWIN_USER_TEMP_DIR failed" >&2
+        exit 1
+      fi
+      GRADLE_BUILD_CACHE_DIR="${gradle_cache_parent%/}/gradle-build-cache"
     else
-      GRADLE_BUILD_CACHE_DIR="${TMPDIR:-/tmp}/voucha-gradle-build-cache"
+      GRADLE_BUILD_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/voucha/gradle-build-cache"
     fi
   fi
-  mkdir -p -- "$GRADLE_BUILD_CACHE_DIR"
+  if [[ "$GRADLE_BUILD_CACHE_DIR" != /* || "$GRADLE_BUILD_CACHE_DIR" == "/" ]]; then
+    echo "GRADLE_BUILD_CACHE_DIR must be an absolute non-root path: $GRADLE_BUILD_CACHE_DIR" >&2
+    exit 1
+  fi
+  if [[ -L "$GRADLE_BUILD_CACHE_DIR" ]]; then
+    echo "GRADLE_BUILD_CACHE_DIR must not be a symlink: $GRADLE_BUILD_CACHE_DIR" >&2
+    exit 1
+  fi
+  (umask 077 && mkdir -p -- "$GRADLE_BUILD_CACHE_DIR")
+  if [[ -L "$GRADLE_BUILD_CACHE_DIR" || ! -d "$GRADLE_BUILD_CACHE_DIR" ]]; then
+    echo "GRADLE_BUILD_CACHE_DIR must be a real directory: $GRADLE_BUILD_CACHE_DIR" >&2
+    exit 1
+  fi
+  chmod 0700 -- "$GRADLE_BUILD_CACHE_DIR"
   export GRADLE_BUILD_CACHE_DIR
 
   runner_swiftpm_cache="$HOME/Library/Caches/org.swift.swiftpm"
