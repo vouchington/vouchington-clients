@@ -44,5 +44,5 @@ case "$output_path" in
 esac
 mkdir -p "$(dirname "$output_path")"
 xcrun llvm-cov export -format=lcov "$test_binary" -instr-profile "$profdata" \
-  -ignore-filename-regex='\\.build' \
+  -ignore-filename-regex='\.build' \
   | sed "s|SF:$repository_root/|SF:|g" > "$output_path"

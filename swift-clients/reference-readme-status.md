@@ -78,7 +78,7 @@ Run lock-aware package and app checks from the repository root:
   trap 'rm -rf "$XCODE_BUILD_ROOT"' EXIT
   XCODE_DERIVED_DATA="$XCODE_BUILD_ROOT/derived-data"
   SWIFT_PACKAGE_CLONES="$XCODE_BUILD_ROOT/package-clones"
-  bash ci/with-build-lock.sh xcodebuild \
+  bash swift-clients/tooling/with-build-lock.sh xcodebuild \
     -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha \
     -disableAutomaticPackageResolution \
     -onlyUsePackageVersionsFromResolvedFile \
@@ -124,8 +124,8 @@ swift-clients/
 Run with coverage locally:
 
 ```sh
-bash ../ci/with-build-lock.sh swift test --package-path core --force-resolved-versions --enable-code-coverage
-bash ../ci/with-build-lock.sh swift test --package-path ui --force-resolved-versions --enable-code-coverage
+bash tooling/with-build-lock.sh swift test --package-path core --force-resolved-versions --enable-code-coverage
+bash tooling/with-build-lock.sh swift test --package-path ui --force-resolved-versions --enable-code-coverage
 ```
 
 To test SwiftUI Views, use [ViewInspector](https://github.com/nalexn/ViewInspector) (already
