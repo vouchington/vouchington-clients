@@ -17,11 +17,14 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      actions: read
+      checks: read
+      pull-requests: read
     steps:
       - name: Request final code review for the tested ready head
         env:
-          GH_TOKEN: ${{ secrets.CODE_REVIEW_TRIGGER_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ''
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           SOURCE_HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
@@ -40,7 +43,11 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$TESTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::Invalid CI head SHA'; exit 1; }
-          [ -n "${GH_TOKEN:-}" ] || { echo '::error::CODE_REVIEW_TRIGGER_TOKEN is required'; exit 1; }
+          [ -n "${GH_TOKEN:-}" ] || { echo '::error::github.token is required for router reads'; exit 1; }
+          mutation_token="${{ secrets.CODE_REVIEW_TRIGGER_TOKEN }}"
+          [ -n "$mutation_token" ] || { echo '::error::CODE_REVIEW_TRIGGER_TOKEN is required'; exit 1; }
+          # Token presence does not prove the read scopes; the first API calls below assert
+          # the configured actions, checks, and pull-requests permissions in order.
           gh_capture_retry() {
             local accepted="$1"; shift
             local attempt=1 status stdout_file stderr_file stderr_output http_status reason marker
@@ -70,6 +77,9 @@ jobs:
               sleep "$((attempt * GH_RETRY_BACKOFF_SECONDS))"; attempt=$((attempt + 1))
             done
           }
+          gh_mutate_retry() {
+            GH_TOKEN="$mutation_token" gh_capture_retry "$@"
+          }
 
           if [ -z "$PR_NUMBER" ]; then
             gh_capture_retry none gh api --method GET \
@@ -91,10 +101,10 @@ jobs:
           if [ "$is_draft" = true ]; then
             encoded_requested_label="$(jq -rn --arg value "$REQUESTED_LABEL" '$value | @uri')"
             encoded_complete_label="$(jq -rn --arg value "$COMPLETE_LABEL" '$value | @uri')"
-            gh_capture_retry 404 gh api --method DELETE \
+            gh_mutate_retry 404 gh api --method DELETE \
               "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/$encoded_requested_label" --silent
             echo "Cleared $REQUESTED_LABEL for draft PR #$PR_NUMBER."
-            gh_capture_retry 404 gh api --method DELETE \
+            gh_mutate_retry 404 gh api --method DELETE \
               "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/$encoded_complete_label" --silent
             echo "Cleared $COMPLETE_LABEL for draft PR #$PR_NUMBER."
             echo "Skipping final code review because PR #$PR_NUMBER is a draft."
@@ -148,11 +158,11 @@ jobs:
           case "$review_state" in active|success) echo "Skipping duplicate final review ($review_state)."; exit 0;; esac
 
           encoded_complete_label="$(jq -rn --arg value "$COMPLETE_LABEL" '$value | @uri')"
-          gh_capture_retry 404 gh api --method DELETE \
+          gh_mutate_retry 404 gh api --method DELETE \
             "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/$encoded_complete_label" --silent
 
           encoded_label="$(jq -rn --arg value "$REQUESTED_LABEL" '$value | @uri')"
-          gh_capture_retry 404 gh api --method DELETE \
+          gh_mutate_retry 404 gh api --method DELETE \
             "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels/$encoded_label" --silent
           gh_capture_retry none gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER"
           final_state="$GH_RETRY_OUTPUT"
@@ -163,6 +173,6 @@ jobs:
           [ "$(jq -r '.head.sha' <<< "$final_state")" = "$TESTED_HEAD_SHA" ] || {
             echo 'Skipping final code review because the PR head changed before label creation.'; exit 0;
           }
-          gh_capture_retry none gh api --method POST \
+          gh_mutate_retry none gh api --method POST \
             "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" \
             -f "labels[]=$REQUESTED_LABEL" --silent
