@@ -31,3 +31,24 @@ pluginManagement {
 plugins {
     id("skip-plugin") apply true
 }
+
+buildCache {
+    local {
+        // pre-push.sh selects a user-private cache shared across workspaces. Android Studio keeps
+        // Gradle's default GRADLE_USER_HOME cache when the environment variable is absent.
+        System.getenv("GRADLE_BUILD_CACHE_DIR")?.takeIf { it.isNotBlank() }?.let {
+            val cachePath = File(it).toPath().normalize()
+            require(cachePath.isAbsolute && cachePath.nameCount > 0) {
+                "GRADLE_BUILD_CACHE_DIR must be an absolute non-root path: $it"
+            }
+            generateSequence(cachePath) { path -> path.parent }
+                .takeWhile { path -> path != cachePath.root }
+                .forEach { path ->
+                    require(!java.nio.file.Files.isSymbolicLink(path)) {
+                        "GRADLE_BUILD_CACHE_DIR must not traverse a symlink: $it"
+                    }
+                }
+            directory = cachePath.toFile()
+        }
+    }
+}
