@@ -96,6 +96,13 @@ describe("native contract workflow boundary", () => {
     cleanupWorkspace(workflow);
   });
 
+  it("uses the repository SDK policy in required .NET validation", async () => {
+    const validation = await readWorkflow("validate.yml");
+
+    assert.match(validation, /global-json-file: global\.json/u);
+    assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u);
+  });
+
   it("keeps the Filaments secret in the trusted producer", async () => {
     const producer = await readWorkflow("native-contract-producer.yml");
     const consumer = await readWorkflow("native-contract-tests.yml");
