@@ -1,6 +1,6 @@
 import { cp, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -58,7 +58,7 @@ async function fixture(t) {
     await mkdir(target.destination, { recursive: true })
     await writeFile(join(target.destination, 'stale.txt'), 'stale\n')
   }
-  return { config, root, targets }
+  return { config, generatedRoot, root, targets }
 }
 
 test('requires an explicit Filaments checkout root', async t => {
@@ -107,8 +107,8 @@ test('rejects symlinks within a declared source tree', async t => {
 })
 
 test('sync replaces both generated localization trees and remains repeatable', async t => {
-  const { config, root, targets } = await fixture(t)
-  const options = { config, root, targets }
+  const { config, generatedRoot, root, targets } = await fixture(t)
+  const options = { config, destinationRoot: generatedRoot, root, targets }
   await assert.rejects(checkContracts(options), /generated localization differs/)
   await syncContracts(options)
   await checkContracts(options)
@@ -117,16 +117,16 @@ test('sync replaces both generated localization trees and remains repeatable', a
 })
 
 test('sync recovers an interrupted replacement without Git', async t => {
-  const { config, root, targets } = await fixture(t)
+  const { config, generatedRoot, root, targets } = await fixture(t)
   const destination = targets[0].destination
   await rename(destination, `${destination}.contracts-backup`)
   await syncContracts({ config, root, targets })
-  await checkContracts({ config, root, targets })
+  await checkContracts({ config, destinationRoot: generatedRoot, root, targets })
 })
 
 test('check catches changed generated localization content', async t => {
-  const { config, root, targets } = await fixture(t)
-  const options = { config, root, targets }
+  const { config, generatedRoot, root, targets } = await fixture(t)
+  const options = { config, destinationRoot: generatedRoot, root, targets }
   await syncContracts(options)
   await writeFile(join(targets[0].destination, 'UiMessageKey.swift'), 'changed\n')
   await assert.rejects(checkContracts(options), /generated localization differs/)
@@ -188,6 +188,25 @@ test('requires destination-root to be absolute and check-only', async t => {
   await assert.rejects(
     checkContracts({ config, root, destinationRoot: '../candidate' }),
     /destination root must be an absolute client checkout path/,
+  )
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: resolve('/') }),
+    /destination root must not be the filesystem root/,
+  )
+})
+
+test('rejects a symlink used as the candidate checkout root', async t => {
+  const { config, root } = await fixture(t)
+  const candidate = await mkdtemp(join(tmpdir(), 'voucha-candidate-root-'))
+  const container = await mkdtemp(join(tmpdir(), 'voucha-candidate-root-link-'))
+  const alias = join(container, 'candidate')
+  await symlink(candidate, alias)
+  t.after(() =>
+    Promise.all([candidate, container].map(path => rm(path, { recursive: true, force: true }))),
+  )
+  await assert.rejects(
+    checkContracts({ config, root, destinationRoot: alias }),
+    /must not be a symbolic link/,
   )
 })
 

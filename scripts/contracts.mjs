@@ -45,7 +45,7 @@ async function descendantDirectory(root, path, label) {
   if (child === '' || child === '..' || child.startsWith(`..${sep}`) || isAbsolute(child))
     fail(`${label} must be inside the client checkout root: ${path}`)
   let current = root
-  for (const component of child.split(sep)) {
+  for (const component of child.split(sep).filter(Boolean)) {
     current = join(current, component)
     await directory(current, label)
   }
@@ -60,7 +60,9 @@ function candidateRoot(value) {
     !isAbsolute(value.trim())
   )
     fail('destination root must be an absolute client checkout path')
-  return resolve(value.trim())
+  const resolved = resolve(value.trim())
+  if (resolved === resolve(sep)) fail('destination root must not be the filesystem root')
+  return resolved
 }
 
 async function filesUnder(root, label) {
@@ -132,12 +134,11 @@ export async function checkContracts(options = {}) {
   const destinationRoot = candidateRoot(options.destinationRoot)
   const targets = options.targets ?? localizationTargets(destinationRoot)
   for (const target of targets) {
-    if (options.targets === undefined)
-      await descendantDirectory(
-        destinationRoot,
-        target.destination,
-        'generated localization target',
-      )
+    await descendantDirectory(
+      destinationRoot,
+      target.destination,
+      'generated localization target',
+    )
     if (!(await sameTree(join(root, target.source), target.destination))) {
       fail(`generated localization differs at ${target.destination}; run pnpm run contracts:sync`)
     }
