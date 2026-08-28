@@ -1,9 +1,29 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaTestSupport
 import XCTest
 
 @MainActor
 final class LifecycleScenarioContractTests: NativeRouteSurfaceViewModelTestCase {
+    func testContractRootRequiresExplicitEnvironment() {
+        XCTAssertThrowsError(try FilamentsContractRoot.url(environment: [:])) { error in
+            XCTAssertEqual(
+                String(describing: error),
+                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+            )
+        }
+    }
+
+    func testContractRootRejectsInvalidExplicitDirectory() {
+        XCTAssertThrowsError(
+            try FilamentsContractRoot.url(environment: [
+                FilamentsContractRoot.environmentKey: "/definitely-not-a-filaments-contract-root"
+            ])
+        ) { error in
+            XCTAssertTrue(String(describing: error).contains("must name an existing directory"))
+        }
+    }
+
     func testSwiftClaimsMatchTheContract() async throws {
         let contract = try LifecycleScenarioContract.load()
         let scenarios = try contract.scenarios(claimedBy: "swift")

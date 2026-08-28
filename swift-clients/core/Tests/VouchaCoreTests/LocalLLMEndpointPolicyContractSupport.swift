@@ -1,19 +1,18 @@
 import Foundation
+import VouchaTestSupport
 
 struct LocalLLMEndpointPolicyContract: Decodable {
     let hostPolicyRows: [LocalLLMHostPolicyRow]
     let originPairs: [LocalLLMOriginPair]
 
-    static func load(file: StaticString = #filePath) throws -> Self {
-        var directory = URL(fileURLWithPath: "\(file)").deletingLastPathComponent()
-        for _ in 0 ..< 12 {
-            let candidate = directory.appendingPathComponent("api-fixtures/v1/local-llm-endpoint-policy.json")
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return try JSONDecoder().decode(Self.self, from: Data(contentsOf: candidate))
-            }
-            directory.deleteLastPathComponent()
-        }
-        throw LocalLLMEndpointPolicyError.invalid("Could not locate local-llm-endpoint-policy.json")
+    static func load() throws -> Self {
+        try load(root: FilamentsContractRoot.url())
+    }
+
+    static func load(root: URL) throws -> Self {
+        let contract = try ApiFixtureLoader.fixtureURL("local-llm-endpoint-policy.json", root: root)
+        _ = try ApiFixtureLoader.fixtureURL("local-llm-endpoint-policy.schema.json", root: root)
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: contract))
     }
 
     func hostPolicyRows(for consumer: String) -> [LocalLLMHostPolicyRow] {

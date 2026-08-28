@@ -70,6 +70,30 @@ final class LocalLLMSettingsTests: XCTestCase {
         }
     }
 
+    func testEndpointPolicyRejectsSymbolicLinkedContractRootAndComponents() throws {
+        let root = try makeEndpointPolicyContractRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let linkedRoot = root.appendingPathComponent("linked-root", isDirectory: true)
+        try FileManager.default.createSymbolicLink(at: linkedRoot, withDestinationURL: root)
+        XCTAssertThrowsError(try LocalLLMEndpointPolicyContract.load(root: linkedRoot)) { error in
+            XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+        }
+
+        let linkedApiFixtures = root.appendingPathComponent("linked-api-fixtures", isDirectory: true)
+        try FileManager.default.moveItem(
+            at: root.appendingPathComponent("api-fixtures", isDirectory: true),
+            to: linkedApiFixtures
+        )
+        try FileManager.default.createSymbolicLink(
+            at: root.appendingPathComponent("api-fixtures", isDirectory: true),
+            withDestinationURL: linkedApiFixtures
+        )
+        XCTAssertThrowsError(try LocalLLMEndpointPolicyContract.load(root: root)) { error in
+            XCTAssertTrue(String(describing: error).contains("must not contain symbolic links"))
+        }
+    }
+
     private static let expectedHostPolicyRowIDs: Set<String> = [
         "loopback-ipv4", "rfc1918-10-private", "rfc1918-172-private", "rfc1918-192-private",
         "link-local-ipv4", "loopback-ipv6", "ula-ipv6", "link-local-ipv6", "dot-local-hostname",
@@ -126,5 +150,17 @@ final class LocalLLMSettingsTests: XCTestCase {
 
         XCTAssertEqual(configuration.selectedEndpoint?.id, selectedID)
         XCTAssertNil(configuration.endpoint(id: UUID()))
+    }
+
+    private func makeEndpointPolicyContractRoot() throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
+        let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
+        try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
+        try Data("{\"hostPolicyRows\":[],\"originPairs\":[]}".utf8).write(
+            to: fixtureRoot.appendingPathComponent("local-llm-endpoint-policy.json")
+        )
+        try Data("{}".utf8).write(to: fixtureRoot.appendingPathComponent("local-llm-endpoint-policy.schema.json"))
+        return root
     }
 }

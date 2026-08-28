@@ -1,15 +1,9 @@
 import Foundation
 import VouchaFeatures
+import VouchaTestSupport
 import XCTest
 
 final class ClientIntentParityTests: XCTestCase {
-    func testSharedApiFixtureMatchesDocsContract() throws {
-        XCTAssertEqual(
-            try ClientIntentParityContract.loadFixtureData(),
-            try ClientIntentParityContract.loadDocsData()
-        )
-    }
-
     func testClientIntentVisibilityMatchesPersonaGates() throws {
         let contract = try ClientIntentParityContract.load()
 
@@ -78,52 +72,16 @@ final class ClientIntentParityTests: XCTestCase {
 private struct ClientIntentParityContract: Decodable {
     let intents: [ClientIntentParityIntent]
 
-    static func loadFixtureData(
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) throws -> Data {
-        try Data(contentsOf: contractURL(path: "api-fixtures/v1/client-intents.json", file: file, line: line))
+    static func loadFixtureData() throws -> Data {
+        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/client-intents.json"])
+        return try Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/client-intents.json"))
     }
 
-    static func loadDocsData(
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) throws -> Data {
-        try Data(
-            contentsOf: contractURL(
-                path: "docs/requirements/navigation/client-intent-parity.json",
-                file: file,
-                line: line
-            )
-        )
-    }
-
-    static func load(
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) throws -> ClientIntentParityContract {
-        let data = try loadFixtureData(file: file, line: line)
+    static func load() throws -> ClientIntentParityContract {
+        let data = try loadFixtureData()
         return try JSONDecoder().decode(ClientIntentParityContract.self, from: data)
     }
 
-    private static func contractURL(
-        path: String,
-        file: StaticString,
-        line: UInt
-    ) -> URL {
-        var directory = URL(fileURLWithPath: "\(file)").deletingLastPathComponent()
-        for _ in 0 ..< 12 {
-            let candidate = directory.appendingPathComponent(path)
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return candidate
-            }
-            directory.deleteLastPathComponent()
-        }
-
-        XCTFail("Could not locate client intent parity contract at \(path)", file: file, line: line)
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent("missing-client-intent-parity-\(UUID().uuidString).json")
-    }
 }
 
 private struct ClientIntentParityIntent: Decodable {

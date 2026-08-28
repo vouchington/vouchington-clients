@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAPI
+import VouchaTestSupport
 import XCTest
 
 final class EndpointManifestCoverageTests: XCTestCase {
@@ -69,41 +70,10 @@ private enum ManifestLoader {
     }
 
     private static func manifestURL() -> URL? {
-        for root in repoRootCandidates() {
-            let candidate = root.appendingPathComponent("api-fixtures/v1/manifest.json")
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return candidate
-            }
+        guard let root = try? FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"]) else {
+            return nil
         }
-        return nil
-    }
-
-    private static func repoRootCandidates() -> [URL] {
-        var roots: [URL] = []
-
-        if let githubWorkspace = ProcessInfo.processInfo.environment["GITHUB_WORKSPACE"] {
-            roots.append(URL(fileURLWithPath: githubWorkspace))
-        }
-
-        let currentDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        roots.append(currentDirectory)
-        roots.append(contentsOf: ancestors(of: currentDirectory))
-
-        let fileURL = URL(fileURLWithPath: #filePath, relativeTo: currentDirectory).standardizedFileURL
-        roots.append(fileURL.deletingLastPathComponent())
-        roots.append(contentsOf: ancestors(of: fileURL.deletingLastPathComponent()))
-
-        return roots
-    }
-
-    private static func ancestors(of url: URL) -> [URL] {
-        var directory = url
-        var result: [URL] = []
-        for _ in 0 ..< 16 {
-            directory.deleteLastPathComponent()
-            result.append(directory)
-        }
-        return result
+        return root.appendingPathComponent("api-fixtures/v1/manifest.json")
     }
 }
 

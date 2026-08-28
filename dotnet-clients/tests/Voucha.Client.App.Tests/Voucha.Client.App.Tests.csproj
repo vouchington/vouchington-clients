@@ -87,6 +87,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionVisibilityConverter.cs" Link="Pages/FollowerDistributionVisibilityConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TagRelationVoteEligibilityConverter.cs" Link="Pages/TagRelationVoteEligibilityConverter.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Moderation/ReviewQueueModerationServiceStub.cs" Link="TestSupport/ReviewQueueModerationServiceStub.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Api/FilamentsContractPaths.cs" Link="TestSupport/FilamentsContractPaths.cs" />
     <Compile Include="../../src/Voucha.Client.App/BottomTabFactory.cs" Link="BottomTabFactory.cs" />
     <Compile Include="../../src/Voucha.Client.App/UiLocalizedValueExtension.cs" Link="UiLocalizedValueExtension.cs" />
     <Compile Include="../../src/Voucha.Client.App/UiLocalizedValueConverter.cs" Link="UiLocalizedValueConverter.cs" />

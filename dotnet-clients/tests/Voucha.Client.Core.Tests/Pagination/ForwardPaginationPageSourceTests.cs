@@ -56,17 +56,17 @@ public sealed class ForwardPaginationPageSourceTests
   }
 
   private static string PageSource(string file) =>
-      File.ReadAllText(Path.Combine(RepoRoot(), "dotnet-clients", "src", "Voucha.Client.App", "Pages", file));
+      File.ReadAllText(Path.Combine(ClientRepositoryRoot(), "dotnet-clients", "src", "Voucha.Client.App", "Pages", file));
 
-  private static string RepoRoot([CallerFilePath] string sourcePath = "")
+  private static string ClientRepositoryRoot([CallerFilePath] string sourcePath = "")
   {
     DirectoryInfo? directory = new(Path.GetDirectoryName(sourcePath)!);
     while (directory is not null)
     {
-      if (File.Exists(Path.Combine(directory.FullName, "api-fixtures", "v1", "manifest.json")))
+      if (File.Exists(Path.Combine(directory.FullName, "dotnet-clients", "Voucha.DotNet.sln")))
         return directory.FullName;
       directory = directory.Parent;
     }
-    throw new DirectoryNotFoundException("Could not find repository root from source path.");
+    throw new DirectoryNotFoundException("Could not find client repository root from source path.");
   }
 }

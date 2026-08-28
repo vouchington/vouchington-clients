@@ -1,0 +1,4 @@
+packages: []
+engineStrict: true
+preferFrozenLockfile: true
+verifyDepsBeforeRun: error

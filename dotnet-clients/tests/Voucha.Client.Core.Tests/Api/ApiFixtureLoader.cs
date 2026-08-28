@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.Tests.Api;
@@ -12,8 +11,7 @@ internal static class ApiFixtureLoader
 
   private static readonly Lazy<ApiFixtureManifest> Manifest = new(() =>
   {
-    var repoRoot = FindRepoRoot(AppContext.BaseDirectory);
-    var manifestPath = Path.Combine(repoRoot, "api-fixtures", "v1", "manifest.json");
+    var manifestPath = FilamentsContractPaths.ApiFixture("manifest.json");
     return JsonSerializer.Deserialize<ApiFixtureManifest>(
         File.ReadAllText(manifestPath),
         JsonOptions) ?? throw new InvalidOperationException("api-fixtures/v1/manifest.json is empty.");
@@ -23,14 +21,13 @@ internal static class ApiFixtureLoader
 
   public static string LoadResponse(string fixtureId)
   {
-    var repoRoot = FindRepoRoot(AppContext.BaseDirectory);
     var fixture = Manifest.Value.Fixtures.Single(entry => entry.Id == fixtureId);
     if (!fixture.Consumers.Contains("dotnet-core", StringComparer.Ordinal))
     {
       throw new InvalidOperationException($"{fixtureId} is not marked as a dotnet-core fixture consumer.");
     }
 
-    return File.ReadAllText(Path.Combine(repoRoot, "api-fixtures", "v1", fixture.BodyFile));
+    return File.ReadAllText(FilamentsContractPaths.ApiFixture(fixture.BodyFile));
   }
 
   public static string QueryValue(string fixtureId, string name) =>
@@ -79,33 +76,6 @@ internal static class ApiFixtureLoader
               route.RouteTemplate);
           })
           .ToList();
-
-  private static string FindRepoRoot(string startDirectory)
-  {
-    return FindRepoRootFrom(startDirectory) ??
-        FindRepoRootFrom(Directory.GetCurrentDirectory()) ??
-        FindRepoRootFrom(SourceDirectory()) ??
-        throw new DirectoryNotFoundException("Could not find repository root from test output or working directory.");
-  }
-
-  private static string SourceDirectory([CallerFilePath] string sourcePath = "") =>
-      Path.GetDirectoryName(sourcePath) ?? sourcePath;
-
-  private static string? FindRepoRootFrom(string startDirectory)
-  {
-    DirectoryInfo? directory = new(startDirectory);
-    while (directory is not null)
-    {
-      if (File.Exists(Path.Combine(directory.FullName, "api-fixtures", "v1", "manifest.json")))
-      {
-        return directory.FullName;
-      }
-
-      directory = directory.Parent;
-    }
-
-    return null;
-  }
 
   private static IReadOnlyDictionary<string, string> QueryDictionary(JsonElement? query)
   {

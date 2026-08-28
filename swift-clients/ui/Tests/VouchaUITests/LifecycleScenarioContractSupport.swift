@@ -1,19 +1,17 @@
 import Foundation
+import VouchaTestSupport
 
 struct LifecycleScenarioContract: Decodable {
     let scenarios: [LifecycleScenario]
     let claims: [LifecycleClaim]
 
-    static func load(file: StaticString = #filePath) throws -> Self {
-        var directory = URL(fileURLWithPath: "\(file)").deletingLastPathComponent()
-        for _ in 0 ..< 12 {
-            let candidate = directory.appendingPathComponent("api-fixtures/v1/lifecycle-scenarios.json")
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return try JSONDecoder().decode(Self.self, from: Data(contentsOf: candidate))
-            }
-            directory.deleteLastPathComponent()
-        }
-        throw LifecycleScenarioError.invalid("Could not locate lifecycle-scenarios.json")
+    static func load() throws -> Self {
+        let root = try FilamentsContractRoot.url(requiredPaths: [
+            "api-fixtures/v1/lifecycle-scenarios.json",
+            "api-fixtures/v1/lifecycle-scenarios.schema.json"
+        ])
+        let contract = root.appendingPathComponent("api-fixtures/v1/lifecycle-scenarios.json")
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: contract))
     }
 
     func scenarios(claimedBy consumer: String) throws -> [LifecycleScenario] {

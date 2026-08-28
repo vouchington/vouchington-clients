@@ -29,14 +29,7 @@ final class PostThreadDecodingTests: XCTestCase {
         XCTAssertEqual(descendants.bookmarks?["comment-a"]?["save"], true)
     }
 
-    private func fixture(_ id: String) throws -> Data {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let url = root.appendingPathComponent("api-fixtures/v1/responses/\(id).json")
-        return try Data(contentsOf: url)
+    private func fixture(_ id: String) -> Data {
+        ApiFixtureLoader.data(id)
     }
 }

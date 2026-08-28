@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "VouchaPersistence", targets: ["VouchaPersistence"])
     ],
     dependencies: [
+        .package(name: "VouchaTestSupport", path: "../test-support"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "4.5.1")
     ],
     targets: [
@@ -35,7 +36,8 @@ let package = Package(
                 "VouchaModels",
                 "VouchaAPI",
                 "VouchaAuth",
-                "VouchaPersistence"
+                "VouchaPersistence",
+                .product(name: "VouchaTestSupport", package: "VouchaTestSupport")
             ]
         ),
         .testTarget(
@@ -43,7 +45,8 @@ let package = Package(
             dependencies: [
                 "VouchaCore",
                 "VouchaModels",
-                "VouchaAPI"
+                "VouchaAPI",
+                .product(name: "VouchaTestSupport", package: "VouchaTestSupport")
             ]
         )
     ]

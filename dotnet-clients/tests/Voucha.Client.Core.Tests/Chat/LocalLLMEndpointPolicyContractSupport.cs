@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Tests.Api;
 
 namespace Voucha.Client.Core.Tests.Chat;
 
@@ -37,9 +37,9 @@ internal sealed class LocalLLMEndpointPolicyContract
       IReadOnlyList<LocalLLMOriginPair> originPairs) =>
       (this.hostPolicyRows, this.originPairs) = (hostPolicyRows, originPairs);
 
-  public static LocalLLMEndpointPolicyContract Load([CallerFilePath] string sourceFile = "")
+  public static LocalLLMEndpointPolicyContract Load()
   {
-    var path = FindContract(sourceFile);
+    var path = FilamentsContractPaths.ApiFixture("local-llm-endpoint-policy.json");
     using var document = JsonDocument.Parse(File.ReadAllText(path));
     var root = document.RootElement;
     return new(
@@ -92,20 +92,4 @@ internal sealed class LocalLLMEndpointPolicyContract
   public IReadOnlyList<LocalLLMOriginPair> OriginPairsFor(string consumer) =>
       originPairs.Where(pair => pair.RequiredConsumers.Contains(consumer)).ToArray();
 
-  private static string FindContract(string sourceFile)
-  {
-    foreach (var start in new[] {
-        Path.GetDirectoryName(sourceFile) ?? string.Empty,
-        AppContext.BaseDirectory,
-        Directory.GetCurrentDirectory(),
-    })
-    {
-      for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
-      {
-        var path = Path.Combine(directory.FullName, "api-fixtures", "v1", "local-llm-endpoint-policy.json");
-        if (File.Exists(path)) return path;
-      }
-    }
-    throw new FileNotFoundException("Could not locate local-llm-endpoint-policy.json.");
-  }
 }
