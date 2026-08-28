@@ -21,6 +21,9 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      base-sha: ${{ steps.identity.outputs.base_sha }}
+      merge-sha: ${{ steps.identity.outputs.merge_sha }}
     steps:
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,6 +78,7 @@ jobs:
           ], { encoding: 'utf8' })).object.sha
           if (mergeSha !== manifest.pullRequest.merge) throw new Error('pull request merge SHA changed')
 
+          appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.pullRequest.base}\n`)
           appendFileSync(process.env.GITHUB_OUTPUT, `merge_sha=${mergeSha}\n`)
           NODE
       - name: Check out exact candidate merge
@@ -89,3 +93,189 @@ jobs:
         run: >-
           node candidate-clients/scripts/contracts.mjs check
           --destination-root "${{ github.workspace }}/candidate-clients"
+
+  dotnet-portable:
+    name: .NET portable (${{ matrix.os }})
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runner: [self-hosted, Linux, Docker, Tests]
+          - os: macos
+            runner: [self-hosted, macOS, Tests]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      MSBuildEnableWorkloadResolver: 'false'
+    steps:
+      - name: Check out trusted consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.event.workflow_run.run_attempt }}
+          producer-run-id: ${{ github.event.workflow_run.id }}
+      - name: Set up exact .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: candidate-clients/global.json
+      - name: Restore, format, analyze, validate RESX, and build
+        working-directory: candidate-clients
+        run: ./dotnet-clients/tooling/harness.sh
+      - name: Test portable solution with coverage
+        working-directory: candidate-clients
+        run: >-
+          ./dotnet-clients/tooling/harness.sh --exec
+          dotnet test Voucha.DotNet.sln
+          --configuration Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults/core --
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
+          "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
+      - name: Normalize Core coverage report
+        if: matrix.os == 'linux'
+        working-directory: candidate-clients/dotnet-clients
+        run: |
+          set -euo pipefail
+          reports="$(find TestResults/core -type f -name coverage.info -print)"
+          [ "$(printf '%s\n' "$reports" | sed '/^$/d' | wc -l | tr -d ' ')" = 1 ] || {
+            echo '::error::Expected exactly one coverage.info under TestResults/core.'
+            exit 1
+          }
+          cp "$reports" TestResults/core/lcov.info
+      - name: Enforce Core patch coverage
+        if: matrix.os == 'linux'
+        working-directory: candidate-clients
+        env:
+          COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
+          COVERAGE_HEAD: ${{ needs.verify.outputs.merge-sha }}
+        run: pnpm run coverage:dotnet-core
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  dotnet-maui:
+    name: .NET MAUI Mac Catalyst
+    needs: verify
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 40
+    env:
+      UseArtifactsOutput: 'true'
+    steps:
+      - name: Check out trusted consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.event.workflow_run.run_attempt }}
+          producer-run-id: ${{ github.event.workflow_run.id }}
+      - name: Configure isolated MAUI paths
+        shell: bash
+        run: |
+          {
+            echo "ArtifactsPath=$RUNNER_TEMP/voucha-dotnet-lock-artifacts/app-tests"
+            echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
+            echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
+          } >>"$GITHUB_ENV"
+      - name: Set up exact .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: candidate-clients/global.json
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload under host lock
+        if: steps.workload.outputs.install == 'true'
+        working-directory: candidate-clients
+        run: >-
+          pnpm exec vouchington with-host-lock
+          --name host-package-manager
+          --timeout-seconds 300
+          --command-timeout-seconds 720
+          -- dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Verify all seven committed NuGet locks
+        working-directory: candidate-clients
+        run: >-
+          pnpm exec vouchington with-host-lock
+          --name host-package-manager
+          --timeout-seconds 300
+          --command-timeout-seconds 900
+          -- bash dotnet-clients/tooling/restore-locks.sh verify
+      - name: Build rendered MAUI page tests
+        working-directory: candidate-clients
+        run: >-
+          ./dotnet-clients/tooling/with-build-lock.sh
+          dotnet build dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Release --no-restore
+      - name: Test rendered MAUI pages
+        working-directory: candidate-clients
+        run: >-
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Release --no-build
+      - name: Select Xcode 26.5
+        shell: bash
+        run: |
+          set -euo pipefail
+          selected=$(xcode-select -p 2>/dev/null || true)
+          shopt -s nullglob
+          candidates=("$selected" /Applications/Xcode*.app/Contents/Developer)
+          for developer_dir in "${candidates[@]}"; do
+            [ -d "$developer_dir" ] || continue
+            version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
+            case "$version" in
+              26.5*)
+                echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
+                echo "Selected Xcode $version at $developer_dir"
+                exit 0
+                ;;
+            esac
+          done
+          echo '::error::Xcode 26.5 is required for the Mac Catalyst smoke build.'
+          exit 1
+      - name: Detect host Mac Catalyst RID
+        id: rid
+        shell: bash
+        run: |
+          case "$(uname -m)" in
+            arm64) rid=maccatalyst-arm64 ;;
+            x86_64) rid=maccatalyst-x64 ;;
+            *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Build MAUI Mac Catalyst app
+        working-directory: candidate-clients
+        env:
+          ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: >-
+          ./dotnet-clients/tooling/with-build-lock.sh
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
+          --configuration Release --framework net10.0-maccatalyst
+          "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
+          --no-restore
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
