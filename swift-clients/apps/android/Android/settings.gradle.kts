@@ -38,8 +38,11 @@ buildCache {
         // Gradle's default GRADLE_USER_HOME cache when the environment variable is absent.
         System.getenv("GRADLE_BUILD_CACHE_DIR")?.takeIf { it.isNotBlank() }?.let {
             val cacheDirectory = File(it)
-            require(cacheDirectory.isAbsolute) {
-                "GRADLE_BUILD_CACHE_DIR must be absolute: $it"
+            require(cacheDirectory.isAbsolute && cacheDirectory.path != File.separator) {
+                "GRADLE_BUILD_CACHE_DIR must be an absolute non-root path: $it"
+            }
+            require(!java.nio.file.Files.isSymbolicLink(cacheDirectory.toPath())) {
+                "GRADLE_BUILD_CACHE_DIR must not be a symlink: $it"
             }
             directory = cacheDirectory
         }

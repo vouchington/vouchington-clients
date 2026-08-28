@@ -45,8 +45,9 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
 
   if [[ -z "${GRADLE_BUILD_CACHE_DIR:-}" ]]; then
     if [[ "$(uname -s)" == "Darwin" ]]; then
-      if ! gradle_cache_parent="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null)"; then
-        echo "getconf DARWIN_USER_TEMP_DIR failed" >&2
+      if ! gradle_cache_parent="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null)" ||
+        [[ -z "$gradle_cache_parent" ]]; then
+        echo "getconf DARWIN_USER_TEMP_DIR failed or returned an empty path" >&2
         exit 1
       fi
       GRADLE_BUILD_CACHE_DIR="${gradle_cache_parent%/}/gradle-build-cache"
