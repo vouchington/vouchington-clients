@@ -1,4 +1,9 @@
 packages: []
+allowBuilds:
+  esbuild: false
 engineStrict: true
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - vouchington-tooling@0.1.5
 preferFrozenLockfile: true
 verifyDepsBeforeRun: error

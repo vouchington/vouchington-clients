@@ -1,0 +1,7 @@
+# The portable Core suite enforces patch coverage. Rendered MAUI pages are compiled and tested
+# separately on macOS, but are exempt because Coverlet cannot instrument the platform app shell.
+rules:
+  - paths: 'dotnet-clients/src/Voucha.Client.App/**'
+    patch_coverage_min: 0
+  - paths: 'dotnet-clients/src/Voucha.Client.Core/**'
+    patch_coverage_min: 80

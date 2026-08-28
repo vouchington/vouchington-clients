@@ -1,0 +1,8 @@
+{
+  "sdk": {
+    "version": "10.0.301",
+    "rollForward": "latestPatch",
+    "workloadVersion": "10.0.301.1",
+    "errorMessage": "Voucha requires a compatible .NET 10.0.3xx SDK. Install it, ensure that installation's dotnet host appears first on PATH, and see dotnet-clients/README.md for local setup."
+  }
+}

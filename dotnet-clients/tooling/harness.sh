@@ -156,9 +156,9 @@ classify_failure() {
   local status="$1"
   local output_file="$2"
 
-  if [[ "$status" -eq 124 ]] && grep -Eq '^with-host-lock: expensive-build command exceeded [0-9]*[1-9][0-9]*s; terminating its process group$' "$output_file"; then
+  if [[ "$status" -eq 124 ]] && grep -Eq '^with-host-lock: (host-package-manager|expensive-build) command exceeded [0-9]*[1-9][0-9]*s; terminating its process group$' "$output_file"; then
     printf '%s\n' 'host-timeout'
-  elif [[ "$status" -eq 1 ]] && grep -Eq '^with-host-lock: expensive-build lock not acquired within [0-9]*[1-9][0-9]*s$' "$output_file"; then
+  elif [[ "$status" -eq 1 ]] && grep -Eq '^with-host-lock: (host-package-manager|expensive-build) lock not acquired within [0-9]*[1-9][0-9]*s$' "$output_file"; then
     printf '%s\n' 'lock-timeout'
   else
     printf '%s\n' 'check-failure'
@@ -260,7 +260,7 @@ echo "dotnet-clients harness"
 echo "----------------------"
 
 if contains restore; then
-  run_check "restore" "$DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
+  run_check "restore" pnpm exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
 fi
 
 if contains fmt; then
@@ -286,7 +286,7 @@ if contains resx-path; then
 fi
 
 if contains build; then
-  run_check "build" bash "$ROOT_DIR/ci/with-build-lock.sh" "$DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
+  run_check "build" "$SCRIPT_DIR/with-build-lock.sh" "$DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 fi
 
 echo "----------------------"
