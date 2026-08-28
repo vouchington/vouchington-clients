@@ -43,6 +43,16 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   mkdir -p -- "$GRADLE_USER_HOME"
   export GRADLE_USER_HOME
 
+  if [[ -z "${GRADLE_BUILD_CACHE_DIR:-}" ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      GRADLE_BUILD_CACHE_DIR="$(getconf DARWIN_USER_TEMP_DIR)gradle-build-cache"
+    else
+      GRADLE_BUILD_CACHE_DIR="${TMPDIR:-/tmp}/voucha-gradle-build-cache"
+    fi
+  fi
+  mkdir -p -- "$GRADLE_BUILD_CACHE_DIR"
+  export GRADLE_BUILD_CACHE_DIR
+
   runner_swiftpm_cache="$HOME/Library/Caches/org.swift.swiftpm"
   mkdir -p -- "$runner_swiftpm_cache"
 

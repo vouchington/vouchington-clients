@@ -31,3 +31,13 @@ pluginManagement {
 plugins {
     id("skip-plugin") apply true
 }
+
+buildCache {
+    local {
+        // Resolved by pre-push.sh / CI from the OS temp directory, shared across runners on the
+        // same host. Left at its default (GRADLE_USER_HOME/caches/build-cache-1) when unset, e.g.
+        // under Android Studio. macOS's own periodic sweep of that directory (~3 days) bounds
+        // retention; Gradle 9 removed the equivalent `removeUnusedEntriesAfterDays` project setting.
+        System.getenv("GRADLE_BUILD_CACHE_DIR")?.let { directory = File(it) }
+    }
+}
