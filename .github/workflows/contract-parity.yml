@@ -5,7 +5,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
 
 concurrency:
   group: contract-parity-${{ github.event.pull_request.number }}
@@ -14,51 +16,64 @@ concurrency:
 jobs:
   contracts:
     name: Filaments contract parity
-    runs-on: [self-hosted]
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
     steps:
-      - name: Clean isolated checkout paths
-        run: >-
-          rm -rf --
-          "${{ github.workspace }}/trusted-clients"
-          "${{ github.workspace }}/candidate-clients"
-          "${{ github.workspace }}/filaments"
-      - name: Check out trusted client tooling
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: trusted-clients
-          persist-credentials: false
-      - name: Check out candidate clients as data
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
-          path: candidate-clients
-          persist-credentials: false
-          # Candidate files remain data; only trusted base-revision tooling is executed.
-          allow-unsafe-pr-checkout: true
-      - name: Check out Filaments
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: jonathanong/filaments
-          ref: main
-          path: filaments
-          ssh-key: ${{ secrets.FILAMENTS_DEPLOY_KEY }}
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: trusted-clients/.nvmrc
-      - name: Assert candidate generated localization parity
+      - name: Await exact native contract test run
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ github.workspace }}/filaments
-        run: >-
-          node trusted-clients/scripts/contracts.mjs check
-          --destination-root "${{ github.workspace }}/candidate-clients"
-      - name: Clean isolated checkout paths
-        if: always()
-        run: >-
-          rm -rf --
-          "${{ github.workspace }}/trusted-clients"
-          "${{ github.workspace }}/candidate-clients"
-          "${{ github.workspace }}/filaments"
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_UPDATED_AT: ${{ github.event.pull_request.updated_at }}
+        run: |
+          set -euo pipefail
+          producer_title="Native contract producer for PR #${PR_NUMBER} at ${EXPECTED_HEAD_SHA} updated ${EXPECTED_UPDATED_AT}"
+          producer_id=
+
+          for _ in $(seq 1 240); do
+            live_head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)
+            if [ "$live_head" != "$EXPECTED_HEAD_SHA" ]; then
+              echo "::error::Pull request head changed while awaiting native contract tests."
+              exit 1
+            fi
+
+            if [ -z "$producer_id" ]; then
+              producer_id=$(gh api \
+                "repos/$GITHUB_REPOSITORY/actions/workflows/native-contract-producer.yml/runs?event=pull_request_target&per_page=100" \
+                --jq ".workflow_runs | map(select(.display_title == \"$producer_title\")) | sort_by(.id) | last | .id // empty")
+            fi
+
+            if [ -n "$producer_id" ]; then
+              producer_run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$producer_id")
+              producer_conclusion=$(jq -r '.conclusion // empty' <<<"$producer_run")
+              producer_attempt=$(jq -r '.run_attempt' <<<"$producer_run")
+              case "$producer_conclusion" in
+                failure|cancelled|timed_out|action_required|startup_failure)
+                  echo "::error::Native contract producer $producer_id concluded $producer_conclusion."
+                  exit 1
+                  ;;
+              esac
+
+              consumer_title="Native contract tests for producer $producer_id attempt $producer_attempt"
+              consumer=$(gh api \
+                "repos/$GITHUB_REPOSITORY/actions/workflows/native-contract-tests.yml/runs?event=workflow_run&per_page=100" \
+                --jq ".workflow_runs | map(select(.display_title == \"$consumer_title\")) | sort_by(.id) | last // empty")
+              consumer_id=$(jq -r '.id // empty' <<<"$consumer")
+              consumer_conclusion=$(jq -r '.conclusion // empty' <<<"$consumer")
+              if [ "$consumer_conclusion" = success ]; then
+                echo "Native contract tests $consumer_id verified producer $producer_id."
+                exit 0
+              fi
+              case "$consumer_conclusion" in
+                failure|cancelled|timed_out|action_required|startup_failure|skipped)
+                  echo "::error::Native contract tests $consumer_id concluded $consumer_conclusion."
+                  exit 1
+                  ;;
+              esac
+            fi
+
+            sleep 15
+          done
+
+          echo "::error::Timed out awaiting the exact native contract test run."
+          exit 1
