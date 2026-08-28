@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import { checkContracts, syncContracts, verifyContract } from '../scripts/contracts.mjs'
 
+const repositoryRoot = resolve(import.meta.dirname, '..')
 const paths = [
   'api-fixtures/v1',
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
@@ -38,7 +39,7 @@ async function fixture(t) {
     config,
     JSON.stringify({ schemaVersion: 1, repository: 'jonathanong/filaments', ref: 'main', paths }),
   )
-  const generatedRoot = await mkdtemp(join(tmpdir(), 'voucha-generated-'))
+  const generatedRoot = await mkdtemp(join(repositoryRoot, '.contracts-test-'))
   t.after(async () => {
     await Promise.all(
       [root, configRoot, generatedRoot].map(path => rm(path, { recursive: true, force: true })),
@@ -110,9 +111,9 @@ test('sync replaces both generated localization trees and remains repeatable', a
   const { config, generatedRoot, root, targets } = await fixture(t)
   const options = { config, destinationRoot: generatedRoot, root, targets }
   await assert.rejects(checkContracts(options), /generated localization differs/)
-  await syncContracts(options)
+  await syncContracts({ config, root, targets })
   await checkContracts(options)
-  await syncContracts(options)
+  await syncContracts({ config, root, targets })
   await checkContracts(options)
 })
 
@@ -124,10 +125,24 @@ test('sync recovers an interrupted replacement without Git', async t => {
   await checkContracts({ config, destinationRoot: generatedRoot, root, targets })
 })
 
+test('sync rejects symlinked target ancestors before mutation', async t => {
+  const { config, generatedRoot, root } = await fixture(t)
+  const ancestor = join(generatedRoot, 'linked-source')
+  await symlink(join(root, paths[1]), ancestor)
+  await assert.rejects(
+    syncContracts({
+      config,
+      root,
+      targets: [{ source: paths[1], destination: join(ancestor, 'replacement') }],
+    }),
+    /must not be a symbolic link/,
+  )
+})
+
 test('check catches changed generated localization content', async t => {
   const { config, generatedRoot, root, targets } = await fixture(t)
   const options = { config, destinationRoot: generatedRoot, root, targets }
-  await syncContracts(options)
+  await syncContracts({ config, root, targets })
   await writeFile(join(targets[0].destination, 'UiMessageKey.swift'), 'changed\n')
   await assert.rejects(checkContracts(options), /generated localization differs/)
 })
@@ -192,6 +207,10 @@ test('requires destination-root to be absolute and check-only', async t => {
   await assert.rejects(
     checkContracts({ config, root, destinationRoot: resolve('/') }),
     /destination root must not be the filesystem root/,
+  )
+  await assert.rejects(
+    syncContracts({ config, root, destinationRoot: repositoryRoot }),
+    /sync destination root is not configurable/,
   )
 })
 

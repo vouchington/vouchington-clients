@@ -51,6 +51,12 @@ async function descendantDirectory(root, path, label) {
   }
 }
 
+async function descendantParentDirectory(root, path, label) {
+  const parent = dirname(path)
+  if (parent === root) await directory(root, 'client checkout root')
+  else await descendantDirectory(root, parent, label)
+}
+
 function candidateRoot(value) {
   if (value === undefined) return repositoryRoot
   if (
@@ -147,7 +153,13 @@ export async function checkContracts(options = {}) {
 
 export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
+  if (options.destinationRoot !== undefined) fail('sync destination root is not configurable')
   for (const target of options.targets ?? localizationTargets()) {
+    await descendantParentDirectory(
+      repositoryRoot,
+      target.destination,
+      'generated localization target parent',
+    )
     const backup = `${target.destination}.contracts-backup`
     const backupInfo = await pathInfo(backup)
     if (backupInfo) {
