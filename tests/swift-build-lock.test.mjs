@@ -18,6 +18,8 @@ async function writeExecutable(path, contents) {
 async function lockFixture(t) {
   const binDirectory = await mkdtemp(join(tmpdir(), "voucha-build-lock-"));
   const argumentsPath = join(binDirectory, "pnpm-arguments.txt");
+  const localEnvironment = { ...process.env };
+  delete localEnvironment.GITHUB_ACTIONS;
   await writeExecutable(
     join(binDirectory, "pnpm"),
     '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$PNPM_ARGUMENTS_PATH"\n',
@@ -26,7 +28,7 @@ async function lockFixture(t) {
   return {
     argumentsPath,
     environment: {
-      ...process.env,
+      ...localEnvironment,
       PATH: `${binDirectory}:${process.env.PATH}`,
       PNPM_ARGUMENTS_PATH: argumentsPath,
     },
