@@ -14,9 +14,14 @@ describe("event-driven CI orchestration", () => {
     const workflow = await readWorkflow("native-contract-tests.yml");
 
     assert.match(workflow, /pull_request_target:\n\s+types:/u);
+    assert.match(workflow, /push:\n\s+branches: \[main\]/u);
     assert.match(
       workflow,
-      /group: native-contract-tests-\$\{\{ github\.event\.pull_request\.number \}\}/u,
+      /group: native-contract-tests-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
+    );
+    assert.match(
+      workflow,
+      /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request_target' \}\}/u,
     );
     assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u);
     assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u);

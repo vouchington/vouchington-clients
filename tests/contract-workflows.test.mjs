@@ -8,7 +8,7 @@ const readAction = (name) =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), "utf8");
 
 const preparedCandidateInputs = [
-  "candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}",
+  "candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}",
   "producer-run-attempt: ${{ github.run_attempt }}",
   "producer-run-id: ${{ github.run_id }}",
 ];
@@ -51,16 +51,16 @@ describe("native contract workflow boundary", () => {
       readWorkflow("native-contract-tests.yml"),
     ]);
 
-    for (const input of ["candidate-merge-sha", "producer-run-id", "producer-run-attempt"])
+    for (const input of ["candidate-revision-sha", "producer-run-id", "producer-run-attempt"])
       assert.match(action, new RegExp(`inputs\\.${input}`, "u"));
     for (const expectation of [
       /fetch-depth: 0/u,
-      /ref: \$\{\{ inputs\.candidate-merge-sha \}\}/u,
+      /ref: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /path: candidate-clients/u,
       /persist-credentials: false/u,
       /run-id: \$\{\{ inputs\.producer-run-id \}\}/u,
       /native-contract-\$\{\{ inputs\.producer-run-id \}\}-\$\{\{ inputs\.producer-run-attempt \}\}/u,
-      /--expected-merge-sha "\$\{\{ inputs\.candidate-merge-sha \}\}"/u,
+      /--expected-revision-sha "\$\{\{ inputs\.candidate-revision-sha \}\}"/u,
     ])
       assert.match(action, expectation);
 
@@ -190,7 +190,7 @@ describe("native contract workflow boundary", () => {
     assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u);
     assert.match(validation, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u);
     assert.equal(
-      workflow.split("candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}").length - 1,
+      workflow.split("candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}").length - 1,
       10,
     );
   });
@@ -264,7 +264,7 @@ describe("native contract workflow boundary", () => {
 
     assert.match(
       workflow,
-      /run-name: >-\n\s+Native contract tests for PR #\$\{\{ github\.event\.pull_request\.number \}\} at \$\{\{ github\.event\.pull_request\.head\.sha \}\}/u,
+      /run-name: >-\n\s+Native contract tests for \$\{\{ github\.event\.pull_request\.number.*format\('main at \{0\}', github\.sha\) \}\}/u,
     );
     assert.match(workflow, /retention-days: 1/u);
     assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u);

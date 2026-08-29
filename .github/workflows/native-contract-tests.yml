@@ -1,18 +1,20 @@
 name: Native contract tests
 run-name: >-
-  Native contract tests for PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }}
+  Native contract tests for ${{ github.event.pull_request.number && format('PR #{0} at {1}', github.event.pull_request.number, github.event.pull_request.head.sha) || format('main at {0}', github.sha) }}
 
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  push:
+    branches: [main]
 
 permissions:
   actions: read
   contents: read
 
 concurrency:
-  group: native-contract-tests-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: native-contract-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
 
 jobs:
   produce:
@@ -26,11 +28,54 @@ jobs:
         env:
           PRESERVE_NODE_MODULES: "false"
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Resolve candidate event identity
+        id: event
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = pull_request_target ]; then
+            [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+            [[ "$PR_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            candidate_event=pull_request
+            candidate_number="$PR_NUMBER"
+            candidate_ref="refs/pull/$PR_NUMBER/merge"
+            trusted_ref="$PR_BASE_SHA"
+            base_sha="$PR_BASE_SHA"
+            head_sha="$PR_HEAD_SHA"
+          elif [ "$EVENT_NAME" = push ] && [ "$EVENT_REF" = refs/heads/main ]; then
+            [[ "$EVENT_BEFORE" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$EVENT_SHA" =~ ^[0-9a-f]{40}$ ]]
+            candidate_event=push
+            candidate_number=
+            candidate_ref="$EVENT_SHA"
+            trusted_ref="$EVENT_SHA"
+            base_sha="$EVENT_BEFORE"
+            head_sha="$EVENT_SHA"
+          else
+            echo "::error::Unsupported native test event $EVENT_NAME on $EVENT_REF"
+            exit 1
+          fi
+          {
+            printf 'candidate_event=%s\n' "$candidate_event"
+            printf 'candidate_number=%s\n' "$candidate_number"
+            printf 'candidate_ref=%s\n' "$candidate_ref"
+            printf 'trusted_ref=%s\n' "$trusted_ref"
+            printf 'base_sha=%s\n' "$base_sha"
+            printf 'head_sha=%s\n' "$head_sha"
+          } >>"$GITHUB_OUTPUT"
       - name: Check out trusted client tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           clean: false
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ steps.event.outputs.trusted_ref }}
           persist-credentials: false
       - name: Assert authorized Filaments source
         run: >-
@@ -40,7 +85,7 @@ jobs:
       - name: Check out candidate clients as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          ref: ${{ steps.event.outputs.candidate_ref }}
           path: candidate-clients
           persist-credentials: false
           allow-unsafe-pr-checkout: true
@@ -63,7 +108,7 @@ jobs:
           FILAMENTS_ROOT: ${{ github.workspace }}/filaments
         run: |
           set -euo pipefail
-          printf 'candidate_merge_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+          printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
       - name: Stage trusted native contract
         env:
@@ -89,21 +134,26 @@ jobs:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract-${{ github.run_id }}-${{ github.run_attempt }}
           FILAMENTS_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
           FILAMENTS_SHA: ${{ steps.identities.outputs.filaments_sha }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          MERGE_SHA: ${{ steps.identities.outputs.candidate_merge_sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ steps.event.outputs.base_sha }}
+          CANDIDATE_EVENT: ${{ steps.event.outputs.candidate_event }}
+          CANDIDATE_NUMBER: ${{ steps.event.outputs.candidate_number }}
+          HEAD_SHA: ${{ steps.event.outputs.head_sha }}
+          REVISION_SHA: ${{ steps.identities.outputs.candidate_revision_sha }}
         run: |
           set -euo pipefail
+          candidate_args=(--candidate-event "$CANDIDATE_EVENT")
+          if [ "$CANDIDATE_EVENT" = pull_request ]; then
+            candidate_args+=(--candidate-number "$CANDIDATE_NUMBER")
+          fi
           node scripts/contract-artifact.mjs create \
             --filaments-root "$FILAMENTS_ROOT" \
             --output-root "$ARTIFACT_ROOT" \
             --filaments-sha "$FILAMENTS_SHA" \
             --clients-repository "$GITHUB_REPOSITORY" \
-            --pr-number "$PR_NUMBER" \
+            "${candidate_args[@]}" \
             --base-sha "$BASE_SHA" \
             --head-sha "$HEAD_SHA" \
-            --merge-sha "$MERGE_SHA" \
+            --revision-sha "$REVISION_SHA" \
             --producer-run-id "$GITHUB_RUN_ID" \
             --producer-run-attempt "$GITHUB_RUN_ATTEMPT"
           printf 'path=%s\n' "$ARTIFACT_ROOT" >>"$GITHUB_OUTPUT"
@@ -132,7 +182,7 @@ jobs:
       pull-requests: read
     outputs:
       base-sha: ${{ steps.identity.outputs.base_sha }}
-      merge-sha: ${{ steps.identity.outputs.merge_sha }}
+      revision-sha: ${{ steps.identity.outputs.revision_sha }}
     steps:
       - name: Clean persistent runner workspace
         env:
@@ -142,7 +192,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           clean: false
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -167,11 +217,18 @@ jobs:
           --expected-clients-repository "$GITHUB_REPOSITORY"
           --expected-producer-run-id "$PRODUCER_RUN_ID"
           --expected-producer-run-attempt "$PRODUCER_RUN_ATTEMPT"
-      - name: Validate live pull request identity
+      - name: Validate candidate event identity
         id: identity
         env:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -179,27 +236,42 @@ jobs:
           import { execFileSync } from 'node:child_process'
 
           const manifest = JSON.parse(readFileSync(`${process.env.ARTIFACT_ROOT}/manifest.json`, 'utf8'))
-          const pr = JSON.parse(execFileSync('gh', [
-            'api',
-            `repos/${manifest.clientsRepository}/pulls/${manifest.pullRequest.number}`,
-          ], { encoding: 'utf8' }))
-          if (pr.state !== 'open') throw new Error(`pull request is ${pr.state}`)
-          if (pr.base.sha !== manifest.pullRequest.base) throw new Error('pull request base SHA changed')
-          if (pr.head.sha !== manifest.pullRequest.head) throw new Error('pull request head SHA changed')
+          if (process.env.EVENT_NAME === 'pull_request_target') {
+            if (manifest.candidate.event !== 'pull_request') throw new Error('artifact is not for a pull request')
+            if (manifest.candidate.number !== Number(process.env.PR_NUMBER)) throw new Error('pull request number changed')
+            if (manifest.candidate.base !== process.env.PR_BASE_SHA) throw new Error('event base SHA changed')
+            if (manifest.candidate.head !== process.env.PR_HEAD_SHA) throw new Error('event head SHA changed')
 
-          const mergeSha = JSON.parse(execFileSync('gh', [
-            'api',
-            `repos/${manifest.clientsRepository}/git/ref/pull/${manifest.pullRequest.number}/merge`,
-          ], { encoding: 'utf8' })).object.sha
-          if (mergeSha !== manifest.pullRequest.merge) throw new Error('pull request merge SHA changed')
+            const pr = JSON.parse(execFileSync('gh', [
+              'api',
+              `repos/${manifest.clientsRepository}/pulls/${manifest.candidate.number}`,
+            ], { encoding: 'utf8' }))
+            if (pr.state !== 'open') throw new Error(`pull request is ${pr.state}`)
+            if (pr.base.sha !== manifest.candidate.base) throw new Error('pull request base SHA changed')
+            if (pr.head.sha !== manifest.candidate.head) throw new Error('pull request head SHA changed')
 
-          appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.pullRequest.base}\n`)
-          appendFileSync(process.env.GITHUB_OUTPUT, `merge_sha=${mergeSha}\n`)
+            const revision = JSON.parse(execFileSync('gh', [
+              'api',
+              `repos/${manifest.clientsRepository}/git/ref/pull/${manifest.candidate.number}/merge`,
+            ], { encoding: 'utf8' })).object.sha
+            if (revision !== manifest.candidate.revision) throw new Error('pull request merge SHA changed')
+          } else if (process.env.EVENT_NAME === 'push' && process.env.EVENT_REF === 'refs/heads/main') {
+            if (manifest.candidate.event !== 'push') throw new Error('artifact is not for a push')
+            if (manifest.candidate.number !== null) throw new Error('push artifact has a pull request number')
+            if (manifest.candidate.base !== process.env.EVENT_BEFORE) throw new Error('push base SHA changed')
+            if (manifest.candidate.head !== process.env.EVENT_SHA) throw new Error('push head SHA changed')
+            if (manifest.candidate.revision !== process.env.EVENT_SHA) throw new Error('push revision SHA changed')
+          } else {
+            throw new Error(`unsupported native test event ${process.env.EVENT_NAME}`)
+          }
+
+          appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
+          appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           NODE
-      - name: Check out exact candidate merge
+      - name: Check out exact candidate revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.identity.outputs.merge_sha }}
+          ref: ${{ steps.identity.outputs.revision_sha }}
           path: candidate-clients
           persist-credentials: false
       - name: Assert candidate against verified artifact
@@ -238,7 +310,7 @@ jobs:
       - name: Prepare verified candidate
         uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -291,7 +363,7 @@ jobs:
         working-directory: candidate-clients
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
-          COVERAGE_HEAD: ${{ needs.verify.outputs.merge-sha }}
+          COVERAGE_HEAD: ${{ needs.verify.outputs.revision-sha }}
         run: pnpm run coverage:dotnet-core
       - name: Clean persistent runner workspace
         if: always()
@@ -313,7 +385,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -343,7 +415,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -371,7 +443,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -399,7 +471,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -525,7 +597,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -591,7 +663,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -624,7 +696,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -662,7 +734,7 @@ jobs:
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -711,7 +783,7 @@ jobs:
       - name: Prepare verified candidate
         uses: ./.github/actions/prepare-native-contract
         with:
-          candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
