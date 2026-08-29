@@ -7,8 +7,13 @@ package_path="$1"
 test_bundle_name="$2"
 output_path="$3"
 package_directory="$repository_root/$package_path"
+build_directory="$package_directory/.build"
 
 [[ -d "$package_directory" ]]
+[[ -d "$build_directory" ]] || {
+  printf 'Expected Swift package build directory at %s.\n' "$build_directory" >&2
+  exit 1
+}
 
 single_match() {
   local description="$1"
@@ -25,8 +30,8 @@ single_match() {
   printf '%s\n' "${matches[0]}"
 }
 
-profdata="$(single_match 'default.profdata profile' "$package_directory/.build" -type f -name default.profdata)"
-test_bundle="$(single_match "$test_bundle_name.xctest bundle" "$package_directory/.build" -name "$test_bundle_name.xctest")"
+profdata="$(single_match 'default.profdata profile' "$build_directory" -type f -name default.profdata)"
+test_bundle="$(single_match "$test_bundle_name.xctest bundle" "$build_directory" -name "$test_bundle_name.xctest")"
 
 if [[ -d "$test_bundle" ]]; then
   test_binary="$test_bundle/Contents/MacOS/$test_bundle_name"

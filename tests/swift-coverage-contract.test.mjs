@@ -25,7 +25,8 @@ async function lcovFixture(t, { isolatedRepositoryRoot = false } = {}) {
   );
   const binDirectory = await mkdtemp(join(tmpdir(), "voucha-xcrun-"));
   const packageDirectory = join(fixtureRoot, "package");
-  const buildDirectory = join(packageDirectory, ".build/debug");
+  const packageBuildDirectory = join(packageDirectory, ".build");
+  const buildDirectory = join(packageBuildDirectory, "debug");
   const bundleName = "VouchaTests";
   const binary = join(buildDirectory, `${bundleName}.xctest/Contents/MacOS/${bundleName}`);
   const argumentsPath = join(fixtureRoot, "xcrun-arguments.txt");
@@ -64,6 +65,8 @@ async function lcovFixture(t, { isolatedRepositoryRoot = false } = {}) {
       XCRUN_ARGUMENTS_PATH: argumentsPath,
     },
     fixtureRoot,
+    buildDirectory,
+    packageBuildDirectory,
     packagePath: isolatedRepositoryRoot ? "package" : relative(repositoryRoot, packageDirectory),
     bundleName,
     writeLcov: fixtureWriteLcov,
@@ -123,6 +126,22 @@ test("fails LCOV export when profile discovery is ambiguous", async (t) => {
       },
     ),
     /Expected exactly one default\.profdata profile, found 2\./,
+  );
+});
+
+test("fails LCOV export clearly when the package build directory is missing", async (t) => {
+  const fixture = await lcovFixture(t);
+  await rm(fixture.packageBuildDirectory, { recursive: true, force: true });
+  await assert.rejects(
+    execFileAsync(
+      "bash",
+      [fixture.writeLcov, fixture.packagePath, fixture.bundleName, "coverage/lcov.info"],
+      {
+        cwd: repositoryRoot,
+        env: fixture.environment,
+      },
+    ),
+    /Expected Swift package build directory at .+\/package\/\.build\./,
   );
 });
 
