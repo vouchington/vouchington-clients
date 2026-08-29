@@ -106,6 +106,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.topic-recommendation.detail.default") {
             Endpoint.topicRecommendation(id: "recommendation-1")
         },
+        ManifestRegisteredEndpoint(id: "native.topic-recommendations.top-hashtags.default") {
+            Endpoint.topHashtags()
+        },
         ManifestRegisteredEndpoint(id: "swift.integration.rss-feed-items.video") {
             Endpoint.rssFeedItems(feedType: "any", mediaType: "video")
         },

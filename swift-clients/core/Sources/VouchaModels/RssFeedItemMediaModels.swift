@@ -4,6 +4,16 @@ public struct RssFeedItemCategoryModel: Codable, Sendable {
     @RequiredNullable
     public var topic: TopicReference?
     public let votesScoreNet: Double?
+    @RequiredNullable
+    public var hashtag: RssFeedItemHashtag?
+}
+
+public struct RssFeedItemHashtag: Codable, Sendable {
+    public let id: String
+    public let key: String
+    public let displayToken: String
+    @RequiredNullable
+    public var topicId: String?
 }
 
 public struct RssFeedItemMediaContent: Codable, Sendable {

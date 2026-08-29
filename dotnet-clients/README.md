@@ -4,14 +4,14 @@ This workspace contains the .NET client stack for Voucha. The product target is 
 
 ## Current Status
 
-- .NET SDK: `10.0.3xx` floor (`rollForward: latestPatch`) in the repository-root
-  [`global.json`](../global.json); any `10.0.3xx` patch satisfies it. The workload set is exactly
-  pinned there too.
+- .NET SDK and workload set: the repository-root [`global.json`](../global.json) is the sole
+  policy source; it uses `rollForward: latestPatch` and pins the workload set too.
 - Portable solution: `Voucha.DotNet.sln`.
 - MAUI app targets: `net10.0-maccatalyst` and `net10.0-windows10.0.26100.0`.
 - Rendered capability areas include authentication and account settings with household and
   payment-card management, news and sources, posts and compose, topics including native
-  topic/source import and export, profiles and friends, notifications, direct messages and support,
+  topic/source import and export plus signed-in top-hashtag recommendations and administrator
+  mapping actions, profiles and friends, notifications, direct messages and support,
   lists, referral and landing pages, media playback, search, and role-gated staff operations. This is not
   a claim of web parity; see the [client parity matrix](../docs/requirements/CLIENT-PARITY-MATRIX.md)
   and [machine-readable evidence contract](../docs/requirements/client-feature-parity.json) for
@@ -61,7 +61,7 @@ the first `dotnet` host on `PATH` and validates it once from the repository root
 host then runs direct .NET commands, and its directory leads `PATH` for child scripts. If the host
 is missing or cannot satisfy the root `global.json`, the harness replays the resolver output,
 preserves its exit status, and stops before a command or build lock starts. Install a compatible
-10.0.3xx SDK and put that installation first on `PATH`; the harness does not search other install
+SDK selected by [`global.json`](../global.json) and put that installation first on `PATH`; the harness does not search other install
 roots or install SDKs. An ast-grep-only run remains SDK-independent. The external RESX fixture
 receives a runtime copy of the root policy so its temporary project cannot escape SDK selection.
 

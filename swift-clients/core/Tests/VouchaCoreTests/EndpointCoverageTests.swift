@@ -419,15 +419,15 @@ final class EndpointCoverageTests: XCTestCase {
         )
         assertEndpoint(Endpoint.topicAliases(topicId: "topic 1"), path: "/api/v1/topics/topic%201/aliases")
         assertEndpoint(
-            Endpoint.createTopicAliases(topicId: "topic 1", aliases: "alias", overwrite: true),
+            Endpoint.createTopicAliases(topicId: "topic 1", aliases: "alias"),
             method: .POST,
             path: "/api/v1/topics/topic%201/aliases",
-            body: ["aliases": "alias", "overwrite": true]
+            body: ["aliases": "alias"]
         )
         assertEndpoint(
-            Endpoint.deleteTopicAlias(topicId: "topic 1", alias: "alias 1"),
+            Endpoint.deleteTopicAlias(topicId: "topic 1", aliasId: "alias-id-1"),
             method: .DELETE,
-            path: "/api/v1/topics/topic%201/aliases/alias%201"
+            path: "/api/v1/topics/topic%201/aliases/alias-id-1"
         )
         assertEndpoint(
             Endpoint.mergeTopicAliases(sourceTopicId: "topic 1", destinationIdOrSlug: "topic-2"),

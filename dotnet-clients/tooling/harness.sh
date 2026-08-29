@@ -93,7 +93,7 @@ if [[ "$needs_dotnet" == true ]]; then
   DOTNET_HOST="$(type -P dotnet 2>/dev/null || true)"
   if [[ -z "$DOTNET_HOST" ]]; then
     echo 'Error: dotnet was not found on PATH.' >&2
-    echo 'Install a compatible .NET 10.0.3xx SDK, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
+    echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
     exit 127
   fi
   dotnet_host_name="${DOTNET_HOST##*/}"
@@ -117,7 +117,7 @@ if [[ "$needs_dotnet" == true ]]; then
     fi
     rm -f -- "$preflight_output"
     echo 'The PATH-selected dotnet host cannot satisfy the repository root global.json policy.' >&2
-    echo 'Install a compatible .NET 10.0.3xx SDK, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
+    echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
     exit "$preflight_status"
   fi
   export PATH="$dotnet_host_dir:$PATH"

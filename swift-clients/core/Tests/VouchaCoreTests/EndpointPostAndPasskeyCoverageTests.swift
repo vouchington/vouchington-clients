@@ -107,6 +107,41 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual((body["review_topic_ratings"] as? [[String: Any]])?.first?["rating"] as? Int, 4)
     }
 
+    func testPostCategoriesEncodeOnCreateCommunityCreateAndUpdateBodies() throws {
+        let hashtag = try XCTUnwrap(PostCategoryInput(hashtag: " #Me.Too__2026 "))
+        let categories: [PostCategoryInput] = [
+            .topic(topicId: " topic-1 "),
+            hashtag
+        ]
+
+        let createBody = try encodedJSONObject(from: XCTUnwrap(Endpoint.createPost(
+            postType: .discussion,
+            title: "Discussion",
+            markdown: "Body",
+            categories: categories
+        ).body))
+        let communityBody = try encodedJSONObject(from: XCTUnwrap(Endpoint.createCommunityPost(
+            communityIdOrSlug: "voucha",
+            postType: .discussion,
+            title: "Discussion",
+            markdown: "Body",
+            categories: categories
+        ).body))
+        let updateBody = try encodedJSONObject(from: XCTUnwrap(Endpoint.updatePost(
+            postId: "post-1",
+            body: UpdatePostBody(categories: categories)
+        ).body))
+
+        for body in [createBody, communityBody, updateBody] {
+            let encodedCategories = try XCTUnwrap(body["categories"] as? [[String: Any]])
+            XCTAssertEqual(encodedCategories.count, 2)
+            XCTAssertEqual(encodedCategories[0]["type"] as? String, "topic")
+            XCTAssertEqual(encodedCategories[0]["topic_id"] as? String, "topic-1")
+            XCTAssertEqual(encodedCategories[1]["type"] as? String, "hashtag")
+            XCTAssertEqual(encodedCategories[1]["hashtag"] as? String, "#Me.Too__2026")
+        }
+    }
+
     private func encodedJSONObject(from body: any Encodable) throws -> [String: Any] {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase

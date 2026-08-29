@@ -39,6 +39,7 @@ public final class NativePostComposeViewModel {
     public var reviewTopicRatings: [NativePostComposeReviewTopicRatingDraft] = [
         .init()
     ]
+    public var categoryDrafts: [NativePostComposeCategoryDraft] = []
     public var dataPointVertical: DataPointVertical?
     public var dataPointStructuredDataJSON = ""
     public var turnstileToken: String?
@@ -85,6 +86,7 @@ public final class NativePostComposeViewModel {
             return false
         }
         guard availablePostTypes.contains(postType) else { return false }
+        guard postType != .discussion || hasValidDiscussionCategoryDrafts else { return false }
         return switch postType {
         case .link:
             !linkURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

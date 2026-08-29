@@ -8,6 +8,7 @@ public struct UpdatePostBody: Encodable, Sendable {
     public let isAnonymous: Bool?
     public let dataPointVertical: DataPointVertical?
     public let structuredData: CreatePostJSONValue?
+    public let categories: [PostCategoryInput]?
     public let archive: Bool?
 
     public init(
@@ -18,6 +19,7 @@ public struct UpdatePostBody: Encodable, Sendable {
         isAnonymous: Bool? = nil,
         dataPointVertical: DataPointVertical? = nil,
         structuredData: CreatePostJSONValue? = nil,
+        categories: [PostCategoryInput]? = nil,
         archive: Bool? = nil
     ) {
         self.title = title
@@ -27,6 +29,7 @@ public struct UpdatePostBody: Encodable, Sendable {
         self.isAnonymous = isAnonymous
         self.dataPointVertical = dataPointVertical
         self.structuredData = structuredData
+        self.categories = categories
         self.archive = archive
     }
 }

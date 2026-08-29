@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -15,7 +16,9 @@ public sealed class ApiModelsContentTests
         .Select(parameter => parameter.Name!)
         .ToArray();
 
-    Assert.Equal(["ApprovedAt", "InReviewAt", "RejectedAt"], parameterNames[^3..]);
+    Assert.Equal(
+        ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags"],
+        parameterNames[^5..]);
   }
 
   [Fact]
@@ -115,5 +118,45 @@ public sealed class ApiModelsContentTests
     Assert.Null(post.ApprovedAt);
     Assert.Null(post.InReviewAt);
     Assert.Null(post.RejectedAt);
+  }
+
+  [Fact]
+  public void PostDeserializesExplicitTopicAndHashtagCategories()
+  {
+    var post = JsonSerializer.Deserialize<Post>("""
+      {
+        "id": "post-1",
+        "post_type": "discussion",
+        "title": "Fixture post",
+        "markdown": "#Travel",
+        "created_by_id": "user-1",
+        "post_explicit_categories": [
+          { "type": "topic", "topic_id": "topic-1", "topic_name": "Travel" },
+          { "type": "hashtag", "hashtag": "#Travel" }
+        ],
+        "post_hashtags": [
+          { "id": "hashtag-1", "key": "travel", "display_token": "#Travel", "topic_id": "topic-1" }
+        ]
+      }
+      """)!;
+
+    Assert.Collection(
+        post.PostExplicitCategories!,
+        topic =>
+        {
+          Assert.Equal("topic", topic.Type);
+          Assert.Equal("topic-1", topic.TopicId);
+          Assert.Equal("Travel", topic.TopicName);
+          Assert.Null(topic.Hashtag);
+        },
+        hashtag =>
+        {
+          Assert.Equal("hashtag", hashtag.Type);
+          Assert.Equal("#Travel", hashtag.Hashtag);
+          Assert.Null(hashtag.TopicId);
+        });
+    var hashtag = Assert.Single(post.PostHashtags!);
+    Assert.Equal(("hashtag-1", "travel", "#Travel", "topic-1"),
+        (hashtag.Id, hashtag.Key, hashtag.DisplayToken, hashtag.TopicId));
   }
 }

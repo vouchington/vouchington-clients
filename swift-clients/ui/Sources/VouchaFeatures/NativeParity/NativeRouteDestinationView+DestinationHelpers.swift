@@ -36,7 +36,12 @@ extension NativeRouteDestinationSurface {
                 hideDownCount: hideDownCount
             )
         } else {
-            NativeListSurface(viewModel: viewModel)
+            NativeTopicRecommendationsRootSurface(
+                routeViewModel: viewModel,
+                isSignedIn: isSignedIn,
+                isAdministrator: isAdministrator,
+                onNavigateToTargetPath: onNavigateToTargetPath
+            )
         }
     }
 

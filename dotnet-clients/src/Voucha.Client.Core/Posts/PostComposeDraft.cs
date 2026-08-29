@@ -18,7 +18,16 @@ public static class PostComposeTypes
 
 public sealed record PostComposeTopicRatingDraft(string TopicId, int Rating);
 
-public sealed record PostComposeTopicDraft(string TopicId);
+public enum PostComposeCategoryKind
+{
+  Topic,
+  Hashtag,
+}
+
+public sealed record PostComposeCategoryDraft(PostComposeCategoryKind Kind, string Value)
+{
+  public string UserContentValue => Value;
+}
 
 public sealed record PostComposeImageDraft(
     string ImageId,

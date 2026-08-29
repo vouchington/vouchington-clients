@@ -11,7 +11,8 @@ final class EndpointTopicParityTests: XCTestCase {
                 slug: "rewards",
                 topicType: "card",
                 markdown: "Body",
-                hostname: "example.com"
+                hostname: "example.com",
+                sourceTopicAliasId: "alias-1"
             )),
             method: .POST,
             path: "/api/v1/topics",
@@ -20,7 +21,8 @@ final class EndpointTopicParityTests: XCTestCase {
                 "slug": "rewards",
                 "topic_type": "card",
                 "markdown": "Body",
-                "hostname": "example.com"
+                "hostname": "example.com",
+                "source_topic_alias_id": "alias-1"
             ]
         )
     }
@@ -61,6 +63,15 @@ final class EndpointTopicParityTests: XCTestCase {
         XCTAssertTrue(endpoint.queryItems.contains(URLQueryItem(name: "limit", value: "15")))
     }
 
+    func testCanonicalHashtagSlugNormalizesMobileSeparators() {
+        XCTAssertEqual(CanonicalHashtagSlug(rawValue: " #Me.Too__2026 ")?.value, "me-too-2026")
+        XCTAssertEqual(CanonicalHashtagSlug(rawValue: "inner__separators")?.value, "inner-separators")
+        XCTAssertNil(CanonicalHashtagSlug(rawValue: "not a hashtag"))
+        XCTAssertNil(CanonicalHashtagSlug(rawValue: "-leading"))
+        XCTAssertNil(CanonicalHashtagSlug(rawValue: "trailing-"))
+        XCTAssertNil(CanonicalHashtagSlug(rawValue: "a\(String(repeating: ".", count: 254))b"))
+    }
+
     func testTopicAdditionalHostnameDecodesBackendHostnameId() throws {
         let json = Data(
             #"""
@@ -89,10 +100,23 @@ final class EndpointTopicParityTests: XCTestCase {
 
     func testTopicSearchDecodesAndPreservesTopicEntityType() throws {
         let json = Data(
-            (
-                #"{"results":[{"__entity_type":"topic","id":"topic-1","name":"Rewards","slug":"rewards","topic_type":"# +
-                    #""rewards_program"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"topics":{}}"#
-            ).utf8
+            #"""
+            {
+              "results": [{
+                "__entity_type": "topic",
+                "id": "topic-1",
+                "name": "Rewards",
+                "slug": "rewards",
+                "topic_type": "rewards_program"
+              }],
+              "page_info": {
+                "has_next_page": false,
+                "start_cursor": null,
+                "end_cursor": null
+              },
+              "topics": {}
+            }
+            """#.utf8
         )
 
         let decoded = try makeVouchaDecoder().decode(TopicSearchResponse.self, from: json)

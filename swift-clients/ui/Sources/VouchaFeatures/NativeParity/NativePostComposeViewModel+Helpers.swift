@@ -1,6 +1,5 @@
 import Foundation
 import VouchaAPI
-import VouchaLocalization
 import VouchaModels
 
 extension NativePostComposeViewModel {
@@ -9,6 +8,7 @@ extension NativePostComposeViewModel {
             hasImages ||
             !linkURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             reviewTopicRatings.contains(where: \.hasContent) ||
+            categoryDrafts.contains(where: { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) ||
             dataPointVertical != nil ||
             !dataPointStructuredDataJSON.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -23,6 +23,29 @@ extension NativePostComposeViewModel {
         return !filledRatings.isEmpty && filledRatings.count == reviewTopicRatings.count
     }
 
+    var hasValidDiscussionCategoryDrafts: Bool {
+        guard postType == .discussion else { return true }
+        return categoryDrafts.allSatisfy { draft in
+            guard draft.type == .hashtag else { return true }
+            let value = draft.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return value.isEmpty || CanonicalHashtagSlug(rawValue: draft.value) != nil
+        }
+    }
+
+    var postCategoryInputs: [PostCategoryInput]? {
+        guard postType == .discussion else { return nil }
+        let inputs = categoryDrafts.compactMap { draft -> PostCategoryInput? in
+            switch draft.type {
+            case .topic:
+                guard let topicId = draft.value.trimmedOrNil else { return nil }
+                return .topic(topicId: topicId)
+            case .hashtag:
+                return PostCategoryInput(hashtag: draft.value)
+            }
+        }
+        return inputs.isEmpty ? nil : inputs
+    }
+
     func makeCreateEndpoint(turnstileToken: String?) -> Endpoint {
         if let communityIdOrSlug {
             return makeCommunityCreateEndpoint(communityIdOrSlug: communityIdOrSlug, turnstileToken: turnstileToken)
@@ -35,6 +58,7 @@ extension NativePostComposeViewModel {
                 title: title,
                 markdown: bodyText,
                 url: linkURL.trimmedOrNil,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 turnstileToken: turnstileToken
             )
@@ -45,6 +69,7 @@ extension NativePostComposeViewModel {
                 postType: postType,
                 title: title,
                 markdown: bodyText,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 dataPointVertical: dataPointVertical,
                 structuredData: parseStructuredData(),
@@ -55,6 +80,7 @@ extension NativePostComposeViewModel {
                 postType: postType,
                 title: title,
                 markdown: bodyText,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 turnstileToken: turnstileToken
             )
@@ -70,6 +96,7 @@ extension NativePostComposeViewModel {
                 title: title,
                 markdown: bodyText,
                 url: linkURL.trimmedOrNil,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 turnstileToken: turnstileToken
             )
@@ -82,6 +109,7 @@ extension NativePostComposeViewModel {
                 reviewTopicRatings: reviewTopicRatings.filter(\.isValid).map {
                     .init(topicId: $0.topicId.trimmingCharacters(in: .whitespacesAndNewlines), rating: $0.rating)
                 },
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 turnstileToken: turnstileToken
             )
@@ -91,6 +119,7 @@ extension NativePostComposeViewModel {
                 postType: postType,
                 title: title,
                 markdown: bodyText,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 dataPointVertical: dataPointVertical,
                 structuredData: parseStructuredData(),
@@ -102,6 +131,7 @@ extension NativePostComposeViewModel {
                 postType: postType,
                 title: title,
                 markdown: bodyText,
+                categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 turnstileToken: turnstileToken
             )
@@ -124,47 +154,6 @@ extension NativePostComposeViewModel {
         return try? CreatePostJSONValue.parse(jsonString: trimmed)
     }
 
-    var draftRow: NativeRouteDestinationRow {
-        switch postType {
-        case .link:
-            .init(
-                icon: "link",
-                title: title.isEmpty
-                    ? .message(.nativeSwiftPostComposeUntitledLink)
-                    : .verbatim(title),
-                detail: linkURL.trimmedOrNil.map(UiVerbatimText.verbatim)
-                    ?? .message(.nativeSwiftPostComposeSavedLinkDraft)
-            )
-        case .review:
-            .init(
-                icon: "star",
-                title: title.isEmpty
-                    ? .message(.nativeSwiftPostComposeUntitledReview)
-                    : .verbatim(title),
-                detail: .count(reviewTopicRatings.count, item: "rating")
-            )
-        case .dataPoint:
-            .init(
-                icon: "chart.bar",
-                title: title.isEmpty
-                    ? .message(.nativeSwiftPostComposeUntitledDataPoint)
-                    : .verbatim(title),
-                detail: dataPointVertical.map { .message($0.titleKey) }
-                    ?? .message(.nativeSwiftPostComposeSavedDataPointDraft)
-            )
-        default:
-            .init(
-                icon: "tray.and.arrow.down",
-                title: title.isEmpty
-                    ? .message(.nativeSwiftPostComposeUntitledDraft)
-                    : .verbatim(title),
-                detail: bodyText.trimmedOrNil.map(UiVerbatimText.verbatim)
-                    ?? imageSummary
-                    ?? .message(.nativeSwiftPostComposeSavedDraft)
-            )
-        }
-    }
-
     private func makeReviewEndpoint(turnstileToken: String?) -> Endpoint {
         Endpoint.createPost(
             postType: postType,
@@ -173,6 +162,7 @@ extension NativePostComposeViewModel {
             reviewTopicRatings: reviewTopicRatings.filter(\.isValid).map {
                 .init(topicId: $0.topicId.trimmingCharacters(in: .whitespacesAndNewlines), rating: $0.rating)
             },
+            categories: postCategoryInputs,
             images: imageInputs.isEmpty ? nil : imageInputs,
             turnstileToken: turnstileToken
         )
@@ -187,6 +177,7 @@ extension NativePostComposeViewModel {
     private func resetTypeSpecificFields() {
         turnstileToken = nil
         reviewTopicRatings = [.init()]
+        categoryDrafts = []
         dataPointVertical = nil
         dataPointStructuredDataJSON = ""
         resetImageFields()

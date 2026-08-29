@@ -84,6 +84,8 @@ public struct Post: Codable, Identifiable, Sendable {
     public var spamDetectionScore: Double?
     @RequiredNullable
     public var updatedById: String?
+    public let postExplicitCategories: [PostExplicitCategory]?
+    public let postHashtags: [PostHashtag]?
 
     public init(
         id: String,
@@ -111,7 +113,9 @@ public struct Post: Codable, Identifiable, Sendable {
         lockedById: String? = nil,
         canEditContent: Bool? = nil,
         canDelete: Bool? = nil,
-        canLock: Bool? = nil
+        canLock: Bool? = nil,
+        postExplicitCategories: [PostExplicitCategory]? = nil,
+        postHashtags: [PostHashtag]? = nil
     ) {
         entityType = nil
         self.id = id
@@ -153,6 +157,8 @@ public struct Post: Codable, Identifiable, Sendable {
         spamDetectionResults = nil
         spamDetectionScore = nil
         updatedById = nil
+        self.postExplicitCategories = postExplicitCategories
+        self.postHashtags = postHashtags
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -165,6 +171,7 @@ public struct Post: Codable, Identifiable, Sendable {
         case aiSummaryMarkdown, archivedAt, archivedById, clearanceReason
         case clearanceUpdatedAt, spamDetectionCreatedAt, spamDetectionFlagged
         case spamDetectionResults, spamDetectionScore, updatedById
+        case postExplicitCategories, postHashtags
     }
 }
 

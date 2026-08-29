@@ -50,7 +50,9 @@ extension Post {
             lockedById: lockedById,
             canEditContent: canEditContent,
             canDelete: canDelete,
-            canLock: canLock
+            canLock: canLock,
+            postExplicitCategories: postExplicitCategories,
+            postHashtags: postHashtags
         )
     }
 }

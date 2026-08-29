@@ -1,6 +1,7 @@
 import SwiftUI
 import VouchaDesignSystem
 import VouchaLocalization
+import VouchaModels
 
 struct NativeTopicManagementAliasFields: View {
     @Environment(\.locale)
@@ -36,16 +37,18 @@ struct NativeTopicManagementAliasFields: View {
 
     private var aliasRows: some View {
         LazyVStack(alignment: .leading, spacing: Spacing.sm) {
-            ForEach(viewModel.aliases, id: \.self) { alias in
+            ForEach(viewModel.aliases) { alias in
                 HStack {
-                    Text(alias)
+                    Text(verbatim: alias.alias)
                     Spacer(minLength: 0)
-                    Button {
-                        Task { await viewModel.removeAlias(alias) }
-                    } label: {
-                        Image(systemName: "trash")
+                    if canRemove(alias) {
+                        Button {
+                            Task { await viewModel.removeAlias(alias) }
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             HybridPaginationControl(
@@ -57,6 +60,10 @@ struct NativeTopicManagementAliasFields: View {
                 await viewModel.loadMoreAliases()
             }
         }
+    }
+
+    func canRemove(_ alias: TopicAlias) -> Bool {
+        alias.alias != viewModel.topic?.slug
     }
 }
 

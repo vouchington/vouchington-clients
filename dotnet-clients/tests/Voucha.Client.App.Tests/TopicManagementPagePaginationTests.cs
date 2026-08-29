@@ -23,7 +23,7 @@ public sealed class TopicManagementPagePaginationTests
     Assert.Contains("SyncAliasesPaginationControl();", constructorSource, StringComparison.Ordinal);
     Assert.Contains("SyncHostnamesPaginationControl();", constructorSource, StringComparison.Ordinal);
 
-    Assert.Contains("CursorPaginationState<string, string> aliasesPagination = new(alias => alias);", paginationSource, StringComparison.Ordinal);
+    Assert.Contains("CursorPaginationState<TopicAlias, string> aliasesPagination = new(alias => alias.Id);", paginationSource, StringComparison.Ordinal);
     Assert.Contains("CursorPaginationState<TopicAdditionalHostname, string> hostnamesPagination = new(host => host.HostnameId);", paginationSource, StringComparison.Ordinal);
     Assert.Contains("private async void OnLoadMoreAliasesRequested(object? sender, EventArgs e)", paginationSource, StringComparison.Ordinal);
     Assert.Contains("private async void OnLoadMoreHostnamesRequested(object? sender, EventArgs e)", paginationSource, StringComparison.Ordinal);

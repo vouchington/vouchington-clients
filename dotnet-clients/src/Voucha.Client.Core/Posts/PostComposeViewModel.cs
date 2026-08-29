@@ -36,6 +36,7 @@ public sealed partial class PostComposeViewModel : ObservableObject, IDisposable
   private string reviewTopicId = "";
   private string reviewRating = "";
   private string discussionCategoryTopicId = "";
+  private string discussionCategoryHashtag = "";
   private string relatedLinkIdentifier = "";
   private string imageId = "";
   private string imageCaption = "";
@@ -84,7 +85,7 @@ public sealed partial class PostComposeViewModel : ObservableObject, IDisposable
 
   public IReadOnlyList<PostComposeTopicRatingDraft> ReviewTopicRatings { get; private set; } = [];
 
-  public IReadOnlyList<PostComposeTopicDraft> DiscussionCategoryTopics { get; private set; } = [];
+  public IReadOnlyList<PostComposeCategoryDraft> DiscussionCategories { get; private set; } = [];
 
   public IReadOnlyList<PostComposeRelatedUrlDraft> RelatedUrls { get; private set; } = [];
 
@@ -114,6 +115,8 @@ public sealed partial class PostComposeViewModel : ObservableObject, IDisposable
   public bool IsReviewType => PostType == PostComposeTypes.Review;
 
   public bool IsDataPointType => PostType == PostComposeTypes.DataPoint;
+
+  public bool IsDiscussionType => PostType == PostComposeTypes.Discussion;
 
   public bool CanEditSlug => IsAdministrator;
 

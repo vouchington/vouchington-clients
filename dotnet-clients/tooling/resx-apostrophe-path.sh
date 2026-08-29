@@ -26,6 +26,7 @@ export NUGET_HTTP_CACHE_PATH="$TEST_ROOT/nuget-http-cache"
 export NUGET_PACKAGES="$TEST_ROOT/nuget-packages"
 export NUGET_PLUGINS_CACHE_PATH="$TEST_ROOT/nuget-plugins-cache"
 export NUGET_SCRATCH="$TEST_ROOT/nuget-scratch"
+export MSBuildEnableWorkloadResolver=false
 
 cp -- "$ROOT_DIR/global.json" "$TEST_ROOT/global.json"
 

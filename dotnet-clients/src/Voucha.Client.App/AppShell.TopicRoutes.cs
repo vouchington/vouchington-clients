@@ -35,6 +35,15 @@ public sealed partial class AppShell
       return Navigation.PushAsync(CreateTopicManagementPage(resolution.Match));
     }
 
+    if (resolution.DestinationId == NativeRouteDestinationId.TopicRecommendations &&
+        resolution.Match?.Path == "/topic-recommendations")
+    {
+      return Navigation.PushAsync(new TopicRecommendationsPage(
+          serviceProvider.GetRequiredService<VouchaApiClient>(),
+          serviceProvider.GetRequiredService<ITopHashtagsService>(),
+          serviceProvider.GetRequiredService<ISessionStore>()));
+    }
+
     if (TopicRecommendationRoute.TryGetDetailId(resolution.Match, out var recommendationId))
     {
       return Navigation.PushAsync(new TopicRecommendationDetailPage(

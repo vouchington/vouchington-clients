@@ -90,7 +90,8 @@ public sealed record CreatePostBody(
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("recaptcha_token")] string? RecaptchaToken = null,
     [property: JsonPropertyName("hp_website")] string? HpWebsite = null,
-    [property: JsonPropertyName("hp_phone")] string? HpPhone = null);
+    [property: JsonPropertyName("hp_phone")] string? HpPhone = null,
+    [property: JsonPropertyName("categories")] IReadOnlyList<PostCategoryInput>? Categories = null);
 
 public sealed record CreatePostImageInput(
     [property: JsonPropertyName("image_id")] string ImageId,
@@ -120,7 +121,8 @@ public sealed record UpdatePostBody(
     [property: JsonPropertyName("data_point_vertical")] string? DataPointVertical = null,
     [property: JsonPropertyName("structured_data")] object? StructuredData = null,
     [property: JsonPropertyName("archive")] bool? Archive = null,
-    [property: JsonPropertyName("slug")] string? Slug = null);
+    [property: JsonPropertyName("slug")] string? Slug = null,
+    [property: JsonPropertyName("categories")] IReadOnlyList<PostCategoryInput>? Categories = null);
 
 public sealed record AddPostRatingBody(
     [property: JsonPropertyName("topic_id")] string TopicId,
@@ -159,8 +161,7 @@ public sealed record UpdateTopicBody(
     [property: JsonPropertyName("hero_image_id")] JsonNullableString? HeroImageId = null);
 
 public sealed record CreateTopicAliasesBody(
-    [property: JsonPropertyName("aliases")] string Aliases,
-    [property: JsonPropertyName("overwrite")] bool Overwrite = false);
+    [property: JsonPropertyName("aliases")] string Aliases);
 
 public sealed record UpdatePodcastPlaybackPositionBody(
     [property: JsonPropertyName("position_seconds")] double PositionSeconds,

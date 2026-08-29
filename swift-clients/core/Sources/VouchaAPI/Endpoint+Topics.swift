@@ -54,31 +54,8 @@ public struct UpdateTopicBody: Encodable, Sendable {
     }
 }
 
-public struct CreateTopicBody: Encodable, Sendable {
-    public let name: String
-    public let slug: String
-    public let topicType: String?
-    public let markdown: String?
-    public let hostname: String?
-
-    public init(
-        name: String,
-        slug: String,
-        topicType: String? = nil,
-        markdown: String? = nil,
-        hostname: String? = nil
-    ) {
-        self.name = name
-        self.slug = slug
-        self.topicType = topicType
-        self.markdown = markdown
-        self.hostname = hostname
-    }
-}
-
 private struct TopicAliasBody: Encodable {
     let aliases: String
-    let overwrite: Bool
 }
 
 private struct TopicMergeBody: Encodable {
@@ -140,16 +117,16 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/topics/\(pathSegment(topicId))/aliases", queryItems: items)
     }
 
-    static func createTopicAliases(topicId: String, aliases: String, overwrite: Bool = false) -> Endpoint {
+    static func createTopicAliases(topicId: String, aliases: String) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/topics/\(pathSegment(topicId))/aliases",
-            body: TopicAliasBody(aliases: aliases, overwrite: overwrite)
+            body: TopicAliasBody(aliases: aliases)
         )
     }
 
-    static func deleteTopicAlias(topicId: String, alias: String) -> Endpoint {
-        Endpoint(.DELETE, path: "/api/v1/topics/\(pathSegment(topicId))/aliases/\(pathSegment(alias))")
+    static func deleteTopicAlias(topicId: String, aliasId: String) -> Endpoint {
+        Endpoint(.DELETE, path: "/api/v1/topics/\(pathSegment(topicId))/aliases/\(pathSegment(aliasId))")
     }
 
     static func mergeTopicAliases(sourceTopicId: String, destinationIdOrSlug: String) -> Endpoint {

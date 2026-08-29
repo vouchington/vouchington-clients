@@ -26,7 +26,8 @@ public sealed record CreateTopicRequest(
     [property: JsonPropertyName("slug")] string Slug,
     [property: JsonPropertyName("topic_type")] string TopicType,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
-    [property: JsonPropertyName("hostname")] string? Hostname = null);
+    [property: JsonPropertyName("hostname")] string? Hostname = null,
+    [property: JsonPropertyName("source_topic_alias_id")] string? SourceTopicAliasId = null);
 
 public sealed record FetchRssFeedItemsRequest(
     string FeedType = "any",

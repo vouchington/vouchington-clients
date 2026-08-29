@@ -269,8 +269,8 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("followTopic", VouchaApiEndpoints.FollowTopic("topic-1"), HttpMethod.Put, "/api/v1/bookmarks/topic/topic-1/follow", Query());
     yield return Case("unfollowTopic", VouchaApiEndpoints.UnfollowTopic("topic-1"), HttpMethod.Delete, "/api/v1/bookmarks/topic/topic-1/follow", Query());
     yield return Case("topicAliases", VouchaApiEndpoints.TopicAliases("topic-1", "cursor-1", 12), HttpMethod.Get, "/api/v1/topics/topic-1/aliases", Query(("after", "cursor-1"), ("limit", "12")));
-    yield return Case("createTopicAliases", VouchaApiEndpoints.CreateTopicAliases("topic-1", new CreateTopicAliasesBody("alias", true)), HttpMethod.Post, "/api/v1/topics/topic-1/aliases", Query(), true);
-    yield return Case("deleteTopicAlias", VouchaApiEndpoints.DeleteTopicAlias("topic-1", "alias 1"), HttpMethod.Delete, "/api/v1/topics/topic-1/aliases/alias%201", Query());
+    yield return Case("createTopicAliases", VouchaApiEndpoints.CreateTopicAliases("topic-1", new CreateTopicAliasesBody("alias")), HttpMethod.Post, "/api/v1/topics/topic-1/aliases", Query(), true);
+    yield return Case("deleteTopicAlias", VouchaApiEndpoints.DeleteTopicAlias("topic-1", "00000000-0000-7000-8000-000000000001"), HttpMethod.Delete, "/api/v1/topics/topic-1/aliases/00000000-0000-7000-8000-000000000001", Query());
     yield return Case("mergeTopicAliases", VouchaApiEndpoints.MergeTopicAliases("topic-1", "topic-2"), HttpMethod.Post, "/api/v1/topics/topic-1/merges", Query(), true);
     yield return Case("topicAdditionalHostnames", VouchaApiEndpoints.TopicAdditionalHostnames("topic-1", "cursor-2", 13), HttpMethod.Get, "/api/v1/topics/topic-1/additional-hostnames", Query(("after", "cursor-2"), ("limit", "13")));
     yield return Case("createTopicAdditionalHostname", VouchaApiEndpoints.CreateTopicAdditionalHostname("topic-1", "example.com"), HttpMethod.Post, "/api/v1/topics/topic-1/additional-hostnames", Query(), true);

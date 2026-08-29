@@ -12,7 +12,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
             (
                 Data(
                     #"""
-                    {"results":["primary"],
+                    {"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"}],
                     "page_info":{"has_next_page":true,"end_cursor":"cursor-1","start_cursor":null}}
                     """#.utf8
                 ),
@@ -22,7 +22,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
             (
                 Data(
                     #"""
-                    {"results":["secondary"],
+                    {"results":[{"id":"alias-secondary","alias":"secondary","topic_id":"topic-1"}],
                     "page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}
                     """#.utf8
                 ),
@@ -36,7 +36,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         try await viewModel.reloadAliases()
         await viewModel.loadMoreAliases()
 
-        XCTAssertEqual(viewModel.aliases, ["primary", "secondary"])
+        XCTAssertEqual(viewModel.aliases.map(\.alias), ["primary", "secondary"])
         let queryItems = CannedFeedURLProtocol.capturedURLs.last.flatMap {
             URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems
         }
@@ -87,7 +87,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (
             Data(
                 #"""
-                {"results":["primary"],
+                {"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"}],
                 "page_info":{"has_next_page":true,"end_cursor":"cursor-1","start_cursor":null}}
                 """#.utf8
             ),
@@ -103,7 +103,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         loadMore.cancel()
         await loadMore.value
 
-        XCTAssertEqual(viewModel.aliases, ["primary"])
+        XCTAssertEqual(viewModel.aliases.map(\.alias), ["primary"])
         XCTAssertTrue(viewModel.aliasesPagination.hasMore)
         XCTAssertNil(viewModel.aliasesPagination.lastError)
         XCTAssertFalse(viewModel.aliasesPagination.isLoading)
@@ -114,7 +114,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (
             Data(
                 #"""
-                {"results":["primary"],
+                {"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"}],
                 "page_info":{"has_next_page":true,"end_cursor":"cursor-1","start_cursor":null}}
                 """#.utf8
             ),
@@ -127,7 +127,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (Data(#"{"message":"offline"}"#.utf8), 503)
         await viewModel.loadMoreAliases()
 
-        XCTAssertEqual(viewModel.aliases, ["primary"])
+        XCTAssertEqual(viewModel.aliases.map(\.alias), ["primary"])
         guard case .api = viewModel.aliasesPagination.lastError else {
             return XCTFail(
                 "Expected a VouchaError.api, got \(String(describing: viewModel.aliasesPagination.lastError))"
@@ -140,7 +140,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (
             Data(
                 #"""
-                {"results":["primary"],
+                {"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"}],
                 "page_info":{"has_next_page":true,"end_cursor":"cursor-1","start_cursor":null}}
                 """#.utf8
             ),
@@ -153,7 +153,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.errors[path] = FlakyPaginationTransportFailure()
         await viewModel.loadMoreAliases()
 
-        XCTAssertEqual(viewModel.aliases, ["primary"])
+        XCTAssertEqual(viewModel.aliases.map(\.alias), ["primary"])
         guard case let .unexpected(message) = viewModel.aliasesPagination.lastError else {
             return XCTFail(
                 "Expected a VouchaError.unexpected, got \(String(describing: viewModel.aliasesPagination.lastError))"
@@ -259,7 +259,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
             (
                 Data(
                     #"""
-                    {"results":["primary"],
+                    {"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"}],
                     "page_info":{"has_next_page":true,"end_cursor":"cursor-1","start_cursor":null}}
                     """#.utf8
                 ),
@@ -269,7 +269,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
             (
                 Data(
                     #"""
-                    {"results":["secondary"],
+                    {"results":[{"id":"alias-secondary","alias":"secondary","topic_id":"topic-1"}],
                     "page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}
                     """#.utf8
                 ),
@@ -285,7 +285,7 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         try sut.inspect().find(button: "Load more").tap()
         try await waitForAliasCount(2, in: viewModel)
 
-        XCTAssertEqual(viewModel.aliases, ["primary", "secondary"])
+        XCTAssertEqual(viewModel.aliases.map(\.alias), ["primary", "secondary"])
     }
 
     func testDomainFieldsLoadMoreButtonInvokesViewModelPagination() async throws {

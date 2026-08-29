@@ -119,6 +119,25 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/topic-recommendations/\(pathSegment(id))")
     }
 
+    static func topHashtags(
+        query: String? = nil,
+        mapping: TopHashtagMapping = .all,
+        after: String? = nil,
+        limit: Int = 25
+    ) -> Endpoint {
+        var items = [
+            URLQueryItem(name: "limit", value: "\(limit)"),
+            URLQueryItem(name: "mapping", value: mapping.rawValue)
+        ]
+        if let query, !query.isEmpty {
+            items.append(.init(name: "q", value: query))
+        }
+        if let after {
+            items.append(.init(name: "after", value: after))
+        }
+        return Endpoint(.GET, path: "/api/v1/topic-recommendations/top-hashtags", queryItems: items)
+    }
+
     static func updateTopicRecommendation(id: String, body: some Encodable & Sendable) -> Endpoint {
         Endpoint(.PATCH, path: "/api/v1/topic-recommendations/\(pathSegment(id))", body: body)
     }

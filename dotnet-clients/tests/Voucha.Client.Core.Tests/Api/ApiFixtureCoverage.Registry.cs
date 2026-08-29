@@ -37,6 +37,7 @@ internal static partial class ApiFixtureCoverage
     ["native.import-export.topics.export.default"] = typeof(TopicExportResponse),
     ["native.feature-flags.default"] = typeof(FeatureFlagsResponse),
     ["native.captcha-config.default"] = typeof(CaptchaConfigResponse),
+    ["native.topic-recommendations.top-hashtags.default"] = typeof(TopHashtagsResponse),
     ["native.dynamic-config.namespaces.developer"] = typeof(DynamicConfigNamespacesResponse),
     ["native.dynamic-config.namespace.typed"] = typeof(DynamicConfigNamespaceResponse),
     ["native.dynamic-config.namespace.string"] = typeof(DynamicConfigNamespaceResponse),

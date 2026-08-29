@@ -81,6 +81,7 @@ struct CreatePostBody: Encodable {
     let rootId: String?
     let parentId: String?
     let reviewTopicRatings: [CreatePostReviewTopicRatingInput]?
+    let categories: [PostCategoryInput]?
     let images: [CreatePostImageInput]?
     let dataPointVertical: DataPointVertical?
     let structuredData: CreatePostJSONValue?
@@ -123,6 +124,7 @@ public extension Endpoint {
         rootId: String? = nil,
         parentId: String? = nil,
         reviewTopicRatings: [CreatePostReviewTopicRatingInput]? = nil,
+        categories: [PostCategoryInput]? = nil,
         images: [CreatePostImageInput]? = nil,
         dataPointVertical: DataPointVertical? = nil,
         structuredData: CreatePostJSONValue? = nil,
@@ -146,6 +148,7 @@ public extension Endpoint {
                 rootId: rootId,
                 parentId: parentId,
                 reviewTopicRatings: reviewTopicRatings,
+                categories: categories,
                 images: images,
                 dataPointVertical: dataPointVertical,
                 structuredData: structuredData,

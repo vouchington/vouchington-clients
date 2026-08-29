@@ -2,16 +2,6 @@ import VouchaAPI
 import VouchaCore
 import VouchaModels
 
-/// Aliases are returned as bare strings; `CursorPaginationState` requires `Identifiable` items,
-/// so wrap each alias in a stable-by-value identity.
-struct TopicAliasItem: Identifiable, Equatable {
-    let alias: String
-
-    var id: String {
-        alias
-    }
-}
-
 @MainActor
 extension NativeTopicManagementViewModel {
     var additionalHostnames: [TopicAdditionalHostname] {
@@ -19,21 +9,20 @@ extension NativeTopicManagementViewModel {
         set { additionalHostnamesPagination.reset(items: newValue) }
     }
 
-    var aliases: [String] {
-        get { aliasesPagination.items.map(\.alias) }
-        set { aliasesPagination.reset(items: newValue.map(TopicAliasItem.init)) }
+    var aliases: [TopicAlias] {
+        aliasesPagination.items
     }
 
     func loadMoreAliases() async {
         guard let client, let topicIdentifier else { return }
         guard let request = aliasesPagination.beginNextPage() else { return }
         do {
-            let response: Page<String> = try await client.send(
+            let response: Page<TopicAlias> = try await client.send(
                 .topicAliases(topicId: topicIdentifier, after: request.cursor)
             )
             aliasesPagination.complete(
                 request,
-                items: response.results.map(TopicAliasItem.init),
+                items: response.results,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )

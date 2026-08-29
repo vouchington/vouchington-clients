@@ -33,7 +33,7 @@ final class NativeTopicManagementViewModel {
     var allowReviews = false
     var additionalHostname = ""
     var additionalHostnamesPagination = CursorPaginationState<TopicAdditionalHostname>()
-    var aliasesPagination = CursorPaginationState<TopicAliasItem>()
+    var aliasesPagination = CursorPaginationState<TopicAlias>()
     var aliasDraft = ""
     var destinationIdOrSlug = ""
     var state: LoadState = .idle
@@ -130,10 +130,12 @@ final class NativeTopicManagementViewModel {
         }
     }
 
-    func removeAlias(_ alias: String) async {
+    func removeAlias(_ alias: TopicAlias) async {
         guard let client, let topicIdentifier else { return }
         do {
-            let _: EmptyResponse = try await client.send(.deleteTopicAlias(topicId: topicIdentifier, alias: alias))
+            let _: EmptyResponse = try await client.send(
+                .deleteTopicAlias(topicId: topicIdentifier, aliasId: alias.id)
+            )
             try await reloadAliases()
         } catch let error as VouchaError {
             state = .error(error)
