@@ -176,11 +176,15 @@ jobs:
       issues: read
       pull-requests: write
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out the trusted base revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.select-final-review.outputs.base_sha }}
-          clean: true
+          clean: false
           persist-credentials: false
 
       - name: Run advisory review
@@ -243,6 +247,11 @@ jobs:
           elif [ "$POSTER_STEP_OUTCOME" != skipped ] && [ "$POSTER_OUTCOME" != success ]; then
             echo "::warning::$PROVIDER_NAME review poster did not complete successfully; this is advisory."
           fi
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   code-reviewed:
     name: >-

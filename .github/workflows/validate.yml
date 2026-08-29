@@ -14,11 +14,16 @@ concurrency:
 jobs:
   contract-tests:
     name: Contract assertions
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 5
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          clean: false
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -27,18 +32,35 @@ jobs:
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Test contract boundary
         run: node --test tests/*.test.mjs
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   dotnet-core:
     name: .NET core build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 20
     env:
       MSBuildEnableWorkloadResolver: "false"
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          clean: false
           fetch-depth: 0
           persist-credentials: false
+      - name: Configure isolated .NET SDK root
+        run: |
+          set -euo pipefail
+          dotnet_root="$RUNNER_TEMP/voucha-dotnet-sdk"
+          rm -rf -- "$dotnet_root"
+          mkdir -p -- "$dotnet_root"
+          printf 'DOTNET_INSTALL_DIR=%s\n' "$dotnet_root" >> "$GITHUB_ENV"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -55,23 +77,38 @@ jobs:
       - name: Build core client
         working-directory: dotnet-clients
         run: dotnet build tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --configuration Release --no-restore
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   swift-core:
     name: Swift manifest
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, Tests]
     timeout-minutes: 20
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          clean: false
           persist-credentials: false
       - name: Validate core package manifest
         run: swift package --package-path swift-clients/core dump-package >/dev/null
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   validate:
     name: validate
     if: always()
     needs: [contract-tests, dotnet-core, swift-core]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 2
     steps:
       - name: Require client validation

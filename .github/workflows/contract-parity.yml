@@ -16,7 +16,7 @@ concurrency:
 jobs:
   contracts:
     name: Filaments contract parity
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 65
     steps:
       - name: Await exact native contract test run
