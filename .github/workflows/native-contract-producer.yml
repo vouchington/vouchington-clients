@@ -19,12 +19,20 @@ jobs:
     runs-on: [self-hosted]
     timeout-minutes: 15
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out trusted client tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          clean: false
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
       - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Assert authorized Filaments source
         run: >-
@@ -111,4 +119,6 @@ jobs:
           overwrite: true
       - name: Clean persistent runner workspace
         if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace

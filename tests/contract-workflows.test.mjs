@@ -218,7 +218,7 @@ describe("native contract workflow boundary", () => {
       workflow,
       /  build-android-core:[\s\S]*?    runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
     );
-    assert.equal(workflow.split("clean: false").length - 1, 10);
+    assert.equal(workflow.split("clean: false").length - 1, 11);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {

@@ -17,3 +17,9 @@ allowlisted source trees and replace the generated Swift and .NET localization o
 `contracts:check` never writes; it validates the explicit checkout root and checks that both
 generated outputs are exact byte-for-byte matches. CI obtains a normal full Filaments checkout and
 runs that assertion; there is no duplicated localization bundle or sparse-checkout path.
+
+## CI runners
+
+This private repository uses the organization self-hosted fleet to avoid consuming GitHub-hosted
+minutes. Runner labels and the required persistent-runner cleanup boundary are documented in
+[`docs/development/ci-runners.md`](docs/development/ci-runners.md).
