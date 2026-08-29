@@ -69,7 +69,7 @@ async function paths() {
     fail(`cannot read contract configuration: ${error.message}`);
   }
   if (!Array.isArray(configuration.paths) || configuration.paths.length < 2)
-    fail("contract configuration must declare fixture and localization paths");
+    fail("contract configuration must declare one fixture path and at least one localization path");
   for (const path of configuration.paths) {
     if (
       typeof path !== "string" ||
@@ -168,6 +168,9 @@ export async function stageNativeContract(options = {}) {
   } catch (error) {
     fail(`Filaments exporter failed: ${error.message}`);
   }
+  // Validate the exporter's complete output before creating or copying through
+  // any exporter-controlled destination ancestor.
+  await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
   for (const path of localizationPaths) {
     if (!(await descendantInfo(outputRoot, path, "staged contract")))
       fail(`missing directory at staged contract/${path}`);

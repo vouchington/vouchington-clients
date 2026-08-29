@@ -128,4 +128,41 @@ test("fails closed for partial legacy trees, symlinks, a nonempty output, and in
     }),
     /Filaments exporter failed: exit 1/,
   );
+
+  const unexpectedExporterOutput = await fixture(t, { legacy: false });
+  await assert.rejects(
+    stageNativeContract({
+      ...unexpectedExporterOutput,
+      runExporter: async () => {
+        await writeTree(unexpectedExporterOutput.outputRoot, {
+          "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift":
+            "exported swift\n",
+          "dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs":
+            "exported dotnet\n",
+          "undeclared/extra.txt": "nope\n",
+        });
+      },
+    }),
+    /unexpected staged contract path undeclared/,
+  );
+
+  const linkedFixtureAncestor = await fixture(t, { legacy: false });
+  const outside = join(dirname(linkedFixtureAncestor.outputRoot), "outside");
+  await mkdir(outside);
+  await assert.rejects(
+    stageNativeContract({
+      ...linkedFixtureAncestor,
+      runExporter: async () => {
+        await writeTree(linkedFixtureAncestor.outputRoot, {
+          "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift":
+            "exported swift\n",
+          "dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs":
+            "exported dotnet\n",
+        });
+        await symlink(outside, join(linkedFixtureAncestor.outputRoot, "api-fixtures"));
+      },
+    }),
+    /symbolic link found at staged contract api-fixtures/,
+  );
+  await assert.rejects(readFile(join(outside, "v1/manifest.json")), { code: "ENOENT" });
 });
