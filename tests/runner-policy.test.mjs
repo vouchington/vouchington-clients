@@ -62,13 +62,9 @@ describe("private self-hosted runner policy", () => {
       ["validate", "\\[self-hosted, Linux\\]"],
     ])
       assertRunner(workflows["validate.yml"], job, runner);
-    assertRunner(
-      workflows["native-contract-producer.yml"],
-      "open-check",
-      "\\[self-hosted, Linux\\]",
-    );
+    assertRunner(workflows["native-contract-tests.yml"], "produce", "\\[self-hosted\\]");
     assertRunner(workflows["native-contract-tests.yml"], "verify", "\\[self-hosted, Linux\\]");
-    assertRunner(workflows["native-contract-result.yml"], "report", "\\[self-hosted, Linux\\]");
+    assertRunner(workflows["native-contract-tests.yml"], "tests", "\\[self-hosted, Linux\\]");
     assertRunner(workflows["dependabot-automerge.yml"], "automerge", "\\[self-hosted, Linux\\]");
     assertRunner(
       workflows["validate-request-final-code-review.yml"],
@@ -84,7 +80,7 @@ describe("private self-hosted runner policy", () => {
       ["validate.yml", "dotnet-core"],
       ["validate.yml", "swift-core"],
       ["native-contract-tests.yml", "verify"],
-      ["native-contract-producer.yml", "produce"],
+      ["native-contract-tests.yml", "produce"],
       ["final-code-review.yml", "provider-review"],
     ])
       assertPersistentCleanup(workflows[workflow], job);

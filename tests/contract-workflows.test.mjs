@@ -8,9 +8,9 @@ const readAction = (name) =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), "utf8");
 
 const preparedCandidateInputs = [
-  "candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}",
-  "producer-run-attempt: ${{ github.event.workflow_run.run_attempt }}",
-  "producer-run-id: ${{ github.event.workflow_run.id }}",
+  "candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}",
+  "producer-run-attempt: ${{ github.run_attempt }}",
+  "producer-run-id: ${{ github.run_id }}",
 ];
 
 const cleanupWorkspace = (workflow) => {
@@ -25,9 +25,7 @@ describe("native contract workflow boundary", () => {
     );
     const consumers = await Promise.all([
       readFile(new URL("../scripts/contract-artifact.mjs", import.meta.url), "utf8"),
-      readWorkflow("native-contract-producer.yml"),
       readWorkflow("native-contract-tests.yml"),
-      readWorkflow("native-contract-result.yml"),
     ]);
 
     for (const path of config.paths) {
@@ -37,9 +35,7 @@ describe("native contract workflow boundary", () => {
 
   it("uses full checkouts and pinned artifact actions", async () => {
     const files = await Promise.all([
-      readWorkflow("native-contract-producer.yml"),
       readWorkflow("native-contract-tests.yml"),
-      readWorkflow("native-contract-result.yml"),
       readAction("prepare-native-contract"),
     ]);
     const combined = files.join("\n");
@@ -55,16 +51,16 @@ describe("native contract workflow boundary", () => {
       readWorkflow("native-contract-tests.yml"),
     ]);
 
-    for (const input of ["candidate-merge-sha", "producer-run-id", "producer-run-attempt"])
+    for (const input of ["candidate-revision-sha", "producer-run-id", "producer-run-attempt"])
       assert.match(action, new RegExp(`inputs\\.${input}`, "u"));
     for (const expectation of [
       /fetch-depth: 0/u,
-      /ref: \$\{\{ inputs\.candidate-merge-sha \}\}/u,
+      /ref: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /path: candidate-clients/u,
       /persist-credentials: false/u,
       /run-id: \$\{\{ inputs\.producer-run-id \}\}/u,
       /native-contract-\$\{\{ inputs\.producer-run-id \}\}-\$\{\{ inputs\.producer-run-attempt \}\}/u,
-      /--expected-merge-sha "\$\{\{ inputs\.candidate-merge-sha \}\}"/u,
+      /--expected-revision-sha "\$\{\{ inputs\.candidate-revision-sha \}\}"/u,
     ])
       assert.match(action, expectation);
 
@@ -137,6 +133,7 @@ describe("native contract workflow boundary", () => {
       readWorkflow("native-contract-tests.yml"),
       readWorkflow("validate.yml"),
     ]);
+    const candidateJobs = workflow.slice(workflow.indexOf("  verify:"));
 
     for (const job of [
       "lint-swift:",
@@ -189,11 +186,11 @@ describe("native contract workflow boundary", () => {
     );
     assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u);
     assert.match(workflow, /#6705[\s\S]*iOS[\s\S]*Simulator destination/u);
-    assert.doesNotMatch(workflow, /coverage-transport|s3_transport|secrets\./u);
+    assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u);
     assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u);
     assert.match(validation, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u);
     assert.equal(
-      workflow.split("candidate-merge-sha: ${{ needs.verify.outputs.merge-sha }}").length - 1,
+      workflow.split("candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}").length - 1,
       10,
     );
   });
@@ -217,7 +214,7 @@ describe("native contract workflow boundary", () => {
       workflow,
       /  build-android-core:[\s\S]*?    runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
     );
-    assert.equal(workflow.split("clean: false").length - 1, 11);
+    assert.equal(workflow.split("clean: false").length - 1, 12);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {
@@ -230,21 +227,21 @@ describe("native contract workflow boundary", () => {
   });
 
   it("keeps the Filaments secret in the trusted producer", async () => {
-    const producer = await readWorkflow("native-contract-producer.yml");
-    const consumer = await readWorkflow("native-contract-tests.yml");
-    const result = await readWorkflow("native-contract-result.yml");
+    const workflow = await readWorkflow("native-contract-tests.yml");
     const action = await readAction("prepare-native-contract");
 
-    assert.match(producer, /pull_request_target:/u);
-    assert.match(producer, /secrets\.FILAMENTS_DEPLOY_KEY/u);
-    assert.doesNotMatch(consumer, /secrets\./u);
-    assert.doesNotMatch(result, /secrets\./u);
+    assert.match(workflow, /pull_request_target:/u);
+    assert.equal(workflow.split("secrets.FILAMENTS_DEPLOY_KEY").length - 1, 1);
+    assert.match(
+      workflow,
+      /  produce:[\s\S]*?ssh-key: \$\{\{ secrets\.FILAMENTS_DEPLOY_KEY \}\}[\s\S]*?  verify:/u,
+    );
     assert.doesNotMatch(action, /secrets\./u);
-    assert.match(consumer, /workflow_run:/u);
+    assert.doesNotMatch(workflow, /workflow_run:/u);
   });
 
   it("stages the trusted contract before parity and artifact creation", async () => {
-    const producer = await readWorkflow("native-contract-producer.yml");
+    const producer = await readWorkflow("native-contract-tests.yml");
 
     assert.match(producer, /name: Stage trusted native contract/u);
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u);
@@ -262,27 +259,17 @@ describe("native contract workflow boundary", () => {
     );
   });
 
-  it("preserves exact run identities and the required check name", async () => {
-    const producer = await readWorkflow("native-contract-producer.yml");
-    const consumer = await readWorkflow("native-contract-tests.yml");
-    const result = await readWorkflow("native-contract-result.yml");
+  it("preserves exact run identities and exposes one aggregate Tests gate", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
 
     assert.match(
-      producer,
-      /run-name: >-\n\s+Native contract producer for PR #\$\{\{ github\.event\.pull_request\.number \}\} at \$\{\{ github\.event\.pull_request\.head\.sha \}\} updated \$\{\{ github\.event\.pull_request\.updated_at \}\}/u,
+      workflow,
+      /run-name: >-\n\s+Native contract tests for \$\{\{ github\.event\.pull_request\.number.*format\('main at \{0\}', github\.sha\) \}\}/u,
     );
-    assert.match(producer, /pull_request\.updated_at/u);
-    assert.match(producer, /retention-days: 1/u);
-    assert.match(
-      producer,
-      /external_id="native-contract-producer:\$\{GITHUB_RUN_ID\}:\$\{GITHUB_RUN_ATTEMPT\}"/u,
-    );
-    assert.match(consumer, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/u);
-    assert.match(consumer, /--expected-producer-run-attempt/u);
-    assert.match(consumer, /Native contract tests for producer.*PR #.*head/u);
-    assert.match(result, /name: Native contract result/u);
-    assert.match(result, /Filaments contract parity/u);
-    assert.match(result, /native-contract-producer:\$\{producer_id\}:\$\{producer_attempt\}/u);
-    assert.match(result, /producer_conclusion.*success.*CONSUMER_CONCLUSION.*success/u);
+    assert.match(workflow, /retention-days: 1/u);
+    assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u);
+    assert.match(workflow, /--expected-producer-run-attempt/u);
+    assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u);
+    assert.doesNotMatch(workflow, /Filaments contract parity|check-runs/u);
   });
 });

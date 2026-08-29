@@ -37,10 +37,11 @@ async function fixture(t) {
     outputRoot: artifactRoot,
     filamentsSha: "a".repeat(40),
     clientsRepository: "vouchington/vouchington-clients",
-    prNumber: 17,
+    candidateEvent: "pull_request",
+    candidateNumber: 17,
     baseSha: "b".repeat(40),
     headSha: "c".repeat(40),
-    mergeSha: "d".repeat(40),
+    revisionSha: "d".repeat(40),
     producerRunId: "12345",
     producerRunAttempt: "2",
   };
@@ -52,10 +53,11 @@ function expected(identity) {
     artifactRoot: identity.outputRoot,
     expectedClientsRepository: identity.clientsRepository,
     expectedFilamentsSha: identity.filamentsSha,
-    expectedPrNumber: identity.prNumber,
+    expectedCandidateEvent: identity.candidateEvent,
+    expectedCandidateNumber: identity.candidateNumber,
     expectedBaseSha: identity.baseSha,
     expectedHeadSha: identity.headSha,
-    expectedMergeSha: identity.mergeSha,
+    expectedRevisionSha: identity.revisionSha,
     expectedProducerRunId: identity.producerRunId,
     expectedProducerRunAttempt: identity.producerRunAttempt,
   };
@@ -75,6 +77,25 @@ test("creates a narrow, deterministic manifest and verifies it", async (t) => {
     JSON.parse(await readFile(join(identity.outputRoot, "manifest.json"), "utf8")),
     manifest,
   );
+});
+
+test("creates and verifies a main-branch push identity without a pull request", async (t) => {
+  const identity = {
+    ...(await fixture(t)),
+    candidateEvent: "push",
+    candidateNumber: undefined,
+    headSha: "d".repeat(40),
+    revisionSha: "d".repeat(40),
+  };
+  const manifest = await createContractArtifact(identity);
+  assert.deepEqual(manifest.candidate, {
+    event: "push",
+    number: null,
+    base: identity.baseSha,
+    head: identity.headSha,
+    revision: identity.revisionSha,
+  });
+  assert.equal((await verifyContractArtifact(expected(identity))).candidate.event, "push");
 });
 
 test("rejects tampered content, size, unexpected paths, and symlinks", async (t) => {
@@ -101,6 +122,10 @@ test("rejects metadata identity changes and malformed manifests", async (t) => {
   await assert.rejects(
     verifyContractArtifact({ ...expected(identity), expectedHeadSha: "e".repeat(40) }),
     /head SHA mismatch/,
+  );
+  await assert.rejects(
+    verifyContractArtifact({ ...expected(identity), expectedCandidateEvent: "push" }),
+    /candidate event mismatch/,
   );
   const manifestPath = join(identity.outputRoot, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));

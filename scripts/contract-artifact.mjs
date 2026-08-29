@@ -133,15 +133,25 @@ async function fileRecord(root, path) {
 function createMetadata(options, config) {
   const clientsRepository = requiredString(options.clientsRepository, "clients repository");
   if (!repositoryPattern.test(clientsRepository)) fail("clients repository must be owner/name");
+  const candidateEvent = requiredString(options.candidateEvent, "candidate event");
+  if (!["pull_request", "push"].includes(candidateEvent))
+    fail("candidate event must be pull_request or push");
+  const candidateNumber =
+    candidateEvent === "pull_request"
+      ? Number(positiveInteger(options.candidateNumber, "candidate PR number"))
+      : null;
+  if (candidateEvent === "push" && options.candidateNumber !== undefined)
+    fail("push candidates must not have a PR number");
   return {
-    schema: 1,
+    schema: 2,
     clientsRepository,
     filaments: { repository: config.repository, sha: sha(options.filamentsSha, "Filaments SHA") },
-    pullRequest: {
-      number: Number(positiveInteger(options.prNumber, "PR number")),
+    candidate: {
+      event: candidateEvent,
+      number: candidateNumber,
       base: sha(options.baseSha, "base SHA"),
       head: sha(options.headSha, "head SHA"),
-      merge: sha(options.mergeSha, "merge SHA"),
+      revision: sha(options.revisionSha, "candidate revision SHA"),
     },
     producer: {
       runId: positiveInteger(options.producerRunId, "producer run ID"),
@@ -194,14 +204,14 @@ function validateManifest(value, config) {
       "schema",
       "clientsRepository",
       "filaments",
-      "pullRequest",
+      "candidate",
       "producer",
       "allowlistedPaths",
       "files",
     ],
     "manifest",
   );
-  if (value.schema !== 1) fail("unsupported manifest schema");
+  if (value.schema !== 2) fail("unsupported manifest schema");
   if (
     !repositoryPattern.test(requiredString(value.clientsRepository, "manifest clients repository"))
   )
@@ -210,13 +220,14 @@ function validateManifest(value, config) {
   if (value.filaments.repository !== config.repository)
     fail("invalid manifest Filaments repository");
   sha(value.filaments.sha, "manifest Filaments SHA");
-  exactKeys(
-    value.pullRequest,
-    ["number", "base", "head", "merge"],
-    "manifest pull request metadata",
-  );
-  positiveInteger(value.pullRequest.number, "manifest PR number");
-  for (const key of ["base", "head", "merge"]) sha(value.pullRequest[key], `manifest ${key} SHA`);
+  exactKeys(value.candidate, ["event", "number", "base", "head", "revision"], "manifest candidate");
+  if (!["pull_request", "push"].includes(value.candidate.event))
+    fail("invalid manifest candidate event");
+  if (value.candidate.event === "pull_request")
+    positiveInteger(value.candidate.number, "manifest candidate PR number");
+  else if (value.candidate.number !== null) fail("manifest push candidate must not have a PR number");
+  for (const key of ["base", "head", "revision"])
+    sha(value.candidate[key], `manifest candidate ${key} SHA`);
   exactKeys(value.producer, ["runId", "runAttempt"], "manifest producer metadata");
   positiveInteger(value.producer.runId, "manifest producer run ID");
   positiveInteger(value.producer.runAttempt, "manifest producer run attempt");
@@ -247,10 +258,11 @@ function checkExpected(manifest, options) {
   const pairs = [
     ["clientsRepository", manifest.clientsRepository, options.expectedClientsRepository],
     ["Filaments SHA", manifest.filaments.sha, options.expectedFilamentsSha],
-    ["PR number", String(manifest.pullRequest.number), options.expectedPrNumber],
-    ["base SHA", manifest.pullRequest.base, options.expectedBaseSha],
-    ["head SHA", manifest.pullRequest.head, options.expectedHeadSha],
-    ["merge SHA", manifest.pullRequest.merge, options.expectedMergeSha],
+    ["candidate event", manifest.candidate.event, options.expectedCandidateEvent],
+    ["candidate number", String(manifest.candidate.number), options.expectedCandidateNumber],
+    ["base SHA", manifest.candidate.base, options.expectedBaseSha],
+    ["head SHA", manifest.candidate.head, options.expectedHeadSha],
+    ["candidate revision SHA", manifest.candidate.revision, options.expectedRevisionSha],
     ["producer run ID", manifest.producer.runId, options.expectedProducerRunId],
     ["producer run attempt", manifest.producer.runAttempt, options.expectedProducerRunAttempt],
   ];

@@ -1,9 +1,9 @@
 name: Prepare verified native contract
-description: Verify one producer artifact and check out its exact candidate merge
+description: Verify one producer artifact and check out its exact candidate revision
 
 inputs:
-  candidate-merge-sha:
-    description: Verified pull request merge revision
+  candidate-revision-sha:
+    description: Verified pull request merge or main push revision
     required: true
   github-token:
     description: Read-only token used to download the producer artifact
@@ -58,12 +58,12 @@ runs:
         --expected-clients-repository "$GITHUB_REPOSITORY"
         --expected-producer-run-id "${{ inputs.producer-run-id }}"
         --expected-producer-run-attempt "${{ inputs.producer-run-attempt }}"
-        --expected-merge-sha "${{ inputs.candidate-merge-sha }}"
-    - name: Check out exact candidate merge
+        --expected-revision-sha "${{ inputs.candidate-revision-sha }}"
+    - name: Check out exact candidate revision
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
-        ref: ${{ inputs.candidate-merge-sha }}
+        ref: ${{ inputs.candidate-revision-sha }}
         path: candidate-clients
         persist-credentials: false
     - name: Install candidate tooling
