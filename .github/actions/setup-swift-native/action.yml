@@ -1,0 +1,27 @@
+name: Set up Swift native quality tools
+description: Install the pinned Swift quality tool set used by native contract consumers
+
+inputs:
+  tools:
+    description: Either lint or periphery
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install mise
+      uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+      with:
+        cache: false
+        install: false
+    - name: Install pinned Swift quality tools
+      shell: bash
+      env:
+        TOOL_SET: ${{ inputs.tools }}
+      run: |
+        set -euo pipefail
+        case "$TOOL_SET" in
+          lint) mise install github:nicklockwood/SwiftFormat@0.61.1 aqua:realm/SwiftLint@0.65.0 ;;
+          periphery) mise install aqua:peripheryapp/periphery@3.7.4 ;;
+          *) echo "unsupported Swift quality tool set: $TOOL_SET" >&2; exit 2 ;;
+        esac
