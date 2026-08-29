@@ -47,7 +47,7 @@ describe("private self-hosted runner policy", () => {
     for (const [name, workflow] of await readWorkflows()) {
       assert.doesNotMatch(
         workflow,
-        /^\s*(?:runs-on|runner):\s*(?:ubuntu-|macos-|windows-)/mu,
+        /\b(?:ubuntu|macos|windows)-(?:latest|slim|\d[\w.-]*)\b/iu,
         `${name} selects a GitHub-hosted runner`,
       );
     }
