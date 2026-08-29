@@ -39,12 +39,10 @@ work. Periphery is the sole unused declaration/import gate across indexed `core/
 locally and in CI; imports of external modules that Periphery cannot index have no separate
 analyzer.
 
-CI pins exact SwiftFormat, SwiftLint, and Periphery versions in `tests-swift-clients.yml`. The macOS
-installer in
-[vouchington-github-actions-runners](https://github.com/vouchington/vouchington-github-actions-runners)
-owns local host-tool installation; see the
-[system dependency contract](../docs/development/system-dependencies.md). The local harness can run
-`fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
+The macOS runner image owns SwiftFormat, SwiftLint, and Periphery installation. The local harness
+uses `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
+Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
+The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
 
 Each package's `Package.resolved` is its canonical SwiftPM lock; the generated app projects consume
 the UI lock. Build, test, and dead-code checks require pinned versions. To update dependencies
@@ -73,12 +71,14 @@ from core through UI and the Android package. Inspect `reasons`, `warnings`, and
 `dependencies`, and `sample` groups independently: a missing baseline or unsupported dependency
 form uses the selected environment's conservative policy and is never evidence that there are no
 causal tests. The command can select `VouchaAndroidTests`; run its emitted command, or reproduce it
-directly with `bash ci/with-build-lock.sh swift test --package-path swift-clients/apps/android
+directly with `bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/apps/android
 --filter VouchaAndroidTests --force-resolved-versions`.
 
 This is a local/pre-push planning aid only. GitHub's native Swift workflow intentionally remains
 full-suite: it runs core, UI, and Android test/build coverage rather than consuming a narrowed
-planner result.
+planner result. The Core and UI LCOV reports are checked with `pnpm run coverage:swift`; its
+`.coverage-rules.yml` keeps app shells, package manifests, and opt-in integration tests exempt
+while requiring 90% patch coverage for all other Swift sources.
 
 `build`, `periphery`, and `test` are macOS-only until the packages are Linux-portable.
 `build-android` is Linux-only and exists as a local opt-in compile gate for Android-via-Swift.

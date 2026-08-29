@@ -1,0 +1,55 @@
+id: swift-native-no-raw-markdown-text
+language: Swift
+severity: error
+message: "Render markdown/html content with NativeHtmlContent or NativeMarkdownEditor instead of raw SwiftUI Text."
+files:
+  - "swift-clients/ui/Sources/**/*.swift"
+rule:
+  all:
+    - kind: call_expression
+    - regex: '\bText\s*\(\s*(?:[A-Za-z_][A-Za-z0-9_]*\.)?(?:markdown|Markdown|html|Html|bodyHtml|BodyHtml|bio)\b'
+examples:
+  - code: |
+      import SwiftUI
+
+      struct BioView: View {
+          let markdown: String
+          var body: some View {
+              Text(markdown)
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      import SwiftUI
+
+      struct HtmlView: View {
+          let bodyHtml: String
+          var body: some View {
+              Text(bodyHtml)
+          }
+      }
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/CommentView.swift"
+  - code: |
+      import SwiftUI
+
+      struct BioView: View {
+          let markdown: String
+          var body: some View {
+              NativeHtmlContent(html: nil, fallback: markdown)
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/Profile/ProfileView.swift"
+  - code: |
+      import SwiftUI
+
+      struct MessageView: View {
+          let bodyText: String
+          var body: some View {
+              Text(bodyText)
+          }
+      }
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/DirectMessages/DirectMessagesSurface.swift"

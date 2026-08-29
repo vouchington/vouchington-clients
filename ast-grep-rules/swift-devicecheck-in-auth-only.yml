@@ -1,0 +1,34 @@
+id: swift-devicecheck-in-auth-only
+language: Swift
+severity: error
+message: "`DeviceCheck` in `core/` belongs in `VouchaAuth` only; keep other core modules Foundation-only and pass App Attest results through auth boundaries."
+files:
+  - "swift-clients/core/**/*.swift"
+ignores:
+  - "swift-clients/core/Sources/VouchaAuth/**/*.swift"
+rule:
+  all:
+    - kind: import_declaration
+    - regex: '\bDeviceCheck\b|\bDCAppAttestService\b'
+examples:
+  - code: "import DeviceCheck"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaModels/User.swift"
+  - code: "import DeviceCheck"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaAPI/APIClient.swift"
+  - code: "import class DeviceCheck.DCAppAttestService"
+    isValid: false
+    file: "swift-clients/core/Sources/VouchaCore/Logging.swift"
+  - code: "import Foundation"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaModels/User.swift"
+  - code: "import DeviceCheck"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAuth/AppAttestProviding.swift"
+  - code: "import class DeviceCheck.DCAppAttestService"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAuth/AppAttestProviding.swift"
+  - code: "import DeviceCheck"
+    isValid: true
+    file: "swift-clients/core/Sources/VouchaAuth/AppAttestationService.swift"

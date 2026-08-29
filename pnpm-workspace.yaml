@@ -1,5 +1,6 @@
 packages: []
 allowBuilds:
+  "@ast-grep/cli": true
   esbuild: false
 engineStrict: true
 minimumReleaseAge: 1440

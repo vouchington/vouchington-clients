@@ -240,8 +240,8 @@ fi
 # ── build: swift build ────────────────────────────────────────────────────────
 if contains build; then
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "build/core" bash "$ROOT_DIR/ci/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/core" --force-resolved-versions
-    run_check "build/ui" bash "$ROOT_DIR/ci/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "build/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/core" --force-resolved-versions
+    run_check "build/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
     echo "  build/core   - (skipped: macOS only; packages are not Linux-portable yet)"
     echo "  build/ui     - (skipped: macOS only; packages are not Linux-portable yet)"
@@ -255,7 +255,7 @@ if contains build-android; then
     echo "  build-android - (skipped: Android cross-compile is Linux-oriented)"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_check "build-android" bash "$ROOT_DIR/ci/with-build-lock.sh" bash "$SWIFT_DIR/tooling/build-android-core.sh"
+    run_check "build-android" bash "$SWIFT_DIR/tooling/with-build-lock.sh" bash "$SWIFT_DIR/tooling/build-android-core.sh"
   fi
 fi
 
@@ -266,8 +266,8 @@ if contains periphery; then
     echo "  periphery/ui   - (skipped: macOS only; packages are not Linux-portable yet)"
     SKIPPED=$((SKIPPED + 2))
   elif command -v periphery >/dev/null 2>&1; then
-    run_check "periphery/core" run_in_directory "$SWIFT_DIR/core" bash "$ROOT_DIR/ci/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions
-    run_check "periphery/ui" run_in_directory "$SWIFT_DIR/ui" bash "$ROOT_DIR/ci/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions -Xswiftc -index-store-path -Xswiftc .build/debug/index/store
+    run_check "periphery/core" run_in_directory "$SWIFT_DIR/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions
+    run_check "periphery/ui" run_in_directory "$SWIFT_DIR/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions -Xswiftc -index-store-path -Xswiftc .build/debug/index/store
   else
     run_check "periphery" missing_periphery
   fi
@@ -288,8 +288,8 @@ fi
 # ── test: swift test ─────────────────────────────────────────────────────────
 if contains test; then
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "test/core" bash "$ROOT_DIR/ci/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/core" --force-resolved-versions
-    run_check "test/ui" bash "$ROOT_DIR/ci/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/core" --force-resolved-versions
+    run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
     echo "  test/core    - (skipped: macOS only; Linux requires FoundationNetworking which is not linked)"
     echo "  test/ui      - (skipped — macOS only)"

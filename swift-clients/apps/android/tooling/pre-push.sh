@@ -63,7 +63,7 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
       echo "GRADLE_BUILD_CACHE_DIR must be a real directory: $GRADLE_BUILD_CACHE_DIR" >&2
       exit 1
     fi
-    chmod 0700 -- "$GRADLE_BUILD_CACHE_DIR"
+    chmod 0700 "$GRADLE_BUILD_CACHE_DIR"
     export GRADLE_BUILD_CACHE_DIR
   fi
 
