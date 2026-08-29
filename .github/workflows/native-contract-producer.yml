@@ -59,9 +59,21 @@ jobs:
           set -euo pipefail
           printf 'candidate_merge_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+      - name: Stage trusted native contract
+        env:
+          CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
+          FILAMENTS_ROOT: ${{ github.workspace }}/filaments
+        run: |
+          set -euo pipefail
+          mkdir -p "$CONTRACT_STAGE_ROOT"
+          node scripts/stage-native-contract.mjs \
+            --filaments-root "$FILAMENTS_ROOT" \
+            --output-root "$CONTRACT_STAGE_ROOT" \
+            --consumer-root "$CANDIDATE_ROOT"
       - name: Assert candidate generated localization parity
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ github.workspace }}/filaments
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
         run: >-
           node scripts/contracts.mjs check
           --destination-root "${{ github.workspace }}/candidate-clients"
@@ -69,7 +81,7 @@ jobs:
         id: artifact
         env:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract-${{ github.run_id }}-${{ github.run_attempt }}
-          FILAMENTS_ROOT: ${{ github.workspace }}/filaments
+          FILAMENTS_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
           FILAMENTS_SHA: ${{ steps.identities.outputs.filaments_sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
