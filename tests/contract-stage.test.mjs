@@ -61,8 +61,8 @@ test("stages every declared legacy contract directory into an isolated root", as
   );
 });
 
-test("uses the Filaments-owned exporter only when both legacy localization trees are absent", async (t) => {
-  const options = await fixture(t, { legacy: false });
+test("prefers the Filaments-owned exporter over legacy localization trees when available", async (t) => {
+  const options = await fixture(t);
   const calls = [];
   await stageNativeContract({
     ...options,
@@ -86,6 +86,13 @@ test("uses the Filaments-owned exporter only when both legacy localization trees
   assert.equal(
     await readFile(join(options.outputRoot, "api-fixtures/v1/manifest.json"), "utf8"),
     "{\"fixtures\":[]}\n",
+  );
+  assert.equal(
+    await readFile(
+      join(options.outputRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift"),
+      "utf8",
+    ),
+    "exported swift\n",
   );
 });
 

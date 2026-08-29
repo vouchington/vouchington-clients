@@ -7,7 +7,10 @@ This repository contains the Swift and .NET native clients for Voucha.
 The native clients consume a deliberately narrow contract from the private
 [`jonathanong/filaments`](https://github.com/jonathanong/filaments) repository. The source-path
 allowlist in [`contracts/filaments.json`](contracts/filaments.json) is the only cross-repository input:
-`api-fixtures/v1` and Filaments' existing generated Swift and .NET localization trees.
+`api-fixtures/v1` and the generated Swift and .NET localization trees. When Filaments provides its
+native-localization exporter, the trusted producer uses it in preference to any legacy generated
+trees; this keeps the staged localization contract aligned during extraction. Older producer
+revisions without that exporter fall back to their generated trees.
 
 `VOUCHA_FILAMENTS_CONTRACT_ROOT` is required for every command and explicitly identifies a full
 Filaments checkout. It is never inferred from an ignored workspace or nearby checkout.
