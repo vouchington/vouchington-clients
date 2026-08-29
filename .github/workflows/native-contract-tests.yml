@@ -664,26 +664,28 @@ jobs:
         run: >-
           dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Release --no-build
-      - name: Select Xcode 26.5
+      - name: Select compatible Xcode
+        id: xcode
         shell: bash
         run: |
           set -euo pipefail
+          required_version=26.5
           selected=$(xcode-select -p 2>/dev/null || true)
           shopt -s nullglob
           candidates=("$selected" /Applications/Xcode*.app/Contents/Developer)
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
-            case "$version" in
-              26.5*)
-                echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
-                echo "Selected Xcode $version at $developer_dir"
-                exit 0
-                ;;
-            esac
+            if [[ "$version" == "$required_version"* ]]; then
+              echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
+              echo 'compatible=true' >>"$GITHUB_OUTPUT"
+              echo "Selected Xcode $version at $developer_dir"
+              exit 0
+            fi
+            echo "Skipping $developer_dir because it is Xcode ${version:-unknown}, not $required_version"
           done
-          echo '::error::Xcode 26.5 is required for the Mac Catalyst smoke build.'
-          exit 1
+          echo "::notice::Xcode $required_version not found; skipping MAUI Mac Catalyst smoke build on this runner"
+          echo 'compatible=false' >>"$GITHUB_OUTPUT"
       - name: Detect host Mac Catalyst RID
         id: rid
         shell: bash
@@ -695,6 +697,7 @@ jobs:
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
       - name: Build MAUI Mac Catalyst app
+        if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
         env:
           ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
