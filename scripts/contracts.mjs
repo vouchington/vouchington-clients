@@ -7,7 +7,7 @@ const localizationPaths = [
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
-const declaredPaths = ['api-fixtures/v1', ...localizationPaths]
+export const declaredFilamentsContractPaths = ['api-fixtures/v1', ...localizationPaths]
 function localizationTargets(destinationRoot = repositoryRoot) {
   return localizationPaths.map(source => ({
     source,
@@ -106,10 +106,10 @@ async function contractRoot({
     parsed.schemaVersion !== 1 ||
     parsed.repository !== 'jonathanong/filaments' ||
     parsed.ref !== 'main' ||
-    JSON.stringify(parsed.paths) !== JSON.stringify(declaredPaths)
+    JSON.stringify(parsed.paths) !== JSON.stringify(declaredFilamentsContractPaths)
   )
     fail('contract configuration does not match the client contract')
-  for (const path of declaredPaths)
+  for (const path of declaredFilamentsContractPaths)
     await filesUnder(join(checkoutRoot, path), `declared Filaments contract source ${path}`)
   return checkoutRoot
 }
