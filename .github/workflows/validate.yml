@@ -54,6 +54,13 @@ jobs:
           clean: false
           fetch-depth: 0
           persist-credentials: false
+      - name: Configure isolated .NET SDK root
+        run: |
+          set -euo pipefail
+          dotnet_root="$RUNNER_TEMP/voucha-dotnet-sdk"
+          rm -rf -- "$dotnet_root"
+          mkdir -p -- "$dotnet_root"
+          printf 'DOTNET_INSTALL_DIR=%s\n' "$dotnet_root" >> "$GITHUB_ENV"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json

@@ -225,6 +225,8 @@ describe("native contract workflow boundary", () => {
     const validation = await readWorkflow("validate.yml");
 
     assert.match(validation, /global-json-file: global\.json/u);
+    assert.match(validation, /dotnet_root="\$RUNNER_TEMP\/voucha-dotnet-sdk"/u);
+    assert.match(validation, /printf 'DOTNET_INSTALL_DIR=%s\\n'.*"\$GITHUB_ENV"/u);
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u);
   });
 
