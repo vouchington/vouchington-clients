@@ -2,7 +2,7 @@ name: Final Code Review
 
 on:
   pull_request_target:
-    types: [labeled, ready_for_review]
+    types: [labeled]
 
 permissions:
   actions: read
@@ -17,11 +17,10 @@ jobs:
   select-final-review:
     name: Select final review
     if: >-
-      (github.event.action == 'ready_for_review' ||
-      github.event.label.name == 'final-code-review:requested') &&
+      github.event.label.name == 'final-code-review:requested' &&
       github.event.pull_request.draft == false
     runs-on: [self-hosted, Linux]
-    timeout-minutes: 32
+    timeout-minutes: 5
     permissions:
       actions: read
       contents: read
@@ -32,14 +31,12 @@ jobs:
       head_sha: ${{ steps.select.outputs.head_sha }}
       base_sha: ${{ steps.select.outputs.base_sha }}
     steps:
-      - name: Select the exact PR head and wait for validation
+      - name: Select the exact validated PR head
         id: select
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          EVENT_ACTION: ${{ github.event.action }}
           EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          READY_AT: ${{ github.event.pull_request.updated_at }}
         run: |
           set -euo pipefail
           output() { printf '%s=%s\n' "$1" "$2" >> "$GITHUB_OUTPUT"; }
@@ -62,47 +59,29 @@ jobs:
           output head_sha "$head_sha"
           output base_sha "$base_sha"
 
-          validation_state() {
-            local candidate run_id status jobs result
-            candidate="$(gh api \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/validate.yml/runs?head_sha=$head_sha&event=pull_request&per_page=20" \
-              | jq -r --arg head "$head_sha" --argjson pr "$PR_NUMBER" --arg head_repo "$head_repository" --arg head_ref "$head_ref" --arg action "$EVENT_ACTION" --arg ready_at "$READY_AT" '
-                [.workflow_runs[] | select(
-                  .event == "pull_request" and
-                  .head_sha == $head and
-                  .path == ".github/workflows/validate.yml" and
-                  (any(.pull_requests[]?; .number == $pr) or
-                   ((.pull_requests | length) == 0 and .head_repository.full_name == $head_repo and .head_branch == $head_ref)) and
-                  ($action != "ready_for_review" or .created_at >= $ready_at)
-                )] | sort_by(.created_at) | last // empty | [.id, .status] | @tsv')"
-            if [ -z "$candidate" ]; then echo pending; return; fi
-            IFS=$'\t' read -r run_id status <<<"$candidate"
-            if [ "$status" != completed ]; then echo pending; return; fi
-            jobs="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json jobs)"
-            result="$(jq -r '[.jobs[] | select(.name == "validate") | .conclusion] | last // "pending"' <<<"$jobs")"
-            if [ "$result" = success ]; then echo success; return; fi
-            echo failed
+          candidate="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/validate.yml/runs?head_sha=$head_sha&event=pull_request&per_page=20" \
+            | jq -r --arg head "$head_sha" --argjson pr "$PR_NUMBER" --arg head_repo "$head_repository" --arg head_ref "$head_ref" '
+              [.workflow_runs[] | select(
+                .event == "pull_request" and
+                .head_sha == $head and
+                .path == ".github/workflows/validate.yml" and
+                (any(.pull_requests[]?; .number == $pr) or
+                 ((.pull_requests | length) == 0 and .head_repository.full_name == $head_repo and .head_branch == $head_ref))
+              )] | sort_by(.created_at) | last // empty | [.id, .status] | @tsv')"
+          [ -n "$candidate" ] || { echo '::error::No exact-head Validate run exists.'; exit 1; }
+          IFS=$'\t' read -r validate_run_id validate_status <<<"$candidate"
+          [ "$validate_status" = completed ] || {
+            echo '::error::The exact-head Validate run is not complete.'
+            exit 1
           }
-
-          for attempt in $(seq 1 120); do
-            current="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
-              --json headRefOid --jq .headRefOid)"
-            [ "$current" = "$head_sha" ] || {
-              echo "::error::PR head changed from $head_sha to $current while waiting for validation."
-              exit 1
-            }
-            state="$(validation_state)"
-            if [ "$state" = success ]; then break; fi
-            if [ "$state" = failed ]; then
-              echo "::error::The exact-head Validate run failed for $head_sha."
-              exit 1
-            fi
-            if [ "$attempt" = 120 ]; then
-              echo "::error::Timed out waiting for the exact-head Validate run for $head_sha."
-              exit 1
-            fi
-            sleep 15
-          done
+          validate_jobs="$(gh run view "$validate_run_id" --repo "$GITHUB_REPOSITORY" --json jobs)"
+          validate_result="$(jq -r '[.jobs[] | select(.name == "validate") | .conclusion] | last // "missing"' <<<"$validate_jobs")"
+          [ "$validate_result" = success ] || {
+            echo "::error::The exact-head Validate fan-in concluded $validate_result."
+            exit 1
+          }
+          echo "Exact-head Validate run $validate_run_id succeeded."
 
           dependency_bot=false
           case "$author" in
@@ -255,11 +234,10 @@ jobs:
 
   code-reviewed:
     name: >-
-      ${{ (github.event.action == 'ready_for_review' || github.event.label.name == 'final-code-review:requested') && github.event.pull_request.draft == false && 'Code Reviewed' || 'Ignore final review request' }}
+      ${{ github.event.label.name == 'final-code-review:requested' && github.event.pull_request.draft == false && 'Code Reviewed' || 'Ignore final review request' }}
     needs: [select-final-review, validate-review-settings, provider-review]
     if: >-
-      always() && (github.event.action == 'ready_for_review' ||
-      github.event.label.name == 'final-code-review:requested') &&
+      always() && github.event.label.name == 'final-code-review:requested' &&
       github.event.pull_request.draft == false
     runs-on: [self-hosted, Linux]
     timeout-minutes: 5

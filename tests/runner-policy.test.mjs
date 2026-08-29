@@ -62,8 +62,13 @@ describe("private self-hosted runner policy", () => {
       ["validate", "\\[self-hosted, Linux\\]"],
     ])
       assertRunner(workflows["validate.yml"], job, runner);
+    assertRunner(
+      workflows["native-contract-producer.yml"],
+      "open-check",
+      "\\[self-hosted, Linux\\]",
+    );
     assertRunner(workflows["native-contract-tests.yml"], "verify", "\\[self-hosted, Linux\\]");
-    assertRunner(workflows["contract-parity.yml"], "contracts", "\\[self-hosted, Linux\\]");
+    assertRunner(workflows["native-contract-result.yml"], "report", "\\[self-hosted, Linux\\]");
     assertRunner(workflows["dependabot-automerge.yml"], "automerge", "\\[self-hosted, Linux\\]");
     assertRunner(
       workflows["validate-request-final-code-review.yml"],
