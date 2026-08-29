@@ -2175,6 +2175,16 @@
 "native.swift.tagManagement.userTag" = "Étiquette utilisateur";
 "native.swift.tagManagement.userTags" = "Étiquettes utilisateur";
 "native.swift.tagManagement.viewPlans" = "Voir les plans";
+"native.swift.topHashtags.all" = "Tous";
+"native.swift.topHashtags.createTopic" = "Créer un sujet";
+"native.swift.topHashtags.itemsContributors" = "{items} éléments. {contributors} contributeurs.";
+"native.swift.topHashtags.linkTopic" = "Lier un sujet";
+"native.swift.topHashtags.linked" = "Liés";
+"native.swift.topHashtags.loadMore" = "Charger plus";
+"native.swift.topHashtags.searchHashtags" = "Rechercher des hashtags";
+"native.swift.topHashtags.topHashtags" = "Meilleurs hashtags";
+"native.swift.topHashtags.unlink" = "Dissocier";
+"native.swift.topHashtags.unlinked" = "Non liés";
 "native.swift.topicManagement.aboutDetail" = "Modifiez le nom, le slug, le Markdown, les images et le nom d’hôte.";
 "native.swift.topicManagement.aliasesDetail" = "Affichez, ajoutez et supprimez les autres noms du sujet.";
 "native.swift.topicManagement.behaviorDetail" = "Réglez le type de sujet et la visibilité des avis.";

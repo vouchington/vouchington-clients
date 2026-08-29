@@ -1249,6 +1249,19 @@
   <data name="native.dotnet.tagManagement.relatedTopics" xml:space="preserve"><value>Related Topics</value></data>
   <data name="native.dotnet.tagManagement.termsOfService" xml:space="preserve"><value>Terms of Service</value></data>
   <data name="native.dotnet.tagManagement.userTags" xml:space="preserve"><value>User tags</value></data>
+  <data name="native.dotnet.topHashtags.all" xml:space="preserve"><value>All</value></data>
+  <data name="native.dotnet.topHashtags.createTopic" xml:space="preserve"><value>Create Topic</value></data>
+  <data name="native.dotnet.topHashtags.itemsContributors" xml:space="preserve"><value>{items} items. {contributors} contributors.</value></data>
+  <data name="native.dotnet.topHashtags.linkTopic" xml:space="preserve"><value>Link Topic</value></data>
+  <data name="native.dotnet.topHashtags.linked" xml:space="preserve"><value>Linked</value></data>
+  <data name="native.dotnet.topHashtags.loadMore" xml:space="preserve"><value>Load more</value></data>
+  <data name="native.dotnet.topHashtags.recommendations" xml:space="preserve"><value>Recommendations</value></data>
+  <data name="native.dotnet.topHashtags.searchHashtags" xml:space="preserve"><value>Search hashtags</value></data>
+  <data name="native.dotnet.topHashtags.topHashtags" xml:space="preserve"><value>Top Hashtags</value></data>
+  <data name="native.dotnet.topHashtags.topic" xml:space="preserve"><value>Topic</value></data>
+  <data name="native.dotnet.topHashtags.topicName" xml:space="preserve"><value>Topic name</value></data>
+  <data name="native.dotnet.topHashtags.unlink" xml:space="preserve"><value>Unlink</value></data>
+  <data name="native.dotnet.topHashtags.unlinked" xml:space="preserve"><value>Unlinked</value></data>
   <data name="native.dotnet.topicManagement.createTopic" xml:space="preserve"><value>Create Topic</value></data>
   <data name="native.dotnet.topicManagement.discoverable" xml:space="preserve"><value>Discoverable</value></data>
   <data name="native.dotnet.topicManagement.heroImageId" xml:space="preserve"><value>Hero image ID</value></data>

@@ -1249,6 +1249,19 @@
   <data name="native.dotnet.tagManagement.relatedTopics" xml:space="preserve"><value>Temas relacionados</value></data>
   <data name="native.dotnet.tagManagement.termsOfService" xml:space="preserve"><value>Términos del servicio</value></data>
   <data name="native.dotnet.tagManagement.userTags" xml:space="preserve"><value>Etiquetas de usuario</value></data>
+  <data name="native.dotnet.topHashtags.all" xml:space="preserve"><value>Todos</value></data>
+  <data name="native.dotnet.topHashtags.createTopic" xml:space="preserve"><value>Crear tema</value></data>
+  <data name="native.dotnet.topHashtags.itemsContributors" xml:space="preserve"><value>{items} elementos. {contributors} colaboradores.</value></data>
+  <data name="native.dotnet.topHashtags.linkTopic" xml:space="preserve"><value>Vincular tema</value></data>
+  <data name="native.dotnet.topHashtags.linked" xml:space="preserve"><value>Vinculados</value></data>
+  <data name="native.dotnet.topHashtags.loadMore" xml:space="preserve"><value>Cargar más</value></data>
+  <data name="native.dotnet.topHashtags.recommendations" xml:space="preserve"><value>Recomendaciones</value></data>
+  <data name="native.dotnet.topHashtags.searchHashtags" xml:space="preserve"><value>Buscar hashtags</value></data>
+  <data name="native.dotnet.topHashtags.topHashtags" xml:space="preserve"><value>Hashtags principales</value></data>
+  <data name="native.dotnet.topHashtags.topic" xml:space="preserve"><value>Tema</value></data>
+  <data name="native.dotnet.topHashtags.topicName" xml:space="preserve"><value>Nombre del tema</value></data>
+  <data name="native.dotnet.topHashtags.unlink" xml:space="preserve"><value>Desvincular</value></data>
+  <data name="native.dotnet.topHashtags.unlinked" xml:space="preserve"><value>Sin vincular</value></data>
   <data name="native.dotnet.topicManagement.createTopic" xml:space="preserve"><value>Crear tema</value></data>
   <data name="native.dotnet.topicManagement.discoverable" xml:space="preserve"><value>Visible</value></data>
   <data name="native.dotnet.topicManagement.heroImageId" xml:space="preserve"><value>ID de imagen principal</value></data>
