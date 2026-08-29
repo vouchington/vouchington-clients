@@ -9,6 +9,7 @@ rules:
     patch_coverage_min: 0
   - paths: "swift-clients/**/Package.swift"
     patch_coverage_min: 0
+  # Integration suites require external services and are validated by pass/fail behavior, not unit coverage.
   - paths: "swift-clients/**/Tests/VouchaIntegrationTests/**"
     patch_coverage_min: 0
   - paths: "swift-clients/**"

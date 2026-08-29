@@ -4,6 +4,11 @@ const base = process.env.BASE_SHA;
 if (!/^[0-9a-f]{40}$/.test(base ?? "")) {
   throw new Error("BASE_SHA must be the 40-character pull-request base SHA");
 }
+try {
+  execFileSync("git", ["cat-file", "-e", `${base}^{commit}`], { stdio: "ignore" });
+} catch {
+  throw new Error("BASE_SHA must identify a commit in the repository");
+}
 
 execFileSync(
   "pnpm",

@@ -136,6 +136,16 @@ test("requires a full pull-request base SHA before invoking coverage-check", asy
   );
 });
 
+test("requires the pull-request base SHA to identify a repository commit", async () => {
+  await assert.rejects(
+    execFileAsync(process.execPath, [swiftCoverage], {
+      cwd: repositoryRoot,
+      env: { ...process.env, BASE_SHA: "0".repeat(40) },
+    }),
+    /BASE_SHA must identify a commit in the repository/,
+  );
+});
+
 test("invokes coverage-check with both Swift LCOV artifacts", async (t) => {
   const binDirectory = await mkdtemp(join(tmpdir(), "voucha-pnpm-"));
   const argumentsPath = join(binDirectory, "pnpm-arguments.txt");
@@ -144,11 +154,15 @@ test("invokes coverage-check with both Swift LCOV artifacts", async (t) => {
     '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$PNPM_ARGUMENTS_PATH"\n',
   );
   t.after(() => rm(binDirectory, { recursive: true, force: true }));
+  const { stdout: baseShaOutput } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+    cwd: repositoryRoot,
+  });
+  const baseSha = baseShaOutput.trim();
   await execFileAsync(process.execPath, [swiftCoverage], {
     cwd: repositoryRoot,
     env: {
       ...process.env,
-      BASE_SHA: "a".repeat(40),
+      BASE_SHA: baseSha,
       PATH: `${binDirectory}:${process.env.PATH}`,
       PNPM_ARGUMENTS_PATH: argumentsPath,
     },
@@ -166,7 +180,7 @@ test("invokes coverage-check with both Swift LCOV artifacts", async (t) => {
     "--require-artifact",
     "ui/lcov.info",
     "--base",
-    "a".repeat(40),
+    baseSha,
     "--head",
     "HEAD",
     "--aggregate-artifacts",
