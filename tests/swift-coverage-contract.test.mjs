@@ -16,8 +16,13 @@ async function writeExecutable(path, contents) {
   await chmod(path, 0o755);
 }
 
-async function lcovFixture(t) {
-  const fixtureRoot = await mkdtemp(join(repositoryRoot, ".write-lcov-test-"));
+async function lcovFixture(t, { isolatedRepositoryRoot = false } = {}) {
+  const fixtureRoot = await mkdtemp(
+    join(
+      isolatedRepositoryRoot ? tmpdir() : repositoryRoot,
+      isolatedRepositoryRoot ? "voucha-[root]&|*?\\\\.-" : ".write-lcov-test-",
+    ),
+  );
   const binDirectory = await mkdtemp(join(tmpdir(), "voucha-xcrun-"));
   const packageDirectory = join(fixtureRoot, "package");
   const buildDirectory = join(packageDirectory, ".build/debug");
@@ -25,12 +30,20 @@ async function lcovFixture(t) {
   const binary = join(buildDirectory, `${bundleName}.xctest/Contents/MacOS/${bundleName}`);
   const argumentsPath = join(fixtureRoot, "xcrun-arguments.txt");
   const lcovPath = join(fixtureRoot, "llvm-cov.lcov");
+  const fixtureWriteLcov = isolatedRepositoryRoot
+    ? join(fixtureRoot, "swift-clients/tooling/write-lcov.sh")
+    : writeLcov;
+  const sourceRoot = isolatedRepositoryRoot ? fixtureRoot : repositoryRoot;
+  if (isolatedRepositoryRoot) {
+    await mkdir(dirname(fixtureWriteLcov), { recursive: true });
+    await writeExecutable(fixtureWriteLcov, await readFile(writeLcov, "utf8"));
+  }
   await mkdir(dirname(binary), { recursive: true });
   await writeFile(join(buildDirectory, "default.profdata"), "profile");
   await writeExecutable(binary, "#!/usr/bin/env bash\nexit 0\n");
   await writeFile(
     lcovPath,
-    `SF:${repositoryRoot}/swift-clients/core/Sources/VouchaCore/Example.swift\nDA:1,1\nend_of_record\n`,
+    `SF:${sourceRoot}/swift-clients/core/Sources/VouchaCore/Example.swift\nDA:1,1\nend_of_record\n`,
   );
   await writeExecutable(
     join(binDirectory, "xcrun"),
@@ -51,15 +64,16 @@ async function lcovFixture(t) {
       XCRUN_ARGUMENTS_PATH: argumentsPath,
     },
     fixtureRoot,
-    packagePath: relative(repositoryRoot, packageDirectory),
+    packagePath: isolatedRepositoryRoot ? "package" : relative(repositoryRoot, packageDirectory),
     bundleName,
+    writeLcov: fixtureWriteLcov,
   };
 }
 
 test("writes normalized LCOV with the intended .build ignore regex", async (t) => {
   const fixture = await lcovFixture(t);
   const outputPath = join(fixture.fixtureRoot, "coverage/lcov.info");
-  await execFileAsync("bash", [writeLcov, fixture.packagePath, fixture.bundleName, outputPath], {
+  await execFileAsync("bash", [fixture.writeLcov, fixture.packagePath, fixture.bundleName, outputPath], {
     cwd: repositoryRoot,
     env: fixture.environment,
   });
@@ -82,6 +96,19 @@ test("writes normalized LCOV with the intended .build ignore regex", async (t) =
   ]);
 });
 
+test("normalizes source paths literally when the repository root contains metacharacters", async (t) => {
+  const fixture = await lcovFixture(t, { isolatedRepositoryRoot: true });
+  const outputPath = join(fixture.fixtureRoot, "coverage/lcov.info");
+  await execFileAsync("bash", [fixture.writeLcov, fixture.packagePath, fixture.bundleName, outputPath], {
+    cwd: fixture.fixtureRoot,
+    env: fixture.environment,
+  });
+  assert.equal(
+    await readFile(outputPath, "utf8"),
+    "SF:swift-clients/core/Sources/VouchaCore/Example.swift\nDA:1,1\nend_of_record\n",
+  );
+});
+
 test("fails LCOV export when profile discovery is ambiguous", async (t) => {
   const fixture = await lcovFixture(t);
   await mkdir(join(fixture.fixtureRoot, "package/.build/release"), { recursive: true });
@@ -89,7 +116,7 @@ test("fails LCOV export when profile discovery is ambiguous", async (t) => {
   await assert.rejects(
     execFileAsync(
       "bash",
-      [writeLcov, fixture.packagePath, fixture.bundleName, "coverage/lcov.info"],
+      [fixture.writeLcov, fixture.packagePath, fixture.bundleName, "coverage/lcov.info"],
       {
         cwd: repositoryRoot,
         env: fixture.environment,

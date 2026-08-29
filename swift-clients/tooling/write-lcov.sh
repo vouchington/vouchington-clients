@@ -45,4 +45,11 @@ esac
 mkdir -p "$(dirname "$output_path")"
 xcrun llvm-cov export -format=lcov "$test_binary" -instr-profile "$profdata" \
   -ignore-filename-regex='\.build' \
-  | sed "s|SF:$repository_root/|SF:|g" > "$output_path"
+  | while IFS= read -r line || [[ -n "$line" ]]; do
+    source_prefix="SF:$repository_root/"
+    if [[ "$line" == "$source_prefix"* ]]; then
+      printf 'SF:%s\n' "${line:${#source_prefix}}"
+    else
+      printf '%s\n' "$line"
+    fi
+  done > "$output_path"

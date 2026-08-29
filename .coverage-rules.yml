@@ -11,7 +11,5 @@ rules:
     patch_coverage_min: 0
   - paths: "swift-clients/**/Tests/VouchaIntegrationTests/**"
     patch_coverage_min: 0
-  - paths: "swift-clients/core/Sources/VouchaAPI/PublicKeyPinningURLSessionDelegate.swift"
-    patch_coverage_min: 0
   - paths: "swift-clients/**"
     patch_coverage_min: 90

@@ -61,14 +61,3 @@ struct LocalLLMOriginPair: Decodable {
     let expectedOrigin: String
     let notes: String
 }
-
-enum LocalLLMEndpointPolicyError: Error, CustomStringConvertible {
-    case invalid(String)
-
-    var description: String {
-        switch self {
-        case let .invalid(message):
-            message
-        }
-    }
-}

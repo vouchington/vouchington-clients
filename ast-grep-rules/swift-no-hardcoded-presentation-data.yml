@@ -12,7 +12,21 @@ rule:
   any:
     - all:
         - kind: value_argument
-        - regex: '^(?:title|subtitle|message|detail|label|status|error|validation|family|reason|actionTitle|placeholder)\s*:\s*(?:"[^"]*[A-Za-z]|[^,\n]+\?\s*"[^"]*[A-Za-z])'
+        - has:
+            field: name
+            regex: '^(?:title|subtitle|message|detail|label|status|error|validation|family|reason|actionTitle|placeholder)$'
+        - has:
+            any:
+              - kind: line_string_literal
+                regex: '^"[^"]*[A-Za-z]'
+              - kind: multi_line_string_literal
+                regex: '^"""[^\"]*[A-Za-z]'
+            stopBy:
+              all:
+                - kind: value_argument
+                - has:
+                    field: name
+                    regex: '.+'
         - inside:
             kind: call_expression
             regex: '^(?:\.init|\.(?:included|excluded)|NativeRouteCatalogEntry\.(?:included|excluded)|CommentThreadPostSection|NativeRouteDestinationRow|NativeRouteFamilyGroup|NativeProfileReportReason|NativeTag[A-Za-z0-9_]*|[A-Za-z0-9_]*(?:Row|Card|Action|Report|Catalog|Metadata|Presentation))\s*\('
@@ -119,6 +133,33 @@ examples:
     isValid: false
     file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
   - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "magnifyingglass",
+          title: query.isEmpty
+              ? .message(.nativeSwiftCommonSearch)
+              : "Search results"
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "magnifyingglass",
+          title: (
+              "Search results"
+          )
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "magnifyingglass",
+          title: makeTitle(
+              "Search results"
+          )
+      )
+    isValid: false
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
+  - code: |
       let metric = GrowthMetricRow("Users", "42", "Active accounts")
     isValid: false
     file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/GrowthDashboardSurface.swift"
@@ -188,6 +229,16 @@ examples:
       )
     isValid: true
     file: "swift-clients/ui/Sources/VouchaFeatures/Communities/CommunityDetailViewModel.SectionRows.swift"
+  - code: |
+      let row = NativeRouteDestinationRow(
+          icon: "magnifyingglass",
+          title: query.isEmpty
+              ? .message(.nativeSwiftCommonSearch)
+              : .verbatim(serverTitle),
+          detail: makeTitle(serverDetail)
+      )
+    isValid: true
+    file: "swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeRouteSurfaceViewModelSearch.swift"
   - code: |
       statusMessage = .message(.nativeSwiftSourcesSourceFollowed)
     isValid: true
