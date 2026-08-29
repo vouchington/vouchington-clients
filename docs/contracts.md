@@ -23,15 +23,15 @@ self-hosted runner. The candidate destination must be an absolute checkout path,
 component is verified as a real directory rather than a symlink. It never fetches or writes. Only
 `contracts:sync` replaces generated outputs in this repository.
 
-The producer copies only the three allowlisted contract trees into a one-day, run-scoped GitHub
-Actions artifact. Its manifest binds every file's path, byte length, and SHA-256 digest to the
-immutable Filaments revision, pull request base/head/merge revisions, repository, and producer run
-identity. The producer also opens the required `Filaments contract parity` check for the exact pull
-request head and producer attempt. A secretless default-branch `workflow_run` consumer downloads
-that exact run's artifact, verifies the complete manifest before reading it, revalidates the live
-pull request identities, and only then executes the candidate checkout against the verified
-inputs. A second completion event validates the producer/consumer identity and completes that
-exact check; no runner polls another workflow's state.
+The PR-associated native test workflow copies only the three allowlisted contract trees into a
+one-day, run-scoped GitHub Actions artifact. Its manifest binds every file's path, byte length, and
+SHA-256 digest to the immutable Filaments revision, pull request base/head/merge revisions,
+repository, and workflow run identity. The privileged producer job uses trusted base-branch
+tooling and is the only job that receives the Filaments deploy key. Secretless downstream jobs in
+the same pull-request workflow download that exact run's artifact, verify the complete manifest
+before reading it, revalidate the live pull request identities, and only then execute the candidate
+checkout against the verified inputs. All detailed native jobs converge on the required `Tests`
+gate; no runner polls another workflow's state.
 
 This short-lived handoff supersedes issue #1's original prohibition on hosted contract artifacts
 and digest metadata by explicit maintainer approval. It does not publish a source bundle, retain a

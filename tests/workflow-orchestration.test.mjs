@@ -6,29 +6,22 @@ const workflowUrl = (name) => new URL(`../.github/workflows/${name}`, import.met
 const readWorkflow = (name) => readFile(workflowUrl(name), "utf8");
 
 describe("event-driven CI orchestration", () => {
-  it("reports native contract completion without a polling gate", async () => {
+  it("runs native contract tests on the pull request with one aggregate gate", async () => {
     await assert.rejects(access(workflowUrl("contract-parity.yml")));
+    await assert.rejects(access(workflowUrl("native-contract-producer.yml")));
+    await assert.rejects(access(workflowUrl("native-contract-result.yml")));
 
-    const [producer, consumer, result] = await Promise.all([
-      readWorkflow("native-contract-producer.yml"),
-      readWorkflow("native-contract-tests.yml"),
-      readWorkflow("native-contract-result.yml"),
-    ]);
+    const workflow = await readWorkflow("native-contract-tests.yml");
 
-    assert.match(producer, /checks: write/u);
-    assert.match(producer, /name: Create required contract parity check/u);
-    assert.match(producer, /external_id=.*native-contract-producer/u);
-    assert.match(consumer, /Native contract tests for producer.*PR #.*head/u);
+    assert.match(workflow, /pull_request_target:\n\s+types:/u);
     assert.match(
-      consumer,
-      /group: native-contract-tests-\$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| github\.event\.workflow_run\.id \}\}/u,
+      workflow,
+      /group: native-contract-tests-\$\{\{ github\.event\.pull_request\.number \}\}/u,
     );
-    assert.match(result, /workflows: \[Native contract tests\]/u);
-    assert.match(result, /types: \[completed\]/u);
-    assert.match(result, /external_id/u);
-    assert.match(result, /check-runs/u);
-    assert.match(result, /conclusion="success"/u);
-    assert.doesNotMatch(`${producer}\n${consumer}\n${result}`, /sleep 15|seq 1 240/u);
+    assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u);
+    assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u);
+    assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u);
+    assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u);
   });
 
   it("starts final review from the validated label without waiting", async () => {
