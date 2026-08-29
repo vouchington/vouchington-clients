@@ -92,6 +92,18 @@ describe("native contract workflow boundary", () => {
       /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
     ])
       assert.match(workflow, command);
+    assert.match(
+      workflow,
+      /name: Select compatible Xcode[\s\S]*id: xcode[\s\S]*compatible=false/u,
+    );
+    assert.match(
+      workflow,
+      /name: Build MAUI Mac Catalyst app\n\s+if: steps\.xcode\.outputs\.compatible == 'true'/u,
+    );
+    assert.ok(
+      workflow.indexOf("name: Test rendered MAUI pages") <
+        workflow.indexOf("name: Select compatible Xcode"),
+    );
     cleanupWorkspace(action);
     cleanupWorkspace(workflow);
   });
