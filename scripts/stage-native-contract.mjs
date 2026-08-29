@@ -3,8 +3,15 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
+import { declaredFilamentsContractPaths } from "./contracts.mjs";
+
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const configurationPath = join(repositoryRoot, "contracts/filaments.json");
+const filamentsExporterRelativePath = "dev/native-localization.mts";
+
+function contractPathComponents(path) {
+  return path.split("/");
+}
 
 function fail(message) {
   throw new Error(`Native contract staging failed: ${message}`);
@@ -39,7 +46,7 @@ async function realDirectory(path, label) {
 async function descendantInfo(root, child, label) {
   await realDirectory(root, `${label} root`);
   let current = root;
-  for (const component of child.split("/")) {
+  for (const component of contractPathComponents(child)) {
     current = join(current, component);
     const result = await info(current, `${label}/${component}`);
     if (!result) return undefined;
@@ -68,16 +75,10 @@ async function paths() {
   } catch (error) {
     fail(`cannot read contract configuration: ${error.message}`);
   }
-  if (!Array.isArray(configuration.paths) || configuration.paths.length < 2)
-    fail("contract configuration must declare one fixture path and at least one localization path");
-  for (const path of configuration.paths) {
-    if (
-      typeof path !== "string" ||
-      path.length === 0 ||
-      path.split("/").some((component) => !component || component === "." || component === "..")
-    )
-      fail("contract configuration has an invalid path");
-  }
+  if (
+    JSON.stringify(configuration.paths) !== JSON.stringify(declaredFilamentsContractPaths)
+  )
+    fail("contract configuration paths do not match the client contract");
   return configuration.paths;
 }
 
@@ -92,8 +93,8 @@ async function emptyOutputRoot(root) {
 }
 
 async function copyDirectory(sourceRoot, destinationRoot, path) {
-  const source = join(sourceRoot, ...path.split("/"));
-  const destination = join(destinationRoot, ...path.split("/"));
+  const source = join(sourceRoot, ...contractPathComponents(path));
+  const destination = join(destinationRoot, ...contractPathComponents(path));
   await tree(source, `Filaments contract ${path}`);
   await mkdir(resolve(destination, ".."), { recursive: true });
   await cp(source, destination, { recursive: true, dereference: false, errorOnExist: true });
@@ -117,7 +118,7 @@ async function assertOnlyDeclaredPaths(root, declaredPaths) {
 }
 
 async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot }) {
-  const script = join(filamentsRoot, "dev/native-localization.mts");
+  const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath));
   await new Promise((resolvePromise, reject) => {
     const child = spawn(
       process.execPath,
@@ -174,7 +175,7 @@ export async function stageNativeContract(options = {}) {
   for (const path of localizationPaths) {
     if (!(await descendantInfo(outputRoot, path, "staged contract")))
       fail(`missing directory at staged contract/${path}`);
-    await tree(join(outputRoot, ...path.split("/")), `staged contract ${path}`);
+    await tree(join(outputRoot, ...contractPathComponents(path)), `staged contract ${path}`);
   }
   await copyDirectory(filamentsRoot, outputRoot, fixturePath);
   await assertOnlyDeclaredPaths(outputRoot, declaredPaths);

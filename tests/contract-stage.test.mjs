@@ -90,6 +90,22 @@ test("uses the Filaments-owned exporter only when both legacy localization trees
 });
 
 test("fails closed for partial legacy trees, symlinks, a nonempty output, and invalid exporter output", async (t) => {
+  const missingFixture = await fixture(t);
+  await rm(join(missingFixture.filamentsRoot, "api-fixtures"), { recursive: true });
+  await assert.rejects(stageNativeContract(missingFixture), /missing directory.*api-fixtures\/v1/);
+
+  const nestedOutput = await fixture(t);
+  await assert.rejects(
+    stageNativeContract({ ...nestedOutput, outputRoot: join(nestedOutput.filamentsRoot, "stage") }),
+    /stage output root must be isolated/,
+  );
+
+  const candidateOutput = await fixture(t);
+  await assert.rejects(
+    stageNativeContract({ ...candidateOutput, outputRoot: candidateOutput.consumerRoot }),
+    /stage output root must be isolated/,
+  );
+
   const partial = await fixture(t, { legacy: false });
   await mkdir(
     join(partial.filamentsRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated"),
