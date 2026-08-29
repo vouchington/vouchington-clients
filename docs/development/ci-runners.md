@@ -28,3 +28,10 @@ executes repository code must:
 API-only jobs do not need checkout cleanup, but still use the appropriate self-hosted runner. The
 native contract producer and final-code-review provider follow the same cleanup boundary because
 they handle trusted checkouts, generated artifacts, or provider tooling on persistent hosts.
+
+## Event-driven orchestration
+
+Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do
+not keep a runner alive to poll pull requests, checks, or other workflow runs. Bounded retries for
+transient API failures and short failure-diagnostic collection windows are not orchestration
+polling and remain permitted.

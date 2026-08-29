@@ -6,18 +6,45 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: native-contract-producer-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
+  open-check:
+    name: Create required contract parity check
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    permissions:
+      checks: write
+    steps:
+      - name: Create required contract parity check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          external_id="native-contract-producer:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='Filaments contract parity' \
+            -f head_sha="$PR_HEAD_SHA" \
+            -f status=in_progress \
+            -f external_id="$external_id" \
+            -f details_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f 'output[title]=Native contract tests are pending' \
+            -f 'output[summary]=The trusted producer is preparing the exact contract artifact.' \
+            --silent
+
   produce:
     name: Publish verified native contracts
+    needs: open-check
     runs-on: [self-hosted]
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Clean persistent runner workspace
         env:

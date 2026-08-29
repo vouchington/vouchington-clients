@@ -27,7 +27,7 @@ describe("native contract workflow boundary", () => {
       readFile(new URL("../scripts/contract-artifact.mjs", import.meta.url), "utf8"),
       readWorkflow("native-contract-producer.yml"),
       readWorkflow("native-contract-tests.yml"),
-      readWorkflow("contract-parity.yml"),
+      readWorkflow("native-contract-result.yml"),
     ]);
 
     for (const path of config.paths) {
@@ -39,7 +39,7 @@ describe("native contract workflow boundary", () => {
     const files = await Promise.all([
       readWorkflow("native-contract-producer.yml"),
       readWorkflow("native-contract-tests.yml"),
-      readWorkflow("contract-parity.yml"),
+      readWorkflow("native-contract-result.yml"),
       readAction("prepare-native-contract"),
     ]);
     const combined = files.join("\n");
@@ -92,10 +92,7 @@ describe("native contract workflow boundary", () => {
       /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
     ])
       assert.match(workflow, command);
-    assert.match(
-      workflow,
-      /name: Select compatible Xcode[\s\S]*id: xcode[\s\S]*compatible=false/u,
-    );
+    assert.match(workflow, /name: Select compatible Xcode[\s\S]*id: xcode[\s\S]*compatible=false/u);
     assert.match(
       workflow,
       /name: Build MAUI Mac Catalyst app\n\s+if: steps\.xcode\.outputs\.compatible == 'true'/u,
@@ -121,7 +118,9 @@ describe("native contract workflow boundary", () => {
     assert.equal(workflow.split('rm -rf -- "$DOTNET_INSTALL_DIR"').length - 1, 2);
     assert.equal(workflow.split("working-directory: candidate-clients").length - 1 >= 2, true);
     assert.equal(
-      workflow.split("jq -er '.sdk.version | select(type == \"string\" and test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\"))' global.json").length - 1,
+      workflow.split(
+        'jq -er \'.sdk.version | select(type == "string" and test("^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"))\' global.json',
+      ).length - 1,
       2,
     );
     assert.equal(
@@ -233,13 +232,13 @@ describe("native contract workflow boundary", () => {
   it("keeps the Filaments secret in the trusted producer", async () => {
     const producer = await readWorkflow("native-contract-producer.yml");
     const consumer = await readWorkflow("native-contract-tests.yml");
-    const gate = await readWorkflow("contract-parity.yml");
+    const result = await readWorkflow("native-contract-result.yml");
     const action = await readAction("prepare-native-contract");
 
     assert.match(producer, /pull_request_target:/u);
     assert.match(producer, /secrets\.FILAMENTS_DEPLOY_KEY/u);
     assert.doesNotMatch(consumer, /secrets\./u);
-    assert.doesNotMatch(gate, /secrets\./u);
+    assert.doesNotMatch(result, /secrets\./u);
     assert.doesNotMatch(action, /secrets\./u);
     assert.match(consumer, /workflow_run:/u);
   });
@@ -266,19 +265,24 @@ describe("native contract workflow boundary", () => {
   it("preserves exact run identities and the required check name", async () => {
     const producer = await readWorkflow("native-contract-producer.yml");
     const consumer = await readWorkflow("native-contract-tests.yml");
-    const gate = await readWorkflow("contract-parity.yml");
+    const result = await readWorkflow("native-contract-result.yml");
 
     assert.match(
       producer,
       /run-name: >-\n\s+Native contract producer for PR #\$\{\{ github\.event\.pull_request\.number \}\} at \$\{\{ github\.event\.pull_request\.head\.sha \}\} updated \$\{\{ github\.event\.pull_request\.updated_at \}\}/u,
     );
     assert.match(producer, /pull_request\.updated_at/u);
-    assert.match(gate, /EXPECTED_UPDATED_AT/u);
     assert.match(producer, /retention-days: 1/u);
+    assert.match(
+      producer,
+      /external_id="native-contract-producer:\$\{GITHUB_RUN_ID\}:\$\{GITHUB_RUN_ATTEMPT\}"/u,
+    );
     assert.match(consumer, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/u);
     assert.match(consumer, /--expected-producer-run-attempt/u);
-    assert.match(gate, /name: Filaments contract parity/u);
-    assert.match(consumer, /Native contract tests for producer.*run_attempt/u);
-    assert.match(gate, /Native contract tests for producer.*producer_attempt/u);
+    assert.match(consumer, /Native contract tests for producer.*PR #.*head/u);
+    assert.match(result, /name: Native contract result/u);
+    assert.match(result, /Filaments contract parity/u);
+    assert.match(result, /native-contract-producer:\$\{producer_id\}:\$\{producer_attempt\}/u);
+    assert.match(result, /producer_conclusion.*success.*CONSUMER_CONCLUSION.*success/u);
   });
 });

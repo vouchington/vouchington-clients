@@ -26,11 +26,12 @@ component is verified as a real directory rather than a symlink. It never fetche
 The producer copies only the three allowlisted contract trees into a one-day, run-scoped GitHub
 Actions artifact. Its manifest binds every file's path, byte length, and SHA-256 digest to the
 immutable Filaments revision, pull request base/head/merge revisions, repository, and producer run
-identity. A secretless default-branch `workflow_run` consumer downloads that exact run's artifact,
-verifies the complete manifest before reading it, revalidates the live pull request identities,
-and only then executes the candidate checkout against the verified inputs. A separate
-pull-request-associated gate waits for that exact consumer result and retains the required
-`Filaments contract parity` check name.
+identity. The producer also opens the required `Filaments contract parity` check for the exact pull
+request head and producer attempt. A secretless default-branch `workflow_run` consumer downloads
+that exact run's artifact, verifies the complete manifest before reading it, revalidates the live
+pull request identities, and only then executes the candidate checkout against the verified
+inputs. A second completion event validates the producer/consumer identity and completes that
+exact check; no runner polls another workflow's state.
 
 This short-lived handoff supersedes issue #1's original prohibition on hosted contract artifacts
 and digest metadata by explicit maintainer approval. It does not publish a source bundle, retain a
