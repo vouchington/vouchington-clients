@@ -38,6 +38,14 @@ async function fixture(t, { legacy = true } = {}) {
   return { consumerRoot, filamentsRoot, outputRoot };
 }
 
+test("falls back to legacy localization trees when the Filaments script lacks the isolated exporter interface", async (t) => {
+  const options = await fixture(t);
+  await writeTree(options.filamentsRoot, {
+    "dev/native-localization.mts": "await writeNativeResourceFiles({ root: process.cwd() });\n",
+  });
+  assert.equal(await stageNativeContract(options), "legacy");
+});
+
 test("stages every declared legacy contract directory into an isolated root", async (t) => {
   const options = await fixture(t);
   assert.equal(await stageNativeContract(options), "legacy");

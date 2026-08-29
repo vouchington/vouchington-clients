@@ -135,7 +135,10 @@ async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot })
 
 async function hasFilamentsExporter(filamentsRoot) {
   const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath));
-  return (await info(script, `Filaments exporter ${filamentsExporterRelativePath}`))?.isFile() ?? false;
+  if (!(await info(script, `Filaments exporter ${filamentsExporterRelativePath}`))?.isFile())
+    return false;
+  const source = await readFile(script, "utf8");
+  return source.includes("--output-root") && source.includes("--consumer-root");
 }
 
 export async function stageNativeContract(options = {}) {
