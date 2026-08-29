@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  - package-ecosystem: nuget
+    directory: /dotnet-clients
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      nuget-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: swift
+    directory: /swift-clients/core
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      swift-core-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: swift
+    directory: /swift-clients/ui
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      swift-ui-dependencies:
+        patterns:
+          - '*'
+
+  - package-ecosystem: swift
+    directory: /swift-clients/apps/android
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      swift-android-dependencies:
+        patterns:
+          - '*'
