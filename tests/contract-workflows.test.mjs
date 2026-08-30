@@ -253,6 +253,8 @@ describe("native contract workflow boundary", () => {
     assert.match(producer, /--filaments-root "\$FILAMENTS_ROOT"/u);
     assert.match(producer, /--output-root "\$CONTRACT_STAGE_ROOT"/u);
     assert.match(producer, /--consumer-root "\$CANDIDATE_ROOT"/u);
+    assert.match(producer, /name: Assert extracted localization representatives/u);
+    assert.match(producer, /scripts\/assert-extracted-localization\.mjs/u);
     assert.match(
       producer,
       /VOUCHA_FILAMENTS_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
@@ -264,6 +266,11 @@ describe("native contract workflow boundary", () => {
     );
     assert.equal(
       producer.indexOf("name: Stage trusted native contract") <
+        producer.indexOf("name: Assert extracted localization representatives"),
+      true,
+    );
+    assert.equal(
+      producer.indexOf("name: Assert extracted localization representatives") <
         producer.indexOf("name: Assert candidate generated localization parity"),
       true,
     );

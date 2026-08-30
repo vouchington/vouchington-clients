@@ -125,6 +125,12 @@ jobs:
             --filaments-root "$FILAMENTS_ROOT" \
             --output-root "$CONTRACT_STAGE_ROOT" \
             --consumer-root "$CANDIDATE_ROOT"
+      - name: Assert extracted localization representatives
+        env:
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          node scripts/assert-extracted-localization.mjs
+          --contract-root "$CONTRACT_STAGE_ROOT"
       - name: Assert candidate generated localization parity
         env:
           VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}

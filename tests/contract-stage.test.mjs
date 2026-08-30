@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { stageNativeContract } from "../scripts/stage-native-contract.mjs";
+import { assertExtractedLocalizationRepresentatives } from "../scripts/assert-extracted-localization.mjs";
 
 async function writeTree(root, files) {
   for (const [path, contents] of Object.entries(files)) {
@@ -102,6 +103,27 @@ test("prefers the Filaments-owned exporter over legacy localization trees when a
     ),
     "exported swift\n",
   );
+});
+
+test("asserts extracted representatives from the staged client contract", async (t) => {
+  const options = await fixture(t, { legacy: false });
+  await stageNativeContract({
+    ...options,
+    runExporter: async () => {
+      await writeTree(options.outputRoot, {
+        "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift":
+          "nativeSwiftTopHashtagsTopHashtags\n",
+        "dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs":
+          "NativeDotnetTopHashtagsTopHashtags\n",
+      });
+    },
+  });
+  await assertExtractedLocalizationRepresentatives(options.outputRoot);
+  await writeFile(
+    join(options.outputRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift"),
+    "missing\n",
+  );
+  await assert.rejects(assertExtractedLocalizationRepresentatives(options.outputRoot), /Swift extracted/);
 });
 
 test("fails closed for partial legacy trees, symlinks, a nonempty output, and invalid exporter output", async (t) => {
