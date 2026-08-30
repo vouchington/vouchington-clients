@@ -225,8 +225,13 @@ describe("native contract workflow boundary", () => {
       jobBlock(workflow, "build-android-core"),
       /runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
     );
+    assert.equal(workflow.split("clean: false").length - 1, 12);
+  });
 
+  it("runs Swift lint on Linux without compiling Swift", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
     const lintJob = jobBlock(workflow, "lint-swift");
+
     assert.match(lintJob, /runs-on: \[self-hosted, Linux, Docker, Tests\]/u);
     assert.doesNotMatch(lintJob, /DEVELOPER_DIR|setup-swift-native/u);
     assert.match(
@@ -241,7 +246,6 @@ describe("native contract workflow boundary", () => {
     assert.equal(lintJob.split('"$SWIFTFORMAT_IMAGE"').length - 1, 1);
     assert.equal(lintJob.split('"$SWIFTLINT_IMAGE"').length - 1, 2);
     assert.doesNotMatch(lintJob, /swift (?:build|test)/u);
-    assert.equal(workflow.split("clean: false").length - 1, 12);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {
