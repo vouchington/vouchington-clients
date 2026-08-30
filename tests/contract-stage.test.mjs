@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -103,6 +103,26 @@ test("prefers the Filaments-owned exporter over legacy localization trees when a
     ),
     "exported swift\n",
   );
+});
+
+test("runs the Filaments-owned exporter from the producer root", async (t) => {
+  const options = await fixture(t, { legacy: false });
+  const realFilamentsRoot = await realpath(options.filamentsRoot);
+  await writeTree(options.filamentsRoot, {
+    "dev/native-localization.mts": `
+      import { mkdir, writeFile } from "node:fs/promises";
+      import { join } from "node:path";
+      if (process.cwd() !== ${JSON.stringify(realFilamentsRoot)})
+        throw new Error("exporter must run from the Filaments root");
+      const outputRoot = process.argv[process.argv.indexOf("--output-root") + 1];
+      await mkdir(join(outputRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated"), { recursive: true });
+      await mkdir(join(outputRoot, "dotnet-clients/src/Voucha.Client.Core/Localization/Generated"), { recursive: true });
+      await writeFile(join(outputRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift"), "exported swift\\n");
+      await writeFile(join(outputRoot, "dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs"), "exported dotnet\\n");
+      // --output-root --consumer-root
+    `,
+  });
+  assert.equal(await stageNativeContract(options), "exporter");
 });
 
 test("asserts extracted representatives from the staged client contract", async (t) => {

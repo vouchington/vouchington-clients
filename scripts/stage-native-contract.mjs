@@ -123,7 +123,7 @@ async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot })
     const child = spawn(
       process.execPath,
       [script, "--output-root", outputRoot, "--consumer-root", consumerRoot],
-      { stdio: "inherit" },
+      { cwd: filamentsRoot, stdio: "inherit" },
     );
     child.once("error", reject);
     child.once("exit", (code, signal) => {
