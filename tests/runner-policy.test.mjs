@@ -58,7 +58,7 @@ describe('private self-hosted runner policy', () => {
     for (const [job, runner] of [
       ['contract-tests', '\\[self-hosted, Linux\\]'],
       ['dotnet-core', '\\[self-hosted, Linux\\]'],
-      ['swift-core', '\\[self-hosted, macOS, Tests\\]'],
+      ['swift-core', '\\[self-hosted, Linux, Docker, Tests\\]'],
       ['validate', '\\[self-hosted, Linux\\]'],
     ])
       assertRunner(workflows['validate.yml'], job, runner)
@@ -66,6 +66,11 @@ describe('private self-hosted runner policy', () => {
     assertRunner(workflows['native-contract-tests.yml'], 'verify', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['native-contract-tests.yml'], 'tests', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['dependabot-automerge.yml'], 'automerge', '\\[self-hosted, Linux\\]')
+
+    const swiftManifest = jobBlock(workflows['validate.yml'], 'swift-core')
+    assert.match(swiftManifest, /docker run --rm/u)
+    assert.match(swiftManifest, /swift package --package-path swift-clients\/core dump-package/u)
+    assert.doesNotMatch(swiftManifest, /swift (?:build|test)/u)
   })
 
   it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {

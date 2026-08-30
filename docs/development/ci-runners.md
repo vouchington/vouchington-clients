@@ -5,9 +5,8 @@ an organization-owned runner with an explicit self-hosted label set:
 
 - `[self-hosted, Linux]` is the default for credential-free Linux checks, workflow routers, and
   API-only jobs.
-- `[self-hosted, macOS, Tests]` is used for the Swift manifest and macOS native checks.
-- The native contract test matrix may additionally use `[self-hosted, Linux, Docker, Tests]` for
-  containerized Android core work.
+- `[self-hosted, macOS, Tests]` is used for macOS native build, test, and dead-code checks.
+- `[self-hosted, Linux, Docker, Tests]` is used for Linux checks that run pinned tool containers.
 
 Do not add `ubuntu-*`, `macos-*`, or `windows-*` labels to a workflow or matrix. Public companion
 repositories may use GitHub-hosted capacity under their own policy; that exception does not apply
