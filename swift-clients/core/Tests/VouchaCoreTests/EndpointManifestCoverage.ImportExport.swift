@@ -18,6 +18,7 @@ extension EndpointManifestCoverage {
         .init(id: "native.import-export.topics.import.outcomes") {
             .importTopics(["Travel", "Local News", "Travel", "!!!"])
         },
-        .init(id: "native.import-export.topics.export.default") { .exportTopics }
+        .init(id: "native.import-export.topics.export.default") { .exportTopics },
+        .init(id: "native.import-export.topics.export.download") { .exportTopicsDownload }
     ]
 }
