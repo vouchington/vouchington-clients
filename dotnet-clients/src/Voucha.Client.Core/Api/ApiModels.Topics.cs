@@ -44,6 +44,11 @@ public sealed record TopicSearchResponse(
 
 public sealed record TopicMutationResponse([property: JsonPropertyName("topic")] Topic Topic);
 
+public sealed record TopicAlias(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("alias")] string Alias,
+    [property: JsonPropertyName("topic_id")] string TopicId);
+
 public sealed record TopicMergeResponse(
     [property: JsonPropertyName("topic")] Topic Topic,
     [property: JsonPropertyName("topic_merge")] TopicMergeDetails? TopicMerge = null);

@@ -132,7 +132,10 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
             TopicAdditionalHostname(id: "host-1", hostname: "news.example.com", topicId: "topic-1")
         ]
         viewModel.aliasDraft = "alias"
-        viewModel.aliases = ["primary", "secondary"]
+        viewModel.aliasesPagination.reset(items: [
+            TopicAlias(id: "alias-primary", alias: "primary", topicId: "topic-1"),
+            TopicAlias(id: "alias-secondary", alias: "secondary", topicId: "topic-1")
+        ])
 
         XCTAssertNoThrow(try NativeTopicManagementAboutFields(viewModel: viewModel, client: nil)
             .inspect().find(text: "Logo image"))
@@ -149,6 +152,28 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
 
         let merge = NativeTopicManagementMergeFields(viewModel: viewModel)
         XCTAssertNoThrow(try merge.inspect().find(text: "Destination topic id or slug"))
+    }
+
+    func testTopicManagementAliasFieldsHideDeleteActionForActiveTopicSlug() throws {
+        let viewModel = NativeTopicManagementViewModel(client: nil, routeMatch: nil)
+        try viewModel.apply(topic: Self.topicModel(name: "Managed Topic"))
+        XCTAssertEqual(viewModel.topic?.slug, "topic-1")
+        viewModel.aliasesPagination.reset(items: [
+            TopicAlias(id: "alias-active", alias: "topic-1", topicId: "topic-1"),
+            TopicAlias(id: "alias-secondary", alias: "secondary", topicId: "topic-1")
+        ])
+
+        let fields = NativeTopicManagementAliasFields(viewModel: viewModel)
+        XCTAssertFalse(fields.canRemove(viewModel.aliases[0]))
+        XCTAssertTrue(fields.canRemove(viewModel.aliases[1]))
+    }
+
+    func testTopicManagementAliasFieldsRenderEmptyStateAndDisableBlankDraft() throws {
+        let viewModel = NativeTopicManagementViewModel(client: nil, routeMatch: nil)
+        let emptyFields = NativeTopicManagementAliasFields(viewModel: viewModel)
+
+        XCTAssertNoThrow(try emptyFields.inspect().find(text: "No aliases"))
+        XCTAssertTrue(try emptyFields.inspect().find(button: "Add Alias").isDisabled())
     }
 
     func testTopicManagementSourceFieldsRenderLoadedSource() async throws {
@@ -229,7 +254,7 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
         await create.save()
         await create.addAlias()
         await create.addAdditionalHostname()
-        await create.removeAlias("alias")
+        await create.removeAlias(TopicAlias(id: "alias-1", alias: "alias", topicId: "topic-1"))
         await create.removeAdditionalHostname("host-1")
         await create.updateSource(enabled: true)
 
@@ -321,12 +346,12 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
     func testTopicManagementViewModelManagesAliasesAndHostnames() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/aliases"] = (
             Data(
-                #"{"results":["primary","alt"],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
+                #"{"results":[{"id":"alias-primary","alias":"primary","topic_id":"topic-1"},{"id":"alias-alt","alias":"alt","topic_id":"topic-1"}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                     .utf8
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/aliases/alt"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/aliases/alias-alt"] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/additional-hostnames"] = (
             Data(
                 #"""
@@ -342,10 +367,10 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
         aliases.aliasDraft = " alt "
 
         await aliases.addAlias()
-        await aliases.removeAlias("alt")
+        try await aliases.removeAlias(XCTUnwrap(aliases.aliases.first { $0.alias == "alt" }))
 
         XCTAssertEqual(aliases.aliasDraft, "")
-        XCTAssertEqual(aliases.aliases, ["primary", "alt"])
+        XCTAssertEqual(aliases.aliases.map(\.alias), ["primary", "alt"])
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.prefix(3), ["POST", "GET", "DELETE"])
 
         CannedFeedURLProtocol.capturedURLs = []

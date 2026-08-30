@@ -13,6 +13,7 @@ public static partial class MauiProgram
   {
     services.AddSingleton<ITopicsService, ApiTopicsService>();
     services.AddSingleton<ITopicRecommendationDetailService, ApiTopicRecommendationDetailService>();
+    services.AddSingleton<ITopHashtagsService, ApiTopHashtagsService>();
     services.AddSingleton<IReferralLinksService, ApiReferralLinksService>();
     services.AddSingleton<ILandingPagesService, ApiLandingPagesService>();
     services.AddSingleton<IGrowthMetricsService, ApiGrowthMetricsService>();

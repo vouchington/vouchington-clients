@@ -47,7 +47,7 @@ public interface ITopicsService
       UpdateRssFeedBody body,
       CancellationToken cancellationToken = default);
 
-  Task<ListResponse<string>> FetchTopicAliasesAsync(
+  Task<ListResponse<TopicAlias>> FetchTopicAliasesAsync(
       string topicId,
       string? after = null,
       int? limit = null,
@@ -66,8 +66,14 @@ public interface ITopicsService
 
   Task DeleteTopicAliasAsync(
       string topicId,
-      string aliasValue,
+      string aliasId,
       CancellationToken cancellationToken = default);
+
+  Task LinkTopicAliasAsync(
+      string topicId,
+      string aliasId,
+      CancellationToken cancellationToken = default) =>
+      Task.FromException(new NotSupportedException("Linking a topic alias is not implemented by this topics service."));
 
   Task<TopicAdditionalHostnameResponse> CreateTopicAdditionalHostnameAsync(
       string topicId,

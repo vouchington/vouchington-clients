@@ -51,6 +51,23 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest TopicRecommendation(string recommendationId) =>
       Get($"/api/v1/topic-recommendations/{Path(recommendationId)}");
 
+  public static ApiRequest TopHashtags(
+      string? query = null,
+      TopHashtagMapping mapping = TopHashtagMapping.All,
+      string? after = null,
+      int limit = 25) =>
+      Get(
+          "/api/v1/topic-recommendations/top-hashtags",
+          Query(("limit", limit), ("mapping", MappingValue(mapping)), ("q", query), ("after", after)));
+
+  private static string MappingValue(TopHashtagMapping mapping) => mapping switch
+  {
+    TopHashtagMapping.All => "all",
+    TopHashtagMapping.Linked => "linked",
+    TopHashtagMapping.Unlinked => "unlinked",
+    _ => throw new ArgumentOutOfRangeException(nameof(mapping), mapping, null),
+  };
+
   public static ApiRequest MyCommunities() => Get("/api/v1/my/communities");
 
   public static ApiRequest MyReferralClicks(string? after = null, int limit = 25) =>

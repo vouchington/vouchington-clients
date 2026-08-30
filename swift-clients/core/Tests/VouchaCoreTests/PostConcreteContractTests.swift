@@ -54,4 +54,34 @@ final class PostConcreteContractTests: XCTestCase {
         XCTAssertNil(post.parentId)
         XCTAssertNil(post.rejectedAt)
     }
+
+    func testPostCategorySidecarsDecodeFromFeedResponses() throws {
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.bookmarks.posts.saved.default")
+        ) as? [String: Any])
+        var results = try XCTUnwrap(object["results"] as? [[String: Any]])
+        results[0]["post_explicit_categories"] = [
+            ["type": "topic", "topic_id": "topic-1", "topic_name": "Rewards"],
+            ["type": "hashtag", "hashtag": "swift-ui"]
+        ]
+        results[0]["post_hashtags"] = [[
+            "id": "hashtag-1",
+            "key": "swift-ui",
+            "display_token": "#Swift_UI",
+            "topic_id": "topic-1"
+        ]]
+        object["results"] = results
+
+        let page = try makeVouchaDecoder().decode(
+            Page<Post>.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        let post = try XCTUnwrap(page.results.first)
+
+        XCTAssertEqual(post.postExplicitCategories?.first?.topicId, "topic-1")
+        XCTAssertEqual(post.postExplicitCategories?.first?.topicName, "Rewards")
+        XCTAssertEqual(post.postExplicitCategories?.last?.hashtag, "swift-ui")
+        XCTAssertEqual(post.postHashtags?.first?.displayToken, "#Swift_UI")
+        XCTAssertEqual(post.postHashtags?.first?.topicId, "topic-1")
+    }
 }

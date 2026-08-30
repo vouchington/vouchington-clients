@@ -281,7 +281,7 @@ public sealed class TopicsViewModelTests
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task<ListResponse<string>> FetchTopicAliasesAsync(
+    public Task<ListResponse<TopicAlias>> FetchTopicAliasesAsync(
         string topicId,
         string? after = null,
         int? limit = null,

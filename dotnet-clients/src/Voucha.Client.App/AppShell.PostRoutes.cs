@@ -32,6 +32,7 @@ public sealed partial class AppShell
             break;
           case PostComposeTypes.Discussion:
             viewModel.DiscussionCategoryTopicId = topicId;
+            viewModel.AddDiscussionCategoryTopic();
             break;
         }
       }

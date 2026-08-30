@@ -102,7 +102,8 @@ public sealed partial class PostComposeViewModel
         StructuredData: PostType == PostComposeTypes.DataPoint ? structuredData : null,
         DeclaredLanguage: EmptyToNull(DeclaredLanguage),
         HpWebsite: EmptyToNull(HpWebsite),
-        HpPhone: EmptyToNull(HpPhone));
+        HpPhone: EmptyToNull(HpPhone),
+        Categories: EffectiveDiscussionCategories());
   }
 
   private async Task CreateRelationsAsync(string postId, CancellationToken cancellationToken)
@@ -114,12 +115,6 @@ public sealed partial class PostComposeViewModel
           new CreateEntityRelationRequest("post", postId, "related", "url", url.Identifier),
           cancellationToken).ConfigureAwait(true);
     }
-    foreach (var topic in EffectiveDiscussionCategoryTopics())
-    {
-      await relationsService.CreateAsync(
-          new CreateEntityRelationRequest("post", postId, "category", "topic", topic.TopicId),
-          cancellationToken).ConfigureAwait(true);
-    }
   }
 
   private IReadOnlyList<PostComposeTopicRatingDraft> EffectiveReviewTopicRatings()
@@ -129,11 +124,6 @@ public sealed partial class PostComposeViewModel
         ? [new PostComposeTopicRatingDraft(ReviewTopicId.Trim(), rating)]
         : [];
   }
-
-  private IReadOnlyList<PostComposeTopicDraft> EffectiveDiscussionCategoryTopics() =>
-      DiscussionCategoryTopics.Count > 0 || string.IsNullOrWhiteSpace(DiscussionCategoryTopicId)
-          ? DiscussionCategoryTopics
-          : [new PostComposeTopicDraft(DiscussionCategoryTopicId.Trim())];
 
   private IReadOnlyList<PostComposeRelatedUrlDraft> EffectiveRelatedUrls() =>
       RelatedUrls.Count > 0

@@ -46,7 +46,21 @@ public sealed record Post(
     [property: JsonPropertyName("user_id")] string? UserId = null,
     [property: JsonPropertyName("approved_at")] DateTimeOffset? ApprovedAt = null,
     [property: JsonPropertyName("in_review_at")] DateTimeOffset? InReviewAt = null,
-    [property: JsonPropertyName("rejected_at")] DateTimeOffset? RejectedAt = null);
+    [property: JsonPropertyName("rejected_at")] DateTimeOffset? RejectedAt = null,
+    [property: JsonPropertyName("post_explicit_categories")] IReadOnlyList<PostExplicitCategory>? PostExplicitCategories = null,
+    [property: JsonPropertyName("post_hashtags")] IReadOnlyList<PostHashtag>? PostHashtags = null);
+
+public sealed record PostExplicitCategory(
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("topic_id")] string? TopicId = null,
+    [property: JsonPropertyName("topic_name")] string? TopicName = null,
+    [property: JsonPropertyName("hashtag")] string? Hashtag = null);
+
+public sealed record PostHashtag(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("key")] string Key,
+    [property: JsonPropertyName("display_token")] string DisplayToken,
+    [property: JsonPropertyName("topic_id")] string? TopicId);
 
 public sealed record PostMetricCounts(
     [property: JsonPropertyName("descendants")] int Descendants,

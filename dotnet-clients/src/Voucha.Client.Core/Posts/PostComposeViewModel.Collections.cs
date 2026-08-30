@@ -11,12 +11,6 @@ public sealed partial class PostComposeViewModel
     OnValidationChanged();
   }
 
-  public void SetDiscussionCategoryTopics(IReadOnlyList<PostComposeTopicDraft> topics)
-  {
-    DiscussionCategoryTopics = topics;
-    OnPropertyChanged(nameof(DiscussionCategoryTopics));
-  }
-
   public void SetRelatedUrls(IReadOnlyList<PostComposeRelatedUrlDraft> urls)
   {
     RelatedUrls = urls;
@@ -55,11 +49,12 @@ public sealed partial class PostComposeViewModel
     ReviewTopicId = "";
     ReviewRating = "";
     DiscussionCategoryTopicId = "";
+    DiscussionCategoryHashtag = "";
     RelatedLinkIdentifier = "";
     ImageId = "";
     ImageCaption = "";
     SetReviewTopicRatings([]);
-    SetDiscussionCategoryTopics([]);
+    SetDiscussionCategories([]);
     SetRelatedUrls([]);
     SetImages([]);
   }

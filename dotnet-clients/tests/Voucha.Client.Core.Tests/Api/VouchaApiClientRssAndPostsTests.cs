@@ -22,6 +22,11 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("Test Article", response.RssFeedItems["item-1"].Data?.Title);
     Assert.Equal("video", response.RssFeedItems["item-1"].MediaType);
     Assert.Equal("feed-1", response.RssFeedItems["item-1"].RssFeed?.Id);
+    var hashtag = response.RssFeedItems["item-peer"].Categories?.Single().Hashtag;
+    Assert.Equal("00000000-0000-7000-8000-000000000101", hashtag?.Id);
+    Assert.Equal("travel", hashtag?.Key);
+    Assert.Equal("#Travel", hashtag?.DisplayToken);
+    Assert.Equal("topic-1", hashtag?.TopicId);
   }
 
   [Fact]

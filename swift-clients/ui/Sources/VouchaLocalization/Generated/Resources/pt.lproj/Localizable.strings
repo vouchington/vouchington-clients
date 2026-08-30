@@ -2175,6 +2175,16 @@
 "native.swift.tagManagement.userTag" = "Etiqueta de utilizador";
 "native.swift.tagManagement.userTags" = "Etiquetas de utilizador";
 "native.swift.tagManagement.viewPlans" = "Ver planos";
+"native.swift.topHashtags.all" = "Todos";
+"native.swift.topHashtags.createTopic" = "Criar tópico";
+"native.swift.topHashtags.itemsContributors" = "{items} itens. {contributors} colaboradores.";
+"native.swift.topHashtags.linkTopic" = "Associar tópico";
+"native.swift.topHashtags.linked" = "Associados";
+"native.swift.topHashtags.loadMore" = "Carregar mais";
+"native.swift.topHashtags.searchHashtags" = "Pesquisar hashtags";
+"native.swift.topHashtags.topHashtags" = "Principais hashtags";
+"native.swift.topHashtags.unlink" = "Desassociar";
+"native.swift.topHashtags.unlinked" = "Não associados";
 "native.swift.topicManagement.aboutDetail" = "Edite o nome, slug, Markdown, imagens e nome do host.";
 "native.swift.topicManagement.aliasesDetail" = "Liste, adicione e remova nomes alternativos do tópico.";
 "native.swift.topicManagement.behaviorDetail" = "Ajuste o tipo de tópico e a visibilidade das avaliações.";

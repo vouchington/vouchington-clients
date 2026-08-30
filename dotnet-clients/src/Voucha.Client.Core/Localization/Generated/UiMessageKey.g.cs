@@ -1250,6 +1250,19 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetTagManagementRelatedTopics = new("native.dotnet.tagManagement.relatedTopics");
     public static readonly UiMessageKey NativeDotnetTagManagementTermsOfService = new("native.dotnet.tagManagement.termsOfService");
     public static readonly UiMessageKey NativeDotnetTagManagementUserTags = new("native.dotnet.tagManagement.userTags");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsAll = new("native.dotnet.topHashtags.all");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsCreateTopic = new("native.dotnet.topHashtags.createTopic");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsItemsContributors = new("native.dotnet.topHashtags.itemsContributors");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsLinkTopic = new("native.dotnet.topHashtags.linkTopic");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsLinked = new("native.dotnet.topHashtags.linked");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsLoadMore = new("native.dotnet.topHashtags.loadMore");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsRecommendations = new("native.dotnet.topHashtags.recommendations");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsSearchHashtags = new("native.dotnet.topHashtags.searchHashtags");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsTopHashtags = new("native.dotnet.topHashtags.topHashtags");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsTopic = new("native.dotnet.topHashtags.topic");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsTopicName = new("native.dotnet.topHashtags.topicName");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsUnlink = new("native.dotnet.topHashtags.unlink");
+    public static readonly UiMessageKey NativeDotnetTopHashtagsUnlinked = new("native.dotnet.topHashtags.unlinked");
     public static readonly UiMessageKey NativeDotnetTopicManagementCreateTopic = new("native.dotnet.topicManagement.createTopic");
     public static readonly UiMessageKey NativeDotnetTopicManagementDiscoverable = new("native.dotnet.topicManagement.discoverable");
     public static readonly UiMessageKey NativeDotnetTopicManagementHeroImageId = new("native.dotnet.topicManagement.heroImageId");
@@ -3233,6 +3246,19 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetTagManagementRelatedTopics,
         NativeDotnetTagManagementTermsOfService,
         NativeDotnetTagManagementUserTags,
+        NativeDotnetTopHashtagsAll,
+        NativeDotnetTopHashtagsCreateTopic,
+        NativeDotnetTopHashtagsItemsContributors,
+        NativeDotnetTopHashtagsLinkTopic,
+        NativeDotnetTopHashtagsLinked,
+        NativeDotnetTopHashtagsLoadMore,
+        NativeDotnetTopHashtagsRecommendations,
+        NativeDotnetTopHashtagsSearchHashtags,
+        NativeDotnetTopHashtagsTopHashtags,
+        NativeDotnetTopHashtagsTopic,
+        NativeDotnetTopHashtagsTopicName,
+        NativeDotnetTopHashtagsUnlink,
+        NativeDotnetTopHashtagsUnlinked,
         NativeDotnetTopicManagementCreateTopic,
         NativeDotnetTopicManagementDiscoverable,
         NativeDotnetTopicManagementHeroImageId,

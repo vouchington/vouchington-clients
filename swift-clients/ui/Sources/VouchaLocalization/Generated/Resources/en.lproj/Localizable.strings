@@ -2175,6 +2175,16 @@
 "native.swift.tagManagement.userTag" = "User tag";
 "native.swift.tagManagement.userTags" = "User tags";
 "native.swift.tagManagement.viewPlans" = "View plans";
+"native.swift.topHashtags.all" = "All";
+"native.swift.topHashtags.createTopic" = "Create Topic";
+"native.swift.topHashtags.itemsContributors" = "{items} items. {contributors} contributors.";
+"native.swift.topHashtags.linkTopic" = "Link Topic";
+"native.swift.topHashtags.linked" = "Linked";
+"native.swift.topHashtags.loadMore" = "Load more";
+"native.swift.topHashtags.searchHashtags" = "Search hashtags";
+"native.swift.topHashtags.topHashtags" = "Top Hashtags";
+"native.swift.topHashtags.unlink" = "Unlink";
+"native.swift.topHashtags.unlinked" = "Unlinked";
 "native.swift.topicManagement.aboutDetail" = "Edit name, slug, markdown, images, and hostname.";
 "native.swift.topicManagement.aliasesDetail" = "List, add, and remove topic aliases.";
 "native.swift.topicManagement.behaviorDetail" = "Adjust topic type and review visibility.";

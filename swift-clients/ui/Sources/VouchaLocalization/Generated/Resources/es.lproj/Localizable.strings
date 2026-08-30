@@ -2175,6 +2175,16 @@
 "native.swift.tagManagement.userTag" = "Etiqueta de usuario";
 "native.swift.tagManagement.userTags" = "Etiquetas de usuario";
 "native.swift.tagManagement.viewPlans" = "Ver planes";
+"native.swift.topHashtags.all" = "Todos";
+"native.swift.topHashtags.createTopic" = "Crear tema";
+"native.swift.topHashtags.itemsContributors" = "{items} elementos. {contributors} colaboradores.";
+"native.swift.topHashtags.linkTopic" = "Vincular tema";
+"native.swift.topHashtags.linked" = "Vinculados";
+"native.swift.topHashtags.loadMore" = "Cargar más";
+"native.swift.topHashtags.searchHashtags" = "Buscar hashtags";
+"native.swift.topHashtags.topHashtags" = "Hashtags principales";
+"native.swift.topHashtags.unlink" = "Desvincular";
+"native.swift.topHashtags.unlinked" = "Sin vincular";
 "native.swift.topicManagement.aboutDetail" = "Edita el nombre, slug, Markdown, imágenes y nombre de host.";
 "native.swift.topicManagement.aliasesDetail" = "Consulta, agrega y elimina nombres alternativos del tema.";
 "native.swift.topicManagement.behaviorDetail" = "Ajusta el tipo de tema y la visibilidad de las reseñas.";

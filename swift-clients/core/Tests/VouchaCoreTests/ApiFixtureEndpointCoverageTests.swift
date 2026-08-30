@@ -263,6 +263,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 id: "00000000-0000-7000-8000-000000007886"
             ),
             "native.topic-recommendation.detail.default": Endpoint.topicRecommendation(id: "recommendation-1"),
+            "native.topic-recommendations.top-hashtags.default": Endpoint.topHashtags(),
             "native.bookmarks.posts.saved.default": Endpoint.userPosts(userId: "user-abc", listType: "saved"),
             "native.bookmarks.posts.saved.next-page": Endpoint.userPosts(
                 userId: "user-abc",

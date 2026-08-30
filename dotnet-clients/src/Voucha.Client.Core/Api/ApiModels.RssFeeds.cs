@@ -60,7 +60,14 @@ public sealed record RssFeedItemCategory(
     [property: JsonPropertyName("id")] string? Id,
     [property: JsonPropertyName("category_text")] string CategoryText,
     [property: JsonPropertyName("topic")] Topic? Topic,
-    [property: JsonPropertyName("votes_score_net")] double? VotesScoreNet);
+    [property: JsonPropertyName("votes_score_net")] double? VotesScoreNet,
+    [property: JsonPropertyName("hashtag")] RssFeedItemHashtag? Hashtag = null);
+
+public sealed record RssFeedItemHashtag(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("key")] string Key,
+    [property: JsonPropertyName("display_token")] string DisplayToken,
+    [property: JsonPropertyName("topic_id")] string? TopicId);
 
 public sealed record RssFeedItem(
     [property: JsonPropertyName("id")] string Id,

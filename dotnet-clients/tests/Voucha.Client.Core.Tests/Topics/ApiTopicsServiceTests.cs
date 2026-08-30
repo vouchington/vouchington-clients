@@ -21,7 +21,7 @@ public sealed class ApiTopicsServiceTests
         Json("{}"),
         Json("{}"),
         Json("{}"),
-        Json("""{"results":["alt"],"page_info":{"has_next_page":false}}"""),
+        Json("""{"results":[{"id":"alias-1","alias":"alt","topic_id":"topic-1"}],"page_info":{"has_next_page":false}}"""),
         Json(
             """
             {"results":[{"hostname_id":"host-1","hostname":"example.com","topic_id":"topic-1"}],
@@ -50,9 +50,9 @@ public sealed class ApiTopicsServiceTests
         TestContext.Current.CancellationToken);
     await service.FetchTopicAliasesAsync("topic 1", cancellationToken: TestContext.Current.CancellationToken);
     await service.FetchTopicAdditionalHostnamesAsync("topic 1", cancellationToken: TestContext.Current.CancellationToken);
-    await service.CreateTopicAliasesAsync("topic 1", new CreateTopicAliasesBody("alt", false), TestContext.Current.CancellationToken);
+    await service.CreateTopicAliasesAsync("topic 1", new CreateTopicAliasesBody("alt"), TestContext.Current.CancellationToken);
     await service.FetchRssFeedsForTopicAsync("topic 1", RssFeedEnabledFilter.All, TestContext.Current.CancellationToken);
-    await service.DeleteTopicAliasAsync("topic 1", "alt value", TestContext.Current.CancellationToken);
+    await service.DeleteTopicAliasAsync("topic 1", "00000000-0000-7000-8000-000000000001", TestContext.Current.CancellationToken);
     await service.CreateTopicAdditionalHostnameAsync("topic 1", "extra.example.com", TestContext.Current.CancellationToken);
     await service.DeleteTopicAdditionalHostnameAsync("topic 1", "host 1", TestContext.Current.CancellationToken);
     await service.MergeTopicAliasesAsync("topic 1", "topic 2", TestContext.Current.CancellationToken);
@@ -71,9 +71,9 @@ public sealed class ApiTopicsServiceTests
           (HttpMethod.Patch, "/api/v1/rss-feeds/feed%201", """{"enabled":false}"""),
           (HttpMethod.Get, "/api/v1/topics/topic%201/aliases", null),
           (HttpMethod.Get, "/api/v1/topics/topic%201/additional-hostnames", null),
-          (HttpMethod.Post, "/api/v1/topics/topic%201/aliases", """{"aliases":"alt","overwrite":false}"""),
+          (HttpMethod.Post, "/api/v1/topics/topic%201/aliases", """{"aliases":"alt"}"""),
           (HttpMethod.Get, "/api/v1/rss-feeds?enabled=null&topic=topic%201", null),
-          (HttpMethod.Delete, "/api/v1/topics/topic%201/aliases/alt%20value", null),
+          (HttpMethod.Delete, "/api/v1/topics/topic%201/aliases/00000000-0000-7000-8000-000000000001", null),
           (HttpMethod.Post, "/api/v1/topics/topic%201/additional-hostnames", """{"hostname":"extra.example.com"}"""),
           (HttpMethod.Delete, "/api/v1/topics/topic%201/additional-hostnames/host%201", null),
           (HttpMethod.Post, "/api/v1/topics/topic%201/merges", """{"destination_id_or_slug":"topic 2"}"""),
@@ -85,7 +85,7 @@ public sealed class ApiTopicsServiceTests
   public async Task FetchMethodsForwardAfterAndLimitToTheQueryString()
   {
     var handler = new QueueHandler(
-        Json("""{"results":["alt"],"page_info":{"has_next_page":true,"end_cursor":"cursor-1"}}"""),
+        Json("""{"results":[{"id":"alias-1","alias":"alt","topic_id":"topic-1"}],"page_info":{"has_next_page":true,"end_cursor":"cursor-1"}}"""),
         Json(
             """
             {"results":[{"hostname_id":"host-1","hostname":"example.com","topic_id":"topic-1"}],

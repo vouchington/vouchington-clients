@@ -13,6 +13,7 @@ public sealed partial class PostComposeViewModel
       OnPropertyChanged(nameof(IsLinkType));
       OnPropertyChanged(nameof(IsReviewType));
       OnPropertyChanged(nameof(IsDataPointType));
+      OnPropertyChanged(nameof(IsDiscussionType));
     }
   }
 
@@ -69,6 +70,12 @@ public sealed partial class PostComposeViewModel
   {
     get => discussionCategoryTopicId;
     set => SetDraftProperty(ref discussionCategoryTopicId, value);
+  }
+
+  public string DiscussionCategoryHashtag
+  {
+    get => discussionCategoryHashtag;
+    set => SetDraftProperty(ref discussionCategoryHashtag, value);
   }
 
   public string RelatedLinkIdentifier

@@ -145,8 +145,8 @@ extension NativeTopicManagementViewModel {
 
     func reloadAliases() async throws {
         guard let client, let topicIdentifier else { return }
-        let response: Page<String> = try await client.send(.topicAliases(topicId: topicIdentifier))
-        aliasesPagination.reset(items: response.results.map(TopicAliasItem.init))
+        let response: Page<TopicAlias> = try await client.send(.topicAliases(topicId: topicIdentifier))
+        aliasesPagination.reset(items: response.results)
         aliasesPagination.restoreContinuation(
             endCursor: response.pageInfo.endCursor,
             hasMore: response.pageInfo.hasNextPage
@@ -178,6 +178,5 @@ extension NativeTopicManagementViewModel {
         heroImageId = topic.heroImageId ?? ""
         noindex = topic.noindex ?? false
         allowReviews = topic.allowReviews ?? false
-        aliases = topic.aliases ?? []
     }
 }

@@ -66,6 +66,10 @@ struct NativePostComposeSurface: View {
                 .textFieldStyle(.roundedBorder)
             }
 
+            if viewModel.postType == .discussion {
+                discussionCategorySection(viewModel: viewModel)
+            }
+
             imageSection(viewModel: viewModel)
             NativePostTypeSpecificFields(viewModel: viewModel)
 

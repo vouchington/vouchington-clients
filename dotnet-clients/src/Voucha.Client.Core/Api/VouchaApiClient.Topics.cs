@@ -16,12 +16,12 @@ public sealed partial class VouchaApiClient
   public Task UnfollowTopicAsync(string topicId, CancellationToken cancellationToken = default) =>
       SendAsync(VouchaApiEndpoints.UnfollowTopic(topicId), cancellationToken);
 
-  public Task<ListResponse<string>> FetchTopicAliasesAsync(
+  public Task<ListResponse<TopicAlias>> FetchTopicAliasesAsync(
       string topicId,
       string? after = null,
       int? limit = null,
       CancellationToken cancellationToken = default) =>
-      SendAsync<ListResponse<string>>(
+      SendAsync<ListResponse<TopicAlias>>(
           VouchaApiEndpoints.TopicAliases(topicId, after, limit),
           cancellationToken);
 
@@ -45,6 +45,12 @@ public sealed partial class VouchaApiClient
       string alias,
       CancellationToken cancellationToken = default) =>
       SendAsync(VouchaApiEndpoints.DeleteTopicAlias(topicId, alias), cancellationToken);
+
+  public Task LinkTopicAliasAsync(
+      string topicId,
+      string aliasId,
+      CancellationToken cancellationToken = default) =>
+      SendAsync(VouchaApiEndpoints.LinkTopicAlias(topicId, aliasId), cancellationToken);
 
   public Task<TopicAdditionalHostnameResponse> CreateTopicAdditionalHostnameAsync(
       string topicId,

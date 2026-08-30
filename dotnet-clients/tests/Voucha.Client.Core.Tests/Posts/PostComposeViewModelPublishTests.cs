@@ -42,6 +42,44 @@ public sealed class PostComposeViewModelPublishTests
   }
 
   [Fact]
+  public async Task PublishAsyncSendsAtomicallyAuthoredDiscussionCategories()
+  {
+    var service = new RecordingPostsService();
+    var viewModel = new PostComposeViewModel(
+        service,
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true));
+    viewModel.Title = "Title";
+    viewModel.Markdown = "Body";
+    viewModel.DiscussionCategoryTopicId = "topic-1";
+    viewModel.AddDiscussionCategoryTopic();
+    viewModel.DiscussionCategoryHashtag = " #Me.Too__2026 ";
+    viewModel.AddDiscussionCategoryHashtag();
+
+    Assert.Equal("topic-1", viewModel.DiscussionCategories[0].UserContentValue);
+    Assert.Equal("#Me.Too__2026", viewModel.DiscussionCategories[1].UserContentValue);
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+
+    Assert.NotNull(service.GlobalBody?.Categories);
+    Assert.Collection(
+        service.GlobalBody!.Categories!,
+        category => Assert.Equal("topic-1", Assert.IsType<TopicPostCategoryInput>(category).TopicId),
+        category => Assert.Equal("#Me.Too__2026", Assert.IsType<HashtagPostCategoryInput>(category).Hashtag));
+  }
+
+  [Fact]
+  public void AddDiscussionCategoryHashtagRejectsOverlongAuthoredTokenEvenWhenItWouldCollapse()
+  {
+    var viewModel = new PostComposeViewModel(
+        new RecordingPostsService(),
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true));
+    viewModel.DiscussionCategoryHashtag = $"a{new string('.', 255)}b";
+
+    viewModel.AddDiscussionCategoryHashtag();
+
+    Assert.Empty(viewModel.DiscussionCategories);
+  }
+
+  [Fact]
   public async Task PublishAsyncPreservesDraftAndRequestsEmailRecovery()
   {
     var service = new ThrowingPostsService(new VouchaApiException(

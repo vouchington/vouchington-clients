@@ -75,7 +75,6 @@ public sealed class PostComposeViewModelTests
     viewModel.Markdown = ValidReviewMarkdown;
     viewModel.ReviewTopicId = TopicId;
     viewModel.ReviewRating = "5";
-    viewModel.DiscussionCategoryTopicId = "topic-2";
     viewModel.RelatedLinkIdentifier = "url-1";
     viewModel.ImageId = "image-1";
     viewModel.ImageCaption = "Alt";
@@ -91,10 +90,7 @@ public sealed class PostComposeViewModelTests
     Assert.Equal(5, Assert.Single(service.GlobalBody?.ReviewTopicRatings ?? []).Rating);
     Assert.Equal("image-1", Assert.Single(service.GlobalBody?.Images ?? []).ImageId);
     Assert.True(viewModel.HasPublished);
-    Assert.Collection(
-        relations.Requests,
-        request => Assert.Equal("url-1", request.ObjectId),
-        request => Assert.Equal("topic-2", request.ObjectId));
+    Assert.Collection(relations.Requests, request => Assert.Equal("url-1", request.ObjectId));
   }
 
   [Fact]
@@ -317,7 +313,7 @@ public sealed class PostComposeViewModelTests
     viewModel.CommunitySlug = "community";
     viewModel.LinkAddress = "https://example.test";
     viewModel.SetReviewTopicRatings([new PostComposeTopicRatingDraft("topic-1", 4)]);
-    viewModel.SetDiscussionCategoryTopics([new PostComposeTopicDraft("topic-2")]);
+    viewModel.SetDiscussionCategories([new PostComposeCategoryDraft(PostComposeCategoryKind.Topic, "topic-2")]);
     viewModel.SetRelatedUrls([new PostComposeRelatedUrlDraft("url-1")]);
     viewModel.SetImages([new PostComposeImageDraft("image-1", 0)]);
 
@@ -328,7 +324,7 @@ public sealed class PostComposeViewModelTests
     Assert.Empty(viewModel.Markdown);
     Assert.False(viewModel.IsCommunityPost);
     Assert.Empty(viewModel.ReviewTopicRatings);
-    Assert.Empty(viewModel.DiscussionCategoryTopics);
+    Assert.Empty(viewModel.DiscussionCategories);
     Assert.Empty(viewModel.RelatedUrls);
     Assert.Empty(viewModel.Images);
   }

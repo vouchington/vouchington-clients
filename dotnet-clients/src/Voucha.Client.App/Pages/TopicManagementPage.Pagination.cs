@@ -6,7 +6,7 @@ namespace Voucha.Client.App.Pages;
 
 public partial class TopicManagementPage
 {
-  private readonly CursorPaginationState<string, string> aliasesPagination = new(alias => alias);
+  private readonly CursorPaginationState<TopicAlias, string> aliasesPagination = new(alias => alias.Id);
   private readonly CursorPaginationState<TopicAdditionalHostname, string> hostnamesPagination = new(host => host.HostnameId);
 
   private async void OnLoadMoreAliasesRequested(object? sender, EventArgs e)
@@ -71,7 +71,7 @@ public partial class TopicManagementPage
   {
     AliasesLabel.Text = aliasesPagination.Items.Count == 0
         ? UiCopy.Localize(UiMessageKey.NativeDotnetTopicManagementNoAliases)
-        : string.Join(", ", aliasesPagination.Items);
+        : string.Join(", ", aliasesPagination.Items.Select(alias => alias.Alias));
   }
 
   private void ApplyHostnames()

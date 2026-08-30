@@ -46,6 +46,9 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest DeleteTopicAlias(string topicId, string alias) =>
       new(HttpMethod.Delete, $"/api/v1/topics/{Path(topicId)}/aliases/{Path(alias)}");
 
+  public static ApiRequest LinkTopicAlias(string topicId, string aliasId) =>
+      new(HttpMethod.Post, $"/api/v1/topics/{Path(topicId)}/aliases/{Path(aliasId)}") { Body = new { } };
+
   public static ApiRequest MergeTopicAliases(string sourceTopicId, string destinationIdOrSlug) =>
       new(HttpMethod.Post, $"/api/v1/topics/{Path(sourceTopicId)}/merges")
       {

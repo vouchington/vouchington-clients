@@ -263,7 +263,7 @@ public sealed class TopicDetailViewModelSourceCrawlsTests
     public Task FollowSourceAsync(string rssFeedId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task UnfollowSourceAsync(string rssFeedId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task UpdateSourceAsync(string rssFeedId, UpdateRssFeedBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<ListResponse<string>> FetchTopicAliasesAsync(string topicId, string? after = null, int? limit = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<ListResponse<TopicAlias>> FetchTopicAliasesAsync(string topicId, string? after = null, int? limit = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ListResponse<TopicAdditionalHostname>> FetchTopicAdditionalHostnamesAsync(string topicId, string? after = null, int? limit = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task CreateTopicAliasesAsync(string topicId, CreateTopicAliasesBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task DeleteTopicAliasAsync(string topicId, string aliasValue, CancellationToken cancellationToken = default) => throw new NotSupportedException();

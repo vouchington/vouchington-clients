@@ -165,7 +165,9 @@ public extension NativeCommentThreadViewModel {
             lockedById: mutationPost.lockedById ?? existingPost.lockedById,
             canEditContent: mutationPost.canEditContent ?? existingPost.canEditContent,
             canDelete: mutationPost.canDelete ?? existingPost.canDelete,
-            canLock: mutationPost.canLock ?? existingPost.canLock
+            canLock: mutationPost.canLock ?? existingPost.canLock,
+            postExplicitCategories: mutationPost.postExplicitCategories ?? existingPost.postExplicitCategories,
+            postHashtags: mutationPost.postHashtags ?? existingPost.postHashtags
         )
     }
 

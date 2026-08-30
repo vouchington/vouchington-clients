@@ -151,6 +151,18 @@ public struct TopicAdditionalHostname: Codable, Identifiable, Sendable {
     }
 }
 
+public struct TopicAlias: Codable, Identifiable, Sendable, Equatable {
+    public let id: String
+    public let alias: String
+    public let topicId: String?
+
+    public init(id: String, alias: String, topicId: String?) {
+        self.id = id
+        self.alias = alias
+        self.topicId = topicId
+    }
+}
+
 public struct TopicAdditionalHostnamesResponse: Codable, Sendable {
     public let results: [TopicAdditionalHostname]
     public let pageInfo: Page<TopicAdditionalHostname>.PageInfo

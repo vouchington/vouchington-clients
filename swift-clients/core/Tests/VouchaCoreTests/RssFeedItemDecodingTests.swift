@@ -122,13 +122,20 @@ final class RssFeedItemDecodingTests: XCTestCase {
                     "slug": "technology",
                     "topic_type": "topic"
                   },
-                  "votes_score_net": 3.25
+                  "votes_score_net": 3.25,
+                  "hashtag": {
+                    "id": "hashtag-1",
+                    "key": "technology",
+                    "display_token": "#Technology",
+                    "topic_id": "topic-1"
+                  }
                 },
                 {
                   "id": null,
                   "category_text": "news",
                   "topic": null,
-                  "votes_score_net": null
+                  "votes_score_net": null,
+                  "hashtag": null
                 }
               ],
               "media_content": null
@@ -143,9 +150,14 @@ final class RssFeedItemDecodingTests: XCTestCase {
         XCTAssertEqual(item.categories?.first?.categoryText, "technology")
         XCTAssertEqual(item.categories?.first?.topic?.id, "topic-1")
         XCTAssertEqual(item.categories?.first?.votesScoreNet, 3.25)
+        XCTAssertEqual(item.categories?.first?.hashtag?.id, "hashtag-1")
+        XCTAssertEqual(item.categories?.first?.hashtag?.key, "technology")
+        XCTAssertEqual(item.categories?.first?.hashtag?.displayToken, "#Technology")
+        XCTAssertEqual(item.categories?.first?.hashtag?.topicId, "topic-1")
         XCTAssertNil(item.categories?.last?.id)
         XCTAssertNil(item.categories?.last?.topic)
         XCTAssertNil(item.categories?.last?.votesScoreNet)
+        XCTAssertNil(item.categories?.last?.hashtag)
     }
 }
 

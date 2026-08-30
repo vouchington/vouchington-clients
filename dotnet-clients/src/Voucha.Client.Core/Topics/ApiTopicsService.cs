@@ -64,7 +64,7 @@ public sealed class ApiTopicsService : ITopicsService
       CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.UpdateRssFeed(rssFeedId, body), cancellationToken);
 
-  public Task<ListResponse<string>> FetchTopicAliasesAsync(
+  public Task<ListResponse<TopicAlias>> FetchTopicAliasesAsync(
       string topicId,
       string? after = null,
       int? limit = null,
@@ -86,9 +86,15 @@ public sealed class ApiTopicsService : ITopicsService
 
   public Task DeleteTopicAliasAsync(
       string topicId,
-      string aliasValue,
+      string aliasId,
       CancellationToken cancellationToken = default) =>
-      client.DeleteTopicAliasAsync(topicId, aliasValue, cancellationToken);
+      client.DeleteTopicAliasAsync(topicId, aliasId, cancellationToken);
+
+  public Task LinkTopicAliasAsync(
+      string topicId,
+      string aliasId,
+      CancellationToken cancellationToken = default) =>
+      client.LinkTopicAliasAsync(topicId, aliasId, cancellationToken);
 
   public Task<TopicAdditionalHostnameResponse> CreateTopicAdditionalHostnameAsync(
       string topicId,

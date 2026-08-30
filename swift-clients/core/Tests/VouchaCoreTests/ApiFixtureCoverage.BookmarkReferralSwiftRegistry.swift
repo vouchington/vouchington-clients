@@ -1,6 +1,9 @@
 import VouchaModels
 
 let bookmarkReferralSwiftCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "native.topic-recommendations.top-hashtags.default") {
+        try assertFixtureCoversDTO($0, as: TopHashtagsResponse.self)
+    },
     RegisteredFixture(id: "native.topic-recommendation.detail.default") {
         try assertFixtureCoversDTO(
             $0,
