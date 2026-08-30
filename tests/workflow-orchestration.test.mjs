@@ -13,7 +13,8 @@ describe('event-driven CI orchestration', () => {
 
     const workflow = await readWorkflow('native-contract-tests.yml')
 
-    assert.match(workflow, /pull_request_target:\n\s+types:/u)
+    assert.match(workflow, /pull_request:\n\s+types:/u)
+    assert.doesNotMatch(workflow, /pull_request_target:/u)
     assert.match(workflow, /push:\n\s+branches: \[main\]/u)
     assert.match(
       workflow,
@@ -21,7 +22,7 @@ describe('event-driven CI orchestration', () => {
     )
     assert.match(
       workflow,
-      /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request_target' \}\}/u,
+      /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u,
     )
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
     assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u)
@@ -33,6 +34,8 @@ describe('event-driven CI orchestration', () => {
     await assert.rejects(access(workflowUrl('validate-request-final-code-review.yml')))
 
     const workflow = await readWorkflow('final-code-review.yml')
+    assert.match(workflow, /pull_request:\n\s+types:/u)
+    assert.doesNotMatch(workflow, /pull_request_target:/u)
     assert.match(
       workflow,
       /types: \[opened, reopened, synchronize, ready_for_review, converted_to_draft, closed\]/u,
@@ -43,11 +46,11 @@ describe('event-driven CI orchestration', () => {
     assert.match(workflow, /TESTS_JOB_NAME: validate/u)
     assert.match(
       workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-select@f5f41caba5aef0b31e507a67123c76f1c9a53d02/u,
+      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-select@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
     )
     assert.match(
       workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-gate@f5f41caba5aef0b31e507a67123c76f1c9a53d02/u,
+      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-gate@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
     )
     assert.match(workflow, /CLAUDE_ENABLED: 'false'/u)
     assert.match(workflow, /'Code Reviewed' \|\| 'Ignore ineligible final review'/u)

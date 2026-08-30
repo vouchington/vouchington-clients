@@ -230,7 +230,9 @@ describe("native contract workflow boundary", () => {
     const workflow = await readWorkflow("native-contract-tests.yml");
     const action = await readAction("prepare-native-contract");
 
-    assert.match(workflow, /pull_request_target:/u);
+    assert.match(workflow, /pull_request:/u);
+    assert.doesNotMatch(workflow, /pull_request_target:/u);
+    assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
     assert.equal(workflow.split("secrets.FILAMENTS_DEPLOY_KEY").length - 1, 1);
     assert.match(
       workflow,
