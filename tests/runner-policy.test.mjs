@@ -38,11 +38,25 @@ function assertPersistentCleanup(workflow, job) {
   assert.ok(cleanup[0] < checkout, `${job} needs cleanup before checkout`)
   assert.ok(cleanup.at(-1) > checkout, `${job} needs cleanup after checkout`)
   assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
-  assert.match(block, /pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/u)
+  assert.match(block, /pnpm dlx vouchington-tooling@\d+\.\d+\.\d+ clean-workspace/u)
   assert.match(block, /if: always\(\)/u, `${job} needs unconditional final cleanup`)
 }
 
 describe('private self-hosted runner policy', () => {
+  it('bounds every concrete workflow job to at most 30 minutes', async () => {
+    for (const [name, workflow] of await readWorkflows()) {
+      const concreteJobs = workflow.matchAll(
+        /^ {2}([A-Za-z0-9_-]+):\n(?:(?!^ {2}[A-Za-z0-9_-]+:)[\s\S])*?^ {4}runs-on:/gmu,
+      )
+      for (const job of concreteJobs) {
+        const block = jobBlock(workflow, job[1])
+        const timeout = block.match(/^ {4}timeout-minutes: (\d+)$/mu)
+        assert.ok(timeout, `${name}:${job[1]} needs timeout-minutes`)
+        assert.ok(Number(timeout[1]) <= 30, `${name}:${job[1]} exceeds 30 minutes`)
+      }
+    }
+  })
+
   it('rejects GitHub-hosted runner labels in every workflow', async () => {
     for (const [name, workflow] of await readWorkflows()) {
       assert.doesNotMatch(

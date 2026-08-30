@@ -30,7 +30,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
       - name: Resolve candidate event identity
         id: event
         env:
@@ -181,7 +181,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   verify:
     name: Verify native contract handoff
@@ -199,7 +199,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -296,7 +296,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   dotnet-portable:
     name: .NET portable (${{ matrix.os }})
@@ -381,7 +381,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   lint-swift:
     name: Swift lint
@@ -413,7 +413,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   periphery-swift-core:
     name: Swift Periphery (core)
@@ -441,7 +441,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   periphery-swift-ui:
     name: Swift Periphery (UI)
@@ -469,13 +469,13 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   test-swift-core:
-    name: Swift core tests and Android Skip
+    name: Swift core tests and coverage
     needs: verify
     runs-on: [self-hosted, macOS, Tests]
-    timeout-minutes: 34
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -492,6 +492,37 @@ jobs:
         run: >-
           bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+      - name: Export deterministic core LCOV
+        working-directory: candidate-clients
+        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+      - name: Upload core LCOV
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/coverage/core/lcov.info
+          retention-days: 1
+          if-no-files-found: error
+      - name: Clean persistent runner workspace
+        if: always()
+        env: { PRESERVE_NODE_MODULES: "false" }
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+
+  test-swift-android:
+    name: Swift Android and Skip tests
+    needs: verify
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { clean: false, persist-credentials: false }
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -582,20 +613,10 @@ jobs:
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           bash swift-clients/tooling/with-build-lock.sh bash swift-clients/apps/android/tooling/pre-push.sh
-      - name: Export deterministic core LCOV
-        working-directory: candidate-clients
-        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
-      - name: Upload core LCOV
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
-        with:
-          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
-          path: candidate-clients/coverage/core/lcov.info
-          retention-days: 1
-          if-no-files-found: error
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   test-swift-ui:
     name: Swift UI tests and coverage
@@ -663,7 +684,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   swift-patch-coverage:
     name: Swift patch coverage
@@ -696,7 +717,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   build-android-core:
     name: Swift Android core build
@@ -730,7 +751,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   build-macos-app:
     name: Swift macOS app smoke
@@ -773,17 +794,17 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   # iOS simulator smoke remains disabled pending #6705: the self-hosted runner's
   # CoreSimulator framework is incompatible with its installed Xcode, so no iOS
   # Simulator destination resolves. Do not replace this with a no-op green job.
 
-  dotnet-maui:
-    name: .NET MAUI Mac Catalyst
+  dotnet-maui-rendered-pages:
+    name: .NET MAUI rendered pages
     needs: verify
     runs-on: [self-hosted, macOS, Tests]
-    timeout-minutes: 40
+    timeout-minutes: 30
     env:
       UseArtifactsOutput: "true"
     steps:
@@ -868,6 +889,90 @@ jobs:
         run: >-
           dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Release --no-build
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+
+  dotnet-maui-catalyst:
+    name: .NET MAUI Mac Catalyst
+    needs: verify
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 30
+    env:
+      UseArtifactsOutput: "true"
+    steps:
+      - name: Check out trusted consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Configure isolated MAUI paths
+        shell: bash
+        run: |
+          {
+            echo "ArtifactsPath=$RUNNER_TEMP/voucha-dotnet-lock-artifacts/app"
+            echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
+            echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
+          } >>"$GITHUB_ENV"
+      - name: Read exact .NET SDK version
+        id: dotnet-sdk
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          sdk_version="$(jq -er '.sdk.version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' global.json)" || {
+            echo "global.json must define a numeric sdk.version"
+            exit 1
+          }
+          printf 'version=%s\n' "$sdk_version" >> "$GITHUB_OUTPUT"
+      - name: Reset exact .NET SDK root
+        run: |
+          set -euo pipefail
+          [[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]
+          rm -rf -- "$DOTNET_INSTALL_DIR"
+          mkdir -p -- "$DOTNET_INSTALL_DIR"
+      - name: Set up exact .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload under host lock
+        if: steps.workload.outputs.install == 'true'
+        working-directory: candidate-clients
+        run: >-
+          pnpm exec vouchington with-host-lock
+          --name host-package-manager
+          --timeout-seconds 300
+          --command-timeout-seconds 720
+          -- dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Verify all seven committed NuGet locks
+        working-directory: candidate-clients
+        run: >-
+          pnpm exec vouchington with-host-lock
+          --name host-package-manager
+          --timeout-seconds 300
+          --command-timeout-seconds 900
+          -- bash dotnet-clients/tooling/restore-locks.sh verify
       - name: Select compatible Xcode
         id: xcode
         shell: bash
@@ -883,12 +988,10 @@ jobs:
             if [[ "$version" == "$required_version"* ]]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
               echo 'compatible=true' >>"$GITHUB_OUTPUT"
-              echo "Selected Xcode $version at $developer_dir"
               exit 0
             fi
-            echo "Skipping $developer_dir because it is Xcode ${version:-unknown}, not $required_version"
           done
-          echo "::notice::Xcode $required_version not found; skipping MAUI Mac Catalyst smoke build on this runner"
+          echo "::notice::Xcode $required_version not found; skipping MAUI Mac Catalyst smoke build"
           echo 'compatible=false' >>"$GITHUB_OUTPUT"
       - name: Detect host Mac Catalyst RID
         id: rid
@@ -915,7 +1018,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
 
   tests:
     name: Tests
@@ -928,11 +1031,13 @@ jobs:
       - periphery-swift-core
       - periphery-swift-ui
       - test-swift-core
+      - test-swift-android
       - test-swift-ui
       - swift-patch-coverage
       - build-android-core
       - build-macos-app
-      - dotnet-maui
+      - dotnet-maui-rendered-pages
+      - dotnet-maui-catalyst
     runs-on: [self-hosted, Linux]
     timeout-minutes: 5
     permissions: {}

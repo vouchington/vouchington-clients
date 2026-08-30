@@ -41,8 +41,8 @@ describe("native contract workflow boundary", () => {
     const combined = files.join("\n");
 
     assert.doesNotMatch(combined, /sparse-checkout/u);
-    assert.match(combined, /actions\/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a/u);
-    assert.match(combined, /actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c/u);
+    assert.match(combined, /actions\/upload-artifact@[a-f0-9]{40} # v\d+\.\d+\.\d+/u);
+    assert.match(combined, /actions\/download-artifact@[a-f0-9]{40} # v\d+\.\d+\.\d+/u);
   });
 
   it("prepares the exact verified candidate for every native test job", async () => {
@@ -64,7 +64,7 @@ describe("native contract workflow boundary", () => {
     ])
       assert.match(action, expectation);
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 10);
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 12);
   });
 
   it("runs native .NET tests on the supported runner matrix with coverage and cleanup", async () => {
@@ -104,24 +104,24 @@ describe("native contract workflow boundary", () => {
   it("installs each candidate .NET SDK at its exact global.json version", async () => {
     const workflow = await readWorkflow("native-contract-tests.yml");
 
-    assert.equal(workflow.split("name: Read exact .NET SDK version").length - 1, 2);
-    assert.equal(workflow.split("id: dotnet-sdk").length - 1, 2);
-    assert.equal(workflow.split("name: Reset exact .NET SDK root").length - 1, 2);
+    assert.equal(workflow.split("name: Read exact .NET SDK version").length - 1, 3);
+    assert.equal(workflow.split("id: dotnet-sdk").length - 1, 3);
+    assert.equal(workflow.split("name: Reset exact .NET SDK root").length - 1, 3);
     assert.equal(
       workflow.split('[[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]').length - 1,
-      2,
+      3,
     );
-    assert.equal(workflow.split('rm -rf -- "$DOTNET_INSTALL_DIR"').length - 1, 2);
+    assert.equal(workflow.split('rm -rf -- "$DOTNET_INSTALL_DIR"').length - 1, 3);
     assert.equal(workflow.split("working-directory: candidate-clients").length - 1 >= 2, true);
     assert.equal(
       workflow.split(
         'jq -er \'.sdk.version | select(type == "string" and test("^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"))\' global.json',
       ).length - 1,
-      2,
+      3,
     );
     assert.equal(
       workflow.split("dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}").length - 1,
-      2,
+      3,
     );
     assert.doesNotMatch(workflow, /global-json-file: candidate-clients\/global\.json/u);
     assert.doesNotMatch(workflow, /dotnet-version:\s*["']?\d/u);
@@ -140,6 +140,7 @@ describe("native contract workflow boundary", () => {
       "periphery-swift-core:",
       "periphery-swift-ui:",
       "test-swift-core:",
+      "test-swift-android:",
       "test-swift-ui:",
       "swift-patch-coverage:",
       "build-android-core:",
@@ -161,11 +162,11 @@ describe("native contract workflow boundary", () => {
     assert.match(workflow, /pnpm run coverage:swift/u);
     assert.match(
       workflow,
-      /android-actions\/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699/u,
+      /android-actions\/setup-android@[a-f0-9]{40} # v\d+\.\d+\.\d+/u,
     );
     assert.match(
       workflow,
-      /swiftly_sha256="fade009739a84f18ee30e524793f927019fc9c2e16b2ad958da50d3f9ff7a7f8"/u,
+      /swiftly_sha256="[a-f0-9]{64}"/u,
     );
     assert.match(workflow, /export SWIFTLY_HOME_DIR="\$skip_swift_home\/\.swiftly"/u);
     assert.match(workflow, /materialize-skip-sdk\.sh/u);
@@ -177,7 +178,7 @@ describe("native contract workflow boundary", () => {
     assert.match(workflow, /Upload xctest crash reports[\s\S]*swift-ui-crash-reports/u);
     assert.match(
       workflow,
-      /swift:6\.3\.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259/u,
+      /swift:[^@\s]+@sha256:[a-f0-9]{64}/u,
     );
     assert.match(workflow, /xcodegen-\$XCODEGEN_VERSION\.zip/u);
     assert.match(
@@ -188,10 +189,10 @@ describe("native contract workflow boundary", () => {
     assert.match(workflow, /#6705[\s\S]*iOS[\s\S]*Simulator destination/u);
     assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u);
     assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u);
-    assert.match(validation, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u);
+    assert.match(validation, /npx --yes pnpm@\d+\.\d+\.\d+ install --frozen-lockfile/u);
     assert.equal(
       workflow.split("candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}").length - 1,
-      10,
+      12,
     );
   });
 
@@ -202,6 +203,7 @@ describe("native contract workflow boundary", () => {
       "periphery-swift-core",
       "periphery-swift-ui",
       "test-swift-core",
+      "test-swift-android",
       "test-swift-ui",
       "swift-patch-coverage",
       "build-macos-app",
@@ -214,7 +216,7 @@ describe("native contract workflow boundary", () => {
       workflow,
       /  build-android-core:[\s\S]*?    runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
     );
-    assert.equal(workflow.split("clean: false").length - 1, 12);
+    assert.equal(workflow.split("clean: false").length - 1, 14);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {

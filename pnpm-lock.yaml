@@ -15,8 +15,8 @@ importers:
         specifier: 0.15.2
         version: 0.15.2
       vouchington-tooling:
-        specifier: 0.1.5
-        version: 0.1.5
+        specifier: 0.3.5
+        version: 0.3.5
 
 packages:
 
@@ -470,8 +470,8 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  vouchington-tooling@0.1.5:
-    resolution: {integrity: sha512-a2t0LlLx2Jn58qplizk+MojcLauc45u5o+x6c6d0abIy7K1xT3djw1xJ7rNtBG8u2h9a6XiqmqdaDRu7c29MoQ==}
+  vouchington-tooling@0.3.5:
+    resolution: {integrity: sha512-mZaoJVNkZv3DC2AICBl/rhf21SW+/TtF6H/hhnq3g4T3uFmXjVFI8KP7OxuQIHfXL9W1xfTSbYYg8FqHwPr4ng==}
     engines: {node: '>=24.0.0'}
     hasBin: true
 
@@ -954,7 +954,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  vouchington-tooling@0.1.5:
+  vouchington-tooling@0.3.5:
     dependencies:
       csv-parse: 7.0.2
       csv-stringify: 6.8.3

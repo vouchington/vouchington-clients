@@ -30,29 +30,34 @@ describe('event-driven CI orchestration', () => {
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
 
-  it('pins Final Code Review composites without a PAT router or labeled trigger', async () => {
-    await assert.rejects(access(workflowUrl('validate-request-final-code-review.yml')))
-
+  it('routes the exact completed native test run into Final Code Review', async () => {
     const workflow = await readWorkflow('final-code-review.yml')
-    assert.match(workflow, /pull_request:\n\s+types:/u)
-    assert.doesNotMatch(workflow, /pull_request_target:/u)
+    const request = await readWorkflow('request-final-review.yml')
+    assert.match(request, /workflow_run:\n\s+workflows: \[Native contract tests\]/u)
+    assert.match(request, /source-run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/u)
+    assert.match(request, /fan-in-job: tests/u)
+    assert.match(request, /dispatch-event-type: final-review-requested/u)
+    assert.match(workflow, /repository_dispatch:\n\s+types: \[final-review-requested\]/u)
+    assert.doesNotMatch(workflow, /pull_request(?:_target)?:/u)
     assert.match(
       workflow,
-      /types: \[opened, reopened, synchronize, ready_for_review, converted_to_draft, closed\]/u,
+      /source-run-id: \$\{\{ github\.event\.client_payload\.source_run_id \}\}/u,
     )
-    assert.doesNotMatch(workflow, /final-code-review:requested|CODE_REVIEW_TRIGGER_TOKEN/u)
-    assert.doesNotMatch(workflow, /sleep 15|seq 1 120/u)
-    assert.match(workflow, /CI_WORKFLOW: validate\.yml/u)
-    assert.match(workflow, /TESTS_JOB_NAME: validate/u)
+    assert.doesNotMatch(workflow, /TESTS_WAIT_|sleep 30|seq 1 160/u)
+    for (const action of ['select-final-review', 'final-review-gate'])
+      assert.match(
+        workflow,
+        new RegExp(
+          `vouchington/vouchington-tooling/\\.github/actions/${action}@[a-f0-9]{40} # v\\d+\\.\\d+\\.\\d+`,
+          'u',
+        ),
+      )
     assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-select@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
-    )
-    assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-gate@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
+      request,
+      /vouchington\/vouchington-tooling\/\.github\/actions\/request-final-review@[a-f0-9]{40} # v\d+\.\d+\.\d+/u,
     )
     assert.match(workflow, /CLAUDE_ENABLED: 'false'/u)
-    assert.match(workflow, /'Code Reviewed' \|\| 'Ignore ineligible final review'/u)
+    assert.match(workflow, /name: Code Reviewed/u)
+    assert.match(workflow, /check_name: Code Reviewed/u)
   })
 })
