@@ -85,7 +85,7 @@ jobs:
 
   swift-core:
     name: Swift manifest
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: [self-hosted, Linux, Docker, Tests]
     timeout-minutes: 20
     steps:
       - name: Clean persistent runner workspace
@@ -97,7 +97,14 @@ jobs:
           clean: false
           persist-credentials: false
       - name: Validate core package manifest
-        run: swift package --package-path swift-clients/core dump-package >/dev/null
+        run: >-
+          docker run --rm --read-only --network none
+          --tmpfs /tmp:rw,exec,mode=1777
+          --volume "$PWD:/workspace:ro"
+          --workdir /workspace
+          --env HOME=/tmp
+          swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
+          swift package --package-path swift-clients/core dump-package >/dev/null
       - name: Clean persistent runner workspace
         if: always()
         env:
