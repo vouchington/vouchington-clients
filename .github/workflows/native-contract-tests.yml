@@ -110,6 +110,9 @@ jobs:
           set -euo pipefail
           printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+      - name: Install trusted Filaments exporter dependencies
+        working-directory: filaments
+        run: pnpm install --frozen-lockfile
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
