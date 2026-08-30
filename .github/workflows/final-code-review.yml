@@ -1,7 +1,7 @@
 name: Final Code Review
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
 
 permissions:
@@ -56,7 +56,7 @@ jobs:
           TESTS_WAIT_SECONDS: '30'
           CI_WORKFLOW: validate.yml
           TESTS_JOB_NAME: validate
-        uses: vouchington/vouchington-tooling/.github/actions/final-review-select@f5f41caba5aef0b31e507a67123c76f1c9a53d02 # v0.3.0
+        uses: vouchington/vouchington-tooling/.github/actions/final-review-select@7e2baecb2b0cdbf7613e0979bece299cf52a728f # PR #103
 
   validate-review-settings:
     name: Validate code review settings
@@ -382,6 +382,6 @@ jobs:
             connection reset by peer
             unexpected EOF
             i/o timeout
-        uses: vouchington/vouchington-tooling/.github/actions/final-review-gate@f5f41caba5aef0b31e507a67123c76f1c9a53d02 # v0.3.0
+        uses: vouchington/vouchington-tooling/.github/actions/final-review-gate@7e2baecb2b0cdbf7613e0979bece299cf52a728f # PR #103
         with:
           gate_status: ${{ needs.select-final-review.outputs.gate_status }}

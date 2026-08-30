@@ -3,7 +3,7 @@ run-name: >-
   Native contract tests for ${{ github.event.pull_request.number && format('PR #{0} at {1}', github.event.pull_request.number, github.event.pull_request.head.sha) || format('main at {0}', github.sha) }}
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
@@ -14,11 +14,14 @@ permissions:
 
 concurrency:
   group: native-contract-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   produce:
     name: Publish verified native contracts
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted]
     timeout-minutes: 15
     permissions:
@@ -40,7 +43,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = pull_request_target ]; then
+          if [ "$EVENT_NAME" = pull_request ]; then
             [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
             [[ "$PR_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
             [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
@@ -245,7 +248,7 @@ jobs:
           import { execFileSync } from 'node:child_process'
 
           const manifest = JSON.parse(readFileSync(`${process.env.ARTIFACT_ROOT}/manifest.json`, 'utf8'))
-          if (process.env.EVENT_NAME === 'pull_request_target') {
+          if (process.env.EVENT_NAME === 'pull_request') {
             if (manifest.candidate.event !== 'pull_request') throw new Error('artifact is not for a pull request')
             if (manifest.candidate.number !== Number(process.env.PR_NUMBER)) throw new Error('pull request number changed')
             if (manifest.candidate.base !== process.env.PR_BASE_SHA) throw new Error('event base SHA changed')
