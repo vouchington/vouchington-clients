@@ -153,7 +153,9 @@ fi
 
 (
   cd "$ANDROID_PROJECT_DIR"
-  ./gradlew assembleDebug
+  # Build only the app dependency closure. An unqualified task also assembles Skip's duplicate,
+  # unconsumed top-level module tree.
+  ./gradlew :app:assembleDebug
 )
 
 skip android test \

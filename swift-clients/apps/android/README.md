@@ -26,10 +26,13 @@ bash swift-clients/apps/android/tooling/pre-push.sh
 ```
 
 The pre-push wrapper runs the host Swift tests, compiles the generated Android project with Gradle
-`assembleDebug`, then builds Skip test libraries without ADB device discovery.
+`:app:assembleDebug`, then builds Skip test libraries without ADB device discovery. Qualifying the
+task builds only the app's `:skipstone:` dependency tree instead of also assembling Skip's
+unconsumed top-level module tree.
 CI prefetches every pinned `skip-macos.zip` (source.skip.tools and the GitHub releases alias,
-same checksum) into SwiftPM's artifact cache so two `buildAndroidSwiftPackageDebug` tasks do not
-race a missing zip dest.
+same checksum) into SwiftPM's artifact cache so the build does not live-fetch the archive. Seeding
+both aliases also protects unqualified callers, such as Android Studio, from racing two
+`buildAndroidSwiftPackageDebug` tasks against a missing destination.
 It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
 CI provisions checksum-verified Swiftly plus Swift in `RUNNER_TEMP`; the wrapper keeps
 that toolchain and SwiftPM SDK state job-scoped. Host archives, including `skip-macos.zip`, are
