@@ -33,18 +33,12 @@ updates:
           - xunit.analyzers
           - xunit.runner.visualstudio
           - xunit.v3
-        update-types:
-          - minor
-          - patch
       xunit-security:
         applies-to: security-updates
         patterns:
           - xunit.analyzers
           - xunit.runner.visualstudio
           - xunit.v3
-        update-types:
-          - minor
-          - patch
 
   - package-ecosystem: swift
     directory: /swift-clients/core
@@ -59,17 +53,11 @@ updates:
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
       apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
 
   - package-ecosystem: swift
     directory: /swift-clients/ui
@@ -84,17 +72,11 @@ updates:
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
       apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
 
   - package-ecosystem: swift
     directory: /swift-clients/apps/android
@@ -109,28 +91,16 @@ updates:
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
       apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
           - swift-crypto
           - swift-asn1
-        update-types:
-          - minor
-          - patch
       skip-toolchain:
         applies-to: version-updates
         patterns:
           - 'skip*'
-        update-types:
-          - minor
-          - patch
       skip-toolchain-security:
         applies-to: security-updates
         patterns:
           - 'skip*'
-        update-types:
-          - minor
-          - patch
