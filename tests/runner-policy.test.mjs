@@ -82,5 +82,13 @@ describe('private self-hosted runner policy', () => {
       ['final-code-review.yml', 'opencode-zen-code-review'],
     ])
       assertPersistentCleanup(workflows[workflow], job)
+    for (const job of ['opencode-code-review', 'opencode-zen-code-review']) {
+      const block = jobBlock(workflows['final-code-review.yml'], job)
+      assert.match(
+        block,
+        /working-directory: \$\{\{ runner\.temp \}\}/u,
+        `${job} must isolate pnpm dlx from a PR-controlled .npmrc`,
+      )
+    }
   })
 })

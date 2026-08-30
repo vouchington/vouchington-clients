@@ -129,6 +129,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: 'false'
+        working-directory: ${{ runner.temp }}
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -159,6 +160,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: 'false'
+        working-directory: ${{ runner.temp }}
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   opencode-code-review-poster:
@@ -245,6 +247,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: 'false'
+        working-directory: ${{ runner.temp }}
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -275,6 +278,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: 'false'
+        working-directory: ${{ runner.temp }}
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   opencode-zen-code-review-poster:
