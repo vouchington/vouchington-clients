@@ -4,7 +4,7 @@ public struct RssFeedItemCategoryModel: Codable, Sendable {
     @RequiredNullable
     public var topic: TopicReference?
     public let votesScoreNet: Double?
-    @RequiredNullable
+    @TolerantNullable
     public var hashtag: RssFeedItemHashtag?
 }
 
