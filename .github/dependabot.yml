@@ -10,29 +10,6 @@ updates:
         - coverage-check
         - vouchington-tooling
     open-pull-requests-limit: 5
-    groups:
-      first-party-minor-and-patch:
-        applies-to: version-updates
-        patterns:
-          - coverage-check
-          - vouchington-tooling
-        update-types:
-          - minor
-          - patch
-      npm-minor-and-patch:
-        applies-to: version-updates
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
-      npm-security:
-        applies-to: security-updates
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
 
   - package-ecosystem: github-actions
     directory: /
@@ -41,21 +18,6 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5
-    groups:
-      github-actions-minor-and-patch:
-        applies-to: version-updates
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
-      github-actions-security:
-        applies-to: security-updates
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
 
   - package-ecosystem: nuget
     directory: /dotnet-clients
@@ -65,17 +27,21 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     groups:
-      nuget-minor-and-patch:
+      xunit:
         applies-to: version-updates
         patterns:
-          - '*'
+          - xunit.analyzers
+          - xunit.runner.visualstudio
+          - xunit.v3
         update-types:
           - minor
           - patch
-      nuget-security:
+      xunit-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - xunit.analyzers
+          - xunit.runner.visualstudio
+          - xunit.v3
         update-types:
           - minor
           - patch
@@ -88,17 +54,19 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     groups:
-      swift-core-minor-and-patch:
+      apple-swift-crypto:
         applies-to: version-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
         update-types:
           - minor
           - patch
-      swift-core-security:
+      apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
         update-types:
           - minor
           - patch
@@ -111,17 +79,19 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     groups:
-      swift-ui-minor-and-patch:
+      apple-swift-crypto:
         applies-to: version-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
         update-types:
           - minor
           - patch
-      swift-ui-security:
+      apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
         update-types:
           - minor
           - patch
@@ -134,17 +104,33 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     groups:
-      swift-android-minor-and-patch:
+      apple-swift-crypto:
         applies-to: version-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
         update-types:
           - minor
           - patch
-      swift-android-security:
+      apple-swift-crypto-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - swift-crypto
+          - swift-asn1
+        update-types:
+          - minor
+          - patch
+      skip-toolchain:
+        applies-to: version-updates
+        patterns:
+          - 'skip*'
+        update-types:
+          - minor
+          - patch
+      skip-toolchain-security:
+        applies-to: security-updates
+        patterns:
+          - 'skip*'
         update-types:
           - minor
           - patch
