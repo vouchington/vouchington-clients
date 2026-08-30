@@ -630,15 +630,11 @@ jobs:
           set -euo pipefail
           collected="$RUNNER_TEMP/swift-ui-crash-reports"; mkdir -p "$collected"
           reports_dir="$HOME/Library/Logs/DiagnosticReports"; marker="$RUNNER_TEMP/swift-ui-test-start-marker"
-          attempt=1
-          while [ "$attempt" -le 6 ]; do
-            if [ -d "$reports_dir" ]; then
-              # shellcheck disable=SC2016
-              find "$reports_dir" \( -name '*.ips' -o -name '*.crash' \) -newer "$marker" -print0 2>/dev/null | xargs -0 -I{} sh -c 'grep -q "VouchaUIPackageTests" "$1" 2>/dev/null && cp "$1" "$2" || true' _ {} "$collected"
-            fi
-            [ -z "$(ls -A "$collected" 2>/dev/null)" ] || break
-            attempt=$((attempt + 1)); sleep 5
-          done
+          if [ -d "$reports_dir" ]; then
+            # Take one best-effort snapshot; CI must not wait for remote or local state changes.
+            # shellcheck disable=SC2016
+            find "$reports_dir" \( -name '*.ips' -o -name '*.crash' \) -newer "$marker" -print0 2>/dev/null | xargs -0 -I{} sh -c 'grep -q "VouchaUIPackageTests" "$1" 2>/dev/null && cp "$1" "$2" || true' _ {} "$collected"
+          fi
       - name: Upload xctest crash reports
         if: ${{ failure() }}
         timeout-minutes: 1

@@ -68,6 +68,8 @@ describe('private self-hosted runner policy', () => {
     assertRunner(workflows['dependabot-automerge.yml'], 'automerge', '\\[self-hosted, Linux\\]')
     for (const job of ['select-final-review', 'validate-review-settings', 'code-reviewed'])
       assertRunner(workflows['final-code-review.yml'], job, '\\[self-hosted, Linux\\]')
+    assertRunner(workflows['request-final-review.yml'], 'request', '\\[self-hosted, Linux\\]')
+    assertRunner(workflows['stop-final-review.yml'], 'clear', '\\[self-hosted, Linux\\]')
   })
 
   it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {

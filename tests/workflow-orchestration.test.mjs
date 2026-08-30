@@ -27,32 +27,28 @@ describe('event-driven CI orchestration', () => {
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
     assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u)
     assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u)
-    assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
+    assert.doesNotMatch(workflow, /sleep [0-9]|seq 1 240/u)
   })
 
-  it('pins Final Code Review composites without a PAT router or labeled trigger', async () => {
+  it('routes Final Code Review from exact validation completion without polling', async () => {
     await assert.rejects(access(workflowUrl('validate-request-final-code-review.yml')))
 
     const workflow = await readWorkflow('final-code-review.yml')
-    assert.match(workflow, /pull_request:\n\s+types:/u)
-    assert.doesNotMatch(workflow, /pull_request_target:/u)
-    assert.match(
-      workflow,
-      /types: \[opened, reopened, synchronize, ready_for_review, converted_to_draft, closed\]/u,
-    )
-    assert.doesNotMatch(workflow, /final-code-review:requested|CODE_REVIEW_TRIGGER_TOKEN/u)
-    assert.doesNotMatch(workflow, /sleep 15|seq 1 120/u)
-    assert.match(workflow, /CI_WORKFLOW: validate\.yml/u)
-    assert.match(workflow, /TESTS_JOB_NAME: validate/u)
-    assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-select@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
-    )
-    assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-gate@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
-    )
+    const request = await readWorkflow('request-final-review.yml')
+    const stop = await readWorkflow('stop-final-review.yml')
+    assert.match(workflow, /repository_dispatch:\n\s+types: \[final-review-requested\]/u)
+    assert.match(request, /workflow_run:\n\s+workflows: \[Validate\]/u)
+    assert.match(request, /source-run-attempt: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/u)
+    assert.match(workflow, /workflow-path: \.github\/workflows\/validate\.yml/u)
+    assert.match(workflow, /fan-in-job: validate/u)
+    assert.match(stop, /types: \[converted_to_draft, closed\]/u)
+    assert.match(stop, /cancel-in-progress: true/u)
+    const pins = [...`${workflow}\n${request}`.matchAll(/vouchington-tooling\/\.github\/actions\/[^@]+@([0-9a-f]{40})/gu)].map(match => match[1])
+    assert.ok(pins.length >= 7)
+    assert.equal(new Set(pins).size, 1)
+    assert.doesNotMatch(`${workflow}\n${request}\n${stop}`, /TESTS_WAIT|WAIT_(?:ATTEMPTS|SECONDS)|sleep [0-9]/u)
     assert.match(workflow, /CLAUDE_ENABLED: 'false'/u)
-    assert.match(workflow, /'Code Reviewed' \|\| 'Ignore ineligible final review'/u)
+    assert.match(workflow, /name: Code Reviewed/u)
+    assert.match(workflow, /checks: write/u)
   })
 })
