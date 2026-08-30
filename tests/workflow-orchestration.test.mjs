@@ -32,8 +32,17 @@ describe('event-driven CI orchestration', () => {
 
   it('routes the exact completed native test run into Final Code Review', async () => {
     const workflow = await readWorkflow('final-code-review.yml')
+    const invalidation = await readWorkflow('invalidate-final-review.yml')
     const request = await readWorkflow('request-final-review.yml')
+    assert.match(
+      invalidation,
+      /types: \[reopened, ready_for_review, converted_to_draft, closed\]/u,
+    )
+    assert.match(invalidation, /checks: write/u)
+    assert.match(invalidation, /--arg status queued/u)
+    assert.match(invalidation, /\.head\.sha/u)
     assert.match(request, /workflow_run:\n\s+workflows: \[Native contract tests\]/u)
+    assert.match(request, /checks: write/u)
     assert.match(request, /source-run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/u)
     assert.match(request, /fan-in-job: tests/u)
     assert.match(request, /dispatch-event-type: final-review-requested/u)
@@ -43,7 +52,7 @@ describe('event-driven CI orchestration', () => {
       workflow,
       /source-run-id: \$\{\{ github\.event\.client_payload\.source_run_id \}\}/u,
     )
-    assert.doesNotMatch(workflow, /TESTS_WAIT_|sleep 30|seq 1 160/u)
+    assert.doesNotMatch(`${workflow}\n${request}\n${invalidation}`, /TESTS_WAIT_|sleep 30|seq 1 160/u)
     for (const action of ['select-final-review', 'final-review-gate'])
       assert.match(
         workflow,

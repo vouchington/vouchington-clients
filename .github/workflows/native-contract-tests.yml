@@ -515,6 +515,9 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
+      - name: Clean persistent runner workspace
+        env: { PRESERVE_NODE_MODULES: "false" }
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { clean: false, persist-credentials: false }
       - uses: ./.github/actions/prepare-native-contract
@@ -903,6 +906,10 @@ jobs:
     env:
       UseArtifactsOutput: "true"
     steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

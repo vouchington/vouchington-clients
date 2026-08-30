@@ -35,3 +35,8 @@ Workflow dependencies must use GitHub events, job dependencies, or exact complet
 not keep a runner alive to poll pull requests, checks, or other workflow runs. Bounded retries for
 transient API failures and short failure-diagnostic collection windows are not orchestration
 polling and remain permitted.
+
+`reopened`, `ready_for_review`, `converted_to_draft`, and `closed` events immediately queue an
+exact-head `Code Reviewed` check from the trusted base workflow. The completed native-test event
+then replaces that pending result before dispatching provider review, so an unchanged head cannot
+reuse an earlier successful review during the event handoff.

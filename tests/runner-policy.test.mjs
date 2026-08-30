@@ -92,6 +92,8 @@ describe('private self-hosted runner policy', () => {
       ['validate.yml', 'swift-core'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
+      ['native-contract-tests.yml', 'test-swift-android'],
+      ['native-contract-tests.yml', 'dotnet-maui-catalyst'],
       ['final-code-review.yml', 'opencode-code-review'],
       ['final-code-review.yml', 'opencode-zen-code-review'],
     ])
