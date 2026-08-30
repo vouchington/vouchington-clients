@@ -386,10 +386,8 @@ jobs:
   lint-swift:
     name: Swift lint
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: [self-hosted, Linux, Docker, Tests]
     timeout-minutes: 12
-    env:
-      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -401,15 +399,24 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - uses: ./.github/actions/setup-swift-native
-        with:
-          tools: lint
       - name: Check Swift formatting and lint
         working-directory: candidate-clients
+        env:
+          SWIFTFORMAT_IMAGE: ghcr.io/nicklockwood/swiftformat:0.61.1@sha256:10f870fb7ae917d0373acb582ea87d60ffca92d75eee3260cbede710666f0fca
+          SWIFTLINT_IMAGE: ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e
         run: |
-          mise exec github:nicklockwood/SwiftFormat@0.61.1 -- swiftformat --lint swift-clients/
-          mise exec aqua:realm/SwiftLint@0.65.0 -- bash -c "cd swift-clients && swiftlint --strict --cache-path '$RUNNER_TEMP/swiftlint'"
-          mise exec aqua:realm/SwiftLint@0.65.0 -- bash -c "cd swift-clients && swiftlint --strict --config .swiftlint-tests.yml --cache-path '$RUNNER_TEMP/swiftlint-tests'"
+          set -euo pipefail
+          container_args=(
+            --rm
+            --read-only
+            --network none
+            --tmpfs "/tmp:rw,exec,mode=1777"
+            --volume "$PWD:/workspace:ro"
+            --env HOME=/tmp
+          )
+          docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint --verbose
+          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --cache-path /tmp/swiftlint
+          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --config .swiftlint-tests.yml --cache-path /tmp/swiftlint-tests
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }

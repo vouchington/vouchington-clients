@@ -7,6 +7,14 @@ const readWorkflow = (name) =>
 const readAction = (name) =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), "utf8");
 
+const jobBlock = (workflow, job) => {
+  const start = workflow.indexOf(`  ${job}:`);
+  assert.notEqual(start, -1, `missing job ${job}`);
+  const remainder = workflow.slice(start);
+  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u);
+  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob);
+};
+
 const preparedCandidateInputs = [
   "candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}",
   "producer-run-attempt: ${{ github.run_attempt }}",
@@ -146,8 +154,12 @@ describe("native contract workflow boundary", () => {
       "build-macos-app:",
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, "mu"));
-    assert.match(workflow, /swiftformat --lint swift-clients\//u);
-    assert.match(workflow, /swiftlint --strict --cache-path/u);
+    assert.match(workflow, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --verbose/u);
+    assert.match(workflow, /"\$SWIFTLINT_IMAGE" --strict --cache-path/u);
+    assert.match(
+      workflow,
+      /"\$SWIFTLINT_IMAGE" --strict --config \.swiftlint-tests\.yml --cache-path/u,
+    );
     assert.match(workflow, /periphery scan --strict/u);
     assert.match(workflow, /--enable-code-coverage/u);
     assert.match(
@@ -198,7 +210,6 @@ describe("native contract workflow boundary", () => {
   it("uses the exact native runner labels for Swift jobs", async () => {
     const workflow = await readWorkflow("native-contract-tests.yml");
     for (const job of [
-      "lint-swift",
       "periphery-swift-core",
       "periphery-swift-ui",
       "test-swift-core",
@@ -207,14 +218,34 @@ describe("native contract workflow boundary", () => {
       "build-macos-app",
     ])
       assert.match(
-        workflow,
-        new RegExp(`  ${job}:[\\s\\S]*?    runs-on: \\[self-hosted, macOS, Tests\\]`, "u"),
+        jobBlock(workflow, job),
+        /runs-on: \[self-hosted, macOS, Tests\]/u,
       );
     assert.match(
-      workflow,
-      /  build-android-core:[\s\S]*?    runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
+      jobBlock(workflow, "build-android-core"),
+      /runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
     );
     assert.equal(workflow.split("clean: false").length - 1, 12);
+  });
+
+  it("runs Swift lint on Linux without compiling Swift", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
+    const lintJob = jobBlock(workflow, "lint-swift");
+
+    assert.match(lintJob, /runs-on: \[self-hosted, Linux, Docker, Tests\]/u);
+    assert.doesNotMatch(lintJob, /DEVELOPER_DIR|setup-swift-native/u);
+    assert.match(
+      lintJob,
+      /SWIFTFORMAT_IMAGE: ghcr\.io\/nicklockwood\/swiftformat:[^\s]+@sha256:[0-9a-f]{64}/u,
+    );
+    assert.match(
+      lintJob,
+      /SWIFTLINT_IMAGE: ghcr\.io\/realm\/swiftlint:[^\s]+@sha256:[0-9a-f]{64}/u,
+    );
+    assert.equal(lintJob.split("docker run").length - 1, 3);
+    assert.equal(lintJob.split('"$SWIFTFORMAT_IMAGE"').length - 1, 1);
+    assert.equal(lintJob.split('"$SWIFTLINT_IMAGE"').length - 1, 2);
+    assert.doesNotMatch(lintJob, /swift (?:build|test)/u);
   });
 
   it("uses the repository SDK policy in required .NET validation", async () => {

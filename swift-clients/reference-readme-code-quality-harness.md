@@ -39,10 +39,11 @@ work. Periphery is the sole unused declaration/import gate across indexed `core/
 locally and in CI; imports of external modules that Periphery cannot index have no separate
 analyzer.
 
-The macOS runner image owns SwiftFormat, SwiftLint, and Periphery installation. The local harness
-uses `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
-Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
-The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
+CI runs pinned SwiftFormat and SwiftLint containers on Linux, while the macOS runner image owns
+Periphery installation and native compiler checks. The local harness uses `vouchington-tooling`'s
+`with-host-lock` primitive for compiler-heavy commands, so Core, UI, Periphery, and Android builds
+share the same per-user lock without copying a Filaments CI helper. The local harness can run
+`fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
 
 Each package's `Package.resolved` is its canonical SwiftPM lock; the generated app projects consume
 the UI lock. Build, test, and dead-code checks require pinned versions. To update dependencies
