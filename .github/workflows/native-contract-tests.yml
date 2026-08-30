@@ -414,7 +414,7 @@ jobs:
             --volume "$PWD:/workspace:ro"
             --env HOME=/tmp
           )
-          docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint
+          docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint --verbose
           docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --cache-path /tmp/swiftlint
           docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --config .swiftlint-tests.yml --cache-path /tmp/swiftlint-tests
       - name: Clean persistent runner workspace
