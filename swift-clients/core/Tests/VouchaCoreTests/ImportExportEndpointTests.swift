@@ -19,6 +19,10 @@ final class ImportExportEndpointTests: XCTestCase {
             body: ["names": ["Travel", "Local News"]]
         )
         assertEndpoint(.exportTopics, path: "/api/v1/my/export/topics")
+        XCTAssertEqual(
+            Endpoint.exportTopicsDownload.queryItems,
+            [.init(name: "download", value: "1")]
+        )
     }
 
     func testSourceImportUsesMutuallyExclusiveInputAndFollow() {
@@ -91,6 +95,7 @@ final class ImportExportEndpointTests: XCTestCase {
         try assertFixtureCoversDTO("native.import-export.rss-feeds.status.partial", as: RssFeedImportStatus.self)
         try assertFixtureCoversDTO("native.import-export.topics.import.outcomes", as: TopicImportResponse.self)
         try assertFixtureCoversDTO("native.import-export.topics.export.default", as: TopicExportResponse.self)
+        try assertFixtureCoversDTO("native.import-export.topics.export.download", as: [ExportTopic].self)
     }
 }
 

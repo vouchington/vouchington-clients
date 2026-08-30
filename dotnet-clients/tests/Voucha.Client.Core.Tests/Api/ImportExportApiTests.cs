@@ -18,6 +18,7 @@ public sealed class ImportExportApiTests
         "{\"urls\":[\"https://example.test/feed.xml\"],\"follow\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedCsv("url\na"), "{\"csv\":\"url\\na\",\"follow\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedOpml("<opml/>"), "{\"opml\":\"\\u003Copml/\\u003E\",\"follow\":true}");
+    Assert.Equal("1", VouchaApiEndpoints.ExportTopicsDownload().Query["download"]);
 
     var csv = VouchaApiEndpoints.ExportRssFeeds("podcast", "csv");
     var opml = VouchaApiEndpoints.ExportRssFeeds(null, "opml");
@@ -101,6 +102,7 @@ public sealed class ImportExportApiTests
   [InlineData("native.import-export.rss-feeds.status.partial", typeof(RssFeedImportStatus))]
   [InlineData("native.import-export.topics.import.outcomes", typeof(TopicImportResponse))]
   [InlineData("native.import-export.topics.export.default", typeof(TopicExportResponse))]
+  [InlineData("native.import-export.topics.export.download", typeof(ExportTopic[]))]
   public void SharedImportExportFixturesDecodeIntoTypedDtos(string fixtureId, Type type)
   {
     var decoded = JsonSerializer.Deserialize(ApiFixtureLoader.LoadResponse(fixtureId), type, VouchaApiJson.Options);

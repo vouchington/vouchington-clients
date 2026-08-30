@@ -30,6 +30,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.import-export.rss-feeds.status.partial"] = VouchaApiEndpoints.RssFeedImportStatus("70000000-0000-7000-8000-000000000001"),
         ["native.import-export.topics.import.outcomes"] = VouchaApiEndpoints.ImportTopics(["Travel", "Local News", "Travel", "!!!"]),
         ["native.import-export.topics.export.default"] = VouchaApiEndpoints.ExportTopics(),
+        ["native.import-export.topics.export.download"] = VouchaApiEndpoints.ExportTopicsDownload(),
         ["native.feature-flags.default"] = VouchaApiEndpoints.FeatureFlags(),
         ["native.captcha-config.default"] = VouchaApiEndpoints.CaptchaConfig(),
         ["native.dynamic-config.namespaces.developer"] = VouchaApiEndpoints.DynamicConfigNamespaces(),

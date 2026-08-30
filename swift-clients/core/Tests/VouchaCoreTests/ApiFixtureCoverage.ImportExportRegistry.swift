@@ -15,5 +15,8 @@ let nativeImportExportCoverage: [RegisteredFixture] = [
     },
     RegisteredFixture(id: "native.import-export.topics.export.default") {
         try assertFixtureCoversDTO($0, as: TopicExportResponse.self)
+    },
+    RegisteredFixture(id: "native.import-export.topics.export.download") {
+        try assertFixtureCoversDTO($0, as: [ExportTopic].self)
     }
 ]

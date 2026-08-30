@@ -7,6 +7,11 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest ExportTopics() => Get("/api/v1/my/export/topics");
 
+  public static ApiRequest ExportTopicsDownload() => Get("/api/v1/my/export/topics") with
+  {
+    Query = new Dictionary<string, string>(StringComparer.Ordinal) { ["download"] = "1" },
+  };
+
   public static ApiRequest ImportRssFeedUrls(IReadOnlyList<string> urls) =>
       new(HttpMethod.Post, "/api/v1/my/import/rss-feeds") { Body = new RssFeedUrlsImportBody(urls) };
 

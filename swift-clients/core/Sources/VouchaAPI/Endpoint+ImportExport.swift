@@ -10,6 +10,14 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/my/export/topics")
     }
 
+    static var exportTopicsDownload: Endpoint {
+        Endpoint(
+            .GET,
+            path: "/api/v1/my/export/topics",
+            queryItems: [.init(name: "download", value: "1")]
+        )
+    }
+
     static func importRssFeeds(_ input: SourceImportInput) -> Endpoint {
         Endpoint(.POST, path: "/api/v1/my/import/rss-feeds", body: input)
     }

@@ -26,6 +26,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.import-export.rss-feeds.status.partial": .rssFeedImportStatus(importId: importExportBatchId),
             "native.import-export.topics.import.outcomes": .importTopics(["Travel", "Local News", "Travel", "!!!"]),
             "native.import-export.topics.export.default": .exportTopics,
+            "native.import-export.topics.export.download": .exportTopicsDownload,
             "web.communities.archive.default": Endpoint.updateCommunity(
                 idOrSlug: "test-community",
                 archive: true
