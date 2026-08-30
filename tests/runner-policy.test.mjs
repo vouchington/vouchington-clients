@@ -66,8 +66,6 @@ describe('private self-hosted runner policy', () => {
     assertRunner(workflows['native-contract-tests.yml'], 'verify', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['native-contract-tests.yml'], 'tests', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['dependabot-automerge.yml'], 'automerge', '\\[self-hosted, Linux\\]')
-    for (const job of ['select-final-review', 'validate-review-settings', 'code-reviewed'])
-      assertRunner(workflows['final-code-review.yml'], job, '\\[self-hosted, Linux\\]')
   })
 
   it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {
@@ -78,17 +76,7 @@ describe('private self-hosted runner policy', () => {
       ['validate.yml', 'swift-core'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
-      ['final-code-review.yml', 'opencode-code-review'],
-      ['final-code-review.yml', 'opencode-zen-code-review'],
     ])
       assertPersistentCleanup(workflows[workflow], job)
-    for (const job of ['opencode-code-review', 'opencode-zen-code-review']) {
-      const block = jobBlock(workflows['final-code-review.yml'], job)
-      assert.match(
-        block,
-        /working-directory: \$\{\{ runner\.temp \}\}/u,
-        `${job} must isolate pnpm dlx from a PR-controlled .npmrc`,
-      )
-    }
   })
 })

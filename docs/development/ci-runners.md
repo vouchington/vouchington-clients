@@ -26,8 +26,8 @@ executes repository code must:
    `PRESERVE_NODE_MODULES=false`.
 
 API-only jobs do not need checkout cleanup, but still use the appropriate self-hosted runner. The
-native contract producer and final-code-review provider follow the same cleanup boundary because
-they handle trusted checkouts, generated artifacts, or provider tooling on persistent hosts.
+Native contract producers follow the same cleanup boundary because they handle trusted checkouts,
+generated artifacts, or provider tooling on persistent hosts.
 
 ## Event-driven orchestration
 

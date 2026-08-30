@@ -30,29 +30,4 @@ describe('event-driven CI orchestration', () => {
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
 
-  it('pins Final Code Review composites without a PAT router or labeled trigger', async () => {
-    await assert.rejects(access(workflowUrl('validate-request-final-code-review.yml')))
-
-    const workflow = await readWorkflow('final-code-review.yml')
-    assert.match(workflow, /pull_request:\n\s+types:/u)
-    assert.doesNotMatch(workflow, /pull_request_target:/u)
-    assert.match(
-      workflow,
-      /types: \[opened, reopened, synchronize, ready_for_review, converted_to_draft, closed\]/u,
-    )
-    assert.doesNotMatch(workflow, /final-code-review:requested|CODE_REVIEW_TRIGGER_TOKEN/u)
-    assert.doesNotMatch(workflow, /sleep 15|seq 1 120/u)
-    assert.match(workflow, /CI_WORKFLOW: validate\.yml/u)
-    assert.match(workflow, /TESTS_JOB_NAME: validate/u)
-    assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-select@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
-    )
-    assert.match(
-      workflow,
-      /vouchington\/vouchington-tooling\/\.github\/actions\/final-review-gate@7e2baecb2b0cdbf7613e0979bece299cf52a728f/u,
-    )
-    assert.match(workflow, /CLAUDE_ENABLED: 'false'/u)
-    assert.match(workflow, /'Code Reviewed' \|\| 'Ignore ineligible final review'/u)
-  })
 })
