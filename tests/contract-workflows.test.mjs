@@ -243,6 +243,11 @@ describe("native contract workflow boundary", () => {
   it("stages the trusted contract before parity and artifact creation", async () => {
     const producer = await readWorkflow("native-contract-tests.yml");
 
+    assert.match(producer, /name: Install trusted Filaments exporter dependencies/u);
+    assert.match(
+      producer,
+      /name: Install trusted Filaments exporter dependencies\n\s+working-directory: filaments\n\s+run: pnpm install --frozen-lockfile/u,
+    );
     assert.match(producer, /name: Stage trusted native contract/u);
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u);
     assert.match(producer, /--filaments-root "\$FILAMENTS_ROOT"/u);
@@ -251,6 +256,11 @@ describe("native contract workflow boundary", () => {
     assert.match(
       producer,
       /VOUCHA_FILAMENTS_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+    );
+    assert.equal(
+      producer.indexOf("name: Install trusted Filaments exporter dependencies") <
+        producer.indexOf("name: Stage trusted native contract"),
+      true,
     );
     assert.equal(
       producer.indexOf("name: Stage trusted native contract") <
