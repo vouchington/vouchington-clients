@@ -69,6 +69,11 @@ describe('private self-hosted runner policy', () => {
 
     const swiftManifest = jobBlock(workflows['validate.yml'], 'swift-core')
     assert.match(swiftManifest, /docker run --rm/u)
+    assert.match(swiftManifest, /--read-only/u)
+    assert.match(swiftManifest, /--network none/u)
+    assert.match(swiftManifest, /--volume "\$PWD:\/workspace:ro"/u)
+    assert.match(swiftManifest, /--workdir \/workspace/u)
+    assert.match(swiftManifest, /swift:6\.3\.3-noble@sha256:[0-9a-f]{64}/u)
     assert.match(swiftManifest, /swift package --package-path swift-clients\/core dump-package/u)
     assert.doesNotMatch(swiftManifest, /swift (?:build|test)/u)
   })
