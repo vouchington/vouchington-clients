@@ -133,6 +133,14 @@ async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot })
   });
 }
 
+async function hasFilamentsExporter(filamentsRoot) {
+  const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath));
+  if (!(await info(script, `Filaments exporter ${filamentsExporterRelativePath}`))?.isFile())
+    return false;
+  const source = await readFile(script, "utf8");
+  return source.includes("--output-root") && source.includes("--consumer-root");
+}
+
 export async function stageNativeContract(options = {}) {
   const filamentsRoot = absoluteDirectoryPath(options.filamentsRoot, "Filaments root");
   const consumerRoot = absoluteDirectoryPath(options.consumerRoot, "candidate client root");
@@ -156,6 +164,25 @@ export async function stageNativeContract(options = {}) {
   const legacyState = await Promise.all(
     localizationPaths.map((path) => descendantInfo(filamentsRoot, path, "Filaments contract")),
   );
+  const runExporter = options.runExporter ?? runFilamentsExporter;
+  if (options.runExporter || (await hasFilamentsExporter(filamentsRoot))) {
+    try {
+      await runExporter({ consumerRoot, filamentsRoot, outputRoot });
+    } catch (error) {
+      fail(`Filaments exporter failed: ${error.message}`);
+    }
+    // Validate the exporter's complete output before creating or copying through
+    // any exporter-controlled destination ancestor.
+    await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
+    for (const path of localizationPaths) {
+      if (!(await descendantInfo(outputRoot, path, "staged contract")))
+        fail(`missing directory at staged contract/${path}`);
+      await tree(join(outputRoot, ...contractPathComponents(path)), `staged contract ${path}`);
+    }
+    await copyDirectory(filamentsRoot, outputRoot, fixturePath);
+    await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
+    return "exporter";
+  }
   if (legacyState.some(Boolean) && !legacyState.every(Boolean))
     fail("partial legacy localization directories in Filaments checkout");
   if (legacyState.every(Boolean)) {
@@ -163,23 +190,7 @@ export async function stageNativeContract(options = {}) {
     await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
     return "legacy";
   }
-  const runExporter = options.runExporter ?? runFilamentsExporter;
-  try {
-    await runExporter({ consumerRoot, filamentsRoot, outputRoot });
-  } catch (error) {
-    fail(`Filaments exporter failed: ${error.message}`);
-  }
-  // Validate the exporter's complete output before creating or copying through
-  // any exporter-controlled destination ancestor.
-  await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
-  for (const path of localizationPaths) {
-    if (!(await descendantInfo(outputRoot, path, "staged contract")))
-      fail(`missing directory at staged contract/${path}`);
-    await tree(join(outputRoot, ...contractPathComponents(path)), `staged contract ${path}`);
-  }
-  await copyDirectory(filamentsRoot, outputRoot, fixturePath);
-  await assertOnlyDeclaredPaths(outputRoot, declaredPaths);
-  return "exporter";
+  fail(`missing Filaments exporter at ${filamentsExporterRelativePath}`);
 }
 
 function parseArguments(argv) {
