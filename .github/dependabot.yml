@@ -104,6 +104,22 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
     groups:
+      apple-swift-crypto:
+        applies-to: version-updates
+        patterns:
+          - swift-crypto
+          - swift-asn1
+        update-types:
+          - minor
+          - patch
+      apple-swift-crypto-security:
+        applies-to: security-updates
+        patterns:
+          - swift-crypto
+          - swift-asn1
+        update-types:
+          - minor
+          - patch
       skip-toolchain:
         applies-to: version-updates
         patterns:
