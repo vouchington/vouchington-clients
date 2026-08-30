@@ -78,7 +78,7 @@ final class ImportExportEndpointTests: XCTestCase {
         CapturingURLProtocol.responseData = Data(#"{"error":"Too large","code":"SYNC_EXPORT_TOO_LARGE"}"#.utf8)
         let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
 
-        await XCTAssertThrowsErrorAsync { try await client.data(for: .exportTopics) }
+        await XCTAssertThrowsErrorAsync { try await client.data(for: .exportTopicsDownload) }
     }
 
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {
