@@ -18,7 +18,7 @@ here.
 The self-hosted fleet is persistent and is not an isolation boundary. Any job that checks out or
 executes repository code must:
 
-1. Run `pnpm dlx vouchington-tooling@0.3.5 clean-workspace` before its first checkout with
+1. Run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` before its first checkout with
    `PRESERVE_NODE_MODULES=false`.
 2. Set `clean: false` and `persist-credentials: false` on checkout steps. Workspace cleanup owns
    removal of stale files while preserving only explicitly requested dependencies.

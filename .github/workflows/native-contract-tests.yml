@@ -30,7 +30,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Resolve candidate event identity
         id: event
         env:
@@ -181,7 +181,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   verify:
     name: Verify native contract handoff
@@ -199,7 +199,7 @@ jobs:
       - name: Clean persistent runner workspace
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -296,7 +296,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   dotnet-portable:
     name: .NET portable (${{ matrix.os }})
@@ -381,7 +381,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   lint-swift:
     name: Swift lint
@@ -413,7 +413,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   periphery-swift-core:
     name: Swift Periphery (core)
@@ -441,7 +441,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   periphery-swift-ui:
     name: Swift Periphery (UI)
@@ -469,7 +469,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   test-swift-core:
     name: Swift core tests and coverage
@@ -505,7 +505,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   test-swift-android:
     name: Swift Android and Skip tests
@@ -616,7 +616,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   test-swift-ui:
     name: Swift UI tests and coverage
@@ -684,7 +684,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   swift-patch-coverage:
     name: Swift patch coverage
@@ -717,7 +717,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   build-android-core:
     name: Swift Android core build
@@ -751,7 +751,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   build-macos-app:
     name: Swift macOS app smoke
@@ -794,7 +794,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: "false" }
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   # iOS simulator smoke remains disabled pending #6705: the self-hosted runner's
   # CoreSimulator framework is incompatible with its installed Xcode, so no iOS
@@ -893,7 +893,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   dotnet-maui-catalyst:
     name: .NET MAUI Mac Catalyst
@@ -1018,7 +1018,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.3.5 clean-workspace
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   tests:
     name: Tests
