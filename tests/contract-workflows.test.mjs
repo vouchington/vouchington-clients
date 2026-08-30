@@ -203,6 +203,15 @@ describe("native contract workflow boundary", () => {
     );
   });
 
+  it("runs Swift patch coverage on Linux without compiling Swift", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
+    const coverageJob = jobBlock(workflow, "swift-patch-coverage");
+
+    assert.match(coverageJob, /runs-on: \[self-hosted, Linux\]/u);
+    assert.equal(coverageJob.split("pnpm run coverage:swift").length - 1, 1);
+    assert.doesNotMatch(coverageJob, /swift (?:build|test)/u);
+  });
+
   it("uses the exact native runner labels for Swift jobs", async () => {
     const workflow = await readWorkflow("native-contract-tests.yml");
     for (const job of [
@@ -220,10 +229,6 @@ describe("native contract workflow boundary", () => {
     assert.match(
       jobBlock(workflow, "build-android-core"),
       /runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
-    );
-    assert.match(
-      jobBlock(workflow, "swift-patch-coverage"),
-      /runs-on: \[self-hosted, Linux\]/u,
     );
     assert.equal(workflow.split("clean: false").length - 1, 12);
   });
