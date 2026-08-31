@@ -1,11 +1,16 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
+import { isSwiftCodeOffset, parseUniqueSwiftBinaryTargetChecksum } from 'vouchington-tooling/swift-source-offset'
+import { validateResolvedPinDelta } from 'vouchington-tooling/swift-resolved-pin-delta'
+
 const versionPattern = /\.package\(url:\s*"https:\/\/source\.skip\.tools\/skip\.git",\s*exact:\s*"(?<version>\d+\.\d+\.\d+)"\)/gu
 const sha = /^[a-f0-9]{40}$/u
 const materializerUrl = 'SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"'
 
 export function parseSkipUpdate(packageSource, resolvedSource) {
-  const declarations = [...packageSource.matchAll(versionPattern)]
+  const declarations = [...packageSource.matchAll(versionPattern)].filter(
+    declaration => declaration.index !== undefined && isSwiftCodeOffset(packageSource, declaration.index),
+  )
   const version = declarations[0]?.groups?.version
   if (declarations.length !== 1 || !version) {
     throw new Error('Android Package.swift must contain exactly one exact Skip semantic version')
@@ -18,13 +23,39 @@ export function parseSkipUpdate(packageSource, resolvedSource) {
   return { revision: pin.state.revision, version }
 }
 
-function trustedChecksum(upstreamPackage, version) {
-  const escapedVersion = version.replaceAll('.', '\\.')
-  const expression = new RegExp(
-    `\\.binaryTarget\\(name:\\s*"skip",\\s*url:\\s*"https://github\\.com/skiptools/skip/releases/download/${escapedVersion}/skip-macos\\.zip",\\s*checksum:\\s*"(?<checksum>[a-f0-9]{64})"\\)`,
-    'u',
+function skipDeclaration(packageSource) {
+  const declarations = [...packageSource.matchAll(versionPattern)].filter(
+    candidate => candidate.index !== undefined && isSwiftCodeOffset(packageSource, candidate.index),
   )
-  const checksum = upstreamPackage.match(expression)?.groups?.checksum
+  const declaration = declarations[0]
+  const version = declaration?.groups?.version
+  if (declarations.length !== 1 || !declaration || !version) {
+    throw new Error('Android Package.swift must contain one executable exact Skip declaration')
+  }
+  return { literal: declaration[0], version }
+}
+
+export function validateTrustedBaseDelta(trustedPackageSource, trustedResolvedSource, packageSource, resolvedSource) {
+  const trusted = skipDeclaration(trustedPackageSource)
+  const candidate = skipDeclaration(packageSource)
+  const expectedDeclaration = trusted.literal.replace(`"${trusted.version}"`, `"${candidate.version}"`)
+  if (packageSource !== trustedPackageSource.replace(trusted.literal, expectedDeclaration)) {
+    throw new Error('Android Package.swift may change only the exact Skip version')
+  }
+  if (candidate.literal !== expectedDeclaration) {
+    throw new Error('Android Package.swift Skip declaration formatting must remain unchanged')
+  }
+  const update = parseSkipUpdate(packageSource, resolvedSource)
+  validateResolvedPinDelta(JSON.parse(trustedResolvedSource), JSON.parse(resolvedSource), { requiredIdentity: 'skip' })
+  return update
+}
+
+function trustedChecksum(upstreamPackage, version) {
+  const checksum = parseUniqueSwiftBinaryTargetChecksum(
+    upstreamPackage,
+    'skip',
+    `https://github.com/skiptools/skip/releases/download/${version}/skip-macos.zip`,
+  )
   if (!checksum) throw new Error('Trusted Skip package metadata has no matching binary checksum')
   return checksum
 }

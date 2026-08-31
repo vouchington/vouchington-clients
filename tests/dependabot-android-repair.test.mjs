@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { materializeSkipRepair, parseSkipUpdate, validateMaterializerSource } from '../scripts/dependabot-android-repair.mjs'
+import {
+  materializeSkipRepair,
+  parseSkipUpdate,
+  validateMaterializerSource,
+  validateTrustedBaseDelta,
+} from '../scripts/dependabot-android-repair.mjs'
 
 const revision = 'a'.repeat(40)
 
@@ -16,7 +21,7 @@ describe('trusted Android Skip repair', () => {
 
   it('updates only trusted materializer fields from the verified upstream checksum', () => {
     const source = 'SKIP_VERSION="1.0.0"\nSKIP_MACOS_ZIP_SHA256="' + 'b'.repeat(64) + '"\nSKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"\n'
-    const upstream = '.binaryTarget(name: "skip", url: "https://github.com/skiptools/skip/releases/download/1.2.3/skip-macos.zip", checksum: "' + 'c'.repeat(64) + '")\n'
+    const upstream = 'package.targets += [.binaryTarget(name: "skip", url: "https://github.com/skiptools/skip/releases/download/1.2.3/skip-macos.zip", checksum: "' + 'c'.repeat(64) + '")]\n'
     assert.match(materializeSkipRepair(source, upstream, { revision, version: '1.2.3' }), /SKIP_VERSION="1.2.3"/u)
     assert.throws(() => materializeSkipRepair(source.replace('github.com', 'example.com'), upstream, { revision, version: '1.2.3' }))
   })
@@ -26,5 +31,20 @@ describe('trusted Android Skip repair', () => {
     assert.doesNotThrow(() => validateMaterializerSource(source))
     assert.throws(() => validateMaterializerSource(source.replace('${SKIP_VERSION}', '1.2.3')))
     assert.throws(() => validateMaterializerSource(source.replace('github.com', 'example.com')))
+  })
+
+  it('permits only the executable Skip version delta and freezes existing resolved pins', () => {
+    const trustedPackage = '.package(url: "https://source.skip.tools/skip.git", exact: "1.2.2")\n'
+    const retained = {
+      identity: 'skip-fuse-ui',
+      kind: 'remoteSourceControl',
+      location: 'https://source.skip.tools/skip-fuse-ui.git',
+      state: { revision: 'b'.repeat(40), version: '1.0.1' },
+    }
+    const trustedResolved = JSON.stringify({ originHash: 'e'.repeat(64), pins: [{ identity: 'skip', kind: 'remoteSourceControl', location: 'https://source.skip.tools/skip.git', state: { revision: 'c'.repeat(40), version: '1.2.2' } }, retained], version: 3 })
+    const candidateResolved = JSON.stringify({ originHash: 'f'.repeat(64), pins: [{ identity: 'skip', kind: 'remoteSourceControl', location: 'https://source.skip.tools/skip.git', state: { revision, version: '1.2.3' } }, retained, { identity: 'opencombine', kind: 'remoteSourceControl', location: 'https://github.com/OpenSwiftUIProject/OpenCombine.git', state: { revision: 'd'.repeat(40), version: '0.15.1' } }], version: 3 })
+    assert.doesNotThrow(() => validateTrustedBaseDelta(trustedPackage, trustedResolved, packageSource, candidateResolved))
+    assert.throws(() => validateTrustedBaseDelta(trustedPackage, trustedResolved, `${packageSource}let injected = true\n`, candidateResolved))
+    assert.throws(() => validateTrustedBaseDelta(trustedPackage, trustedResolved, packageSource, candidateResolved.replace('1.0.1', '1.0.2')))
   })
 })
