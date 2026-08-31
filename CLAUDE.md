@@ -14,6 +14,13 @@ checkout; do not discover a sibling checkout, fetch independently, or add a fall
 Changes that affect shared API fixtures or native-localization must land with the corresponding
 Filaments contract change, or remain draft and explicitly dependency-blocked until it does.
 
+## Quality and changed-file tests
+
+Run `pnpm run quality:check` for repository rules. Plan native tests with
+`pnpm run test:plan:swift --base origin/main --head HEAD` and
+`pnpm run test:plan:dotnet --base origin/main --head HEAD`; do not plan native tests from the
+Filaments checkout. See [native quality and test planning](docs/development/native-quality.md).
+
 ## Agent Blackboard
 
 Use the upstream `agent-blackboard` plugin together with the `vouchington-workflow:blackboard`

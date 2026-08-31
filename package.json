@@ -8,11 +8,15 @@
     "contracts:sync": "node scripts/contracts.mjs sync",
     "coverage:dotnet-core": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --require-artifact lcov.info --fail-on-empty --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "coverage:swift": "node scripts/swift-coverage.mjs",
+    "quality:check": "no-mistakes check",
+    "test:plan:dotnet": "no-mistakes tests plan dotnet --format commands",
+    "test:plan:swift": "no-mistakes tests plan swift --format commands",
     "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
     "coverage-check": "0.15.2",
+    "no-mistakes": "0.52.2",
     "vouchington-tooling": "0.1.5"
   },
   "engines": {

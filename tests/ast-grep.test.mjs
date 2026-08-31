@@ -49,9 +49,12 @@ function parseExamples(rulePath, source) {
     }
     const isValid = lines[index]?.match(/^    isValid: (true|false)\s*$/);
     assert.ok(isValid, `${rulePath}:${index + 1}: missing isValid`);
-    const file = lines[index + 1]?.match(/^    file: ("(?:[^"\\]|\\.)*")\s*$/);
+    const file = lines[index + 1]?.match(/^    file: ((?:"(?:[^"\\]|\\.)*")|'(?:[^'\\]|\\.)*')\s*$/);
     assert.ok(file, `${rulePath}:${index + 2}: missing quoted example file`);
-    examples.push({ code, isValid: isValid[1] === "true", file: JSON.parse(file[1]) });
+    const fileValue = file[1].startsWith("'")
+      ? file[1].slice(1, -1).replace(/\\'/g, "'")
+      : JSON.parse(file[1]);
+    examples.push({ code, isValid: isValid[1] === "true", file: fileValue });
     index += 1;
   }
   assert.ok(examples.length, `${rulePath}: no examples discovered`);
@@ -116,7 +119,7 @@ async function assertExample(rulePath, example, testDirectory) {
   );
 }
 
-describe("Swift ast-grep guards", () => {
+describe("native ast-grep guards", () => {
   it("executes every guard's positive and negative examples", async (t) => {
     await access(astGrep);
     const testDirectory = await mkdtemp(join(tmpdir(), "voucha-ast-grep-examples-"));
@@ -128,8 +131,8 @@ describe("Swift ast-grep guards", () => {
     }
   });
 
-  it("scans the client-owned Swift sources with error-level enforcement", async () => {
+  it("scans the client-owned native sources with error-level enforcement", async () => {
     await access(astGrep);
-    runAstGrep("scan", "--error", "--no-ignore", "hidden", "--", "swift-clients/");
+    runAstGrep("scan", "--error", "--no-ignore", "hidden", "--", "swift-clients/", "dotnet-clients/");
   });
 });

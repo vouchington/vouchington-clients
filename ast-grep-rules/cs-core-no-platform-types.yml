@@ -1,0 +1,100 @@
+id: cs-core-no-platform-types
+language: CSharp
+severity: error
+message: '`Voucha.Client.Core` must stay platform-neutral; do not reference MAUI, WinUI/WinRT, Android, or Apple binding namespaces. Move platform code to `Voucha.Client.App` or a platform adapter.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/**/*.cs'
+rule:
+  any:
+    - all:
+        - kind: using_directive
+        - regex: 'using\s+(?:static\s+)?(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?(?:global::)?(?:Microsoft\.Maui|Microsoft\.UI|UIKit|Foundation|AppKit|CoreGraphics|CoreAnimation|CoreFoundation|ObjCRuntime|AuthenticationServices|Android|Windows|WinRT)(?:\.|;)'
+    - all:
+        - kind: member_access_expression
+        - regex: '^(?:global::)?(?:Microsoft\.Maui|Microsoft\.UI|UIKit|Foundation|AppKit|CoreGraphics|CoreAnimation|CoreFoundation|ObjCRuntime|AuthenticationServices|Android|Windows|WinRT)(?:\.|$)'
+        - not:
+            inside:
+              kind: member_access_expression
+    - all:
+        - kind: qualified_name
+        - regex: '^(?:global::)?(?:Microsoft\.Maui|Microsoft\.UI|UIKit|Foundation|AppKit|CoreGraphics|CoreAnimation|CoreFoundation|ObjCRuntime|AuthenticationServices|Android|Windows|WinRT)(?:\.|$)'
+        - not:
+            inside:
+              any:
+                - kind: qualified_name
+                - kind: using_directive
+examples:
+  - code: |
+      using Microsoft.Maui.Controls;
+
+      namespace Voucha.Client.Core;
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationModels.cs'
+  - code: |
+      using MauiPlatform = Microsoft.Maui.ApplicationModel.Platform;
+
+      namespace Voucha.Client.Core;
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/AuthenticationService.cs'
+  - code: |
+      using static UIKit.UIApplication;
+
+      namespace Voucha.Client.Core;
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/CookieSessionStore.cs'
+  - code: |
+      namespace Voucha.Client.Core;
+
+      public sealed class PlatformLeak
+      {
+          public object Window => Microsoft.Maui.ApplicationModel.Platform.AppContext;
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/AppConfig.cs'
+  - code: |
+      namespace Voucha.Client.Core;
+
+      public sealed class UIKitLeak
+      {
+          public object Window => global::UIKit.UIApplication.SharedApplication;
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/AuthViewModel.cs'
+  - code: |
+      using System.Windows.Input;
+
+      namespace Voucha.Client.Core;
+
+      public interface CommandHost
+      {
+          ICommand Command { get; }
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationViewModels.cs'
+  - code: |
+      using Microsoft.Maui.Controls;
+
+      namespace Voucha.Client.App;
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/AuthPage.xaml.cs'
+  - code: |
+      using UIKit;
+
+      namespace Voucha.Client.App.Platforms.MacCatalyst;
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Platforms/MacCatalyst/Program.cs'
+  - code: |
+      namespace Voucha.Client.Core;
+
+      public sealed class FullyQualifiedLeak
+      {
+          public Microsoft.Maui.Controls.Window MyWindow { get; set; }
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/AppConfig.cs'
+  - code: |
+      using global::Microsoft.Maui;
+
+      namespace Voucha.Client.Core;
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/AuthenticationService.cs'

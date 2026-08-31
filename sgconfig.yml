@@ -1,5 +1,9 @@
 ruleDirs:
   - ast-grep-rules
 languageGlobs:
+  CSharp:
+    - "**/*.cs"
+  Html:
+    - "**/*.xaml"
   Swift:
     - "**/*.swift"

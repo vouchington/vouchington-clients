@@ -1,0 +1,28 @@
+id: cs-omnisearch-no-hardcoded-copy
+language: CSharp
+severity: error
+message: 'Omnisearch presentation rows must resolve generated UiMessageKey values; route, action, and API data remain raw.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.Mapping.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchMapping.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchCrawls.cs'
+rule:
+  any:
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new Omnisearch(ResultGroup|ResultRow)\s*\(\s*"[A-Za-z]'
+    - all:
+        - kind: implicit_object_creation_expression
+        - regex: '^new\s*\(\s*"[A-Za-z]'
+examples:
+  - code: |
+      var row = new OmnisearchResultRow("Domain", hostname, detail);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchMapping.cs'
+  - code: |
+      var row = new OmnisearchResultRow(
+          localization.Localize(UiMessageKey.NativeDotnetResidualDomain),
+          hostname,
+          detail);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchMapping.cs'

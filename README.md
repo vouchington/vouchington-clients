@@ -34,6 +34,13 @@ the explicit staged root and checks that both generated outputs are exact byte-f
 CI obtains a normal full Filaments checkout and runs that assertion; there is no duplicated
 localization bundle or sparse-checkout path.
 
+## Native quality
+
+The client repository owns Swift/.NET quality rules, changed-file test planning, and native test
+authoring guidance. See
+[`docs/development/native-quality.md`](docs/development/native-quality.md) for the local commands
+and the explicit Filaments producer boundaries.
+
 ## CI runners
 
 This private repository uses the organization self-hosted fleet to avoid consuming GitHub-hosted

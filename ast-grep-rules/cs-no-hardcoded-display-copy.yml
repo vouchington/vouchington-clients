@@ -1,0 +1,233 @@
+id: cs-no-hardcoded-display-copy
+language: CSharp
+severity: error
+message: 'MAUI dialog presentation copy must use UiCopy with a generated UiMessageKey; literals are reserved for protocol/user data.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.App/**/*.cs'
+rule:
+  any:
+    - all:
+        - kind: string_literal
+        - regex: '[A-Za-z]'
+        - inside:
+            kind: invocation_expression
+            regex: '(?:DisplayAlert|DisplayPrompt|DisplayActionSheet)Async\s*\('
+            stopBy: end
+        - not:
+            inside:
+              kind: tuple_expression
+              stopBy: end
+    - all:
+        - kind: interpolated_string_expression
+        - regex: '[A-Za-z]'
+        - inside:
+            kind: assignment_expression
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
+            stopBy: end
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
+        - inside:
+            kind: assignment_expression
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
+            stopBy: end
+    - all:
+        - kind: invocation_expression
+        - regex: '\.(?:ToString|Replace)\s*\('
+        - inside:
+            kind: assignment_expression
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
+            stopBy: end
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
+        - inside:
+            kind: assignment_expression
+            regex: '^ItemsSource\s*='
+            stopBy: end
+        - not:
+            inside:
+              kind: tuple_expression
+              stopBy: end
+    - all:
+        - kind: string_literal
+        - regex: '"[a-z0-9]+_[a-z0-9_]+"'
+        - inside:
+            kind: assignment_expression
+            regex: '^ItemsSource\s*='
+            stopBy: end
+    - all:
+        - kind: assignment_expression
+        - regex: '^(?:Title|Text|Placeholder|PickerTitle)\s*=\s*"[A-Za-z]'
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
+        - inside:
+            kind: assignment_expression
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle|AutomationId)\s*='
+            stopBy: end
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*"'
+        - inside:
+            kind: invocation_expression
+            regex: '(?:SemanticProperties\.SetDescription|SemanticProperties\.SetHint|AutomationProperties\.SetName|AutomationProperties\.SetHelpText)\s*\('
+            stopBy: end
+        - not:
+            inside:
+              kind: tuple_expression
+              stopBy: end
+    - all:
+        - kind: interpolated_string_expression
+        - regex: '[A-Za-z]'
+        - inside:
+            kind: invocation_expression
+            regex: '(?:SemanticProperties\.SetDescription|SemanticProperties\.SetHint|AutomationProperties\.SetName|AutomationProperties\.SetHelpText)\s*\('
+            stopBy: end
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
+        - inside:
+            kind: object_creation_expression
+            regex: '^new (?:CommunitySummaryRow|ListItemOption|MenuItem|ToolbarItem)\s*\('
+            stopBy: end
+examples:
+  - code: |
+      await DisplayPromptAsync("Report", "Reason", accept: "Continue", cancel: "Cancel");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.Actions.cs'
+  - code: |
+      await DisplayPromptAsync(
+          UiCopy.Localize(UiMessageKey.NativeDotnetDialogsReport),
+          UiCopy.Localize(UiMessageKey.NativeDotnetDialogsReason));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.Actions.cs'
+  - code: |
+      await DisplayAlertAsync(
+          UiCopy.Localize(UiMessageKey.NativeDotnetDialogsRunBackfill),
+          UiCopy.Format(
+              UiMessageKey.NativeDotnetDialogsRunBackfillDescription,
+              ("description", UiText.Verbatim(backfill.Description))),
+          UiCopy.Localize(UiMessageKey.NativeDotnetCommonOk));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml.cs'
+  - code: |
+      await DisplayAlertAsync(
+          UiCopy.Localize(UiMessageKey.NativeDotnetDialogsRunBackfill),
+          "Run this backfill now?",
+          UiCopy.Localize(UiMessageKey.NativeDotnetCommonOk));
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml.cs'
+  - code: |
+      var protocolReason = "illegal_content";
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/ProfilePage.Reporting.cs'
+  - code: |
+      Title = "Community settings";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPages.cs'
+  - code: |
+      Title = UiCopy.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesCommunitySettings);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPages.cs'
+  - code: |
+      var row = new Label { Text = "Saved reply" };
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPages.cs'
+  - code: |
+      var status = "approved";
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPage.Actions.cs'
+  - code: |
+      label.Text = failed ? "Image upload failed." : "Image ready.";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostComposePage.xaml.cs'
+  - code: |
+      page.Header.Title = "Saved reply";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostComposePage.xaml.cs'
+  - code: |
+      label.Text = failed
+          ? UiCopy.Localize(UiMessageKey.NativeDotnetCsharpImageUploadFailed)
+          : UiCopy.Localize(UiMessageKey.NativeDotnetCsharpImageReady);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostComposePage.xaml.cs'
+  - code: |
+      SemanticProperties.SetDescription(button, $"Jump to {chapter.Title}");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/MediaPlaybackPage.Chapters.cs'
+  - code: |
+      SemanticProperties.SetDescription(
+          button,
+          UiCopy.Format(
+              UiMessageKey.NativeDotnetResidualSolJumpTo,
+              ("target", chapter.Title)));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/MediaPlaybackPage.Chapters.cs'
+  - code: |
+      var row = new CommunitySummaryRow("posts", "Post reports", "3");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPages.cs'
+  - code: |
+      var row = new CommunitySummaryRow(
+          "posts",
+          UiCopy.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPosts),
+          UiCopy.FormatNumber(3));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPages.cs'
+  - code: |
+      label.Text = $"{status} item";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/MediaPlaybackPage.xaml.cs'
+  - code: |
+      label.Text = UiCopy.Format(
+          UiMessageKey.NativeDotnetMediaPlaybackStatus,
+          ("status", UiText.Verbatim(status)));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/MediaPlaybackPage.xaml.cs'
+  - code: |
+      label.Text = state switch
+      {
+        State.Active => "Account active",
+        _ => "Account paused",
+      };
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunityDetailPage.cs'
+  - code: |
+      label.Text = UiCopy.Localize(state switch
+      {
+        State.Active => UiMessageKey.StatusActive,
+        _ => UiMessageKey.StatusPaused,
+      });
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunityDetailPage.cs'
+  - code: |
+      label.Text = player.CurrentState.ToString();
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/MediaPlaybackPage.xaml.cs'
+  - code: |
+      var picker = new Picker { ItemsSource = new[] { "Any status", "active" } };
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CrmContactsPage.cs'
+  - code: |
+      var picker = new Picker
+      {
+        ItemsSource = new[] { UiCopy.Localize(UiMessageKey.AnyStatus), "active" },
+      };
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CrmContactsPage.cs'
+  - code: |
+      var picker = new Picker
+      {
+        ItemsSource = new[] { "new", "awaiting_response", "opted_out" },
+      };
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CrmContactsPage.cs'
+  - code: |
+      var picker = new Picker
+      {
+        ItemsSource = viewModel.StatusFilterOptions,
+        ItemDisplayBinding = new Binding(nameof(UiProtocolOption.DisplayLabel)),
+      };
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/CrmContactsPage.cs'

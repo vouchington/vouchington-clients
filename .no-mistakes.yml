@@ -1,0 +1,80 @@
+tests:
+  swift:
+    packages:
+      - swift-clients/core
+      - swift-clients/test-support
+      - swift-clients/ui
+      - swift-clients/apps/android
+  dotnet:
+    solutions:
+      - dotnet-clients/Voucha.DotNet.sln
+    projects:
+      core:
+        project: dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+      app:
+        project: dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
+      core-tests:
+        project: dotnet-clients/tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
+        test: true
+      app-tests:
+        project: dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+        test: true
+
+test_plan:
+  swift:
+    fullSuiteTriggers:
+      triggers:
+        - name: contract-config
+          paths: [contracts/**]
+      projects:
+        swift-clients:
+          - core/Package.swift
+          - ui/Package.swift
+          - apps/android/Package.swift
+    environments:
+      prePush:
+        groups:
+          - type: direct
+          - type: dependencies
+            limit: { percent: 1 }
+          - type: sample
+            limit: { percent: 5 }
+            sampleWhenLimited: true
+  dotnet:
+    fullSuiteTriggers:
+      triggers:
+        - name: contract-config
+          paths: [contracts/**, global.json]
+      projects:
+        dotnet-clients:
+          - Voucha.DotNet.sln
+          - src/Voucha.Client.Core/Voucha.Client.Core.csproj
+          - src/Voucha.Client.App/Voucha.Client.App.csproj
+          - tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
+          - tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          - NuGet.config
+          - Directory.Build.props
+          - Directory.Build.targets
+          - Directory.Packages.props
+    environments:
+      prePush:
+        groups:
+          - type: direct
+          - type: dependencies
+            limit: { percent: 1 }
+          - type: sample
+            limit: { percent: 5 }
+            sampleWhenLimited: true
+
+rules:
+  - name: C# source and test file length
+    rule: csharp-max-lines-per-file
+    scope: repository
+    options:
+      roots: [dotnet-clients]
+      srcMax: 200
+      testMax: 500
+  - name: C# Action delegates must not be async void
+    rule: csharp-no-async-void-delegate
+    scope: repository
+    include: [dotnet-clients/src/Voucha.Client.App/**/*.cs]
