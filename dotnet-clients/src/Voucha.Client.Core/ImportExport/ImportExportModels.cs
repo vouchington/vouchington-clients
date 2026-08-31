@@ -88,7 +88,7 @@ public sealed record ExportDocument(string FileName, string MediaType, string Fi
     if (delete) File.Delete(FilePath);
   }
 
-  private void ReleaseLease()
+  internal void ReleaseLease()
   {
     var delete = false;
     lock (lifecycleLock)

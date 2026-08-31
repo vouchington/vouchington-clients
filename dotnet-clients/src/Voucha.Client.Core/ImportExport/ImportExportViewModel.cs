@@ -138,12 +138,12 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
       CancellationToken token = default)
   {
     ArgumentNullException.ThrowIfNull(shareAsync);
-    ExportDocumentLease? lease;
+    ExportDocumentLease lease;
     lock (exportDocumentLock)
     {
-      lease = exportDocument?.AcquireLease();
+      if (exportDocument is null) return;
+      lease = exportDocument.AcquireLease();
     }
-    if (lease is null) return;
     using (lease) await shareAsync(lease.Document, token).ConfigureAwait(true);
   }
 
