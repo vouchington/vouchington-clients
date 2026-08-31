@@ -86,6 +86,8 @@ describe('private self-hosted runner policy', () => {
       ['validate.yml', 'swift-core'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
+      ['repair-dependabot-native.yml', 'prepare'],
+      ['repair-dependabot-native.yml', 'publish'],
     ])
       assertPersistentCleanup(workflows[workflow], job)
   })

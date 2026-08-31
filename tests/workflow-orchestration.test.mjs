@@ -30,4 +30,25 @@ describe('event-driven CI orchestration', () => {
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
 
+  it('repairs native Dependabot outputs through a verified artifact handoff', async () => {
+    const workflow = await readWorkflow('repair-dependabot-native.yml')
+
+    assert.match(workflow, /pull_request_target:/u)
+    assert.match(workflow, /contents: read\n\s+pull-requests: read/u)
+    assert.match(workflow, /persist-credentials: false/u)
+    assert.match(workflow, /dependabot-repair\.mjs candidate/u)
+    assert.match(workflow, /upload-artifact@/u)
+    assert.match(workflow, /download-artifact@/u)
+    assert.match(workflow, /dependabot-repair\.mjs provenance/u)
+    assert.match(workflow, /dependabot-repair\.mjs artifact-paths/u)
+    assert.match(workflow, /--force-with-lease=/u)
+    assert.match(workflow, /restore-locks\.sh update/u)
+    assert.match(workflow, /dependabot-android-repair/u)
+    assert.match(workflow, /runs-on: \[self-hosted, macOS, Tests\]/u)
+    assert.match(workflow, /runs-on: \[self-hosted, Linux\]/u)
+    assert.doesNotMatch(workflow, /contents: write/u)
+    assert.match(workflow, /WRITE_TOKEN: \$\{\{ secrets\.DEPENDABOT_AUTOMERGE_TOKEN \}\}/u)
+    assert.match(workflow, /Push with the single-command write credential/u)
+  })
+
 })
