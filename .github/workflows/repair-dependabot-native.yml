@@ -145,19 +145,23 @@ jobs:
             mkdir -p "$artifact/$(dirname "$path")"
             cp "$path" "$artifact/$path"
           done < <(node --input-type=module -e "import { dotnetLockPaths } from './scripts/dependabot-repair.mjs'; console.log(dotnetLockPaths.join('\\n'))")
-          node --input-type=module -e "import { readFileSync } from 'node:fs'; import { validateTrustedBaseDelta } from './scripts/dependabot-android-repair.mjs'; validateTrustedBaseDelta(readFileSync('swift-clients/apps/android/Package.swift', 'utf8'), readFileSync('swift-clients/apps/android/Package.resolved', 'utf8'), readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8'))" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved"
-          skip_version="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).version)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
-          skip_revision="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).revision)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
-          expected_revision="$(gh api "repos/skiptools/skip/commits/$skip_version" --jq .sha)"
-          [[ "$skip_revision" == "$expected_revision" ]]
-          gh api -H 'Accept: application/vnd.github.raw+json' "repos/skiptools/skip/contents/Package.swift?ref=$skip_version" > "$RUNNER_TEMP/skip-Package.swift"
           mkdir -p "$artifact/swift-clients/apps/android/tooling"
-          node scripts/dependabot-android-repair.mjs \
-            swift-clients/apps/android/tooling/materialize-skip-sdk.sh \
-            "$candidate/swift-clients/apps/android/Package.swift" \
-            "$candidate/swift-clients/apps/android/Package.resolved" \
-            "$RUNNER_TEMP/skip-Package.swift" \
-            "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          if grep -q '^swift-clients/apps/android/' "$candidate/paths"; then
+            node --input-type=module -e "import { readFileSync } from 'node:fs'; import { validateTrustedBaseDelta } from './scripts/dependabot-android-repair.mjs'; validateTrustedBaseDelta(readFileSync('swift-clients/apps/android/Package.swift', 'utf8'), readFileSync('swift-clients/apps/android/Package.resolved', 'utf8'), readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8'))" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved"
+            skip_version="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).version)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
+            skip_revision="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).revision)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
+            expected_revision="$(gh api "repos/skiptools/skip/commits/$skip_version" --jq .sha)"
+            [[ "$skip_revision" == "$expected_revision" ]]
+            gh api -H 'Accept: application/vnd.github.raw+json' "repos/skiptools/skip/contents/Package.swift?ref=$expected_revision" > "$RUNNER_TEMP/skip-Package.swift"
+            node scripts/dependabot-android-repair.mjs \
+              swift-clients/apps/android/tooling/materialize-skip-sdk.sh \
+              "$candidate/swift-clients/apps/android/Package.swift" \
+              "$candidate/swift-clients/apps/android/Package.resolved" \
+              "$RUNNER_TEMP/skip-Package.swift" \
+              "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          else
+            cp swift-clients/apps/android/tooling/materialize-skip-sdk.sh "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          fi
           locks_hash="$({ while IFS= read -r path; do shasum -a 256 "$artifact/$path"; done < <(node --input-type=module -e "import { dotnetLockPaths } from './scripts/dependabot-repair.mjs'; console.log(dotnetLockPaths.join('\\n'))"); } | shasum -a 256 | cut -d ' ' -f 1)"
           android_hash="$(shasum -a 256 "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh" | cut -d ' ' -f 1)"
           candidate_hash="$({ for path in dotnet-clients/Directory.Packages.props swift-clients/apps/android/Package.swift swift-clients/apps/android/Package.resolved; do shasum -a 256 "$candidate/$path"; done; } | shasum -a 256 | cut -d ' ' -f 1)"
