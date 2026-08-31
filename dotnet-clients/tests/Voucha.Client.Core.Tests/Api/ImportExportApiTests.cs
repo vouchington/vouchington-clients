@@ -18,6 +18,7 @@ public sealed class ImportExportApiTests
         "{\"urls\":[\"https://example.test/feed.xml\"],\"follow\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedCsv("url\na"), "{\"csv\":\"url\\na\",\"follow\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedOpml("<opml/>"), "{\"opml\":\"\\u003Copml/\\u003E\",\"follow\":true}");
+    Assert.Empty(VouchaApiEndpoints.ExportTopics().Query);
     Assert.Equal("1", VouchaApiEndpoints.ExportTopicsDownload().Query["download"]);
 
     var csv = VouchaApiEndpoints.ExportRssFeeds("podcast", "csv");
@@ -30,21 +31,34 @@ public sealed class ImportExportApiTests
   }
 
   [Fact]
-  public async Task RawTextTransportAppliesHeadersAndPreservesApiErrors()
+  public async Task DownloadTransportAppliesHeadersAndPreservesApiErrors()
   {
     var success = new HeaderHandler("a,b", HttpStatusCode.OK);
     var client = new VouchaApiClient(new HttpClient(success) { BaseAddress = new("https://api.test") });
 
-    var text = await client.ExportRssFeedsAsync("article", "csv", TestContext.Current.CancellationToken);
+    var filePath = await client.DownloadRssFeedsExportAsync(
+        "article",
+        "csv",
+        TestContext.Current.CancellationToken);
 
-    Assert.Equal("a,b", text);
-    Assert.Equal("text/csv", success.Accept);
-    Assert.Equal("/api/v1/my/export/rss-feeds?feed_type=article&format=csv", success.Path);
+    try
+    {
+      Assert.Equal("a,b", await File.ReadAllTextAsync(filePath, TestContext.Current.CancellationToken));
+      Assert.Equal("text/csv", success.Accept);
+      Assert.Equal("/api/v1/my/export/rss-feeds?feed_type=article&format=csv", success.Path);
+    }
+    finally
+    {
+      File.Delete(filePath);
+    }
 
     var failure = new HeaderHandler("too large", HttpStatusCode.RequestEntityTooLarge);
     client = new(new HttpClient(failure) { BaseAddress = new("https://api.test") });
     var error = await Assert.ThrowsAsync<VouchaApiException>(
-        () => client.ExportRssFeedsAsync(null, "opml", TestContext.Current.CancellationToken));
+        () => client.DownloadRssFeedsExportAsync(
+            null,
+            "opml",
+            TestContext.Current.CancellationToken));
     Assert.Equal(HttpStatusCode.RequestEntityTooLarge, error.StatusCode);
     Assert.Equal("too large", error.ResponseBody);
   }
@@ -52,15 +66,19 @@ public sealed class ImportExportApiTests
   [Fact]
   public async Task TopicExportArtifactIsTheJsonResultsArray()
   {
-    var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse("native.import-export.topics.export.default"));
+    using var fixture = JsonDocument.Parse(
+        ApiFixtureLoader.LoadResponse("native.import-export.topics.export.download"));
+    var handler = new RecordingHandler(fixture.RootElement.GetRawText());
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new("https://api.test") });
     var service = new ApiImportExportService(client);
 
-    var document = await service.ExportTopicsAsync(TestContext.Current.CancellationToken);
-    using var json = JsonDocument.Parse(document.Contents);
+    using var document = await service.ExportTopicsAsync(TestContext.Current.CancellationToken);
+    using var json = JsonDocument.Parse(
+        await File.ReadAllTextAsync(document.FilePath, TestContext.Current.CancellationToken));
 
     Assert.Equal(JsonValueKind.Array, json.RootElement.ValueKind);
     Assert.Equal("Local News", json.RootElement[0].GetProperty("name").GetString());
+    Assert.Equal("/api/v1/my/export/topics?download=1", handler.PathAndQuery);
   }
 
   [Theory]
@@ -85,12 +103,17 @@ public sealed class ImportExportApiTests
     var sharer = new CapturingDocumentSharer();
     var adapter = new ImportExportFileAdapter(new NullPicker(), new StrictUtf8ImportExportFileReader(), sharer);
 
-    var document = await service.ExportSourcesAsync(feedType, format, TestContext.Current.CancellationToken);
+    using var document = await service.ExportSourcesAsync(
+        feedType,
+        format,
+        TestContext.Current.CancellationToken);
     await adapter.ShareAsync(document, TestContext.Current.CancellationToken);
 
     Assert.Equal(fileName, document.FileName);
     Assert.Equal(mediaType, document.MediaType);
-    Assert.Equal("export bytes", Encoding.UTF8.GetString(document.Contents.Span));
+    Assert.Equal(
+        "export bytes",
+        await File.ReadAllTextAsync(document.FilePath, TestContext.Current.CancellationToken));
     Assert.Equal(path, handler.Path);
     Assert.Equal(mediaType, handler.Accept);
     Assert.Same(document, sharer.Document);
@@ -102,7 +125,7 @@ public sealed class ImportExportApiTests
   [InlineData("native.import-export.rss-feeds.status.partial", typeof(RssFeedImportStatus))]
   [InlineData("native.import-export.topics.import.outcomes", typeof(TopicImportResponse))]
   [InlineData("native.import-export.topics.export.default", typeof(TopicExportResponse))]
-  [InlineData("native.import-export.topics.export.download", typeof(ExportTopic[]))]
+  [InlineData("native.import-export.topics.export.download", typeof(IReadOnlyList<ExportTopic>))]
   public void SharedImportExportFixturesDecodeIntoTypedDtos(string fixtureId, Type type)
   {
     var decoded = JsonSerializer.Deserialize(ApiFixtureLoader.LoadResponse(fixtureId), type, VouchaApiJson.Options);

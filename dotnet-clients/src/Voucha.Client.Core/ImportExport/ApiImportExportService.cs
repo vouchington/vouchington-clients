@@ -1,16 +1,9 @@
-using System.Text;
-using System.Text.Json;
 using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.ImportExport;
 
 public sealed class ApiImportExportService(VouchaApiClient apiClient) : IImportExportService
 {
-  private static readonly JsonSerializerOptions PrettyJson = new(VouchaApiJson.Options)
-  {
-    WriteIndented = true,
-  };
-
   public Task<TopicImportResponse> ImportTopicsAsync(IReadOnlyList<string> names, CancellationToken token) =>
       apiClient.ImportTopicsAsync(names, token);
 
@@ -28,9 +21,8 @@ public sealed class ApiImportExportService(VouchaApiClient apiClient) : IImportE
 
   public async Task<ExportDocument> ExportTopicsAsync(CancellationToken token)
   {
-    var response = await apiClient.ExportTopicsAsync(token).ConfigureAwait(false);
-    var bytes = JsonSerializer.SerializeToUtf8Bytes(response.Results, PrettyJson);
-    return new("topics.json", "application/json", bytes);
+    var path = await apiClient.DownloadTopicsExportAsync(token).ConfigureAwait(false);
+    return new("topics.json", "application/json", path);
   }
 
   public async Task<ExportDocument> ExportSourcesAsync(
@@ -39,8 +31,8 @@ public sealed class ApiImportExportService(VouchaApiClient apiClient) : IImportE
       CancellationToken token)
   {
     var formatName = format == SourceExportFormat.Csv ? "csv" : "opml";
-    var text = await apiClient.ExportRssFeedsAsync(feedType, formatName, token).ConfigureAwait(false);
+    var path = await apiClient.DownloadRssFeedsExportAsync(feedType, formatName, token).ConfigureAwait(false);
     var mediaType = format == SourceExportFormat.Csv ? "text/csv" : "text/xml";
-    return new($"rss-feeds.{formatName}", mediaType, Encoding.UTF8.GetBytes(text));
+    return new($"rss-feeds.{formatName}", mediaType, path);
   }
 }

@@ -40,7 +40,7 @@ public sealed class ImportExportFileAdapterTests
   {
     var sharer = new RecordingSharer();
     var adapter = new ImportExportFileAdapter(new RecordingPicker(null, null), new StrictUtf8ImportExportFileReader(), sharer);
-    var document = new ExportDocument("topics.json", "application/json", Encoding.UTF8.GetBytes("[]"));
+    using var document = ImportExportTestDocuments.Create();
 
     await adapter.ShareAsync(document, TestContext.Current.CancellationToken);
 
@@ -109,7 +109,7 @@ public sealed class ImportExportFileAdapterTests
         new ThrowingSharer(new IOException("share failed")));
 
     var error = await Assert.ThrowsAsync<IOException>(() => adapter.ShareAsync(
-        new("topics.json", "application/json", Encoding.UTF8.GetBytes("[]")),
+        ImportExportTestDocuments.Create(),
         TestContext.Current.CancellationToken));
 
     Assert.Equal("share failed", error.Message);

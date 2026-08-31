@@ -26,11 +26,10 @@ public sealed class MauiImportExportDocumentSharer(
 {
   public async Task ShareAsync(ExportDocument document, CancellationToken token)
   {
-    var directory = Path.Combine(FileSystem.CacheDirectory, "exports");
-    Directory.CreateDirectory(directory);
-    foreach (var stalePath in Directory.GetFiles(directory)) File.Delete(stalePath);
-    var path = Path.Combine(directory, document.FileName);
-    await File.WriteAllBytesAsync(path, document.Contents.ToArray(), token).ConfigureAwait(false);
-    await presenter.ShareAsync(path, document.MediaType, token).ConfigureAwait(false);
+    await ExportShareFileStager.StageAndUseAsync(
+        FileSystem.CacheDirectory,
+        document,
+        (path, shareToken) => presenter.ShareAsync(path, document.MediaType, shareToken),
+        token).ConfigureAwait(false);
   }
 }

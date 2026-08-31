@@ -46,10 +46,9 @@ final class ImportExportTopicRetryViewTests: XCTestCase {
                     ImportResult(input: names[1], status: .error, error: "Topic not found")
                 ])
             },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)
         viewModel.inputText = "Travel\nMissing"
@@ -70,10 +69,9 @@ private actor TopicRetryRecorder {
     nonisolated func service() -> ImportExportService {
         ImportExportService(
             importTopics: { names in try await self.importTopics(names) },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }
 

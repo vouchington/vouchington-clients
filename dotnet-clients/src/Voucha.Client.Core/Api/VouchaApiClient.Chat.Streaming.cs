@@ -13,8 +13,19 @@ public sealed class ChatStreamIncompleteException : InvalidOperationException
       : base(message, innerException) { }
 }
 
+public sealed class ChatStreamFrameTooLargeException : InvalidOperationException
+{
+  public ChatStreamFrameTooLargeException() : base("Chat stream frame is too large.") { }
+
+  public ChatStreamFrameTooLargeException(string message) : base(message) { }
+
+  public ChatStreamFrameTooLargeException(string message, Exception innerException)
+      : base(message, innerException) { }
+}
+
 public sealed partial class VouchaApiClient
 {
+  private const int MaximumChatStreamFrameCharacters = 1_024 * 1_024;
   public IAsyncEnumerable<ChatStreamEvent> StreamChatConversationAsync(
       string conversationId,
       string message,
@@ -60,14 +71,16 @@ public sealed partial class VouchaApiClient
 
     var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
     using var reader = new StreamReader(responseStream);
+    var lineReader = new CappedSseLineReader(reader, MaximumChatStreamFrameCharacters);
 
     string currentEventType = "message";
     var currentDataLines = new List<string>();
+    var currentFrameCharacters = 0;
 
     while (true)
     {
       cancellationToken.ThrowIfCancellationRequested();
-      var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+      var line = await lineReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
       if (line is null)
       {
         if (currentDataLines.Count > 0 || currentEventType != "message")
@@ -85,7 +98,7 @@ public sealed partial class VouchaApiClient
         throw new ChatStreamIncompleteException();
       }
 
-      var normalizedLine = line.EndsWith('\r') ? line[..^1] : line;
+      var normalizedLine = line;
       if (normalizedLine.Length == 0)
       {
         if (TryParseChatStreamEvent(currentEventType, currentDataLines, out var streamEvent))
@@ -99,6 +112,7 @@ public sealed partial class VouchaApiClient
 
         currentEventType = "message";
         currentDataLines.Clear();
+        currentFrameCharacters = 0;
         continue;
       }
 
@@ -118,6 +132,11 @@ public sealed partial class VouchaApiClient
       }
       else if (field == "data")
       {
+        checked { currentFrameCharacters += value.Length + 1; }
+        if (currentFrameCharacters > MaximumChatStreamFrameCharacters)
+        {
+          throw new ChatStreamFrameTooLargeException();
+        }
         currentDataLines.Add(value);
       }
     }

@@ -50,7 +50,10 @@ public sealed record SourceImportRequest(
     IReadOnlyList<string>? Urls = null,
     string? Text = null);
 
-public sealed record ExportDocument(string FileName, string MediaType, ReadOnlyMemory<byte> Contents);
+public sealed record ExportDocument(string FileName, string MediaType, string FilePath) : IDisposable
+{
+  public void Dispose() => File.Delete(FilePath);
+}
 
 public static class ImportResultStateExtensions
 {

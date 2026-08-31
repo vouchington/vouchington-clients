@@ -39,10 +39,7 @@ private extension APIClient {
                     #else
                         let (bytes, response) = try await self.session.bytes(for: request)
                         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-                            var data = Data()
-                            for try await byte in bytes {
-                                data.append(byte)
-                            }
+                            let data = try await ResponseBodyLimit.collect(bytes)
                             try self.validate(response: response, data: data)
                         }
                         try self.validate(response: response, data: Data())

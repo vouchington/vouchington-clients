@@ -55,10 +55,9 @@ private actor SourceExportRecorder {
     nonisolated func service() -> ImportExportService {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { filter, format in await self.export(filter: filter, format: format) }
+            downloadExport: { _, filter, format in try await self.export(filter: filter, format: format) }
         )
     }
 
@@ -66,8 +65,12 @@ private actor SourceExportRecorder {
         Data("\(filter?.rawValue ?? "all")-\(format.rawValue)".utf8)
     }
 
-    private func export(filter: SourceFeedType?, format: SourceExportFormat) -> Data {
+    private func export(filter: SourceFeedType?, format: SourceExportFormat) throws -> URL {
         calls.append(SourceExportCall(filter: filter, format: format))
-        return Self.data(filter: filter, format: format)
+        let filename = format == .csv ? "rss-feeds.csv" : "rss-feeds.opml"
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("source-export-\(UUID().uuidString)-\(filename)")
+        try Self.data(filter: filter, format: format).write(to: url)
+        return url
     }
 }

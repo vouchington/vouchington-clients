@@ -1,4 +1,3 @@
-using System.Text;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.ImportExport;
 using Xunit;
@@ -58,6 +57,24 @@ public sealed class ImportExportExportLifecycleTests
     Assert.Equal("export failed", model.ErrorMessage);
   }
 
+  [Fact]
+  public async Task DisposeRemovesRetainedExportArtifact()
+  {
+    var service = new LifecycleService();
+    var model = new ImportExportViewModel(
+        ImportExportRouteContext.FromPath("/my/topics/import-export"), service);
+
+    await model.ExportAsync(TestContext.Current.CancellationToken);
+    var path = Assert.IsType<ExportDocument>(model.ExportDocument).FilePath;
+    Assert.True(File.Exists(path));
+
+    model.Dispose();
+
+    Assert.False(File.Exists(path));
+    Assert.Null(model.ExportDocument);
+    Assert.False(model.HasExportDocument);
+  }
+
   private sealed class LifecycleService : IImportExportService
   {
     private const string ImportId = "70000000-0000-7000-8000-000000000001";
@@ -90,7 +107,7 @@ public sealed class ImportExportExportLifecycleTests
       ExportCalls++;
       return ExportFailure is { } failure
           ? Task.FromException<ExportDocument>(failure)
-          : Task.FromResult(new ExportDocument("topics.json", "application/json", Encoding.UTF8.GetBytes("[]")));
+          : Task.FromResult(ImportExportTestDocuments.Create());
     }
 
     public static RssFeedImportStatus TerminalStatus() =>

@@ -19,6 +19,7 @@ final class ImportExportEndpointTests: XCTestCase {
             body: ["names": ["Travel", "Local News"]]
         )
         assertEndpoint(.exportTopics, path: "/api/v1/my/export/topics")
+        XCTAssertTrue(Endpoint.exportTopics.queryItems.isEmpty)
         XCTAssertEqual(
             Endpoint.exportTopicsDownload.queryItems,
             [.init(name: "download", value: "1")]
@@ -79,6 +80,18 @@ final class ImportExportEndpointTests: XCTestCase {
         let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
 
         await XCTAssertThrowsErrorAsync { try await client.data(for: .exportTopicsDownload) }
+    }
+
+    func testExportDownloadWritesResponseToOwnedTemporaryFile() async throws {
+        let expected = Data(repeating: 0x61, count: 1_024 * 1_024)
+        CapturingURLProtocol.responseData = expected
+        let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
+
+        let url = try await client.download(for: .exportTopicsDownload, filename: "topics.json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertTrue(url.path.contains("voucha-import-export"))
+        XCTAssertEqual(try Data(contentsOf: url), expected)
     }
 
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {

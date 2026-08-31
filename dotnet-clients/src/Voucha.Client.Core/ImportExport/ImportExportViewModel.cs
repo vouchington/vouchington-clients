@@ -129,6 +129,8 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   {
     localeSubscription?.Dispose();
     CancelActiveOperations();
+    ExportDocument?.Dispose();
+    ExportDocument = null;
   }
 
   private void SetLocalizedError(UiText text)

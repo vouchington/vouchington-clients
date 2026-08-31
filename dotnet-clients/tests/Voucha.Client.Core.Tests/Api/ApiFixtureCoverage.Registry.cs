@@ -35,7 +35,7 @@ internal static partial class ApiFixtureCoverage
     ["native.import-export.rss-feeds.status.partial"] = typeof(RssFeedImportStatus),
     ["native.import-export.topics.import.outcomes"] = typeof(TopicImportResponse),
     ["native.import-export.topics.export.default"] = typeof(TopicExportResponse),
-    ["native.import-export.topics.export.download"] = typeof(ExportTopic[]),
+    ["native.import-export.topics.export.download"] = typeof(IReadOnlyList<ExportTopic>),
     ["native.feature-flags.default"] = typeof(FeatureFlagsResponse),
     ["native.captcha-config.default"] = typeof(CaptchaConfigResponse),
     ["native.topic-recommendations.top-hashtags.default"] = typeof(TopHashtagsResponse),

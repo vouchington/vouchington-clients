@@ -53,10 +53,9 @@ private actor SelectedFileSubmissionRecorder {
     nonisolated func service() -> ImportExportService {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { input in await self.submit(input) },
             sourceStatus: { _ in await self.status() },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }
 

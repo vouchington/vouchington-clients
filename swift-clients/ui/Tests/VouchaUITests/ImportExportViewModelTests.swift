@@ -140,10 +140,9 @@ final class ImportExportViewModelTests: XCTestCase {
         )
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { _ in throw URLError(.cannotConnectToHost) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .sources(initialExportFilter: nil), service: service)
         viewModel.batchId = staleSummary.id
@@ -265,10 +264,9 @@ private actor ImportExportRecorder {
     nonisolated func service() -> ImportExportService {
         ImportExportService(
             importTopics: { names in await self.recordTopics(names) },
-            exportTopics: { TopicExportResponse(results: []) },
             importSources: { input in await self.submit(input) },
             sourceStatus: { id in try await self.status(id) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }
 

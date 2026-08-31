@@ -213,20 +213,24 @@ final class NativeImportExportFilesTests: XCTestCase {
         )
     }
 
-    func testTopicExportCreatesShareableJSONAndCleanupRemovesIt() async throws {
+    func testTopicExportKeepsOwnedDownloadAndCleanupRemovesIt() async throws {
         let expected = ExportTopic(name: "Travel", slug: "travel", topicType: "interest")
+        let exportedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("topic-export-\(UUID().uuidString).json")
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        try encoder.encode([expected]).write(to: exportedURL)
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
-            exportTopics: { TopicExportResponse(results: [expected]) },
             importSources: { _ in throw URLError(.badServerResponse) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in exportedURL }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)
 
         await viewModel.prepareExport()
         let url = try XCTUnwrap(viewModel.exportURL)
-        XCTAssertTrue(url.lastPathComponent.hasSuffix("-topics.json"))
+        XCTAssertEqual(url, exportedURL)
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -246,10 +250,9 @@ final class NativeImportExportFilesTests: XCTestCase {
         try Data("stale".utf8).write(to: staleURL)
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
-            exportTopics: { throw URLError(.badServerResponse) },
             importSources: { _ in throw URLError(.badServerResponse) },
             sourceStatus: { _ in throw URLError(.badServerResponse) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)
         viewModel.exportURL = staleURL

@@ -9,27 +9,43 @@ enum ResponseLinesMode {
     case buffering
 }
 
+enum ResponseLineBufferError: Error, Equatable {
+    case lineTooLarge, bodyTooLarge
+}
+
 final class ResponseLineBuffer {
+    static let maximumLineBytes = 1_024 * 1_024
     private var data = Data()
 
-    func append(_ chunk: Data) -> [String] {
-        data.append(chunk)
-        var lines: [String] = []
-        while let newlineIndex = data.firstIndex(of: 0x0A) {
-            let lineData = data[..<newlineIndex]
-            if let line = String(data: Data(lineData), encoding: .utf8) {
-                lines.append(line)
-            }
-            data.removeSubrange(data.startIndex ..< data.index(after: newlineIndex))
+    func append(_ chunk: Data, emit: (String) -> Void) throws {
+        var start = chunk.startIndex
+        while let newlineIndex = chunk[start...].firstIndex(of: 0x0A) {
+            try append(chunk[start ..< newlineIndex])
+            emitCurrentLine(to: emit)
+            start = chunk.index(after: newlineIndex)
         }
-        return lines
+        try append(chunk[start...])
     }
 
-    func flush() -> [String] {
-        guard !data.isEmpty else { return [] }
+    func flush() -> String? {
+        guard !data.isEmpty else { return nil }
         defer { data.removeAll(keepingCapacity: true) }
-        guard let line = String(data: data, encoding: .utf8) else { return [] }
-        return [line]
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func append(_ segment: Data.SubSequence) throws {
+        guard data.count + segment.count <= Self.maximumLineBytes else {
+            data.removeAll(keepingCapacity: false)
+            throw ResponseLineBufferError.lineTooLarge
+        }
+        data.append(contentsOf: segment)
+    }
+
+    private func emitCurrentLine(to emit: (String) -> Void) {
+        if let line = String(data: data, encoding: .utf8) {
+            emit(line)
+        }
+        data.removeAll(keepingCapacity: true)
     }
 }
 
@@ -102,17 +118,26 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
         lock.lock()
         let mode = mode
         if mode != .streaming {
+            guard bufferedBody.count + data.count <= ResponseBodyLimit.maximumDiagnosticBytes else {
+                lock.unlock()
+                failStreaming(ResponseLineBufferError.bodyTooLarge)
+                return
+            }
             bufferedBody.append(data)
             lock.unlock()
             return
         }
-        let lines = lineBuffer.append(data)
         let linesContinuation = linesContinuation
-        lock.unlock()
-
-        for line in lines {
-            linesContinuation?.yield(line)
+        do {
+            try lineBuffer.append(data) { line in
+                linesContinuation?.yield(line)
+            }
+        } catch {
+            lock.unlock()
+            failStreaming(error)
+            return
         }
+        lock.unlock()
     }
 
     func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
@@ -140,59 +165,6 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
             )
         )
         cleanup()
-    }
-
-    private func setTransportState(session: URLSession, task: URLSessionDataTask) {
-        lock.lock()
-        self.session = session
-        self.task = task
-        lock.unlock()
-    }
-
-    private func makeLineStream() -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
-            lock.lock()
-            linesContinuation = continuation
-            lock.unlock()
-            continuation.onTermination = { [weak self] termination in
-                if case .cancelled = termination {
-                    self?.cancel()
-                }
-            }
-        }
-    }
-
-    private func waitForResponse() async throws -> URLResponse {
-        try await withCheckedThrowingContinuation { continuation in
-            lock.lock()
-            if let response {
-                lock.unlock()
-                continuation.resume(returning: response)
-            } else if let responseError {
-                lock.unlock()
-                continuation.resume(throwing: responseError)
-            } else {
-                responseContinuation = continuation
-                lock.unlock()
-            }
-        }
-    }
-
-    private func waitForBufferedBody() async throws -> Data {
-        try await withCheckedThrowingContinuation { continuation in
-            lock.lock()
-            if bodyCompleted, let responseError {
-                lock.unlock()
-                continuation.resume(throwing: responseError)
-            } else if bodyCompleted {
-                let body = bufferedBody
-                lock.unlock()
-                continuation.resume(returning: body)
-            } else {
-                bodyContinuation = continuation
-                lock.unlock()
-            }
-        }
     }
 
 }

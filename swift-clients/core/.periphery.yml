@@ -4,3 +4,4 @@ report_exclude:
   - Sources/VouchaAPI/APIClient+ResponseLinesDataDelegate.swift
   - Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport.swift
   - Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+Finish.swift
+  - Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+State.swift
