@@ -130,10 +130,9 @@ private actor DelayedImportExportRecorder {
     nonisolated func service() -> ImportExportService {
         ImportExportService(
             importTopics: { names in try await self.importTopics(names) },
-            exportTopics: { try await self.exportTopics() },
             importSources: { input in try await self.importSources(input) },
             sourceStatus: { id in await self.sourceStatus(id) },
-            exportSources: { _, _ in Data() }
+            downloadExport: { _, _, _ in try await self.downloadTopics() }
         )
     }
 
@@ -152,7 +151,7 @@ private actor DelayedImportExportRecorder {
         try await waitForStart(.topicImport, timeout: timeout)
     }
 
-    private func exportTopics() async throws -> TopicExportResponse {
+    private func downloadTopics() async throws -> URL {
         topicExportCount += 1
         do {
             try await Task.sleep(nanoseconds: 30_000_000_000)
@@ -160,7 +159,7 @@ private actor DelayedImportExportRecorder {
             cancelledTopicExportCount += 1
             throw error
         }
-        return TopicExportResponse(results: [])
+        throw URLError(.badServerResponse)
     }
 
     func waitForTopicExportStart(timeout: Duration = .seconds(2)) async throws {

@@ -9,6 +9,7 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   private readonly IImportExportService service;
   private readonly Func<TimeSpan, CancellationToken, Task> delay;
   private readonly IUiLocalization localization;
+  private readonly object exportDocumentLock = new();
   private readonly IDisposable? localeSubscription;
   private CancellationTokenSource? monitorCancellation;
   private CancellationTokenSource? activeOperationCancellation;
@@ -103,7 +104,7 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   public IReadOnlyList<ImportResultPresentation> PresentationResults =>
       Results.Select(result => new ImportResultPresentation(result, localization)).ToArray();
   public RssFeedImportSummary? Progress { get => progress; private set { if (SetProperty(ref progress, value)) { OnPropertyChanged(nameof(CanResume)); OnPropertyChanged(nameof(CanRetryStatus)); OnPropertyChanged(nameof(ProgressValue)); } } }
-  public ExportDocument? ExportDocument { get => exportDocument; private set { if (SetProperty(ref exportDocument, value)) OnPropertyChanged(nameof(HasExportDocument)); } }
+  public ExportDocument? ExportDocument { get { lock (exportDocumentLock) return exportDocument; } }
   public bool HasExportDocument => ExportDocument is not null;
   public bool CanImport => !IsBusy && !IsMonitoring;
   public bool CanExport => !IsBusy && !IsMonitoring;
@@ -129,6 +130,28 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   {
     localeSubscription?.Dispose();
     CancelActiveOperations();
+    ReplaceExportDocument(null);
+  }
+
+  public async Task ShareExportAsync(
+      Func<ExportDocument, CancellationToken, Task> shareAsync,
+      CancellationToken token = default)
+  {
+    ArgumentNullException.ThrowIfNull(shareAsync);
+    ExportDocumentLease? lease = null;
+    try
+    {
+      lock (exportDocumentLock)
+      {
+        lease = exportDocument?.AcquireLease();
+      }
+      if (lease is null) return;
+      await shareAsync(lease.Document, token).ConfigureAwait(true);
+    }
+    finally
+    {
+      lease?.Dispose();
+    }
   }
 
   private void SetLocalizedError(UiText text)
@@ -142,4 +165,17 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
 
   private UiProtocolOption Option(SourceExportFeedType value, UiMessageKey key) =>
       new(value.ToString(), UiText.Localized(key), localization);
+
+  private void ReplaceExportDocument(ExportDocument? document)
+  {
+    ExportDocument? previous;
+    lock (exportDocumentLock)
+    {
+      previous = exportDocument;
+      exportDocument = document;
+    }
+    previous?.Dispose();
+    OnPropertyChanged(nameof(ExportDocument));
+    OnPropertyChanged(nameof(HasExportDocument));
+  }
 }

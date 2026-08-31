@@ -10,6 +10,34 @@ struct ResponseLinesContinuations {
 }
 
 extension ResponseLinesTransport {
+    func failStreaming(_ error: Error) {
+        lock.lock()
+        guard !cleanupPerformed else {
+            lock.unlock()
+            return
+        }
+        cleanupPerformed = true
+        let task = task
+        let session = session
+        let responseContinuation = responseContinuation
+        let bodyContinuation = bodyContinuation
+        let linesContinuation = linesContinuation
+        responseError = error
+        bodyCompleted = true
+        self.task = nil
+        self.session = nil
+        self.responseContinuation = nil
+        self.bodyContinuation = nil
+        self.linesContinuation = nil
+        lock.unlock()
+
+        responseContinuation?.resume(throwing: error)
+        bodyContinuation?.resume(throwing: error)
+        linesContinuation?.finish(throwing: error)
+        task?.cancel()
+        session?.invalidateAndCancel()
+    }
+
     func finish(
         mode: ResponseLinesMode,
         response: URLResponse?,
@@ -73,14 +101,14 @@ extension ResponseLinesTransport {
             lock.unlock()
             return
         }
-        let lines = error == nil ? lineBuffer.flush() : []
+        let line = error == nil ? lineBuffer.flush() : nil
         self.linesContinuation = nil
         lock.unlock()
 
         if let error {
             linesContinuation.finish(throwing: error)
         } else {
-            for line in lines {
+            if let line {
                 linesContinuation.yield(line)
             }
             linesContinuation.finish()
@@ -144,10 +172,15 @@ extension ResponseLinesTransport {
     func makeLineStream(from data: Data) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let lineBuffer = ResponseLineBuffer()
-            for line in lineBuffer.append(data) + lineBuffer.flush() {
-                continuation.yield(line)
+            do {
+                try lineBuffer.append(data) { continuation.yield($0) }
+                if let line = lineBuffer.flush() {
+                    continuation.yield(line)
+                }
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
             }
-            continuation.finish()
         }
     }
 }

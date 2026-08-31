@@ -4,11 +4,13 @@ using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
 
-public partial class ImportExportPage : ContentPage
+public partial class ImportExportPage : ContentPage, IDisposable
 {
   private readonly ImportExportViewModel viewModel;
   private readonly IImportExportFileAdapter files;
   private CancellationTokenSource lifecycleCancellation = new();
+  private bool hadNavigationParent;
+  private bool disposed;
 
   public ImportExportPage(
       ImportExportRouteContext context,
@@ -26,6 +28,7 @@ public partial class ImportExportPage : ContentPage
   protected override void OnAppearing()
   {
     base.OnAppearing();
+    if (disposed) return;
     if (!lifecycleCancellation.IsCancellationRequested) return;
     lifecycleCancellation.Dispose();
     lifecycleCancellation = new();
@@ -33,9 +36,30 @@ public partial class ImportExportPage : ContentPage
 
   protected override void OnDisappearing()
   {
-    lifecycleCancellation.Cancel();
-    viewModel.CancelActiveOperations();
+    if (!disposed)
+    {
+      lifecycleCancellation.Cancel();
+      viewModel.CancelActiveOperations();
+    }
     base.OnDisappearing();
+  }
+
+  protected override void OnParentSet()
+  {
+    base.OnParentSet();
+    if (Parent is not null) hadNavigationParent = true;
+    else if (hadNavigationParent) Dispose();
+  }
+
+  public void Dispose()
+  {
+    if (disposed) return;
+    disposed = true;
+    lifecycleCancellation.Cancel();
+    lifecycleCancellation.Dispose();
+    viewModel.Dispose();
+    BindingContext = null;
+    GC.SuppressFinalize(this);
   }
 
   private void OnUrlsClicked(object? sender, EventArgs e) => viewModel.SourceImportFormat = SourceImportFormat.Urls;
@@ -76,12 +100,9 @@ public partial class ImportExportPage : ContentPage
 
   private async void OnShareClicked(object? sender, EventArgs e)
   {
-    if (viewModel.ExportDocument is { } document)
-    {
-      var token = lifecycleCancellation.Token;
-      try { await files.ShareAsync(document, token); }
-      catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-      catch (Exception ex) { viewModel.ReportExternalFailure(ex, token); }
-    }
+    var token = lifecycleCancellation.Token;
+    try { await viewModel.ShareExportAsync(files.ShareAsync, token); }
+    catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    catch (Exception ex) { viewModel.ReportExternalFailure(ex, token); }
   }
 }

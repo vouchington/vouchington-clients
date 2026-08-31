@@ -104,6 +104,35 @@ final class ResponseLinesStreamingTests: XCTestCase {
         }
     }
 
+    func testDelegateTransportCapsErrorDiagnosticsAndCancelsTheRequest() async throws {
+        let path = "/api/v1/oversized-error"
+        DelayedStreamURLProtocol.handlers[path] = DelayedStreamResponse(
+            chunks: [
+                Data(repeating: 0x61, count: ResponseBodyLimit.maximumDiagnosticBytes),
+                Data([0x62])
+            ],
+            status: 500,
+            contentType: "application/json",
+            delayNanoseconds: 20_000_000
+        )
+        let client = try makeClient()
+        let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999\(path)")))
+
+        do {
+            _ = try await client.responseLinesUsingURLSessionDataDelegate(for: request)
+            XCTFail("Expected oversized error diagnostic to fail")
+        } catch {
+            XCTAssertEqual(error as? ResponseLineBufferError, .bodyTooLarge)
+        }
+        let didCancel = try await awaitValue {
+            while !DelayedStreamURLProtocol.didCancel(path: path) {
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
+            return true
+        }
+        XCTAssertTrue(didCancel)
+    }
+
     func testDelegateTransportFlushesFinalLineWithoutTrailingNewline() async throws {
         DelayedStreamURLProtocol.handlers["/api/v1/final-line"] = DelayedStreamResponse(
             chunks: [Data(#"{"id":"final"}"#.utf8)],
@@ -121,6 +150,44 @@ final class ResponseLinesStreamingTests: XCTestCase {
         XCTAssertEqual(line, #"{"id":"final"}"#)
         let finalLine = try await awaitValue { try await iterator.next() }
         XCTAssertNil(finalLine)
+    }
+
+    func testDelegateTransportAcceptsManyCompleteLinesInOneChunk() async throws {
+        let lineCount = 350_000
+        DelayedStreamURLProtocol.handlers["/api/v1/many-lines"] = DelayedStreamResponse(
+            chunks: [Data(String(repeating: "{}\n", count: lineCount).utf8)],
+            status: 200,
+            contentType: "application/x-ndjson",
+            delayNanoseconds: 0
+        )
+        let client = try makeClient()
+        let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999/api/v1/many-lines")))
+        let lineResponse = try await client.responseLinesUsingURLSessionDataDelegate(for: request)
+        var received = 0
+        for try await _ in lineResponse.lines {
+            received += 1
+        }
+
+        XCTAssertEqual(received, lineCount)
+    }
+
+    func testDelegateTransportRejectsAnUnterminatedOversizedLine() async throws {
+        DelayedStreamURLProtocol.handlers["/api/v1/oversized-line"] = DelayedStreamResponse(
+            chunks: [Data(repeating: 0x61, count: ResponseLineBuffer.maximumLineBytes + 1)],
+            status: 200,
+            contentType: "application/x-ndjson",
+            delayNanoseconds: 0
+        )
+        let client = try makeClient()
+        let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999/api/v1/oversized-line")))
+        let lineResponse = try await client.responseLinesUsingURLSessionDataDelegate(for: request)
+
+        do {
+            for try await _ in lineResponse.lines {}
+            XCTFail("Expected oversized line to fail")
+        } catch {
+            XCTAssertEqual(error as? ResponseLineBufferError, .lineTooLarge)
+        }
     }
 
     func testDelegateTransportUsesDefaultFixtureForUnregisteredPath() async throws {

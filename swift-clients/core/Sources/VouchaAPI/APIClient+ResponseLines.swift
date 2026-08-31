@@ -24,7 +24,7 @@ extension APIClient {
                 holder.task = Task { [holder] in
                     defer { holder.task = nil }
                     do {
-                        for try await line in bytes.lines {
+                        for try await line in BoundedResponseLineReader.lines(from: bytes) {
                             continuation.yield(line)
                         }
                         continuation.finish()

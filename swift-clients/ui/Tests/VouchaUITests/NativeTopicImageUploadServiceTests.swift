@@ -1,33 +1,12 @@
 import Foundation
+import VouchaCore
 @testable import VouchaFeatures
 import XCTest
 
 @MainActor
 final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestCase {
     func testUploadsAndCompletesImage() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/images/upload-url"] = (
-            Data("""
-            {
-              "upload": {
-                "image_id": "image-1",
-                "upload_url": "http://localhost:2999/upload",
-                "content_type": "image/png",
-                "expires_at": null
-              }
-            }
-            """.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/upload"] = (Data("{}".utf8), 200)
-        CannedFeedURLProtocol.handlers["/api/v1/images/image-1/completions"] = (
-            Data(#"{"image":{"id":"image-1","upload_status":"processing"}}"#.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/images/image-1/upload-state"] = (
-            Data(#"{"upload_state":{"id":"image-ready","upload_status":"complete","ready":true,"blocked":false}}"#
-                .utf8),
-            200
-        )
+        configureSuccessfulUpload()
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [CannedFeedURLProtocol.self]
         let session = URLSession(configuration: configuration)
@@ -53,6 +32,32 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         let presignBody = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.first ?? nil)
         XCTAssertTrue(presignBody.contains(#""content_length":4"#))
         XCTAssertTrue(presignBody.contains("content_type"))
+    }
+
+    private func configureSuccessfulUpload() {
+        CannedFeedURLProtocol.handlers["/api/v1/images/upload-url"] = (
+            Data("""
+            {
+              "upload": {
+                "image_id": "image-1",
+                "upload_url": "http://localhost:2999/upload",
+                "content_type": "image/png",
+                "expires_at": null
+              }
+            }
+            """.utf8),
+            200
+        )
+        CannedFeedURLProtocol.handlers["/upload"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/images/image-1/completions"] = (
+            Data(#"{"image":{"id":"image-1","upload_status":"processing"}}"#.utf8),
+            200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/images/image-1/upload-state"] = (
+            Data(#"{"upload_state":{"id":"image-ready","upload_status":"complete","ready":true,"blocked":false}}"#
+                .utf8),
+            200
+        )
     }
 
     func testRejectsMissingClientAndBadUploadResponses() async throws {
@@ -124,5 +129,25 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         }
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST", "PUT", "POST", "GET"])
+    }
+
+    func testRejectsOversizedFileBeforeRequestingAnUploadURL() async throws {
+        let imageURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("topic-image-oversized.png")
+        FileManager.default.createFile(atPath: imageURL.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: imageURL)
+        try handle.truncate(atOffset: 50 * 1_024 * 1_024 + 1)
+        try handle.close()
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+
+        let service = try NativeTopicImageUploadService(client: makeClient())
+
+        do {
+            _ = try await service.uploadImage(at: imageURL)
+            XCTFail("Expected oversized image to be rejected")
+        } catch let VouchaError.api(_, preconditionCode) {
+            XCTAssertEqual(preconditionCode, "IMAGE_TOO_LARGE")
+        }
+        XCTAssertTrue(CannedFeedURLProtocol.capturedMethods.isEmpty)
     }
 }

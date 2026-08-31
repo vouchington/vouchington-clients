@@ -48,6 +48,21 @@ public sealed class VouchaApiTransportTests
   }
 
   [Fact]
+  public async Task SendAsyncDiscardsOversizedApiErrors()
+  {
+    var handler = new RecordingHandler(new string('x', 64 * 1024 + 1), HttpStatusCode.BadRequest);
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+
+    var exception = await Assert.ThrowsAsync<VouchaApiException>(
+        () => client.SendAsync<OkResponse>(
+            new ApiRequest(HttpMethod.Get, "/api/v1/test"),
+            TestContext.Current.CancellationToken));
+
+    Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
+    Assert.Null(exception.ResponseBody);
+  }
+
+  [Fact]
   public void ConstructorThrowsForNullHttpClient()
   {
     var exception = Assert.Throws<ArgumentNullException>(() => new VouchaApiClient(null!));

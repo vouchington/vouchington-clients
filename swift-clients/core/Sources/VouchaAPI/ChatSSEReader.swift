@@ -30,7 +30,7 @@ public enum ChatSSEReader {
                         if Task.isCancelled {
                             throw CancellationError()
                         }
-                        for frame in parser.processLine(line) {
+                        for frame in try parser.processLine(line) {
                             guard let event = ChatStreamEvent(eventType: frame.eventType, rawData: frame.rawData)
                             else { continue }
                             continuation.yield(event)
@@ -40,7 +40,7 @@ public enum ChatSSEReader {
                             }
                         }
                     }
-                    for frame in parser.flush() {
+                    for frame in try parser.flush() {
                         if let event = ChatStreamEvent(eventType: frame.eventType, rawData: frame.rawData) {
                             continuation.yield(event)
                             if event.isTerminal {

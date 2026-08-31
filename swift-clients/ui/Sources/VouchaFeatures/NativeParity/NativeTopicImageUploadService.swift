@@ -5,6 +5,7 @@ import VouchaCore
 import VouchaModels
 
 struct NativeTopicImageUploadService {
+    private static let maximumUploadBytes = 50 * 1_024 * 1_024
     let client: APIClient?
     let session: URLSession
     let maxUploadStatePolls: Int
@@ -34,10 +35,15 @@ struct NativeTopicImageUploadService {
             }
         }
 
-        let data = try Data(contentsOf: url)
+        guard let fileSize = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            throw VouchaError.api(statusCode: 0, preconditionCode: "IMAGE_UPLOAD_FILE_SIZE_UNAVAILABLE")
+        }
+        guard fileSize <= Self.maximumUploadBytes else {
+            throw VouchaError.api(statusCode: 0, preconditionCode: "IMAGE_TOO_LARGE")
+        }
         let contentType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         let uploadEnvelope: ImageUploadResponse = try await client.send(
-            .imageUploadUrl(contentType: contentType, contentLength: data.count)
+            .imageUploadUrl(contentType: contentType, contentLength: fileSize)
         )
         let upload = uploadEnvelope.upload
         let uploadURL = upload.uploadUrl
@@ -47,7 +53,7 @@ struct NativeTopicImageUploadService {
         request.httpMethod = "PUT"
         request.setValue(upload.contentType, forHTTPHeaderField: "Content-Type")
 
-        let (_, response) = try await session.upload(for: request, from: data)
+        let (_, response) = try await session.upload(for: request, fromFile: url)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200 ..< 300).contains(status) else {
             throw VouchaError.api(statusCode: status, preconditionCode: nil)

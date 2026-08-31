@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(name: "VouchaCore", path: "../core"),
         .package(name: "VouchaTestSupport", path: "../test-support"),
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.6")),
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", .upToNextMajor(from: "2.13.9")),
         .package(url: "https://github.com/nalexn/ViewInspector.git", .upToNextMinor(from: "0.10.3"))
     ],
     targets: [

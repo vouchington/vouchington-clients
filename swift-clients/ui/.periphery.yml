@@ -6,6 +6,7 @@ report_exclude:
   - ../core/Sources/VouchaAPI/Endpoint+UserFacing.swift
   - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport.swift
   - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+Finish.swift
+  - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+State.swift
   - Sources/VouchaFeatures/NativeParity/NativeRouteDestinationSurfaces.swift
   - Sources/VouchaFeatures/NativeParity/NativeRouteDestinationView.swift
   - Sources/VouchaFeatures/NativeParity/NativeRouteFamilyDirectoryView.swift

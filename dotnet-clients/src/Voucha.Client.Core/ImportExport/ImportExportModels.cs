@@ -50,7 +50,75 @@ public sealed record SourceImportRequest(
     IReadOnlyList<string>? Urls = null,
     string? Text = null);
 
-public sealed record ExportDocument(string FileName, string MediaType, ReadOnlyMemory<byte> Contents);
+public sealed record ExportDocument(string FileName, string MediaType, string FilePath) : IDisposable
+{
+  private readonly object lifecycleLock = new();
+  private int activeLeases;
+  private bool disposalRequested;
+
+  internal ExportDocumentLease AcquireLease()
+  {
+    ExportDocumentLease? lease = null;
+    var acquired = false;
+    try
+    {
+      lock (lifecycleLock)
+      {
+        ObjectDisposedException.ThrowIf(disposalRequested, this);
+        activeLeases++;
+        acquired = true;
+      }
+      lease = new ExportDocumentLease(this);
+      return lease;
+    }
+    finally
+    {
+      if (acquired && lease is null) ReleaseLease();
+    }
+  }
+
+  public void Dispose()
+  {
+    var delete = false;
+    lock (lifecycleLock)
+    {
+      disposalRequested = true;
+      delete = activeLeases == 0;
+    }
+    if (delete) File.Delete(FilePath);
+  }
+
+  internal void ReleaseLease()
+  {
+    var delete = false;
+    lock (lifecycleLock)
+    {
+      activeLeases--;
+      delete = disposalRequested && activeLeases == 0;
+    }
+    if (delete) File.Delete(FilePath);
+  }
+
+}
+
+internal sealed class ExportDocumentLease : IDisposable
+{
+  private ExportDocument? document;
+
+  internal ExportDocumentLease(ExportDocument document) => this.document = document;
+
+  public ExportDocument Document
+  {
+    get
+    {
+      ObjectDisposedException.ThrowIf(document is null, this);
+      return document;
+    }
+
+  }
+
+  public void Dispose() => Interlocked.Exchange(ref document, null)?.ReleaseLease();
+}
 
 public static class ImportResultStateExtensions
 {

@@ -10,7 +10,7 @@ public sealed partial class ImportExportViewModel
   {
     if (IsBusy || IsMonitoring) return;
     ErrorMessage = null;
-    ExportDocument = null;
+    ReplaceExportDocument(null);
     var (operation, operationToken) = BeginActiveOperation(token);
     if (Context.Owner == ImportExportOwner.Topics)
     {
@@ -60,7 +60,7 @@ public sealed partial class ImportExportViewModel
     var (operation, operationToken) = BeginActiveOperation(token);
     IsBusy = true;
     ErrorMessage = null;
-    ExportDocument = null;
+    ReplaceExportDocument(null);
     try
     {
       var document = Context.Owner == ImportExportOwner.Topics
@@ -69,7 +69,8 @@ public sealed partial class ImportExportViewModel
               SelectedSourceExportFeedType.ApiValue(),
               SourceExportFormat,
               operationToken).ConfigureAwait(true);
-      if (!operationToken.IsCancellationRequested && operation == generation) ExportDocument = document;
+      if (!operationToken.IsCancellationRequested && operation == generation) ReplaceExportDocument(document);
+      else document.Dispose();
     }
     catch (OperationCanceledException) when (operationToken.IsCancellationRequested) { }
     catch (Exception ex) { if (operation == generation) ErrorMessage = ex.Message; }

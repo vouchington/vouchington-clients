@@ -16,6 +16,8 @@ public sealed class ImportExportMauiWiringTests
     Assert.Contains("<ProgressBar", page, StringComparison.Ordinal);
     Assert.Contains("FilePicker.Default.PickAsync", adapter, StringComparison.Ordinal);
     Assert.Contains("presenter.ShareAsync", adapter, StringComparison.Ordinal);
+    Assert.Contains("ExportShareFileStager.StageAndUseAsync", adapter, StringComparison.Ordinal);
+    Assert.DoesNotContain("presenter.ShareAsync(document.FilePath", adapter, StringComparison.Ordinal);
     Assert.Contains("MainThread.InvokeOnMainThreadAsync", presenter, StringComparison.Ordinal);
     Assert.Contains("Share.Default.RequestAsync", presenter, StringComparison.Ordinal);
     Assert.DoesNotContain("Share.Default", adapter, StringComparison.Ordinal);
@@ -36,6 +38,10 @@ public sealed class ImportExportMauiWiringTests
     Assert.Contains("IsVisible=\"{Binding IsTopics}\"", page, StringComparison.Ordinal);
     Assert.Contains("IsVisible=\"{Binding IsSources}\"", page, StringComparison.Ordinal);
     Assert.Contains("viewModel.CancelActiveOperations();", pageCode, StringComparison.Ordinal);
+    Assert.Contains("class ImportExportPage : ContentPage, IDisposable", pageCode, StringComparison.Ordinal);
+    Assert.Contains("protected override void OnParentSet()", pageCode, StringComparison.Ordinal);
+    Assert.Contains("else if (hadNavigationParent) Dispose();", pageCode, StringComparison.Ordinal);
+    Assert.Contains("viewModel.Dispose();", pageCode, StringComparison.Ordinal);
     Assert.Contains("lifecycleCancellation.Token", pageCode, StringComparison.Ordinal);
     Assert.DoesNotContain("CancellationToken.None", pageCode, StringComparison.Ordinal);
   }

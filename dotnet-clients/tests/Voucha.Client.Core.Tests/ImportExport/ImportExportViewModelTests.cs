@@ -92,7 +92,7 @@ public sealed class ImportExportViewModelTests
     var export = model.ExportAsync(TestContext.Current.CancellationToken);
 
     model.CancelActiveOperations();
-    service.PendingTopicExport!.SetResult(new("topics.json", "application/json", Encoding.UTF8.GetBytes("[]")));
+    service.PendingTopicExport!.SetResult(ImportExportTestDocuments.Create());
     await export;
 
     Assert.True(service.TopicExportToken.IsCancellationRequested);
@@ -482,14 +482,14 @@ public sealed class ImportExportViewModelTests
     {
       TopicExportToken = token;
       return PendingTopicExport?.Task ??
-          Task.FromResult(new ExportDocument("topics.json", "application/json", Encoding.UTF8.GetBytes("[]")));
+          Task.FromResult(ImportExportTestDocuments.Create());
     }
 
     public Task<ExportDocument> ExportSourcesAsync(string? feedType, SourceExportFormat format, CancellationToken token)
     {
       ExportedFeedType = feedType;
       ExportedFormat = format;
-      return Task.FromResult(new ExportDocument("rss-feeds.opml", "text/xml", Encoding.UTF8.GetBytes("<opml/>")));
+      return Task.FromResult(ImportExportTestDocuments.Create("rss-feeds.opml", "text/xml", "<opml/>"));
     }
   }
 }

@@ -19,29 +19,86 @@ final class ChatSSEReaderTests: XCTestCase {
         super.tearDown()
     }
 
-    func testParserHandlesCommentsCRLFMultilineAndFlush() {
+    func testParserHandlesCommentsCRLFMultilineAndFlush() throws {
         var parser = ChatSSEParser()
 
-        XCTAssertTrue(parser.processLine(": comment").isEmpty)
-        XCTAssertTrue(parser.processLine("event: text\r").isEmpty)
-        XCTAssertTrue(parser.processLine("data: hello").isEmpty)
-        XCTAssertTrue(parser.processLine("data: world").isEmpty)
+        XCTAssertTrue(try parser.processLine(": comment").isEmpty)
+        XCTAssertTrue(try parser.processLine("event: text\r").isEmpty)
+        XCTAssertTrue(try parser.processLine("data: hello").isEmpty)
+        XCTAssertTrue(try parser.processLine("data: world").isEmpty)
 
-        let frames = parser.flush()
+        let frames = try parser.flush()
         XCTAssertEqual(frames, [ChatSSEFrame(eventType: "text", rawData: "hello\nworld")])
     }
 
-    func testParserProcessesChunksAndEmptyEventDefaultsToMessage() {
+    func testParserProcessesChunksAndEmptyEventDefaultsToMessage() throws {
         var parser = ChatSSEParser()
 
-        XCTAssertTrue(parser.processChunk("event").isEmpty)
-        XCTAssertTrue(parser.processChunk(":\n").isEmpty)
-        XCTAssertTrue(parser.processChunk("data: first").isEmpty)
+        XCTAssertTrue(try parser.processChunk("event").isEmpty)
+        XCTAssertTrue(try parser.processChunk(":\n").isEmpty)
+        XCTAssertTrue(try parser.processChunk("data: first").isEmpty)
 
-        let frames = parser.processChunk("\n\n")
+        let frames = try parser.processChunk("\n\n")
 
         XCTAssertEqual(frames, [ChatSSEFrame(eventType: "message", rawData: "first")])
-        XCTAssertTrue(parser.flush().isEmpty)
+        XCTAssertTrue(try parser.flush().isEmpty)
+    }
+
+    func testParserRejectsUnterminatedOversizedFrame() {
+        var parser = ChatSSEParser()
+
+        XCTAssertThrowsError(try parser.processChunk(String(
+            repeating: "x",
+            count: ChatSSEParser.maximumFrameCharacters + 1
+        ))) {
+            XCTAssertEqual($0 as? ChatSSEParserError, .frameTooLarge)
+        }
+    }
+
+    func testParserRejectsOversizedEventField() {
+        var parser = ChatSSEParser()
+        let line = "event: " + String(
+            repeating: "x",
+            count: ChatSSEParser.maximumFrameCharacters + 1
+        )
+
+        XCTAssertThrowsError(try parser.processLine(line)) {
+            XCTAssertEqual($0 as? ChatSSEParserError, .frameTooLarge)
+        }
+    }
+
+    func testBoundedResponseLinesRejectOversizedSSELineKindsBeforeMaterializingStrings() async {
+        for prefix in ["data: ", ": ", "unknown: "] {
+            let bytes = AsyncStream<UInt8>(bufferingPolicy: .unbounded) { continuation in
+                for byte in Data((prefix + String(
+                    repeating: "x",
+                    count: ChatSSEParser.maximumFrameCharacters
+                )).utf8) {
+                    continuation.yield(byte)
+                }
+                continuation.finish()
+            }
+
+            do {
+                _ = try await collectLines(BoundedResponseLineReader.lines(from: bytes))
+                XCTFail("Expected \(prefix) line to be rejected")
+            } catch {
+                XCTAssertEqual(error as? ChatSSEParserError, .frameTooLarge)
+            }
+        }
+    }
+
+    func testBoundedResponseLinesNormalizeCRLFBeforeSSEParsing() async throws {
+        let bytes = AsyncStream<UInt8>(bufferingPolicy: .unbounded) { continuation in
+            for byte in Data("event: text\r\ndata: {\"content\":\"Hi\"}\r\n\r\n".utf8) {
+                continuation.yield(byte)
+            }
+            continuation.finish()
+        }
+
+        let lines = try await collectLines(BoundedResponseLineReader.lines(from: bytes))
+
+        XCTAssertEqual(lines, ["event: text", #"data: {"content":"Hi"}"#, ""])
     }
 
     func testReaderMapsEventTypesAndDefaultMessageEvents() async throws {
@@ -323,6 +380,14 @@ final class ChatSSEReaderTests: XCTestCase {
             items.append(item)
         }
         return items
+    }
+
+    private func collectLines(_ stream: AsyncThrowingStream<String, Error>) async throws -> [String] {
+        var lines: [String] = []
+        for try await line in stream {
+            lines.append(line)
+        }
+        return lines
     }
 }
 

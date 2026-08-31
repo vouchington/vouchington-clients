@@ -1,5 +1,4 @@
 import Foundation
-import VouchaAPI
 import VouchaModels
 
 extension ImportExportViewModel {
@@ -102,13 +101,7 @@ extension ImportExportViewModel {
         NativeImportExportFiles.remove(exportURL)
         exportURL = nil
         do {
-            let artifact = try await exportArtifact()
-            guard operationIsCurrent(token) else { return }
-            let url = try await NativeImportExportFiles.writeExport(
-                artifact.data,
-                filename: artifact.filename,
-                replacing: nil
-            )
+            let url = try await exportFile()
             guard operationIsCurrent(token) else {
                 NativeImportExportFiles.remove(url)
                 return
@@ -124,15 +117,8 @@ extension ImportExportViewModel {
         }
     }
 
-    private func exportArtifact() async throws -> (data: Data, filename: String) {
-        if route.isTopics {
-            let response = try await service.exportTopics()
-            let encoder = APIClient.makeEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            return try (encoder.encode(response.results), "topics.json")
-        }
-        let data = try await service.exportSources(exportFilter, exportFormat)
-        return (data, exportFormat == .csv ? "rss-feeds.csv" : "rss-feeds.opml")
+    private func exportFile() async throws -> URL {
+        try await service.downloadExport(route, exportFilter, exportFormat)
     }
 
     func operationIsCurrent(_ token: UUID) -> Bool {
