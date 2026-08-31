@@ -98,4 +98,3 @@ examples:
       namespace Voucha.Client.Core;
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.Core/Auth/AuthenticationService.cs'
-

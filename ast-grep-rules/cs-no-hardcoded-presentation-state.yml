@@ -358,4 +358,3 @@ examples:
           Localization: localization);
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Completion.cs'
-

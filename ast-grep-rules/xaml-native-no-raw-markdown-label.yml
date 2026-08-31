@@ -95,4 +95,3 @@ examples:
       </ContentPage>
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml'
-

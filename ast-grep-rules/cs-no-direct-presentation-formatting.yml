@@ -77,4 +77,3 @@ examples:
       var protocolTimestamp = createdAt.ToString("O", CultureInfo.InvariantCulture);
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.Core/Auth/SessionCookieJar.cs'
-

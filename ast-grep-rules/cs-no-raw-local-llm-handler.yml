@@ -110,4 +110,3 @@ examples:
       });
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
-

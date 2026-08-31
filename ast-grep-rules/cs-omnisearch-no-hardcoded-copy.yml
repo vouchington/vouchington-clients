@@ -26,4 +26,3 @@ examples:
           detail);
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchMapping.cs'
-

@@ -37,4 +37,3 @@ examples:
       }
     isValid: true
     file: 'dotnet-clients/tests/Voucha.Client.Core.Tests/AppConfigTests.cs'
-

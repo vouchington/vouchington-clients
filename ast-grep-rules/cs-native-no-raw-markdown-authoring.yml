@@ -40,4 +40,3 @@ examples:
       }
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml.cs'
-

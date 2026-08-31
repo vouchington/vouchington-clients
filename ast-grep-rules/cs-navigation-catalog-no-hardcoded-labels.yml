@@ -49,4 +49,3 @@ examples:
           ["/feed/posts"]);
     isValid: true
     file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NativeRouteCatalog.Feeds.cs'
-
