@@ -35,6 +35,7 @@ jobs:
       head_sha: ${{ steps.live.outputs.head_sha }}
     steps:
       - name: Clean persistent runner workspace
+        working-directory: ${{ runner.temp }}
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
@@ -62,6 +63,12 @@ jobs:
             echo "head_sha=$head_sha"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Fetch trusted Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -82,7 +89,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head_sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PACKAGE_ECOSYSTEM: ${{ steps.dependabot-metadata.outputs.package-ecosystem }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          UPDATED_DEPENDENCIES_JSON: ${{ steps.dependabot-metadata.outputs.updated-dependencies-json }}
+          UPDATE_DIRECTORY: ${{ steps.dependabot-metadata.outputs.directory }}
         run: |
           set -euo pipefail
           candidate="$RUNNER_TEMP/dependabot-candidate"
@@ -92,6 +102,12 @@ jobs:
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" \
             --jq '.[].filename' | LC_ALL=C sort -u > "$candidate/paths"
           node scripts/dependabot-repair.mjs candidate-paths "$candidate/paths"
+          if grep -q '^dotnet-clients/' "$candidate/paths"; then
+            [[ "$PACKAGE_ECOSYSTEM" == nuget && "$UPDATE_DIRECTORY" == /dotnet-clients ]]
+          else
+            [[ "$PACKAGE_ECOSYSTEM" == swift && "$UPDATE_DIRECTORY" == /swift-clients/apps/android ]]
+            jq -e 'any(.[]; .dependencyName == "source.skip.tools/skip")' <<< "$UPDATED_DEPENDENCIES_JSON" > /dev/null
+          fi
           for path in dotnet-clients/Directory.Packages.props swift-clients/apps/android/Package.swift swift-clients/apps/android/Package.resolved; do
             mkdir -p "$candidate/$(dirname "$path")"
             gh api -H 'Accept: application/vnd.github.raw+json' \
@@ -158,6 +174,7 @@ jobs:
           overwrite: true
       - name: Clean persistent runner workspace
         if: always()
+        working-directory: ${{ runner.temp }}
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
@@ -172,6 +189,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Clean persistent runner workspace
+        working-directory: ${{ runner.temp }}
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
@@ -274,6 +292,7 @@ jobs:
               origin "HEAD:refs/heads/$HEAD_REF"
       - name: Clean persistent runner workspace
         if: always()
+        working-directory: ${{ runner.temp }}
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace

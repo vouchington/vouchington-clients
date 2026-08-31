@@ -69,6 +69,10 @@ describe('trusted Dependabot repair boundary', () => {
     ]))
     assert.throws(() => validateCandidatePaths(['package.json']))
     assert.throws(() => validateCandidatePaths([dotnetLockPaths[0]]))
+    assert.throws(() => validateCandidatePaths([
+      'dotnet-clients/Directory.Packages.props',
+      'swift-clients/apps/android/Package.swift',
+    ]))
     assert.throws(() => validateCandidatePaths([]))
   })
 

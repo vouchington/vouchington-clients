@@ -44,6 +44,8 @@ describe('event-driven CI orchestration', () => {
     assert.match(workflow, /--force-with-lease=/u)
     assert.match(workflow, /restore-locks\.sh update/u)
     assert.match(workflow, /dependabot-android-repair/u)
+    assert.match(workflow, /\.dependencyName == "source\.skip\.tools\/skip"/u)
+    assert.doesNotMatch(workflow, /\.dependencyName == "skip"/u)
     assert.match(workflow, /runs-on: \[self-hosted, macOS, Tests\]/u)
     assert.match(workflow, /runs-on: \[self-hosted, Linux\]/u)
     assert.doesNotMatch(workflow, /contents: write/u)

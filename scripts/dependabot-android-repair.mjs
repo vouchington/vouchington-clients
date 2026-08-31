@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 
 const versionPattern = /\.package\(url:\s*"https:\/\/source\.skip\.tools\/skip\.git",\s*exact:\s*"(?<version>\d+\.\d+\.\d+)"\)/gu
 const sha = /^[a-f0-9]{40}$/u
+const materializerUrl = 'SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"'
 
 export function parseSkipUpdate(packageSource, resolvedSource) {
   const declarations = [...packageSource.matchAll(versionPattern)]
@@ -28,9 +29,15 @@ function trustedChecksum(upstreamPackage, version) {
   return checksum
 }
 
+export function validateMaterializerSource(materializer) {
+  const urls = materializer.match(/^SKIP_MACOS_GITHUB_ZIP_URL=.*$/gmu) ?? []
+  if (urls.length !== 1 || urls[0] !== materializerUrl) {
+    throw new Error('Trusted materializer lacks the exact version-templated GitHub archive URL')
+  }
+}
+
 export function materializeSkipRepair(materializer, upstreamPackage, update) {
-  const url = 'SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"'
-  if (!materializer.includes(url)) throw new Error('Trusted materializer lacks the version-templated GitHub archive URL')
+  validateMaterializerSource(materializer)
   const checksum = trustedChecksum(upstreamPackage, update.version)
   const next = materializer
     .replace(/^SKIP_VERSION="[^"]+"$/mu, `SKIP_VERSION="${update.version}"`)

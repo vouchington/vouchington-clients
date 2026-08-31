@@ -58,11 +58,13 @@ export function validatePublishedPaths(paths) {
 export function validateCandidatePaths(paths) {
   const allowed = new Set(candidateDependencyPaths)
   const hasDotnetChange = paths.some(path => path.startsWith('dotnet-clients/'))
+  const hasAndroidChange = paths.some(path => path.startsWith('swift-clients/apps/android/'))
   if (
     paths.length === 0 ||
     new Set(paths).size !== paths.length ||
     !paths.every(path => allowed.has(path)) ||
-    (hasDotnetChange && !paths.includes('dotnet-clients/Directory.Packages.props'))
+    (hasDotnetChange && !paths.includes('dotnet-clients/Directory.Packages.props')) ||
+    (hasDotnetChange && hasAndroidChange)
   ) {
     throw new Error('Dependabot candidate may modify only native dependency inputs')
   }

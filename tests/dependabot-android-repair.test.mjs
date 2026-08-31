@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { materializeSkipRepair, parseSkipUpdate } from '../scripts/dependabot-android-repair.mjs'
+import { materializeSkipRepair, parseSkipUpdate, validateMaterializerSource } from '../scripts/dependabot-android-repair.mjs'
 
 const revision = 'a'.repeat(40)
 
@@ -19,5 +19,12 @@ describe('trusted Android Skip repair', () => {
     const upstream = '.binaryTarget(name: "skip", url: "https://github.com/skiptools/skip/releases/download/1.2.3/skip-macos.zip", checksum: "' + 'c'.repeat(64) + '")\n'
     assert.match(materializeSkipRepair(source, upstream, { revision, version: '1.2.3' }), /SKIP_VERSION="1.2.3"/u)
     assert.throws(() => materializeSkipRepair(source.replace('github.com', 'example.com'), upstream, { revision, version: '1.2.3' }))
+  })
+
+  it('requires the exact version-templated GitHub archive URL', () => {
+    const source = 'SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"\n'
+    assert.doesNotThrow(() => validateMaterializerSource(source))
+    assert.throws(() => validateMaterializerSource(source.replace('${SKIP_VERSION}', '1.2.3')))
+    assert.throws(() => validateMaterializerSource(source.replace('github.com', 'example.com')))
   })
 })
