@@ -2,7 +2,8 @@ packages: []
 allowBuilds:
   "@ast-grep/cli": true
   esbuild: false
-  no-mistakes: set this to true or false
+  no-mistakes: true
+strictDepBuilds: true
 engineStrict: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:

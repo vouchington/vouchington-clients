@@ -34,5 +34,23 @@ describe("native quality ownership", () => {
     const noMistakes = await readFile(new URL("../.no-mistakes.yml", import.meta.url), "utf8");
     assert.match(noMistakes, /csharp-max-lines-per-file/);
     assert.match(noMistakes, /csharp-no-async-void-delegate/);
+    assert.match(noMistakes, /test_plan:\n  swift:/);
+    assert.match(noMistakes, /\n  dotnet:/);
+
+    const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+    assert.equal(pkg.scripts["test:plan:swift"], "no-mistakes tests plan swift --format commands");
+    assert.equal(pkg.scripts["test:plan:dotnet"], "no-mistakes tests plan dotnet --format commands");
+    const workspace = await readFile(new URL("../pnpm-workspace.yaml", import.meta.url), "utf8");
+    assert.match(workspace, /no-mistakes: true/);
+    assert.doesNotMatch(workspace, /set this to true or false/);
+
+    const instructions = await readFile(new URL("../CLAUDE.md", import.meta.url), "utf8");
+    assert.match(instructions, /pnpm run test:plan:swift/);
+    assert.match(instructions, /pnpm run test:plan:dotnet/);
+    const qualityDocs = await readFile(
+      new URL("../docs/development/native-quality.md", import.meta.url),
+      "utf8",
+    );
+    assert.match(qualityDocs, /https:\/\/github\.com\/jonathanong\/filaments\/blob\/main\//);
   });
 });
