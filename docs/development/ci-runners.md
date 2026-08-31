@@ -34,3 +34,16 @@ Workflow dependencies must use GitHub events, job dependencies, or exact complet
 not keep a runner alive to poll pull requests, checks, or other workflow runs. Bounded retries for
 transient API failures and short failure-diagnostic collection windows are not orchestration
 polling and remain permitted.
+
+## Dependabot native repair
+
+`repair-dependabot-native.yml` repairs generated native dependency outputs that Dependabot cannot
+derive: the .NET restore matrix's seven lockfiles and Android Skip's checked archive checksum. Its
+`pull_request_target` producer checks out only the exact default-branch base on macOS and fetches
+candidate dependency files as inert API data. It never checks out or executes the Dependabot head.
+
+The Linux publisher has read-only workflow permissions. It revalidates the live Dependabot identity,
+base and head SHAs, candidate and artifact allowlists, artifact provenance, and the head lease; only
+its final `git push --force-with-lease` receives `DEPENDABOT_AUTOMERGE_TOKEN`. That secret must stay
+scoped to the repository Contents and Pull requests access needed by Dependabot auto-merge and this
+single repair push.

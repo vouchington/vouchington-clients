@@ -25,7 +25,7 @@ function assertRunner(workflow, job, runner) {
   assert.match(jobBlock(workflow, job), new RegExp(`runs-on: ${runner}`, 'u'))
 }
 
-function assertPersistentCleanup(workflow, job) {
+function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
   const block = jobBlock(workflow, job)
   const checkout = block.indexOf('actions/checkout@')
   const cleanup = [...block.matchAll(/name: Clean persistent runner workspace/gu)].map(
@@ -39,6 +39,13 @@ function assertPersistentCleanup(workflow, job) {
   assert.ok(cleanup.at(-1) > checkout, `${job} needs cleanup after checkout`)
   assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
   assert.match(block, /pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/u)
+  if (requireTempCleanup) {
+    assert.equal(
+      [...block.matchAll(/working-directory: \$\{\{ runner\.temp \}\}/gu)].length,
+      cleanup.length,
+      `${job} must run every persistent-workspace cleanup outside the checkout`,
+    )
+  }
   assert.match(block, /if: always\(\)/u, `${job} needs unconditional final cleanup`)
 }
 
@@ -80,13 +87,15 @@ describe('private self-hosted runner policy', () => {
 
   it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {
     const workflows = Object.fromEntries(await readWorkflows())
-    for (const [workflow, job] of [
+    for (const [workflow, job, requireTempCleanup] of [
       ['validate.yml', 'contract-tests'],
       ['validate.yml', 'dotnet-core'],
       ['validate.yml', 'swift-core'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
+      ['repair-dependabot-native.yml', 'prepare', true],
+      ['repair-dependabot-native.yml', 'publish', true],
     ])
-      assertPersistentCleanup(workflows[workflow], job)
+      assertPersistentCleanup(workflows[workflow], job, requireTempCleanup)
   })
 })

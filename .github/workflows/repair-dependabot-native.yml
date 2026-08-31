@@ -1,0 +1,322 @@
+name: Repair Dependabot Native Outputs
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'dotnet-clients/Directory.Packages.props'
+      - 'dotnet-clients/**/*.lock.json'
+      - 'swift-clients/apps/android/Package.swift'
+      - 'swift-clients/apps/android/Package.resolved'
+
+# The pull-request head is never checked out or executed.  The producer checks out the
+# default-branch base, treats the candidate files as bytes, and hands its allowlisted
+# output to a separate publisher whose workflow token remains read-only.
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-native-repair-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == github.event.repository.default_branch
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base_sha: ${{ steps.live.outputs.base_sha }}
+      head_sha: ${{ steps.live.outputs.head_sha }}
+    steps:
+      - name: Clean persistent runner workspace
+        working-directory: ${{ runner.temp }}
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Capture and validate live Dependabot identity
+        id: live
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          base_sha="$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
+          head_sha="$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+          jq -e --arg default "$DEFAULT_BRANCH" --arg repo "$GITHUB_REPOSITORY" --arg ref "$HEAD_REF" --arg head "$head_sha" '
+            .state == "open" and .user.login == "dependabot[bot]" and .base.ref == $default and
+            .head.repo.full_name == $repo and .head.ref == $ref and .head.sha == $head and
+            ($ref | startswith("dependabot/"))
+          ' "$RUNNER_TEMP/live-pr.json" > /dev/null
+          [[ "$head_sha" == "$HEAD_SHA" ]]
+          {
+            echo "base_sha=$base_sha"
+            echo "head_sha=$head_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fetch trusted Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+          ref: ${{ steps.live.outputs.base_sha }}
+
+      - name: Set up trusted Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Fetch candidate files as inert data
+        id: candidate
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PACKAGE_ECOSYSTEM: ${{ steps.dependabot-metadata.outputs.package-ecosystem }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          UPDATED_DEPENDENCIES_JSON: ${{ steps.dependabot-metadata.outputs.updated-dependencies-json }}
+          UPDATE_DIRECTORY: ${{ steps.dependabot-metadata.outputs.directory }}
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/dependabot-candidate"
+          mkdir -p "$candidate"
+          node scripts/dependabot-repair.mjs candidate "$RUNNER_TEMP/live-pr.json" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$BASE_SHA" "$EXPECTED_HEAD_SHA"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" \
+            --jq '.[].filename' | LC_ALL=C sort -u > "$candidate/paths"
+          node scripts/dependabot-repair.mjs candidate-paths "$candidate/paths"
+          if grep -q '^dotnet-clients/' "$candidate/paths"; then
+            [[ "$PACKAGE_ECOSYSTEM" == nuget && "$UPDATE_DIRECTORY" == /dotnet-clients ]]
+            echo 'repair_android=false' >> "$GITHUB_OUTPUT"
+          else
+            [[ "$PACKAGE_ECOSYSTEM" == swift && "$UPDATE_DIRECTORY" == /swift-clients/apps/android ]]
+            if jq -e 'any(.[]; .dependencyName == "source.skip.tools/skip")' <<< "$UPDATED_DEPENDENCIES_JSON" > /dev/null; then
+              echo 'repair_android=true' >> "$GITHUB_OUTPUT"
+            else
+              echo 'repair_android=false' >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          for path in dotnet-clients/Directory.Packages.props swift-clients/apps/android/Package.swift swift-clients/apps/android/Package.resolved; do
+            mkdir -p "$candidate/$(dirname "$path")"
+            gh api -H 'Accept: application/vnd.github.raw+json' \
+              "repos/$GITHUB_REPOSITORY/contents/$path?ref=$EXPECTED_HEAD_SHA" > "$candidate/$path"
+          done
+          if grep -q '^dotnet-clients/' "$candidate/paths"; then
+            printf '%s' "$UPDATED_DEPENDENCIES_JSON" > "$candidate/nuget-metadata.json"
+            node scripts/dependabot-repair.mjs materialize-nuget \
+              dotnet-clients/Directory.Packages.props \
+              "$candidate/dotnet-clients/Directory.Packages.props" \
+              "$candidate/nuget-metadata.json" > "$RUNNER_TEMP/validated-Directory.Packages.props"
+          fi
+
+      - name: Set up trusted .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.301
+          cache: false
+
+      - name: Install trusted MAUI workload
+        working-directory: dotnet-clients
+        run: |
+          set -euo pipefail
+          dotnet workload install maui-maccatalyst --configfile NuGet.config
+
+      - name: Produce only native repair outputs
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base_sha }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          REPAIR_ANDROID: ${{ steps.candidate.outputs.repair_android }}
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/dependabot-candidate"
+          artifact="$RUNNER_TEMP/dependabot-native-repair"
+          mkdir -p "$artifact"
+          if grep -Fxq dotnet-clients/Directory.Packages.props "$candidate/paths"; then
+            cp "$RUNNER_TEMP/validated-Directory.Packages.props" dotnet-clients/Directory.Packages.props
+            dotnet-clients/tooling/restore-locks.sh update
+            dotnet-clients/tooling/restore-locks.sh verify
+          fi
+          while IFS= read -r path; do
+            mkdir -p "$artifact/$(dirname "$path")"
+            cp "$path" "$artifact/$path"
+          done < <(node --input-type=module -e "import { dotnetLockPaths } from './scripts/dependabot-repair.mjs'; console.log(dotnetLockPaths.join('\\n'))")
+          mkdir -p "$artifact/swift-clients/apps/android/tooling"
+          if [[ "$REPAIR_ANDROID" == true ]]; then
+            node --input-type=module -e "import { readFileSync } from 'node:fs'; import { validateTrustedBaseDelta } from './scripts/dependabot-android-repair.mjs'; validateTrustedBaseDelta(readFileSync('swift-clients/apps/android/Package.swift', 'utf8'), readFileSync('swift-clients/apps/android/Package.resolved', 'utf8'), readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8'))" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved"
+            skip_version="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).version)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
+            skip_revision="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; import { parseSkipUpdate } from './scripts/dependabot-android-repair.mjs'; console.log(parseSkipUpdate(readFileSync(process.argv[1], 'utf8'), readFileSync(process.argv[2], 'utf8')).revision)" "$candidate/swift-clients/apps/android/Package.swift" "$candidate/swift-clients/apps/android/Package.resolved")"
+            expected_revision="$(gh api "repos/skiptools/skip/commits/$skip_version" --jq .sha)"
+            [[ "$skip_revision" == "$expected_revision" ]]
+            gh api -H 'Accept: application/vnd.github.raw+json' "repos/skiptools/skip/contents/Package.swift?ref=$expected_revision" > "$RUNNER_TEMP/skip-Package.swift"
+            node scripts/dependabot-android-repair.mjs \
+              swift-clients/apps/android/tooling/materialize-skip-sdk.sh \
+              "$candidate/swift-clients/apps/android/Package.swift" \
+              "$candidate/swift-clients/apps/android/Package.resolved" \
+              "$RUNNER_TEMP/skip-Package.swift" \
+              "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          else
+            cp swift-clients/apps/android/tooling/materialize-skip-sdk.sh "$artifact/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          fi
+          locks_hash="$(node scripts/dependabot-repair.mjs hash locks "$artifact")"
+          android_hash="$(node scripts/dependabot-repair.mjs hash android "$artifact")"
+          candidate_hash="$(node scripts/dependabot-repair.mjs hash candidate "$candidate")"
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg pr "$PR_NUMBER" --arg run "$GITHUB_RUN_ID" --arg base "$BASE_SHA" --arg head "$EXPECTED_HEAD_SHA" --arg candidate "$candidate_hash" --arg locks "$locks_hash" --arg android "$android_hash" \
+            '{repository:$repository,pr:$pr,run:$run,baseSha:$base,headSha:$head,candidateHash:$candidate,locksHash:$locks,androidHash:$android}' > "$artifact/provenance.json"
+          node --input-type=module -e "import { androidRepairPaths, dotnetLockPaths } from './scripts/dependabot-repair.mjs'; process.stdout.write([...dotnetLockPaths, ...androidRepairPaths].join('\\0') + '\\0')" > "$RUNNER_TEMP/artifact-paths"
+          node scripts/dependabot-repair.mjs artifact-paths "$RUNNER_TEMP/artifact-paths"
+
+      - name: Upload verified repair artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dependabot-native-repair-${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/dependabot-native-repair
+          retention-days: 1
+          overwrite: true
+      - name: Clean persistent runner workspace
+        if: always()
+        working-directory: ${{ runner.temp }}
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  publish:
+    needs: prepare
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Clean persistent runner workspace
+        working-directory: ${{ runner.temp }}
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.base_sha }}
+
+      - name: Set up trusted Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Download verified repair artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          github-token: ${{ github.token }}
+          name: dependabot-native-repair-${{ github.event.pull_request.number }}
+          path: repair-artifact
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+
+      - name: Revalidate artifact and live PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base_sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e "import { androidRepairPaths, dotnetLockPaths } from './scripts/dependabot-repair.mjs'; process.stdout.write([...dotnetLockPaths, ...androidRepairPaths].join('\\0') + '\\0')" > "$RUNNER_TEMP/artifact-paths"
+          node scripts/dependabot-repair.mjs artifact-paths "$RUNNER_TEMP/artifact-paths"
+          node scripts/dependabot-repair.mjs provenance repair-artifact/provenance.json \
+            "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_RUN_ID" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == 9 ]]
+          locks_hash="$(node scripts/dependabot-repair.mjs hash locks repair-artifact)"
+          [[ "$locks_hash" == "$(jq -r .locksHash repair-artifact/provenance.json)" ]]
+          android_hash="$(node scripts/dependabot-repair.mjs hash android repair-artifact)"
+          [[ "$android_hash" == "$(jq -r .androidHash repair-artifact/provenance.json)" ]]
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          node scripts/dependabot-repair.mjs candidate "$RUNNER_TEMP/live-pr.json" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" --jq '.[].filename' | LC_ALL=C sort -u > "$RUNNER_TEMP/candidate-paths"
+          node scripts/dependabot-repair.mjs candidate-paths "$RUNNER_TEMP/candidate-paths"
+          candidate="$RUNNER_TEMP/dependabot-candidate"
+          for path in dotnet-clients/Directory.Packages.props swift-clients/apps/android/Package.swift swift-clients/apps/android/Package.resolved; do
+            mkdir -p "$candidate/$(dirname "$path")"
+            gh api -H 'Accept: application/vnd.github.raw+json' "repos/$GITHUB_REPOSITORY/contents/$path?ref=$EXPECTED_HEAD_SHA" > "$candidate/$path"
+          done
+          candidate_hash="$(node scripts/dependabot-repair.mjs hash candidate "$candidate")"
+          [[ "$candidate_hash" == "$(jq -r .candidateHash repair-artifact/provenance.json)" ]]
+          token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
+          git worktree add --detach "$RUNNER_TEMP/dependabot-publish" "$EXPECTED_HEAD_SHA"
+          publish_tree="$RUNNER_TEMP/dependabot-publish"
+          while IFS= read -r path; do
+            [[ -f "repair-artifact/$path" && ! -L "repair-artifact/$path" ]]
+            cp "repair-artifact/$path" "$publish_tree/$path"
+          done < <(node --input-type=module -e "import { androidRepairPaths, dotnetLockPaths } from './scripts/dependabot-repair.mjs'; console.log([...dotnetLockPaths, ...androidRepairPaths].join('\\n'))")
+          git -C "$publish_tree" -c core.hooksPath=/dev/null add dotnet-clients swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+          if git -C "$publish_tree" diff --cached --quiet; then exit 0; fi
+          git -C "$publish_tree" diff --cached --name-only -z > "$RUNNER_TEMP/published-paths"
+          node scripts/dependabot-repair.mjs published-paths "$RUNNER_TEMP/published-paths"
+          git -C "$publish_tree" -c core.hooksPath=/dev/null config user.name 'dependabot[bot]'
+          git -C "$publish_tree" -c core.hooksPath=/dev/null config user.email '49699333+dependabot[bot]@users.noreply.github.com'
+          git -C "$publish_tree" -c core.hooksPath=/dev/null commit -m 'chore(deps): repair native generated files'
+
+      - name: Final live revalidation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base_sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          publish_tree="$RUNNER_TEMP/dependabot-publish"
+          [[ "$(git -C "$publish_tree" rev-parse HEAD)" != "$EXPECTED_HEAD_SHA" ]] || exit 0
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/final-pr.json"
+          node scripts/dependabot-repair.mjs candidate "$RUNNER_TEMP/final-pr.json" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+
+      - name: Push with the single-command write credential
+        env:
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head_sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          WRITE_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          publish_tree="$RUNNER_TEMP/dependabot-publish"
+          [[ "$(git -C "$publish_tree" rev-parse HEAD)" != "$EXPECTED_HEAD_SHA" ]] || exit 0
+          [[ -n "$WRITE_TOKEN" ]]
+          token_b64="$(printf 'x-access-token:%s' "$WRITE_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git -C "$publish_tree" -c core.hooksPath=/dev/null push \
+              --force-with-lease="refs/heads/$HEAD_REF:$EXPECTED_HEAD_SHA" \
+              origin "HEAD:refs/heads/$HEAD_REF"
+      - name: Clean persistent runner workspace
+        if: always()
+        working-directory: ${{ runner.temp }}
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
