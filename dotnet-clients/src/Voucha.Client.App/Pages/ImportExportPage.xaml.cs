@@ -100,12 +100,9 @@ public partial class ImportExportPage : ContentPage, IDisposable
 
   private async void OnShareClicked(object? sender, EventArgs e)
   {
-    if (viewModel.ExportDocument is { } document)
-    {
-      var token = lifecycleCancellation.Token;
-      try { await files.ShareAsync(document, token); }
-      catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-      catch (Exception ex) { viewModel.ReportExternalFailure(ex, token); }
-    }
+    var token = lifecycleCancellation.Token;
+    try { await viewModel.ShareExportAsync(files.ShareAsync, token); }
+    catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    catch (Exception ex) { viewModel.ReportExternalFailure(ex, token); }
   }
 }

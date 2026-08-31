@@ -67,6 +67,40 @@ final class ChatSSEReaderTests: XCTestCase {
         }
     }
 
+    func testBoundedResponseLinesRejectOversizedSSELineKindsBeforeMaterializingStrings() async {
+        for prefix in ["data: ", ": ", "unknown: "] {
+            let bytes = AsyncStream<UInt8>(bufferingPolicy: .unbounded) { continuation in
+                for byte in Data((prefix + String(
+                    repeating: "x",
+                    count: ChatSSEParser.maximumFrameCharacters
+                )).utf8) {
+                    continuation.yield(byte)
+                }
+                continuation.finish()
+            }
+
+            do {
+                _ = try await collectLines(BoundedResponseLineReader.lines(from: bytes))
+                XCTFail("Expected \(prefix) line to be rejected")
+            } catch {
+                XCTAssertEqual(error as? ChatSSEParserError, .frameTooLarge)
+            }
+        }
+    }
+
+    func testBoundedResponseLinesNormalizeCRLFBeforeSSEParsing() async throws {
+        let bytes = AsyncStream<UInt8>(bufferingPolicy: .unbounded) { continuation in
+            for byte in Data("event: text\r\ndata: {\"content\":\"Hi\"}\r\n\r\n".utf8) {
+                continuation.yield(byte)
+            }
+            continuation.finish()
+        }
+
+        let lines = try await collectLines(BoundedResponseLineReader.lines(from: bytes))
+
+        XCTAssertEqual(lines, ["event: text", #"data: {"content":"Hi"}"#, ""])
+    }
+
     func testReaderMapsEventTypesAndDefaultMessageEvents() async throws {
         let lines = AsyncStream<String> { continuation in
             continuation.yield("event: metadata")
@@ -346,6 +380,14 @@ final class ChatSSEReaderTests: XCTestCase {
             items.append(item)
         }
         return items
+    }
+
+    private func collectLines(_ stream: AsyncThrowingStream<String, Error>) async throws -> [String] {
+        var lines: [String] = []
+        for try await line in stream {
+            lines.append(line)
+        }
+        return lines
     }
 }
 

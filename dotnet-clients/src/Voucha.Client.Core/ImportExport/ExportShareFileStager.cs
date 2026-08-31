@@ -22,7 +22,8 @@ public static class ExportShareFileStager
     var shared = false;
     try
     {
-      var source = File.OpenRead(document.FilePath);
+      using var lease = document.AcquireLease();
+      var source = File.OpenRead(lease.Document.FilePath);
       await using (source.ConfigureAwait(false))
       {
         var destination = new FileStream(

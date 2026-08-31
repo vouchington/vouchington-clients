@@ -52,7 +52,52 @@ public sealed record SourceImportRequest(
 
 public sealed record ExportDocument(string FileName, string MediaType, string FilePath) : IDisposable
 {
-  public void Dispose() => File.Delete(FilePath);
+  private readonly object lifecycleLock = new();
+  private int activeLeases;
+  private bool disposalRequested;
+
+  public ExportDocumentLease AcquireLease()
+  {
+    lock (lifecycleLock)
+    {
+      if (disposalRequested) throw new ObjectDisposedException(nameof(ExportDocument));
+      activeLeases++;
+      return new ExportDocumentLease(this);
+    }
+  }
+
+  public void Dispose()
+  {
+    var delete = false;
+    lock (lifecycleLock)
+    {
+      disposalRequested = true;
+      delete = activeLeases == 0;
+    }
+    if (delete) File.Delete(FilePath);
+  }
+
+  private void ReleaseLease()
+  {
+    var delete = false;
+    lock (lifecycleLock)
+    {
+      activeLeases--;
+      delete = disposalRequested && activeLeases == 0;
+    }
+    if (delete) File.Delete(FilePath);
+  }
+
+  public sealed class ExportDocumentLease : IDisposable
+  {
+    private ExportDocument? document;
+
+    internal ExportDocumentLease(ExportDocument document) => this.document = document;
+
+    public ExportDocument Document => document ?? throw new ObjectDisposedException(nameof(ExportDocumentLease));
+
+    public void Dispose() => Interlocked.Exchange(ref document, null)?.ReleaseLease();
+  }
 }
 
 public static class ImportResultStateExtensions

@@ -75,6 +75,36 @@ public sealed class ImportExportExportLifecycleTests
     Assert.False(model.HasExportDocument);
   }
 
+  [Fact]
+  public async Task ReplacingOrDisposingAnExportWaitsForAnActiveShareLease()
+  {
+    var service = new LifecycleService();
+    var model = new ImportExportViewModel(
+        ImportExportRouteContext.FromPath("/my/topics/import-export"), service);
+    await model.ExportAsync(TestContext.Current.CancellationToken);
+    var firstPath = Assert.IsType<ExportDocument>(model.ExportDocument).FilePath;
+    var shareStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var finishShare = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    var share = model.ShareExportAsync(async (document, token) =>
+    {
+      shareStarted.SetResult();
+      await finishShare.Task.WaitAsync(token);
+      Assert.True(File.Exists(document.FilePath));
+      await using var source = File.OpenRead(document.FilePath);
+    }, TestContext.Current.CancellationToken);
+    await shareStarted.Task;
+
+    await model.ExportAsync(TestContext.Current.CancellationToken);
+    Assert.True(File.Exists(firstPath));
+    model.Dispose();
+    Assert.True(File.Exists(firstPath));
+
+    finishShare.SetResult();
+    await share;
+    Assert.False(File.Exists(firstPath));
+  }
+
   private sealed class LifecycleService : IImportExportService
   {
     private const string ImportId = "70000000-0000-7000-8000-000000000001";
