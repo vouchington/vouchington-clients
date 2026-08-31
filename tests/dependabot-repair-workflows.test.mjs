@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
 
 const automerge = await readFile(
@@ -16,6 +16,14 @@ function count(source, pattern) {
 }
 
 describe('Dependabot repair workflow contracts', () => {
+  it('keeps one authoritative repair path per native ecosystem', async () => {
+    await assert.rejects(
+      access(new URL('../.github/workflows/repair-dependabot-native.yml', import.meta.url)),
+    )
+    assert.match(automerge, /\.dependencyName == "source\.skip\.tools\/skip"/u)
+    assert.doesNotMatch(automerge, /outputs\.dependency-names/u)
+  })
+
   it('never checks out or executes a pull-request tree', () => {
     for (const workflow of [automerge, dotnet]) {
       assert.doesNotMatch(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head/u)

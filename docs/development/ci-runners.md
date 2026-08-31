@@ -37,13 +37,16 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-native.yml` repairs generated native dependency outputs that Dependabot cannot
-derive: the .NET restore matrix's seven lockfiles and Android Skip's checked archive checksum. Its
-`pull_request_target` producer checks out only the exact default-branch base on macOS and fetches
-candidate dependency files as inert API data. It never checks out or executes the Dependabot head.
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's seven lockfiles, while
+`dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
+enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
+base and fetch candidate dependency files as inert API data. They never check out or execute the
+Dependabot head.
 
-The Linux publisher has read-only workflow permissions. It revalidates the live Dependabot identity,
-base and head SHAs, candidate and artifact allowlists, artifact provenance, and the head lease; only
-its final `git push --force-with-lease` receives `DEPENDABOT_AUTOMERGE_TOKEN`. That secret must stay
-scoped to the repository Contents and Pull requests access needed by Dependabot auto-merge and this
-single repair push.
+Read-only publishers revalidate the live Dependabot identity, base and head SHAs, raw Git change
+types, candidate and artifact allowlists, artifact provenance, hashes, and the head lease. They
+construct repair commits with temporary Git indexes; only the final `git push --force-with-lease`
+receives `DEPENDABOT_AUTOMERGE_TOKEN`. That secret must stay scoped to the repository Contents and
+Pull requests access needed by Dependabot auto-merge and these single repair pushes. See
+[Frozen-install policy](reference-dependency-updates-frozen-install-policy.md) for the authoritative
+manifests and generated-output sets.

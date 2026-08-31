@@ -1,7 +1,7 @@
 # Per-User Host Locks
 
-Native compiler work and host package-manager mutations share a lock for the current operating-system
-user. This prevents concurrent worktrees on a persistent runner from competing for Xcode, the .NET
+Native compiler work and host package-manager mutations are serialized by per-user lock families.
+This prevents concurrent worktrees on a persistent runner from competing for Xcode, the .NET
 workload manager, or their shared host state. The client wrappers delegate to the pinned
 `vouchington with-host-lock` command; do not add another lock around a wrapper that already owns one.
 

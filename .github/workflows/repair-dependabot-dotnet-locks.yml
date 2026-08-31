@@ -281,6 +281,7 @@ jobs:
           for lock in "${locks[@]}"; do [[ -f "repair-artifact/$lock" && ! -L "repair-artifact/$lock" ]]; done
           [[ -f repair-artifact/provenance.json && ! -L repair-artifact/provenance.json ]]
           [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == 8 ]]
+          [[ -z "$(find repair-artifact -type l -print -quit)" ]]
           node scripts/validate-dependabot-dotnet-repair.mjs provenance \
             repair-artifact/provenance.json "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_RUN_ID" \
             "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"

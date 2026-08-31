@@ -109,8 +109,6 @@ describe('private self-hosted runner policy', () => {
       ['validate.yml', 'swift-core'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
-      ['repair-dependabot-native.yml', 'prepare', true],
-      ['repair-dependabot-native.yml', 'publish', true],
       ['dependabot-automerge.yml', 'prepare'],
       ['dependabot-automerge.yml', 'publish-swift-android'],
       ['repair-dependabot-dotnet-locks.yml', 'prepare'],
