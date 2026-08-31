@@ -2,7 +2,7 @@ name: Dependabot Auto-merge
 
 on:
   pull_request_target:
-    types: [opened, reopened, ready_for_review, edited]
+    types: [opened, reopened, synchronize, ready_for_review, edited]
 
 permissions:
   contents: read
@@ -13,15 +13,291 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  automerge:
+  prepare:
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.base.ref == github.event.repository.default_branch &&
-      (github.event.action == 'opened' ||
-        github.event.action == 'reopened' ||
-        github.event.action == 'ready_for_review') &&
+      github.event.action != 'edited' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base-sha: ${{ steps.live.outputs.base-sha }}
+      head-sha: ${{ steps.live.outputs.head-sha }}
+      repair-kind: ${{ steps.classify.outputs.repair-kind }}
+    steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Capture live Dependabot identity
+        id: live
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          jq -e --arg default "$DEFAULT_BRANCH" --arg repo "$GITHUB_REPOSITORY" '
+            .state == "open" and .draft == false and .user.login == "dependabot[bot]" and
+            .base.ref == $default and .head.repo.full_name == $repo and
+            (.head.ref | startswith("dependabot/")) and
+            (.base.sha | test("^[a-f0-9]{40}$")) and
+            (.head.sha | test("^[a-f0-9]{40}$"))
+          ' "$RUNNER_TEMP/live-pr.json" > /dev/null
+          {
+            printf 'base-sha=%s\n' "$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
+            printf 'head-sha=%s\n' "$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+          } >> "$GITHUB_OUTPUT"
+      - name: Fetch trusted Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ steps.live.outputs.base-sha }}
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install trusted repair dependencies
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+      - name: Bind the live PR to its exact commit diff
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
+          git diff --raw --full-index -z --find-renames "$BASE_SHA" "$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dependabot-diff"
+      - name: Classify trusted Swift Android repair
+        id: classify
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base-sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DEPENDENCY_NAMES: ${{ steps.dependabot-metadata.outputs.dependency-names }}
+          DIRECTORY: ${{ steps.dependabot-metadata.outputs.directory }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PACKAGE_ECOSYSTEM: ${{ steps.dependabot-metadata.outputs.package-ecosystem }}
+        run: |
+          set -euo pipefail
+          if ! git diff --name-only "$BASE_SHA" "$EXPECTED_HEAD_SHA" | grep -q '^swift-clients/apps/android/'; then
+            printf 'repair-kind=none\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$DEPENDENCY_NAMES" != skip ]]; then
+            normalized_names=",${DEPENDENCY_NAMES// /},"
+            [[ "$normalized_names" != *,skip,* ]]
+            printf 'repair-kind=none\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$PACKAGE_ECOSYSTEM" == swift && "$DIRECTORY" == /swift-clients/apps/android ]]
+          node scripts/validate-dependabot-swift-repair.mjs pull-request \
+            "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dependabot-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$BASE_SHA" "$EXPECTED_HEAD_SHA"
+          printf 'repair-kind=swift-android\n' >> "$GITHUB_OUTPUT"
+      - name: Fetch candidate files as inert data
+        if: steps.classify.outputs.repair-kind == 'swift-android'
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          candidate="$RUNNER_TEMP/swift-candidate"
+          mkdir -p "$candidate/swift-clients/apps/android/tooling"
+          for path in swift-clients/apps/android/Package.swift swift-clients/apps/android/Package.resolved; do
+            gh api -H 'Accept: application/vnd.github.raw+json' \
+              "repos/$GITHUB_REPOSITORY/contents/$path?ref=$EXPECTED_HEAD_SHA" > "$candidate/$path"
+          done
+          if git diff --name-only "$BASE_SHA" "$EXPECTED_HEAD_SHA" -- \
+            swift-clients/apps/android/tooling/materialize-skip-sdk.sh | grep -q .; then
+            gh api -H 'Accept: application/vnd.github.raw+json' \
+              "repos/$GITHUB_REPOSITORY/contents/swift-clients/apps/android/tooling/materialize-skip-sdk.sh?ref=$EXPECTED_HEAD_SHA" \
+              > "$candidate/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
+          fi
+      - name: Verify exact Skip tag revision
+        if: steps.classify.outputs.repair-kind == 'swift-android'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          resolved="$RUNNER_TEMP/swift-candidate/swift-clients/apps/android/Package.resolved"
+          version="$(jq -er '.pins[] | select(.identity == "skip") | .state.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$resolved")"
+          revision="$(jq -er '.pins[] | select(.identity == "skip") | .state.revision | select(test("^[a-f0-9]{40}$"))' "$resolved")"
+          [[ "$revision" == "$(gh api "repos/skiptools/skip/commits/$version" --jq .sha)" ]]
+      - name: Build verified Swift Android repair artifact
+        if: steps.classify.outputs.repair-kind == 'swift-android'
+        run: |
+          set -euo pipefail
+          metadata="$RUNNER_TEMP/swift-repair-metadata.json"
+          output="$RUNNER_TEMP/dependabot-swift-android-repair"
+          jq --arg repository "$GITHUB_REPOSITORY" --arg default "${{ github.event.repository.default_branch }}" \
+            --arg run "$GITHUB_RUN_ID" \
+            '{run_id:($run|tonumber),repository:{full_name:$repository,default_branch:$default},pull_request:.}' \
+            "$RUNNER_TEMP/live-pr.json" > "$metadata"
+          node scripts/repair-dependabot-swift-android.mjs \
+            "$GITHUB_WORKSPACE" "$RUNNER_TEMP/swift-candidate" "$metadata" \
+            "$RUNNER_TEMP/exact-dependabot-diff" "$output"
+      - name: Upload verified Swift Android repair
+        if: steps.classify.outputs.repair-kind == 'swift-android'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          if-no-files-found: error
+          name: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
+          overwrite: true
+          path: ${{ runner.temp }}/dependabot-swift-android-repair
+          retention-days: 1
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  publish-swift-android:
+    needs: prepare
+    if: needs.prepare.outputs.repair-kind == 'swift-android'
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      head-sha: ${{ steps.commit.outputs.head-sha }}
+    steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.base-sha }}
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install trusted repair dependencies
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+      - name: Download same-run Swift Android artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          github-token: ${{ github.token }}
+          name: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
+          path: repair-artifact
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Verify artifact and construct exact repair commit
+        id: commit
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          materializer=swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+          provenance=repair-artifact/dependabot-swift-android-provenance.json
+          [[ -f "repair-artifact/$materializer" && ! -L "repair-artifact/$materializer" ]]
+          [[ -f "$provenance" && ! -L "$provenance" ]]
+          [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == 2 ]]
+          [[ -z "$(find repair-artifact -type l -print -quit)" ]]
+          node scripts/validate-dependabot-swift-repair.mjs provenance "$provenance" \
+            "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_RUN_ID" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          [[ "$(shasum -a 256 "repair-artifact/$materializer" | cut -d ' ' -f 1)" == \
+            "$(jq -r .materializerSha256 "$provenance")" ]]
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
+          git diff --raw --full-index -z --find-renames "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dependabot-diff"
+          node scripts/validate-dependabot-swift-repair.mjs pull-request \
+            "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dependabot-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          manifest_hash="$(git cat-file blob "$EXPECTED_HEAD_SHA:swift-clients/apps/android/Package.swift" | shasum -a 256 | cut -d ' ' -f 1)"
+          resolved_hash="$(git cat-file blob "$EXPECTED_HEAD_SHA:swift-clients/apps/android/Package.resolved" | shasum -a 256 | cut -d ' ' -f 1)"
+          [[ "$manifest_hash" == "$(jq -r .manifestSha256 "$provenance")" ]]
+          [[ "$resolved_hash" == "$(jq -r .resolvedSha256 "$provenance")" ]]
+          version="$(jq -r .skipVersion "$provenance")"
+          revision="$(jq -r .skipRevision "$provenance")"
+          [[ "$revision" == "$(gh api "repos/skiptools/skip/commits/$version" --jq .sha)" ]]
+          index="$RUNNER_TEMP/dependabot-swift-publish.index"
+          rm -f -- "$index"
+          GIT_INDEX_FILE="$index" git read-tree "$EXPECTED_HEAD_SHA"
+          [[ "$(git ls-tree "$EXPECTED_HEAD_SHA" -- "$materializer" | awk '{print $1 " " $2}')" == '100755 blob' ]]
+          blob="$(git hash-object -w -- "repair-artifact/$materializer")"
+          GIT_INDEX_FILE="$index" git update-index --add --cacheinfo "100755,$blob,$materializer"
+          tree="$(GIT_INDEX_FILE="$index" git write-tree)"
+          if [[ "$tree" == "$(git rev-parse "$EXPECTED_HEAD_SHA^{tree}")" ]]; then
+            printf 'mode=noop\nhead-sha=%s\n' "$EXPECTED_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          commit="$(printf '%s\n' 'chore(deps): synchronize Skip Android materializer' | \
+            GIT_AUTHOR_NAME='dependabot[bot]' GIT_AUTHOR_EMAIL='49699333+dependabot[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='dependabot[bot]' GIT_COMMITTER_EMAIL='49699333+dependabot[bot]@users.noreply.github.com' \
+            git commit-tree "$tree" -p "$EXPECTED_HEAD_SHA")"
+          git diff-tree --no-commit-id --name-only -r -z "$EXPECTED_HEAD_SHA" "$commit" > "$RUNNER_TEMP/published-swift-paths"
+          node scripts/validate-dependabot-swift-repair.mjs published-paths "$RUNNER_TEMP/published-swift-paths"
+          printf 'mode=repair\nhead-sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+      - name: Final live revalidation
+        if: steps.commit.outputs.mode == 'repair'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/final-pr.json"
+          node scripts/validate-dependabot-swift-repair.mjs pull-request \
+            "$RUNNER_TEMP/final-pr.json" "$RUNNER_TEMP/exact-dependabot-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+      - name: Push with a single-command write credential
+        if: steps.commit.outputs.mode == 'repair'
+        env:
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPAIRED_HEAD_SHA: ${{ steps.commit.outputs.head-sha }}
+          WRITE_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          write_token_b64="$(printf 'x-access-token:%s' "$WRITE_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $write_token_b64" \
+            git push --force-with-lease="refs/heads/$HEAD_REF:$EXPECTED_HEAD_SHA" \
+              origin "$REPAIRED_HEAD_SHA:refs/heads/$HEAD_REF"
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  automerge:
+    needs: [prepare, publish-swift-android]
+    if: >-
+      always() && needs.prepare.result == 'success' &&
+      (needs.prepare.outputs.repair-kind == 'none' || needs.publish-swift-android.result == 'success')
     runs-on: [self-hosted, Linux]
     timeout-minutes: 5
     steps:
@@ -29,6 +305,8 @@ jobs:
         uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@c3731d3b7c773a5eadb9abb91a69763ec41de5d5 # v0.3.1
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+          expected_base_sha: ${{ needs.prepare.outputs.base-sha }}
+          expected_head_sha: ${{ needs.publish-swift-android.outputs.head-sha || needs.prepare.outputs.head-sha }}
           manual_update_rules: '[{"packageEcosystem":"nuget","directory":"/dotnet-clients"}]'
 
   cleanup-retargeted-automerge:

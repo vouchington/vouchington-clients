@@ -106,8 +106,8 @@ the exact `expensive-build` wrapper marker and matching exit status; every other
   locally.
 - **Diagnosing an `xctest` crash (native SIGSEGV, not an assertion failure)**: `test-ui`'s CI job
   uploads failure-only `~/Library/Logs/DiagnosticReports/*.ips`/`*.crash` reports — see
-  [CI transient-failure guidance](../docs/development/reference-ci-classifying-transient-infrastructure-failures.md)
-  for the artifact triage path. To force a deterministic repro of a suspected use-after-free, run
+  [native harness failure classification](../docs/development/host-locks.md#native-harness-timeout-classification)
+  before treating the failure as transient. To force a deterministic repro of a suspected use-after-free, run
   under AddressSanitizer: `swift test --package-path ui --sanitize=address`.
 
 ## Development

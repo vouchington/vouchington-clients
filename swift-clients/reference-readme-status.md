@@ -13,9 +13,9 @@
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
   product parity remain tracked in #6745 and #6620.
 
-See the [client parity matrix](../docs/requirements/CLIENT-PARITY-MATRIX.md) and its
-[machine-readable evidence contract](../docs/requirements/client-feature-parity.json) for current
-capability status and tracked gaps.
+See the Filaments [client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
+and its [machine-readable evidence contract](https://github.com/jonathanong/filaments/blob/main/docs/requirements/client-feature-parity.json)
+for current capability status and tracked gaps.
 
 ## Requirements
 

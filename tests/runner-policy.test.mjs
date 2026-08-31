@@ -73,6 +73,22 @@ describe('private self-hosted runner policy', () => {
     assertRunner(workflows['native-contract-tests.yml'], 'verify', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['native-contract-tests.yml'], 'tests', '\\[self-hosted, Linux\\]')
     assertRunner(workflows['dependabot-automerge.yml'], 'automerge', '\\[self-hosted, Linux\\]')
+    assertRunner(workflows['dependabot-automerge.yml'], 'prepare', '\\[self-hosted, Linux\\]')
+    assertRunner(
+      workflows['dependabot-automerge.yml'],
+      'publish-swift-android',
+      '\\[self-hosted, Linux\\]',
+    )
+    assertRunner(
+      workflows['repair-dependabot-dotnet-locks.yml'],
+      'prepare',
+      '\\[self-hosted, macOS, Tests\\]',
+    )
+    assertRunner(
+      workflows['repair-dependabot-dotnet-locks.yml'],
+      'publish',
+      '\\[self-hosted, Linux\\]',
+    )
 
     const swiftManifest = jobBlock(workflows['validate.yml'], 'swift-core')
     assert.match(swiftManifest, /docker run --rm/u)
@@ -95,6 +111,10 @@ describe('private self-hosted runner policy', () => {
       ['native-contract-tests.yml', 'produce'],
       ['repair-dependabot-native.yml', 'prepare', true],
       ['repair-dependabot-native.yml', 'publish', true],
+      ['dependabot-automerge.yml', 'prepare'],
+      ['dependabot-automerge.yml', 'publish-swift-android'],
+      ['repair-dependabot-dotnet-locks.yml', 'prepare'],
+      ['repair-dependabot-dotnet-locks.yml', 'publish'],
     ])
       assertPersistentCleanup(workflows[workflow], job, requireTempCleanup)
   })
