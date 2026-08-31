@@ -1,0 +1,43 @@
+id: cs-native-no-raw-markdown-authoring
+language: CSharp
+severity: error
+message: 'Use NativeMarkdownEditorView/NativeMarkdownEditorDialog for native markdown authoring so preview and autocomplete stay available.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.App/**/*.cs'
+rule:
+  all:
+    - kind: invocation_expression
+    - regex: 'DisplayPromptAsync\([^)]*(?:markdown|Markdown)'
+examples:
+  - code: |
+      namespace Voucha.Client.App.Pages;
+
+      public sealed partial class PostDetailPage
+      {
+        private async Task ReplyAsync()
+        {
+          await DisplayPromptAsync("Reply", "Reply markdown");
+        }
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.Actions.cs'
+  - code: |
+      namespace Voucha.Client.App.Pages;
+
+      public sealed partial class PostDetailPage
+      {
+        private Task<string?> ReplyAsync() =>
+            NativeMarkdownEditorDialog.ShowAsync(Navigation, "Reply", "Reply", "", apiClient);
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.Actions.cs'
+  - code: |
+      namespace Voucha.Client.App.Pages;
+
+      public sealed partial class DirectMessagePage
+      {
+        private readonly Editor messageEditor = new() { Placeholder = "Message" };
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml.cs'
+

@@ -1,0 +1,113 @@
+id: cs-no-raw-local-llm-handler
+language: CSharp
+severity: error
+message: 'Do not hand-roll a SocketsHttpHandler for OpenAICompatibleResponsesClient -- it skips the connect-time DNS-rebinding guard. Use OpenAICompatibleResponsesClient.CreatePinnedHandler() instead.'
+files:
+  - 'dotnet-clients/src/**/*.cs'
+ignores:
+  - 'dotnet-clients/src/Voucha.Client.Core/Chat/OpenAICompatibleResponsesClient.cs'
+rule:
+  kind: object_creation_expression
+  regex: '^new (?:\w+\.)*SocketsHttpHandler\b'
+  any:
+    # Directly nested: new OpenAICompatibleResponsesClient(new SocketsHttpHandler {...}, ...) --
+    # the handler's nearest enclosing argument list must itself belong to that specific
+    # constructor call, not merely be co-located somewhere inside it.
+    - inside:
+        stopBy: end
+        kind: argument_list
+        inside:
+          kind: object_creation_expression
+          regex: '^new OpenAICompatibleResponsesClient\s*\('
+    # Indirect: assigned to a local first, then that SAME local ($VAR) is passed as an argument
+    # to the client constructor within the same lambda/local-function/method scope -- e.g.
+    # `var handler = new SocketsHttpHandler {...}; return new OpenAICompatibleResponsesClient(handler, ...);`
+    # $VAR must match identically across both branches below, so an unrelated handler that merely
+    # co-exists in scope with an unrelated client construction is not flagged.
+    - all:
+        - inside:
+            kind: variable_declarator
+            pattern: $VAR = new SocketsHttpHandler $$$
+        - inside:
+            stopBy: end
+            any:
+              - kind: lambda_expression
+              - kind: local_function_statement
+              - kind: method_declaration
+            has:
+              stopBy: end
+              all:
+                - kind: argument_list
+                - inside:
+                    kind: object_creation_expression
+                    regex: '^new OpenAICompatibleResponsesClient\s*\('
+                - has:
+                    stopBy: end
+                    kind: identifier
+                    pattern: $VAR
+examples:
+  - code: |
+      services.AddSingleton(_ => new OpenAICompatibleResponsesClient(
+          new SocketsHttpHandler { AllowAutoRedirect = false }, TimeSpan.FromSeconds(600)));
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+  - code: |
+      services.AddSingleton(_ =>
+      {
+        var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
+        return new OpenAICompatibleResponsesClient(handler, TimeSpan.FromSeconds(600));
+      });
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+  - code: |
+      services.AddSingleton(_ =>
+      {
+        var handler = new SocketsHttpHandler();
+        return new OpenAICompatibleResponsesClient(handler, TimeSpan.FromSeconds(600));
+      });
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+  - code: |
+      services.AddSingleton(_ => new OpenAICompatibleResponsesClient(
+          OpenAICompatibleResponsesClient.CreatePinnedHandler(), TimeSpan.FromSeconds(600)));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+  - code: |
+      services.AddSingleton(_ => new OpenAICompatibleResponsesClient(
+          new System.Net.Http.SocketsHttpHandler { AllowAutoRedirect = false }, TimeSpan.FromSeconds(600)));
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+  - code: |
+      namespace Voucha.Client.Core.Chat;
+
+      public sealed class OpenAICompatibleResponsesClient
+      {
+        public static SocketsHttpHandler CreatePinnedHandler() => new()
+        {
+          AllowAutoRedirect = false,
+          ConnectCallback = LocalLLMConnectionPinning.ConnectAsync,
+        };
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Chat/OpenAICompatibleResponsesClient.cs'
+  - code: |
+      private static SocketsHttpHandler CreateAuthHandler(IServiceProvider services)
+      {
+        return new SocketsHttpHandler
+        {
+          AllowAutoRedirect = false,
+        };
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Auth.cs'
+  - code: |
+      services.AddSingleton(_ =>
+      {
+        var authHandler = new SocketsHttpHandler { AllowAutoRedirect = false };
+        ConfigureAuth(authHandler);
+        return new OpenAICompatibleResponsesClient(
+            OpenAICompatibleResponsesClient.CreatePinnedHandler(), TimeSpan.FromSeconds(600));
+      });
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Chat.cs'
+

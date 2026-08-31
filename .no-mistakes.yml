@@ -1,0 +1,12 @@
+rules:
+  - name: C# source and test file length
+    rule: csharp-max-lines-per-file
+    scope: repository
+    options:
+      roots: [dotnet-clients]
+      srcMax: 200
+      testMax: 500
+  - name: C# Action delegates must not be async void
+    rule: csharp-no-async-void-delegate
+    scope: repository
+    include: [dotnet-clients/src/Voucha.Client.App/**/*.cs]

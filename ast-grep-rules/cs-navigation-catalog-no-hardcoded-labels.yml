@@ -1,0 +1,52 @@
+id: cs-navigation-catalog-no-hardcoded-labels
+language: CSharp
+severity: error
+message: 'Navigation catalog presentation labels must use generated UiMessageKey values; route, icon, role, and protocol identifiers remain raw strings.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.AccountIntents.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.DiscoveryIntents.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.MediaIntents.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.SettingsIntent.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.StaffIntents.cs'
+rule:
+  any:
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new Nav(Item|Group)\s*\(\s*"[A-Za-z]'
+    - all:
+        - kind: implicit_object_creation_expression
+        - regex: '^new\s*\(\s*[^,]+,\s*"[A-Za-z]'
+examples:
+  - code: |
+      var item = new NavItem("My Posts", "/my/posts", "sidebar-nav-my-posts");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.DiscoveryIntents.cs'
+  - code: |
+      var group = new NavGroup("Bookmarks", "sidebar-group-bookmarks", []);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.MediaIntents.cs'
+  - code: |
+      NavIntent intent = new("settings", "Settings", "settings-2", []);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.SettingsIntent.cs'
+  - code: |
+      var item = new NavItem(UiMessageKey.ExtractedIntentsProductPostsPostsA80811cf, "/posts", "sidebar-nav-posts");
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.DiscoveryIntents.cs'
+  - code: |
+      NavIntent intent = new("settings", UiMessageKey.ExtractedIntentsProductSettingsSettings74a883a0, "settings-2", []);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.SettingsIntent.cs'
+  - code: |
+      var unrelatedLabel = "Settings";
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.cs'
+  - code: |
+      var routeMatcherDiagnostic = NativeRouteCatalogEntry.Included(
+          "Feed posts",
+          NativeRouteDestinationId.FeedPosts,
+          "/feed/posts",
+          ["/feed/posts"]);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NativeRouteCatalog.Feeds.cs'
+

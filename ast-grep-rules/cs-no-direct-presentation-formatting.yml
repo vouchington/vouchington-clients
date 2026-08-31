@@ -1,0 +1,80 @@
+id: cs-no-direct-presentation-formatting
+language: CSharp
+severity: error
+message: 'Visible .NET values must use IUiLocalization formatting instead of process-current culture formatting.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/**/*.cs'
+  - 'dotnet-clients/src/Voucha.Client.App/**/*.cs'
+ignores:
+  - 'dotnet-clients/src/Voucha.Client.Core/Localization/**/*.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Api/**/*.cs'
+rule:
+  any:
+    - all:
+        - kind: invocation_expression
+        - regex: '\.ToString\([^)]*(?:CultureInfo\.)?(?:CurrentCulture|CurrentUICulture)'
+    - all:
+        - kind: invocation_expression
+        - regex: 'string\.Format\((?:CultureInfo\.)?(?:CurrentCulture|CurrentUICulture)'
+    - all:
+        - kind: invocation_expression
+        - regex: '\.ToString\(\s*"(?:[CcEeFfNnPp]\d*|[dDfgGMTtYy])"\s*\)'
+        - not:
+            regex: '(?:Guid|guid|Uuid|uuid)[A-Za-z0-9_.()]*\.ToString\(\s*"[Nn]"\s*\)'
+    - all:
+        - kind: invocation_expression
+        - regex: 'string\.Format\(\s*"[^"]*\{\d+:(?:[CcEeFfNnPp]\d*|[dDfgGMTtYy])\}[^"]*"'
+examples:
+  - code: |
+      var detail = createdAt.ToString("g", CultureInfo.CurrentCulture);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Management.cs'
+  - code: |
+      var detail = localization.FormatDateTime(createdAt, TimeZoneInfo.Local);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Management.cs'
+  - code: |
+      var total = string.Format(CultureInfo.CurrentUICulture, "{0:N0}", count);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var total = UiCopy.FormatNumber(count);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var total = count.ToString("N0");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var detail = createdAt.ToString("g");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Management.cs'
+  - code: |
+      var amount = total.ToString("C");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var percentage = ratio.ToString("P");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var countLabel = count.ToString("N");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var dateLabel = createdAt.ToString("D");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var total = string.Format("{0:N0}", count);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var requestId = Guid.NewGuid().ToString("N");
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Chat/ChatConversationViewModel.Sending.cs'
+  - code: |
+      var protocolTimestamp = createdAt.ToString("O", CultureInfo.InvariantCulture);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/SessionCookieJar.cs'
+

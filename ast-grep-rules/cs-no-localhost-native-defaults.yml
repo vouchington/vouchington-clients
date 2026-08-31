@@ -1,0 +1,40 @@
+id: cs-no-localhost-native-defaults
+language: CSharp
+severity: error
+message: 'Native .NET client defaults must use production origins; use VOUCHA_API_BASE_URL or VOUCHA_WEB_BASE_URL for local development.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/AppConfig.cs'
+rule:
+  all:
+    - kind: string_literal
+    - regex: '"http://localhost:(2999|3000)"'
+examples:
+  - code: |
+      namespace Voucha.Client.Core;
+
+      public sealed record AppConfig
+      {
+        public const string DefaultApiBaseUrl = "http://localhost:2999";
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/AppConfig.cs'
+  - code: |
+      namespace Voucha.Client.Core;
+
+      public sealed record AppConfig
+      {
+        public const string DefaultApiBaseUrl = "https://api.voucha.ai";
+        public const string DefaultWebBaseUrl = "https://voucha.ai";
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/AppConfig.cs'
+  - code: |
+      namespace Voucha.Client.Core.Tests;
+
+      public sealed class AppConfigTests
+      {
+        private const string LocalApiBaseUrl = "http://localhost:2999";
+      }
+    isValid: true
+    file: 'dotnet-clients/tests/Voucha.Client.Core.Tests/AppConfigTests.cs'
+

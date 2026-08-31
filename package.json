@@ -13,6 +13,7 @@
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
     "coverage-check": "0.15.2",
+    "no-mistakes": "0.52.2",
     "vouchington-tooling": "0.1.5"
   },
   "engines": {

@@ -1,0 +1,361 @@
+id: cs-no-hardcoded-presentation-state
+language: CSharp
+severity: error
+message: 'Presentation state must carry UiText/UiMessageKey so visible view models can refresh when LocaleChanged fires.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.Core/**/*.cs'
+ignores:
+  - 'dotnet-clients/src/Voucha.Client.Core/Api/**/*.cs'
+  - 'dotnet-clients/src/Voucha.Client.Core/Localization/**/*.cs'
+rule:
+  any:
+    - all:
+        - kind: string_literal
+        - regex: '[A-Za-z][ A-Za-z]+'
+        - inside:
+            kind: property_declaration
+            regex: '(?:Title|Label|Detail|Description|Message|Status|Placeholder)\s*=>'
+            stopBy: end
+        - not:
+            inside:
+              kind: tuple_expression
+              stopBy: end
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new Omnisearch(ResultGroup|ResultRow)\s*\(\s*"[A-Za-z]'
+    - all:
+        - kind: assignment_expression
+        - regex: '^(?:ErrorMessage|SuccessMessage|StatusMessage|EmptyStateMessage|Title|Subtitle|Detail|Description|Label|Placeholder)\s*=\s*"[A-Za-z]'
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new CommunitySummaryRow\s*\(\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new CommunitySummaryRow\s*\(\s*[^,]+,\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new ChatProviderStatus\s*\(\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: object_creation_expression
+        - regex: '^new ChatProviderStatus\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: invocation_expression
+        - regex: '^Summary\s*\(\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: invocation_expression
+        - regex: '^Summary\s*\(\s*[^,]+,\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: string_literal
+        - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
+        - inside:
+            kind: object_creation_expression
+            regex: '^new (?:SettingsSelectionRowViewModel|SettingsToggleRowViewModel|MembershipPlanDefinition|MembershipPlanOptionViewModel|MembershipPlanPriceOptionViewModel|PostComposeValidation|CommunityActionValidation|ProfileHistoryTabRow|ReferralLinkRow|DirectMessageRow|DirectMessageParticipantRow|CommunitySummaryRow|GrowthRangeOption)\s*\('
+            stopBy: end
+    - all:
+        - kind: return_statement
+        - regex: '^return\s+(?:[^;?]+\?\s*)?"[A-Za-z][^"]*[ ][^"]*"'
+    - all:
+        - kind: property_declaration
+        - regex: '(?:public|internal|private|protected)\s+[^\n]+\s+[A-Za-z0-9_]*(?:Title|Label|Detail|Description|Message|Status|Placeholder|Metadata|Action|Text)[A-Za-z0-9_]*\s*=>[^;]*"[A-Za-z][^"]*[ ][^"]*"'
+    - all:
+        - kind: property_declaration
+        - regex: '(?:public|internal|private|protected)\s+[^\n]+\s+[A-Za-z0-9_]*(?:Title|Label|Detail|Description|Message|Status|Placeholder|Metadata|Action|Text)[A-Za-z0-9_]*\s*=>[^;]*[$]"(?:[^"]*[A-Za-z][^{}"]*[{][^"]*"|[^"]*[}][^{}"]*[A-Za-z][^"]*")'
+    - all:
+        - kind: property_declaration
+        - regex: '(?:Title|LocalizedTitle)\s*=>[^;]*Post\.PostType'
+    - all:
+        - kind: interpolated_string_expression
+        - regex: '[A-Za-z][ A-Za-z]+'
+        - inside:
+            kind: assignment_expression
+            regex: '^(?:ErrorMessage|SuccessMessage|StatusMessage|EmptyStateMessage|Title|Subtitle|Detail|Description|Label|Placeholder)\s*='
+            stopBy: end
+    - all:
+        - kind: return_statement
+        - regex: '^return\s+[$]"[^"]*[A-Za-z][^"]*"'
+    - all:
+        - kind: conditional_expression
+        - regex: '\?\s*"[A-Za-z][^"]*"\s*:'
+        - inside:
+            kind: object_creation_expression
+            regex: '^new (?:NotificationRow|CrmContactRow|ListSummaryRow|ListItemRow|TopicRow|PostRow)\s*\('
+            stopBy: end
+    - all:
+        - kind: record_declaration
+        - regex: 'record (?:CrmContactRow|ListSummaryRow|ListItemRow|TopicRow|PostRow|NotificationRow)\s*\([^)]*\bstring\??\s+(?:Status|Vertical|Visibility|ItemType|MediaType|TopicType|PostType|LinkType|Direction|Type)\b'
+    - pattern:
+        context: |
+          class Example
+          {
+            public IReadOnlyList<string> $NAME => $EXPR;
+          }
+        selector: property_declaration
+constraints:
+  NAME:
+    regex: '^(?:DisplayNameSource|ProfileLinkType|ApiKeyType)Options$'
+examples:
+  - code: |
+      public sealed class Example
+      {
+        public string Title => "Moderation";
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Moderation/ModerationViewModel.cs'
+  - code: |
+      public sealed class Example
+      {
+        public string Title => localization.Localize(UiMessageKey.NativeDotnetModerationTitle);
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Moderation/ModerationViewModel.cs'
+  - code: |
+      public sealed class Example
+      {
+        public string? ProtocolStatus => "pending";
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Api/ModerationModels.cs'
+  - code: |
+      var group = new OmnisearchResultGroup("Crawl history", rows);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchCrawls.cs'
+  - code: |
+      var group = new OmnisearchResultGroup(
+          localization.Localize(UiMessageKey.NativeDotnetResidualCrawlHistory),
+          rows);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Search/OmnisearchViewModel.WebSearchCrawls.cs'
+  - code: |
+      ErrorMessage = "Could not load this page.";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Communities/CommunityDetailViewModel.cs'
+  - code: |
+      ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetCsharpActionFailed);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Communities/CommunityDetailViewModel.cs'
+  - code: |
+      var row = new CommunitySummaryRow(id, "Pinned post", status, detail);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Communities/CommunityDetailViewModel.Surface.cs'
+  - code: |
+      var row = Summary(
+          id,
+          UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesPinnedPost),
+          UiText.Verbatim(protocolStatus));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Communities/CommunityDetailViewModel.Surface.cs'
+  - code: |
+      var provider = new ChatProviderStatus(
+          ChatProviderKind.Hosted,
+          "Hosted",
+          true,
+          "OpenAI hosted");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Chat/ChatConversationViewModel.DefaultProviders.cs'
+  - code: |
+      var provider = new ChatProviderStatus(
+          ChatProviderKind.Hosted,
+          UiText.Localized(UiMessageKey.NativeDotnetChatConversationHosted),
+          true,
+          UiText.Localized(UiMessageKey.NativeDotnetChatConversationOpenAiHosted),
+          localization);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Chat/ChatConversationViewModel.DefaultProviders.cs'
+  - code: |
+      public string SessionLabel => localization.Format(
+          UiMessageKey.NativeDotnetAuthSignedInAs,
+          ("username", username));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Auth/AuthViewModel.cs'
+  - code: |
+      var row = new SettingsSelectionRowViewModel(
+          "ui_locale",
+          "UI locale",
+          options,
+          value,
+          localization);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.Loading.cs'
+  - code: |
+      var row = new SettingsToggleRowViewModel(
+          "third_party_marketing",
+          UiText.Localized(UiMessageKey.NativeDotnetResidualSolThirdPartyMarketing),
+          UiText.Localized(UiMessageKey.NativeDotnetResidualSolThirdPartyMarketingDescription),
+          enabled,
+          localization);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.Loading.cs'
+  - code: |
+      var plan = new MembershipPlanDefinition(
+          "free",
+          "Free plan",
+          features);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsModels.cs'
+  - code: |
+      var plan = new MembershipPlanDefinition(
+          "free",
+          UiMessageKey.NativeDotnetResidualSolPlanFree,
+          features);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsModels.cs'
+  - code: |
+      return new PostComposeValidation(false, "Title is required.");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/PostComposeViewModel.Validation.cs'
+  - code: |
+      return new PostComposeValidation(
+          false,
+          localization.Localize(UiMessageKey.NativeDotnetResidualSolTitleRequired));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/PostComposeViewModel.Validation.cs'
+  - code: |
+      public sealed class CommentRow
+      {
+        public string Metadata => locked ? $"{author} · locked" : author;
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/CommentThreadModels.cs'
+  - code: |
+      public sealed class CommentRow
+      {
+        public string Metadata => locked
+            ? localization.Format(UiMessageKey.NativeDotnetResidualSolLocked, ("author", author))
+            : author;
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/CommentThreadModels.cs'
+  - code: |
+      public sealed class CommentRow
+      {
+        public string Title => string.IsNullOrWhiteSpace(Post.Title)
+            ? Post.PostType ?? "comment"
+            : Post.Title;
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/CommentThreadModels.cs'
+  - code: |
+      public sealed class CommentRow
+      {
+        public UiText TitleText => string.IsNullOrWhiteSpace(Post.Title)
+            ? UiTaxonomy.PostType(ProtocolPostType)
+            : UiText.UserContent(Post.Title);
+        public string LocalizedTitle => localization.Resolve(TitleText);
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Posts/CommentThreadModels.cs'
+  - code: |
+      public sealed class StatusRow
+      {
+        public string Status => state switch
+        {
+          State.Active => "Account active",
+          _ => "Account inactive",
+        };
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsModels.cs'
+  - code: |
+      public sealed class StatusRow
+      {
+        public string Status => localization.Localize(state switch
+        {
+          State.Active => UiMessageKey.NativeDotnetResidualSolStatusActive,
+          _ => UiMessageKey.NativeDotnetResidualSolStatusPaused,
+        });
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsModels.cs'
+  - code: |
+      private string BuildStatus(bool active)
+      {
+        return active ? "Account active" : "Account inactive";
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.cs'
+  - code: |
+      private string BuildStatus(bool active)
+      {
+        return localization.Localize(
+            active ? UiMessageKey.StatusActive : UiMessageKey.StatusInactive);
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.cs'
+  - code: |
+      ErrorMessage = $"Row {row}: {error}";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Crm/CrmContactsViewModel.cs'
+  - code: |
+      ErrorMessage = localization.Format(
+          UiMessageKey.NativeDotnetResidualSolRowError,
+          ("row", row),
+          ("error", error));
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Crm/CrmContactsViewModel.cs'
+  - code: |
+      var row = new NotificationRow(
+          id,
+          string.IsNullOrWhiteSpace(title) ? "Notification" : title,
+          body);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Notifications/NotificationsViewModel.Mapping.cs'
+  - code: |
+      var row = new NotificationRow(
+          id,
+          string.IsNullOrWhiteSpace(title)
+              ? UiText.Localized(UiMessageKey.NativeTaxonomyNotificationGenericTitle)
+              : UiText.UserContent(title),
+          body);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Notifications/NotificationsViewModel.Mapping.cs'
+  - code: |
+      public sealed record ListSummaryRow(
+          string Id,
+          string Name,
+          string Visibility);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Lists/ListWorkflowRows.cs'
+  - code: |
+      public sealed record ListSummaryRow(
+          string Id,
+          string Name,
+          string ProtocolVisibility,
+          UiText VisibilityText,
+          IUiLocalization Localization);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Lists/ListWorkflowRows.cs'
+  - code: |
+      public sealed class SettingsViewModel
+      {
+        public IReadOnlyList<string> ProfileLinkTypeOptions => profileLinkTypeOptions;
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.Options.cs'
+  - code: |
+      public sealed class SettingsViewModel
+      {
+        public IReadOnlyList<UiProtocolOption> ProfileLinkTypeOptions =>
+            LocalizedOptions(UiTaxonomy.ProfileLinkTypes);
+      }
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Settings/SettingsViewModel.Options.cs'
+  - code: |
+      var row = new ReferralLinkRow(
+          id,
+          "Referral link",
+          url,
+          "Priority group 2");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Completion.cs'
+  - code: |
+      var row = new ReferralLinkRow(
+          id,
+          UiText.Verbatim(userLabel),
+          url,
+          UiText.Localized(
+              UiMessageKey.NativeDotnetResidualSolPriorityGroup,
+              ("group", priority)),
+          Localization: localization);
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/ReferralLinks/ReferralLinksViewModel.Completion.cs'
+

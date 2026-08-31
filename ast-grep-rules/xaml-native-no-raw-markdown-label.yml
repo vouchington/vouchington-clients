@@ -1,0 +1,98 @@
+id: xaml-native-no-raw-markdown-label
+language: Html
+severity: error
+message: 'Use NativeHtmlContentView for markdown/html bindings instead of binding raw content into Label.Text.'
+files:
+  - 'dotnet-clients/src/Voucha.Client.App/**/*.xaml'
+  - 'dotnet-clients/src/Voucha.Client.App/**/*.html'
+rule:
+  all:
+    - kind: self_closing_tag
+    - regex: 'Label[\s\S]*Text="[^"]*(?:Markdown|Html|BodyHtml|BodyText)[^"]*"'
+    - not:
+        # DirectMessagesPage.xaml binds DirectMessageRow.BodyText, which has no BodyHtml/Markdown
+        # counterpart anywhere in the stack: api-fixtures/v1/openapi.json's DirectMessage schema,
+        # Voucha.Client.Core's DirectMessage/DirectMessageRow models, and web's conversation-page
+        # renderer all carry plain-text body_text only. Unlike Posts/Topics (which have a real
+        # BodyHtml/BodyText pair), direct messages are plain-text-only by product design, so this
+        # exact binding shape is a false positive of the BodyText keyword heuristic above. Scoped
+        # to the *nearest* enclosing DataTemplate carrying an `x:DataType` attribute (not the
+        # literal attribute value alone, and not the whole file), so a `{Binding BodyText}` inside
+        # some other row type's DataTemplate -- for example a hypothetical PostDetailPageRow, or a
+        # different row type nested inside a DirectMessageRow template -- is still caught. `has:`
+        # on `start_tag`/`self_closing_tag` matches only that tag's own attributes (its span
+        # excludes descendant elements), and `stopBy` halts the ancestor walk at the first
+        # DataTemplate with any `x:DataType`, so a farther-out DirectMessageRow ancestor can't
+        # paper over a closer, differently-typed template. This justification is mechanically
+        # freshness-checked against the live OpenAPI schema and the DirectMessageRow C# record by
+        # static-code-analysis/__tests__/ast-grep-examples.test.mts ("DirectMessage stays free of
+        # BodyHtml and Markdown in both the OpenAPI schema and the Core model, or the
+        # DirectMessagesPage.xaml BodyText exemption needs revisiting").
+        all:
+          - regex: 'Text="\{Binding BodyText\}"'
+          - inside:
+              kind: element
+              has:
+                kind: start_tag
+                regex: 'x:DataType="messages:DirectMessageRow"'
+              stopBy:
+                kind: element
+                has:
+                  kind: start_tag
+                  regex: 'x:DataType='
+examples:
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui">
+        <Label Text="{Binding Topic.Markdown}" />
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/TopicDetailPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui">
+        <Label Text="{Binding Row.BodyHtml}" />
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:controls="clr-namespace:Voucha.Client.App.Controls">
+        <controls:NativeHtmlContentView Html="{Binding Row.BodyHtml}" Fallback="{Binding Row.BodyText}" />
+      </ContentPage>
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:messages="clr-namespace:Voucha.Client.Core.Messages;assembly=Voucha.Client.Core">
+        <DataTemplate x:DataType="messages:DirectMessageRow">
+          <Label Text="{Binding BodyText}" Style="{StaticResource Body}" />
+        </DataTemplate>
+      </ContentPage>
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui">
+        <Label Text="{Binding Row.BodyHtml}" />
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:messages="clr-namespace:Voucha.Client.Core.Messages;assembly=Voucha.Client.Core">
+        <DataTemplate x:DataType="messages:DirectConversationRow">
+          <Label Text="{Binding BodyText}" />
+        </DataTemplate>
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:messages="clr-namespace:Voucha.Client.Core.Messages;assembly=Voucha.Client.Core">
+        <DataTemplate x:DataType="messages:DirectMessageRow">
+          <CollectionView>
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="messages:DirectMessageAttachmentRow">
+                <Label Text="{Binding BodyText}" />
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </DataTemplate>
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/DirectMessagesPage.xaml'
+
