@@ -13,9 +13,9 @@ This workspace contains the .NET client stack for Voucha. The product target is 
   topic/source import and export plus signed-in top-hashtag recommendations and administrator
   mapping actions, profiles and friends, notifications, direct messages and support,
   lists, referral and landing pages, media playback, search, and role-gated staff operations. This is not
-  a claim of web parity; see the [client parity matrix](../docs/requirements/CLIENT-PARITY-MATRIX.md)
-  and [machine-readable evidence contract](../docs/requirements/client-feature-parity.json) for
-  exact capability status and tracked gaps.
+  a claim of web parity; see the Filaments [client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
+  and [machine-readable evidence contract](https://github.com/jonathanong/filaments/blob/main/docs/requirements/client-feature-parity.json)
+  for exact capability status and tracked gaps.
 - API core: typed fixture-backed helpers plus Swift/web-route-parity endpoint factories under `src/Voucha.Client.Core/Api`.
 - Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations.
 - Deep linking: `voucha` protocol activation on Windows and Mac Catalyst, with MAUI lifecycle hooks and an app-shell coordinator that selects existing native targets or opens Session for login links.
@@ -120,7 +120,9 @@ diagnostics remain `check-failure`. See
 
 When changing a MAUI dependency, regenerate both app and Core Mac Catalyst locks for `maccatalyst-arm64` and `maccatalyst-x64` with `dotnet restore --force-evaluate` and the corresponding `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 
-For the complete seven-lock matrix, use `bash dotnet-clients/tooling/restore-locks.sh update` followed by
+Follow the repository [frozen-install policy](../docs/development/reference-dependency-updates-frozen-install-policy.md#nuget)
+for dependency review and audit evidence. For the complete seven-lock matrix, use
+`bash dotnet-clients/tooling/restore-locks.sh update` followed by
 `bash dotnet-clients/tooling/restore-locks.sh verify` with isolated `NUGET_PACKAGES` and
 `NUGET_HTTP_CACHE_PATH`, `NUGET_PLUGINS_CACHE_PATH`, and `NUGET_SCRATCH`, while keeping lock-restore
 MSBuild artifacts in an isolated checkout-local tree. Dependabot uses that trusted macOS path only for literal central package

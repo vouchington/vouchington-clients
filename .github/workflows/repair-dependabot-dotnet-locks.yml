@@ -1,0 +1,357 @@
+name: Repair Dependabot .NET locks
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "dotnet-clients/Directory.Packages.props"
+      - "dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json"
+      - "dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json"
+      - "dotnet-clients/src/Voucha.Client.Core/packages.lock.json"
+      - "dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json"
+      - "dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json"
+      - "dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json"
+      - "dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-dotnet-lock-repair-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base-sha: ${{ steps.live.outputs.base-sha }}
+      head-sha: ${{ steps.live.outputs.head-sha }}
+    env:
+      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet/sdk
+      VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT: ${{ github.workspace }}/.nuget/lock-artifacts
+      VOUCHA_DOTNET_LOCK_SCRATCH_ROOT: ${{ github.workspace }}/.nuget/scratch
+    steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Capture live Dependabot identity
+        id: live
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          jq -e --arg default "$DEFAULT_BRANCH" --arg repo "$GITHUB_REPOSITORY" '
+            .state == "open" and .user.login == "dependabot[bot]" and
+            .base.ref == $default and .head.repo.full_name == $repo and
+            (.head.ref | startswith("dependabot/")) and
+            (.base.sha | test("^[a-f0-9]{40}$")) and
+            (.head.sha | test("^[a-f0-9]{40}$")) and
+            (.changed_files >= 1 and .changed_files <= 8)
+          ' "$RUNNER_TEMP/live-pr.json" > /dev/null
+          {
+            printf 'base-sha=%s\n' "$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
+            printf 'head-sha=%s\n' "$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+          } >> "$GITHUB_OUTPUT"
+      - name: Fetch trusted Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+      - name: Require NuGet directory metadata
+        env:
+          DIRECTORY: ${{ steps.dependabot-metadata.outputs.directory }}
+          PACKAGE_ECOSYSTEM: ${{ steps.dependabot-metadata.outputs.package-ecosystem }}
+        run: |
+          set -euo pipefail
+          [[ "$PACKAGE_ECOSYSTEM" == nuget && "$DIRECTORY" == /dotnet-clients ]]
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ steps.live.outputs.base-sha }}
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install trusted repair dependencies
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+      - name: Bind the live PR to the exact commit diff
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base-sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
+          git diff --raw --full-index -z --find-renames "$BASE_SHA...$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
+          node scripts/validate-dependabot-dotnet-repair.mjs pull-request \
+            "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dotnet-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$BASE_SHA" "$EXPECTED_HEAD_SHA"
+      - name: Fetch and validate candidate manifest data
+        env:
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          UPDATED_DEPENDENCIES_JSON: ${{ steps.dependabot-metadata.outputs.updated-dependencies-json }}
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github.raw+json' \
+            "repos/$GITHUB_REPOSITORY/contents/dotnet-clients/Directory.Packages.props?ref=$EXPECTED_HEAD_SHA" \
+            > "$RUNNER_TEMP/candidate.props"
+          printf '%s' "$UPDATED_DEPENDENCIES_JSON" > "$RUNNER_TEMP/nuget-metadata.json"
+          node scripts/validate-dependabot-nuget-update.mjs \
+            dotnet-clients/Directory.Packages.props "$RUNNER_TEMP/candidate.props" \
+            "$RUNNER_TEMP/nuget-metadata.json" "$RUNNER_TEMP/validated.props"
+      - name: Read exact .NET SDK version
+        id: dotnet-sdk
+        run: |
+          set -euo pipefail
+          version="$(jq -er '.sdk.version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' global.json)"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+      - name: Reset exact .NET SDK root
+        run: |
+          set -euo pipefail
+          [[ "$DOTNET_INSTALL_DIR" == "$GITHUB_WORKSPACE/.dotnet/sdk" ]]
+          rm -rf -- "$DOTNET_INSTALL_DIR"
+          mkdir -p -- "$DOTNET_INSTALL_DIR"
+      - name: Set up exact .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}
+      - name: Reset isolated native restore state
+        run: |
+          set -euo pipefail
+          for path in "$GITHUB_WORKSPACE/.nuget" "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT" "$VOUCHA_DOTNET_LOCK_SCRATCH_ROOT"; do
+            [[ "$path" == "$GITHUB_WORKSPACE/.nuget" || "$path" == "$GITHUB_WORKSPACE/.nuget/"* ]]
+          done
+          rm -rf -- "$GITHUB_WORKSPACE/.nuget"
+          mkdir -p -- "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT" "$VOUCHA_DOTNET_LOCK_SCRATCH_ROOT"
+      - name: Install pinned MAUI workload under host lock
+        run: >-
+          pnpm exec vouchington with-host-lock
+          --name host-package-manager
+          --timeout-seconds 300
+          --command-timeout-seconds 720
+          -- dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Regenerate all seven locks without credentials
+        env:
+          BASE_SHA: ${{ steps.live.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          repair_dir="$RUNNER_TEMP/dependabot-dotnet-lock-repair"
+          sandbox_home="$RUNNER_TEMP/dependabot-dotnet-home"
+          sandbox_tmp="$RUNNER_TEMP/dependabot-dotnet-tmp"
+          sandbox_profile="$RUNNER_TEMP/dependabot-dotnet.sb"
+          mkdir -p "$repair_dir/dotnet-clients" "$sandbox_home" "$sandbox_tmp"
+          escaped_home="${HOME//\"/\\\"}"
+          escaped_workspace="${GITHUB_WORKSPACE//\"/\\\"}"
+          escaped_temp="${RUNNER_TEMP//\"/\\\"}"
+          {
+            echo '(version 1)'
+            echo '(allow default)'
+            echo "(deny file-read* file-write* (subpath \"$escaped_home\"))"
+            echo "(allow file-read* file-write* (subpath \"$escaped_workspace\"))"
+            echo "(allow file-read* file-write* (subpath \"$escaped_temp\"))"
+          } > "$sandbox_profile"
+          props_hash="$(shasum -a 256 "$RUNNER_TEMP/validated.props" | cut -d ' ' -f 1)"
+          cp "$RUNNER_TEMP/validated.props" dotnet-clients/Directory.Packages.props
+          pnpm exec vouchington with-host-lock \
+            --name host-package-manager \
+            --timeout-seconds 300 \
+            --command-timeout-seconds 1200 \
+            -- sandbox-exec -f "$sandbox_profile" env -i \
+              PATH="$PATH" HOME="$sandbox_home" TMPDIR="$sandbox_tmp" \
+              VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT="$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT" \
+              VOUCHA_DOTNET_LOCK_SCRATCH_ROOT="$VOUCHA_DOTNET_LOCK_SCRATCH_ROOT" \
+              bash -c 'bash dotnet-clients/tooling/restore-locks.sh update && bash dotnet-clients/tooling/restore-locks.sh verify'
+          locks=(
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
+            dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
+            dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
+          )
+          for lock in "${locks[@]}"; do
+            [[ -f "$lock" && ! -L "$lock" ]]
+            mkdir -p "$repair_dir/$(dirname "$lock")"
+            cp "$lock" "$repair_dir/$lock"
+          done
+          locks_json='[]'
+          for lock in "${locks[@]}"; do
+            lock_hash="$(shasum -a 256 "$lock" | cut -d ' ' -f 1)"
+            locks_json="$(jq -c --arg path "$lock" --arg sha256 "$lock_hash" '. + [{path:$path,sha256:$sha256}]' <<< "$locks_json")"
+          done
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg pr "$PR_NUMBER" \
+            --arg run "$GITHUB_RUN_ID" --arg base "$BASE_SHA" --arg head "$EXPECTED_HEAD_SHA" \
+            --arg manifest "$props_hash" --argjson locks "$locks_json" \
+            '{version:1,repository:$repository,pullRequest:($pr|tonumber),workflowRun:($run|tonumber),baseSha:$base,headSha:$head,manifestSha256:$manifest,locks:$locks}' \
+            > "$repair_dir/provenance.json"
+      - name: Upload validated .NET lock artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          if-no-files-found: error
+          name: dependabot-dotnet-lock-repair-${{ github.event.pull_request.number }}
+          overwrite: true
+          path: ${{ runner.temp }}/dependabot-dotnet-lock-repair
+          retention-days: 1
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  publish:
+    needs: prepare
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - name: Check out exact trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.base-sha }}
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install trusted repair dependencies
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+      - name: Download validated lock artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          github-token: ${{ github.token }}
+          name: dependabot-dotnet-lock-repair-${{ github.event.pull_request.number }}
+          path: repair-artifact
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Verify artifact and construct an exact repair commit
+        id: commit
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          locks=(
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
+            dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
+            dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
+          )
+          for lock in "${locks[@]}"; do [[ -f "repair-artifact/$lock" && ! -L "repair-artifact/$lock" ]]; done
+          [[ -f repair-artifact/provenance.json && ! -L repair-artifact/provenance.json ]]
+          [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == 8 ]]
+          [[ -z "$(find repair-artifact -type l -print -quit)" ]]
+          node scripts/validate-dependabot-dotnet-repair.mjs provenance \
+            repair-artifact/provenance.json "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_RUN_ID" \
+            "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          for index in "${!locks[@]}"; do
+            lock="${locks[$index]}"
+            [[ "$lock" == "$(jq -r --argjson index "$index" '.locks[$index].path' repair-artifact/provenance.json)" ]]
+            [[ "$(shasum -a 256 "repair-artifact/$lock" | cut -d ' ' -f 1)" == \
+              "$(jq -r --argjson index "$index" '.locks[$index].sha256' repair-artifact/provenance.json)" ]]
+          done
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/live-pr.json"
+          token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
+            git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
+          git diff --raw --full-index -z --find-renames "$EXPECTED_BASE_SHA...$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
+          node scripts/validate-dependabot-dotnet-repair.mjs pull-request \
+            "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dotnet-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+          manifest=dotnet-clients/Directory.Packages.props
+          candidate_props_hash="$(git cat-file blob "$EXPECTED_HEAD_SHA:$manifest" | shasum -a 256 | cut -d ' ' -f 1)"
+          [[ "$candidate_props_hash" == "$(jq -r .manifestSha256 repair-artifact/provenance.json)" ]]
+          index="$RUNNER_TEMP/dependabot-dotnet-publish.index"
+          rm -f -- "$index"
+          GIT_INDEX_FILE="$index" git read-tree "$EXPECTED_HEAD_SHA"
+          for lock in "${locks[@]}"; do
+            [[ "$(git ls-tree "$EXPECTED_HEAD_SHA" -- "$lock" | awk '{print $1 " " $2}')" == '100644 blob' ]]
+            blob="$(git hash-object -w -- "repair-artifact/$lock")"
+            GIT_INDEX_FILE="$index" git update-index --add --cacheinfo "100644,$blob,$lock"
+          done
+          tree="$(GIT_INDEX_FILE="$index" git write-tree)"
+          if [[ "$tree" == "$(git rev-parse "$EXPECTED_HEAD_SHA^{tree}")" ]]; then
+            printf 'mode=noop\nhead-sha=%s\n' "$EXPECTED_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          commit="$(printf '%s\n' 'chore(deps): regenerate all .NET locks' | \
+            GIT_AUTHOR_NAME='dependabot[bot]' GIT_AUTHOR_EMAIL='49699333+dependabot[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='dependabot[bot]' GIT_COMMITTER_EMAIL='49699333+dependabot[bot]@users.noreply.github.com' \
+            git commit-tree "$tree" -p "$EXPECTED_HEAD_SHA")"
+          git diff-tree --no-commit-id --name-only -r -z "$EXPECTED_HEAD_SHA" "$commit" > "$RUNNER_TEMP/published-dotnet-paths"
+          node scripts/validate-dependabot-dotnet-repair.mjs published-paths "$RUNNER_TEMP/published-dotnet-paths"
+          printf 'mode=repair\nhead-sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+      - name: Final live revalidation
+        if: steps.commit.outputs.mode == 'repair'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/final-pr.json"
+          node scripts/validate-dependabot-dotnet-repair.mjs pull-request \
+            "$RUNNER_TEMP/final-pr.json" "$RUNNER_TEMP/exact-dotnet-diff" \
+            "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+      - name: Push with a single-command write credential
+        if: steps.commit.outputs.mode == 'repair'
+        env:
+          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPAIRED_HEAD_SHA: ${{ steps.commit.outputs.head-sha }}
+          WRITE_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          write_token_b64="$(printf 'x-access-token:%s' "$WRITE_TOKEN" | base64 | tr -d '\n')"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $write_token_b64" \
+            git push --force-with-lease="refs/heads/$HEAD_REF:$EXPECTED_HEAD_SHA" \
+              origin "$REPAIRED_HEAD_SHA:refs/heads/$HEAD_REF"
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: "false"
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
