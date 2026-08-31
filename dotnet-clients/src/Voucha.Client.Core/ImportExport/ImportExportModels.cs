@@ -56,13 +56,24 @@ public sealed record ExportDocument(string FileName, string MediaType, string Fi
   private int activeLeases;
   private bool disposalRequested;
 
-  public ExportDocumentLease AcquireLease()
+  internal ExportDocumentLease AcquireLease()
   {
-    lock (lifecycleLock)
+    ExportDocumentLease? lease = null;
+    var acquired = false;
+    try
     {
-      if (disposalRequested) throw new ObjectDisposedException(nameof(ExportDocument));
-      activeLeases++;
-      return new ExportDocumentLease(this);
+      lock (lifecycleLock)
+      {
+        ObjectDisposedException.ThrowIf(disposalRequested, this);
+        activeLeases++;
+        acquired = true;
+      }
+      lease = new ExportDocumentLease(this);
+      return lease;
+    }
+    finally
+    {
+      if (acquired && lease is null) ReleaseLease();
     }
   }
 
@@ -88,16 +99,25 @@ public sealed record ExportDocument(string FileName, string MediaType, string Fi
     if (delete) File.Delete(FilePath);
   }
 
-  public sealed class ExportDocumentLease : IDisposable
+}
+
+internal sealed class ExportDocumentLease : IDisposable
+{
+  private ExportDocument? document;
+
+  internal ExportDocumentLease(ExportDocument document) => this.document = document;
+
+  public ExportDocument Document
   {
-    private ExportDocument? document;
+    get
+    {
+      ObjectDisposedException.ThrowIf(document is null, this);
+      return document;
+    }
 
-    internal ExportDocumentLease(ExportDocument document) => this.document = document;
-
-    public ExportDocument Document => document ?? throw new ObjectDisposedException(nameof(ExportDocumentLease));
-
-    public void Dispose() => Interlocked.Exchange(ref document, null)?.ReleaseLease();
   }
+
+  public void Dispose() => Interlocked.Exchange(ref document, null)?.ReleaseLease();
 }
 
 public static class ImportResultStateExtensions
