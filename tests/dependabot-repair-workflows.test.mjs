@@ -29,6 +29,7 @@ describe('Dependabot repair workflow contracts', () => {
   it('binds artifacts and repair commits to exact live inputs', () => {
     for (const workflow of [automerge, dotnet]) {
       assert.match(workflow, /git diff --raw --full-index -z --find-renames/u)
+      assert.match(workflow, /BASE_SHA\.\.\.\$EXPECTED_HEAD_SHA/u)
       assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
       assert.match(workflow, /retention-days: 1/u)
       assert.match(workflow, /if-no-files-found: error/u)
@@ -50,6 +51,7 @@ describe('Dependabot repair workflow contracts', () => {
     assert.match(automerge, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 2/u)
     assert.match(dotnet, /published-paths/u)
     assert.match(dotnet, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 8/u)
+    assert.match(dotnet, /group: dependabot-dotnet-lock-repair-\$\{\{ github\.event\.pull_request\.number \}\}/u)
     assert.match(automerge, /expected_base_sha:/u)
     assert.match(automerge, /expected_head_sha:/u)
   })

@@ -18,7 +18,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: dependabot-dotnet-lock-repair
+  group: dependabot-dotnet-lock-repair-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
@@ -103,7 +103,7 @@ jobs:
           token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
             git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
-          git diff --raw --full-index -z --find-renames "$BASE_SHA" "$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
+          git diff --raw --full-index -z --find-renames "$BASE_SHA...$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
           node scripts/validate-dependabot-dotnet-repair.mjs pull-request \
             "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dotnet-diff" \
             "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$BASE_SHA" "$EXPECTED_HEAD_SHA"
@@ -294,7 +294,7 @@ jobs:
           token_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $token_b64" \
             git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
-          git diff --raw --full-index -z --find-renames "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
+          git diff --raw --full-index -z --find-renames "$EXPECTED_BASE_SHA...$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dotnet-diff"
           node scripts/validate-dependabot-dotnet-repair.mjs pull-request \
             "$RUNNER_TEMP/live-pr.json" "$RUNNER_TEMP/exact-dotnet-diff" \
             "$DEFAULT_BRANCH" "$GITHUB_REPOSITORY" "$HEAD_REF" "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"

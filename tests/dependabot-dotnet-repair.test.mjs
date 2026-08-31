@@ -138,20 +138,24 @@ describe('trusted Dependabot .NET repair validation', () => {
     }
   })
 
-  it('permits publication of exactly the seven committed lock paths', () => {
+  it('permits publication of any nonempty committed lock subset', () => {
     const paths = `${NUGET_LOCK_PATHS.join('\0')}\0`
     assert.deepEqual(validateDotnetRepairPublishedPaths(paths), NUGET_LOCK_PATHS)
     assert.deepEqual(
-      validateDotnetRepairPublishedPaths(`${[...NUGET_LOCK_PATHS].reverse().join('\0')}\0`),
-      NUGET_LOCK_PATHS,
+      validateDotnetRepairPublishedPaths(`${NUGET_LOCK_PATHS[0]}\0`),
+      [NUGET_LOCK_PATHS[0]],
+    )
+    const reversed = [...NUGET_LOCK_PATHS].reverse()
+    assert.deepEqual(
+      validateDotnetRepairPublishedPaths(`${reversed.join('\0')}\0`),
+      reversed,
     )
     for (const invalidPaths of [
-      `${NUGET_LOCK_PATHS.slice(0, -1).join('\0')}\0`,
       `${NUGET_LOCK_PATHS.join('\0')}\0README.md\0`,
       `${[NUGET_LOCK_PATHS[0], NUGET_LOCK_PATHS[0], ...NUGET_LOCK_PATHS.slice(2)].join('\0')}\0`,
       NUGET_LOCK_PATHS.join('\0'),
     ]) {
-      assert.throws(() => validateDotnetRepairPublishedPaths(invalidPaths), /exactly the seven|NUL-delimited/u)
+      assert.throws(() => validateDotnetRepairPublishedPaths(invalidPaths), /only the seven|unique|NUL-delimited/u)
     }
   })
 })

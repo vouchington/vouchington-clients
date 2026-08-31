@@ -173,13 +173,14 @@ export function validateDotnetRepairPublishedPaths(rawPaths) {
   const source = Buffer.isBuffer(rawPaths) ? rawPaths.toString('utf8') : rawPaths
   if (!source.endsWith('\0')) fail('published paths must be NUL-delimited')
   const paths = source.slice(0, -1).split('\0')
-  if (
-    paths.length !== NUGET_LOCK_PATHS.length ||
-    paths.toSorted().some((path, index) => path !== SORTED_NUGET_LOCK_PATHS[index])
-  ) {
-    fail('repair publish must change exactly the seven committed NuGet lock files')
+  if (paths.length === 0 || new Set(paths).size !== paths.length) {
+    fail('repair publish must change a nonempty unique NuGet lock subset')
   }
-  return [...NUGET_LOCK_PATHS]
+  const allowed = new Set(SORTED_NUGET_LOCK_PATHS)
+  if (paths.some(path => !allowed.has(path))) {
+    fail('repair publish may change only the seven committed NuGet lock files')
+  }
+  return [...paths]
 }
 
 async function runCli(args) {
