@@ -70,7 +70,9 @@ describe('Swift Android Dependabot repair validation', () => {
     const candidate = candidateResolved()
     assert.equal(validateSkipResolvedDelta(resolved, candidate, '1.9.8').candidateRevision, sha)
     const tampered = structuredClone(candidate)
-    tampered.pins.find(pin => pin.identity === 'opencombine').state.revision = sha
+    const unrelatedPin = tampered.pins.find(pin => pin.identity !== 'skip')
+    assert.ok(unrelatedPin, 'fixture requires one non-Skip pin')
+    unrelatedPin.state.revision = sha
     assert.throws(() => validateSkipResolvedDelta(resolved, tampered, '1.9.9'))
   })
 
