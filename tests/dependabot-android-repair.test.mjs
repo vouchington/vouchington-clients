@@ -27,10 +27,13 @@ describe('trusted Android Skip repair', () => {
   })
 
   it('requires the exact version-templated GitHub archive URL', () => {
-    const source = 'SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"\n'
+    const source = 'SKIP_VERSION="1.2.3"\nSKIP_MACOS_ZIP_SHA256="' + 'a'.repeat(64) + '"\nSKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"\n'
     assert.doesNotThrow(() => validateMaterializerSource(source))
     assert.throws(() => validateMaterializerSource(source.replace('${SKIP_VERSION}', '1.2.3')))
     assert.throws(() => validateMaterializerSource(source.replace('github.com', 'example.com')))
+    assert.throws(() => validateMaterializerSource(source.replace('\n', '\nSKIP_VERSION="1.2.3"\n')))
+    assert.throws(() => validateMaterializerSource(source.replace(/^SKIP_MACOS_ZIP_SHA256=.*\n/mu, '')))
+    assert.throws(() => validateMaterializerSource(source.replace('\nSKIP_MACOS_GITHUB', '\nSKIP_MACOS_ZIP_SHA256="' + 'b'.repeat(64) + '"\nSKIP_MACOS_GITHUB')))
   })
 
   it('permits only the executable Skip version delta and freezes existing resolved pins', () => {

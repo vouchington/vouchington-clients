@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import {
   androidRepairPaths,
   dotnetLockPaths,
+  materializeNugetUpdate,
   validateCandidate,
   validateCandidatePaths,
   validateProvenance,
@@ -66,6 +67,7 @@ describe('trusted Dependabot repair boundary', () => {
     assert.doesNotThrow(() => validateCandidatePaths([
       'swift-clients/apps/android/Package.resolved',
       'swift-clients/apps/android/Package.swift',
+      'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
     ]))
     assert.throws(() => validateCandidatePaths(['package.json']))
     assert.throws(() => validateCandidatePaths([dotnetLockPaths[0]]))
@@ -89,5 +91,13 @@ describe('trusted Dependabot repair boundary', () => {
     assert.doesNotThrow(() => validatePublishedPaths(androidRepairPaths))
     assert.throws(() => validatePublishedPaths([]))
     assert.throws(() => validatePublishedPaths(['README.md']))
+  })
+
+  it('reconstructs NuGet updates from trusted literals after rejecting executable candidate XML', () => {
+    const trusted = '<Project>\n<PackageVersion Include="Example.One" Version="1.2.3" />\n</Project>\n'
+    const candidate = trusted.replace('1.2.3', '1.2.4')
+    const metadata = JSON.stringify([{ dependencyName: 'Example.One', prevVersion: '1.2.3', newVersion: '1.2.4' }])
+    assert.equal(materializeNugetUpdate(trusted, candidate, metadata), candidate)
+    assert.throws(() => materializeNugetUpdate(trusted, candidate.replace('</Project>', '<Target Name="Injected" /></Project>'), metadata))
   })
 })

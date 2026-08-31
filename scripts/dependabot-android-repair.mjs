@@ -62,7 +62,9 @@ function trustedChecksum(upstreamPackage, version) {
 
 export function validateMaterializerSource(materializer) {
   const urls = materializer.match(/^SKIP_MACOS_GITHUB_ZIP_URL=.*$/gmu) ?? []
-  if (urls.length !== 1 || urls[0] !== materializerUrl) {
+  const versions = materializer.match(/^SKIP_VERSION="[^"]+"$/gmu) ?? []
+  const checksums = materializer.match(/^SKIP_MACOS_ZIP_SHA256="[a-f0-9]{64}"$/gmu) ?? []
+  if (urls.length !== 1 || urls[0] !== materializerUrl || versions.length !== 1 || checksums.length !== 1) {
     throw new Error('Trusted materializer lacks the exact version-templated GitHub archive URL')
   }
 }
@@ -73,7 +75,9 @@ export function materializeSkipRepair(materializer, upstreamPackage, update) {
   const next = materializer
     .replace(/^SKIP_VERSION="[^"]+"$/mu, `SKIP_VERSION="${update.version}"`)
     .replace(/^SKIP_MACOS_ZIP_SHA256="[a-f0-9]{64}"$/mu, `SKIP_MACOS_ZIP_SHA256="${checksum}"`)
-  if (next === materializer) throw new Error('Trusted materializer lacks expected repair fields')
+  if (next === materializer || !next.includes(`SKIP_VERSION="${update.version}"`) || !next.includes(`SKIP_MACOS_ZIP_SHA256="${checksum}"`)) {
+    throw new Error('Trusted materializer lacks expected repair fields')
+  }
   return next
 }
 

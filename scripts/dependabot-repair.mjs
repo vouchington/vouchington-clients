@@ -1,4 +1,8 @@
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
+import { validateNugetUpdate } from 'vouchington-tooling/nuget-central-version'
 
 export const dotnetLockPaths = [
   'dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json',
@@ -14,6 +18,13 @@ export const androidRepairPaths = ['swift-clients/apps/android/tooling/materiali
 export const candidateDependencyPaths = [
   'dotnet-clients/Directory.Packages.props',
   ...dotnetLockPaths,
+  'swift-clients/apps/android/Package.swift',
+  'swift-clients/apps/android/Package.resolved',
+  'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
+]
+
+const candidateHashPaths = [
+  'dotnet-clients/Directory.Packages.props',
   'swift-clients/apps/android/Package.swift',
   'swift-clients/apps/android/Package.resolved',
 ]
@@ -68,6 +79,31 @@ export function validateCandidatePaths(paths) {
   ) {
     throw new Error('Dependabot candidate may modify only native dependency inputs')
   }
+}
+
+export function materializeNugetUpdate(trustedSource, candidateSource, metadataSource) {
+  const changed = validateNugetUpdate(trustedSource, candidateSource, metadataSource)
+  const updates = new Map(JSON.parse(metadataSource).map(update => [update.dependencyName, update]))
+  let materialized = trustedSource
+  for (const dependencyName of changed) {
+    const update = updates.get(dependencyName)
+    const trustedLiteral = `<PackageVersion Include="${dependencyName}" Version="${update.prevVersion}" />`
+    const replacement = `<PackageVersion Include="${dependencyName}" Version="${update.newVersion}" />`
+    if (!update || materialized.split(trustedLiteral).length !== 2) {
+      throw new Error(`Trusted NuGet manifest has no unique literal for ${dependencyName}`)
+    }
+    materialized = materialized.replace(trustedLiteral, replacement)
+  }
+  return materialized
+}
+
+export async function canonicalHash(root, paths) {
+  const aggregate = createHash('sha256')
+  for (const path of paths) {
+    const digest = createHash('sha256').update(await readFile(join(root, path))).digest('hex')
+    aggregate.update(`${path}\0${digest}\n`)
+  }
+  return aggregate.digest('hex')
 }
 
 export function validateProvenance(provenance, expected) {
@@ -132,6 +168,19 @@ async function main() {
       repository,
       run,
     })
+    return
+  }
+  if (command === 'materialize-nuget') {
+    const [trustedPath, candidatePath, metadataPath] = args
+    if (!trustedPath || !candidatePath || !metadataPath) throw new Error('materialize-nuget requires trusted, candidate, and metadata paths')
+    process.stdout.write(materializeNugetUpdate(await readFile(trustedPath, 'utf8'), await readFile(candidatePath, 'utf8'), await readFile(metadataPath, 'utf8')))
+    return
+  }
+  if (command === 'hash') {
+    const [kind, root] = args
+    const paths = kind === 'locks' ? dotnetLockPaths : kind === 'android' ? androidRepairPaths : kind === 'candidate' ? candidateHashPaths : undefined
+    if (!root || !paths) throw new Error('hash requires locks, android, or candidate and a root')
+    process.stdout.write(`${await canonicalHash(root, paths)}\n`)
     return
   }
   throw new Error('Usage: dependabot-repair.mjs <candidate|artifact-paths> ...')
