@@ -7,8 +7,15 @@ files:
   - 'dotnet-clients/src/Voucha.Client.App/**/*.html'
 rule:
   all:
-    - kind: self_closing_tag
-    - regex: 'Label[\s\S]*Text="[^"]*(?:Markdown|Html|BodyHtml|BodyText)[^"]*"'
+    - any:
+        - all:
+            - kind: self_closing_tag
+            - regex: 'Label[\s\S]*Text="[^"]*(?:Markdown|Html|BodyHtml|BodyText)[^"]*"'
+        - all:
+            - kind: element
+            - has:
+                kind: start_tag
+                regex: 'Label[\s\S]*Text="[^"]*(?:Markdown|Html|BodyHtml|BodyText)[^"]*"'
     - not:
         # DirectMessagesPage.xaml binds DirectMessageRow.BodyText, which has no BodyHtml/Markdown
         # counterpart anywhere in the stack: api-fixtures/v1/openapi.json's DirectMessage schema,
@@ -44,6 +51,12 @@ examples:
   - code: |
       <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui">
         <Label Text="{Binding Topic.Markdown}" />
+      </ContentPage>
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/TopicDetailPage.xaml'
+  - code: |
+      <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui">
+        <Label Text="{Binding Topic.Markdown}"></Label>
       </ContentPage>
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/TopicDetailPage.xaml'

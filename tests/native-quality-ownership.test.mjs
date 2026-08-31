@@ -35,6 +35,7 @@ describe("native quality ownership", () => {
     assert.match(noMistakes, /csharp-max-lines-per-file/);
     assert.match(noMistakes, /csharp-no-async-void-delegate/);
     assert.match(noMistakes, /test_plan:\n  swift:/);
+    assert.match(noMistakes, /packages:\n      - swift-clients\/core\n      - swift-clients\/test-support/);
     assert.match(noMistakes, /\n  dotnet:/);
 
     const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));

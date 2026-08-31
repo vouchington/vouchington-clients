@@ -7,7 +7,7 @@ files:
 rule:
   all:
     - kind: invocation_expression
-    - regex: 'DisplayPromptAsync\([^)]*(?:markdown|Markdown)'
+    - regex: 'DisplayPromptAsync\s*\([\s\S]*(?:markdown|Markdown)'
 examples:
   - code: |
       namespace Voucha.Client.App.Pages;
@@ -17,6 +17,18 @@ examples:
         private async Task ReplyAsync()
         {
           await DisplayPromptAsync("Reply", "Reply markdown");
+        }
+      }
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostDetailPage.Actions.cs'
+  - code: |
+      namespace Voucha.Client.App.Pages;
+
+      public sealed partial class PostDetailPage
+      {
+        private async Task ReplyAsync()
+        {
+          await DisplayPromptAsync(BuildTitle(), "Reply markdown");
         }
       }
     isValid: false

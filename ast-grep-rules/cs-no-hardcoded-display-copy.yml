@@ -22,21 +22,21 @@ rule:
         - regex: '[A-Za-z]'
         - inside:
             kind: assignment_expression
-            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)?(?:Title|Text|Placeholder|PickerTitle)\s*='
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
             stopBy: end
     - all:
         - kind: string_literal
         - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
         - inside:
             kind: assignment_expression
-            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)?(?:Title|Text|Placeholder|PickerTitle)\s*='
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
             stopBy: end
     - all:
         - kind: invocation_expression
         - regex: '\.(?:ToString|Replace)\s*\('
         - inside:
             kind: assignment_expression
-            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)?(?:Title|Text|Placeholder|PickerTitle)\s*='
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle)\s*='
             stopBy: end
     - all:
         - kind: string_literal
@@ -64,7 +64,7 @@ rule:
         - regex: '"[^"]*[A-Za-z][^"]*[ ]+[^"]*"'
         - inside:
             kind: assignment_expression
-            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)?(?:Title|Text|Placeholder|PickerTitle|AutomationId)\s*='
+            regex: '^(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:Title|Text|Placeholder|PickerTitle|AutomationId)\s*='
             stopBy: end
     - all:
         - kind: string_literal
@@ -140,6 +140,10 @@ examples:
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/CommunitySectionPage.Actions.cs'
   - code: |
       label.Text = failed ? "Image upload failed." : "Image ready.";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostComposePage.xaml.cs'
+  - code: |
+      page.Header.Title = "Saved reply";
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/PostComposePage.xaml.cs'
   - code: |

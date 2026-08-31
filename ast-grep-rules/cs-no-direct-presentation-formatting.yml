@@ -24,6 +24,11 @@ rule:
     - all:
         - kind: invocation_expression
         - regex: 'string\.Format\(\s*"[^"]*\{\d+:(?:[CcEeFfNnPp]\d*|[dDfgGMTtYy])\}[^"]*"'
+    - all:
+        - kind: interpolated_string_expression
+        - regex: '[A-Za-z][^{}]*\{[^{}:]+:(?:[CcEeFfNnPp]\d*|[dDfgGMTtYy])\}'
+        - not:
+            regex: '(?:Guid|guid|Uuid|uuid)[A-Za-z0-9_.()]*:(?:[CcEeFfNnPp]\d*|[dDfgGMTtYy])'
 examples:
   - code: |
       var detail = createdAt.ToString("g", CultureInfo.CurrentCulture);
@@ -69,6 +74,14 @@ examples:
       var total = string.Format("{0:N0}", count);
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var total = $"Total: {count:N0}";
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.App/Pages/GrowthDashboardPage.xaml.cs'
+  - code: |
+      var requestId = $"{Guid.NewGuid():N}";
+    isValid: true
+    file: 'dotnet-clients/src/Voucha.Client.Core/Chat/ChatConversationViewModel.Sending.cs'
   - code: |
       var requestId = Guid.NewGuid().ToString("N");
     isValid: true

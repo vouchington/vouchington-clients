@@ -16,6 +16,15 @@ rule:
     - all:
         - kind: implicit_object_creation_expression
         - regex: '^new\s*\(\s*[^,]+,\s*"[A-Za-z]'
+    - all:
+        - kind: implicit_object_creation_expression
+        - regex: '^new\s*\(\s*"[A-Za-z]'
+        - inside:
+            kind: variable_declaration
+            stopBy: end
+            has:
+              kind: identifier
+              regex: '^Nav(Item|Group)$'
 examples:
   - code: |
       var item = new NavItem("My Posts", "/my/posts", "sidebar-nav-my-posts");
@@ -29,6 +38,14 @@ examples:
       NavIntent intent = new("settings", "Settings", "settings-2", []);
     isValid: false
     file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.SettingsIntent.cs'
+  - code: |
+      NavItem item = new("My Posts", "/my/posts", "sidebar-nav-my-posts");
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.DiscoveryIntents.cs'
+  - code: |
+      NavGroup group = new("Bookmarks", "sidebar-group-bookmarks", []);
+    isValid: false
+    file: 'dotnet-clients/src/Voucha.Client.Core/Navigation/NavigationCatalog.MediaIntents.cs'
   - code: |
       var item = new NavItem(UiMessageKey.ExtractedIntentsProductPostsPostsA80811cf, "/posts", "sidebar-nav-posts");
     isValid: true

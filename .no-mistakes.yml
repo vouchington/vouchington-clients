@@ -2,6 +2,7 @@ tests:
   swift:
     packages:
       - swift-clients/core
+      - swift-clients/test-support
       - swift-clients/ui
       - swift-clients/apps/android
   dotnet:
