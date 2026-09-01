@@ -1,4 +1,6 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Contributions;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Posts;
 

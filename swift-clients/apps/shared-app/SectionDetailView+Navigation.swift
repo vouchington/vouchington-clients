@@ -41,6 +41,7 @@ extension SectionDetailView {
             .navigationDestination(for: String.self) { targetPath in
                 nativeRouteDestination(for: targetPath)
             }
+            // swiftformat:disable indent
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -54,6 +55,7 @@ extension SectionDetailView {
                 signInToolbarItem
             }
             #endif
+            // swiftformat:enable indent
         }
         .onChange(of: nativeRouteDispatchGeneration) { _, _ in nativeRouteHistory = [] }
         .onChange(of: section) { _, _ in nativeRouteHistory = [] }
