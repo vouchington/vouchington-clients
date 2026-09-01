@@ -13,6 +13,9 @@ public sealed class ProviderEmbedPlayerSourceTests
     Assert.Contains("Uri sourceUrl", page, StringComparison.Ordinal);
     Assert.Contains("IsValidSource(sourceUrl)", page, StringComparison.Ordinal);
     Assert.DoesNotContain("open.IsVisible", page, StringComparison.Ordinal);
+    Assert.Contains("active.Unload()", page, StringComparison.Ordinal);
+    Assert.Contains("player = new ProviderEmbedWebView()", page, StringComparison.Ordinal);
+    Assert.Contains("playerLayout.Remove(active)", page, StringComparison.Ordinal);
     var shared = Source("Controls", "ProviderEmbedWebView.cs");
     Assert.Contains("HeightRequest = 200", shared, StringComparison.Ordinal);
     Assert.Contains("https://{AppInfo.Current.PackageName}/", shared, StringComparison.Ordinal);
@@ -56,6 +59,29 @@ public sealed class ProviderEmbedPlayerSourceTests
     Assert.Contains("EmbedPreview.ThumbnailUrl", page, StringComparison.Ordinal);
     Assert.Contains("EmbedPreview.HasSource", page, StringComparison.Ordinal);
     Assert.Contains("OnEmbedOpenClicked", page, StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public void FeedSurfacesChooseTheEmbedSourceActionWhenAvailable()
+  {
+    var news = Source("Pages", "NewsFeedsPage.xaml");
+    var rss = Source("Pages", "RssFeedItemDetailPage.cs");
+
+    Assert.Contains("CanOpenExternally", news, StringComparison.Ordinal);
+    Assert.Contains("EmbedPreview.HasSource", news, StringComparison.Ordinal);
+    Assert.Contains("CanOpenExternally", rss, StringComparison.Ordinal);
+    Assert.Contains("EmbedPreview.HasSource", rss, StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public void ProfileHistoryRendersAndOperatesEmbedPreview()
+  {
+    var page = Source("Pages", "ProfilePage.xaml") + Source("Pages", "ProfilePage.EmbedPreview.cs");
+
+    Assert.Contains("EmbedPreview.Provider", page, StringComparison.Ordinal);
+    Assert.Contains("EmbedPreview.CanPlay", page, StringComparison.Ordinal);
+    Assert.Contains("EmbedPreview.HasSource", page, StringComparison.Ordinal);
+    Assert.Contains("EmbedPlayerPage", page, StringComparison.Ordinal);
   }
 
   private static string Source(string directory, string file, [CallerFilePath] string sourceFile = "")

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Profiles;
 using Xunit;
 
@@ -6,6 +7,32 @@ namespace Voucha.Client.Core.Tests.Profiles;
 
 public sealed partial class ProfileViewModelSafetyTests
 {
+  [Fact]
+  public async Task PostsHistoryUsesResponseEmbedSidecar()
+  {
+    var embed = new UrlEmbed(
+        Title: "Embedded post",
+        SourceUrl: "https://example.com/post",
+        PlayerUrl: "https://www.youtube-nocookie.com/embed/example");
+    var posts = new RecordingPostsService
+    {
+      FetchPostsAsyncOverride = (_, request) => Task.FromResult(new PostsFeedResponse(
+          [Reference("post-1")],
+          new PageInfo(null, false, null),
+          new Dictionary<string, Post> { ["post-1"] = new("post-1", "review", "Post", "Body", request.Creator) },
+          new Dictionary<string, User>(),
+          new Dictionary<string, Community>(),
+          PostLinkEmbeds: new Dictionary<string, UrlEmbed> { ["post-1"] = embed })),
+    };
+    var viewModel = NewViewModel(new User("user-2", "bob", "Hello"), posts: posts);
+
+    await viewModel.LoadPublicScopeAsync("bob", NativeUserProfileScope.Overview, TestContext.Current.CancellationToken);
+
+    var preview = Assert.IsType<UrlEmbedPreview>(Assert.Single(viewModel.HistoryItems).EmbedPreview);
+    Assert.Equal("Embedded post", preview.Title);
+    Assert.True(preview.CanPlay);
+  }
+
   [Fact]
   public async Task PostsScopeLoadsSelectedTypeAndAppendsStableCursorPage()
   {

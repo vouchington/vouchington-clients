@@ -1,4 +1,5 @@
 using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
@@ -28,6 +29,30 @@ public sealed class NewsFeedItemAndSampleServiceTests
     Assert.True(item.CanOpenExternally);
     Assert.Equal("peertube", item.VideoPlatform);
     Assert.Equal("native-playback", item.VideoId);
+  }
+
+  [Fact]
+  public void EmbedSourceSupersedesTheDuplicateFeedSourceAction()
+  {
+    var item = new NewsFeedItem(
+        "video-1",
+        "Release demo",
+        "Voucha Video",
+        "Summary",
+        new Uri("https://example.com/video"),
+        DateTimeOffset.Parse("2026-06-28T13:30:00Z"),
+        NewsFeedItemKind.Media,
+        ProtocolMediaType: "audio",
+        EmbedPreview: new UrlEmbedPreview(
+            "Provider",
+            "Title",
+            null,
+            null,
+            new Uri("https://example.com/video"),
+            null));
+
+    Assert.False(item.CanOpenExternally);
+    Assert.True(item.HasExternalAudioFallback);
   }
 
   [Theory]

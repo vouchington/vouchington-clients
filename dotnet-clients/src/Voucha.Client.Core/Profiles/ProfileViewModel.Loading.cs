@@ -156,6 +156,7 @@ public sealed partial class ProfileViewModel
               response.ElectionVotes,
               response.Bookmarks,
               response.MarkdownToHtml,
+              response.PostLinkEmbeds,
               localization))
           .ToArray();
       HistoryItems = append

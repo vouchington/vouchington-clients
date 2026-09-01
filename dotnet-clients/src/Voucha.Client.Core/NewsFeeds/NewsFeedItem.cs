@@ -61,13 +61,13 @@ public sealed record NewsFeedItem(
 
   public bool HasDirectPlayback => MediaUrl is not null;
 
-  public bool CanOpenExternally => Link is not null;
+  public bool CanOpenExternally => Link is not null && EmbedPreview?.HasSource != true;
 
   public bool IsEmbedOnlyVideo => IsVideoMedia && !HasDirectPlayback;
 
   public bool IsEmbedOnlyVideoUnavailable => IsEmbedOnlyVideo && EmbedPreview?.CanPlay != true;
 
-  public bool HasExternalAudioFallback => IsAudioMedia && !HasDirectPlayback && CanOpenExternally;
+  public bool HasExternalAudioFallback => IsAudioMedia && !HasDirectPlayback && Link is not null;
 
   public bool HasMediaPlayback => IsMedia && (HasDirectPlayback || HasExternalAudioFallback);
 

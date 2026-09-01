@@ -211,6 +211,16 @@
                                     <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
                                     <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
                                     <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding Body}" MaxLines="3" />
+                                    <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
+                                        <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
+                                        <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                        <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                        <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnHistoryEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.CanPlay}" />
+                                            <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnHistoryEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.HasSource}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
                                     <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
                                 </VerticalStackLayout>
                             </Border>
