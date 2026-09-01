@@ -41,10 +41,11 @@ public struct ProviderEmbedPreview: View {
                     _ = player
                     showingPlayer = true
                 }
-                .sheet(isPresented: $showingPlayer) {
-                    ProviderEmbedPlayer(url: player.playerURL, sourceURL: player.sourceURL)
-                        .frame(minHeight: 200)
-                }
+                .providerEmbedPlayerSheet(
+                    isPresented: $showingPlayer,
+                    playerURL: player.playerURL,
+                    sourceURL: player.sourceURL
+                )
             }
             if let sourceURL = embed.validatedSourceURL {
                 Link(destination: sourceURL) {
@@ -56,7 +57,32 @@ public struct ProviderEmbedPreview: View {
             }
         }
     }
+}
 
+private extension View {
+    func providerEmbedPlayerSheet(isPresented: Binding<Bool>, playerURL: URL, sourceURL: URL) -> some View {
+        modifier(ProviderEmbedPlayerSheet(isPresented: isPresented, playerURL: playerURL, sourceURL: sourceURL))
+    }
+}
+
+struct ProviderEmbedPlayerSheet: ViewModifier {
+    let isPresented: Binding<Bool>
+    let playerURL: URL
+    let sourceURL: URL
+
+    fileprivate init(isPresented: Binding<Bool>, playerURL: URL, sourceURL: URL) {
+        self.isPresented = isPresented
+        self.playerURL = playerURL
+        self.sourceURL = sourceURL
+    }
+
+    var popupBuilder: () -> AnyView {
+        { AnyView(ProviderEmbedPlayer(url: playerURL, sourceURL: sourceURL).frame(minHeight: 200)) }
+    }
+
+    func body(content: Content) -> some View {
+        content.sheet(isPresented: isPresented, content: popupBuilder)
+    }
 }
 
 private struct ProviderEmbedPlayer: View {
