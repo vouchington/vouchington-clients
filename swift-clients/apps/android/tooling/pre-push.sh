@@ -166,7 +166,7 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     printf '| Command | Elapsed |\n'
     printf '| --- | ---: |\n'
     printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
-  } >> "$GITHUB_STEP_SUMMARY"
+  } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
 fi
 
 skip android test \
