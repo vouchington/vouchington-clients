@@ -355,10 +355,36 @@ jobs:
           ./dotnet-clients/tooling/harness.sh --exec
           dotnet test Voucha.DotNet.sln
           --configuration Release --no-build
+          --filter "FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto"
           --collect:"XPlat Code Coverage"
           --results-directory TestResults/core --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
+      - name: Test .NET DTO fixture parity separately
+        id: dotnet-dto-fixture-parity
+        if: matrix.os == 'linux'
+        continue-on-error: true
+        working-directory: candidate-clients
+        run: >-
+          ./dotnet-clients/tooling/harness.sh --exec
+          dotnet test Voucha.DotNet.sln
+          --configuration Release --no-build
+          --filter "FullyQualifiedName~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto"
+      - name: Record .NET DTO fixture parity result
+        if: always() && matrix.os == 'linux'
+        working-directory: candidate-clients
+        env:
+          DTO_FIXTURE_PARITY_OUTCOME: ${{ steps.dotnet-dto-fixture-parity.outcome }}
+        run: printf '%s\n' "$DTO_FIXTURE_PARITY_OUTCOME" > dto-fixture-parity-dotnet.txt
+      - name: Upload .NET DTO fixture parity result
+        if: always() && matrix.os == 'linux'
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: dto-fixture-parity-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/dto-fixture-parity-dotnet.txt
+          retention-days: 1
+          if-no-files-found: error
       - name: Normalize Core coverage report
         if: matrix.os == 'linux'
         working-directory: candidate-clients/dotnet-clients
@@ -499,6 +525,30 @@ jobs:
         run: >-
           bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+          --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
+      - name: Test Swift DTO fixture parity separately
+        id: swift-dto-fixture-parity
+        continue-on-error: true
+        working-directory: candidate-clients
+        run: >-
+          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
+          --force-resolved-versions --disable-dependency-cache
+          --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
+      - name: Record Swift DTO fixture parity result
+        if: always()
+        working-directory: candidate-clients
+        env:
+          DTO_FIXTURE_PARITY_OUTCOME: ${{ steps.swift-dto-fixture-parity.outcome }}
+        run: printf '%s\n' "$DTO_FIXTURE_PARITY_OUTCOME" > dto-fixture-parity-swift.txt
+      - name: Upload Swift DTO fixture parity result
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: dto-fixture-parity-swift-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/dto-fixture-parity-swift.txt
+          retention-days: 1
+          if-no-files-found: error
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -923,6 +973,38 @@ jobs:
         env:
           PRESERVE_NODE_MODULES: "false"
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  native-dto-fixture-parity:
+    name: Native DTO fixture parity (advisory)
+    if: always()
+    needs:
+      - dotnet-portable
+      - test-swift-core
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Download .NET DTO fixture parity result
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: dto-fixture-parity-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dto-fixture-parity
+      - name: Download Swift DTO fixture parity result
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: dto-fixture-parity-swift-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dto-fixture-parity
+      - name: Report missing native DTO fields
+        run: |
+          set -euo pipefail
+          dotnet_outcome=$(<dto-fixture-parity/dto-fixture-parity-dotnet.txt)
+          swift_outcome=$(<dto-fixture-parity/dto-fixture-parity-swift.txt)
+          if [[ "$dotnet_outcome" != success || "$swift_outcome" != success ]]; then
+            echo "::error::Native DTO fixture parity failed (Swift: $swift_outcome; .NET: $dotnet_outcome). One or both clients drop fields from verified API fixtures."
+            exit 1
+          fi
 
   tests:
     name: Tests

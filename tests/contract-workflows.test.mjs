@@ -330,4 +330,26 @@ describe("native contract workflow boundary", () => {
     assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u);
     assert.doesNotMatch(workflow, /Filaments contract parity|check-runs/u);
   });
+
+  it("reports DTO fixture field drift in one advisory check outside the Tests gate", async () => {
+    const workflow = await readWorkflow("native-contract-tests.yml");
+    const dotnetJob = jobBlock(workflow, "dotnet-portable");
+    const swiftJob = jobBlock(workflow, "test-swift-core");
+    const parityJob = jobBlock(workflow, "native-dto-fixture-parity");
+    const testsJob = jobBlock(workflow, "tests");
+
+    assert.match(
+      dotnetJob,
+      /--filter "FullyQualifiedName!~ApiFixtureCoverageTests\.FixtureFieldsRoundTripThroughTheDto"/u,
+    );
+    assert.match(dotnetJob, /name: Test \.NET DTO fixture parity separately[\s\S]*continue-on-error: true/u);
+    assert.match(
+      swiftJob,
+      /--skip 'VouchaCoreTests\.ApiFixtureCoverageTests\/testRegisteredFixturesRoundTripThroughTheirDTO'/u,
+    );
+    assert.match(swiftJob, /name: Test Swift DTO fixture parity separately[\s\S]*continue-on-error: true/u);
+    assert.match(parityJob, /name: Native DTO fixture parity \(advisory\)/u);
+    assert.match(parityJob, /Report missing native DTO fields/u);
+    assert.doesNotMatch(testsJob, /native-dto-fixture-parity/u);
+  });
 });

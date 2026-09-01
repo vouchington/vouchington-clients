@@ -12,6 +12,9 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
     public let title: String?
     public let urlId: String?
     public let crawlerId: String?
+    public let embedMetadata: DecodedJSONValue?
+    public let embedOembedResolvedAt: Date?
+    public let embedOembedUrl: String?
     public let embeddingsGeneratedAt: Date?
     public let etag: String?
     public let hasPendingEmbeddings: Bool?
@@ -36,7 +39,8 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         case metaTags
         case title
         case urlId
-        case crawlerId, embeddingsGeneratedAt, etag, hasPendingEmbeddings, htmlSha256
+        case crawlerId, embedMetadata, embedOembedResolvedAt, embedOembedUrl
+        case embeddingsGeneratedAt, etag, hasPendingEmbeddings, htmlSha256
         case htmlSnapshotUploadedAt, lastModifiedAt, links, networkError, redirectUrlId
         case requestHeaders, responseHeaders
     }
@@ -55,6 +59,9 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         title = try container.decodeIfPresent(String.self, forKey: .title)
         urlId = try container.decodeIfPresent(String.self, forKey: .urlId)
         crawlerId = try container.decodeIfPresent(String.self, forKey: .crawlerId)
+        embedMetadata = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .embedMetadata)
+        embedOembedResolvedAt = try container.decodeIfPresent(Date.self, forKey: .embedOembedResolvedAt)
+        embedOembedUrl = try container.decodeIfPresent(String.self, forKey: .embedOembedUrl)
         embeddingsGeneratedAt = try container.decodeIfPresent(Date.self, forKey: .embeddingsGeneratedAt)
         etag = try container.decodeIfPresent(String.self, forKey: .etag)
         hasPendingEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .hasPendingEmbeddings)
@@ -87,6 +94,9 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         try encode(title, forKey: .title, to: &container)
         try encode(urlId, forKey: .urlId, to: &container)
         try encode(crawlerId, forKey: .crawlerId, to: &container)
+        try encode(embedMetadata, forKey: .embedMetadata, to: &container)
+        try encode(embedOembedResolvedAt, forKey: .embedOembedResolvedAt, to: &container)
+        try encode(embedOembedUrl, forKey: .embedOembedUrl, to: &container)
         try encode(embeddingsGeneratedAt, forKey: .embeddingsGeneratedAt, to: &container)
         try encode(etag, forKey: .etag, to: &container)
         try encode(hasPendingEmbeddings, forKey: .hasPendingEmbeddings, to: &container)

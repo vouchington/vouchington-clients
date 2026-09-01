@@ -3,6 +3,41 @@ import Foundation
 import XCTest
 
 final class UrlCrawlEncodingTests: XCTestCase {
+    func testPreservesEmbedResolutionFields() throws {
+        let response = try makeVouchaDecoder().decode(
+            UrlCrawlResponse.self,
+            from: Data(
+                """
+                {
+                  "crawl": {
+                    "id": "crawl-1",
+                    "embed_metadata": {
+                      "title": "Example",
+                      "provider": { "key": "youtube", "name": "YouTube" },
+                      "player": { "url": "https://www.youtube.com/embed/example", "width": 640 }
+                    },
+                    "embed_oembed_url": "https://www.youtube.com/oembed",
+                    "embed_oembed_resolved_at": "2026-09-01T00:00:00Z"
+                  },
+                  "og_image_sideload": null
+                }
+                """.utf8
+            )
+        )
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let crawl = try crawlObject(from: encoder.encode(response))
+        let metadata = try XCTUnwrap(crawl["embed_metadata"] as? [String: Any])
+        let provider = try XCTUnwrap(metadata["provider"] as? [String: Any])
+
+        XCTAssertEqual(metadata["title"] as? String, "Example")
+        XCTAssertEqual(provider["key"] as? String, "youtube")
+        XCTAssertEqual(crawl["embed_oembed_url"] as? String, "https://www.youtube.com/oembed")
+        XCTAssertEqual(crawl["embed_oembed_resolved_at"] as? String, "2026-09-01T00:00:00Z")
+    }
+
     func testPreservesPrivilegedExplicitNullCrawlFieldsWhileLeavingPaidOmissionsAbsent() throws {
         let decoder = makeVouchaDecoder()
         let privileged = try decoder.decode(
