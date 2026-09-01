@@ -8,10 +8,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
     public let completedAt: Date?
     public let lang: String?
     public let markdown: String?
-    public let metaTags: [String: DecodedJSONValue]?
-    public let embedMetadata: DecodedJSONValue?
-    public let embedOembedUrl: String?
-    public let embedOembedResolvedAt: Date?
+    public let metaTags: [String: IntegerPreservingJSONValue]?
     public let title: String?
     public let urlId: String?
     public let crawlerId: String?
@@ -40,7 +37,6 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         case lang
         case markdown
         case metaTags
-        case embedMetadata, embedOembedUrl, embedOembedResolvedAt
         case title
         case urlId
         case crawlerId, embedMetadata, embedOembedResolvedAt, embedOembedUrl
@@ -59,10 +55,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         lang = try container.decodeIfPresent(String.self, forKey: .lang)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
-        metaTags = try container.decodeIfPresent([String: DecodedJSONValue].self, forKey: .metaTags)
-        embedMetadata = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .embedMetadata)
-        embedOembedUrl = try container.decodeIfPresent(String.self, forKey: .embedOembedUrl)
-        embedOembedResolvedAt = try container.decodeIfPresent(Date.self, forKey: .embedOembedResolvedAt)
+        metaTags = try container.decodeIfPresent([String: IntegerPreservingJSONValue].self, forKey: .metaTags)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         urlId = try container.decodeIfPresent(String.self, forKey: .urlId)
         crawlerId = try container.decodeIfPresent(String.self, forKey: .crawlerId)
@@ -98,9 +91,6 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         try encode(lang, forKey: .lang, to: &container)
         try encode(markdown, forKey: .markdown, to: &container)
         try encode(metaTags, forKey: .metaTags, to: &container)
-        try encode(embedMetadata, forKey: .embedMetadata, to: &container)
-        try encode(embedOembedUrl, forKey: .embedOembedUrl, to: &container)
-        try encode(embedOembedResolvedAt, forKey: .embedOembedResolvedAt, to: &container)
         try encode(title, forKey: .title, to: &container)
         try encode(urlId, forKey: .urlId, to: &container)
         try encode(crawlerId, forKey: .crawlerId, to: &container)

@@ -1,9 +1,7 @@
-import Foundation
-
-public enum DecodedJSONValue: Codable, Sendable, Equatable {
+public enum DecodedJSONValue: Codable, Sendable {
     case null
     case bool(Bool)
-    case number(Decimal)
+    case number(Double)
     case string(String)
     case array([DecodedJSONValue])
     case object([String: DecodedJSONValue])
@@ -14,7 +12,7 @@ public enum DecodedJSONValue: Codable, Sendable, Equatable {
             self = .null
         } else if let value = try? container.decode(Bool.self) {
             self = .bool(value)
-        } else if let value = try? container.decode(Decimal.self) {
+        } else if let value = try? container.decode(Double.self) {
             self = .number(value)
         } else if let value = try? container.decode(String.self) {
             self = .string(value)

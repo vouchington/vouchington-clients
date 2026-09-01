@@ -1,5 +1,3 @@
-import Foundation
-
 public struct RssFeedItemCategoryModel: Codable, Sendable {
     public let id: String?
     public let categoryText: String
@@ -90,7 +88,7 @@ public struct RssFeedItemDataModel: Codable, Sendable {
         object["media_type"] = mediaType.map(DecodedJSONValue.string)
         object["enclosure_url"] = enclosureURL.map(DecodedJSONValue.string)
         object["enclosure_type"] = enclosureType.map(DecodedJSONValue.string)
-        object["duration_seconds"] = durationSeconds.map { .number(Decimal($0)) }
+        object["duration_seconds"] = durationSeconds.map { .number(Double($0)) }
         object["thumbnail_url"] = thumbnailURL.map(DecodedJSONValue.string)
         object["videoId"] = videoID.map(DecodedJSONValue.string)
         object["video_platform"] = videoPlatform.map(DecodedJSONValue.string)

@@ -22,12 +22,11 @@ public static class UrlEmbedPreviews
   public static UrlEmbedPreview From(UrlEmbed? embed)
   {
     var tags = embed?.MetaTags;
-    var metadata = embed?.EmbedMetadata;
-    var source = SafeUri(embed?.SourceUrl ?? metadata?.ResolvedUrl);
+    var source = SafeUri(embed?.SourceUrl);
     return new(
-        First(embed?.Title, metadata?.Title, Tag(tags, "og:title"), Tag(tags, "twitter:title")),
-        First(embed?.Description, metadata?.Description, Tag(tags, "og:description"), Tag(tags, "twitter:description")),
-        First(embed?.ProviderName, metadata?.Provider?.Name, Tag(tags, "og:site_name"), source?.Host),
+        First(embed?.Title, Tag(tags, "og:title"), Tag(tags, "twitter:title")),
+        First(embed?.Description, Tag(tags, "og:description"), Tag(tags, "twitter:description")),
+        First(embed?.ProviderName, Tag(tags, "og:site_name"), source?.Host),
         SafeUri(embed?.ThumbnailUrl),
         source,
         SafePlayer(embed?.PlayerUrl));
@@ -68,6 +67,14 @@ public static class UrlEmbedPreviews
     return null;
   }
 
-  private static string? First(params string?[] values) =>
-      values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value));
+  private static string? First(params string?[] values)
+  {
+    foreach (var value in values)
+    {
+      var trimmed = value?.Trim();
+      if (!string.IsNullOrEmpty(trimmed)) return trimmed;
+    }
+
+    return null;
+  }
 }

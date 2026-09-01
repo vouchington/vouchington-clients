@@ -23,8 +23,8 @@ public struct UrlEmbed: Codable, Sendable {
     public let showTitle: String?
     public let showTopicSlug: String?
     public let showTopicType: String?
-    public let embedMetadata: DecodedJSONValue?
-    public let metaTags: [String: DecodedJSONValue]?
+    public let embedMetadata: IntegerPreservingJSONValue?
+    public let metaTags: [String: IntegerPreservingJSONValue]?
     public let embedOembedUrl: String?
     public let embedOembedResolvedAt: Date?
 
@@ -59,7 +59,6 @@ public struct UrlEmbed: Codable, Sendable {
     public var previewTitle: String? {
         firstNonEmpty(
             title,
-            metadataString("title"),
             metaTag("og:title"),
             metaTag("twitter:title")
         )
@@ -68,7 +67,6 @@ public struct UrlEmbed: Codable, Sendable {
     public var previewDescription: String? {
         firstNonEmpty(
             description,
-            metadataString("description"),
             metaTag("og:description"),
             metaTag("twitter:description")
         )
@@ -78,16 +76,10 @@ public struct UrlEmbed: Codable, Sendable {
         if let providerName = Self.trimmedNonEmpty(providerName) {
             return providerName
         }
-        if case let .object(metadata)? = embedMetadata,
-           case let .object(provider)? = metadata["provider"],
-           case let .string(name)? = provider["name"],
-           let name = Self.trimmedNonEmpty(name) {
-            return name
-        }
         if let siteName = metaTag("og:site_name") {
             return siteName
         }
-        guard let sourceUrl, let host = URL(string: sourceUrl)?.host else { return nil }
+        guard let host = validatedSourceURL?.host else { return nil }
         return Self.trimmedNonEmpty(host)
     }
 
@@ -123,15 +115,12 @@ public struct UrlEmbed: Codable, Sendable {
     }
 
     public static func isAllowedSourceURL(_ url: URL) -> Bool {
-        url.scheme == "https" && url.user == nil && url.password == nil && url
-            .port == nil && rawAuthority(of: url) != nil
-    }
-
-    private func metadataString(_ key: String) -> String? {
-        guard case let .object(metadata)? = embedMetadata,
-              case let .string(value)? = metadata[key]
-        else { return nil }
-        return Self.trimmedNonEmpty(value)
+        guard url.scheme == "https",
+              url.user == nil, url.password == nil, url.port == nil,
+              let host = url.host,
+              !host.isEmpty
+        else { return false }
+        return rawAuthority(of: url) != nil
     }
 
     private func metaTag(_ key: String) -> String? {

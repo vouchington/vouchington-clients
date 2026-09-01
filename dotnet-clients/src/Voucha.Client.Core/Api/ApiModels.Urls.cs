@@ -24,9 +24,6 @@ public sealed record Crawl(
     [property: JsonPropertyName("title")] string? Title = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, JsonElement>? MetaTags = null,
-    [property: JsonPropertyName("embed_metadata")] ResolvedEmbed? EmbedMetadata = null,
-    [property: JsonPropertyName("embed_oembed_url")] string? EmbedOembedUrl = null,
-    [property: JsonPropertyName("embed_oembed_resolved_at")] DateTimeOffset? EmbedOembedResolvedAt = null,
     [property: JsonPropertyName("lang")] string? Lang = null,
     [property: JsonPropertyName("request_headers")] IReadOnlyDictionary<string, string>? RequestHeaders = null,
     [property: JsonPropertyName("response_headers")] IReadOnlyDictionary<string, string>? ResponseHeaders = null,
@@ -93,40 +90,9 @@ public sealed record UrlEmbed(
     [property: JsonPropertyName("show_title")] string? ShowTitle = null,
     [property: JsonPropertyName("show_topic_slug")] string? ShowTopicSlug = null,
     [property: JsonPropertyName("show_topic_type")] string? ShowTopicType = null,
-    [property: JsonPropertyName("embed_metadata")] ResolvedEmbed? EmbedMetadata = null,
+    [property: JsonPropertyName("embed_metadata")] JsonElement? EmbedMetadata = null,
     [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, JsonElement>? MetaTags = null,
     [property: JsonPropertyName("embed_oembed_url")] string? EmbedOembedUrl = null,
     [property: JsonPropertyName("embed_oembed_resolved_at")] DateTimeOffset? EmbedOembedResolvedAt = null);
-
-public sealed record ResolvedEmbed(
-    [property: JsonPropertyName("kind")] string Kind,
-    [property: JsonPropertyName("requestedUrl")] string RequestedUrl,
-    [property: JsonPropertyName("resolvedUrl")] string ResolvedUrl,
-    [property: JsonPropertyName("title")] string? Title = null,
-    [property: JsonPropertyName("description")] string? Description = null,
-    [property: JsonPropertyName("player")] EmbedPlayer? Player = null,
-    [property: JsonPropertyName("thumbnail")] EmbedImage? Thumbnail = null,
-    [property: JsonPropertyName("provider")] EmbedProviderMetadata? Provider = null,
-    [property: JsonPropertyName("author")] EmbedPerson? Author = null);
-
-public sealed record EmbedPlayer(
-    [property: JsonPropertyName("url")] string Url,
-    [property: JsonPropertyName("width")] double? Width = null,
-    [property: JsonPropertyName("height")] double? Height = null);
-
-public sealed record EmbedImage(
-    [property: JsonPropertyName("url")] string Url,
-    [property: JsonPropertyName("width")] double? Width = null,
-    [property: JsonPropertyName("height")] double? Height = null);
-
-public sealed record EmbedProviderMetadata(
-    [property: JsonPropertyName("key")] string? Key = null,
-    [property: JsonPropertyName("name")] string? Name = null,
-    [property: JsonPropertyName("resourceId")] string? ResourceId = null,
-    [property: JsonPropertyName("url")] string? Url = null);
-
-public sealed record EmbedPerson(
-    [property: JsonPropertyName("name")] string? Name = null,
-    [property: JsonPropertyName("url")] string? Url = null);
 
 #pragma warning restore CA1054, CA1056, CA1720

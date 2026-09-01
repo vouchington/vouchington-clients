@@ -8,7 +8,7 @@ namespace Voucha.Client.Core.Tests.Content;
 public sealed class UrlEmbedPreviewTests
 {
   [Fact]
-  public void SelectsSafeProjectionsThenRawMetadataAndPreservesRawTags()
+  public void SelectsSafeProjectionsThenRawTagsAndPreservesRawData()
   {
     var tags = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""
       {"OG:TITLE":"OG","twitter:title":"Twitter","og:description":"OG description","nested":{"raw":true},"og:image":"https://third-party.example/image.jpg"}
@@ -18,7 +18,6 @@ public sealed class UrlEmbedPreviewTests
         Description: "Safe description",
         ProviderName: "Safe provider",
         ThumbnailUrl: "https://images.voucha.ai/safe.jpg",
-        EmbedMetadata: new ResolvedEmbed("article", "https://source.example", "https://source.example", Title: "oEmbed", Description: "oEmbed description", Provider: new EmbedProviderMetadata(Name: "Provider")),
         MetaTags: tags));
 
     Assert.Equal("Normalized", preview.Title);
@@ -61,6 +60,22 @@ public sealed class UrlEmbedPreviewTests
   }
 
   [Fact]
+  public void TrimsSelectedValuesAndSkipsWhitespaceOnlyProjections()
+  {
+    var tags = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("{" +
+        "\"og:title\":\"  OG title  \",\"twitter:title\":\"Twitter title\"}")!;
+    var preview = UrlEmbedPreviews.From(new UrlEmbed(
+        Title: "  ",
+        Description: "  Safe description  ",
+        ProviderName: "\tSafe provider\t",
+        MetaTags: tags));
+
+    Assert.Equal("OG title", preview.Title);
+    Assert.Equal("Safe description", preview.Description);
+    Assert.Equal("Safe provider", preview.Provider);
+  }
+
+  [Fact]
   public void DoesNotAllowPlayerWithoutAValidHttpsSource()
   {
     var withoutSource = UrlEmbedPreviews.From(new UrlEmbed(PlayerUrl: "https://player.vimeo.com/video/123"));
@@ -74,14 +89,19 @@ public sealed class UrlEmbedPreviewTests
   }
 
   [Fact]
-  public void DecodesFractionalNestedEmbedDimensions()
+  public void PreservesUnknownNestedEmbedMetadata()
   {
     var embed = JsonSerializer.Deserialize<UrlEmbed>("""
-      {"embed_metadata":{"kind":"video","requestedUrl":"https://source.example","resolvedUrl":"https://source.example","player":{"url":"https://player.vimeo.com/video/123","width":640.5,"height":360.25},"thumbnail":{"url":"https://images.voucha.ai/safe.jpg","width":1280.5,"height":720.25}}}
+      {"embed_metadata":{"provider":{"key":"vimeo","future":{"enabled":true}},"player":{"width":640.5},"unknown":[1,false]},"meta_tags":{"nested":{"raw":true},"array":[1,"two"]}}
       """)!;
 
-    Assert.Equal(640.5, embed.EmbedMetadata?.Player?.Width);
-    Assert.Equal(720.25, embed.EmbedMetadata?.Thumbnail?.Height);
+    var metadata = embed.EmbedMetadata!.Value;
+    Assert.Equal(JsonValueKind.Object, metadata.ValueKind);
+    Assert.True(metadata.GetProperty("provider").GetProperty("future").GetProperty("enabled").GetBoolean());
+    Assert.Equal(640.5, metadata.GetProperty("player").GetProperty("width").GetDouble());
+    Assert.Equal(JsonValueKind.Array, metadata.GetProperty("unknown").ValueKind);
+    Assert.Equal(JsonValueKind.Object, embed.MetaTags!["nested"].ValueKind);
+    Assert.Equal(JsonValueKind.Array, embed.MetaTags["array"].ValueKind);
   }
 
   [Fact]
