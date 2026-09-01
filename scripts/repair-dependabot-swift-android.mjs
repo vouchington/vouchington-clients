@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseUniqueSwiftBinaryTargetChecksum } from 'vouchington-tooling/swift-source-offset'
+import { assertion, fetchBytes, sha256 } from './repair-dependabot-swift-android-helpers.mjs'
 import {
   SWIFT_ANDROID_MATERIALIZER_PATH,
   SWIFT_ANDROID_MANIFEST_PATH,
@@ -16,24 +16,6 @@ export const SKIP_RELEASE_ARCHIVE = version =>
   `https://github.com/skiptools/skip/releases/download/${version}/skip-macos.zip`
 export const SKIP_UPSTREAM_MANIFEST = revision =>
   `https://raw.githubusercontent.com/skiptools/skip/${revision}/Package.swift`
-function assertion(condition, message) {
-  if (!condition) throw new Error(message)
-}
-function sha256(bytes) {
-  return createHash('sha256').update(bytes).digest('hex')
-}
-async function responseBytes(response, url) {
-  assertion(response?.ok !== false, `failed to download ${url}`)
-  if (typeof response.arrayBuffer === 'function')
-    return new Uint8Array(await response.arrayBuffer())
-  if (typeof response.text === 'function') return new TextEncoder().encode(await response.text())
-  throw new Error(`download response for ${url} has no body reader`)
-}
-async function fetchBytes(url, fetchImpl = globalThis.fetch) {
-  assertion(typeof fetchImpl === 'function', 'a fetch implementation is required')
-  const response = await fetchImpl(url, { headers: { accept: 'application/octet-stream' } })
-  return responseBytes(response, url)
-}
 export async function resolveSkipRelease({
   version,
   revision,
