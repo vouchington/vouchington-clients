@@ -39,7 +39,7 @@ struct NativeChatToolResult: Identifiable {
         case let .bool(value):
             .verbatim(String(value))
         case let .number(value):
-            .verbatim(NSDecimalNumber(decimal: value).stringValue)
+            .verbatim(decimalDisplayText(value))
         case let .string(value):
             .verbatim(value)
         case let .array(value):
@@ -48,4 +48,9 @@ struct NativeChatToolResult: Identifiable {
             .count(value.count, item: "field")
         }
     }
+}
+
+private func decimalDisplayText(_ value: Decimal) -> String {
+    let text = value.description
+    return text.contains(".") ? text : "\(text).0"
 }
