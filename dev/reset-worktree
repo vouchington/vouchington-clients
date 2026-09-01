@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
+FORCE=false
+# Source before switching because origin/main may predate this command.
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib/clean-build-output.sh
+source "$REPO_ROOT/dev/lib/clean-build-output.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: ./dev/reset-worktree [--force]
+
+Return a disposable Git worktree to a fresh, ready-to-use origin/main state.
+The command refuses the repository's primary worktree and refuses dirty state
+unless --force is supplied. --force discards tracked and untracked changes.
+USAGE
+}
+
+for argument in "$@"; do
+  case "$argument" in
+    --force|-f)
+      if $FORCE; then
+        echo "Error: duplicate option: $argument" >&2
+        exit 2
+      fi
+      FORCE=true
+      ;;
+    --help|-h)
+      if [ "$#" -ne 1 ]; then
+        echo 'Error: help cannot be combined with other arguments.' >&2
+        exit 2
+      fi
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: unknown option: $argument" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+git_dir="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-dir)"
+common_dir="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir)"
+if [ "$git_dir" = "$common_dir" ]; then
+  echo 'Error: ./dev/reset-worktree may run only in a linked disposable worktree.' >&2
+  exit 1
+fi
+
+if ! $FORCE && [ -n "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=normal)" ]; then
+  echo 'Error: uncommitted or untracked changes detected.' >&2
+  echo 'Commit, stash, or remove them first, or rerun with --force to discard them.' >&2
+  exit 1
+fi
+
+echo 'Fetching origin/main...'
+git -C "$REPO_ROOT" fetch origin main
+
+new_branch="reset-$(date -u +%Y%m%d-%H%M%S)-$$"
+if $FORCE; then
+  git -C "$REPO_ROOT" switch --discard-changes -C "$new_branch" origin/main
+  git -C "$REPO_ROOT" clean -fd
+else
+  git -C "$REPO_ROOT" switch -C "$new_branch" origin/main
+fi
+
+clean_build_output "$REPO_ROOT"
+
+pnpm --dir "$REPO_ROOT" install --frozen-lockfile
+
+echo "Worktree reset to origin/main on $new_branch."

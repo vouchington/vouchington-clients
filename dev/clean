@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib/clean-build-output.sh
+source "$REPO_ROOT/dev/lib/clean-build-output.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: ./dev/clean
+
+Remove checkout-local build, coverage, and test output while preserving
+dependencies, credentials, generated localization, and source files.
+USAGE
+}
+
+if [ "$#" -gt 0 ]; then
+  if [ "$#" -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; then
+    usage
+    exit 0
+  fi
+  echo "Error: ./dev/clean does not accept arguments." >&2
+  usage >&2
+  exit 2
+fi
+
+clean_build_output "$REPO_ROOT"
+
+echo 'Removed native build, coverage, test, and disposable tool output.'

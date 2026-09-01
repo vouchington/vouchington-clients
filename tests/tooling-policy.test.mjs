@@ -30,6 +30,7 @@ describe('repository tooling policy', () => {
       'lint',
       'lint:portable',
       'lint:ast-grep',
+      'lint:complexity',
       'lint:dependencies',
       'lint:gitleaks',
       'lint:github-actions',
@@ -51,12 +52,20 @@ describe('repository tooling policy', () => {
     for (const pin of [
       'actionlint = "1.7.12"',
       'shellcheck = "0.11.0"',
+      '"github:boyter/scc" = "3.7.0"',
       'zizmor = "1.26.1"',
       '"aqua:gitleaks/gitleaks" = "8.30.1"',
       '"aqua:lycheeverse/lychee" = "0.24.2"',
     ]) {
       assert.match(mise, new RegExp(pin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'))
     }
+  })
+
+  it('enforces the shared SCC complexity guard', async () => {
+    const complexity = await text('scripts/scc-complexity.mjs')
+    assert.match(complexity, /vouchington-tooling\/scc-complexity/u)
+    assert.match(complexity, /checkSccComplexity/u)
+    assert.match(complexity, /\.github,dev/u)
   })
 
   it('uses default Gitleaks rules without a baseline or allowlist', async () => {
