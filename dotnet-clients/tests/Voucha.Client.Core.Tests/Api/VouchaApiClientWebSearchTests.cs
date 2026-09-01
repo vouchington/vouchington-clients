@@ -178,6 +178,50 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchUrlCrawlAsyncPreservesEmbedResolutionFields()
+  {
+    var handler = new RecordingHandler("""
+        {
+          "crawl": {
+            "id": "crawl-1",
+            "url_id": "url-1",
+            "created_at": "2026-09-01T00:00:00Z",
+            "completed_at": null,
+            "response_status_code": 200,
+            "embed_metadata": {
+              "title": "Example",
+              "provider": { "key": "youtube", "name": "YouTube" }
+            },
+            "embed_oembed_url": "https://www.youtube.com/oembed",
+            "embed_oembed_resolved_at": "2026-09-01T00:00:00Z"
+          },
+          "og_image_sideload": null
+        }
+        """);
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+
+    var response = await client.FetchUrlCrawlAsync("url-1", "crawl-1", TestContext.Current.CancellationToken);
+
+    Assert.True(response.Crawl.EmbedMetadata.HasValue);
+    Assert.Equal("Example", response.Crawl.EmbedMetadata.Value.GetProperty("title").GetString());
+    Assert.Equal("youtube", response.Crawl.EmbedMetadata.Value.GetProperty("provider").GetProperty("key").GetString());
+    Assert.Equal("https://www.youtube.com/oembed", response.Crawl.EmbedOembedUrl);
+    Assert.Equal(DateTimeOffset.Parse("2026-09-01T00:00:00Z"), response.Crawl.EmbedOembedResolvedAt);
+
+    var encoded = JsonSerializer.Serialize(response.Crawl, VouchaApiJson.Options);
+    using var document = JsonDocument.Parse(encoded);
+    var crawl = document.RootElement;
+    Assert.Equal("Example", crawl.GetProperty("embed_metadata").GetProperty("title").GetString());
+    Assert.Equal(
+        "youtube",
+        crawl.GetProperty("embed_metadata").GetProperty("provider").GetProperty("key").GetString());
+    Assert.Equal("https://www.youtube.com/oembed", crawl.GetProperty("embed_oembed_url").GetString());
+    Assert.Equal(
+        "2026-09-01T00:00:00+00:00",
+        crawl.GetProperty("embed_oembed_resolved_at").GetString());
+  }
+
+  [Fact]
   public async Task TriggerUrlCrawlAsyncUsesSharedFixture()
   {
     var (client, handler) = CreateClient("native.url-crawl-trigger.default");
