@@ -1,5 +1,6 @@
-using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
+using Voucha.Client.Core.NewsFeeds;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
