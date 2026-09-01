@@ -1,14 +1,15 @@
 packages: []
 allowBuilds:
-  "@ast-grep/cli": true
+  '@ast-grep/cli': true
   esbuild: false
   no-mistakes: true
 strictDepBuilds: true
 engineStrict: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - vouchington-tooling@0.1.5
-  # Audited native quality gate required by issue #51.
-  - no-mistakes@0.52.2
+  - coverage-check
+  - no-mistakes
+  - pr-shepherd
+  - vouchington-tooling
 preferFrozenLockfile: true
 verifyDepsBeforeRun: error

@@ -8,8 +8,21 @@ updates:
       default-days: 7
       exclude:
         - coverage-check
+        - no-mistakes
+        - pr-shepherd
         - vouchington-tooling
     open-pull-requests-limit: 5
+    groups:
+      tooling:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - '*'
+      tooling-security:
+        applies-to: security-updates
+        dependency-type: development
+        patterns:
+          - '*'
 
   - package-ecosystem: github-actions
     directory: /
@@ -18,6 +31,15 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - '*'
 
   - package-ecosystem: nuget
     directory: /dotnet-clients

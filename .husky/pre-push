@@ -1,0 +1,2 @@
+pnpm exec vouchington require-up-to-date --remote origin --branch main
+pnpm run lint

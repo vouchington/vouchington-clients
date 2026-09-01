@@ -1,4 +1,13 @@
 node_modules/
+.lycheecache
 .nuget/
 *.contracts-backup
 .contracts-stage-*
+
+# Agent worktree/runtime state
+.claude/worktrees/
+.codex/worktrees/
+.cursor/worktrees/
+.grok/worktrees/
+.local/
+.worktrees/

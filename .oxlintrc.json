@@ -1,0 +1,38 @@
+{
+  "$schema": "https://oxc.rs/schema/oxlintrc.json",
+  "ignorePatterns": ["**/.agents/skills/**", "**/.claude/skills/**"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "error",
+    "respectEslintDisableDirectives": true
+  },
+  "rules": {
+    "max-lines": [
+      "error",
+      {
+        "max": 200,
+        "skipBlankLines": false,
+        "skipComments": false
+      }
+    ],
+    "radix": "error",
+    "unicorn/prefer-node-protocol": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/tests/**/*.mjs", "**/*.test.mjs"],
+      "rules": {
+        "max-lines": [
+          "error",
+          {
+            "max": 500,
+            "skipBlankLines": false,
+            "skipComments": false
+          }
+        ]
+      }
+    }
+  ]
+}

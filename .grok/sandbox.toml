@@ -1,0 +1,20 @@
+# Portable workspace-write profile for Grok native-client work.
+# Launch with: grok --sandbox workspace-write
+
+[profiles.workspace-write]
+extends = "workspace"
+read_write = [
+  "~/.cargo",
+  "~/.nuget/packages",
+  "~/Library/pnpm",
+  "~/.local/share/pnpm",
+  "~/.pnpm-store",
+  "~/Library/Caches/no-mistakes",
+  "~/Library/Caches/pnpm",
+  "~/.pnpm-state",
+  "~/.cache/no-mistakes",
+  "~/.cache/pnpm",
+  "~/.local/state/pnpm",
+  "/var/folders",
+  "/private/var/folders",
+]

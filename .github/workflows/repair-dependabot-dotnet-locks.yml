@@ -4,14 +4,14 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review]
     paths:
-      - "dotnet-clients/Directory.Packages.props"
-      - "dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json"
-      - "dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json"
-      - "dotnet-clients/src/Voucha.Client.Core/packages.lock.json"
-      - "dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json"
-      - "dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json"
-      - "dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json"
-      - "dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json"
+      - 'dotnet-clients/Directory.Packages.props'
+      - 'dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.Core/packages.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json'
+      - 'dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json'
+      - 'dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json'
 
 permissions:
   contents: read
@@ -43,7 +43,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Capture live Dependabot identity
         id: live
@@ -221,7 +221,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   publish:
@@ -235,7 +235,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -353,5 +353,5 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace

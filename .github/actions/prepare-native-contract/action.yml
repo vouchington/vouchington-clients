@@ -52,13 +52,16 @@ runs:
       shell: bash
       env:
         ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
+        EXPECTED_PRODUCER_RUN_ATTEMPT: ${{ inputs.producer-run-attempt }}
+        EXPECTED_PRODUCER_RUN_ID: ${{ inputs.producer-run-id }}
+        EXPECTED_REVISION_SHA: ${{ inputs.candidate-revision-sha }}
       run: >-
         node scripts/contract-artifact.mjs verify
         --artifact-root "$ARTIFACT_ROOT"
         --expected-clients-repository "$GITHUB_REPOSITORY"
-        --expected-producer-run-id "${{ inputs.producer-run-id }}"
-        --expected-producer-run-attempt "${{ inputs.producer-run-attempt }}"
-        --expected-revision-sha "${{ inputs.candidate-revision-sha }}"
+        --expected-producer-run-id "$EXPECTED_PRODUCER_RUN_ID"
+        --expected-producer-run-attempt "$EXPECTED_PRODUCER_RUN_ATTEMPT"
+        --expected-revision-sha "$EXPECTED_REVISION_SHA"
     - name: Check out exact candidate revision
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:

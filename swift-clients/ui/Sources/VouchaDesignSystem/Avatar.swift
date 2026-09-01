@@ -29,7 +29,7 @@ public struct Avatar: View {
                     case let .success(image):
                         image
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
+                            .scaledToFill()
                     default:
                         initialsView
                     }

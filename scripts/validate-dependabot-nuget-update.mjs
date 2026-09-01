@@ -9,14 +9,20 @@ export function validateDependabotNugetUpdate(trustedSource, candidateSource, me
 export async function runDependabotNugetUpdateCli(args) {
   const [trustedPath, candidatePath, metadataPath, outputPath] = args
   if (!trustedPath || !candidatePath || !metadataPath || !outputPath || args.length !== 4) {
-    throw new Error('Usage: validate-dependabot-nuget-update.mjs <trusted-props> <candidate-props> <metadata-json> <output-props>')
+    throw new Error(
+      'Usage: validate-dependabot-nuget-update.mjs <trusted-props> <candidate-props> <metadata-json> <output-props>',
+    )
   }
   const [trustedSource, candidateSource, metadataSource] = await Promise.all([
     readFile(trustedPath, 'utf8'),
     readFile(candidatePath, 'utf8'),
     readFile(metadataPath, 'utf8'),
   ])
-  const changedPackages = validateDependabotNugetUpdate(trustedSource, candidateSource, metadataSource)
+  const changedPackages = validateDependabotNugetUpdate(
+    trustedSource,
+    candidateSource,
+    metadataSource,
+  )
   await writeFile(outputPath, candidateSource, { encoding: 'utf8', flag: 'wx' })
   return changedPackages
 }

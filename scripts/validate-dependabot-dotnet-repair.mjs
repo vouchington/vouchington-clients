@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 export const NUGET_LOCK_PATHS = Object.freeze([
@@ -43,12 +42,14 @@ function requireExactKeys(value, keys, label) {
 }
 
 function requireSha(value, label) {
-  if (typeof value !== 'string' || !SHA_PATTERN.test(value)) fail(`${label} must be a lowercase 40-character Git SHA`)
+  if (typeof value !== 'string' || !SHA_PATTERN.test(value))
+    fail(`${label} must be a lowercase 40-character Git SHA`)
   return value
 }
 
 function requireSha256(value, label) {
-  if (typeof value !== 'string' || !SHA256_PATTERN.test(value)) fail(`${label} must be a lowercase SHA-256 digest`)
+  if (typeof value !== 'string' || !SHA256_PATTERN.test(value))
+    fail(`${label} must be a lowercase SHA-256 digest`)
   return value
 }
 
@@ -63,7 +64,8 @@ function requirePositiveInteger(value, label) {
 }
 
 function requireRepository(value, label) {
-  if (typeof value !== 'string' || !REPOSITORY_PATTERN.test(value)) fail(`${label} must be an owner/name repository`)
+  if (typeof value !== 'string' || !REPOSITORY_PATTERN.test(value))
+    fail(`${label} must be an owner/name repository`)
   return value
 }
 
@@ -83,7 +85,8 @@ export function validateDotnetRepairPullRequest(
   const expectedRepository = requireRepository(repository, 'repository')
   const expectedBaseSha = requireSha(baseSha, 'base SHA')
   const expectedHeadSha = requireSha(headSha, 'head SHA')
-  if (typeof defaultBranch !== 'string' || defaultBranch.length === 0) fail('default branch must be nonempty')
+  if (typeof defaultBranch !== 'string' || defaultBranch.length === 0)
+    fail('default branch must be nonempty')
   if (typeof headRef !== 'string' || !headRef.startsWith(DEPENDABOT_REF_PREFIX)) {
     fail('head ref must be a Dependabot branch')
   }
@@ -107,17 +110,20 @@ export function validateDotnetRepairPullRequest(
   requireExact(head.sha, expectedHeadSha, 'pull request head SHA')
   requireExact(headRepository.full_name, expectedRepository, 'pull request head repository')
   const changedPaths = validateDotnetRepairRawDiff(rawDiff)
-  if (changedFiles !== changedPaths.length) fail('pull request changed_files did not match the raw diff')
+  if (changedFiles !== changedPaths.length)
+    fail('pull request changed_files did not match the raw diff')
 
   return Object.freeze({ number, baseSha: expectedBaseSha, headSha: expectedHeadSha, changedPaths })
 }
 
 export function validateDotnetRepairRawDiff(rawDiff) {
-  if (typeof rawDiff !== 'string' && !Buffer.isBuffer(rawDiff)) fail('raw diff must be a string or buffer')
+  if (typeof rawDiff !== 'string' && !Buffer.isBuffer(rawDiff))
+    fail('raw diff must be a string or buffer')
   const source = Buffer.isBuffer(rawDiff) ? rawDiff.toString('utf8') : rawDiff
   if (!source.endsWith('\0')) fail('raw diff must be NUL-delimited')
   const fields = source.slice(0, -1).split('\0')
-  if (fields.length === 0 || fields.length % 2 !== 0) fail('raw diff must contain complete modification records')
+  if (fields.length === 0 || fields.length % 2 !== 0)
+    fail('raw diff must contain complete modification records')
   const allowedPaths = new Set([NUGET_MANIFEST_PATH, ...NUGET_LOCK_PATHS])
   const changedPaths = []
   for (let index = 0; index < fields.length; index += 2) {
@@ -149,7 +155,20 @@ export function validateDotnetRepairProvenance(
   const expectedWorkflowRun = requirePositiveInteger(workflowRun, 'workflow run')
   const expectedBaseSha = requireSha(baseSha, 'base SHA')
   const expectedHeadSha = requireSha(headSha, 'head SHA')
-  requireExactKeys(provenance, ['version', 'repository', 'pullRequest', 'workflowRun', 'baseSha', 'headSha', 'manifestSha256', 'locks'], 'repair provenance')
+  requireExactKeys(
+    provenance,
+    [
+      'version',
+      'repository',
+      'pullRequest',
+      'workflowRun',
+      'baseSha',
+      'headSha',
+      'manifestSha256',
+      'locks',
+    ],
+    'repair provenance',
+  )
   requireExact(provenance.version, 1, 'repair provenance version')
   requireExact(provenance.repository, expectedRepository, 'repair provenance repository')
   requireExact(provenance.pullRequest, expectedPullRequest, 'repair provenance pull request')
@@ -169,7 +188,8 @@ export function validateDotnetRepairProvenance(
 }
 
 export function validateDotnetRepairPublishedPaths(rawPaths) {
-  if (typeof rawPaths !== 'string' && !Buffer.isBuffer(rawPaths)) fail('published paths must be a string or buffer')
+  if (typeof rawPaths !== 'string' && !Buffer.isBuffer(rawPaths))
+    fail('published paths must be a string or buffer')
   const source = Buffer.isBuffer(rawPaths) ? rawPaths.toString('utf8') : rawPaths
   if (!source.endsWith('\0')) fail('published paths must be NUL-delimited')
   const paths = source.slice(0, -1).split('\0')
@@ -183,35 +203,14 @@ export function validateDotnetRepairPublishedPaths(rawPaths) {
   return [...paths]
 }
 
-async function runCli(args) {
-  const [mode, ...modeArgs] = args
-  switch (mode) {
-    case 'pull-request': {
-      const [pullRequestPath, rawDiffPath, defaultBranch, repository, headRef, baseSha, headSha] = modeArgs
-      if (modeArgs.length !== 7) fail('Usage: validate-dependabot-dotnet-repair.mjs pull-request <live-pr.json> <raw-diff> <default-branch> <repository> <head-ref> <base-sha> <head-sha>')
-      const [pullRequest, rawDiff] = await Promise.all([readFile(pullRequestPath, 'utf8'), readFile(rawDiffPath)])
-      validateDotnetRepairPullRequest(JSON.parse(pullRequest), rawDiff, defaultBranch, repository, headRef, baseSha, headSha)
-      return
-    }
-    case 'provenance': {
-      const [provenancePath, repository, pullRequest, workflowRun, baseSha, headSha] = modeArgs
-      if (modeArgs.length !== 6) fail('Usage: validate-dependabot-dotnet-repair.mjs provenance <provenance.json> <repository> <pr> <run> <base-sha> <head-sha>')
-      validateDotnetRepairProvenance(JSON.parse(await readFile(provenancePath, 'utf8')), repository, pullRequest, workflowRun, baseSha, headSha)
-      return
-    }
-    case 'published-paths': {
-      const [pathsPath] = modeArgs
-      if (modeArgs.length !== 1) fail('Usage: validate-dependabot-dotnet-repair.mjs published-paths <NUL-delimited-path-file>')
-      validateDotnetRepairPublishedPaths(await readFile(pathsPath))
-      return
-    }
-    default:
-      fail('Usage: validate-dependabot-dotnet-repair.mjs <pull-request|provenance|published-paths> ...')
-  }
-}
+import { runCli } from './validate-dependabot-dotnet-cli.mjs'
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  runCli(process.argv.slice(2)).catch(error => {
+  runCli(process.argv.slice(2), {
+    validateDotnetRepairPullRequest,
+    validateDotnetRepairProvenance,
+    validateDotnetRepairPublishedPaths,
+  }).catch(error => {
     process.stderr.write(`${error.message}\n`)
     process.exitCode = 1
   })

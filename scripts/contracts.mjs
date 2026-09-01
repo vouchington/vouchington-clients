@@ -1,7 +1,6 @@
 import { cp, lstat, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const localizationPaths = [
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
@@ -14,11 +13,9 @@ function localizationTargets(destinationRoot = repositoryRoot) {
     destination: resolve(destinationRoot, source),
   }))
 }
-
 function fail(message) {
   throw new Error(`Contract check failed: ${message}`)
 }
-
 async function pathInfo(path) {
   try {
     return await lstat(path)
@@ -27,7 +24,6 @@ async function pathInfo(path) {
     throw error
   }
 }
-
 async function directory(path, label) {
   let info
   try {
@@ -38,7 +34,6 @@ async function directory(path, label) {
   if (info.isSymbolicLink()) fail(`${label} must not be a symbolic link: ${path}`)
   if (!info.isDirectory()) fail(`${label} is not a real directory: ${path}`)
 }
-
 async function descendantDirectory(root, path, label) {
   await directory(root, 'client checkout root')
   const child = relative(root, path)
@@ -50,13 +45,11 @@ async function descendantDirectory(root, path, label) {
     await directory(current, label)
   }
 }
-
 async function descendantParentDirectory(root, path, label) {
   const parent = dirname(path)
   if (parent === root) await directory(root, 'client checkout root')
   else await descendantDirectory(root, parent, label)
 }
-
 function candidateRoot(value) {
   if (value === undefined) return repositoryRoot
   if (
@@ -70,7 +63,6 @@ function candidateRoot(value) {
   if (resolved === resolve(sep)) fail('destination root must not be the filesystem root')
   return resolved
 }
-
 async function filesUnder(root, label) {
   await directory(root, label)
   const files = []
@@ -86,7 +78,6 @@ async function filesUnder(root, label) {
   await walk(root)
   return files.sort()
 }
-
 async function contractRoot({
   root,
   config = resolve(repositoryRoot, 'contracts/filaments.json'),
@@ -113,7 +104,6 @@ async function contractRoot({
     await filesUnder(join(checkoutRoot, path), `declared Filaments contract source ${path}`)
   return checkoutRoot
 }
-
 async function sameTree(source, destination) {
   const [sourceFiles, destinationFiles] = await Promise.all([
     filesUnder(source, 'declared Filaments localization source'),
@@ -130,27 +120,20 @@ async function sameTree(source, destination) {
   }
   return true
 }
-
 export async function verifyContract(options = {}) {
   return contractRoot(options)
 }
-
 export async function checkContracts(options = {}) {
   const root = await contractRoot(options)
   const destinationRoot = candidateRoot(options.destinationRoot)
   const targets = options.targets ?? localizationTargets(destinationRoot)
   for (const target of targets) {
-    await descendantDirectory(
-      destinationRoot,
-      target.destination,
-      'generated localization target',
-    )
+    await descendantDirectory(destinationRoot, target.destination, 'generated localization target')
     if (!(await sameTree(join(root, target.source), target.destination))) {
       fail(`generated localization differs at ${target.destination}; run pnpm run contracts:sync`)
     }
   }
 }
-
 export async function syncContracts(options = {}) {
   const root = await contractRoot(options)
   if (options.destinationRoot !== undefined) fail('sync destination root is not configurable')
@@ -191,21 +174,15 @@ export async function syncContracts(options = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const command = process.argv[2]
-  const extra = process.argv.slice(3)
+  const [command, ...extra] = process.argv.slice(2)
   const usage =
-    'Usage: node scripts/contracts.mjs check [--destination-root <absolute-client-checkout>]\n' +
-    'Usage: node scripts/contracts.mjs sync'
-  if (
-    !(
-      extra.length === 0 ||
-      (command === 'check' &&
-        extra.length === 2 &&
-        extra[0] === '--destination-root' &&
-        extra[1]?.trim())
-    )
-  )
-    throw new Error(usage)
+    'Usage: node scripts/contracts.mjs check [--destination-root <absolute-client-checkout>]\nUsage: node scripts/contracts.mjs sync'
+  const validCheck =
+    command === 'check' &&
+    extra.length === 2 &&
+    extra[0] === '--destination-root' &&
+    extra[1]?.trim()
+  if (extra.length !== 0 && !validCheck) throw new Error(usage)
   const options = extra.length === 2 ? { destinationRoot: extra[1] } : {}
   if (command === 'check') await checkContracts(options)
   else if (command === 'sync' && extra.length === 0) await syncContracts()

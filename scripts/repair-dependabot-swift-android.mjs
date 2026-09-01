@@ -1,10 +1,8 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
 import { parseUniqueSwiftBinaryTargetChecksum } from 'vouchington-tooling/swift-source-offset'
-
 import {
   SWIFT_ANDROID_MATERIALIZER_PATH,
   SWIFT_ANDROID_MANIFEST_PATH,
@@ -12,55 +10,56 @@ import {
   validateInputFiles,
   validateMaterializerSource,
   validateProvenance,
-  parseRawGitDiff,
 } from './validate-dependabot-swift-repair.mjs'
-
 export const SKIP_BINARY_TARGET = 'skip'
 export const SKIP_RELEASE_ARCHIVE = version =>
   `https://github.com/skiptools/skip/releases/download/${version}/skip-macos.zip`
 export const SKIP_UPSTREAM_MANIFEST = revision =>
   `https://raw.githubusercontent.com/skiptools/skip/${revision}/Package.swift`
-
 function assertion(condition, message) {
   if (!condition) throw new Error(message)
 }
-
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex')
 }
-
 async function responseBytes(response, url) {
   assertion(response?.ok !== false, `failed to download ${url}`)
-  if (typeof response.arrayBuffer === 'function') return new Uint8Array(await response.arrayBuffer())
+  if (typeof response.arrayBuffer === 'function')
+    return new Uint8Array(await response.arrayBuffer())
   if (typeof response.text === 'function') return new TextEncoder().encode(await response.text())
   throw new Error(`download response for ${url} has no body reader`)
 }
-
 async function fetchBytes(url, fetchImpl = globalThis.fetch) {
   assertion(typeof fetchImpl === 'function', 'a fetch implementation is required')
   const response = await fetchImpl(url, { headers: { accept: 'application/octet-stream' } })
   return responseBytes(response, url)
 }
-
-export async function resolveSkipRelease({ version, revision, fetchImpl = globalThis.fetch, upstreamManifest }) {
+export async function resolveSkipRelease({
+  version,
+  revision,
+  fetchImpl = globalThis.fetch,
+  upstreamManifest,
+}) {
   assertion(/^[a-f0-9]{40}$/u.test(revision), 'Skip release requires the exact resolved revision')
   const archiveUrl = SKIP_RELEASE_ARCHIVE(version)
   const expectedUrl = archiveUrl
-  const manifestBytes = upstreamManifest === undefined
-    ? await fetchBytes(SKIP_UPSTREAM_MANIFEST(revision), fetchImpl)
-    : new TextEncoder().encode(upstreamManifest)
+  const manifestBytes =
+    upstreamManifest === undefined
+      ? await fetchBytes(SKIP_UPSTREAM_MANIFEST(revision), fetchImpl)
+      : new TextEncoder().encode(upstreamManifest)
   const source = new TextDecoder().decode(manifestBytes)
   const checksum = parseUniqueSwiftBinaryTargetChecksum(source, SKIP_BINARY_TARGET, expectedUrl)
-  assertion(checksum, 'upstream Skip Package.swift must contain one active GitHub binary target with a SHA-256 checksum')
+  assertion(
+    checksum,
+    'upstream Skip Package.swift must contain one active GitHub binary target with a SHA-256 checksum',
+  )
   return { version, archiveUrl, checksum, source }
 }
-
 export async function hashSkipArchive({ archiveUrl, fetchImpl = globalThis.fetch, archiveBytes }) {
   const bytes = archiveBytes === undefined ? await fetchBytes(archiveUrl, fetchImpl) : archiveBytes
   const archiveSha256 = sha256(bytes)
   return { archiveSha256, bytes }
 }
-
 export function materializeSkipSdkSource(trustedSource, version, checksum) {
   const trusted = validateMaterializerSource(trustedSource)
   if (trusted.version === version && trusted.checksum === checksum) return trustedSource
@@ -72,7 +71,6 @@ export function materializeSkipSdkSource(trustedSource, version, checksum) {
   validateMaterializerSource(result)
   return result
 }
-
 export function createSwiftAndroidProvenance({
   repository,
   pullRequestNumber,
@@ -108,7 +106,6 @@ export function createSwiftAndroidProvenance({
   }
   return validateProvenance(provenance)
 }
-
 export async function prepareSwiftAndroidRepair({
   metadata,
   changedPaths,
@@ -140,14 +137,20 @@ export async function prepareSwiftAndroidRepair({
     fetchImpl,
     archiveBytes,
   })
-  assertion(archive.archiveSha256 === release.checksum, 'downloaded Skip archive hash does not match upstream Package.swift checksum')
+  assertion(
+    archive.archiveSha256 === release.checksum,
+    'downloaded Skip archive hash does not match upstream Package.swift checksum',
+  )
   const materializer = materializeSkipSdkSource(
     trustedMaterializer,
     release.version,
     release.checksum,
   )
   if (candidateMaterializer !== undefined)
-    assertion(candidateMaterializer === materializer, 'candidate materializer must exactly match the trusted repair output')
+    assertion(
+      candidateMaterializer === materializer,
+      'candidate materializer must exactly match the trusted repair output',
+    )
   const skipPin = validation.candidate.pins.find(pin => pin.identity === 'skip')
   const provenance = createSwiftAndroidProvenance({
     repository: validation.repository,
@@ -162,12 +165,17 @@ export async function prepareSwiftAndroidRepair({
     archiveSha256: archive.archiveSha256,
     archiveChecksum: release.checksum,
     manifestSha256: sha256(new TextEncoder().encode(candidateManifest)),
-    resolvedSha256: sha256(new TextEncoder().encode(typeof candidateResolved === 'string' ? candidateResolved : JSON.stringify(candidateResolved))),
+    resolvedSha256: sha256(
+      new TextEncoder().encode(
+        typeof candidateResolved === 'string'
+          ? candidateResolved
+          : JSON.stringify(candidateResolved),
+      ),
+    ),
     materializerSha256: sha256(new TextEncoder().encode(materializer)),
   })
   return { materializer, provenance, validation, upstreamManifest: release.source }
 }
-
 export async function prepareSwiftAndroidRepairFromFiles({
   root = process.cwd(),
   metadata,
@@ -196,78 +204,14 @@ export async function prepareSwiftAndroidRepairFromFiles({
     archiveBytes,
   })
 }
-
-export async function writeSwiftAndroidRepair({ outputRoot = process.cwd(), ...input }) {
-  const result = await prepareSwiftAndroidRepair(input)
-  const materializerPath = resolve(outputRoot, SWIFT_ANDROID_MATERIALIZER_PATH)
-  const provenancePath = resolve(outputRoot, 'dependabot-swift-android-provenance.json')
-  await mkdir(dirname(materializerPath), { recursive: true })
-  await writeFile(materializerPath, result.materializer)
-  await writeFile(provenancePath, `${JSON.stringify(result.provenance, null, 2)}\n`)
-  return { ...result, materializerPath, provenancePath }
+import { writeSwiftAndroidRepair as writeRepair } from './repair-swift-write.mjs'
+export async function writeSwiftAndroidRepair(input) {
+  return writeRepair({ ...input, prepare: prepareSwiftAndroidRepair })
 }
-
-function parseCli(argv) {
-  const options = {}
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index]
-    if (!argument.startsWith('--')) continue
-    const key = argument.slice(2)
-    options[key] = argv[index + 1]?.startsWith('--') ? true : argv[++index]
-  }
-  return options
-}
-
-async function readJson(path) {
-  const source = await readFile(resolve(path), 'utf8')
-  return JSON.parse(source)
-}
-
-async function main(argv) {
-  const options = parseCli(argv)
-  let input
-  if (options.input) {
-    input = await readJson(options.input)
-  } else if (argv.length === 5 && argv.every(argument => !argument.startsWith('--'))) {
-    const [trustedRoot, candidateRoot, metadataPath, rawDiffPath, outputRoot] = argv
-    const metadata = await readJson(metadataPath)
-    const rawDiff = await readFile(resolve(rawDiffPath), 'utf8')
-    input = {
-      metadata,
-      changedPaths: parseRawGitDiff(rawDiff).map(entry => entry.path),
-      trustedRoot,
-      candidateRoot,
-      outputRoot,
-    }
-  } else {
-    assertion(options.metadata && options['raw-diff'], 'repair requires --metadata and --raw-diff')
-    const metadata = await readJson(options.metadata)
-    const rawDiff = await readFile(resolve(options['raw-diff']), 'utf8')
-    input = {
-      metadata,
-      changedPaths: parseRawGitDiff(rawDiff).map(entry => entry.path),
-      trustedRoot: options['trusted-root'] ?? process.cwd(),
-      candidateRoot: options['candidate-root'] ?? process.cwd(),
-      fetchImpl: globalThis.fetch,
-    }
-  }
-  const result = await prepareSwiftAndroidRepairFromFiles({
-    ...input,
-    root: input.root ?? process.cwd(),
-    trustedRoot: input.trustedRoot ?? input.root ?? process.cwd(),
-    candidateRoot: input.candidateRoot ?? input.root ?? process.cwd(),
-  })
-  const outputRoot = options.output ?? input.outputRoot ?? process.cwd()
-  const materializerPath = resolve(outputRoot, SWIFT_ANDROID_MATERIALIZER_PATH)
-  const provenancePath = resolve(outputRoot, 'dependabot-swift-android-provenance.json')
-  await mkdir(dirname(materializerPath), { recursive: true })
-  await writeFile(materializerPath, result.materializer)
-  await writeFile(provenancePath, `${JSON.stringify(result.provenance, null, 2)}\n`)
-  process.stdout.write(`${JSON.stringify({ paths: [SWIFT_ANDROID_MATERIALIZER_PATH, 'dependabot-swift-android-provenance.json'], provenance: result.provenance })}\n`)
-}
+import { main } from './repair-swift-cli.mjs'
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main(process.argv.slice(2)).catch(error => {
+  main(process.argv.slice(2), { prepareSwiftAndroidRepairFromFiles }).catch(error => {
     process.stderr.write(`::error::${error.message}\n`)
     process.exitCode = 1
   })

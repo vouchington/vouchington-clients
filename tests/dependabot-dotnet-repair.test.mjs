@@ -79,13 +79,24 @@ describe('trusted Dependabot .NET repair validation', () => {
   })
 
   it('permits the manifest with any existing lock subset and checks GitHub changed_files', () => {
-    const changedPaths = [NUGET_LOCK_PATHS[0], 'dotnet-clients/Directory.Packages.props', NUGET_LOCK_PATHS.at(-1)]
-    const rawDiff = changedPaths
-      .map(path => `:100644 100644 aaaaaaa bbbbbbb M\0${path}\0`)
-      .join('')
+    const changedPaths = [
+      NUGET_LOCK_PATHS[0],
+      'dotnet-clients/Directory.Packages.props',
+      NUGET_LOCK_PATHS.at(-1),
+    ]
+    const rawDiff = changedPaths.map(path => `:100644 100644 aaaaaaa bbbbbbb M\0${path}\0`).join('')
     assert.deepEqual(validateDotnetRepairRawDiff(rawDiff), changedPaths)
     assert.throws(
-      () => validateDotnetRepairPullRequest(livePullRequest({ changed_files: 2 }), rawDiff, defaultBranch, repository, headRef, baseSha, headSha),
+      () =>
+        validateDotnetRepairPullRequest(
+          livePullRequest({ changed_files: 2 }),
+          rawDiff,
+          defaultBranch,
+          repository,
+          headRef,
+          baseSha,
+          headSha,
+        ),
       /changed_files/u,
     )
   })
@@ -93,15 +104,39 @@ describe('trusted Dependabot .NET repair validation', () => {
   it('rejects spoofed PR identities, stale SHAs, and non-open PRs', () => {
     const cases = [
       [livePullRequest({ user: { login: 'dependabot' } }), /author/u],
-      [livePullRequest({ head: { ref: headRef, sha: headSha, repo: { full_name: 'fork/example' } } }), /head repository/u],
-      [livePullRequest({ base: { ref: 'release', sha: baseSha, repo: { full_name: repository } } }), /base branch/u],
-      [livePullRequest({ head: { ref: headRef, sha: 'c'.repeat(40), repo: { full_name: repository } } }), /head SHA/u],
+      [
+        livePullRequest({
+          head: { ref: headRef, sha: headSha, repo: { full_name: 'fork/example' } },
+        }),
+        /head repository/u,
+      ],
+      [
+        livePullRequest({
+          base: { ref: 'release', sha: baseSha, repo: { full_name: repository } },
+        }),
+        /base branch/u,
+      ],
+      [
+        livePullRequest({
+          head: { ref: headRef, sha: 'c'.repeat(40), repo: { full_name: repository } },
+        }),
+        /head SHA/u,
+      ],
       [livePullRequest({ state: 'closed' }), /state/u],
       [livePullRequest({ draft: true }), /draft/u],
     ]
     for (const [pullRequest, message] of cases) {
       assert.throws(
-        () => validateDotnetRepairPullRequest(pullRequest, ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0', defaultBranch, repository, headRef, baseSha, headSha),
+        () =>
+          validateDotnetRepairPullRequest(
+            pullRequest,
+            ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0',
+            defaultBranch,
+            repository,
+            headRef,
+            baseSha,
+            headSha,
+          ),
         message,
       )
     }
@@ -115,13 +150,26 @@ describe('trusted Dependabot .NET repair validation', () => {
       ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0:100644 100644 aaaaaaa bbbbbbb M\0README.md\0',
       ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0\0',
     ]) {
-      assert.throws(() => validateDotnetRepairRawDiff(rawDiff), /complete|regular-file|may change|NUL-delimited/u)
+      assert.throws(
+        () => validateDotnetRepairRawDiff(rawDiff),
+        /complete|regular-file|may change|NUL-delimited/u,
+      )
     }
   })
 
   it('validates the exact seven-lock provenance shape and trusted context', () => {
-    const locks = validateDotnetRepairProvenance(provenance(), repository, '52', '819', baseSha, headSha)
-    assert.deepEqual(locks.map(lock => lock.path), NUGET_LOCK_PATHS)
+    const locks = validateDotnetRepairProvenance(
+      provenance(),
+      repository,
+      '52',
+      '819',
+      baseSha,
+      headSha,
+    )
+    assert.deepEqual(
+      locks.map(lock => lock.path),
+      NUGET_LOCK_PATHS,
+    )
 
     const cases = [
       [provenance({ repository: 'fork/example' }), /repository/u],
@@ -130,32 +178,47 @@ describe('trusted Dependabot .NET repair validation', () => {
       [provenance({ manifestSha256: 'F'.repeat(64) }), /manifest hash/u],
       [provenance({ extra: true }), /unexpected fields/u],
       [provenance({ locks: provenance().locks.slice(0, -1) }), /exactly seven/u],
-      [provenance({ locks: [{ path: NUGET_LOCK_PATHS[0], sha256: 'A'.repeat(64) }, ...provenance().locks.slice(1)] }), /SHA-256/u],
-      [provenance({ locks: [{ path: 'README.md', sha256: '0'.repeat(64) }, ...provenance().locks.slice(1)] }), /path/u],
+      [
+        provenance({
+          locks: [
+            { path: NUGET_LOCK_PATHS[0], sha256: 'A'.repeat(64) },
+            ...provenance().locks.slice(1),
+          ],
+        }),
+        /SHA-256/u,
+      ],
+      [
+        provenance({
+          locks: [{ path: 'README.md', sha256: '0'.repeat(64) }, ...provenance().locks.slice(1)],
+        }),
+        /path/u,
+      ],
     ]
     for (const [candidate, message] of cases) {
-      assert.throws(() => validateDotnetRepairProvenance(candidate, repository, '52', '819', baseSha, headSha), message)
+      assert.throws(
+        () => validateDotnetRepairProvenance(candidate, repository, '52', '819', baseSha, headSha),
+        message,
+      )
     }
   })
 
   it('permits publication of any nonempty committed lock subset', () => {
     const paths = `${NUGET_LOCK_PATHS.join('\0')}\0`
     assert.deepEqual(validateDotnetRepairPublishedPaths(paths), NUGET_LOCK_PATHS)
-    assert.deepEqual(
-      validateDotnetRepairPublishedPaths(`${NUGET_LOCK_PATHS[0]}\0`),
-      [NUGET_LOCK_PATHS[0]],
-    )
+    assert.deepEqual(validateDotnetRepairPublishedPaths(`${NUGET_LOCK_PATHS[0]}\0`), [
+      NUGET_LOCK_PATHS[0],
+    ])
     const reversed = [...NUGET_LOCK_PATHS].reverse()
-    assert.deepEqual(
-      validateDotnetRepairPublishedPaths(`${reversed.join('\0')}\0`),
-      reversed,
-    )
+    assert.deepEqual(validateDotnetRepairPublishedPaths(`${reversed.join('\0')}\0`), reversed)
     for (const invalidPaths of [
       `${NUGET_LOCK_PATHS.join('\0')}\0README.md\0`,
       `${[NUGET_LOCK_PATHS[0], NUGET_LOCK_PATHS[0], ...NUGET_LOCK_PATHS.slice(2)].join('\0')}\0`,
       NUGET_LOCK_PATHS.join('\0'),
     ]) {
-      assert.throws(() => validateDotnetRepairPublishedPaths(invalidPaths), /only the seven|unique|NUL-delimited/u)
+      assert.throws(
+        () => validateDotnetRepairPublishedPaths(invalidPaths),
+        /only the seven|unique|NUL-delimited/u,
+      )
     }
   })
 })
@@ -168,9 +231,16 @@ describe('Dependabot NuGet candidate manifest', () => {
   ])
 
   it('delegates literal central-version validation to vouchington-tooling', () => {
-    assert.deepEqual(validateDependabotNugetUpdate(trustedSource, candidateSource, metadata), ['Alpha'])
+    assert.deepEqual(validateDependabotNugetUpdate(trustedSource, candidateSource, metadata), [
+      'Alpha',
+    ])
     assert.throws(
-      () => validateDependabotNugetUpdate(trustedSource, candidateSource.replace('  </ItemGroup>', '    <PropertyGroup />\n  </ItemGroup>'), metadata),
+      () =>
+        validateDependabotNugetUpdate(
+          trustedSource,
+          candidateSource.replace('  </ItemGroup>', '    <PropertyGroup />\n  </ItemGroup>'),
+          metadata,
+        ),
       /only literal central PackageVersion values/u,
     )
   })
@@ -188,7 +258,10 @@ describe('Dependabot NuGet candidate manifest', () => {
       writeFile(metadataPath, metadata),
     ])
 
-    assert.deepEqual(await runDependabotNugetUpdateCli([trustedPath, candidatePath, metadataPath, outputPath]), ['Alpha'])
+    assert.deepEqual(
+      await runDependabotNugetUpdateCli([trustedPath, candidatePath, metadataPath, outputPath]),
+      ['Alpha'],
+    )
     assert.equal(await readFile(outputPath, 'utf8'), candidateSource)
     await assert.rejects(
       runDependabotNugetUpdateCli([trustedPath, candidatePath, metadataPath, outputPath]),
@@ -205,13 +278,35 @@ describe('Dependabot NuGet candidate manifest', () => {
     t.after(() => rm(directory, { recursive: true, force: true }))
     await Promise.all([
       writeFile(pullRequestPath, JSON.stringify(livePullRequest())),
-      writeFile(rawDiffPath, ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0'),
+      writeFile(
+        rawDiffPath,
+        ':100644 100644 aaaaaaa bbbbbbb M\0dotnet-clients/Directory.Packages.props\0',
+      ),
       writeFile(provenancePath, JSON.stringify(provenance())),
       writeFile(pathsPath, `${NUGET_LOCK_PATHS.join('\0')}\0`),
     ])
 
-    await execFileAsync('node', [repairScript, 'pull-request', pullRequestPath, rawDiffPath, defaultBranch, repository, headRef, baseSha, headSha])
-    await execFileAsync('node', [repairScript, 'provenance', provenancePath, repository, '52', '819', baseSha, headSha])
+    await execFileAsync('node', [
+      repairScript,
+      'pull-request',
+      pullRequestPath,
+      rawDiffPath,
+      defaultBranch,
+      repository,
+      headRef,
+      baseSha,
+      headSha,
+    ])
+    await execFileAsync('node', [
+      repairScript,
+      'provenance',
+      provenancePath,
+      repository,
+      '52',
+      '819',
+      baseSha,
+      headSha,
+    ])
     await execFileAsync('node', [repairScript, 'published-paths', pathsPath])
   })
 })
