@@ -2255,6 +2255,9 @@
 "native.taxonomy.community.noNewMemberPosts" = "Sem publicações de novos membros";
 "native.taxonomy.community.requirePostApproval" = "Exigir aprovação de publicações";
 "native.taxonomy.community.users" = "Utilizadores";
+"native.taxonomy.contributionAdmission.capacityUnavailable" = "Não pode publicar agora. Tente novamente mais tarde.";
+"native.taxonomy.contributionAdmission.idempotencyMismatch" = "Não foi possível associar este rascunho ao pedido anterior. Tente novamente.";
+"native.taxonomy.contributionAdmission.inProgress" = "A sua publicação ainda está a ser enviada. Tente novamente em breve.";
 "native.taxonomy.dataPoint.bankAccount" = "Conta bancária";
 "native.taxonomy.dataPoint.creditCard" = "Cartão de crédito";
 "native.taxonomy.dataRequest.expired" = "Expirado";

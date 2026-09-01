@@ -345,7 +345,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("passkeyAuthOptions", VouchaApiEndpoints.PasskeyAuthOptions(), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/options", Query());
     yield return Case("passkeyAuthVerify", VouchaApiEndpoints.PasskeyAuthVerify(new { id = "credential" }), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/verify", Query(), true);
     yield return Case("appleSignIn", VouchaApiEndpoints.AppleSignIn("token", "nonce", "Alice"), HttpMethod.Post, "/api/v1/auth/oauth/apple/continue", Query(), true);
-    yield return Case("createPost", VouchaApiEndpoints.CreatePost(new CreatePostBody("discussion", "Title", "Body", "turnstile")), HttpMethod.Post, "/api/v1/posts", Query(), true);
+    yield return Case("createPost", VouchaApiEndpoints.CreatePost(new CreatePostBody("discussion", "Title", "Body", "turnstile"), "00000000-0000-4000-8000-000000000031"), HttpMethod.Post, "/api/v1/posts", Query(), true);
     yield return Case("post", VouchaApiEndpoints.Post("post 1"), HttpMethod.Get, "/api/v1/posts/post%201", Query());
     yield return Case("postDescendants", VouchaApiEndpoints.PostDescendants("post 1"), HttpMethod.Get, "/api/v1/posts/post%201/descendants", Query());
     yield return Case("postAncestors", VouchaApiEndpoints.PostAncestors("comment 1"), HttpMethod.Get, "/api/v1/posts/comment%201/ancestors", Query());

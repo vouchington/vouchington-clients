@@ -14,12 +14,18 @@ public interface IPostsService
 
   Task<PostMutationResponse> CreatePostAsync(
       CreatePostBody body,
-      CancellationToken cancellationToken = default);
+      string idempotencyKey,
+      CancellationToken cancellationToken = default) =>
+      Task.FromException<PostMutationResponse>(new NotSupportedException(
+          "Post creation test doubles must implement the idempotency-aware operation."));
 
   Task<PostMutationResponse> CreateCommunityPostAsync(
       string communityIdOrSlug,
       CreatePostBody body,
-      CancellationToken cancellationToken = default);
+      string idempotencyKey,
+      CancellationToken cancellationToken = default) =>
+      Task.FromException<PostMutationResponse>(new NotSupportedException(
+          "Community post creation test doubles must implement the idempotency-aware operation."));
 
   Task<PostMutationResponse> UpdatePostAsync(
       string postIdOrSlug,

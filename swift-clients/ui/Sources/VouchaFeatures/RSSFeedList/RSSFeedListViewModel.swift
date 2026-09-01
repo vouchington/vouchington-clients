@@ -33,6 +33,7 @@ public final class RSSFeedListViewModel {
     public internal(set) var savedItemIds: Set<String> = []
     public internal(set) var hiddenItemIds: Set<String> = []
     let emailVerificationGate = EmailVerificationGatedMutation()
+    let contributionIdentity = ContributionRequestIdentity()
     var serverVotesByItemId: [String: ElectionVoteChoice] = [:]
     public let apiBaseURL: URL
 

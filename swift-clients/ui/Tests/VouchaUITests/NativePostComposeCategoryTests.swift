@@ -16,7 +16,10 @@ final class NativePostComposeCategoryTests: XCTestCase {
             .init(type: .hashtag, value: "   ")
         ]
 
-        let endpoint = viewModel.makeCreateEndpoint(turnstileToken: nil)
+        let endpoint = viewModel.makeCreateEndpoint(
+            turnstileToken: nil,
+            idempotencyKey: "00000000-0000-4000-8000-000000000041"
+        )
         let body = try encodedJSONObject(from: XCTUnwrap(endpoint.body))
         let categories = try XCTUnwrap(body["categories"] as? [[String: Any]])
 
@@ -25,6 +28,15 @@ final class NativePostComposeCategoryTests: XCTestCase {
         XCTAssertEqual(categories[0]["topic_id"] as? String, "topic-1")
         XCTAssertEqual(categories[1]["type"] as? String, "hashtag")
         XCTAssertEqual(categories[1]["hashtag"] as? String, "#Me.Too__2026")
+    }
+
+    func testCanonicalIntentChangesWhenAnAtomicCategoryChanges() {
+        let viewModel = NativePostComposeViewModel(client: nil)
+        viewModel.bodyText = "Discussion body"
+        let baseline = viewModel.contributionCanonicalIntent
+        viewModel.categoryDrafts = [.init(type: .hashtag, value: "#Swift_UI")]
+
+        XCTAssertNotEqual(baseline, viewModel.contributionCanonicalIntent)
     }
 
     func testCategoryDraftActionsUpdateAndRemoveByStableId() {

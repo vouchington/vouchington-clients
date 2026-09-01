@@ -1,4 +1,6 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Contributions;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
@@ -22,6 +24,8 @@ public sealed partial class CommentThreadViewModel : ObservableObject
   private IReadOnlyList<CommentThreadNodeViewModel> comments = [];
   private readonly HashSet<string> collapsedCommentIds = new(StringComparer.Ordinal);
   private Post? focusedComment;
+  private readonly ContributionRequestIdentity contributionIdentity = new();
+  private readonly IUiLocalization localization;
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 
@@ -37,7 +41,8 @@ public sealed partial class CommentThreadViewModel : ObservableObject
       ICommentThreadService postsService,
       IPostsService? mutationPostsService,
       string rootPostId,
-      string? currentUserId = null)
+      string? currentUserId = null,
+      IUiLocalization? localization = null)
   {
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.mutationPostsService = mutationPostsService;
@@ -45,6 +50,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
         ? throw new ArgumentException("Root post id is required.", nameof(rootPostId))
         : rootPostId;
     this.currentUserId = string.IsNullOrWhiteSpace(currentUserId) ? null : currentUserId;
+    this.localization = localization ?? UiLocalization.English;
   }
 
   public string RootPostId => rootPostId;

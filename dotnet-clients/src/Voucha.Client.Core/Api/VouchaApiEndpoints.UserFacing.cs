@@ -2,6 +2,9 @@ namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
+  public static ApiRequest ContributionStatus(string? action = null) =>
+      Get("/api/v1/my/contribution-status", Query(("action", action)));
+
   public static ApiRequest WebSearch(string query, int? limit = null) =>
       Get("/api/v1/web-search", Query(("query", query), ("limit", limit)));
 

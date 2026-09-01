@@ -1,10 +1,27 @@
 import Foundation
 import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
 final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModelTestCase {
+    func testContributionAdmissionCodesSelectLocalizedPresentationKeys() {
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("CONTRIBUTION_ADMISSION_IN_PROGRESS"),
+            .nativeTaxonomyContributionAdmissionInProgress
+        )
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("IDEMPOTENCY_KEY_REUSED"),
+            .nativeTaxonomyContributionAdmissionIdempotencyMismatch
+        )
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("CONTRIBUTION_QUOTA_EXCEEDED"),
+            .nativeTaxonomyContributionAdmissionCapacityUnavailable
+        )
+        XCTAssertNil(NativeContributionAdmissionPresentation.messageKey("UNRELATED"))
+    }
+
     func testCreateRequiresCoreFieldsAndTurnstile() async throws {
         let viewModel = try NativeTopicRecommendationViewModel(client: makeClient())
 

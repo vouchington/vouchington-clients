@@ -135,6 +135,13 @@ struct NativePostComposeSurface: View {
 
     @ViewBuilder
     private func composeStatus(viewModel: NativePostComposeViewModel) -> some View {
+        if case let .error(.api(_, code)) = viewModel.state, let key = NativeContributionAdmissionPresentation.messageKey(code) {
+            Text(UiMessages.string(key, locale: nativeUiLocale))
+                .font(Typography.subheadline)
+                .foregroundStyle(Colors.secondaryLabel)
+                .accessibilityAddTraits(.isStaticText)
+        }
+
         if case .required = viewModel.state {
             Text(UiMessages.string(.nativeSwiftPostComposeVerificationTokenRequired, locale: nativeUiLocale))
                 .font(Typography.subheadline)
@@ -152,6 +159,20 @@ struct NativePostComposeSurface: View {
         }
     }
 
+}
+
+enum NativeContributionAdmissionPresentation {
+    static func messageKey(_ code: String?) -> UiMessageKey? {
+        switch code {
+        case "CONTRIBUTION_ADMISSION_IN_PROGRESS": .nativeTaxonomyContributionAdmissionInProgress
+        case "CONTRIBUTION_QUOTA_EXCEEDED": .nativeTaxonomyContributionAdmissionCapacityUnavailable
+        case "IDEMPOTENCY_KEY_REUSED": .nativeTaxonomyContributionAdmissionIdempotencyMismatch
+        default: nil
+        }
+    }
+}
+
+extension NativePostComposeSurface {
     @ViewBuilder
     private func drafts(viewModel: NativePostComposeViewModel) -> some View {
         if !viewModel.drafts.isEmpty {

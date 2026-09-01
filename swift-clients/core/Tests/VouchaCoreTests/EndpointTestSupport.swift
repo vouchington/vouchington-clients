@@ -7,6 +7,7 @@ final class CapturingURLProtocol: URLProtocol {
     static var responseStatusCode = 200
     static var lastRequestURL: URL?
     static var capturedRequestHeaders: [String: String] = [:]
+    static var responseHeaders: [String: String] = ["Content-Type": "application/json"]
 
     override class func canInit(with _: URLRequest) -> Bool {
         true
@@ -23,7 +24,7 @@ final class CapturingURLProtocol: URLProtocol {
             url: request.url!,
             statusCode: Self.responseStatusCode,
             httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Type": "application/json"]
+            headerFields: Self.responseHeaders
         )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Self.responseData)

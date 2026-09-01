@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Contributions;
 namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscussionService, INewsFeedSessionState
@@ -8,6 +9,7 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
   private readonly VouchaApiClient client;
   private readonly IUiLocalization localization;
   private readonly ConcurrentDictionary<string, string> fallbackStoryDiscussionPostIds = new(StringComparer.Ordinal);
+  private readonly ContributionRequestIdentity contributionIdentity = new();
   private string? identityUserId;
 
   public ApiNewsFeedService(VouchaApiClient client, IUiLocalization? localization = null)

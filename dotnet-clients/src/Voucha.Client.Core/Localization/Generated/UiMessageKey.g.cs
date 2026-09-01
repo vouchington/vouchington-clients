@@ -1938,6 +1938,9 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftTopicManagementFieldsPrimaryHostname = new("native.swift.topicManagementFields.primaryHostname");
     public static readonly UiMessageKey NativeSwiftTopicManagementFieldsTopicType = new("native.swift.topicManagementFields.topicType");
     public static readonly UiMessageKey NativeSwiftTopicRecommendationTopic = new("native.swift.topicRecommendation.topic");
+    public static readonly UiMessageKey NativeTaxonomyContributionAdmissionCapacityUnavailable = new("native.taxonomy.contributionAdmission.capacityUnavailable");
+    public static readonly UiMessageKey NativeTaxonomyContributionAdmissionIdempotencyMismatch = new("native.taxonomy.contributionAdmission.idempotencyMismatch");
+    public static readonly UiMessageKey NativeTaxonomyContributionAdmissionInProgress = new("native.taxonomy.contributionAdmission.inProgress");
     public static readonly UiMessageKey NativeTaxonomyCrmAi = new("native.taxonomy.crm.ai");
     public static readonly UiMessageKey NativeTaxonomyCrmCars = new("native.taxonomy.crm.cars");
     public static readonly UiMessageKey NativeTaxonomyCrmCreditCards = new("native.taxonomy.crm.creditCards");
@@ -3934,6 +3937,9 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftTopicManagementFieldsPrimaryHostname,
         NativeSwiftTopicManagementFieldsTopicType,
         NativeSwiftTopicRecommendationTopic,
+        NativeTaxonomyContributionAdmissionCapacityUnavailable,
+        NativeTaxonomyContributionAdmissionIdempotencyMismatch,
+        NativeTaxonomyContributionAdmissionInProgress,
         NativeTaxonomyCrmAi,
         NativeTaxonomyCrmCars,
         NativeTaxonomyCrmCreditCards,

@@ -142,6 +142,18 @@ public actor APIClient {
         guard status >= 200, status < 300 else {
             let payload = APIErrorPayload.decode(from: data, logger: logger)
             let code = payload?.code
+            if (status == 409 || status == 429), [
+                "IDEMPOTENCY_KEY_REUSED",
+                "CONTRIBUTION_ADMISSION_IN_PROGRESS",
+                "CONTRIBUTION_QUOTA_EXCEEDED"
+            ].contains(code) {
+                throw ContributionAdmissionFailure(
+                    statusCode: status,
+                    code: code,
+                    responseBody: data,
+                    retryAfter: http.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+                )
+            }
             switch status {
             case 401: throw VouchaError.unauthorized
             case 403: throw VouchaError.forbidden(preconditionCode: code)
@@ -157,6 +169,10 @@ public actor APIClient {
 }
 
 public extension APIClient {
+    func contributionStatus(action: String? = nil) async throws -> ContributionStatusResponse {
+        try await send(.contributionStatus(action: action))
+    }
+
     func send<T: Decodable>(
         _ endpoint: Endpoint,
         allowingStatusCodes allowedStatusCodes: Set<Int>

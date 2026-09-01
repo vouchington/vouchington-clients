@@ -2,6 +2,12 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
+  public Task<Contributions.ContributionStatusResponse> FetchContributionStatusAsync(
+      string? action = null,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<Contributions.ContributionStatusResponse>(
+          VouchaApiEndpoints.ContributionStatus(action), cancellationToken);
+
   public Task<PostsFeedResponse> FetchPostsAsync(
       FetchPostsRequest request,
       CancellationToken cancellationToken = default) =>
@@ -39,18 +45,18 @@ public sealed partial class VouchaApiClient
 
   public Task<PostMutationResponse> CreatePostAsync(
       CreatePostBody body,
+      string idempotencyKey,
       CancellationToken cancellationToken = default) =>
       SendAsync<PostMutationResponse>(
-          VouchaApiEndpoints.CreatePost(body),
-          cancellationToken);
+          VouchaApiEndpoints.CreatePost(body, idempotencyKey), cancellationToken);
 
   public Task<PostMutationResponse> CreateCommunityPostAsync(
       string communityIdOrSlug,
       CreatePostBody body,
+      string idempotencyKey,
       CancellationToken cancellationToken = default) =>
       SendAsync<PostMutationResponse>(
-          VouchaApiEndpoints.CreateCommunityPost(communityIdOrSlug, body),
-          cancellationToken);
+          VouchaApiEndpoints.CreateCommunityPost(communityIdOrSlug, body, idempotencyKey), cancellationToken);
 
   public Task<PostMutationResponse> UpdatePostAsync(
       string postIdOrSlug,

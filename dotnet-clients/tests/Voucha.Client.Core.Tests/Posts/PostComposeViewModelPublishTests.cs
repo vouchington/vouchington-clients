@@ -120,8 +120,34 @@ public sealed class PostComposeViewModelPublishTests
     Assert.Equal("Missing VOUCHA_TURNSTILE_SITE_KEY", viewModel.ErrorMessage);
   }
 
-  private sealed class RecordingPostsService : IPostsService
+  [Fact]
+  public async Task PublishAsyncReusesTheDraftKeyAfterFailureAndRotatesAfterSuccess()
   {
+    var service = new RetryThenSucceedPostsService();
+    var viewModel = new PostComposeViewModel(
+        service,
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true))
+    {
+      Title = "Title",
+      Markdown = "Draft",
+    };
+
+    Assert.False(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    var first = service.IdempotencyKeys.Single();
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    Assert.Equal(first, service.IdempotencyKeys[1]);
+    viewModel.Title = "Changed title";
+    viewModel.Markdown = "Changed draft";
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+
+    Assert.Equal(3, service.IdempotencyKeys.Count);
+    Assert.NotEqual(first, service.IdempotencyKeys[2]);
+    Assert.All(service.IdempotencyKeys, key => Assert.True(Guid.TryParse(key, out _)));
+  }
+
+  private class RecordingPostsService : IPostsService
+  {
+    public List<string> IdempotencyKeys { get; } = [];
     public CreatePostBody? GlobalBody { get; private set; }
 
     public string? CommunitySlug { get; private set; }
@@ -146,12 +172,21 @@ public sealed class PostComposeViewModelPublishTests
     public Task VotePostAsync(string postId, int score, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task<PostMutationResponse> CreatePostAsync(
+    public virtual Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
         CancellationToken cancellationToken = default)
     {
       GlobalBody = body;
       return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
+    }
+
+    public virtual Task<PostMutationResponse> CreatePostAsync(
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+      IdempotencyKeys.Add(idempotencyKey);
+      return CreatePostAsync(body, cancellationToken);
     }
 
     public Task<PostMutationResponse> CreateCommunityPostAsync(
@@ -162,6 +197,16 @@ public sealed class PostComposeViewModelPublishTests
       CommunitySlug = communityIdOrSlug;
       CommunityBody = body;
       return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
+    }
+
+    public Task<PostMutationResponse> CreateCommunityPostAsync(
+        string communityIdOrSlug,
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+      IdempotencyKeys.Add(idempotencyKey);
+      return CreateCommunityPostAsync(communityIdOrSlug, body, cancellationToken);
     }
 
     public Task<PostMutationResponse> UpdatePostAsync(
@@ -182,6 +227,27 @@ public sealed class PostComposeViewModelPublishTests
 
     public Task DeletePostAsync(string postIdOrSlug, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
+  }
+
+  private sealed class RetryThenSucceedPostsService : RecordingPostsService
+  {
+    private bool shouldFail = true;
+
+    public override Task<PostMutationResponse> CreatePostAsync(
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+      IdempotencyKeys.Add(idempotencyKey);
+      if (shouldFail)
+      {
+        shouldFail = false;
+        return Task.FromException<PostMutationResponse>(new VouchaApiException(
+            System.Net.HttpStatusCode.TooManyRequests,
+            "{\"code\":\"CONTRIBUTION_QUOTA_EXCEEDED\"}"));
+      }
+      return base.CreatePostAsync(body, cancellationToken);
+    }
   }
 
   private sealed class ThrowingPostsService(Exception? failure = null) : IPostsService

@@ -77,6 +77,8 @@ public extension NativeCommentThreadViewModel {
         guard let client else { return }
         let trimmed = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let canonicalIntent = [rootPostId, parentId, trimmed, isAnonymous ? "1" : "0"].joined(separator: "\u{001F}")
+        let idempotencyKey = await contributionIdentity.key(surface: "comment", canonicalIntent: canonicalIntent)
         await mutate(operation: {
             let response: CommentThreadPostMutationResponse = try await client.send(.createPost(
                 postType: .comment,
@@ -85,8 +87,10 @@ public extension NativeCommentThreadViewModel {
                 isAnonymous: isAnonymous,
                 rootId: rootPostId,
                 parentId: parentId,
-                turnstileToken: turnstileToken
+                turnstileToken: turnstileToken,
+                idempotencyKey: idempotencyKey
             ))
+            await contributionIdentity.complete(surface: "comment", canonicalIntent: canonicalIntent)
             let post = await renderedMutationPost(response.post, client: client)
             apply(mutationPost: post)
         })
@@ -185,6 +189,8 @@ public extension NativeCommentThreadViewModel {
             if reload {
                 await reloadCurrentThread()
             }
+        } catch let error as ContributionAdmissionFailure {
+            mutationState = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
         } catch let error as VouchaError {
             mutationState = .error(error)
         } catch {

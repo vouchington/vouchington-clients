@@ -181,8 +181,9 @@ extension NativeTopicRecommendationSurface {
             Text(UiMessages.string(.nativeSwiftPostComposeVerificationTokenRequired, locale: nativeUiLocale))
                 .foregroundStyle(Colors.secondaryLabel)
         case let .error(error):
-            Text(error.localizedDescription)
+            Text(contributionAdmissionMessage(error) ?? error.localizedDescription)
                 .foregroundStyle(Colors.negativeVote)
+                .accessibilityAddTraits(.isStaticText)
         default:
             if let saved = viewModel.savedPostId {
                 Text(UiMessages.string(
@@ -193,6 +194,13 @@ extension NativeTopicRecommendationSurface {
                 .foregroundStyle(Colors.secondaryLabel)
             }
         }
+    }
+
+    private func contributionAdmissionMessage(_ error: VouchaError) -> String? {
+        let key: UiMessageKey?
+        if case let .api(_, code) = error { key = NativeContributionAdmissionPresentation.messageKey(code) }
+        else { key = nil }
+        return key.map { UiMessages.string($0, locale: nativeUiLocale) }
     }
 
 }

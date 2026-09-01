@@ -27,7 +27,8 @@ public sealed partial class VouchaApiClient
       var responseBody = await ReadErrorBodyAsync(response.Content, cancellationToken).ConfigureAwait(false);
       throw new VouchaApiException(
           response.StatusCode,
-          string.IsNullOrEmpty(responseBody) ? null : responseBody);
+          string.IsNullOrEmpty(responseBody) ? null : responseBody,
+          response.Headers.RetryAfter?.Delta);
     }
 
     if (response.Content is null) throw DecodeFailure(response, "empty response body");
@@ -74,7 +75,8 @@ public sealed partial class VouchaApiClient
       var responseBody = await ReadErrorBodyAsync(response.Content, cancellationToken).ConfigureAwait(false);
       throw new VouchaApiException(
           response.StatusCode,
-          string.IsNullOrEmpty(responseBody) ? null : responseBody);
+          string.IsNullOrEmpty(responseBody) ? null : responseBody,
+          response.Headers.RetryAfter?.Delta);
     }
   }
 

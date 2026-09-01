@@ -37,6 +37,7 @@ final class NativeTopicRecommendationViewModel {
     let recommendationId: String?
     let client: APIClient?
     let appAttestationService: AppAttestationService?
+    let contributionIdentity = ContributionRequestIdentity()
     let logger = VouchaLogger(category: "NativeTopicRecommendationViewModel")
 
     init(client: APIClient?, recommendationId: String? = nil, appAttestationService: AppAttestationService? = nil) {

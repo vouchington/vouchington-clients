@@ -303,7 +303,8 @@ public sealed partial class VouchaApiClientTests
         """);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
-    var response = await client.CreateStoryPostFromStoryAsync("story 1", TestContext.Current.CancellationToken);
+    var response = await client.CreateStoryPostFromStoryAsync(
+        "story 1", "00000000-0000-4000-8000-000000000021", TestContext.Current.CancellationToken);
 
     AssertRequest(handler, HttpMethod.Post, "/api/v1/stories/story%201/discussions");
     Assert.Equal("post-1", response.Post.Id);
@@ -330,7 +331,8 @@ public sealed partial class VouchaApiClientTests
         """);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
-    var response = await client.CreateLinkPostFromRssFeedItemAsync("item 1", TestContext.Current.CancellationToken);
+    var response = await client.CreateLinkPostFromRssFeedItemAsync(
+        "item 1", "00000000-0000-4000-8000-000000000022", TestContext.Current.CancellationToken);
 
     AssertRequest(handler, HttpMethod.Post, "/api/v1/rss-feed-items/item%201/discussions");
     Assert.Equal("post-1", response.Post.Id);
