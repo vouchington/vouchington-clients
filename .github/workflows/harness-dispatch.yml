@@ -54,6 +54,7 @@ jobs:
       github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
       vars.HARNESS_DISPATCH_ENABLED == 'true' &&
       ((inputs.surface-gate == 'HARNESS_FIX_DEPENDABOT_ENABLED' && vars.HARNESS_FIX_DEPENDABOT_ENABLED == 'true') ||
+      (inputs.surface-gate == 'HARNESS_FIX_DTO_DRIFT_ENABLED' && vars.HARNESS_FIX_DTO_DRIFT_ENABLED == 'true') ||
       (inputs.surface-gate == 'HARNESS_FIX_ISSUE_ENABLED' && vars.HARNESS_FIX_ISSUE_ENABLED == 'true') ||
       (inputs.surface-gate == 'HARNESS_FIX_MAIN_ENABLED' && vars.HARNESS_FIX_MAIN_ENABLED == 'true' && vars.HARNESS_AGENT_DISPATCH_ENABLED == 'true') ||
       (inputs.surface-gate == 'HARNESS_PLAN_ENABLED' && vars.HARNESS_PLAN_ENABLED == 'true') ||
