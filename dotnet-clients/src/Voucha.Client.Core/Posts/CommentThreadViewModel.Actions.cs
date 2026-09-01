@@ -1,5 +1,4 @@
 using Voucha.Client.Core.Api;
-using System.Text.Json;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -56,7 +55,7 @@ public sealed partial class CommentThreadViewModel
   {
     var posts = mutationPostsService ?? throw new InvalidOperationException("Replying requires a post mutation service.");
     var body = new CreatePostBody("comment", string.Empty, markdown, ParentId: parentPostId, RootId: rootPostId, IsAnonymous: isAnonymous);
-    var canonicalIntent = JsonSerializer.Serialize(body, VouchaApiJson.Options);
+    var canonicalIntent = ContributionRequestIdentity.CanonicalIntent(body);
     var idempotencyKey = contributionIdentity.KeyFor("comment", canonicalIntent);
     try
     {

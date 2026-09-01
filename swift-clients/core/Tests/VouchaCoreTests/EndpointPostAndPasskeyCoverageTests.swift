@@ -133,6 +133,7 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual(endpoint.path, "/api/v1/communities/native%20community/posts")
         XCTAssertEqual(body["post_type"] as? String, "review")
         XCTAssertEqual(body["cf_turnstile_response"] as? String, "turnstile-token")
+        XCTAssertEqual(endpoint.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000002")
         XCTAssertEqual((body["review_topic_ratings"] as? [[String: Any]])?.first?["rating"] as? Int, 4)
     }
 

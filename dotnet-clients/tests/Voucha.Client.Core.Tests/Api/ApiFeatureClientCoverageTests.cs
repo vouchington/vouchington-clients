@@ -78,18 +78,21 @@ public sealed class ApiFeatureClientCoverageTests
     Assert.Equal("/api/v1/posts/post-1", handler.PathAndQuery);
 
     var body = new CreatePostBody("review", "Review", "Body", "turnstile");
-    Assert.Equal("post-1", (await service.CreatePostAsync(body, TestContext.Current.CancellationToken)).Post.Id);
+    Assert.Equal("post-1", (await service.CreatePostAsync(body, "00000000-0000-4000-8000-000000000051", TestContext.Current.CancellationToken)).Post.Id);
     Assert.Equal(HttpMethod.Post, handler.Method);
     Assert.Equal("/api/v1/posts", handler.PathAndQuery);
+    Assert.Equal("00000000-0000-4000-8000-000000000051", handler.IdempotencyKey);
 
     Assert.Equal(
         "post-1",
         (await service.CreateCommunityPostAsync(
             "community-1",
             body,
+            "00000000-0000-4000-8000-000000000052",
             TestContext.Current.CancellationToken)).Post.Id);
     Assert.Equal(HttpMethod.Post, handler.Method);
     Assert.Equal("/api/v1/communities/community-1/posts", handler.PathAndQuery);
+    Assert.Equal("00000000-0000-4000-8000-000000000052", handler.IdempotencyKey);
 
     Assert.Equal(
         "post-1",
@@ -108,6 +111,23 @@ public sealed class ApiFeatureClientCoverageTests
     handler.ResponseBody = "{}";
     await service.DeletePostAsync("post-1", TestContext.Current.CancellationToken);
     Assert.Equal(HttpMethod.Delete, handler.Method);
+  }
+
+  [Fact]
+  public async Task ContributionStatusDecodesTheRequestedActionLimit()
+  {
+    var (client, handler) = CreateClient("""
+        {"admission":{"allowed":true},"contribution_status":{"allowed":true},"daily_quota":{"limit":10,"used":2},"action_limit":{"action":"story_discussion","allowed":false,"daily_window":{"limit":3,"used":3,"window_seconds":86400},"short_window":{"limit":1,"used":1,"window_seconds":60},"tier":"new"}}
+        """);
+
+    var response = await client.FetchContributionStatusAsync(
+        "story_discussion", TestContext.Current.CancellationToken);
+
+    Assert.Equal("/api/v1/my/contribution-status?action=story_discussion", handler.PathAndQuery);
+    Assert.Equal("story_discussion", response.ActionLimit?.Action);
+    Assert.False(response.ActionLimit?.Allowed ?? true);
+    Assert.Equal(3, response.ActionLimit?.DailyWindow.Used);
+    Assert.Equal(60, response.ActionLimit?.ShortWindow.WindowSeconds);
   }
 
   [Fact]
@@ -398,6 +418,8 @@ public sealed class ApiFeatureClientCoverageTests
 
     public string? RequestBody { get; private set; }
 
+    public string? IdempotencyKey { get; private set; }
+
     public string ResponseBody { get; set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(
@@ -406,6 +428,7 @@ public sealed class ApiFeatureClientCoverageTests
     {
       Method = request.Method;
       PathAndQuery = request.RequestUri?.PathAndQuery;
+      IdempotencyKey = request.Headers.TryGetValues("Idempotency-Key", out var values) ? values.Single() : null;
       RequestBody = request.Content is null
           ? null
           : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

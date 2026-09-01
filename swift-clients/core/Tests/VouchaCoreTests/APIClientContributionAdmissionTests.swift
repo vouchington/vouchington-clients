@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAPI
+@testable import VouchaAuth
 @testable import VouchaCore
 import XCTest
 
@@ -35,5 +36,23 @@ final class APIClientContributionAdmissionTests: XCTestCase {
                 XCTAssertEqual(failure.retryAfter, TimeInterval(retryAfter))
             } catch { XCTFail("Unexpected failure: \(error)") }
         }
+    }
+
+    func testContributionStatusDecodesTheRequestedActionLimit() async throws {
+        CapturingURLProtocol.responseData = Data("""
+        {"admission":{"allowed":true},"contribution_status":{"allowed":true},"daily_quota":{"limit":10,"used":2},"action_limit":{"action":"story_discussion","allowed":false,"daily_window":{"limit":3,"used":3,"window_seconds":86400},"short_window":{"limit":1,"used":1,"window_seconds":60},"tier":"new"}}
+        """.utf8)
+        let client = APIClient(
+            config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
+            cookieStorage: HTTPCookieStorage(), protocolClasses: [CapturingURLProtocol.self]
+        )
+
+        let response = try await client.contributionStatus(action: "story_discussion")
+
+        XCTAssertEqual(CapturingURLProtocol.lastRequestURL?.query, "action=story_discussion")
+        XCTAssertEqual(response.actionLimit?.action, "story_discussion")
+        XCTAssertFalse(response.actionLimit?.allowed ?? true)
+        XCTAssertEqual(response.actionLimit?.dailyWindow.used, 3)
+        XCTAssertEqual(response.actionLimit?.shortWindow.windowSeconds, 60)
     }
 }

@@ -174,39 +174,24 @@ public sealed class PostComposeViewModelPublishTests
 
     public virtual Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
-        CancellationToken cancellationToken = default)
-    {
-      GlobalBody = body;
-      return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
-    }
-
-    public virtual Task<PostMutationResponse> CreatePostAsync(
-        CreatePostBody body,
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
+      GlobalBody = body;
       IdempotencyKeys.Add(idempotencyKey);
-      return CreatePostAsync(body, cancellationToken);
+      return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
     }
 
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       CommunitySlug = communityIdOrSlug;
       CommunityBody = body;
-      return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
-    }
-
-    public Task<PostMutationResponse> CreateCommunityPostAsync(
-        string communityIdOrSlug,
-        CreatePostBody body,
-        string idempotencyKey,
-        CancellationToken cancellationToken = default)
-    {
       IdempotencyKeys.Add(idempotencyKey);
-      return CreateCommunityPostAsync(communityIdOrSlug, body, cancellationToken);
+      return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
     }
 
     public Task<PostMutationResponse> UpdatePostAsync(
@@ -238,7 +223,6 @@ public sealed class PostComposeViewModelPublishTests
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
-      IdempotencyKeys.Add(idempotencyKey);
       if (shouldFail)
       {
         shouldFail = false;
@@ -246,7 +230,7 @@ public sealed class PostComposeViewModelPublishTests
             System.Net.HttpStatusCode.TooManyRequests,
             "{\"code\":\"CONTRIBUTION_QUOTA_EXCEEDED\"}"));
       }
-      return base.CreatePostAsync(body, cancellationToken);
+      return base.CreatePostAsync(body, idempotencyKey, cancellationToken);
     }
   }
 
@@ -276,6 +260,7 @@ public sealed class PostComposeViewModelPublishTests
 
     public Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       CreateCalls++;
@@ -285,6 +270,7 @@ public sealed class PostComposeViewModelPublishTests
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       CreateCalls++;

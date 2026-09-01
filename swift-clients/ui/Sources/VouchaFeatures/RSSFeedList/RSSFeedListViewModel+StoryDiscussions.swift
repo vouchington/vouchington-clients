@@ -1,5 +1,6 @@
 import VouchaCore
 import VouchaModels
+import VouchaAPI
 
 struct StoryDiscussionDestination: Identifiable, Hashable {
     let postId: String
@@ -76,9 +77,6 @@ extension RSSFeedListViewModel {
         } catch let error as VouchaError where error.isConflict {
             await reload()
             return storyDiscussionDestination(rssFeedItemId: rssFeedItemId)
-        } catch let error as ContributionAdmissionFailure {
-            state = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
-            return nil
         } catch let error as VouchaError {
             state = .error(error)
             return nil
@@ -108,6 +106,9 @@ extension RSSFeedListViewModel {
             startedDiscussionStoryIds.insert(storyId)
             state = .loaded
             return destination
+        } catch let error as ContributionAdmissionFailure {
+            state = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
+            return nil
         } catch let error as VouchaError {
             state = .error(error)
             return nil

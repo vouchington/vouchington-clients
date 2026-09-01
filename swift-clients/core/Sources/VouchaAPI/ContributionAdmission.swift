@@ -21,6 +21,21 @@ public struct ContributionStatusResponse: Decodable, Sendable {
     public let admission: ContributionAdmission
     public let contributionStatus: ContributionStatus
     public let dailyQuota: ContributionDailyQuota
+    public let actionLimit: ContributionActionLimitStatus?
+}
+
+public struct ContributionActionLimitStatus: Decodable, Sendable {
+    public let action: String
+    public let allowed: Bool
+    public let dailyWindow: ContributionLimitUsage
+    public let shortWindow: ContributionLimitUsage
+    public let tier: String
+}
+
+public struct ContributionLimitUsage: Decodable, Sendable {
+    public let limit: Int
+    public let used: Int
+    public let windowSeconds: Int
 }
 
 /// Stores an idempotency UUID by a caller-supplied canonical draft intent.

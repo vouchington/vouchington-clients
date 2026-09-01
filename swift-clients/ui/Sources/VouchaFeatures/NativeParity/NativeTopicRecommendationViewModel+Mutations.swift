@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaModels

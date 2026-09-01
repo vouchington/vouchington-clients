@@ -22,7 +22,7 @@ public sealed class VouchaApiStoryEndpointParityTests
   {
     yield return Case(
         "createStoryPostFromStory",
-        VouchaApiEndpoints.CreateStoryPostFromStory("story 1"),
+        VouchaApiEndpoints.CreateStoryPostFromStory("story 1", "00000000-0000-4000-8000-000000000054"),
         HttpMethod.Post,
         "/api/v1/stories/story%201/discussions",
         Query(),

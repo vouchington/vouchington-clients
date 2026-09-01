@@ -447,7 +447,10 @@ public sealed partial class CommentThreadViewModelTests
       return Task.CompletedTask;
     }
 
-    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, CancellationToken cancellationToken = default)
+    public Task<PostMutationResponse> CreatePostAsync(
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
     {
       CreatePostPostId = body.ParentId ?? body.RootId ?? "post-1";
       CreatePostRootId = body.RootId;
@@ -461,6 +464,7 @@ public sealed partial class CommentThreadViewModelTests
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 

@@ -64,19 +64,27 @@ final class EndpointTests: XCTestCase {
         )
     }
 
-    func testDiscussionCreationEndpointsUseExpectedRoutes() {
+    func testDiscussionCreationEndpointsUseExpectedRoutesAndIdempotencyHeaders() {
+        let story = Endpoint.createStoryDiscussion(
+            storyId: "story 1", idempotencyKey: "00000000-0000-4000-8000-000000000055"
+        )
         assertEndpoint(
-            .createStoryDiscussion(storyId: "story 1"),
+            story,
             method: .POST,
             path: "/api/v1/stories/story%201/discussions",
             body: [:]
         )
+        XCTAssertEqual(story.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000055")
+        let rss = Endpoint.createRssFeedItemDiscussion(
+            rssFeedItemId: "item 1", idempotencyKey: "00000000-0000-4000-8000-000000000056"
+        )
         assertEndpoint(
-            .createRssFeedItemDiscussion(rssFeedItemId: "item 1"),
+            rss,
             method: .POST,
             path: "/api/v1/rss-feed-items/item%201/discussions",
             body: [:]
         )
+        XCTAssertEqual(rss.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000056")
     }
 
     func testDiscussionCreationEndpointsDecodeExpectedResponses() async throws {
@@ -128,7 +136,7 @@ final class EndpointTests: XCTestCase {
             200
         )
         let linkResult: PostEnvelope = try await client.send(
-            .createRssFeedItemDiscussion(rssFeedItemId: "item-1")
+            .createRssFeedItemDiscussion(rssFeedItemId: "item-1", idempotencyKey: "00000000-0000-4000-8000-000000000057")
         )
         XCTAssertEqual(linkResult.post.id, "post-1")
         XCTAssertEqual(linkResult.post.postType, .link)
@@ -188,7 +196,7 @@ final class EndpointTests: XCTestCase {
             200
         )
         let storyResult: StoryPostResult = try await client.send(
-            .createStoryDiscussion(storyId: "story-1")
+            .createStoryDiscussion(storyId: "story-1", idempotencyKey: "00000000-0000-4000-8000-000000000058")
         )
         XCTAssertEqual(storyResult.post.id, "post-2")
         XCTAssertEqual(storyResult.story.id, "story-1")

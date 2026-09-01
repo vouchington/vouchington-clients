@@ -1,6 +1,5 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Support;
-using System.Text.Json;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -21,7 +20,7 @@ public sealed partial class PostComposeViewModel
     State = LoadState.Loading;
     ErrorMessage = null;
     var body = BuildBody();
-    var canonicalIntent = JsonSerializer.Serialize(body, VouchaApiJson.Options);
+    var canonicalIntent = ContributionRequestIdentity.CanonicalIntent(body);
     var idempotencyKey = contributionIdentity.KeyFor("post", canonicalIntent);
     try
     {

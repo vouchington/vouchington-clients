@@ -73,6 +73,12 @@ public struct RSSFeedListView: View {
 
     private var loadedListView: some View {
         List {
+            if let admissionErrorMessageKey {
+                Text(UiMessages.string(admissionErrorMessageKey, locale: nativeUiLocale))
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Colors.secondaryLabel)
+                    .accessibilityAddTraits(.isStaticText)
+            }
             ForEach(viewModel.items) { item in
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     RssFeedItemCard(
@@ -163,6 +169,11 @@ private extension RSSFeedListView {
             return true
         }
         return viewModel.embedsByItemId[item.id]?.approvedPlayerWithSource == nil
+    }
+
+    var admissionErrorMessageKey: UiMessageKey? {
+        guard case let .error(.api(_, code)) = viewModel.state else { return nil }
+        return NativeContributionAdmissionPresentation.messageKey(code)
     }
 
     var showsPlaybackAccessory: Bool {

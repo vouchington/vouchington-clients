@@ -39,6 +39,8 @@ internal sealed class RecordingHandler : HttpMessageHandler
 
   public string? RequestBody { get; private set; }
 
+  public string? IdempotencyKey { get; private set; }
+
   public List<RecordedRequest> Requests { get; } = [];
 
   protected override async Task<HttpResponseMessage> SendAsync(
@@ -47,6 +49,7 @@ internal sealed class RecordingHandler : HttpMessageHandler
   {
     Method = request.Method;
     PathAndQuery = request.RequestUri?.PathAndQuery;
+    IdempotencyKey = request.Headers.TryGetValues("Idempotency-Key", out var values) ? values.Single() : null;
     RequestBody = request.Content is null
         ? null
         : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

@@ -101,8 +101,8 @@ public sealed class ProfileViewModelAdminLandingPagesTests
             null!,
             new Dictionary<string, User>(),
             new Dictionary<string, Community>()));
-    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<PostMutationResponse> CreateCommunityPostAsync(string communityIdOrSlug, CreatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, string idempotencyKey, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<PostMutationResponse> CreateCommunityPostAsync(string communityIdOrSlug, CreatePostBody body, string idempotencyKey, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> UpdatePostAsync(string postIdOrSlug, UpdatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> ArchivePostAsync(string postIdOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> UnarchivePostAsync(string postIdOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();

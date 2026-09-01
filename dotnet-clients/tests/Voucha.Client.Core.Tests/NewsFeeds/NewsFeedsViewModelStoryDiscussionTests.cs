@@ -131,6 +131,29 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
         TestContext.Current.CancellationToken));
   }
 
+  [Theory]
+  [InlineData("CONTRIBUTION_ADMISSION_IN_PROGRESS", "Your post is still being sent. Try again shortly.")]
+  [InlineData("IDEMPOTENCY_KEY_REUSED", "We couldn't match this draft to the earlier request. Try again.")]
+  public async Task StartStoryDiscussionAsyncKeepsTheDraftOnAdmissionConflicts(
+      string code,
+      string expectedMessage)
+  {
+    var service = new StoryDiscussionNewsFeedService(
+        [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryPeerCount: 1)])
+    {
+      Failure = new VouchaApiException(HttpStatusCode.Conflict, $$"""{"code":"{{code}}"}"""),
+    };
+    var viewModel = new NewsFeedsViewModel(service);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var result = await viewModel.StartStoryDiscussionAsync(viewModel.Items[0], TestContext.Current.CancellationToken);
+
+    Assert.Null(result);
+    Assert.Equal(expectedMessage, viewModel.ErrorMessage);
+    Assert.False(viewModel.Items[0].IsStartingStoryDiscussion);
+    Assert.True(viewModel.Items[0].CanStartStoryDiscussion);
+  }
+
   private sealed class StoryDiscussionNewsFeedService(
       IReadOnlyList<NewsFeedItem> items) : INewsFeedService, IStoryDiscussionService
   {
