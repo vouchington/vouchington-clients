@@ -74,11 +74,25 @@ val generatedProjectDeclaration = Regex(
     """^\s*(?:rootProject\.name\s*=|include\(|project\(\"[^\"]+\"\)\.projectDir\s*=).*""",
 )
 filteredSettings.parentFile.mkdirs()
-filteredSettings.writeText(
-    generatedSettings.useLines { lines ->
-        lines.filterNot { generatedProjectDeclaration.matches(it) }.joinToString("\n", postfix = "\n")
-    },
+val filteredSettingsContents = generatedSettings.useLines { lines ->
+    lines.filterNot { generatedProjectDeclaration.matches(it) }.joinToString("\n", postfix = "\n")
+}
+val filteredSettingsTemporary = java.nio.file.Files.createTempFile(
+    filteredSettings.parentFile.toPath(),
+    "voucha-settings-",
+    ".tmp",
 )
+try {
+    java.nio.file.Files.writeString(filteredSettingsTemporary, filteredSettingsContents)
+    java.nio.file.Files.move(
+        filteredSettingsTemporary,
+        filteredSettings.toPath(),
+        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+    )
+} finally {
+    java.nio.file.Files.deleteIfExists(filteredSettingsTemporary)
+}
 
 apply(from = filteredSettings)
 includeBuild(skipstoneProject)

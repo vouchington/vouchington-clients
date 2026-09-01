@@ -23,6 +23,7 @@ test("builds only the Android app Gradle task closure", async () => {
   assert.equal(unqualifiedAssemble, -1, "pre-push must not assemble every Gradle subproject");
   assert.match(prePush, /Android Gradle :app:assembleDebug completed in/);
   assert.match(prePush, /GITHUB_STEP_SUMMARY/);
+  assert.match(prePush, /Warning: unable to write GitHub step summary/);
   assert.ok(
     skipAndroidTest > qualifiedAssemble,
     "Skip Android tests must run after the app assembly",
@@ -36,6 +37,7 @@ test("keeps generated Skip modules out of the root Gradle project", async () => 
   assert.match(gradleSettings, /System\.getenv\("BUILT_PRODUCTS_DIR"\)/);
   assert.match(gradleSettings, /BuildToolPluginIntermediates/);
   assert.match(gradleSettings, /generatedProjectDeclaration/);
+  assert.match(gradleSettings, /StandardCopyOption\.ATOMIC_MOVE/);
   assert.match(gradleSettings, /includeBuild\(skipstoneProject\)/);
   assert.match(gradleSettings, /rootProjectPaths == listOf\(":app"\)/);
 });
