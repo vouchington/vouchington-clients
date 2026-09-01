@@ -33,7 +33,7 @@ public static class UrlEmbedPreviews
   }
 
   public static bool IsApprovedPlayer(Uri? candidate) =>
-      candidate is { Scheme: "https", UserInfo: "" } &&
+      candidate is { IsAbsoluteUri: true, Scheme: "https", UserInfo: "", Host: not "" } &&
       HasExactHostAuthority(candidate) &&
       ((candidate.Host == "www.youtube-nocookie.com" && candidate.AbsolutePath.StartsWith("/embed/", StringComparison.Ordinal)) ||
        (candidate.Host == "player.vimeo.com" && candidate.AbsolutePath.StartsWith("/video/", StringComparison.Ordinal)));

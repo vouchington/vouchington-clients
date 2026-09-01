@@ -11,17 +11,21 @@ struct CommunityForwardPage {
     let hasMore: Bool
     /// Present only for post pages. An empty value means the accepted page has no post embeds.
     let postEmbedsByPostId: [String: UrlEmbed]?
+    /// Present only for news pages. An empty value means the accepted page has no news embeds.
+    let rssFeedItemEmbedsById: [String: UrlEmbed]?
 
     init(
         items: [CommunityForwardRow],
         endCursor: String?,
         hasMore: Bool,
-        postEmbedsByPostId: [String: UrlEmbed]? = nil
+        postEmbedsByPostId: [String: UrlEmbed]? = nil,
+        rssFeedItemEmbedsById: [String: UrlEmbed]? = nil
     ) {
         self.items = items
         self.endCursor = endCursor
         self.hasMore = hasMore
         self.postEmbedsByPostId = postEmbedsByPostId
+        self.rssFeedItemEmbedsById = rssFeedItemEmbedsById
     }
 
     static func terminal(_ rows: [NativeRouteDestinationRow]) -> Self {
@@ -31,7 +35,8 @@ struct CommunityForwardPage {
             },
             endCursor: nil,
             hasMore: false,
-            postEmbedsByPostId: nil
+            postEmbedsByPostId: nil,
+            rssFeedItemEmbedsById: nil
         )
     }
 }

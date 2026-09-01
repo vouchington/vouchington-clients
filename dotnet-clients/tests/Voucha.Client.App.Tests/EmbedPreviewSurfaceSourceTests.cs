@@ -30,6 +30,20 @@ public sealed class EmbedPreviewSurfaceSourceTests
     Assert.Contains("SourceUrl", source, StringComparison.Ordinal);
   }
 
+  [Fact]
+  public void PostDetailRendersEmbedPreviewForRootAncestorsAndDescendants()
+  {
+    var page = Source("PostDetailPage.xaml");
+    var ancestors = page.Split("<VerticalStackLayout Spacing=\"8\" IsVisible=\"{Binding HasAncestors}\">", 2)[1]
+        .Split("<HorizontalStackLayout Spacing=\"8\">", 2)[0];
+
+    Assert.Equal(3, page.Split("EmbedPreview.HasPreview").Length - 1);
+    Assert.Contains("EmbedPreview.CanPlay", ancestors, StringComparison.Ordinal);
+    Assert.Contains("EmbedPreview.HasSource", ancestors, StringComparison.Ordinal);
+    Assert.Contains("OnEmbedPlayClicked", ancestors, StringComparison.Ordinal);
+    Assert.Contains("OnEmbedOpenClicked", ancestors, StringComparison.Ordinal);
+  }
+
   private static string Source(string file, [CallerFilePath] string sourceFile = "")
   {
     var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);

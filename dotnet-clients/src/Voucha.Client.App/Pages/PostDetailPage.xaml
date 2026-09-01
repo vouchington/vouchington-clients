@@ -87,6 +87,14 @@
                             <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
                                 <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Body}" />
                                 <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
+                                <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
+                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                    <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.CanPlay}" />
+                                    <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.HasSource}" />
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>

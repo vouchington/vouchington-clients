@@ -7,7 +7,6 @@ extension CommunityDetailViewModel {
         let response: NativeRssFeedItemsResponse = try await client.send(
             .communityNews(idOrSlug: slug, after: after, limit: 10)
         )
-        rssFeedItemEmbedsById.merge(response.rssFeedItemEmbeds ?? [:]) { _, new in new }
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let item = response.rssFeedItems[result.entityId ?? result.id] else { return nil }
             return .init(
@@ -26,7 +25,8 @@ extension CommunityDetailViewModel {
         return .init(
             items: items,
             endCursor: response.pageInfo?.endCursor,
-            hasMore: response.pageInfo?.hasNextPage ?? false
+            hasMore: response.pageInfo?.hasNextPage ?? false,
+            rssFeedItemEmbedsById: response.rssFeedItemEmbeds ?? [:]
         )
     }
 }
