@@ -88,6 +88,17 @@ public sealed class UrlEmbedPreviewTests
     Assert.True(withoutSource.HasPreview);
   }
 
+  [Fact]
+  public void DoesNotUseHostlessHttpsPlayer()
+  {
+    var preview = UrlEmbedPreviews.From(new UrlEmbed(
+        PlayerUrl: "https:x",
+        SourceUrl: "https://source.example/article"));
+
+    Assert.Null(preview.PlayerUrl);
+    Assert.False(preview.CanPlay);
+  }
+
   [Theory]
   [InlineData("https:")]
   [InlineData("https:/hostless")]
@@ -134,7 +145,6 @@ public sealed class UrlEmbedPreviewTests
   [InlineData("https://user@www.youtube-nocookie.com/embed/video-id", false)]
   [InlineData("https://www.youtube.com/embed/video-id", false)]
   [InlineData("http://player.vimeo.com/video/123", false)]
-  [InlineData("https:x", false)]
   public void AllowsOnlyExactApprovedPlayers(string url, bool expected)
   {
     Assert.Equal(expected, UrlEmbedPreviews.IsApprovedPlayer(new Uri(url)));
