@@ -196,11 +196,4 @@ extension NativeTopicRecommendationSurface {
         }
     }
 
-    private func contributionAdmissionMessage(_ error: VouchaError) -> String? {
-        let key: UiMessageKey?
-        if case let .api(_, code) = error { key = NativeContributionAdmissionPresentation.messageKey(code) }
-        else { key = nil }
-        return key.map { UiMessages.string($0, locale: nativeUiLocale) }
-    }
-
 }

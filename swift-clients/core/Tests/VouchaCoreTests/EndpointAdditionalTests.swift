@@ -136,7 +136,10 @@ final class EndpointTests: XCTestCase {
             200
         )
         let linkResult: PostEnvelope = try await client.send(
-            .createRssFeedItemDiscussion(rssFeedItemId: "item-1", idempotencyKey: "00000000-0000-4000-8000-000000000057")
+            .createRssFeedItemDiscussion(
+                rssFeedItemId: "item-1",
+                idempotencyKey: "00000000-0000-4000-8000-000000000057"
+            )
         )
         XCTAssertEqual(linkResult.post.id, "post-1")
         XCTAssertEqual(linkResult.post.postType, .link)

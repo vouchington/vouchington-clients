@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -46,5 +47,14 @@ extension NativeTopicRecommendationSurface {
     var editorBorder: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
             .strokeBorder(.quaternary, lineWidth: 1)
+    }
+
+    func contributionAdmissionMessage(_ error: VouchaError) -> String? {
+        let key: UiMessageKey? = if case let .api(_, code) = error {
+            NativeContributionAdmissionPresentation.messageKey(code)
+        } else {
+            nil
+        }
+        return key.map { UiMessages.string($0, locale: nativeUiLocale) }
     }
 }

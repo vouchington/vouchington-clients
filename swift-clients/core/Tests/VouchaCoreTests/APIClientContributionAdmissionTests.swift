@@ -12,7 +12,7 @@ final class APIClientContributionAdmissionTests: XCTestCase {
         super.tearDown()
     }
 
-    func testAdmissionFailuresPreserveStatusCodeBodyCodeAndRetryAfter() async {
+    func testAdmissionFailuresPreserveStatusCodeBodyCodeAndRetryAfter() async throws {
         for (status, code, retryAfter) in [
             (409, "IDEMPOTENCY_KEY_REUSED", "3"),
             (429, "CONTRIBUTION_QUOTA_EXCEEDED", "17")
@@ -21,8 +21,11 @@ final class APIClientContributionAdmissionTests: XCTestCase {
             CapturingURLProtocol.responseData = body
             CapturingURLProtocol.responseStatusCode = status
             CapturingURLProtocol.responseHeaders = ["Content-Type": "application/json", "Retry-After": retryAfter]
-            let client = APIClient(
-                config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
+            let client = try APIClient(
+                config: AppConfig(
+                    baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
+                    turnstileSiteKey: "test"
+                ),
                 cookieStorage: HTTPCookieStorage(), protocolClasses: [CapturingURLProtocol.self]
             )
 
@@ -42,8 +45,8 @@ final class APIClientContributionAdmissionTests: XCTestCase {
         CapturingURLProtocol.responseData = Data("""
         {"admission":{"allowed":true},"contribution_status":{"allowed":true},"daily_quota":{"limit":10,"used":2},"action_limit":{"action":"story_discussion","allowed":false,"daily_window":{"limit":3,"used":3,"window_seconds":86400},"short_window":{"limit":1,"used":1,"window_seconds":60},"tier":"new"}}
         """.utf8)
-        let client = APIClient(
-            config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
+        let client = try APIClient(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999")), turnstileSiteKey: "test"),
             cookieStorage: HTTPCookieStorage(), protocolClasses: [CapturingURLProtocol.self]
         )
 

@@ -47,7 +47,9 @@ public actor ContributionRequestIdentity {
 
     public func key(surface: String, canonicalIntent: String) -> String {
         let scope = surface + "\u{001F}" + canonicalIntent
-        if let existing = keys[scope] { return existing.uuidString.lowercased() }
+        if let existing = keys[scope] {
+            return existing.uuidString.lowercased()
+        }
         let created = UUID()
         keys[scope] = created
         return created.uuidString.lowercased()

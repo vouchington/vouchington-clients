@@ -1,6 +1,6 @@
+import VouchaAPI
 import VouchaCore
 import VouchaModels
-import VouchaAPI
 
 struct StoryDiscussionDestination: Identifiable, Hashable {
     let postId: String
@@ -58,7 +58,10 @@ extension RSSFeedListViewModel {
 
         do {
             let storyIntent = "story\u{001F}\(storyId)"
-            let idempotencyKey = await contributionIdentity.key(surface: "story-discussion", canonicalIntent: storyIntent)
+            let idempotencyKey = await contributionIdentity.key(
+                surface: "story-discussion",
+                canonicalIntent: storyIntent
+            )
             let result: StoryPostResult = try await emailVerificationGate.perform(rollbackOnFailure: {}, {
                 try await client.send(.createStoryDiscussion(storyId: storyId, idempotencyKey: idempotencyKey))
             })

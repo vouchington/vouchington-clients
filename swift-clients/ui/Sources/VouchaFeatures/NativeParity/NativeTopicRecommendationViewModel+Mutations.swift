@@ -29,7 +29,12 @@ extension NativeTopicRecommendationViewModel {
             surface: "topic-recommendation", canonicalIntent: canonicalIntent
         )
         if !isEdit, let client, let attested = await attestedEndpoint(idempotencyKey: idempotencyKey) {
-            await submit(client: client, endpoint: attested, fallbackToTurnstile: true, canonicalIntent: canonicalIntent)
+            await submit(
+                client: client,
+                endpoint: attested,
+                fallbackToTurnstile: true,
+                canonicalIntent: canonicalIntent
+            )
             return
         }
         if !isEdit, turnstileToken == nil {

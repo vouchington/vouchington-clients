@@ -166,7 +166,12 @@ public final class NativePostComposeViewModel {
         let idempotencyKey = await contributionIdentity.key(surface: "post", canonicalIntent: canonicalIntent)
 
         if let endpoint = await attestedCreateEndpoint(idempotencyKey: idempotencyKey) {
-            await submit(client: client, endpoint: endpoint, fallbackToTurnstile: true, canonicalIntent: canonicalIntent)
+            await submit(
+                client: client,
+                endpoint: endpoint,
+                fallbackToTurnstile: true,
+                canonicalIntent: canonicalIntent
+            )
             return
         }
 

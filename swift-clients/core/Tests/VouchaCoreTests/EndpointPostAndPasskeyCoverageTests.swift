@@ -48,7 +48,7 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual((data["items"] as? [Any])?.count, 2)
     }
 
-    func testContributionEndpointsKeepAnExplicitIdempotencyKeyAndDraftIdentity() async throws {
+    func testContributionEndpointsKeepAnExplicitIdempotencyKeyAndDraftIdentity() async {
         let identity = ContributionRequestIdentity()
         let first = await identity.key(surface: "post", canonicalIntent: "title\u{001F}body")
         let retry = await identity.key(surface: "post", canonicalIntent: "title\u{001F}body")

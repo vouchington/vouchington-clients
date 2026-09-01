@@ -135,7 +135,8 @@ struct NativePostComposeSurface: View {
 
     @ViewBuilder
     private func composeStatus(viewModel: NativePostComposeViewModel) -> some View {
-        if case let .error(.api(_, code)) = viewModel.state, let key = NativeContributionAdmissionPresentation.messageKey(code) {
+        if case let .error(.api(_, code)) = viewModel.state,
+           let key = NativeContributionAdmissionPresentation.messageKey(code) {
             Text(UiMessages.string(key, locale: nativeUiLocale))
                 .font(Typography.subheadline)
                 .foregroundStyle(Colors.secondaryLabel)
