@@ -77,7 +77,6 @@ extension CommunityDetailViewModel {
                 limit: 10
             )
         )
-        postEmbedsByPostId.merge(response.postLinkEmbeds ?? [:]) { _, new in new }
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let post = response.posts[result.id] else { return nil }
             return .init(
@@ -93,7 +92,8 @@ extension CommunityDetailViewModel {
         return .init(
             items: items,
             endCursor: response.pageInfo?.endCursor,
-            hasMore: response.pageInfo?.hasNextPage ?? false
+            hasMore: response.pageInfo?.hasNextPage ?? false,
+            postEmbedsByPostId: response.postLinkEmbeds ?? [:]
         )
     }
 

@@ -110,6 +110,40 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
         ])
     }
 
+    func testInitialPostReloadClearsEmbedsOmittedByAcceptedResponse() async throws {
+        let path = "/api/v1/communities/builders/posts"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (postPage(id: "post-1", cursor: nil, hasMore: false, embedTitle: "First preview"), 200, 0),
+            (postPage(id: "post-1", cursor: nil, hasMore: false), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders")
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-1"]?.previewTitle, "First preview")
+
+        viewModel.rowPagination.reset()
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+
+        XCTAssertTrue(viewModel.postEmbedsByPostId.isEmpty)
+    }
+
+    func testPostPaginationRetainsInitialEmbedsWhileMergingAcceptedNextPage() async throws {
+        let path = "/api/v1/communities/builders/posts"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (postPage(id: "post-1", cursor: "next", hasMore: true, embedTitle: "First preview"), 200, 0),
+            (postPage(id: "post-2", cursor: nil, hasMore: false, embedTitle: "Second preview"), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders")
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+        await viewModel.loadMoreRows()
+
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-1"]?.previewTitle, "First preview")
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-2"]?.previewTitle, "Second preview")
+    }
+
     private func decodeReports(ids: [String]) throws -> [CommunityPendingReport] {
         try decoder.decode([CommunityPendingReport].self, from: Data(
             "[\(ids.map(pendingReport).joined(separator: ","))]".utf8
@@ -146,9 +180,17 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
         )
     }
 
-    private func postPage(id: String) -> Data {
-        Data(
-            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":false,"end_cursor":null},"posts":{"\#(id)":{"id":"\#(id)","post_type":"discussion","title":"Two","slug":"two","markdown":"Body","created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z"}},"posts_metrics":{},"communities":{}}"#
+    private func postPage(
+        id: String,
+        cursor: String? = nil,
+        hasMore: Bool = false,
+        embedTitle: String? = nil
+    ) -> Data {
+        let postLinkEmbeds = embedTitle.map {
+            #","post_link_embeds":{"\#(id)":{"source_url":"https://example.com/\#(id)","title":"\#($0)"}}"#
+        } ?? ""
+        return Data(
+            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(json(cursor))},"posts":{"\#(id)":{"id":"\#(id)","post_type":"discussion","title":"Two","slug":"two","markdown":"Body","created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z"}}\#(postLinkEmbeds),"posts_metrics":{},"communities":{}}"#
                 .utf8
         )
     }

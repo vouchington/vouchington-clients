@@ -244,7 +244,49 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
         XCTAssertNoThrow(try sut.inspect().find(text: "Open source"))
+        XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 1)
         XCTAssertThrowsError(try sut.inspect().find(text: "Video unavailable"))
+    }
+
+    func testFocusedSurfaceApprovedEmbedDoesNotSuppressAudioPlaybackAccessory() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/item-1"] = (
+            playableDetailWithApprovedEmbed(mediaType: "audio"),
+            200
+        )
+        let client = try makeClient()
+        let viewModel = try makeFocusedViewModel(client: client)
+        await viewModel.load()
+        let sut = NativeFocusedRssFeedItemSurface(
+            viewModel: viewModel,
+            playbackController: PodcastPlaybackController(
+                client: client,
+                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            )
+        )
+
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play"))
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.View<RSSFeedPlaybackAccessoryView>.self))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
+    }
+
+    func testFocusedSurfaceApprovedEmbedDoesNotSuppressDirectVideoPlaybackAccessory() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/item-1"] = (
+            playableDetailWithApprovedEmbed(mediaType: "video"),
+            200
+        )
+        let client = try makeClient()
+        let viewModel = try makeFocusedViewModel(client: client)
+        await viewModel.load()
+        let sut = NativeFocusedRssFeedItemSurface(
+            viewModel: viewModel,
+            playbackController: PodcastPlaybackController(
+                client: client,
+                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            )
+        )
+
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.View<RSSFeedPlaybackAccessoryView>.self))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
     }
 
     private func makeFocusedViewModel(
@@ -352,5 +394,22 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
           }
         }
         """#.utf8)
+    }
+
+    private func playableDetailWithApprovedEmbed(mediaType: String) -> Data {
+        let isAudio = mediaType == "audio"
+        let extensionName = isAudio ? "mp3" : "mp4"
+        let mimeType = isAudio ? "audio/mpeg" : "video/mp4"
+        return Data("""
+        { "rss_feed_item": {
+            "id": "item-1", "rss_feed_id": "feed-1", "title": "Playable media",
+            "link": "https://example.com/item-1",
+            "media_content": {
+              "url": "https://example.com/item-1.\(extensionName)", "type": "\(mimeType)",
+              "medium": "\(mediaType)"
+            }
+          },
+          "rss_feed_item_embeds": { "item-1": { "source_url": "https://example.com/item-1", "player_url": "https://www.youtube-nocookie.com/embed/video-1" } } }
+        """.utf8)
     }
 }

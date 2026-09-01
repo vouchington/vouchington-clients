@@ -84,7 +84,8 @@ struct NativeFocusedRssFeedItemSurface: View {
 
             playbackAccessory(for: item)
 
-            if let externalURLString = item.externalURLString,
+            if viewModel.focusedRssFeedItemEmbed?.validatedSourceURL == nil,
+               let externalURLString = item.externalURLString,
                let externalURL = URL(string: externalURLString) {
                 Link(destination: externalURL) {
                     Label(
@@ -117,29 +118,27 @@ struct NativeFocusedRssFeedItemSurface: View {
 
     @ViewBuilder
     private func playbackAccessory(for item: RssFeedItem) -> some View {
-        if viewModel.focusedRssFeedItemEmbed?.approvedPlayerWithSource != nil {
-            EmptyView()
-        } else {
-            switch item.playbackKind {
-            case .embedOnlyVideo:
+        switch item.playbackKind {
+        case .embedOnlyVideo:
+            if viewModel.focusedRssFeedItemEmbed?.approvedPlayerWithSource == nil {
                 Text(UiMessages.string(.nativeSwiftRssFeedPlaybackVideoUnavailable, locale: nativeUiLocale))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)
-            case .audio, .directVideo:
-                if let playbackController {
-                    RSSFeedPlaybackAccessoryView(
-                        item: item,
-                        isCurrentItem: playbackController.isCurrentItem(item),
-                        isPlaying: playbackController.isCurrentItem(item) && playbackController.isPlaying,
-                        onPlayPauseTap: {
-                            Task { await playbackController.togglePlayback(for: item) }
-                        },
-                        showsSourceLink: false
-                    )
-                }
-            case .externalAudio, .unavailable:
-                EmptyView()
             }
+        case .audio, .directVideo:
+            if let playbackController {
+                RSSFeedPlaybackAccessoryView(
+                    item: item,
+                    isCurrentItem: playbackController.isCurrentItem(item),
+                    isPlaying: playbackController.isCurrentItem(item) && playbackController.isPlaying,
+                    onPlayPauseTap: {
+                        Task { await playbackController.togglePlayback(for: item) }
+                    },
+                    showsSourceLink: false
+                )
+            }
+        case .externalAudio, .unavailable:
+            EmptyView()
         }
     }
 }

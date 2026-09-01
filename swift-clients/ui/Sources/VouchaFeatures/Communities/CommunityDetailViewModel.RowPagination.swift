@@ -15,6 +15,7 @@ extension CommunityDetailViewModel {
                 endCursor: page.endCursor,
                 hasNextPage: page.hasMore
             ) else { return }
+            mergePostEmbeds(from: page)
             summary.rows = rowPagination.items.map(\.row)
         } catch let error as VouchaError {
             _ = rowPagination.fail(request, error: error)
@@ -38,10 +39,21 @@ extension CommunityDetailViewModel {
                 endCursor: page.endCursor,
                 hasNextPage: page.hasMore
             ) else { return [] }
+            replacePostEmbeds(from: page)
             return rowPagination.items.map(\.row)
         } catch {
             _ = rowPagination.cancel(request)
             throw error
         }
+    }
+
+    private func replacePostEmbeds(from page: CommunityForwardPage) {
+        guard let postEmbeds = page.postEmbedsByPostId else { return }
+        postEmbedsByPostId = postEmbeds
+    }
+
+    private func mergePostEmbeds(from page: CommunityForwardPage) {
+        guard let postEmbeds = page.postEmbedsByPostId else { return }
+        postEmbedsByPostId.merge(postEmbeds) { _, new in new }
     }
 }

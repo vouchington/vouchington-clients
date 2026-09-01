@@ -118,4 +118,52 @@ final class RSSFeedListViewPlaybackAccessoryGateTests: XCTestCase {
         XCTAssertNoThrow(try sut.inspect().find(text: "Open source"))
         XCTAssertThrowsError(try sut.inspect().find(text: "Video unavailable"))
     }
+
+    func testApprovedEmbedDoesNotSuppressAudioPlaybackAccessory() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            feedPageWithApprovedEmbed(mediaType: "audio"),
+            200
+        )
+        let viewModel = RSSFeedListViewModel(client: makeClient(), contentType: .podcast)
+        await viewModel.load()
+        let sut = RSSFeedListView(viewModel: viewModel, playbackController: makePlaybackController())
+
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play"))
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.View<RSSFeedPlaybackAccessoryView>.self))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
+    }
+
+    func testApprovedEmbedDoesNotSuppressDirectVideoPlaybackAccessory() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            feedPageWithApprovedEmbed(mediaType: "video"),
+            200
+        )
+        let viewModel = RSSFeedListViewModel(client: makeClient(), contentType: .video)
+        await viewModel.load()
+        let sut = RSSFeedListView(viewModel: viewModel, playbackController: makePlaybackController())
+
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.View<RSSFeedPlaybackAccessoryView>.self))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
+    }
+
+    private func feedPageWithApprovedEmbed(mediaType: String) -> Data {
+        let isAudio = mediaType == "audio"
+        let extensionName = isAudio ? "mp3" : "mp4"
+        let mimeType = isAudio ? "audio/mpeg" : "video/mp4"
+        return Data("""
+        { "results": [{ "id": "item-1", "entity_id": "item-1" }],
+          "page_info": { "has_next_page": false, "end_cursor": null },
+          "rss_feed_items": {
+            "item-1": {
+              "id": "item-1", "rss_feed_id": "feed-1", "title": "Playable media",
+              "link": "https://example.com/item-1",
+              "media_content": {
+                "url": "https://example.com/item-1.\(extensionName)", "type": "\(mimeType)",
+                "medium": "\(mediaType)"
+              }
+            }
+          },
+          "rss_feed_item_embeds": { "item-1": { "source_url": "https://example.com/item-1", "player_url": "https://www.youtube-nocookie.com/embed/video-1" } } }
+        """.utf8)
+    }
 }
