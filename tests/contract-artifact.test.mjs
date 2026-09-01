@@ -79,6 +79,21 @@ test('creates a narrow, deterministic manifest and verifies it', async t => {
   )
 })
 
+test('uses the verifier ordinal order for punctuation-bearing paths', async t => {
+  const identity = await fixture(t)
+  await writeTree(identity.filamentsRoot, {
+    'api-fixtures/v1/a-.json': '{}\n',
+    'api-fixtures/v1/a_.json': '{}\n',
+  })
+
+  const manifest = await createContractArtifact(identity)
+  assert.deepEqual(
+    manifest.files.map(file => file.path).filter(path => /a[-_]\.json$/u.test(path)),
+    ['api-fixtures/v1/a-.json', 'api-fixtures/v1/a_.json'],
+  )
+  await verifyContractArtifact(expected(identity))
+})
+
 test('creates and verifies a main-branch push identity without a pull request', async t => {
   const identity = {
     ...(await fixture(t)),

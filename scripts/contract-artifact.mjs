@@ -37,7 +37,7 @@ export async function createContractArtifact(options) {
     for (const file of await treeFiles(source, `Filaments contract ${allowed}`))
       records.push(await fileRecord(filamentsRoot, artifactPath(`${allowed}/${file}`)))
   }
-  records.sort((left, right) => left.path.localeCompare(right.path))
+  records.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0))
   await mkdir(outputRoot, { recursive: true })
   for (const record of records) {
     const destination = join(outputRoot, ...record.path.split('/'))
