@@ -30,7 +30,9 @@ public sealed class VouchaApiStoryEndpointParityTests
 
     yield return Case(
         "createLinkPostFromRssFeedItem",
-        VouchaApiEndpoints.CreateLinkPostFromRssFeedItem("item 1"),
+        VouchaApiEndpoints.CreateLinkPostFromRssFeedItem(
+            "item 1",
+            "00000000-0000-4000-8000-000000000055"),
         HttpMethod.Post,
         "/api/v1/rss-feed-items/item%201/discussions",
         Query(),
