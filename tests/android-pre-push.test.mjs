@@ -4,10 +4,7 @@ import { join, resolve } from 'node:path'
 import test from 'node:test'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const prePushPath = join(
-  repositoryRoot,
-  'swift-clients/apps/android/tooling/pre-push.sh',
-)
+const prePushPath = join(repositoryRoot, 'swift-clients/apps/android/tooling/pre-push.sh')
 const gradleSettingsPath = join(
   repositoryRoot,
   'swift-clients/apps/android/Android/settings.gradle.kts',

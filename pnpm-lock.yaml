@@ -36,8 +36,8 @@ importers:
         specifier: 0.46.0
         version: 0.46.0
       vouchington-tooling:
-        specifier: 0.1.5
-        version: 0.1.5
+        specifier: 0.5.1
+        version: 0.5.1
 
 packages:
 
@@ -1387,6 +1387,10 @@ packages:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
 
+  picomatch@4.0.7:
+    resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
+    engines: {node: '>=12'}
+
   pkce-challenge@5.0.1:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
@@ -1560,8 +1564,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vouchington-tooling@0.1.5:
-    resolution: {integrity: sha512-a2t0LlLx2Jn58qplizk+MojcLauc45u5o+x6c6d0abIy7K1xT3djw1xJ7rNtBG8u2h9a6XiqmqdaDRu7c29MoQ==}
+  vouchington-tooling@0.5.1:
+    resolution: {integrity: sha512-AcMdT9api+lxbUACoyzsq4ZbMbvZkhwQJyIf9Q6xRZKt7Ys56fiI92cPqSw2qFa7CNeylTCdH+7kpQ3ku0Puaw==}
     engines: {node: '>=24.0.0'}
     hasBin: true
 
@@ -2492,6 +2496,10 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
+
   finalhandler@2.1.1:
     dependencies:
       debug: 4.4.3
@@ -2808,6 +2816,8 @@ snapshots:
 
   picomatch@4.0.5: {}
 
+  picomatch@4.0.7: {}
+
   pkce-challenge@5.0.1: {}
 
   pr-shepherd@0.46.0:
@@ -2962,8 +2972,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinypool@2.1.0: {}
 
@@ -2996,12 +3006,12 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vouchington-tooling@0.1.5:
+  vouchington-tooling@0.5.1:
     dependencies:
       csv-parse: 7.0.2
       csv-stringify: 6.8.3
       dockerfile-ast: 0.7.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       yaml: 2.9.0
     optionalDependencies:
       '@libpg-query/parser': 18.0.0

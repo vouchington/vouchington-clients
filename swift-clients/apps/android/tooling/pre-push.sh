@@ -137,7 +137,9 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   # Skip's Gradle bridge discovers host toolchains only through the conventional
   # macOS path. Keep that path as a real directory and link only the verified
   # .xctoolchain — Foundation rejects a directory-level symlink (NSPOSIX 20).
+  # The helper is resolved from this script's runtime directory.
   # shellcheck source=expose-job-scoped-swift-toolchain.sh
+  # shellcheck disable=SC1091
   source "$SCRIPT_DIR/expose-job-scoped-swift-toolchain.sh"
 fi
 
@@ -165,6 +167,8 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     printf '### Android Gradle timing\n\n'
     printf '| Command | Elapsed |\n'
     printf '| --- | ---: |\n'
+    # The backticked task name is intentionally literal Markdown.
+    # shellcheck disable=SC2016
     printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
   } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
 fi
