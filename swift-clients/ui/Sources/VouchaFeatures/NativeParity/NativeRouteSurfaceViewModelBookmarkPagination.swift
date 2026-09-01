@@ -1,7 +1,6 @@
 import Foundation
 import VouchaAPI
 import VouchaCore
-import VouchaLocalization
 
 extension NativeRouteSurfaceViewModel {
     func loadInitialBookmarkPage(collection: NativeBookmarkCollection, client: APIClient) async throws {

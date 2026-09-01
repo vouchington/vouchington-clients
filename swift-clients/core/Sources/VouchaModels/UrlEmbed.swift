@@ -6,6 +6,8 @@ public struct UrlEmbed: Codable, Sendable {
     public let rssFeedItemId: String?
     public let sourceUrl: String?
     public let title: String?
+    public let description: String?
+    public let providerName: String?
     public let markdown: String?
     public let thumbnailUrl: String?
     public let playerUrl: String?
@@ -31,6 +33,8 @@ public struct UrlEmbed: Codable, Sendable {
         try container.encode(rssFeedItemId, forKey: .rssFeedItemId)
         try container.encode(sourceUrl, forKey: .sourceUrl)
         try container.encode(title, forKey: .title)
+        try container.encode(description, forKey: .description)
+        try container.encode(providerName, forKey: .providerName)
         try container.encode(markdown, forKey: .markdown)
         try container.encode(thumbnailUrl, forKey: .thumbnailUrl)
         try container.encode(playerUrl, forKey: .playerUrl)
@@ -54,15 +58,16 @@ public struct UrlEmbed: Codable, Sendable {
 
     public var previewTitle: String? {
         firstNonEmpty(
+            title,
             metadataString("title"),
             metaTag("og:title"),
-            metaTag("twitter:title"),
-            title
+            metaTag("twitter:title")
         )
     }
 
     public var previewDescription: String? {
         firstNonEmpty(
+            description,
             metadataString("description"),
             metaTag("og:description"),
             metaTag("twitter:description")
@@ -70,6 +75,9 @@ public struct UrlEmbed: Codable, Sendable {
     }
 
     public var previewProvider: String? {
+        if let providerName = Self.trimmedNonEmpty(providerName) {
+            return providerName
+        }
         if case let .object(metadata)? = embedMetadata,
            case let .object(provider)? = metadata["provider"],
            case let .string(name)? = provider["name"],

@@ -25,9 +25,9 @@ public static class UrlEmbedPreviews
     var metadata = embed?.EmbedMetadata;
     var source = SafeUri(embed?.SourceUrl ?? metadata?.ResolvedUrl);
     return new(
-        First(metadata?.Title, Tag(tags, "og:title"), Tag(tags, "twitter:title"), embed?.Title),
-        First(metadata?.Description, Tag(tags, "og:description"), Tag(tags, "twitter:description")),
-        First(metadata?.Provider?.Name, Tag(tags, "og:site_name"), source?.Host),
+        First(embed?.Title, metadata?.Title, Tag(tags, "og:title"), Tag(tags, "twitter:title")),
+        First(embed?.Description, metadata?.Description, Tag(tags, "og:description"), Tag(tags, "twitter:description")),
+        First(embed?.ProviderName, metadata?.Provider?.Name, Tag(tags, "og:site_name"), source?.Host),
         SafeUri(embed?.ThumbnailUrl),
         source,
         SafePlayer(embed?.PlayerUrl));

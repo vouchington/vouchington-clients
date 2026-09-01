@@ -74,6 +74,8 @@ public sealed record UrlCrawlTriggerResponse(
 
 public sealed record UrlEmbed(
     [property: JsonPropertyName("title")] string? Title = null,
+    [property: JsonPropertyName("description")] string? Description = null,
+    [property: JsonPropertyName("provider_name")] string? ProviderName = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("media_type")] string? MediaType = null,
     [property: JsonPropertyName("video_id")] string? VideoId = null,

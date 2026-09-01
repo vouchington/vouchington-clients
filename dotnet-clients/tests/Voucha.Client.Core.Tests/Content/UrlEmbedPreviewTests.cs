@@ -8,20 +8,22 @@ namespace Voucha.Client.Core.Tests.Content;
 public sealed class UrlEmbedPreviewTests
 {
   [Fact]
-  public void SelectsNormalizedThenOgAndPreservesRawTags()
+  public void SelectsSafeProjectionsThenRawMetadataAndPreservesRawTags()
   {
     var tags = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""
       {"OG:TITLE":"OG","twitter:title":"Twitter","og:description":"OG description","nested":{"raw":true},"og:image":"https://third-party.example/image.jpg"}
       """)!;
     var preview = UrlEmbedPreviews.From(new UrlEmbed(
         Title: "Normalized",
+        Description: "Safe description",
+        ProviderName: "Safe provider",
         ThumbnailUrl: "https://images.voucha.ai/safe.jpg",
         EmbedMetadata: new ResolvedEmbed("article", "https://source.example", "https://source.example", Title: "oEmbed", Description: "oEmbed description", Provider: new EmbedProviderMetadata(Name: "Provider")),
         MetaTags: tags));
 
-    Assert.Equal("oEmbed", preview.Title);
-    Assert.Equal("oEmbed description", preview.Description);
-    Assert.Equal("Provider", preview.Provider);
+    Assert.Equal("Normalized", preview.Title);
+    Assert.Equal("Safe description", preview.Description);
+    Assert.Equal("Safe provider", preview.Provider);
     Assert.Equal("https://images.voucha.ai/safe.jpg", preview.ThumbnailUrl?.AbsoluteUri);
     Assert.Equal(JsonValueKind.Object, tags["nested"].ValueKind);
   }
@@ -48,13 +50,13 @@ public sealed class UrlEmbedPreviewTests
   }
 
   [Fact]
-  public void UsesTwitterBeforeFlattenedFieldsButNotMarkdown()
+  public void UsesSafeTitleBeforeRawTwitterTitleButNotMarkdown()
   {
     var tags = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("{" +
         "\"twitter:title\":\"Twitter\",\"twitter:description\":\"Twitter description\"}")!;
     var preview = UrlEmbedPreviews.From(new UrlEmbed(Title: "Flattened", Markdown: "Markdown", MetaTags: tags));
 
-    Assert.Equal("Twitter", preview.Title);
+    Assert.Equal("Flattened", preview.Title);
     Assert.Equal("Twitter description", preview.Description);
   }
 
@@ -80,6 +82,17 @@ public sealed class UrlEmbedPreviewTests
 
     Assert.Equal(640.5, embed.EmbedMetadata?.Player?.Width);
     Assert.Equal(720.25, embed.EmbedMetadata?.Thumbnail?.Height);
+  }
+
+  [Fact]
+  public void DecodesBackendSafeDescriptionAndProviderName()
+  {
+    var embed = JsonSerializer.Deserialize<UrlEmbed>("""
+      {"description":"Safe description","provider_name":"Safe provider"}
+      """)!;
+
+    Assert.Equal("Safe description", embed.Description);
+    Assert.Equal("Safe provider", embed.ProviderName);
   }
 
   [Theory]

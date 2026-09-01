@@ -7,7 +7,8 @@ final class UrlEmbedTests: XCTestCase {
         let embed = try JSONDecoder.vouchaFixtureDecoder.decode(UrlEmbed.self, from: Data(#"""
         {
           "source_url": "https://www.youtube.com/watch?v=video-123",
-          "title": "oEmbed title", "thumbnail_url": "https://safe.example/image.jpg",
+          "title": "oEmbed title", "description": "Safe description", "provider_name": "Safe provider",
+          "thumbnail_url": "https://safe.example/image.jpg",
           "player_url": "https://www.youtube-nocookie.com/embed/video-123",
           "embed_metadata": { "player": { "url": "https://www.youtube-nocookie.com/embed/video-123" } },
           "meta_tags": { "og:title": "OG title", "nested": [true, { "key": "value" }] },
@@ -16,6 +17,8 @@ final class UrlEmbedTests: XCTestCase {
         """#.utf8))
 
         XCTAssertEqual(embed.title, "oEmbed title")
+        XCTAssertEqual(embed.description, "Safe description")
+        XCTAssertEqual(embed.providerName, "Safe provider")
         XCTAssertEqual(embed.thumbnailUrl, "https://safe.example/image.jpg")
         XCTAssertEqual(
             embed.embedMetadata,
@@ -23,6 +26,12 @@ final class UrlEmbedTests: XCTestCase {
         )
         XCTAssertEqual(embed.metaTags?["nested"], .array([.bool(true), .object(["key": .string("value")])]))
         XCTAssertNotNil(embed.embedOembedResolvedAt)
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(embed)) as? [String: Any])
+        XCTAssertEqual(encoded["description"] as? String, "Safe description")
+        XCTAssertEqual(encoded["provider_name"] as? String, "Safe provider")
     }
 
     func testAcceptsOnlyExactApprovedProviderPlayerURLs() throws {
@@ -43,7 +52,14 @@ final class UrlEmbedTests: XCTestCase {
         XCTAssertTrue(try rejected.allSatisfy { try !UrlEmbed.isAllowedProviderURL(XCTUnwrap(URL(string: $0))) })
     }
 
-    func testUsesNormalizedThenCaseInsensitiveOgThenTwitterThenFlattenedTitle() throws {
+    func testUsesSafeProjectionsThenRawMetadataAndTagsForPreviewText() throws {
+        let safe = try JSONDecoder.vouchaFixtureDecoder.decode(UrlEmbed.self, from: Data(#"""
+        {
+          "title": "Safe title", "description": "safe description", "provider_name": "Safe provider",
+          "embed_metadata": { "title": "Raw title", "description": "raw description", "provider": { "name": "Raw provider" } },
+          "meta_tags": { "og:title": "OG title", "og:description": "OG description", "og:site_name": "OG provider" }
+        }
+        """#.utf8))
         let normalized = try embed(
             metadata: #"{ "title": "normalized", "description": "normalized description", "provider": { "name": "YouTube" } }"#,
             tags: #"{ "OG:TITLE": "og", "og:description": "og description", "twitter:title": "twitter" }"#,
@@ -61,18 +77,21 @@ final class UrlEmbedTests: XCTestCase {
         )
         let flattened = try embed(metadata: #"{}"#, tags: #"{}"#, title: "flattened")
 
-        XCTAssertEqual(normalized.previewTitle, "normalized")
+        XCTAssertEqual(safe.previewTitle, "Safe title")
+        XCTAssertEqual(safe.previewDescription, "safe description")
+        XCTAssertEqual(safe.previewProvider, "Safe provider")
+        XCTAssertEqual(normalized.previewTitle, "flattened")
         XCTAssertEqual(normalized.previewDescription, "normalized description")
         XCTAssertEqual(normalized.previewProvider, "YouTube")
-        XCTAssertEqual(og.previewTitle, "og")
+        XCTAssertEqual(og.previewTitle, "flattened")
         XCTAssertEqual(og.previewDescription, "og description")
-        XCTAssertEqual(twitter.previewTitle, "twitter")
+        XCTAssertEqual(twitter.previewTitle, "flattened")
         XCTAssertEqual(twitter.previewDescription, "twitter description")
         XCTAssertEqual(flattened.previewTitle, "flattened")
         XCTAssertNil(flattened.previewDescription)
     }
 
-    func testUsesNormalizedThenOgSiteNameThenSourceHostForProvider() throws {
+    func testUsesRawMetadataThenOgSiteNameThenSourceHostForProvider() throws {
         let normalized = try JSONDecoder.vouchaFixtureDecoder.decode(UrlEmbed.self, from: Data(#"""
         { "source_url": "https://fallback.example/article", "embed_metadata": { "provider": { "name": "Normalized" } }, "meta_tags": { "og:site_name": "OG site" } }
         """#.utf8))
