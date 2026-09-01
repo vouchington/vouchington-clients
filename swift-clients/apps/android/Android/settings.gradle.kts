@@ -28,14 +28,92 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("skip-plugin") apply true
+// Skip's settings plugin applies the generated settings as a root multi-project build and then
+// includes that same generated project as a composite build. The app consumes only the composite
+// build, so applying the generated `include` declarations creates a second, unconsumed project
+// tree. Keep the generated dependency repositories and version catalogs, but omit those root
+// project declarations before including the generated project once as a composite build.
+val packageRoot = settings.rootDir.parentFile
+val skipEnv = java.util.Properties().apply {
+    packageRoot.resolve("Skip.env").reader(Charsets.UTF_8).use(::load)
+    remove("//")
+}
+val swiftModuleName = requireNotNull(skipEnv.getProperty("PRODUCT_NAME")) {
+    "PRODUCT_NAME is required in ${packageRoot.resolve("Skip.env")}"
+}
+val androidPackageName = requireNotNull(skipEnv.getProperty("ANDROID_PACKAGE_NAME")) {
+    "ANDROID_PACKAGE_NAME is required in ${packageRoot.resolve("Skip.env")}"
+}
+val builtProductsDir = System.getenv("BUILT_PRODUCTS_DIR")
+    ?: System.getProperty("BUILT_PRODUCTS_DIR")
+val skipOutputs = if (builtProductsDir == null) {
+    packageRoot.resolve(".build/plugins/outputs")
+} else {
+    val xcodeBuildRoot = file(builtProductsDir).resolve("../../../")
+    val buildToolPluginOutputs = xcodeBuildRoot.resolve(
+        "Build/Intermediates.noindex/BuildToolPluginIntermediates",
+    )
+    if (buildToolPluginOutputs.isDirectory) {
+        buildToolPluginOutputs
+    } else {
+        xcodeBuildRoot.resolve("SourcePackages/plugins")
+    }
+}
+val skipstoneProject = skipOutputs.listFiles()
+    ?.asSequence()
+    ?.map { output -> output.resolve(swiftModuleName) }
+    ?.flatMap { module ->
+        sequenceOf(module.resolve("skipstone"), module.resolve("destination/skipstone"))
+    }
+    ?.firstOrNull(File::isDirectory)
+    ?: error("Could not locate transpiled module $swiftModuleName in $skipOutputs")
+
+val generatedSettings = skipstoneProject.resolve("settings.gradle.kts")
+val filteredSettings = packageRoot.resolve(".build/Android/voucha-settings.gradle.kts")
+val generatedProjectDeclaration = Regex(
+    """^\s*(?:rootProject\.name\s*=|include\(|project\(\"[^\"]+\"\)\.projectDir\s*=).*""",
+)
+filteredSettings.parentFile.mkdirs()
+val filteredSettingsContents = generatedSettings.useLines { lines ->
+    lines.filterNot { generatedProjectDeclaration.matches(it) }.joinToString("\n", postfix = "\n")
+}
+val filteredSettingsTemporary = java.nio.file.Files.createTempFile(
+    filteredSettings.parentFile.toPath(),
+    "voucha-settings-",
+    ".tmp",
+)
+try {
+    java.nio.file.Files.writeString(filteredSettingsTemporary, filteredSettingsContents)
+    java.nio.file.Files.move(
+        filteredSettingsTemporary,
+        filteredSettings.toPath(),
+        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+    )
+} finally {
+    java.nio.file.Files.deleteIfExists(filteredSettingsTemporary)
+}
+
+apply(from = filteredSettings)
+includeBuild(skipstoneProject)
+include(":app")
+rootProject.name = androidPackageName
+
+val androidBuildOutput = packageRoot.resolve(".build/Android")
+gradle.projectsLoaded {
+    rootProject.allprojects {
+        layout.buildDirectory.set(androidBuildOutput.resolve(project.name))
+    }
+    val rootProjectPaths = rootProject.childProjects.values.map { it.path }.sorted()
+    require(rootProjectPaths == listOf(":app")) {
+        "Expected :app to be the only root Gradle subproject; found $rootProjectPaths"
+    }
 }
 
 buildCache {
     local {
-        // pre-push.sh selects a user-private cache shared across workspaces. Android Studio keeps
-        // Gradle's default GRADLE_USER_HOME cache when the environment variable is absent.
+        // The manual/CI Android validation wrapper selects a user-private cache shared across
+        // workspaces. Android Studio keeps Gradle's default cache when this variable is absent.
         System.getenv("GRADLE_BUILD_CACHE_DIR")?.takeIf { it.isNotBlank() }?.let {
             val cachePath = File(it).toPath().normalize()
             require(cachePath.isAbsolute && cachePath.nameCount > 0) {
