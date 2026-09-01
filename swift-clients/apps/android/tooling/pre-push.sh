@@ -151,12 +151,23 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
+gradle_started_at=$SECONDS
 (
   cd "$ANDROID_PROJECT_DIR"
-  # Build only the app dependency closure. An unqualified task also assembles Skip's duplicate,
-  # unconsumed top-level module tree.
+  # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
+  # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
   ./gradlew :app:assembleDebug
 )
+gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
+echo "Android Gradle :app:assembleDebug completed in ${gradle_elapsed_seconds}s"
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  {
+    printf '### Android Gradle timing\n\n'
+    printf '| Command | Elapsed |\n'
+    printf '| --- | ---: |\n'
+    printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
+  } >> "$GITHUB_STEP_SUMMARY"
+fi
 
 skip android test \
   --package-path "$ANDROID_PACKAGE_DIR" \
