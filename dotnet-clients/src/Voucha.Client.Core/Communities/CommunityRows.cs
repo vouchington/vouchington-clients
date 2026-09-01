@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
@@ -38,13 +39,21 @@ public sealed record CommunityPostRow(
     DateTimeOffset? CreatedAt,
     int ReplyCount,
     UiText PostTypeText,
-    IUiLocalization Localization)
+    IUiLocalization Localization,
+    UrlEmbedPreview? EmbedPreview = null)
 {
   public string PostType => Localization.Resolve(PostTypeText);
 
   public static CommunityPostRow FromPost(
       Post post,
       PostMetrics? metrics,
+      IUiLocalization? localization) =>
+      FromPost(post, metrics, embed: null, localization);
+
+  public static CommunityPostRow FromPost(
+      Post post,
+      PostMetrics? metrics,
+      UrlEmbed? embed = null,
       IUiLocalization? localization = null)
   {
     ArgumentNullException.ThrowIfNull(post);
@@ -55,6 +64,7 @@ public sealed record CommunityPostRow(
         post.CreatedAt,
         metrics?.Count.Descendants ?? 0,
         UiTaxonomy.PostType(post.PostType),
-        localization ?? UiLocalization.English);
+        localization ?? UiLocalization.English,
+        UrlEmbedPreviews.From(embed));
   }
 }

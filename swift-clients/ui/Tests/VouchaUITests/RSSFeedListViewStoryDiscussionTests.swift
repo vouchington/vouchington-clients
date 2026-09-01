@@ -81,7 +81,6 @@ final class RSSFeedListViewStoryDiscussionTests: XCTestCase {
             currentUserId: "viewer-1"
         )
 
-        let rows = try sut.inspect().find(ViewType.List.self).forEach(0)
-        XCTAssertNoThrow(try rows.vStack(0).hStack(1).view(FollowerDistributionActions.self, 1))
+        XCTAssertNoThrow(try sut.inspect().find(FollowerDistributionActions.self))
     }
 }

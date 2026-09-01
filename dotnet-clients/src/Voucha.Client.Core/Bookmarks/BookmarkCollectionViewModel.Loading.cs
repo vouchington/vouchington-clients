@@ -25,13 +25,11 @@ public sealed partial class BookmarkCollectionViewModel
               cancellationToken: cancellationToken).ConfigureAwait(true)).Results
           .Select((user, rank) => BookmarkCollectionRowFactory.User(user, route.InverseAction, rank, localization))
           .ToArray()),
-      BookmarkCollectionKind.RssFeedItems => Result((await client.FetchUserRssFeedItemsCollectionAsync(
+      BookmarkCollectionKind.RssFeedItems => RssItemResult(await client.FetchUserRssFeedItemsCollectionAsync(
               userId,
               route.ListType,
               route.MediaType,
-              cancellationToken: cancellationToken).ConfigureAwait(true)).Results
-          .Select((item, rank) => BookmarkCollectionRowFactory.RssItem(item, route.InverseAction, rank, localization))
-          .ToArray()),
+              cancellationToken: cancellationToken).ConfigureAwait(true), route),
       BookmarkCollectionKind.RssFeeds => Result((await client.FetchUserRssFeedsAsync(
               new FetchUserRssFeedsRequest(userId, route.ListType, route.FeedType),
               cancellationToken).ConfigureAwait(true)).Results
@@ -70,11 +68,25 @@ public sealed partial class BookmarkCollectionViewModel
         cancellationToken: cancellationToken).ConfigureAwait(true);
     return new(
         response.Results.Select((post, rank) =>
-            BookmarkCollectionRowFactory.Post(post, route.InverseAction, rank, localization)).ToArray(),
+        {
+          UrlEmbed? embed = null;
+          response.PostLinkEmbeds?.TryGetValue(post.Id, out embed);
+          return BookmarkCollectionRowFactory.Post(post, route.InverseAction, rank, embed, localization);
+        }).ToArray(),
         response.PageInfo);
   }
 
   private static BookmarkCollectionLoadResult Result(IReadOnlyList<BookmarkCollectionRow> rows) => new(rows, null);
+
+  private BookmarkCollectionLoadResult RssItemResult(
+      BookmarkCollectionResponse<RssFeedItem> response,
+      BookmarkCollectionRouteContext route) =>
+      new(response.Results.Select((item, rank) =>
+      {
+        UrlEmbed? embed = null;
+        response.RssFeedItemEmbeds?.TryGetValue(item.Id, out embed);
+        return BookmarkCollectionRowFactory.RssItem(item, route.InverseAction, rank, embed, localization);
+      }).ToArray(), response.PageInfo);
 
   private sealed record BookmarkCollectionLoadResult(IReadOnlyList<BookmarkCollectionRow> Rows, PageInfo? PageInfo);
 }

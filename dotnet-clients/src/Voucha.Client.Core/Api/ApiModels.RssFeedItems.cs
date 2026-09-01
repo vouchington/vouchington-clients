@@ -9,6 +9,7 @@ public sealed record RssFeedItemResponse(
     [property: JsonPropertyName("rss_feed_item_election")] RssFeedItemElection? RssFeedItemElection = null,
     [property: JsonPropertyName("content_html")] string? ContentHtml = null,
     [property: JsonPropertyName("rss_feed_item_thumbnail_url")] IReadOnlyDictionary<string, string>? RssFeedItemThumbnailUrl = null,
+    [property: JsonPropertyName("rss_feed_item_embeds")] IReadOnlyDictionary<string, UrlEmbed>? RssFeedItemEmbeds = null,
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null);
 

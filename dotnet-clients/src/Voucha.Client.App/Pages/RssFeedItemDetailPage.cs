@@ -9,7 +9,7 @@ using Voucha.Client.Core.FollowerDistributions;
 
 namespace Voucha.Client.App.Pages;
 
-public sealed class RssFeedItemDetailPage : ContentPage
+public sealed partial class RssFeedItemDetailPage : ContentPage
 {
   private readonly RssFeedItemDetailViewModel viewModel;
   private readonly IServiceProvider serviceProvider;
@@ -40,6 +40,7 @@ public sealed class RssFeedItemDetailPage : ContentPage
 
     var image = new Image { HeightRequest = 220, Aspect = Aspect.AspectFill };
     image.SetBinding(Image.SourceProperty, "Detail.Item.ThumbnailUrl");
+    var embedPreview = CreateEmbedPreview();
     var source = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentSource), 13, FontAttributes.Bold);
     var title = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentTitle), 24, FontAttributes.Bold);
     var summary = new NativeHtmlContentView();
@@ -58,14 +59,20 @@ public sealed class RssFeedItemDetailPage : ContentPage
     var play = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetMediaPlaybackPlay);
     play.SetBinding(IsVisibleProperty, "Detail.Item.HasMediaPlayback");
     play.Clicked += OnPlayClicked;
+    var playEmbed = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetMediaPlaybackPlay);
+    playEmbed.SetBinding(IsVisibleProperty, "Detail.Item.EmbedPreview.CanPlay");
+    playEmbed.Clicked += OnEmbedPlayClicked;
     var videoUnavailable = UiCopy.Bind(
         new Label { VerticalTextAlignment = TextAlignment.Center, FontSize = 13 },
         Label.TextProperty,
         UiMessageKey.NativeDotnetMediaPlaybackVideoUnavailable);
-    videoUnavailable.SetBinding(IsVisibleProperty, "Detail.Item.IsEmbedOnlyVideo");
+    videoUnavailable.SetBinding(IsVisibleProperty, "Detail.Item.IsEmbedOnlyVideoUnavailable");
     var open = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeSwiftPodcastPlaybackOpenSource);
     open.SetBinding(IsVisibleProperty, "Detail.Item.CanOpenExternally");
     open.Clicked += OnOpenClicked;
+    var embedOpen = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeSwiftPodcastPlaybackOpenSource);
+    embedOpen.SetBinding(IsVisibleProperty, "Detail.Item.EmbedPreview.HasSource");
+    embedOpen.Clicked += OnEmbedOpenClicked;
     followerSend = UiCopy.Bind(
         new Button(),
         Button.TextProperty,
@@ -100,8 +107,8 @@ public sealed class RssFeedItemDetailPage : ContentPage
         Spacing = 10,
         Children =
         {
-          image, source, title, summary, published, votes, bookmarks, hidden,
-          new HorizontalStackLayout { Spacing = 8, Children = { play, videoUnavailable, open, followerSend } },
+          image, source, title, embedPreview, summary, published, votes, bookmarks, hidden,
+          new HorizontalStackLayout { Spacing = 8, Children = { play, playEmbed, videoUnavailable, open, embedOpen, followerSend } },
           hnStack,
           error, retry,
         },

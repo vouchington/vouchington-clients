@@ -23,7 +23,7 @@ public sealed record Crawl(
     [property: JsonPropertyName("response_status_code")] int? ResponseStatusCode,
     [property: JsonPropertyName("title")] string? Title = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
-    [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, object>? MetaTags = null,
+    [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, JsonElement>? MetaTags = null,
     [property: JsonPropertyName("lang")] string? Lang = null,
     [property: JsonPropertyName("request_headers")] IReadOnlyDictionary<string, string>? RequestHeaders = null,
     [property: JsonPropertyName("response_headers")] IReadOnlyDictionary<string, string>? ResponseHeaders = null,
@@ -68,5 +68,31 @@ public sealed record UrlCrawlTriggerResponse(
     [property: JsonPropertyName("target")] string Target,
     [property: JsonPropertyName("enqueued_count")] int EnqueuedCount,
     [property: JsonPropertyName("rss_feed_id")] string? RssFeedId = null);
+
+public sealed record UrlEmbed(
+    [property: JsonPropertyName("title")] string? Title = null,
+    [property: JsonPropertyName("description")] string? Description = null,
+    [property: JsonPropertyName("provider_name")] string? ProviderName = null,
+    [property: JsonPropertyName("markdown")] string? Markdown = null,
+    [property: JsonPropertyName("media_type")] string? MediaType = null,
+    [property: JsonPropertyName("video_id")] string? VideoId = null,
+    [property: JsonPropertyName("video_platform")] string? VideoPlatform = null,
+    [property: JsonPropertyName("source_url")] string? SourceUrl = null,
+    [property: JsonPropertyName("thumbnail_url")] string? ThumbnailUrl = null,
+    [property: JsonPropertyName("player_url")] string? PlayerUrl = null,
+    [property: JsonPropertyName("player_width")] double? PlayerWidth = null,
+    [property: JsonPropertyName("player_height")] double? PlayerHeight = null,
+    [property: JsonPropertyName("enclosure_url")] string? EnclosureUrl = null,
+    [property: JsonPropertyName("enclosure_type")] string? EnclosureType = null,
+    [property: JsonPropertyName("duration_seconds")] double? DurationSeconds = null,
+    [property: JsonPropertyName("rss_feed_item_id")] string? RssFeedItemId = null,
+    [property: JsonPropertyName("show_id")] string? ShowId = null,
+    [property: JsonPropertyName("show_title")] string? ShowTitle = null,
+    [property: JsonPropertyName("show_topic_slug")] string? ShowTopicSlug = null,
+    [property: JsonPropertyName("show_topic_type")] string? ShowTopicType = null,
+    [property: JsonPropertyName("embed_metadata")] JsonElement? EmbedMetadata = null,
+    [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, JsonElement>? MetaTags = null,
+    [property: JsonPropertyName("embed_oembed_url")] string? EmbedOembedUrl = null,
+    [property: JsonPropertyName("embed_oembed_resolved_at")] DateTimeOffset? EmbedOembedResolvedAt = null);
 
 #pragma warning restore CA1054, CA1056, CA1720

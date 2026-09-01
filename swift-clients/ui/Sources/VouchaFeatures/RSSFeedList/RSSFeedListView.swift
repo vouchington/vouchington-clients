@@ -1,6 +1,7 @@
 import SwiftUI
 import VouchaDesignSystem
 import VouchaLocalization
+import VouchaModels
 
 public struct RSSFeedListView: View {
     @Environment(\.locale)
@@ -94,6 +95,9 @@ public struct RSSFeedListView: View {
                             { _ = Task<Void, Never> { await viewModel.toggleHide(rssFeedItemId: item.id) } } : nil,
                         apiBaseURL: viewModel.apiBaseURL
                     )
+                    if let embed = viewModel.embedsByItemId[item.id] {
+                        ProviderEmbedPreview(embed: embed)
+                    }
                     if isSignedIn, let currentUserId {
                         HStack {
                             Spacer()
@@ -104,7 +108,7 @@ public struct RSSFeedListView: View {
                             )
                         }
                     }
-                    if showsPlaybackAccessory {
+                    if showsPlaybackAccessory, shouldShowPlaybackAccessory(for: item) {
                         RSSFeedPlaybackAccessoryView(
                             item: item,
                             isCurrentItem: playbackController.isCurrentItem(item),
@@ -154,6 +158,13 @@ public struct RSSFeedListView: View {
 }
 
 private extension RSSFeedListView {
+    func shouldShowPlaybackAccessory(for item: RssFeedItem) -> Bool {
+        guard case .embedOnlyVideo = item.playbackKind else {
+            return true
+        }
+        return viewModel.embedsByItemId[item.id]?.approvedPlayerWithSource == nil
+    }
+
     var showsPlaybackAccessory: Bool {
         viewModel.contentType != .news
     }

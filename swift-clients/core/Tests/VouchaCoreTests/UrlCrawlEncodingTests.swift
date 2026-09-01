@@ -3,6 +3,39 @@ import Foundation
 import XCTest
 
 final class UrlCrawlEncodingTests: XCTestCase {
+    func testPreservesStructuredMetaTags() throws {
+        let response = try makeVouchaDecoder().decode(
+            UrlCrawlResponse.self,
+            from: Data(
+                """
+                {
+                  "crawl": {
+                    "id": "crawl-1",
+                    "meta_tags": {
+                      "nested": [true, { "name": "value" }],
+                      "unsigned_id": 18446744073709551615
+                    }
+                  },
+                  "og_image_sideload": null
+                }
+                """.utf8
+            )
+        )
+
+        guard case let .array(nested)? = response.crawl.metaTags?["nested"],
+              case .bool(true) = nested.first
+        else {
+            return XCTFail("Expected structured raw meta tags")
+        }
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let encodedData = try encoder.encode(response)
+        let encoded = String(decoding: encodedData, as: UTF8.self)
+        XCTAssertTrue(encoded.contains("\"nested\":[true,{\"name\":\"value\"}]"))
+        XCTAssertTrue(encoded.contains("\"unsigned_id\":18446744073709551615"))
+    }
+
     func testPreservesEmbedResolutionFields() throws {
         let response = try makeVouchaDecoder().decode(
             UrlCrawlResponse.self,

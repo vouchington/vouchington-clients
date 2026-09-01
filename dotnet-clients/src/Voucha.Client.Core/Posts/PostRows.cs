@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.FollowerDistributions;
 using Voucha.Client.Core.Localization;
 
@@ -23,7 +24,8 @@ public sealed record PostRow(
     string? CreatedById = null,
     string? Broadcast = null,
     string? Privacy = null,
-    string? ParentId = null)
+    string? ParentId = null,
+    UrlEmbedPreview? EmbedPreview = null)
 {
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
@@ -50,6 +52,15 @@ public static class PostRows
       IReadOnlyDictionary<string, PostElection>? elections,
       IReadOnlyDictionary<string, ElectionVote>? votes,
       IReadOnlyDictionary<string, BookmarkPredicates>? bookmarks,
+      IUiLocalization? localization = null) =>
+      From(post, elections, votes, bookmarks, embeds: null, localization);
+
+  public static PostRow From(
+      Post post,
+      IReadOnlyDictionary<string, PostElection>? elections,
+      IReadOnlyDictionary<string, ElectionVote>? votes,
+      IReadOnlyDictionary<string, BookmarkPredicates>? bookmarks,
+      IReadOnlyDictionary<string, UrlEmbed>? embeds,
       IUiLocalization? localization = null)
   {
     ArgumentNullException.ThrowIfNull(post);
@@ -89,7 +100,8 @@ public static class PostRows
         CreatedById: post.CreatedById,
         Broadcast: post.Broadcast,
         Privacy: post.Privacy,
-        ParentId: post.ParentId);
+        ParentId: post.ParentId,
+        EmbedPreview: EmbedFor(post.Id, embeds));
   }
 
   public static PostRow From(
@@ -98,9 +110,19 @@ public static class PostRows
       IReadOnlyDictionary<string, ElectionVote>? votes,
       IReadOnlyDictionary<string, BookmarkPredicates>? bookmarks,
       IReadOnlyDictionary<string, string>? markdownToHtml,
+      IUiLocalization? localization = null) =>
+      From(post, elections, votes, bookmarks, markdownToHtml, embeds: null, localization);
+
+  public static PostRow From(
+      Post post,
+      IReadOnlyDictionary<string, PostElection>? elections,
+      IReadOnlyDictionary<string, ElectionVote>? votes,
+      IReadOnlyDictionary<string, BookmarkPredicates>? bookmarks,
+      IReadOnlyDictionary<string, string>? markdownToHtml,
+      IReadOnlyDictionary<string, UrlEmbed>? embeds,
       IUiLocalization? localization = null)
   {
-    var row = From(post, elections, votes, bookmarks, localization);
+    var row = From(post, elections, votes, bookmarks, embeds, localization);
     return row with
     {
       BodyHtml = markdownToHtml is not null && markdownToHtml.TryGetValue(post.Id, out var html)
@@ -108,6 +130,11 @@ public static class PostRows
           : post.Html,
     };
   }
+
+  private static UrlEmbedPreview? EmbedFor(string postId, IReadOnlyDictionary<string, UrlEmbed>? embeds) =>
+      embeds is not null && embeds.TryGetValue(postId, out var embed)
+          ? UrlEmbedPreviews.From(embed)
+          : null;
 
   private static UiText PostTypeText(string? value) => UiTaxonomy.PostType(value);
 }

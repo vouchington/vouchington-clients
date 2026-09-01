@@ -30,6 +30,7 @@ public sealed partial class ApiNewsFeedService : IRssFeedItemDetailService
         false,
         kind,
         response.RssFeedItemThumbnailUrl,
+        response.RssFeedItemEmbeds,
         null,
         null,
         null);

@@ -8,7 +8,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
     public let completedAt: Date?
     public let lang: String?
     public let markdown: String?
-    public let metaTags: [String: String]?
+    public let metaTags: [String: IntegerPreservingJSONValue]?
     public let title: String?
     public let urlId: String?
     public let crawlerId: String?
@@ -55,7 +55,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         lang = try container.decodeIfPresent(String.self, forKey: .lang)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
-        metaTags = try container.decodeIfPresent([String: String].self, forKey: .metaTags)
+        metaTags = try container.decodeIfPresent([String: IntegerPreservingJSONValue].self, forKey: .metaTags)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         urlId = try container.decodeIfPresent(String.self, forKey: .urlId)
         crawlerId = try container.decodeIfPresent(String.self, forKey: .crawlerId)

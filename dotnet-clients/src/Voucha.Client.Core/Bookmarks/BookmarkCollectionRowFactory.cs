@@ -2,6 +2,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.Core.Bookmarks;
 
@@ -11,6 +12,7 @@ internal static partial class BookmarkCollectionRowFactory
       Post post,
       BookmarkInverseAction? action,
       int rank,
+      UrlEmbed? embed = null,
       IUiLocalization? localization = null)
   {
     var ui = localization ?? UiLocalization.English;
@@ -29,7 +31,8 @@ internal static partial class BookmarkCollectionRowFactory
         path,
         action,
         rank,
-        isComment ? post.RootId ?? post.ParentId : null);
+        isComment ? post.RootId ?? post.ParentId : null,
+        EmbedPreview: UrlEmbedPreviews.From(embed));
   }
 
   public static BookmarkCollectionRow Topic(
@@ -70,6 +73,7 @@ internal static partial class BookmarkCollectionRowFactory
       RssFeedItem item,
       BookmarkInverseAction? action,
       int rank,
+      UrlEmbed? embed = null,
       IUiLocalization? localization = null)
   {
     var root = item.MediaType switch
@@ -91,7 +95,8 @@ internal static partial class BookmarkCollectionRowFactory
             : UiText.ExternalContent(item.RssFeed.Title),
         $"{root}?rss_item={Uri.EscapeDataString(item.Id)}",
         action,
-        rank);
+        rank,
+        EmbedPreview: UrlEmbedPreviews.From(embed));
   }
 
   public static BookmarkCollectionRow RssFeed(

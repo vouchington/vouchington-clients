@@ -57,6 +57,9 @@ struct NativeFocusedRssFeedItemSurface: View {
                 showsDescription: false,
                 apiBaseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
             )
+            if let embed = viewModel.focusedRssFeedItemEmbed {
+                ProviderEmbedPreview(embed: embed)
+            }
             distributionActions(for: item)
 
             NativeHtmlContent(
@@ -81,7 +84,8 @@ struct NativeFocusedRssFeedItemSurface: View {
 
             playbackAccessory(for: item)
 
-            if let externalURLString = item.externalURLString,
+            if viewModel.focusedRssFeedItemEmbed?.validatedSourceURL == nil,
+               let externalURLString = item.externalURLString,
                let externalURL = URL(string: externalURLString) {
                 Link(destination: externalURL) {
                     Label(
@@ -116,9 +120,11 @@ struct NativeFocusedRssFeedItemSurface: View {
     private func playbackAccessory(for item: RssFeedItem) -> some View {
         switch item.playbackKind {
         case .embedOnlyVideo:
-            Text(UiMessages.string(.nativeSwiftRssFeedPlaybackVideoUnavailable, locale: nativeUiLocale))
-                .font(Typography.caption)
-                .foregroundStyle(Colors.secondaryLabel)
+            if viewModel.focusedRssFeedItemEmbed?.approvedPlayerWithSource == nil {
+                Text(UiMessages.string(.nativeSwiftRssFeedPlaybackVideoUnavailable, locale: nativeUiLocale))
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryLabel)
+            }
         case .audio, .directVideo:
             if let playbackController {
                 RSSFeedPlaybackAccessoryView(

@@ -110,6 +110,95 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
         ])
     }
 
+    func testInitialPostReloadClearsEmbedsOmittedByAcceptedResponse() async throws {
+        let path = "/api/v1/communities/builders/posts"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (postPage(id: "post-1", cursor: nil, hasMore: false, embedTitle: "First preview"), 200, 0),
+            (postPage(id: "post-1", cursor: nil, hasMore: false), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders")
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-1"]?.previewTitle, "First preview")
+
+        viewModel.rowPagination.reset()
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+
+        XCTAssertTrue(viewModel.postEmbedsByPostId.isEmpty)
+    }
+
+    func testPostPaginationRetainsInitialEmbedsWhileMergingAcceptedNextPage() async throws {
+        let path = "/api/v1/communities/builders/posts"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (postPage(id: "post-1", cursor: "next", hasMore: true, embedTitle: "First preview"), 200, 0),
+            (postPage(id: "post-2", cursor: nil, hasMore: false, embedTitle: "Second preview"), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders")
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .posts, revision: 0)
+        await viewModel.loadMoreRows()
+
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-1"]?.previewTitle, "First preview")
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-2"]?.previewTitle, "Second preview")
+    }
+
+    func testStaleNewsResponseCannotReplaceAcceptedNewsEmbedSidecars() async throws {
+        let path = "/api/v1/communities/builders/news"
+        CannedFeedURLProtocol.handlers[path] = (newsPage(id: "news-1", embedTitle: "Stale preview"), 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .news)
+        let currentEmbed = try embed(title: "Current preview")
+        viewModel.rssFeedItemEmbedsById = ["current": currentEmbed]
+
+        let staleLoad = Task {
+            try await viewModel.loadInitialRows(client: client, tab: .news, revision: viewModel.communityLoadRevision)
+        }
+        await waitForSuspendedResponse(path: path)
+        viewModel.selectedTab = .posts
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        _ = try? await staleLoad.value
+
+        XCTAssertEqual(viewModel.rssFeedItemEmbedsById["current"]?.previewTitle, "Current preview")
+        XCTAssertNil(viewModel.rssFeedItemEmbedsById["news-1"])
+    }
+
+    func testAcceptedInitialNewsLoadReplacesEmbedsOmittedByNextPage() async throws {
+        let path = "/api/v1/communities/builders/news"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (newsPage(id: "news-1", embedTitle: "First preview"), 200, 0),
+            (newsPage(id: "news-1"), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .news)
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .news, revision: 0)
+        XCTAssertEqual(viewModel.rssFeedItemEmbedsById["news-1"]?.previewTitle, "First preview")
+
+        viewModel.rowPagination.reset()
+        _ = try await viewModel.loadInitialRows(client: client, tab: .news, revision: 0)
+
+        XCTAssertTrue(viewModel.rssFeedItemEmbedsById.isEmpty)
+    }
+
+    func testNewsPaginationRetainsInitialEmbedsWhileMergingAcceptedNextPage() async throws {
+        let path = "/api/v1/communities/builders/news"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (newsPage(id: "news-1", cursor: "next", hasMore: true, embedTitle: "First preview"), 200, 0),
+            (newsPage(id: "news-2", embedTitle: "Second preview"), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .news)
+
+        _ = try await viewModel.loadInitialRows(client: client, tab: .news, revision: 0)
+        await viewModel.loadMoreRows()
+
+        XCTAssertEqual(viewModel.rssFeedItemEmbedsById["news-1"]?.previewTitle, "First preview")
+        XCTAssertEqual(viewModel.rssFeedItemEmbedsById["news-2"]?.previewTitle, "Second preview")
+    }
+
     private func decodeReports(ids: [String]) throws -> [CommunityPendingReport] {
         try decoder.decode([CommunityPendingReport].self, from: Data(
             "[\(ids.map(pendingReport).joined(separator: ","))]".utf8
@@ -146,10 +235,40 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
         )
     }
 
-    private func postPage(id: String) -> Data {
-        Data(
-            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":false,"end_cursor":null},"posts":{"\#(id)":{"id":"\#(id)","post_type":"discussion","title":"Two","slug":"two","markdown":"Body","created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z"}},"posts_metrics":{},"communities":{}}"#
+    private func postPage(
+        id: String,
+        cursor: String? = nil,
+        hasMore: Bool = false,
+        embedTitle: String? = nil
+    ) -> Data {
+        let postLinkEmbeds = embedTitle.map {
+            #","post_link_embeds":{"\#(id)":{"source_url":"https://example.com/\#(id)","title":"\#($0)"}}"#
+        } ?? ""
+        return Data(
+            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(json(cursor))},"posts":{"\#(id)":{"id":"\#(id)","post_type":"discussion","title":"Two","slug":"two","markdown":"Body","created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z"}}\#(postLinkEmbeds),"posts_metrics":{},"communities":{}}"#
                 .utf8
+        )
+    }
+
+    private func newsPage(
+        id: String,
+        cursor: String? = nil,
+        hasMore: Bool = false,
+        embedTitle: String? = nil
+    ) -> Data {
+        let rssFeedItemEmbeds = embedTitle.map {
+            #","rss_feed_item_embeds":{"\#(id)":{"source_url":"https://example.com/\#(id)","title":"\#($0)"}}"#
+        } ?? ""
+        return Data(
+            #"{"results":[{"id":"\#(id)","entity_id":"\#(id)"}],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(json(cursor))},"rss_feed_items":{"\#(id)":{"id":"\#(id)","title":"News item"}}\#(rssFeedItemEmbeds)}"#
+                .utf8
+        )
+    }
+
+    private func embed(title: String) throws -> UrlEmbed {
+        try decoder.decode(
+            UrlEmbed.self,
+            from: Data(#"{"source_url":"https://example.com/current","title":"\#(title)"}"#.utf8)
         )
     }
 
@@ -159,6 +278,13 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
 
     private func json(_ value: String?) -> String {
         value.map { #""\#($0)""# } ?? "null"
+    }
+
+    private func waitForSuspendedResponse(path: String) async {
+        for _ in 0 ..< 200 where !CannedFeedURLProtocol.hasSuspendedResponse(path: path) {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        XCTAssertTrue(CannedFeedURLProtocol.hasSuspendedResponse(path: path))
     }
 
     private var decoder: JSONDecoder {

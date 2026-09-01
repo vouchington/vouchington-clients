@@ -69,6 +69,7 @@ extension RSSFeedListViewModel {
             return item.replacingThumbnailURL(thumbnailURL)
         }
         itemElectionsById.merge(page.rssFeedItemElections ?? [:], uniquingKeysWith: { _, new in new })
+        embedsByItemId.merge(page.rssFeedItemEmbeds ?? [:], uniquingKeysWith: { _, new in new })
         storyMemberIdsByStoryId.merge(page.storyMemberIds ?? [:], uniquingKeysWith: { _, new in new })
         storyPostIdsByStoryId.merge(page.storyPostIds ?? [:], uniquingKeysWith: { _, new in new })
         applyBookmarkState(from: page.bookmarks)

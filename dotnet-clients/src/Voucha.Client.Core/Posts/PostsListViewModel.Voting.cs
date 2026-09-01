@@ -55,8 +55,9 @@ public sealed partial class PostsListViewModel
       IReadOnlyDictionary<string, PostElection>? elections,
       IReadOnlyDictionary<string, ElectionVote>? votes,
       IReadOnlyDictionary<string, BookmarkPredicates>? bookmarks,
-      IReadOnlyDictionary<string, string>? markdownToHtml = null) =>
-      PostRows.From(post, elections, votes, bookmarks, markdownToHtml, localization);
+      IReadOnlyDictionary<string, string>? markdownToHtml = null,
+      IReadOnlyDictionary<string, UrlEmbed>? embeds = null) =>
+      PostRows.From(post, elections, votes, bookmarks, markdownToHtml, embeds, localization);
 
   private static PostRow[] UpdateVote(IReadOnlyList<PostRow> source, string postId, ElectionVoteChoice? choice) =>
       source.Select(item => item.Id == postId ? ApplyVote(item, choice) : item).ToArray();

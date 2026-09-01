@@ -60,7 +60,7 @@ public sealed record CommunityPostsResponse(
     [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics> PostsMetrics,
     [property: JsonPropertyName("communities")] IReadOnlyDictionary<string, EntityReference> Communities,
     [property: JsonPropertyName("pinned_post_ids")] IReadOnlyList<string>? PinnedPostIds = null,
-    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, object>? PostLinkEmbeds = null,
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null);
 
 public sealed record CommunityListDomainsResponse(

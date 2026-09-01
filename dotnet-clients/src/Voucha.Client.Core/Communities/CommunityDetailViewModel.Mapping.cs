@@ -37,10 +37,16 @@ public sealed partial class CommunityDetailViewModel
     var rows = response.Results
         .Select(reference => reference.Id)
         .Where(id => id is not null && postsById.ContainsKey(id))
-        .Select(id => CommunityPostRow.FromPost(
-            postsById[id!],
-            metricsById.TryGetValue(id!, out var metrics) ? metrics : null,
-            localization))
+        .Select(id =>
+        {
+          UrlEmbed? embed = null;
+          response.PostLinkEmbeds?.TryGetValue(id!, out embed);
+          return CommunityPostRow.FromPost(
+              postsById[id!],
+              metricsById.TryGetValue(id!, out var metrics) ? metrics : null,
+              embed,
+              localization);
+        })
         .ToArray();
     Posts = append ? AppendUnique(Posts, rows, row => row.Id) : rows;
   }

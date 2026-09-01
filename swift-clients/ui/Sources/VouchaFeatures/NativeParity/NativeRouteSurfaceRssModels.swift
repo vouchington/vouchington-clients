@@ -6,6 +6,7 @@ struct NativeRssFeedItemsResponse: Decodable {
     let results: [NativeRssFeedItemResult]
     let pageInfo: Page<FixtureReference>.PageInfo?
     let rssFeedItems: [String: NativeRssFeedItemSummary]
+    let rssFeedItemEmbeds: [String: UrlEmbed]?
 }
 
 struct NativeRssFeedsTrendingResponse: Decodable {

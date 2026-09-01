@@ -32,6 +32,7 @@ public final class PostsListViewModel {
     public internal(set) var myVotesByPostId: [String: ElectionVoteChoice] = [:]
     public internal(set) var savedPostIds: Set<String> = []
     public internal(set) var hiddenPostIds: Set<String> = []
+    public internal(set) var postEmbedsByPostId: [String: UrlEmbed] = [:]
     let emailVerificationGate = EmailVerificationGatedMutation()
 
     public var filter: PostFilter = .all {
@@ -83,12 +84,17 @@ public final class PostsListViewModel {
                 applyBookmarkState(for: base.id, from: page.bookmarks)
                 return post
             }
-            pagination.complete(
+            guard pagination.complete(
                 request,
                 items: newItems,
                 endCursor: page.pageInfo.endCursor,
                 hasNextPage: page.pageInfo.hasNextPage
-            )
+            ) else { return }
+            if request.cursor == nil {
+                postEmbedsByPostId = page.postLinkEmbeds ?? [:]
+            } else {
+                postEmbedsByPostId.merge(page.postLinkEmbeds ?? [:]) { _, new in new }
+            }
         } catch let error as VouchaError {
             if Task.isCancelled {
                 pagination.cancel(request)
@@ -110,6 +116,7 @@ public final class PostsListViewModel {
         myVotesByPostId = [:]
         savedPostIds = []
         hiddenPostIds = []
+        postEmbedsByPostId = [:]
         inFlightVotePostIds = []
         inFlightBookmarkKeys = []
     }

@@ -41,20 +41,25 @@ public sealed class MediaPlaybackPageSourceTests
   }
 
   [Fact]
-  public void EmbedOnlyVideoIsUnavailableAcrossListDetailAndPlaybackPage()
+  public void EmbedOnlyVideoPlaysApprovedProvidersAndOtherwiseShowsUnavailableState()
   {
     var list = ReadPage("NewsFeedsPage.xaml");
-    var detail = ReadPage("RssFeedItemDetailPage.cs");
+    var listActions = ReadPage("NewsFeedsPage.EmbedPreview.cs");
+    var detail = ReadPage("RssFeedItemDetailPage.cs") + ReadPage("RssFeedItemDetailPage.EmbedPreview.cs");
     var playbackXaml = ReadPage("MediaPlaybackPage.xaml");
     var playbackPage = ReadPage("MediaPlaybackPage.xaml.cs");
 
-    Assert.Contains("IsVisible=\"{Binding IsEmbedOnlyVideo}\"", list, StringComparison.Ordinal);
+    Assert.Contains("IsVisible=\"{Binding IsEmbedOnlyVideoUnavailable}\"", list, StringComparison.Ordinal);
+    Assert.Contains("IsVisible=\"{Binding EmbedPreview.CanPlay}\"", list, StringComparison.Ordinal);
+    Assert.Contains("OnEmbedPlayClicked", listActions, StringComparison.Ordinal);
     Assert.Contains("NativeDotnetMediaPlaybackVideoUnavailable", detail, StringComparison.Ordinal);
+    Assert.Contains("Detail.Item.EmbedPreview.CanPlay", detail, StringComparison.Ordinal);
+    Assert.Contains("OnEmbedPlayClicked", detail, StringComparison.Ordinal);
     Assert.Contains("VerticalTextAlignment = TextAlignment.Center", detail, StringComparison.Ordinal);
     Assert.Contains("FontSize = 13", detail, StringComparison.Ordinal);
     Assert.Contains("x:Name=\"VideoUnavailablePanel\"", playbackXaml, StringComparison.Ordinal);
     Assert.Contains("native.dotnet.mediaPlayback.videoUnavailable", playbackXaml, StringComparison.Ordinal);
-    Assert.Contains("VideoUnavailablePanel.IsVisible = item.IsEmbedOnlyVideo;", playbackPage, StringComparison.Ordinal);
+    Assert.Contains("VideoUnavailablePanel.IsVisible = item.IsEmbedOnlyVideoUnavailable;", playbackPage, StringComparison.Ordinal);
   }
 
   [Fact]

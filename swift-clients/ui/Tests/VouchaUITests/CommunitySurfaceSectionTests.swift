@@ -172,6 +172,13 @@ final class CommunitySurfaceSectionTests: NativeRouteSurfaceViewModelTestCase {
                       "created_at": "2026-07-01T00:00:00Z"
                     }
                   },
+                  "post_link_embeds": {
+                    "post-1": {
+                      "source_url": "https://example.com/private-admin-post",
+                      "title": "Private admin preview",
+                      "thumbnail_url": "https://cdn.example.com/private-admin.jpg"
+                    }
+                  },
                   "posts_metrics": {},
                   "communities": {}
                 }
@@ -194,6 +201,7 @@ final class CommunitySurfaceSectionTests: NativeRouteSurfaceViewModelTestCase {
             title: "Private admin post",
             detail: "Discussion"
         ))
+        XCTAssertEqual(viewModel.postEmbedsByPostId["post-1"]?.previewTitle, "Private admin preview")
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains {
             $0.path == "/api/v1/communities/builders/list-items/counts"
         })

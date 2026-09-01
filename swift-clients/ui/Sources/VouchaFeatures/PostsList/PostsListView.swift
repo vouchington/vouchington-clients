@@ -92,6 +92,9 @@ public struct PostsListView: View {
                     onToggleHidden: isSignedIn ?
                         { _ = Task<Void, Never> { await viewModel.toggleHide(postId: post.id) } } : nil
                 )
+                if let embed = viewModel.postEmbedsByPostId[post.id] {
+                    ProviderEmbedPreview(embed: embed)
+                }
                 if canDistribute(post), let currentUserId {
                     HStack {
                         Spacer()

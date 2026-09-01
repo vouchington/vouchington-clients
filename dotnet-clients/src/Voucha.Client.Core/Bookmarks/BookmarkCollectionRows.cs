@@ -1,6 +1,7 @@
 namespace Voucha.Client.Core.Bookmarks;
 
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 public sealed record BookmarkInverseAction(
@@ -19,7 +20,8 @@ public sealed record BookmarkCollectionRow(
     BookmarkInverseAction? InverseAction = null,
     int Rank = 0,
     string? RootPostId = null,
-    bool IsActionPending = false)
+    bool IsActionPending = false,
+    UrlEmbedPreview? EmbedPreview = null)
 {
   public string Title => Localization.Resolve(TitleText);
 

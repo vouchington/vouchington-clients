@@ -34,6 +34,7 @@ extension NativeCommentThreadViewModel {
         electionVotesById = [rootPostId: detailResponse.electionVote].compactMapValues { $0 }
         voteChoicesByPostId = [rootPostId: detailResponse.electionVote?.choice].compactMapValues { $0 }
         bookmarksByPostId = detailResponse.bookmarks ?? [:]
+        postEmbedsByPostId = detailResponse.linkEmbed.map { [rootPostId: $0] } ?? [:]
     }
 
     func apply(descendantsResponse: PostThreadEnvelope, request: CursorPageRequest) {
@@ -63,5 +64,6 @@ extension NativeCommentThreadViewModel {
         electionVotesById.merge(response.electionVotes ?? [:]) { _, new in new }
         voteChoicesByPostId.merge((response.electionVotes ?? [:]).mapValues(\.choice)) { _, new in new }
         bookmarksByPostId.merge(response.bookmarks ?? [:]) { _, new in new }
+        postEmbedsByPostId.merge(response.postLinkEmbeds ?? [:]) { _, new in new }
     }
 }

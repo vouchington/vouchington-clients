@@ -16,9 +16,10 @@ final class NativeCommentThreadComponentTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 10),
             score: 3
         )
-        let section = CommentThreadPostSection(
+        let section = try CommentThreadPostSection(
             title: .verbatim("Alice"),
             post: post,
+            embed: makeEmbed(),
             pathText: "/discussion/root-1/comment/comment-a",
             voteChoice: .like,
             isSignedIn: true,
@@ -45,11 +46,18 @@ final class NativeCommentThreadComponentTests: XCTestCase {
             "/discussion/root-1/comment/comment-a"
         )
         XCTAssertEqual(try section.inspect().find(text: "comment-a body").string(), "comment-a body")
+        XCTAssertNoThrow(try section.inspect().find(text: "Embedded post preview"))
         for title in ["Reply", "Quote", "Saved", "Report", "Edit", "Delete", "Lock"] {
             try section.inspect().find(button: title).tap()
         }
 
         XCTAssertEqual(actions, ["reply", "quote", "save", "report", "edit", "delete", "lock"])
+    }
+
+    private func makeEmbed() throws -> UrlEmbed {
+        try JSONDecoder.vouchaFixtureDecoder.decode(UrlEmbed.self, from: Data(#"""
+        { "source_url": "https://example.com/source", "title": "Embedded post preview" }
+        """#.utf8))
     }
 
     func testCommentThreadPostSectionHidesRestrictedNegativeVoteCount() throws {
@@ -62,6 +70,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         let section = CommentThreadPostSection(
             title: .verbatim("Alice"),
             post: post,
+            embed: nil,
             pathText: "/discussion/root-1/comment/comment-a",
             voteChoice: nil,
             isSignedIn: true,
@@ -108,6 +117,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
             hideDownCount: false,
             inFlightVotePostIds: [],
             bookmarksByPostId: ["comment-a": ["save": false]],
+            postEmbedsByPostId: [:],
             voteChoiceByPostId: ["comment-a": .like],
             onToggleCollapse: { toggled.append($0) },
             onVote: { _, _ in },
@@ -144,6 +154,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
             hideDownCount: false,
             inFlightVotePostIds: ["comment-a"],
             bookmarksByPostId: [:],
+            postEmbedsByPostId: [:],
             voteChoiceByPostId: [:],
             onToggleCollapse: { _ in },
             onVote: { _, _ in },
@@ -165,6 +176,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         let section = CommentThreadPostSection(
             title: .verbatim("Alice"),
             post: makePost(id: "comment-a", createdAt: Date(), score: 1),
+            embed: nil,
             pathText: "/discussion/root-1/comment/comment-a",
             voteChoice: nil,
             isSignedIn: false,

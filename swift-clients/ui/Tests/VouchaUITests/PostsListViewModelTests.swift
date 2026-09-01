@@ -86,6 +86,7 @@ extension PostsListViewModelTests {
         postElections: [String: String] = [:],
         electionVotes: [String: String] = [:],
         bookmarks: [String: [String: Bool]]? = nil,
+        postLinkEmbeds: [String: String] = [:],
         broadcast: String? = nil
     ) -> Data {
         let broadcastJSON = broadcast.map { #""\#($0)""# } ?? "null"
@@ -103,12 +104,15 @@ extension PostsListViewModelTests {
             }.joined(separator: ",")
             return ",\"bookmarks\":{\(entries)}"
         } ?? ""
+        let postLinkEmbedsJSON = postLinkEmbeds.map { postId, title in
+            "\"\(postId)\":{\"source_url\":\"https://example.com/\(postId)\",\"title\":\"\(title)\"}"
+        }.joined(separator: ",")
         return Data("""
         {"results":[\(results)],"page_info":{"has_next_page":\(hasMore),"end_cursor":\(cursor)},"posts":{\(
             posts
         )},"posts_metrics":{},"post_elections":{\(elections)},"election_votes":{\(votes)}\(
             bookmarksJSON
-        )}
+        ),"post_link_embeds":{\(postLinkEmbedsJSON)}}
         """.utf8)
     }
 
@@ -150,8 +154,55 @@ extension PostsListViewModelTests {
 
         let sut = PostsListView(viewModel: viewModel, currentUserId: "viewer-1")
 
-        let rows = try sut.inspect().find(ViewType.List.self).forEach(1)
-        XCTAssertNoThrow(try rows.tupleView(0).hStack(1).view(FollowerDistributionActions.self, 1))
+        XCTAssertNoThrow(try sut.inspect().find(FollowerDistributionActions.self))
+    }
+
+    func testPostsListRetainsAndRendersPostLinkEmbed() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/posts/any"] = (
+            makePostsPage(
+                ids: ["p1"],
+                hasMore: false,
+                postLinkEmbeds: ["p1": "Provider preview"]
+            ),
+            200
+        )
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.postEmbedsByPostId["p1"]?.previewTitle, "Provider preview")
+        XCTAssertNoThrow(try PostsListView(viewModel: viewModel).inspect().find(text: "Provider preview"))
+    }
+
+    func testPostPaginationMergesPostLinkEmbeds() async {
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/feeds/posts/any"] = [
+            (
+                makePostsPage(
+                    ids: ["p1"],
+                    hasMore: true,
+                    endCursor: "next",
+                    postLinkEmbeds: ["p1": "First preview"]
+                ),
+                200,
+                0
+            ),
+            (
+                makePostsPage(
+                    ids: ["p2"],
+                    hasMore: false,
+                    postLinkEmbeds: ["p2": "Second preview"]
+                ),
+                200,
+                0
+            )
+        ]
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+
+        await viewModel.load()
+        await viewModel.loadNextPage()
+
+        XCTAssertEqual(viewModel.postEmbedsByPostId["p1"]?.previewTitle, "First preview")
+        XCTAssertEqual(viewModel.postEmbedsByPostId["p2"]?.previewTitle, "Second preview")
     }
 
     func testLoadSuccessEmptyResults() async {

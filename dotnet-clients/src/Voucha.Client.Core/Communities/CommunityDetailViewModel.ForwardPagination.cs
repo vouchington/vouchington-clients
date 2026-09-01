@@ -45,7 +45,7 @@ public sealed partial class CommunityDetailViewModel
         var news = await service.FetchNewsPageAsync(community, after, 25, cancellationToken).ConfigureAwait(true);
         if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
         var rows = news.Results
-            .Select(reference => NewsRow(reference, news.RssFeedItems))
+            .Select(reference => NewsRow(reference, news.RssFeedItems, news.RssFeedItemEmbeds))
             .Where(row => row is not null)
             .Select(row => row!);
         News = AppendUnique(News, rows, row => row.Id);

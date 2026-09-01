@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.FollowerDistributions;
 using Voucha.Client.Core.Localization;
 
@@ -27,7 +28,8 @@ public sealed record PostDetailPageRow(
     int? VoteCountDown,
     ElectionVoteChoice? CurrentVoteChoice,
     IUiLocalization Localization,
-    string? BodyHtml = null)
+    string? BodyHtml = null,
+    UrlEmbedPreview? EmbedPreview = null)
 {
   public bool CanInteractWithVotes => CanCreateVote || CanClearVote;
 

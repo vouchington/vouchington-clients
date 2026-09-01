@@ -82,6 +82,7 @@ extension CommunityDetailViewModel {
             return .init(
                 id: result.id,
                 row: .init(
+                    id: result.id,
                     icon: "doc.text",
                     title: .verbatim(post.title ?? post.slug ?? post.id),
                     detail: postTypeText(post.postType)
@@ -91,32 +92,8 @@ extension CommunityDetailViewModel {
         return .init(
             items: items,
             endCursor: response.pageInfo?.endCursor,
-            hasMore: response.pageInfo?.hasNextPage ?? false
-        )
-    }
-
-    private func loadNewsRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {
-        let response: NativeRssFeedItemsResponse = try await client.send(
-            .communityNews(idOrSlug: slug, after: after, limit: 10)
-        )
-        let items = response.results.compactMap { result -> CommunityForwardRow? in
-            guard let item = response.rssFeedItems[result.entityId ?? result.id] else { return nil }
-            return .init(
-                id: result.id,
-                row: .init(
-                    icon: "newspaper",
-                    title: item.title.map(UiVerbatimText.verbatim)
-                        ?? item.data?.title.map(UiVerbatimText.verbatim)
-                        ?? .message(.nativeSwiftCommunitiesNewsItem),
-                    detail: item.rssFeed?.title.map(UiVerbatimText.verbatim)
-                        ?? .message(.nativeSwiftCommunitiesCommunityNews)
-                )
-            )
-        }
-        return .init(
-            items: items,
-            endCursor: response.pageInfo?.endCursor,
-            hasMore: response.pageInfo?.hasNextPage ?? false
+            hasMore: response.pageInfo?.hasNextPage ?? false,
+            postEmbedsByPostId: response.postLinkEmbeds ?? [:]
         )
     }
 

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
@@ -32,6 +33,7 @@ public sealed record NewsFeedItem(
     int StoryPeerCount = 0,
     string? StoryPostId = null,
     bool IsStartingStoryDiscussion = false,
+    UrlEmbedPreview? EmbedPreview = null,
     IUiLocalization? Localization = null)
 {
   public bool IsSource => Kind == NewsFeedItemKind.Source;
@@ -59,11 +61,13 @@ public sealed record NewsFeedItem(
 
   public bool HasDirectPlayback => MediaUrl is not null;
 
-  public bool CanOpenExternally => Link is not null;
+  public bool CanOpenExternally => Link is not null && EmbedPreview?.HasSource != true;
 
   public bool IsEmbedOnlyVideo => IsVideoMedia && !HasDirectPlayback;
 
-  public bool HasExternalAudioFallback => IsAudioMedia && !HasDirectPlayback && CanOpenExternally;
+  public bool IsEmbedOnlyVideoUnavailable => IsEmbedOnlyVideo && EmbedPreview?.CanPlay != true;
+
+  public bool HasExternalAudioFallback => IsAudioMedia && !HasDirectPlayback && Link is not null;
 
   public bool HasMediaPlayback => IsMedia && (HasDirectPlayback || HasExternalAudioFallback);
 

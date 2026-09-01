@@ -30,4 +30,21 @@ public sealed class PostRowsTests
 
     Assert.Equal("<p><strong>Body</strong></p>", row.BodyHtml);
   }
+
+  [Fact]
+  public void FromUsesTheServerProvidedLinkEmbed()
+  {
+    var row = PostRows.From(
+        new Post("post-1", "link", "Title", null, "user-1"),
+        null,
+        null,
+        null,
+        new Dictionary<string, UrlEmbed>
+        {
+          ["post-1"] = new(Title: "Provider title", ThumbnailUrl: "https://cdn.example/thumbnail.jpg"),
+        });
+
+    Assert.Equal("Provider title", row.EmbedPreview?.Title);
+    Assert.Equal(new Uri("https://cdn.example/thumbnail.jpg"), row.EmbedPreview?.ThumbnailUrl);
+  }
 }

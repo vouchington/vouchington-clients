@@ -18,6 +18,7 @@ extension NativeCommentThreadSurface {
                             ?? rootPost.slug.map(UiVerbatimText.verbatim)
                             ?? .message(.nativeSwiftPresentationValuesCommentThread),
                         post: rootPost,
+                        embed: viewModel.postEmbedsByPostId[rootPost.id],
                         pathText: "/\(threadRootType(rootPost))/\(viewModel.rootPostId)",
                         voteChoice: viewModel.voteChoicesByPostId[rootPost.id],
                         isSignedIn: isSignedIn,
@@ -61,6 +62,7 @@ extension NativeCommentThreadSurface {
                                 CommentThreadPostSection(
                                     title: authorName(for: post),
                                     post: post,
+                                    embed: viewModel.postEmbedsByPostId[post.id],
                                     pathText: "/\(threadRootType(rootPost))/\(viewModel.rootPostId)/comment/\(post.id)",
                                     voteChoice: viewModel.voteChoicesByPostId[post.id],
                                     isSignedIn: isSignedIn,
@@ -108,6 +110,7 @@ extension NativeCommentThreadSurface {
                                     hideDownCount: hideDownCount,
                                     inFlightVotePostIds: viewModel.inFlightVotePostIds,
                                     bookmarksByPostId: viewModel.bookmarksByPostId,
+                                    postEmbedsByPostId: viewModel.postEmbedsByPostId,
                                     voteChoiceByPostId: viewModel.voteChoicesByPostId,
                                     onToggleCollapse: viewModel.toggleCollapse(commentId:),
                                     onVote: { handleVote(postId: $0, choice: $1) },

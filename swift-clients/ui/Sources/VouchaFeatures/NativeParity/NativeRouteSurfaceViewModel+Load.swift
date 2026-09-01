@@ -63,6 +63,7 @@ public extension NativeRouteSurfaceViewModel {
         state = .loading
         resetBookmarkDestinationResolution()
         bookmarkRows = []
+        bookmarkEmbedsByEntityId = [:]
         bookmarkMutationErrorMessage = nil
         currentBookmarkCollection = nil
         crawlHistoryPagination.reset()
@@ -74,6 +75,7 @@ public extension NativeRouteSurfaceViewModel {
         focusedRssFeedItemElection = nil
         focusedRssFeedItemBookmarks = [:]
         focusedRssFeedItemVote = nil
+        focusedRssFeedItemEmbed = nil
         hostnameDetailId = nil
         hostnameDetailElection = nil
         hostnameDetailVote = nil

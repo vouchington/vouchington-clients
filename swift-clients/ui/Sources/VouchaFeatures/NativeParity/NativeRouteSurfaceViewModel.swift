@@ -21,6 +21,8 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var focusedRssFeedItemElection: RssFeedItemElection?
     public internal(set) var focusedRssFeedItemBookmarks: [String: Bool] = [:]
     public internal(set) var focusedRssFeedItemVote: ElectionVoteChoice?
+    public internal(set) var focusedRssFeedItemEmbed: UrlEmbed?
+    public internal(set) var bookmarkEmbedsByEntityId: [String: UrlEmbed] = [:]
     var bookmarkRows: [NativeBookmarkRow] = []
     var bookmarkPagination = CursorPaginationState<NativeBookmarkRow>()
     var bookmarkMutationErrorMessage: UiVerbatimText?

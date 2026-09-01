@@ -35,6 +35,8 @@ final class CommunityDetailViewModel {
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()
+    var postEmbedsByPostId: [String: UrlEmbed] = [:]
+    var rssFeedItemEmbedsById: [String: UrlEmbed] = [:]
     var automodPagination = CursorPaginationState<CommunityForwardRow>()
     var pendingReportPagination = CursorPaginationState<CommunityPendingReport>()
     var modmailThreadPagination = CursorPaginationState<CommunityModmailThread>()

@@ -44,6 +44,7 @@ public final class RSSFeedListViewModel {
     public let feedSource: FeedSource
 
     var itemElectionsById: [String: RssFeedItemElection] = [:]
+    var embedsByItemId: [String: UrlEmbed] = [:]
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
     var storyIdsByItemId: [String: String] = [:]
@@ -78,6 +79,7 @@ public final class RSSFeedListViewModel {
         pagination.reset()
         actionState = nil
         itemElectionsById = [:]
+        embedsByItemId = [:]
         serverVotesByItemId = [:]
         myVotesByItemId = [:]
         savedItemIds = []

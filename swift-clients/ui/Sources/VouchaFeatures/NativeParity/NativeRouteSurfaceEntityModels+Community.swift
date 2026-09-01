@@ -28,6 +28,7 @@ struct NativeCommunityPostsResponse: Decodable {
     let results: [NativeGenericEntity]
     let pageInfo: Page<FixtureReference>.PageInfo?
     let posts: [String: NativePostSummary]
+    let postLinkEmbeds: [String: UrlEmbed]?
 
     init(
         results: [NativeGenericEntity],
@@ -37,6 +38,7 @@ struct NativeCommunityPostsResponse: Decodable {
         self.results = results
         self.pageInfo = pageInfo
         self.posts = posts
+        postLinkEmbeds = nil
     }
 }
 

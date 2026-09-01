@@ -30,9 +30,11 @@ extension NativeRouteSurfaceViewModel {
 struct NativeBookmarkedPostsResponse: Decodable {
     let results: [NativePostSummary]
     let pageInfo: Page<FixtureReference>.PageInfo?
+    let postLinkEmbeds: [String: UrlEmbed]?
 }
 
 struct NativeBookmarkedRssFeedItemsResponse: Decodable {
     let results: [NativeRssFeedItemSummary]
     let pageInfo: Page<FixtureReference>.PageInfo?
+    let rssFeedItemEmbeds: [String: UrlEmbed]?
 }
