@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "**/.agents/skills/**",
+    "**/.claude/skills/**",
+    "dotnet-clients/**",
+    "swift-clients/**"
+  ],
+  "arrowParens": "avoid",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all"
+}

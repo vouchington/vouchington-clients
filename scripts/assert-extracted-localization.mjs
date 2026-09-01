@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 
 import { declaredFilamentsContractPaths } from './contracts.mjs'
 
-const [fixturesPath, swiftPath, dotnetPath] = declaredFilamentsContractPaths
+const [, swiftPath, dotnetPath] = declaredFilamentsContractPaths
 
 export async function assertExtractedLocalizationRepresentatives(contractRoot) {
   const root = resolve(contractRoot)

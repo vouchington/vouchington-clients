@@ -1,5 +1,7 @@
 # Voucha native clients
 
+Use `pnpm clean` (or `./dev/clean`) to remove Swift, Xcode, .NET, coverage, and test build output without removing dependencies or credentials. In a linked disposable worktree, `./dev/reset-worktree` returns the checkout to a fresh `origin/main` branch; it refuses dirty state unless `--force` is explicit and never runs in the primary worktree.
+
 This repository contains the Swift and .NET native clients for Voucha.
 
 ## Filaments contracts

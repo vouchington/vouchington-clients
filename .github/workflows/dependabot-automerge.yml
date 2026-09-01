@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Capture live Dependabot identity
         id: live
@@ -141,11 +141,13 @@ jobs:
           [[ "$revision" == "$(gh api "repos/skiptools/skip/commits/$version" --jq .sha)" ]]
       - name: Build verified Swift Android repair artifact
         if: steps.classify.outputs.repair-kind == 'swift-android'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           metadata="$RUNNER_TEMP/swift-repair-metadata.json"
           output="$RUNNER_TEMP/dependabot-swift-android-repair"
-          jq --arg repository "$GITHUB_REPOSITORY" --arg default "${{ github.event.repository.default_branch }}" \
+          jq --arg repository "$GITHUB_REPOSITORY" --arg default "$DEFAULT_BRANCH" \
             --arg run "$GITHUB_RUN_ID" \
             '{run_id:($run|tonumber),repository:{full_name:$repository,default_branch:$default},pull_request:.}' \
             "$RUNNER_TEMP/live-pr.json" > "$metadata"
@@ -164,7 +166,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   publish-swift-android:
@@ -181,7 +183,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -289,7 +291,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   automerge:

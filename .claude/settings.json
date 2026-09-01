@@ -1,4 +1,23 @@
 {
+  "enabledPlugins": {
+    "vouchington-workflow@vouchington": true,
+    "vouchington-testing@vouchington": true,
+    "pr-shepherd@jonathanong": true
+  },
+  "extraKnownMarketplaces": {
+    "vouchington": {
+      "source": {
+        "source": "github",
+        "repo": "vouchington/vouchington-tooling"
+      }
+    },
+    "jonathanong": {
+      "source": {
+        "source": "github",
+        "repo": "jonathanong/pr-shepherd"
+      }
+    }
+  },
   "enabledMcpjsonServers": ["agent-blackboard"],
   "permissions": {
     "allow": [

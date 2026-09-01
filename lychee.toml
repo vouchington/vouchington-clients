@@ -1,0 +1,11 @@
+exclude_path = [
+  "(^|/)node_modules($|/)",
+  "(^|/)\\.git($|/)",
+  "(^|/)\\.agents/skills($|/)",
+  "(^|/)\\.claude/skills($|/)",
+  "(^|/)\\.worktrees($|/)",
+  "(^|/)(?:build|dist|DerivedData|TestResults)($|/)",
+]
+
+cache = true
+max_cache_age = "1d"

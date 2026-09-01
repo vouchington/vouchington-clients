@@ -1,0 +1,4 @@
+title = "Vouchington clients Gitleaks config"
+
+[extend]
+useDefault = true

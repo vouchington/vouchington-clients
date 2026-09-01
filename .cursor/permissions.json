@@ -1,0 +1,24 @@
+{
+  "mcpAllowlist": [
+    "agent-blackboard:entry_append",
+    "agent-blackboard:entry_get",
+    "agent-blackboard:session_archive",
+    "agent-blackboard:session_create",
+    "agent-blackboard:session_ensure",
+    "agent-blackboard:session_patch",
+    "agent-blackboard:session_search",
+    "agent-blackboard:snapshot_export"
+  ],
+  "autoRun": {
+    "allow_instructions": [
+      "Allow the documented pnpm, node, npx, git, gh, Swift, Xcode, .NET, cargo, and no-mistakes commands used by the native client harnesses.",
+      "Allow pr-shepherd commands when the user explicitly requests PR review or iteration."
+    ],
+    "block_instructions": [
+      "Every git push --force or git push -f without --force-with-lease requires approval first.",
+      "Every git commit --amend requires approval first.",
+      "Every command that bypasses git hooks with SKIP_PREPUSH, HUSKY=0, or --no-verify requires approval first.",
+      "Every sudo command and every write under ~/.ssh or ~/.gitconfig requires approval first."
+    ]
+  }
+}

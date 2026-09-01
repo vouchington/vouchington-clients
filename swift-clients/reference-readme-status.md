@@ -52,7 +52,8 @@ schemes reference it through `$(VOUCHA_API_BASE_URL)`, so an existing `.xcodepro
 port reallocation without regeneration. Run initialization again after allocation changes, and run
 `./swift-clients/tooling/generate.sh macOS` or `iOS` only after changing the project spec. Clean
 generation creates the production-default XCConfig when it is absent. See [web-mode resource
-allocation](../dev/reference-resource-allocation-web-mode.md) for the saved-port contract. Set
+allocation](https://github.com/jonathanong/filaments/blob/main/dev/reference-resource-allocation-web-mode.md)
+for the saved-port contract. Set
 `VOUCHA_TURNSTILE_SITE_KEY` (or shared `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`) when testing
 CAPTCHA-gated flows against an environment with a Cloudflare Turnstile widget — native clients
 intentionally do not keep a checked-in site-key fallback because Cloudflare registers staging and

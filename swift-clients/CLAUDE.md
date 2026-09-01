@@ -35,10 +35,10 @@ test, and generation checks. Use the harness or CI wrappers for compiler-heavy c
 - **Auth uses HTTP cookies over URLSession** — `KeychainCookieStorage` persists `dt` (device) and `st` (session) cookies. The backend sets/clears them via `Set-Cookie` headers.
 - **`OpenAICompatibleResponsesClient` must send every request through `LocalLLMConnectionPinning`** — resolve, keep only private or local IPs, rewrite the URL to that IP, then `URLSession`. Do not call `session.data` from the client. Do not add a skip-pin flag. Do not import `Network` for this path.
 - **API core parity** — endpoint route/fixture changes must stay aligned with `web/lib/api/client/**`, `api-fixtures/v1`, and `dotnet-clients/src/Voucha.Client.Core/Api/**`.
-- **Cursor pagination is table stakes** — every database-backed list forwards opaque cursors and appends pages safely; follow the [cross-surface pagination contract](../docs/overview/architecture/pagination.md).
+- **Cursor pagination is table stakes** — every database-backed list forwards opaque cursors and appends pages safely; follow Filaments' [cross-surface pagination contract](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/pagination.md).
 - **Sandbox-compatible entitlements** — `apps/macOS/Voucha.entitlements` enables App Sandbox + Keychain access group; `ViewModelFactory` must pass that group to cookie and App Attest key stores.
 
 ## See Also
 
 - [README.md](README.md) — commands, harness, gotchas
-- Native client strategy: [native-clients.md](../docs/overview/architecture/native-clients.md)
+- Native client strategy: Filaments' [native-clients.md](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/native-clients.md)

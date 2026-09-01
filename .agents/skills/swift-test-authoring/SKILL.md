@@ -5,6 +5,24 @@ description: Use when adding or changing Swift tests in swift-clients.
 
 # Swift Test Authoring
 
-Read `swift-clients/CLAUDE.md` and `swift-clients/README.md` first. This vouchington-clients repository enforces a 90% Swift patch-coverage threshold; use ViewInspector for SwiftUI views and keep tests within 500 lines. Delayed `URLProtocol` doubles must synchronize mutable state and guard callbacks after `stopLoading()`.
+## Canonical skill (required)
 
-Filaments host-lock and test-value guidance is authoritative at https://github.com/jonathanong/filaments/blob/main/docs/development/host-locks.md and https://github.com/jonathanong/filaments/blob/main/docs/development/reference-tests-value-and-reduction.md.
+Claude Code and Codex load `vouchington-testing:swift-test-authoring`; Grok and Cursor read
+`node_modules/vouchington-tooling/skills/swift-test-authoring/SKILL.md`. If the canonical skill
+cannot be read, stop and report the missing prerequisite; never apply this overlay alone.
+
+## Client additions
+
+This `vouchington-clients` overlay is intentionally limited to Swift-native policy.
+Read [`swift-clients/CLAUDE.md`](../../../swift-clients/CLAUDE.md) and
+[`swift-clients/README.md`](../../../swift-clients/README.md) before changing a Swift test. The
+canonical skill owns portable testing policy; this overlay supplies the client-specific harness,
+coverage, ViewInspector, `URLProtocol`, file-length, and native-selection guidance from those
+documents. This repository enforces a 90% Swift patch-coverage threshold and a 500-line test cap.
+Delayed `URLProtocol` doubles must synchronize mutable state and guard callbacks after
+`stopLoading()`.
+
+Use the native harness and the repository's host-lock guidance for compiler-heavy checks. Plan
+changed Swift tests with `pnpm run test:plan:swift --base origin/main --head HEAD`; do not plan from
+the Filaments checkout. Shared API fixtures and localization inputs remain Filaments-owned and
+must be supplied through the explicit contract root.

@@ -66,6 +66,9 @@ describe('private self-hosted runner policy', () => {
       ['contract-tests', '\\[self-hosted, Linux\\]'],
       ['dotnet-core', '\\[self-hosted, Linux\\]'],
       ['swift-core', '\\[self-hosted, Linux, Docker, Tests\\]'],
+      ['swift-lint', '\\[self-hosted, Linux, Docker, Tests\\]'],
+      ['tooling-lint', '\\[self-hosted, Linux\\]'],
+      ['gitleaks', '\\[self-hosted, Linux\\]'],
       ['validate', '\\[self-hosted, Linux\\]'],
     ])
       assertRunner(workflows['validate.yml'], job, runner)
@@ -107,6 +110,9 @@ describe('private self-hosted runner policy', () => {
       ['validate.yml', 'contract-tests'],
       ['validate.yml', 'dotnet-core'],
       ['validate.yml', 'swift-core'],
+      ['validate.yml', 'swift-lint'],
+      ['validate.yml', 'tooling-lint'],
+      ['validate.yml', 'gitleaks'],
       ['native-contract-tests.yml', 'verify'],
       ['native-contract-tests.yml', 'produce'],
       ['dependabot-automerge.yml', 'prepare'],

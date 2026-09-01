@@ -20,14 +20,10 @@ describe('event-driven CI orchestration', () => {
       workflow,
       /group: native-contract-tests-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
     )
-    assert.match(
-      workflow,
-      /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u,
-    )
+    assert.match(workflow, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u)
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
     assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u)
     assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u)
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
-
 })

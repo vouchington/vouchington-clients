@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Resolve candidate event identity
         id: event
@@ -180,7 +180,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   verify:
@@ -198,7 +198,7 @@ jobs:
     steps:
       - name: Clean persistent runner workspace
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -295,7 +295,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   dotnet-portable:
@@ -312,7 +312,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
-      MSBuildEnableWorkloadResolver: "false"
+      MSBuildEnableWorkloadResolver: 'false'
     steps:
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -406,46 +406,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
-  lint-swift:
-    name: Swift lint
-    needs: verify
-    runs-on: [self-hosted, Linux, Docker, Tests]
-    timeout-minutes: 12
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          clean: false
-          persist-credentials: false
-      - uses: ./.github/actions/prepare-native-contract
-        with:
-          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
-          github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
-          producer-run-id: ${{ github.run_id }}
-      - name: Check Swift formatting and lint
-        working-directory: candidate-clients
-        env:
-          SWIFTFORMAT_IMAGE: ghcr.io/nicklockwood/swiftformat:0.61.1@sha256:10f870fb7ae917d0373acb582ea87d60ffca92d75eee3260cbede710666f0fca
-          SWIFTLINT_IMAGE: ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e
-        run: |
-          set -euo pipefail
-          container_args=(
-            --rm
-            --read-only
-            --network none
-            --tmpfs "/tmp:rw,exec,mode=1777"
-            --volume "$PWD:/workspace:ro"
-            --env HOME=/tmp
-          )
-          docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint --verbose
-          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --cache-path /tmp/swiftlint
-          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --config .swiftlint-tests.yml --cache-path /tmp/swiftlint-tests
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   periphery-swift-core:
@@ -473,7 +434,7 @@ jobs:
           bash -c 'cd swift-clients/core && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   periphery-swift-ui:
@@ -501,7 +462,7 @@ jobs:
           bash -c 'cd swift-clients/ui && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   test-swift-core:
@@ -612,7 +573,7 @@ jobs:
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
-          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: "1"
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           bash swift-clients/tooling/with-build-lock.sh bash swift-clients/apps/android/tooling/pre-push.sh
@@ -652,7 +613,7 @@ jobs:
           if-no-files-found: error
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   test-swift-ui:
@@ -720,7 +681,7 @@ jobs:
           if-no-files-found: error
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   swift-patch-coverage:
@@ -749,11 +710,11 @@ jobs:
           path: candidate-clients/coverage/ui
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
-        env: { BASE_SHA: "${{ needs.verify.outputs.base-sha }}" }
+        env: { BASE_SHA: '${{ needs.verify.outputs.base-sha }}' }
         run: pnpm run coverage:swift
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   build-android-core:
@@ -787,7 +748,7 @@ jobs:
           /bin/bash -c 'bash swift-clients/tooling/build-android-core.sh'
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   build-macos-app:
@@ -830,7 +791,7 @@ jobs:
           bash swift-clients/tooling/with-build-lock.sh xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
       - name: Clean persistent runner workspace
         if: always()
-        env: { PRESERVE_NODE_MODULES: "false" }
+        env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   # iOS simulator smoke remains disabled pending #6705: the self-hosted runner's
@@ -843,7 +804,7 @@ jobs:
     runs-on: [self-hosted, macOS, Tests]
     timeout-minutes: 40
     env:
-      UseArtifactsOutput: "true"
+      UseArtifactsOutput: 'true'
     steps:
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -972,7 +933,7 @@ jobs:
       - name: Clean persistent runner workspace
         if: always()
         env:
-          PRESERVE_NODE_MODULES: "false"
+          PRESERVE_NODE_MODULES: 'false'
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   native-dto-fixture-parity:
@@ -1014,7 +975,6 @@ jobs:
       - produce
       - verify
       - dotnet-portable
-      - lint-swift
       - periphery-swift-core
       - periphery-swift-ui
       - test-swift-core

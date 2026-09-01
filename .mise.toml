@@ -1,0 +1,7 @@
+[tools]
+actionlint = "1.7.12"
+shellcheck = "0.11.0"
+"github:boyter/scc" = "3.7.0"
+zizmor = "1.26.1"
+"aqua:gitleaks/gitleaks" = "8.30.1"
+"aqua:lycheeverse/lychee" = "0.24.2"

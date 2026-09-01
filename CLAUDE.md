@@ -21,6 +21,10 @@ Run `pnpm run quality:check` for repository rules. Plan native tests with
 `pnpm run test:plan:dotnet --base origin/main --head HEAD`; do not plan native tests from the
 Filaments checkout. See [native quality and test planning](docs/development/native-quality.md).
 
+Use `pnpm clean` to remove checkout-local native build, coverage, and test output. Recycle only a
+linked disposable worktree with `./dev/reset-worktree`; it refuses dirty state unless `--force` is
+explicit and must never be used from the primary worktree.
+
 ## Agent Blackboard
 
 Use the upstream `agent-blackboard` plugin together with the `vouchington-workflow:blackboard`

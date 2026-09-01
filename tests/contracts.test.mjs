@@ -152,10 +152,7 @@ test('checks a candidate client checkout without executing it', async t => {
   const candidate = await mkdtemp(join(tmpdir(), 'voucha-candidate-'))
   t.after(() => rm(candidate, { recursive: true, force: true }))
   const swift = join(candidate, 'swift-clients/ui/Sources/VouchaLocalization/Generated')
-  const dotnet = join(
-    candidate,
-    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
-  )
+  const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
     cp(join(root, paths[1]), swift, { recursive: true }),
@@ -174,10 +171,7 @@ test('rejects symlinks within and above a candidate localization tree', async t 
   const candidate = await mkdtemp(join(tmpdir(), 'voucha-candidate-symlink-'))
   t.after(() => rm(candidate, { recursive: true, force: true }))
   const swift = join(candidate, 'swift-clients/ui/Sources/VouchaLocalization/Generated')
-  const dotnet = join(
-    candidate,
-    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
-  )
+  const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
     cp(join(root, paths[1]), swift, { recursive: true }),

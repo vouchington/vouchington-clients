@@ -1,3 +1,6 @@
+# Codex falls back to the shared checked-in instruction filename.
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
 # The upstream plugin owns the Agent Blackboard skill and MCP registration.
 [plugins."agent-blackboard@agent-blackboard"]
 enabled = true

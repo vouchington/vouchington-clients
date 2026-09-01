@@ -67,6 +67,50 @@ test_plan:
             sampleWhenLimited: true
 
 rules:
+  - name: repository package-manager lockfiles
+    rule: lockfile-allowlist
+    scope: repository
+    options:
+      allowed: [pnpm-lock.yaml]
+      bannedBasenames:
+        - package-lock.json
+        - npm-shrinkwrap.json
+        - yarn.lock
+        - bun.lock
+        - bun.lockb
+  - name: package dependencies resolve from registries
+    rule: package-json-registry-only
+    scope: repository
+    options:
+      lockfile: pnpm-lock.yaml
+  - name: pnpm overrides ban
+    rule: pnpm-overrides-ban
+    scope: repository
+  - name: first-party release-age exemptions stay synchronized
+    rule: pnpm-release-age-policy
+    scope: repository
+    options:
+      permanentPackages:
+        - name: coverage-check
+          reason: First-party native patch-coverage utility.
+        - name: no-mistakes
+          reason: First-party structural analysis and native test-planning tool.
+        - name: pr-shepherd
+          reason: First-party pull-request management tool.
+        - name: vouchington-tooling
+          reason: First-party shared repository tooling and runner utilities.
+      scopedPrefixes: ['@vouchington/']
+      workspaceYaml: pnpm-workspace.yaml
+      dependabotPath: .github/dependabot.yml
+      lockfilePath: pnpm-lock.yaml
+  - name: tests must not pin exact dependency versions
+    rule: test-no-dependency-pins
+    scope: repository
+    # This test intentionally models an exact upstream Skip release URL and checksum.
+    exclude: [tests/dependabot-swift-repair.test.mjs]
+  - name: composite-action steps use only supported keys
+    rule: github-actions-composite-step-schema
+    scope: repository
   - name: C# source and test file length
     rule: csharp-max-lines-per-file
     scope: repository
@@ -78,3 +122,13 @@ rules:
     rule: csharp-no-async-void-delegate
     scope: repository
     include: [dotnet-clients/src/Voucha.Client.App/**/*.cs]
+  - name: Swift production code uses VouchaLogger
+    rule: swift-no-raw-print
+    scope: repository
+    include: [swift-clients/**/*.swift]
+    options:
+      allow: [swift-clients/core/Sources/VouchaCore/Logging.swift]
+  - name: Swift ViewModels are main-actor isolated
+    rule: swift-viewmodel-main-actor
+    scope: repository
+    include: [swift-clients/**/*.swift]

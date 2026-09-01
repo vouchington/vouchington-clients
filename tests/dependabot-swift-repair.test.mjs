@@ -21,9 +21,20 @@ import {
   resolveSkipRelease,
 } from '../scripts/repair-dependabot-swift-android.mjs'
 
-const manifest = await readFile(new URL('../swift-clients/apps/android/Package.swift', import.meta.url), 'utf8')
-const resolved = JSON.parse(await readFile(new URL('../swift-clients/apps/android/Package.resolved', import.meta.url), 'utf8'))
-const materializer = await readFile(new URL('../swift-clients/apps/android/tooling/materialize-skip-sdk.sh', import.meta.url), 'utf8')
+const manifest = await readFile(
+  new URL('../swift-clients/apps/android/Package.swift', import.meta.url),
+  'utf8',
+)
+const resolved = JSON.parse(
+  await readFile(
+    new URL('../swift-clients/apps/android/Package.resolved', import.meta.url),
+    'utf8',
+  ),
+)
+const materializer = await readFile(
+  new URL('../swift-clients/apps/android/tooling/materialize-skip-sdk.sh', import.meta.url),
+  'utf8',
+)
 const sha = 'a'.repeat(40)
 
 function candidateResolved(version = '1.9.8') {
@@ -50,10 +61,12 @@ describe('Swift Android Dependabot repair validation', () => {
       'swift-clients/apps/android/Package.resolved',
     ])
     assert.throws(() => validatePullRequestPaths(['swift-clients/apps/android/Package.swift']))
-    assert.throws(() => validatePublishedCommitPaths([
-      'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
-      'dependabot-swift-android-provenance.json',
-    ]))
+    assert.throws(() =>
+      validatePublishedCommitPaths([
+        'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
+        'dependabot-swift-android-provenance.json',
+      ]),
+    )
     validatePublishedArtifactPaths([
       'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
       'dependabot-swift-android-provenance.json',
@@ -84,11 +97,20 @@ describe('Swift Android Dependabot repair validation', () => {
         number: 7,
         user: { login: 'dependabot[bot]' },
         base: { ref: 'main', sha: sha, repo: { full_name: 'vouchington/vouchington-clients' } },
-        head: { ref: 'dependabot/swift/skip', sha: 'b'.repeat(40), repo: { full_name: 'vouchington/vouchington-clients' } },
+        head: {
+          ref: 'dependabot/swift/skip',
+          sha: 'b'.repeat(40),
+          repo: { full_name: 'vouchington/vouchington-clients' },
+        },
       },
     }
     assert.equal(validateDependabotPullRequest(metadata).pullRequestNumber, 7)
-    assert.throws(() => validateDependabotPullRequest({ ...metadata, pull_request: { ...metadata.pull_request, user: { login: 'evil' } } }))
+    assert.throws(() =>
+      validateDependabotPullRequest({
+        ...metadata,
+        pull_request: { ...metadata.pull_request, user: { login: 'evil' } },
+      }),
+    )
     const live = { ...metadata.pull_request, state: 'open', draft: false, changed_files: 1 }
     const raw = `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.resolved\0`
     validateSwiftAndroidRepairPullRequest(
@@ -100,22 +122,27 @@ describe('Swift Android Dependabot repair validation', () => {
       sha,
       'b'.repeat(40),
     )
-    assert.throws(() => validateSwiftAndroidRepairPullRequest(
-      { ...live, head: { ...live.head, sha: 'c'.repeat(40) } },
-      raw,
-      'main',
-      'vouchington/vouchington-clients',
-      'dependabot/swift/skip',
-      sha,
-      'b'.repeat(40),
-    ))
+    assert.throws(() =>
+      validateSwiftAndroidRepairPullRequest(
+        { ...live, head: { ...live.head, sha: 'c'.repeat(40) } },
+        raw,
+        'main',
+        'vouchington/vouchington-clients',
+        'dependabot/swift/skip',
+        sha,
+        'b'.repeat(40),
+      ),
+    )
   })
 
   it('materializes only the version and checksum fields and hashes the downloaded bytes', async () => {
     const source = materializeSkipSdkSource(materializer, '1.9.8', 'c'.repeat(64))
     assert.match(source, /SKIP_VERSION="1\.9\.8"/u)
     assert.match(source, /SKIP_MACOS_ZIP_SHA256="c{64}"/u)
-    const archive = await hashSkipArchive({ archiveUrl: 'unused', archiveBytes: new TextEncoder().encode('archive') })
+    const archive = await hashSkipArchive({
+      archiveUrl: 'unused',
+      archiveBytes: new TextEncoder().encode('archive'),
+    })
     assert.equal(archive.archiveSha256.length, 64)
   })
 
@@ -132,7 +159,10 @@ describe('Swift Android Dependabot repair validation', () => {
         return { ok: true, text: async () => upstream }
       },
     })
-    assert.equal(requested, `https://raw.githubusercontent.com/skiptools/skip/${revision}/Package.swift`)
+    assert.equal(
+      requested,
+      `https://raw.githubusercontent.com/skiptools/skip/${revision}/Package.swift`,
+    )
     assert.equal(result.checksum, checksum)
   })
 
@@ -164,14 +194,16 @@ describe('Swift Android Dependabot repair validation', () => {
       sha,
       'b'.repeat(40),
     )
-    assert.throws(() => validateSwiftAndroidRepairProvenance(
-      provenance,
-      'vouchington/vouchington-clients',
-      '7',
-      '43',
-      sha,
-      'b'.repeat(40),
-    ))
+    assert.throws(() =>
+      validateSwiftAndroidRepairProvenance(
+        provenance,
+        'vouchington/vouchington-clients',
+        '7',
+        '43',
+        sha,
+        'b'.repeat(40),
+      ),
+    )
     assert.throws(() => validateProvenance({ ...provenance, unexpected: true }))
   })
 })
