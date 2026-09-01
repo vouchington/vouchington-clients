@@ -342,12 +342,23 @@ describe("native contract workflow boundary", () => {
       dotnetJob,
       /--filter "FullyQualifiedName!~ApiFixtureCoverageTests\.FixtureFieldsRoundTripThroughTheDto"/u,
     );
-    assert.match(dotnetJob, /name: Test \.NET DTO fixture parity separately[\s\S]*continue-on-error: true/u);
+    assert.match(
+      dotnetJob,
+      /name: Test \.NET DTO fixture parity separately[\s\S]*if: always\(\) && matrix\.os == 'linux'[\s\S]*continue-on-error: true/u,
+    );
     assert.match(
       swiftJob,
       /--skip 'VouchaCoreTests\.ApiFixtureCoverageTests\/testRegisteredFixturesRoundTripThroughTheirDTO'/u,
     );
-    assert.match(swiftJob, /name: Test Swift DTO fixture parity separately[\s\S]*continue-on-error: true/u);
+    assert.match(
+      swiftJob,
+      /name: Test Swift DTO fixture parity separately[\s\S]*if: always\(\)[\s\S]*continue-on-error: true/u,
+    );
+    assert.ok(
+      swiftJob.indexOf("name: Test Swift DTO fixture parity separately") >
+        swiftJob.indexOf("name: Upload core LCOV"),
+      "Swift parity must not rebuild the test bundle before coverage export",
+    );
     assert.match(parityJob, /name: Native DTO fixture parity \(advisory\)/u);
     assert.match(parityJob, /Report missing native DTO fields/u);
     assert.doesNotMatch(testsJob, /native-dto-fixture-parity/u);
