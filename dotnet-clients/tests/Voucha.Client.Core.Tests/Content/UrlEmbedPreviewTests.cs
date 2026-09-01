@@ -88,6 +88,18 @@ public sealed class UrlEmbedPreviewTests
     Assert.True(withoutSource.HasPreview);
   }
 
+  [Theory]
+  [InlineData("https:")]
+  [InlineData("https:/hostless")]
+  [InlineData("https:///hostless")]
+  public void DoesNotUseMalformedHostlessHttpsSources(string value)
+  {
+    var preview = UrlEmbedPreviews.From(new UrlEmbed(SourceUrl: value));
+
+    Assert.Null(preview.SourceUrl);
+    Assert.False(preview.HasSource);
+  }
+
   [Fact]
   public void PreservesUnknownNestedEmbedMetadata()
   {

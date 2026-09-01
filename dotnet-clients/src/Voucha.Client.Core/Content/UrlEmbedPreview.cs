@@ -39,7 +39,9 @@ public static class UrlEmbedPreviews
        (candidate.Host == "player.vimeo.com" && candidate.AbsolutePath.StartsWith("/video/", StringComparison.Ordinal)));
 
   public static bool IsValidSource(Uri? candidate) =>
-      candidate is { IsAbsoluteUri: true, Scheme: "https", UserInfo: "" };
+      candidate is { IsAbsoluteUri: true, Scheme: "https", UserInfo: "" } &&
+      !string.IsNullOrEmpty(candidate.Host) &&
+      HasExactHostAuthority(candidate);
 
   private static bool HasExactHostAuthority(Uri candidate)
   {
