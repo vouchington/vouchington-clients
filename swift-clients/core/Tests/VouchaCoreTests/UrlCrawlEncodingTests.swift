@@ -13,7 +13,7 @@ final class UrlCrawlEncodingTests: XCTestCase {
                     "id": "crawl-1",
                     "embed_metadata": {
                       "title": "Example",
-                      "provider": { "key": "youtube", "name": "YouTube" },
+                      "provider": { "key": "youtube", "name": "YouTube", "resourceId": 9007199254740993 },
                       "player": { "url": "https://www.youtube.com/embed/example", "width": 640 }
                     },
                     "embed_oembed_url": "https://www.youtube.com/oembed",
@@ -28,7 +28,11 @@ final class UrlCrawlEncodingTests: XCTestCase {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.keyEncodingStrategy = .convertToSnakeCase
-        let crawl = try crawlObject(from: encoder.encode(response))
+        let encoded = try encoder.encode(response)
+        let encodedJSON = try XCTUnwrap(String(data: encoded, encoding: .utf8))
+        XCTAssertTrue(encodedJSON.contains("\"resourceId\":9007199254740993"))
+
+        let crawl = try crawlObject(from: encoded)
         let metadata = try XCTUnwrap(crawl["embed_metadata"] as? [String: Any])
         let provider = try XCTUnwrap(metadata["provider"] as? [String: Any])
 

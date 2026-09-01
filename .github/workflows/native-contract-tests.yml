@@ -362,7 +362,7 @@ jobs:
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
       - name: Test .NET DTO fixture parity separately
         id: dotnet-dto-fixture-parity
-        if: matrix.os == 'linux'
+        if: always() && matrix.os == 'linux'
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -528,6 +528,7 @@ jobs:
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
       - name: Test Swift DTO fixture parity separately
         id: swift-dto-fixture-parity
+        if: always()
         continue-on-error: true
         working-directory: candidate-clients
         run: >-

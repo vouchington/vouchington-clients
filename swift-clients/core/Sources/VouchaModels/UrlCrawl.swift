@@ -12,7 +12,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
     public let title: String?
     public let urlId: String?
     public let crawlerId: String?
-    public let embedMetadata: DecodedJSONValue?
+    public let embedMetadata: IntegerPreservingJSONValue?
     public let embedOembedResolvedAt: Date?
     public let embedOembedUrl: String?
     public let embeddingsGeneratedAt: Date?
@@ -59,7 +59,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         title = try container.decodeIfPresent(String.self, forKey: .title)
         urlId = try container.decodeIfPresent(String.self, forKey: .urlId)
         crawlerId = try container.decodeIfPresent(String.self, forKey: .crawlerId)
-        embedMetadata = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .embedMetadata)
+        embedMetadata = try container.decodeIfPresent(IntegerPreservingJSONValue.self, forKey: .embedMetadata)
         embedOembedResolvedAt = try container.decodeIfPresent(Date.self, forKey: .embedOembedResolvedAt)
         embedOembedUrl = try container.decodeIfPresent(String.self, forKey: .embedOembedUrl)
         embeddingsGeneratedAt = try container.decodeIfPresent(Date.self, forKey: .embeddingsGeneratedAt)
