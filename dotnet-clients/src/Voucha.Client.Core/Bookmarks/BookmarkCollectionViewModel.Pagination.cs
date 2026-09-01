@@ -74,7 +74,7 @@ public sealed partial class BookmarkCollectionViewModel
           after: after,
           cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!IsCurrentContext(route, generation)) return;
-      AppendPostRows(response.Results, route);
+      AppendPostRows(response, route);
       postPageInfo = response.PageInfo;
       NotifyPaginationState();
     }
@@ -95,15 +95,17 @@ public sealed partial class BookmarkCollectionViewModel
     }
   }
 
-  private void AppendPostRows(IReadOnlyList<Post> posts, BookmarkCollectionRouteContext route)
+  private void AppendPostRows(BookmarkCollectionResponse<Post> response, BookmarkCollectionRouteContext route)
   {
     var existing = Rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
     var nextRank = Rows.Count == 0 ? 0 : Rows.Max(row => row.Rank) + 1;
     var additions = new List<BookmarkCollectionRow>();
-    foreach (var post in posts)
+    foreach (var post in response.Results)
     {
       if (!existing.Add(post.Id)) continue;
-      additions.Add(BookmarkCollectionRowFactory.Post(post, route.InverseAction, nextRank++, localization));
+      UrlEmbed? embed = null;
+      response.PostLinkEmbeds?.TryGetValue(post.Id, out embed);
+      additions.Add(BookmarkCollectionRowFactory.Post(post, route.InverseAction, nextRank++, embed, localization));
     }
     if (additions.Count > 0) Rows = [.. Rows, .. additions];
   }

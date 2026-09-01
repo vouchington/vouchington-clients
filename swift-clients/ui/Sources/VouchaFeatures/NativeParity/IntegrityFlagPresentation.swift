@@ -85,7 +85,7 @@ private func integrityValue(_ value: DecodedJSONValue, locale: Locale) -> String
     case let .bool(value):
         value ? "true" : "false"
     case let .number(value):
-        UiMessages.number(value, locale: locale)
+        UiMessages.number(NSDecimalNumber(decimal: value).doubleValue, locale: locale)
     case let .string(value):
         value
     case let .array(values):

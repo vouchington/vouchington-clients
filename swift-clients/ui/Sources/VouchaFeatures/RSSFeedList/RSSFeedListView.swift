@@ -94,6 +94,9 @@ public struct RSSFeedListView: View {
                             { _ = Task<Void, Never> { await viewModel.toggleHide(rssFeedItemId: item.id) } } : nil,
                         apiBaseURL: viewModel.apiBaseURL
                     )
+                    if let embed = viewModel.embedsByItemId[item.id] {
+                        ProviderEmbedPreview(embed: embed)
+                    }
                     if isSignedIn, let currentUserId {
                         HStack {
                             Spacer()
@@ -104,7 +107,7 @@ public struct RSSFeedListView: View {
                             )
                         }
                     }
-                    if showsPlaybackAccessory {
+                    if showsPlaybackAccessory, !embedCanPlay(item.id) {
                         RSSFeedPlaybackAccessoryView(
                             item: item,
                             isCurrentItem: playbackController.isCurrentItem(item),
@@ -154,6 +157,10 @@ public struct RSSFeedListView: View {
 }
 
 private extension RSSFeedListView {
+    func embedCanPlay(_ itemID: String) -> Bool {
+        viewModel.embedsByItemId[itemID]?.approvedPlayerWithSource != nil
+    }
+
     var showsPlaybackAccessory: Bool {
         viewModel.contentType != .news
     }

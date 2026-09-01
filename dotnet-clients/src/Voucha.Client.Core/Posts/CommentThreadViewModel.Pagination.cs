@@ -77,6 +77,7 @@ public sealed partial class CommentThreadViewModel
         ElectionVotes = MergeNullable(previous.ElectionVotes, next.ElectionVotes),
         MarkdownToHtml = MergeNullable(previous.MarkdownToHtml, next.MarkdownToHtml),
         Bookmarks = MergeNullable(previous.Bookmarks, next.Bookmarks),
+        PostLinkEmbeds = MergeNullable(previous.PostLinkEmbeds, next.PostLinkEmbeds),
       };
 
   private static Dictionary<string, T> Merge<T>(
@@ -103,6 +104,7 @@ public sealed partial class CommentThreadViewModel
       ElectionVotes = WithoutNullableKey(descendantsResponse.ElectionVotes, postId),
       MarkdownToHtml = WithoutNullableKey(descendantsResponse.MarkdownToHtml, postId),
       Bookmarks = WithoutNullableKey(descendantsResponse.Bookmarks, postId),
+      PostLinkEmbeds = WithoutNullableKey(descendantsResponse.PostLinkEmbeds, postId),
     };
     RebuildComments();
     return true;

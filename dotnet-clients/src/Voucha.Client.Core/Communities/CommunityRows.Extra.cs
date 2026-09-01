@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.Core.Communities;
 
@@ -7,7 +8,8 @@ public sealed record CommunitySummaryRow(
     UiText TitleText,
     UiText SubtitleText,
     UiText? DetailText,
-    IUiLocalization Localization)
+    IUiLocalization Localization,
+    UrlEmbedPreview? EmbedPreview = null)
 {
   public CommunitySummaryRow(string id, string title, string subtitle, string? detail = null)
       : this(

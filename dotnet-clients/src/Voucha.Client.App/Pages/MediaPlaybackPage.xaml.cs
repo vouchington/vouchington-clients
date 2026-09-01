@@ -45,7 +45,7 @@ public sealed partial class MediaPlaybackPage :
     SummaryLabel.Text = item.Summary;
     LinkLabel.Text = UiExternalContentText.FromUri(item.Link).Value;
     ExternalAudioFallbackPanel.IsVisible = item.HasExternalAudioFallback;
-    VideoUnavailablePanel.IsVisible = item.IsEmbedOnlyVideo;
+    VideoUnavailablePanel.IsVisible = item.IsEmbedOnlyVideoUnavailable;
     PlayerPanel.IsVisible = item.HasDirectPlayback;
     ChapterPanel.IsVisible = false;
     SeekSlider.IsEnabled = item.HasDirectPlayback;

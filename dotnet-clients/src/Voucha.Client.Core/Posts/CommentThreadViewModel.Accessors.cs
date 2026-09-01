@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -37,6 +38,17 @@ public sealed partial class CommentThreadViewModel
 
   public IReadOnlyDictionary<string, string> CommentHtml =>
       descendantsResponse?.MarkdownToHtml ?? new Dictionary<string, string>(StringComparer.Ordinal);
+
+  public UrlEmbedPreview? EmbedPreviewFor(Post post)
+  {
+    ArgumentNullException.ThrowIfNull(post);
+    if (post.Id == RootPostId) return UrlEmbedPreviews.From(rootPostResponse?.LinkEmbed);
+    if (descendantsResponse?.PostLinkEmbeds?.TryGetValue(post.Id, out var descendant) == true)
+      return UrlEmbedPreviews.From(descendant);
+    return ancestorsResponse?.PostLinkEmbeds?.TryGetValue(post.Id, out var ancestor) == true
+        ? UrlEmbedPreviews.From(ancestor)
+        : null;
+  }
 
   private static string? NormalizeFocusedCommentId(string? commentId) =>
       string.IsNullOrWhiteSpace(commentId) ? null : commentId.Trim();

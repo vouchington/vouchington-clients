@@ -12,6 +12,7 @@ public struct PostEnvelope: Codable, Sendable {
     public let postElection: PostElection?
     public let electionVote: PostVote?
     public let bookmarks: [String: [String: Bool]]?
+    public let linkEmbed: UrlEmbed?
 }
 
 public struct PostThreadEnvelope: Codable, Sendable {
@@ -33,7 +34,8 @@ public struct PostThreadEnvelope: Codable, Sendable {
     public let storyMemberIds: [String: [String]]?
     public let storyPostIds: [String: [String]]?
     public let pinnedPostIds: [String]?
-    public let postLinkEmbeds: [String: DecodedJSONValue]?
+    public let postLinkEmbeds: [String: UrlEmbed]?
+    public let rssFeedItemEmbeds: [String: UrlEmbed]?
 }
 
 public struct PostThreadResult: Codable, Sendable {

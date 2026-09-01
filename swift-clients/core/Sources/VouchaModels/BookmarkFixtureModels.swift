@@ -2,6 +2,7 @@ public struct BookmarkRssFeedItemsResponse: Codable, Sendable {
     public let results: [RssFeedItem]
     public let pageInfo: Page<RssFeedItem>.PageInfo
     public let rssFeedItemThumbnailUrl: DecodedJSONValue
+    public let rssFeedItemEmbeds: [String: UrlEmbed]?
 }
 
 public struct BookmarkRssFeedsResponse: Codable, Sendable {

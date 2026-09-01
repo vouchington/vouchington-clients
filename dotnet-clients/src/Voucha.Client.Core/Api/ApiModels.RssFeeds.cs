@@ -101,6 +101,7 @@ public sealed record RssFeedItemsFeedResponse(
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
     [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
     [property: JsonPropertyName("rss_feed_item_thumbnail_url")] IReadOnlyDictionary<string, string>? RssFeedItemThumbnailUrl = null,
+    [property: JsonPropertyName("rss_feed_item_embeds")] IReadOnlyDictionary<string, UrlEmbed>? RssFeedItemEmbeds = null,
     [property: JsonPropertyName("posts")] IReadOnlyDictionary<string, Post>? Posts = null,
     [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null,
     [property: JsonPropertyName("related_posts_by_url_id")] IReadOnlyDictionary<string, IReadOnlyList<string>>? RelatedPostsByUrlId = null,

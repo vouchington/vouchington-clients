@@ -27,6 +27,14 @@
                     <Label Text="{Binding RootRow.LocalizedTitle}" Style="{StaticResource Headline}" />
                     <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
                     <controls:NativeHtmlContentView Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" />
+                    <VerticalStackLayout Spacing="4" IsVisible="{Binding RootRow.EmbedPreview.HasPreview}">
+                        <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.EmbedPreview.ThumbnailUrl}" />
+                        <Label Text="{Binding RootRow.EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                        <Label Text="{Binding RootRow.EmbedPreview.Title}" Style="{StaticResource Headline}" />
+                        <Label Text="{Binding RootRow.EmbedPreview.Description}" Style="{StaticResource Body}" />
+                        <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.EmbedPreview.CanPlay}" />
+                        <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.EmbedPreview.HasSource}" />
+                    </VerticalStackLayout>
                     <HorizontalStackLayout Spacing="10" IsVisible="{Binding RootRow.CanInteractWithVotes}">
                         <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanCreateVote}" MinimumHeightRequest="44" />
                         <Label Text="{Binding RootRow.VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
@@ -111,6 +119,14 @@
                                     <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
                                 <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" />
+                                <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
+                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                    <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.CanPlay}" />
+                                    <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.HasSource}" />
+                                </VerticalStackLayout>
                                 <HorizontalStackLayout Spacing="10">
                                     <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanCreateVote}" MinimumHeightRequest="44" />
                                     <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />

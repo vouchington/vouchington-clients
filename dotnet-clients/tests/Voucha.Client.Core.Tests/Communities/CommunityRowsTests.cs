@@ -45,6 +45,18 @@ public sealed class CommunityRowsTests
   }
 
   [Fact]
+  public void CommunityPostRowUsesTheServerProvidedLinkEmbed()
+  {
+    var row = CommunityPostRow.FromPost(
+        new Post("post-1", "link", "Title", null, "user-1"),
+        null,
+        new UrlEmbed(Title: "Provider title", SourceUrl: "https://example.com/source"));
+
+    Assert.Equal("Provider title", row.EmbedPreview?.Title);
+    Assert.Equal(new Uri("https://example.com/source"), row.EmbedPreview?.SourceUrl);
+  }
+
+  [Fact]
   public void LocalizedManagementRowsResolveAgainAfterLocaleChanges()
   {
     var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));

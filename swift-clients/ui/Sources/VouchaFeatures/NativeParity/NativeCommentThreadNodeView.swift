@@ -16,6 +16,7 @@ struct NativeCommentThreadNodeView: View {
     let hideDownCount: Bool
     let inFlightVotePostIds: Set<String>
     let bookmarksByPostId: [String: [String: Bool]]
+    let postEmbedsByPostId: [String: UrlEmbed]
     let voteChoiceByPostId: [String: ElectionVoteChoice]
     let onToggleCollapse: (String) -> Void
     let onVote: (String, ElectionVoteChoice?) -> Void
@@ -36,6 +37,7 @@ struct NativeCommentThreadNodeView: View {
                     ?? post.createdById.map(UiVerbatimText.verbatim)
                     ?? .message(.nativeSwiftPresentationValuesDeleted),
                 post: post,
+                embed: postEmbedsByPostId[post.id],
                 pathText: "/\(rootPostType)/\(rootPostId)/comment/\(post.id)",
                 voteChoice: voteChoiceByPostId[post.id],
                 isSignedIn: isSignedIn,
@@ -71,6 +73,7 @@ struct NativeCommentThreadNodeView: View {
                         hideDownCount: hideDownCount,
                         inFlightVotePostIds: inFlightVotePostIds,
                         bookmarksByPostId: bookmarksByPostId,
+                        postEmbedsByPostId: postEmbedsByPostId,
                         voteChoiceByPostId: voteChoiceByPostId,
                         onToggleCollapse: onToggleCollapse,
                         onVote: onVote,

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
@@ -94,7 +95,8 @@ public sealed partial class CommunityDetailViewModel
 
   private CommunitySummaryRow? NewsRow(
       EntityReference reference,
-      IReadOnlyDictionary<string, RssFeedItem> items)
+      IReadOnlyDictionary<string, RssFeedItem> items,
+      IReadOnlyDictionary<string, UrlEmbed>? embeds = null)
   {
     var itemId = reference.EntityId ?? reference.Id;
     if (itemId is null || !items.TryGetValue(itemId, out var item))
@@ -102,21 +104,25 @@ public sealed partial class CommunityDetailViewModel
       return null;
     }
 
+    UrlEmbed? embed = null;
+    embeds?.TryGetValue(item.Id, out embed);
     return Summary(
         item.Id,
         (item.Data?.Title ?? item.Title) is { } title
             ? UiText.Verbatim(title)
             : UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesNewsItem),
         UiText.Localized(UiMessageKey.NativeDotnetResidualNews),
-        Verbatim(item.RssFeed?.Title ?? item.Data?.ContentSnippet));
+        Verbatim(item.RssFeed?.Title ?? item.Data?.ContentSnippet),
+        UrlEmbedPreviews.From(embed));
   }
 
   private CommunitySummaryRow Summary(
       string id,
       UiText title,
       UiText subtitle,
-      UiText? detail = null) =>
-      new(id, title, subtitle, detail, localization);
+      UiText? detail = null,
+      UrlEmbedPreview? embedPreview = null) =>
+      new(id, title, subtitle, detail, localization, embedPreview);
 
   private static UiText? Verbatim(string? value) =>
       value is null ? null : UiText.Verbatim(value);

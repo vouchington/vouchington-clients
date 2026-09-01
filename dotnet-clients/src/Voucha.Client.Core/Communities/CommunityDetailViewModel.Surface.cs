@@ -139,7 +139,7 @@ public sealed partial class CommunityDetailViewModel
         case CommunityDetailSurfaceSection.News:
           var newsResponse = await service.FetchNewsPageAsync(communityIdOrSlug, null, 25, cancellationToken).ConfigureAwait(true);
           News = newsResponse.Results
-              .Select(reference => NewsRow(reference, newsResponse.RssFeedItems))
+              .Select(reference => NewsRow(reference, newsResponse.RssFeedItems, newsResponse.RssFeedItemEmbeds))
               .Where(row => row is not null)
               .Select(row => row!)
               .ToArray();

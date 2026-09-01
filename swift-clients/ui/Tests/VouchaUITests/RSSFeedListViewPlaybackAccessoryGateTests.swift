@@ -102,4 +102,20 @@ final class RSSFeedListViewPlaybackAccessoryGateTests: XCTestCase {
 
         XCTAssertNoThrow(try sut.inspect().find(button: "Play"))
     }
+
+    func testApprovedEmbedSuppressesUnavailableAccessoryAndShowsProviderActions() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (Data(#"""
+        { "results": [{ "id": "item-1", "entity_id": "item-1" }],
+          "page_info": { "has_next_page": false, "end_cursor": null },
+          "rss_feed_items": { "item-1": { "id": "item-1", "rss_feed_id": "feed-1", "title": "Embed video", "link": "https://example.com/item-1", "media_type": "video", "video_id": "video-1", "video_platform": "youtube" } },
+          "rss_feed_item_embeds": { "item-1": { "source_url": "https://example.com/item-1", "player_url": "https://www.youtube-nocookie.com/embed/video-1" } } }
+        """#.utf8), 200)
+        let viewModel = RSSFeedListViewModel(client: makeClient(), contentType: .video)
+        await viewModel.load()
+        let sut = RSSFeedListView(viewModel: viewModel, playbackController: makePlaybackController())
+
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
+        XCTAssertNoThrow(try sut.inspect().find(text: "Open source"))
+        XCTAssertThrowsError(try sut.inspect().find(text: "Video unavailable"))
+    }
 }

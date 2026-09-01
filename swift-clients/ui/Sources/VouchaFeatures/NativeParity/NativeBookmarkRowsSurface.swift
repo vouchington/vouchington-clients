@@ -75,6 +75,9 @@ struct NativeBookmarkRowsSurface: View {
                 .padding(Spacing.md)
                 .background(Colors.background.opacity(0.75))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                if let embed = viewModel.bookmarkEmbedsByEntityId[row.entityId] {
+                    ProviderEmbedPreview(embed: embed)
+                }
             }
             HybridPaginationControl(
                 hasMore: viewModel.bookmarkPagination.hasLoadedPage

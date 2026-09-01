@@ -84,6 +84,8 @@ public sealed record BookmarkCollectionResponse<T>(
     [property: JsonPropertyName("results")] IReadOnlyList<T> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo,
     [property: JsonPropertyName("rss_feed_item_thumbnail_url")] IReadOnlyDictionary<string, string>? RssFeedItemThumbnailUrl = null,
+    [property: JsonPropertyName("rss_feed_item_embeds")] IReadOnlyDictionary<string, UrlEmbed>? RssFeedItemEmbeds = null,
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null,
     [property: JsonPropertyName("topic_elections")] IReadOnlyDictionary<string, TopicElection>? TopicElections = null,
     [property: JsonPropertyName("hostname_elections")] IReadOnlyDictionary<string, HostnameElection>? HostnameElections = null);
 

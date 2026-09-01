@@ -20,11 +20,17 @@ struct NativeForwardPage {
 
 struct NativeBookmarkPage {
     let rows: [NativeBookmarkRow]
+    let embedsByEntityId: [String: UrlEmbed]
     let endCursor: String?
     let hasMore: Bool
 
-    init(rows: [NativeBookmarkRow], pageInfo: Page<some Decodable & Sendable>.PageInfo?) {
+    init(
+        rows: [NativeBookmarkRow],
+        pageInfo: Page<some Decodable & Sendable>.PageInfo?,
+        embedsByEntityId: [String: UrlEmbed] = [:]
+    ) {
         self.rows = rows
+        self.embedsByEntityId = embedsByEntityId
         endCursor = pageInfo?.endCursor
         hasMore = pageInfo?.hasNextPage ?? false
     }

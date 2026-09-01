@@ -77,11 +77,13 @@ extension CommunityDetailViewModel {
                 limit: 10
             )
         )
+        postEmbedsByPostId.merge(response.postLinkEmbeds ?? [:]) { _, new in new }
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let post = response.posts[result.id] else { return nil }
             return .init(
                 id: result.id,
                 row: .init(
+                    id: result.id,
                     icon: "doc.text",
                     title: .verbatim(post.title ?? post.slug ?? post.id),
                     detail: postTypeText(post.postType)
@@ -99,11 +101,13 @@ extension CommunityDetailViewModel {
         let response: NativeRssFeedItemsResponse = try await client.send(
             .communityNews(idOrSlug: slug, after: after, limit: 10)
         )
+        rssFeedItemEmbedsById.merge(response.rssFeedItemEmbeds ?? [:]) { _, new in new }
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let item = response.rssFeedItems[result.entityId ?? result.id] else { return nil }
             return .init(
-                id: result.id,
+                id: result.entityId ?? result.id,
                 row: .init(
+                    id: result.entityId ?? result.id,
                     icon: "newspaper",
                     title: item.title.map(UiVerbatimText.verbatim)
                         ?? item.data?.title.map(UiVerbatimText.verbatim)

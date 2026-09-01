@@ -6,6 +6,7 @@ import VouchaLocalization
 extension NativeRouteSurfaceViewModel {
     func loadInitialBookmarkPage(collection: NativeBookmarkCollection, client: APIClient) async throws {
         bookmarkPagination.reset()
+        bookmarkEmbedsByEntityId = [:]
         guard let request = bookmarkPagination.beginInitialPageIfNeeded() else { return }
         do {
             let page = try await loadBookmarkCollectionPage(
@@ -21,6 +22,7 @@ extension NativeRouteSurfaceViewModel {
                 endCursor: page.endCursor,
                 hasNextPage: page.hasMore
             ) else { return }
+            bookmarkEmbedsByEntityId.merge(page.embedsByEntityId) { _, new in new }
             bookmarkRows = bookmarkPagination.items
         } catch let error as VouchaError {
             _ = bookmarkPagination.fail(request, error: error)
@@ -51,6 +53,7 @@ extension NativeRouteSurfaceViewModel {
                 endCursor: page.endCursor,
                 hasNextPage: page.hasMore
             ) else { return }
+            bookmarkEmbedsByEntityId.merge(page.embedsByEntityId) { _, new in new }
             bookmarkRows = bookmarkPagination.items
         } catch let error as VouchaError {
             _ = bookmarkPagination.fail(request, error: error)
@@ -73,7 +76,11 @@ extension NativeRouteSurfaceViewModel {
             let rows = distinctNew(response.results, excluding: existingIds, id: \.id).enumerated().map { rank, post in
                 bookmarkedPostRow(post, collection: collection, rank: rankOffset + rank)
             }
-            return NativeBookmarkPage(rows: rows, pageInfo: response.pageInfo)
+            return NativeBookmarkPage(
+                rows: rows,
+                pageInfo: response.pageInfo,
+                embedsByEntityId: response.postLinkEmbeds ?? [:]
+            )
         case .rssFeedItems:
             let response: NativeBookmarkedRssFeedItemsResponse = try await client.send(endpoint)
             let rows = distinctNew(response.results, excluding: existingIds, id: \.id).enumerated().map { rank, item in
@@ -88,7 +95,11 @@ extension NativeRouteSurfaceViewModel {
                     rank: rankOffset + rank
                 )
             }
-            return NativeBookmarkPage(rows: rows, pageInfo: response.pageInfo)
+            return NativeBookmarkPage(
+                rows: rows,
+                pageInfo: response.pageInfo,
+                embedsByEntityId: response.rssFeedItemEmbeds ?? [:]
+            )
         case .rssFeeds:
             let response: NativeRssFeedsPageResponse = try await client.send(endpoint)
             let rows = distinctNew(response.results, excluding: existingIds, id: \.id)

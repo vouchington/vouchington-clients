@@ -110,6 +110,10 @@ struct CommunityWorkspaceSurface: View {
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(viewModel.summary.rows) { row in
                         NativeSurfaceRow(row: row)
+                        if let embed = viewModel.postEmbedsByPostId[row.id]
+                            ?? viewModel.rssFeedItemEmbedsById[row.id] {
+                            ProviderEmbedPreview(embed: embed)
+                        }
                     }
                 }
 

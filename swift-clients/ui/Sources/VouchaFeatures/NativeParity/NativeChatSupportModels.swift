@@ -1,3 +1,4 @@
+import Foundation
 import VouchaLocalization
 import VouchaModels
 
@@ -38,7 +39,7 @@ struct NativeChatToolResult: Identifiable {
         case let .bool(value):
             .verbatim(String(value))
         case let .number(value):
-            .verbatim(String(value))
+            .verbatim(NSDecimalNumber(decimal: value).stringValue)
         case let .string(value):
             .verbatim(value)
         case let .array(value):

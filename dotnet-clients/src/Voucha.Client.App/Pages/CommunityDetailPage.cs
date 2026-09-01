@@ -6,7 +6,7 @@ using Voucha.Client.Core.Localization;
 namespace Voucha.Client.App.Pages;
 
 [QueryProperty(nameof(Slug), "slug")]
-public sealed class CommunityDetailPage : ContentPage
+public sealed partial class CommunityDetailPage : ContentPage
 {
   private readonly CommunityDetailViewModel viewModel;
   private readonly Entry slugEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunitySlug);
@@ -127,7 +127,7 @@ public sealed class CommunityDetailPage : ContentPage
     archiveButton.IsVisible = viewModel.CanArchive;
     unarchiveButton.IsVisible = viewModel.CanUnarchive;
     RenderRows(membersLayout, viewModel.Members.Select(member => $"{member.DisplayName} · {member.Role}"));
-    RenderRows(postsLayout, viewModel.Posts.Select(post => $"{post.Title} · {post.PostType}"));
+    RenderPostRows(postsLayout, viewModel.Posts);
   }
 
   private int ListItemCountTotal(CommunityMetrics metrics) =>

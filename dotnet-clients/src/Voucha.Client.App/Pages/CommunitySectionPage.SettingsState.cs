@@ -72,7 +72,7 @@ public abstract partial class CommunitySectionPage
   private static UiText? Date(DateTimeOffset? value) =>
       value is { } date ? UiText.Verbatim(UiCopy.FormatDateTime(date)) : null;
 
-  private static View RowTemplate()
+  private View RowTemplate()
   {
     var title = new Label { FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Title));
@@ -80,6 +80,22 @@ public abstract partial class CommunitySectionPage
     subtitle.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Subtitle));
     var detail = new Label();
     detail.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Detail));
-    return new VerticalStackLayout { Spacing = 3, Children = { title, subtitle, detail } };
+    var image = new Image { HeightRequest = 160, Aspect = Aspect.AspectFit };
+    image.SetBinding(Image.SourceProperty, "EmbedPreview.ThumbnailUrl");
+    var provider = new Label { FontSize = 12 };
+    provider.SetBinding(Label.TextProperty, "EmbedPreview.Provider");
+    var embedTitle = new Label { FontAttributes = FontAttributes.Bold };
+    embedTitle.SetBinding(Label.TextProperty, "EmbedPreview.Title");
+    var description = new Label { FontSize = 12 };
+    description.SetBinding(Label.TextProperty, "EmbedPreview.Description");
+    var play = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetMediaPlaybackPlay);
+    play.SetBinding(IsVisibleProperty, "EmbedPreview.CanPlay");
+    play.Clicked += OnEmbedPlayClicked;
+    var open = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeSwiftPodcastPlaybackOpenSource);
+    open.SetBinding(IsVisibleProperty, "EmbedPreview.HasSource");
+    open.Clicked += OnEmbedOpenClicked;
+    var embed = new VerticalStackLayout { Spacing = 3, Children = { image, provider, embedTitle, description, play, open } };
+    embed.SetBinding(IsVisibleProperty, "EmbedPreview.HasPreview");
+    return new VerticalStackLayout { Spacing = 3, Children = { title, subtitle, detail, embed } };
   }
 }

@@ -45,6 +45,7 @@ public final class NativeCommentThreadViewModel {
     public internal(set) var collapsedCommentIds: Set<String> = []
     public internal(set) var postElectionsById: [String: PostElection] = [:]
     public internal(set) var electionVotesById: [String: PostVote] = [:]
+    public internal(set) var postEmbedsByPostId: [String: UrlEmbed] = [:]
     public var bookmarksByPostId: [String: [String: Bool]] = [:]
     public var voteChoicesByPostId: [String: ElectionVoteChoice] = [:]
     public internal(set) var inFlightVotePostIds: Set<String> = []

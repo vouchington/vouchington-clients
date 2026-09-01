@@ -5,7 +5,7 @@ using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
 
-public sealed class BookmarkCollectionPage : ContentPage
+public sealed partial class BookmarkCollectionPage : ContentPage
 {
   private readonly BookmarkCollectionViewModel viewModel;
   private readonly IServiceProvider serviceProvider;
@@ -43,11 +43,12 @@ public sealed class BookmarkCollectionPage : ContentPage
 
         var detail = new Label { FontSize = 12, TextColor = Colors.Gray };
         detail.SetBinding(Label.TextProperty, nameof(BookmarkCollectionRow.Detail));
+        var embedPreview = CreateEmbedPreview();
 
         var content = new VerticalStackLayout
         {
           Spacing = 4,
-          Children = { rowTitle, subtitle, detail },
+          Children = { rowTitle, subtitle, detail, embedPreview },
         };
         content.SetBinding(
             SemanticProperties.DescriptionProperty,

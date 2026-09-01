@@ -233,6 +233,20 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 1)
     }
 
+    func testFocusedSurfaceApprovedEmbedSuppressesUnavailableAccessory() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/item-1"] = (Data(#"""
+        { "rss_feed_item": { "id": "item-1", "rss_feed_id": "feed-1", "title": "Embed-only video", "link": "https://example.com/video", "media_type": "video", "video_id": "abc123", "video_platform": "youtube" },
+          "rss_feed_item_embeds": { "item-1": { "source_url": "https://example.com/video", "player_url": "https://www.youtube-nocookie.com/embed/abc123" } } }
+        """#.utf8), 200)
+        let viewModel = try makeFocusedViewModel()
+        await viewModel.load()
+        let sut = NativeFocusedRssFeedItemSurface(viewModel: viewModel, playbackController: nil)
+
+        XCTAssertNoThrow(try sut.inspect().find(button: "Play video"))
+        XCTAssertNoThrow(try sut.inspect().find(text: "Open source"))
+        XCTAssertThrowsError(try sut.inspect().find(text: "Video unavailable"))
+    }
+
     private func makeFocusedViewModel(
         client: APIClient? = nil,
         itemId: String = "item-1"

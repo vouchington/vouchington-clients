@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Voucha.Client.Core;
 using Voucha.Client.App.Support;
 using Voucha.Client.App.Pages;
+using Voucha.Client.App.Controls;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
@@ -43,6 +44,9 @@ public static partial class MauiProgram
     builder
         .UseMauiApp<App>()
         .UseMauiCommunityToolkitMediaElement();
+#if MACCATALYST || WINDOWS
+    builder.ConfigureMauiHandlers(handlers => handlers.AddHandler<ProviderEmbedWebView, ProviderEmbedWebViewHandler>());
+#endif
 
     builder.Services.AddSingleton(AppConfig.FromEnvironment());
     AddAuthSessionServices(builder.Services);

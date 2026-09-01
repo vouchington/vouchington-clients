@@ -8,6 +8,7 @@ struct CommentThreadPostSection: View {
     private var nativeUiLocale
     let title: UiVerbatimText
     let post: Post
+    let embed: UrlEmbed?
     let pathText: String
     let voteChoice: ElectionVoteChoice?
     let isSignedIn: Bool
@@ -48,6 +49,9 @@ struct CommentThreadPostSection: View {
 
             if let markdown = post.markdown, !markdown.isEmpty {
                 NativeHtmlContent(html: post.html, fallback: markdown)
+            }
+            if let embed {
+                ProviderEmbedPreview(embed: embed)
             }
             NativeCommentThreadActionRow(
                 isSignedIn: isSignedIn,

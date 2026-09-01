@@ -27,5 +27,6 @@ extension NativeRouteSurfaceViewModel {
         focusedRssFeedItemElection = response.rssFeedItemElection
         focusedRssFeedItemBookmarks = response.bookmarks?[response.rssFeedItem.id] ?? [:]
         focusedRssFeedItemVote = response.electionVote?.choice ?? response.rssFeedItemElection?.myVote
+        focusedRssFeedItemEmbed = response.rssFeedItemEmbeds?[response.rssFeedItem.id]
     }
 }

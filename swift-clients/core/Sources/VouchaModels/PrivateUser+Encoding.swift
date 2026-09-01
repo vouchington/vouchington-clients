@@ -32,7 +32,7 @@ public extension PrivateUser {
             "moderation_emails_enabled": .bool(moderationEmailsEnabled),
             "community_digest_frequency": .string(communityDigestFrequency),
             "moderation_email_cadence": .string(moderationEmailCadence),
-            "moderation_email_days_of_week": .array(moderationEmailDaysOfWeek.map { .number(Double($0)) }),
+            "moderation_email_days_of_week": .array(moderationEmailDaysOfWeek.map { .number(Decimal($0)) }),
             "moderation_email_time_of_day": .string(moderationEmailTimeOfDay)
         ]
     }

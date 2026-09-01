@@ -66,7 +66,8 @@ public sealed partial class PostDetailPageBinding
         election?.VotesCountDown,
         vote?.Choice,
         localization,
-        BodyHtml(post, isRoot));
+        BodyHtml(post, isRoot),
+        viewModel.EmbedPreviewFor(post));
   }
 
   private string? BodyHtml(Post post, bool isRoot)

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.NewsFeeds;
@@ -24,6 +25,7 @@ public sealed partial class ApiNewsFeedService
               reference.ReadAt is not null,
               kind,
               response.RssFeedItemThumbnailUrl,
+              response.RssFeedItemEmbeds,
               reference.StoryId,
               response.StoryMemberIds,
               response.StoryPostIds))
@@ -37,6 +39,7 @@ public sealed partial class ApiNewsFeedService
       bool isRead,
       NewsFeedItemKind kind,
       IReadOnlyDictionary<string, string>? thumbnailUrls,
+      IReadOnlyDictionary<string, UrlEmbed>? embeds,
       string? storyId,
       IReadOnlyDictionary<string, IReadOnlyList<string>>? storyMemberIds,
       IReadOnlyDictionary<string, string>? storyPostIds)
@@ -53,6 +56,8 @@ public sealed partial class ApiNewsFeedService
         item.EnclosureUrl ?? item.Data?.EnclosureUrl ?? item.MediaContent?.Url);
     string? thumbnailUrl = null;
     thumbnailUrls?.TryGetValue(item.Id, out thumbnailUrl);
+    UrlEmbed? embed = null;
+    embeds?.TryGetValue(item.Id, out embed);
     RssFeedItemElection? election = null;
     elections?.TryGetValue(item.Id, out election);
 
@@ -101,6 +106,7 @@ public sealed partial class ApiNewsFeedService
         StoryId: storyId,
         StoryPeerCount: storyPeerCount,
         StoryPostId: storyPostId,
+        EmbedPreview: UrlEmbedPreviews.From(embed),
         Localization: localization);
   }
 

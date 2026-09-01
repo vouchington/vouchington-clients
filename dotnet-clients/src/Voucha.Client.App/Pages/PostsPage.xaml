@@ -65,8 +65,24 @@
                                     Html="{Binding BodyHtml}"
                                     Fallback="{Binding Body}"
                                     MaxLines="3" />
+                                <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
+                                    <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                </VerticalStackLayout>
                                 <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
                                 <HorizontalStackLayout Spacing="10">
+                                    <Button
+                                        Text="{DynamicResource native.dotnet.mediaPlayback.play}"
+                                        Clicked="OnEmbedPlayClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding EmbedPreview.CanPlay}" />
+                                    <Button
+                                        Text="{DynamicResource native.swift.podcastPlayback.openSource}"
+                                        Clicked="OnEmbedOpenClicked"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding EmbedPreview.HasSource}" />
                                     <Button Text="{DynamicResource native.swift.followerDistribution.actions}" Clicked="OnFollowerSendClicked" CommandParameter="{Binding .}">
                                         <Button.IsVisible>
                                             <MultiBinding Converter="{StaticResource FollowerDistributionVisibilityConverter}">

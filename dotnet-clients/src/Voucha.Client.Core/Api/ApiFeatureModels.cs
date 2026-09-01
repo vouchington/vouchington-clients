@@ -26,7 +26,8 @@ public sealed record PostResponse(
     [property: JsonPropertyName("post_election")] PostElection? PostElection = null,
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null,
-    [property: JsonPropertyName("author_aside")] PostDetailAuthorAside? AuthorAside = null);
+    [property: JsonPropertyName("author_aside")] PostDetailAuthorAside? AuthorAside = null,
+    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null);
 
 public sealed record PostMutationResponse(
     [property: JsonPropertyName("post")] Post Post,

@@ -84,7 +84,8 @@ public sealed record PostsFeedResponse(
     [property: JsonPropertyName("markdown_to_html")] IReadOnlyDictionary<string, string>? MarkdownToHtml = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
     [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
-    [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null);
+    [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null,
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null);
 
 public sealed record PostThreadResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
@@ -96,7 +97,8 @@ public sealed record PostThreadResponse(
     [property: JsonPropertyName("post_elections")] IReadOnlyDictionary<string, PostElection>? PostElections = null,
     [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
     [property: JsonPropertyName("markdown_to_html")] IReadOnlyDictionary<string, string>? MarkdownToHtml = null,
-    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null);
+    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null,
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null);
 
 public sealed record Notification(
     [property: JsonPropertyName("id")] string Id,
@@ -150,7 +152,8 @@ public sealed record PostDetailResponse(
     [property: JsonPropertyName("html")] string? Html,
     [property: JsonPropertyName("post")] Post Post,
     [property: JsonPropertyName("post_election")] PostElection? PostElection,
-    [property: JsonPropertyName("post_metrics")] PostMetrics? PostMetrics);
+    [property: JsonPropertyName("post_metrics")] PostMetrics? PostMetrics,
+    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null);
 
 public sealed record FetchNotificationsRequest(
     string? After = null,
