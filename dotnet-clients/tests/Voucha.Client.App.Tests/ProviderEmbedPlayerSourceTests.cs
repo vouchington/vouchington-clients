@@ -33,13 +33,17 @@ public sealed class ProviderEmbedPlayerSourceTests
     Assert.Contains("await active.Initialization", handler, StringComparison.Ordinal);
     Assert.Contains("SweepOwnedProfiles", handler, StringComparison.Ordinal);
     Assert.Contains("PendingCleanup", handler, StringComparison.Ordinal);
+    Assert.Contains("CleanupInProgress", handler, StringComparison.Ordinal);
     Assert.Contains("ActiveProfiles", handler, StringComparison.Ordinal);
     Assert.Contains("!ActiveProfiles.ContainsKey(folder)", handler, StringComparison.Ordinal);
     Assert.Contains("ActiveProfiles.TryRemove(folder", handler, StringComparison.Ordinal);
     Assert.Contains("RetryCleanupAsync", handler, StringComparison.Ordinal);
+    Assert.Contains("MaxCleanupAttempts", handler, StringComparison.Ordinal);
+    Assert.Contains("PendingCleanup.Keys", handler, StringComparison.Ordinal);
+    Assert.Contains("for (var attempt", handler, StringComparison.Ordinal);
+    Assert.DoesNotContain("while (true)", handler, StringComparison.Ordinal);
     Assert.Contains("Guid.TryParseExact", handler, StringComparison.Ordinal);
     Assert.Contains("Path.GetFullPath(ProfileRoot)", handler, StringComparison.Ordinal);
-    Assert.Contains("while (true)", handler, StringComparison.Ordinal);
   }
 
   [Fact]

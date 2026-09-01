@@ -3,8 +3,8 @@ using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Storage;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
-using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Voucha.Client.App.Controls;
 
@@ -12,7 +12,9 @@ namespace Voucha.Client.App.Controls;
 public sealed class ProviderEmbedWebViewHandler : WebViewHandler
 {
   private const string ProfileDirectoryName = "provider-embed";
+  private const int MaxCleanupAttempts = 3;
   private static readonly ConcurrentDictionary<string, byte> PendingCleanup = new(StringComparer.Ordinal);
+  private static readonly ConcurrentDictionary<string, byte> CleanupInProgress = new(StringComparer.Ordinal);
   private static readonly ConcurrentDictionary<string, byte> ActiveProfiles = new(StringComparer.Ordinal);
   private EmbedProfile? profile;
 
@@ -65,16 +67,20 @@ public sealed class ProviderEmbedWebViewHandler : WebViewHandler
   {
     try
     {
-      if (!Directory.Exists(ProfileRoot)) return;
-      foreach (var folder in Directory.EnumerateDirectories(ProfileRoot))
+      foreach (var folder in PendingCleanup.Keys)
         if (!ActiveProfiles.ContainsKey(folder)) ScheduleCleanup(folder);
+      if (Directory.Exists(ProfileRoot))
+        foreach (var folder in Directory.EnumerateDirectories(ProfileRoot))
+          if (!ActiveProfiles.ContainsKey(folder)) ScheduleCleanup(folder);
     }
     catch (Exception exception) { Debug.WriteLine(exception); }
   }
 
   private static void ScheduleCleanup(string folder)
   {
-    if (!IsOwnedProfileDirectory(folder) || ActiveProfiles.ContainsKey(folder) || !PendingCleanup.TryAdd(folder, 0)) return;
+    if (!IsOwnedProfileDirectory(folder) || ActiveProfiles.ContainsKey(folder)) return;
+    PendingCleanup.TryAdd(folder, 0);
+    if (!CleanupInProgress.TryAdd(folder, 0)) return;
     _ = RetryCleanupAsync(folder);
   }
 
@@ -97,22 +103,27 @@ public sealed class ProviderEmbedWebViewHandler : WebViewHandler
 
   private static async Task RetryCleanupAsync(string folder)
   {
-    var delay = TimeSpan.FromMilliseconds(100);
-    while (true)
+    try
     {
-      try
+      var delay = TimeSpan.FromMilliseconds(100);
+      for (var attempt = 0; attempt < MaxCleanupAttempts; attempt++)
       {
-        if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
-        PendingCleanup.TryRemove(folder, out _);
-        return;
-      }
-      catch (Exception exception)
-      {
-        Debug.WriteLine(exception);
-        await Task.Delay(delay).ConfigureAwait(false);
-        delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
+        try
+        {
+          if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+          PendingCleanup.TryRemove(folder, out _);
+          return;
+        }
+        catch (Exception exception) when (attempt + 1 < MaxCleanupAttempts)
+        {
+          Debug.WriteLine(exception);
+          await Task.Delay(delay).ConfigureAwait(false);
+          delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+        }
+        catch (Exception exception) { Debug.WriteLine(exception); }
       }
     }
+    finally { CleanupInProgress.TryRemove(folder, out _); }
   }
 
   private static bool IsOwnedProfileDirectory(string folder) =>
