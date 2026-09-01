@@ -50,9 +50,9 @@ extension SectionDetailView {
             }
             #else
             .toolbar {
-                        customizeToolbarItem
-                        signInToolbarItem
-                    }
+                customizeToolbarItem
+                signInToolbarItem
+            }
             #endif
         }
         .onChange(of: nativeRouteDispatchGeneration) { _, _ in nativeRouteHistory = [] }
