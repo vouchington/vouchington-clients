@@ -6,14 +6,17 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 
 ## Default placement
 
-| Workload                                                                  | Runner                                | Why                                                                       |
-| ------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity | `[self-hosted, Linux, Docker, Tests]` | Same test code, no meaningful Linux-vs-macOS branches                     |
-| Portable Swift core + `test-support`                                      | `[self-hosted, Linux, Docker, Tests]` | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto` |
-| Swift core Darwin/Security slice, core LCOV, Swift DTO parity             | `[self-hosted, macOS, Tests]`         | Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov`                  |
-| Swift UI, Periphery, Android Skip, macOS app smoke                        | `[self-hosted, macOS, Tests]`         | SwiftUI, Xcode, Skip host tools                                           |
-| Swift Android core compile                                                | `[self-hosted, Linux, Docker, Tests]` | Cross-compile in the pinned Swift container                               |
-| .NET MAUI App tests and Mac Catalyst smoke                                | `[self-hosted, macOS, Tests]`         | MAUI workload and Mac Catalyst RID                                        |
+| Workload                                                                                             | Runner                                | Why                                                                                |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- |
+| Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity                            | `[self-hosted, Linux, Docker, Tests]` | Same test code, no meaningful Linux-vs-macOS branches                              |
+| Portable Swift core + `test-support`                                                                 | `[self-hosted, Linux, Docker, Tests]` | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
+| Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `[self-hosted, macOS, Tests]`         | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
+| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `[self-hosted, macOS, Tests]`         | SwiftUI, Xcode, Skip host tools                                                    |
+| Swift Android core compile                                                                           | `[self-hosted, Linux, Docker, Tests]` | Cross-compile in the pinned Swift container                                        |
+| .NET MAUI App tests and Mac Catalyst smoke                                                           | `[self-hosted, macOS, Tests]`         | MAUI workload and Mac Catalyst RID                                                 |
+
+Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
+Required dual-OS says that suite also compiles a different stack.
 
 ## Required dual-OS
 

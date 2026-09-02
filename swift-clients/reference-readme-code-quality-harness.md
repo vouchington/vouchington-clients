@@ -41,9 +41,9 @@ locally and in CI; imports of external modules that Periphery cannot index have 
 analyzer.
 
 CI runs pinned SwiftFormat and SwiftLint containers on Linux, while the macOS runner image owns
-Periphery installation and native compiler checks. Portable core and `test-support` tests run on
-Linux; Darwin `URLSession`, Security/Keychain, core LCOV, and Swift DTO parity stay on macOS
-because those jobs compile different stacks. See
+Periphery installation and native compiler checks. Linux owns portable core and `test-support`
+tests. macOS still runs the full core suite so Darwin `URLSession`, Security/Keychain, core LCOV,
+and Swift DTO parity are exercised; those jobs compile different stacks. See
 [native CI test placement](../docs/development/native-ci-test-placement.md). The local harness uses
 `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
 Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
