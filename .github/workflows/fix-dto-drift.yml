@@ -1,0 +1,400 @@
+name: Automation Fix DTO Drift
+
+on:
+  workflow_run:
+    workflows:
+      - Native contract tests
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: fix-dto-drift-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  triage:
+    name: Triage DTO drift signal
+    if: >-
+      vars.HARNESS_DISPATCH_ENABLED == 'true' &&
+      vars.HARNESS_FIX_DTO_DRIFT_ENABLED == 'true' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    concurrency:
+      group: harness-dispatch-fleet-admission
+      # FIFO, not the coalescing default: shared fleet-wide admission group with harness-dispatch.yml#dispatch.
+      # See harness-dispatch.yml's dispatch job for the full rationale.
+      queue: max
+      cancel-in-progress: false
+    outputs:
+      should_dispatch: ${{ steps.check.outputs.should_dispatch }}
+    steps:
+      - name: Resolve and revalidate DTO drift signal
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          fail_closed() {
+            echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+            echo "::error::$1"
+            exit 1
+          }
+          skip() {
+            echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
+
+          # The age check happens inside jq (fromdateiso8601/now) rather than shell `date`
+          # arithmetic: `date -d`/`date -j` differ between GNU and BSD, and the self-hosted fleet
+          # includes macOS hosts. `fromdateiso8601` is resolved by gojq, the jq processor `gh`
+          # bundles for --jq, not the host's system jq. Freshness is measured from
+          # `run_started_at`, not `created_at`: `created_at` is fixed at the run's original
+          # creation and does not move on a manual re-run, while `run_started_at` resets to when
+          # the matching attempt actually started.
+          if ! run_state="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
+              --jq '[.repository.full_name, .id, .run_attempt, .status,
+                     ((now - (.run_started_at | fromdateiso8601)) <= (172800))] | @tsv'
+          )"; then
+            fail_closed "Could not fetch source workflow run $SOURCE_RUN_ID"
+          fi
+
+          IFS=$'\t' read -r actual_repo actual_id actual_attempt actual_status actual_fresh <<< "$run_state"
+
+          # Case-insensitive, portable comparison (no ${var,,}: the self-hosted fleet includes
+          # macOS hosts whose /bin/bash is 3.2, which predates bash 4's lowercase expansion).
+          actual_repo_lower="$(printf '%s' "$actual_repo" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          expected_repo_lower="$(printf '%s' "$GITHUB_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          if [[ "$actual_repo_lower" != "$expected_repo_lower" ]]; then
+            fail_closed "Source workflow run resolved to a different repository; refusing to act"
+          fi
+          if [[ "$actual_id" != "$SOURCE_RUN_ID" ]]; then
+            fail_closed "Source workflow run id changed; refusing to act on a different run"
+          fi
+          if [[ "$actual_attempt" != "$SOURCE_RUN_ATTEMPT" || "$actual_status" != "completed" ]]; then
+            skip "Source workflow run changed; skipping as superseded"
+          fi
+          if [[ "$actual_fresh" != "true" ]]; then
+            skip "Source workflow run is older than 48h; skipping as superseded"
+          fi
+
+          # native-dto-fixture-parity is advisory-only (if: always()) and excluded from the
+          # "Tests" gate job's needs, so the overall workflow_run conclusion can be "failure" for
+          # reasons unrelated to DTO drift. Key off this job's own conclusion, not
+          # github.event.workflow_run.conclusion.
+          if ! job_conclusion="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/attempts/$SOURCE_RUN_ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name == "Native DTO fixture parity (advisory)") | .conclusion'
+          )"; then
+            fail_closed "Could not fetch jobs for source workflow run $SOURCE_RUN_ID"
+          fi
+          if [[ "$job_conclusion" != "failure" ]]; then
+            skip "Native DTO fixture parity is not currently failing; skipping"
+          fi
+
+          # If any other job on this run also failed, the failure may share a root cause
+          # (runner outage, compile/toolchain break) that fix-main.yml already owns and is
+          # dispatching a general fix for — fix-main.yml's own triage step skips when DTO parity
+          # is the *only* failure, so this workflow must reciprocally skip when it is not, or
+          # both surfaces dispatch competing fixes for the same underlying cause.
+          if ! non_dto_failures="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/attempts/$SOURCE_RUN_ATTEMPT/jobs" \
+              --jq '[.jobs[] | select(.name != "Native DTO fixture parity (advisory)") |
+                     select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")] | length'
+          )"; then
+            fail_closed "Could not fetch jobs for source workflow run $SOURCE_RUN_ID"
+          fi
+          if [[ "$non_dto_failures" != "0" ]]; then
+            skip "Other jobs also failed on this run; owned by fix-main to avoid dispatching a competing fix"
+          fi
+
+          echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
+
+  render-prompt:
+    name: Render automation prompt
+    needs: [triage]
+    if: needs.triage.outputs.should_dispatch == 'true'
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    concurrency:
+      group: harness-dispatch-fleet-admission
+      queue: max
+      cancel-in-progress: false
+    outputs:
+      prompt: ${{ steps.render.outputs.prompt }}
+      source-current: ${{ steps.check.outputs.current }}
+    steps:
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install pinned dependencies
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+
+      - name: Revalidate DTO drift signal
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          fail_closed() {
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::error::$1"
+            exit 1
+          }
+          suppress_stale() {
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
+
+          if ! run_state="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
+              --jq '[.repository.full_name, .id, .run_attempt, .status,
+                     ((now - (.run_started_at | fromdateiso8601)) <= (172800))] | @tsv'
+          )"; then
+            fail_closed "Could not fetch source workflow run $SOURCE_RUN_ID"
+          fi
+
+          IFS=$'\t' read -r actual_repo actual_id actual_attempt actual_status actual_fresh <<< "$run_state"
+
+          actual_repo_lower="$(printf '%s' "$actual_repo" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          expected_repo_lower="$(printf '%s' "$GITHUB_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          if [[ "$actual_repo_lower" != "$expected_repo_lower" ]]; then
+            fail_closed "Source workflow run resolved to a different repository; refusing to act"
+          fi
+          if [[ "$actual_id" != "$SOURCE_RUN_ID" ]]; then
+            fail_closed "Source workflow run id changed; refusing to act on a different run"
+          fi
+          if [[ "$actual_attempt" != "$SOURCE_RUN_ATTEMPT" || "$actual_status" != "completed" ]]; then
+            suppress_stale "Source workflow run changed; skipping as superseded"
+          fi
+          if [[ "$actual_fresh" != "true" ]]; then
+            suppress_stale "Source workflow run is older than 48h; skipping as superseded"
+          fi
+
+          if ! job_conclusion="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/attempts/$SOURCE_RUN_ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name == "Native DTO fixture parity (advisory)") | .conclusion'
+          )"; then
+            fail_closed "Could not fetch jobs for source workflow run $SOURCE_RUN_ID"
+          fi
+          if [[ "$job_conclusion" != "failure" ]]; then
+            suppress_stale "Native DTO fixture parity is not currently failing; skipping"
+          fi
+
+          echo "current=true" >> "$GITHUB_OUTPUT"
+
+      - name: Render prompt
+        id: render
+        if: steps.check.outputs.current == 'true'
+        uses: jonathanong/auto-harness/actions/harness-render-prompt@9bda991f8251decdbe683a6ce3badaa8717d4c14 # v1.0.0
+        with:
+          template: docs/prompts/automation/fix-dto-drift.md
+          vars: |
+            RUN_URL=${{ github.event.workflow_run.html_url }}
+            RUN_ID=${{ github.event.workflow_run.id }}
+            COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
+
+      - name: Clean persistent runner workspace
+        if: always()
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  dispatch:
+    name: Harness dispatch
+    needs: [triage, render-prompt]
+    if: >-
+      !cancelled() &&
+      needs.triage.outputs.should_dispatch == 'true' &&
+      needs.render-prompt.result == 'success' &&
+      needs.render-prompt.outputs.source-current == 'true'
+    uses: ./.github/workflows/harness-dispatch.yml
+    permissions:
+      contents: read
+    secrets:
+      HARNESS_API_KEY: ${{ secrets.HARNESS_API_KEY }}
+    with:
+      surface-gate: HARNESS_FIX_DTO_DRIFT_ENABLED
+      agent-ref: ${{ github.event.workflow_run.head_sha }}
+      expected-head-sha: ${{ github.event.workflow_run.head_sha }}
+      concurrency-id: vouchington-clients:fix-dto-drift:${{ github.event.workflow_run.head_sha }}
+      publish-contract: fix-dto-drift
+      publish-base-ref: main
+      publish-title-prefix: 'Automation fix: Native DTO fixture parity @ ${{ github.event.workflow_run.head_sha }}'
+      publish-title-suffix: '(failing run #${{ github.event.workflow_run.id }})'
+      publish-duplicate-key: 'Automation fix: Native DTO fixture parity @ ${{ github.event.workflow_run.head_sha }}'
+      pr-label: automation:auto-fix
+      source-run-id: ${{ github.event.workflow_run.id }}
+      source-run-attempt: ${{ github.event.workflow_run.run_attempt }}
+      source-run-conclusion: ${{ github.event.workflow_run.conclusion }}
+      slack-source: |
+        *Source:* `Native DTO fixture parity (advisory)` failed on `main`
+        *Failing run:* ${{ github.event.workflow_run.html_url }}
+        *Failing commit:* `${{ github.event.workflow_run.head_sha }}`
+      prompt: ${{ needs.render-prompt.outputs.prompt }}
+
+  escalate:
+    name: Escalate to human
+    needs: [triage, render-prompt, dispatch]
+    if: >-
+      always() &&
+      needs.triage.result == 'success' &&
+      needs.triage.outputs.should_dispatch == 'true' &&
+      (
+        needs.render-prompt.result == 'failure' ||
+        needs.render-prompt.result == 'cancelled' ||
+        needs.dispatch.result == 'failure' ||
+        needs.dispatch.result == 'cancelled'
+      )
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      issues: write
+    concurrency:
+      group: harness-dispatch-fleet-admission
+      queue: max
+      cancel-in-progress: false
+    env:
+      FAILED_RUN_URL: ${{ github.event.workflow_run.html_url }}
+      FAILED_COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+      RENDER_PROMPT_RESULT: ${{ needs.render-prompt.result }}
+      DISPATCH_RESULT: ${{ needs.dispatch.result }}
+    steps:
+      - name: Revalidate DTO drift signal
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          fail_closed() {
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::error::$1"
+            exit 1
+          }
+          suppress_stale() {
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
+
+          if ! run_state="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
+              --jq '[.repository.full_name, .id, .run_attempt, .status,
+                     ((now - (.run_started_at | fromdateiso8601)) <= (172800))] | @tsv'
+          )"; then
+            fail_closed "Could not fetch source workflow run $SOURCE_RUN_ID"
+          fi
+
+          IFS=$'\t' read -r actual_repo actual_id actual_attempt actual_status actual_fresh <<< "$run_state"
+
+          actual_repo_lower="$(printf '%s' "$actual_repo" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          expected_repo_lower="$(printf '%s' "$GITHUB_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+          if [[ "$actual_repo_lower" != "$expected_repo_lower" ]]; then
+            fail_closed "Source workflow run resolved to a different repository; refusing to act"
+          fi
+          if [[ "$actual_id" != "$SOURCE_RUN_ID" ]]; then
+            fail_closed "Source workflow run id changed; refusing to act on a different run"
+          fi
+          if [[ "$actual_attempt" != "$SOURCE_RUN_ATTEMPT" || "$actual_status" != "completed" ]]; then
+            suppress_stale "Source workflow run changed; skipping as superseded"
+          fi
+          if [[ "$actual_fresh" != "true" ]]; then
+            suppress_stale "Source workflow run is older than 48h; skipping as superseded"
+          fi
+
+          if ! job_conclusion="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/attempts/$SOURCE_RUN_ATTEMPT/jobs" \
+              --jq '.jobs[] | select(.name == "Native DTO fixture parity (advisory)") | .conclusion'
+          )"; then
+            fail_closed "Could not fetch jobs for source workflow run $SOURCE_RUN_ID"
+          fi
+          if [[ "$job_conclusion" != "failure" ]]; then
+            suppress_stale "Native DTO fixture parity is not currently failing; skipping"
+          fi
+
+          echo "current=true" >> "$GITHUB_OUTPUT"
+
+      - name: Escalate to human — open or update issue
+        if: steps.check.outputs.current == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_URL="$FAILED_RUN_URL"
+          COMMIT_SHA="$FAILED_COMMIT_SHA"
+          SESSION_ID="${{ needs.dispatch.outputs.session-id }}"
+          THIS_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [[ "$RENDER_PROMPT_RESULT" == "failure" || "$RENDER_PROMPT_RESULT" == "cancelled" ]]; then
+            FAILED_JOB="render-prompt ($RENDER_PROMPT_RESULT)"
+          elif [[ "$DISPATCH_RESULT" == "failure" || "$DISPATCH_RESULT" == "cancelled" ]]; then
+            FAILED_JOB="dispatch ($DISPATCH_RESULT)"
+          else
+            FAILED_JOB="unknown (unexpected escalation trigger)"
+          fi
+
+          TITLE="Automation fix: Native DTO fixture parity @ $COMMIT_SHA — needs human"
+
+          EXISTING="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --search "\"$TITLE\" in:title" \
+            --state open \
+            --json number \
+            -q '.[0].number' || true)"
+
+          SESSION_LINE=""
+          if [[ -n "$SESSION_ID" ]]; then
+            SESSION_LINE="**Harness session:** $SESSION_ID"$'\n'
+          fi
+
+          BODY="$(cat <<EOF
+          ## Native DTO fixture parity failed on main — auto-fix could not be dispatched
+
+          **Failing run:** $RUN_URL
+          **Failing commit:** $COMMIT_SHA
+          **Failed job:** $FAILED_JOB
+          ${SESSION_LINE}**Auto-fix run (logs/artifact):** $THIS_RUN_URL
+
+          Please investigate and apply a fix manually.
+          EOF
+          )"
+
+          if [[ "$EXISTING" =~ ^[0-9]+$ ]]; then
+            echo "Commenting on existing issue #$EXISTING"
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          else
+            echo "Opening new issue: $TITLE"
+            gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "automation" \
+              --label "needs-human"
+          fi
