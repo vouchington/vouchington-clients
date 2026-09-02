@@ -1,0 +1,10 @@
+name: Scratch workflow_run repro source
+on:
+  push:
+    branches:
+      - scratch-workflow-run-repro-fire
+jobs:
+  noop:
+    runs-on: [self-hosted, Linux]
+    steps:
+      - run: echo "source workflow ran, will emit a workflow_run completed event"
