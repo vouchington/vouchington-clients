@@ -1,0 +1,7 @@
+name: Scratch default-branch repro
+on:
+  repository_dispatch:
+    types: [scratch-default-branch-repro]
+jobs:
+  call-test:
+    uses: ./.github/workflows/_scratch-default-branch-repro-callee.yml

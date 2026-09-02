@@ -1,0 +1,12 @@
+name: Scratch default-branch repro callee
+on:
+  workflow_call: {}
+jobs:
+  test:
+    runs-on: [self-hosted, Linux]
+    concurrency:
+      group: scratch-default-branch-repro-test
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - run: echo "queue:max parsed and ran, dispatched via a default-branch-evaluated event"
