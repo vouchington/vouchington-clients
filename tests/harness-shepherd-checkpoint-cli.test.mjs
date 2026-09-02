@@ -6,7 +6,10 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import { CHECKPOINT_MARKER, parseCheckpoint } from '../scripts/harness-shepherd-checkpoint.mjs'
-import { runCheckpointCli } from '../scripts/harness-shepherd-checkpoint-cli.mjs'
+import {
+  isDefinitiveNotFound,
+  runCheckpointCli,
+} from '../scripts/harness-shepherd-checkpoint-cli.mjs'
 
 const startSha = 'a'.repeat(40)
 
@@ -110,6 +113,21 @@ test('update subcommand rejects an invalid CHECKPOINT_STATUS', () => {
       /CHECKPOINT_STATUS is invalid/u,
     )
   })
+})
+
+test('isDefinitiveNotFound treats a 404 gh api response as a definitive mismatch', () => {
+  assert.equal(isDefinitiveNotFound({ stderr: 'gh: Not Found (HTTP 404)' }), true)
+})
+
+test('isDefinitiveNotFound does not treat rate limiting or outages as definitive', () => {
+  assert.equal(isDefinitiveNotFound({ stderr: 'HTTP 403: API rate limit exceeded' }), false)
+  assert.equal(isDefinitiveNotFound({ stderr: 'HTTP 502: Bad Gateway' }), false)
+  assert.equal(isDefinitiveNotFound({ stderr: 'error connecting to api.github.com' }), false)
+})
+
+test('isDefinitiveNotFound treats errors without stderr as non-definitive', () => {
+  assert.equal(isDefinitiveNotFound(new Error('spawn gh ENOENT')), false)
+  assert.equal(isDefinitiveNotFound(null), false)
 })
 
 test('select subcommand returns an empty object when no candidate resolves', () => {

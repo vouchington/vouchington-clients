@@ -8,6 +8,10 @@ import { updateExactCheckpoint } from './harness-shepherd-checkpoint-update.mjs'
 
 const USAGE = 'Usage: harness-shepherd-checkpoint-cli.mjs render|select|update <path>'
 
+export function isDefinitiveNotFound(error) {
+  return typeof error?.stderr === 'string' && /HTTP 404/.test(error.stderr)
+}
+
 export function runCheckpointCli(environment = process.env, argv = process.argv) {
   const command = argv[2]
   if (command === 'render') {
@@ -61,8 +65,9 @@ export function runCheckpointCli(environment = process.env, argv = process.argv)
           { encoding: 'utf8' },
         ).trim()
         return status === 'ahead' || status === 'identical'
-      } catch {
-        return false
+      } catch (error) {
+        if (isDefinitiveNotFound(error)) return false
+        throw error
       }
     },
     isShepherdRun(runId) {
@@ -78,8 +83,9 @@ export function runCheckpointCli(environment = process.env, argv = process.argv)
           { encoding: 'utf8' },
         ).trim()
         return verifiedId === runId
-      } catch {
-        return false
+      } catch (error) {
+        if (isDefinitiveNotFound(error)) return false
+        throw error
       }
     },
   })

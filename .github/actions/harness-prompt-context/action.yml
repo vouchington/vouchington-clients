@@ -56,7 +56,10 @@ outputs:
     description: Number of the matched PR (pr-commits mode only; empty when skip=false).
     value: ${{ steps.check.outputs.existing_number }}
   existing-kind:
-    description: 'Kind of matched item: "pr", or empty when skip=false.'
+    description: >-
+      Kind of matched item: "pr" (a prior automated fix commit was found),
+      "unverifiable" (pr-commits mode could not confirm one way or the other and
+      gated closed), or empty when skip=false.
     value: ${{ steps.check.outputs.existing_kind }}
   related-candidates:
     description: >
@@ -90,31 +93,39 @@ runs:
         if [[ "$SEARCH_MODE" == "pr-commits" ]]; then
           # PR-commits mode: PR number is already known; check it directly for
           # non-dependabot[bot] commits (proxy for a prior automated fix push).
+          # An unverifiable check (rate limiting, API outage, transient CLI error)
+          # is treated as a gating failure (skip=true), not as proof no fix exists:
+          # a false "no prior fix" verdict here can double-dispatch a Dependabot
+          # branch and enter a retry loop, which this check exists to stop.
           PR_NUMBER="$TOPIC_KEY"
-          PR_URL="$(gh pr view "$PR_NUMBER" \
+          PR_URL=""
+          if ! PR_URL="$(gh pr view "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
-            --json url -q '.url' 2>/dev/null || true)"
-
-          if [[ -z "$PR_URL" ]]; then
-            echo "::warning::Prompt context check: gh pr view failed for PR $PR_NUMBER — treating as no prior automated fix (skip check disabled for this run)"
-          fi
-
-          if [[ -n "$PR_URL" ]]; then
+            --json url -q '.url' 2>/dev/null)"; then
+            echo "::warning::Prompt context check: gh pr view failed for PR $PR_NUMBER — treating as an unverifiable loop-breaker check (skip=true, dispatch withheld)"
+            EXISTING_NUMBER="$PR_NUMBER"
+            EXISTING_URL="(unresolved: gh pr view failed)"
+            EXISTING_KIND="unverifiable"
+          elif [[ -n "$PR_URL" ]]; then
             NON_BOT_SHAS=""
             if ! NON_BOT_SHAS="$(gh api --paginate \
               "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/commits" \
               --jq '.[] | select(.author == null or (.author.login != "dependabot[bot]" and .author.login != "github-actions[bot]")) | .sha' \
               2>/dev/null)"; then
-              echo "::warning::Prompt context check: gh api failed for PR $PR_NUMBER commits — treating as no prior automated fix"
-            fi
-            NON_BOT="0"
-            if [[ -n "$NON_BOT_SHAS" ]]; then
-              NON_BOT="$(echo "$NON_BOT_SHAS" | wc -l | tr -d ' ')"
-            fi
-            if [[ "$NON_BOT" -gt 0 ]]; then
+              echo "::warning::Prompt context check: gh api failed for PR $PR_NUMBER commits — treating as an unverifiable loop-breaker check (skip=true, dispatch withheld)"
               EXISTING_NUMBER="$PR_NUMBER"
               EXISTING_URL="$PR_URL"
-              EXISTING_KIND="pr"
+              EXISTING_KIND="unverifiable"
+            else
+              NON_BOT="0"
+              if [[ -n "$NON_BOT_SHAS" ]]; then
+                NON_BOT="$(echo "$NON_BOT_SHAS" | wc -l | tr -d ' ')"
+              fi
+              if [[ "$NON_BOT" -gt 0 ]]; then
+                EXISTING_NUMBER="$PR_NUMBER"
+                EXISTING_URL="$PR_URL"
+                EXISTING_KIND="pr"
+              fi
             fi
           fi
         fi
@@ -127,7 +138,11 @@ runs:
           {
             echo "## Auto Harness prompt context — skipping duplicate dispatch"
             echo ""
-            echo "A prior automated fix already landed on this PR; no new automation run needed."
+            if [[ "$EXISTING_KIND" == "unverifiable" ]]; then
+              echo "Could not verify whether a prior automated fix already landed on this PR; gating closed to avoid a possible duplicate dispatch."
+            else
+              echo "A prior automated fix already landed on this PR; no new automation run needed."
+            fi
             echo ""
             echo "**Kind:** $EXISTING_KIND"
             echo "**Existing:** $EXISTING_URL"

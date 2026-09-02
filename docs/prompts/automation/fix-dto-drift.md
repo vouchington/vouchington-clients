@@ -28,6 +28,15 @@ run {{RUN_ID}} first to see which ecosystem actually failed — do not run both 
 present in `api-fixtures/v1` and silently dropped, mistyped, or misnamed by a native DTO/model is
 the drift; the fix is a native client-side change, never a change to the fixture contract itself.
 
+The dispatching workflow gates on this job's coarse pass/fail conclusion, which cannot itself
+distinguish a real field-parity assertion failure from a compile error, dependency-resolution
+failure, timeout, zero-tests-matched filter, or other test-runner/tooling failure in the same
+narrowly-filtered `dotnet test`/`swift test` invocation. Confirm from the actual log output that
+the specific `ApiFixtureCoverageTests` assertion failed and named the missing/mismatched field
+before treating this as drift. If the invocation failed for any other reason, this is not DTO
+drift: stop without mutation and report the actual cause instead of opening a fix PR against the
+wrong diagnosis.
+
 ## Contract ownership boundary
 
 `api-fixtures/v1` is owned by `jonathanong/filaments` and vendored into this repository as a

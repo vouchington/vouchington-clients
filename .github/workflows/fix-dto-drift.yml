@@ -103,6 +103,22 @@ jobs:
             skip "Native DTO fixture parity is not currently failing; skipping"
           fi
 
+          # If any other job on this run also failed, the failure may share a root cause
+          # (runner outage, compile/toolchain break) that fix-main.yml already owns and is
+          # dispatching a general fix for — fix-main.yml's own triage step skips when DTO parity
+          # is the *only* failure, so this workflow must reciprocally skip when it is not, or
+          # both surfaces dispatch competing fixes for the same underlying cause.
+          if ! non_dto_failures="$(
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/attempts/$SOURCE_RUN_ATTEMPT/jobs" \
+              --jq '[.jobs[] | select(.name != "Native DTO fixture parity (advisory)") |
+                     select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")] | length'
+          )"; then
+            fail_closed "Could not fetch jobs for source workflow run $SOURCE_RUN_ID"
+          fi
+          if [[ "$non_dto_failures" != "0" ]]; then
+            skip "Other jobs also failed on this run; owned by fix-main to avoid dispatching a competing fix"
+          fi
+
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
   render-prompt:
