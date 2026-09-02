@@ -154,7 +154,8 @@ describe('native contract workflow boundary', () => {
       'build-macos-app:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
-    assert.match(validation, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --verbose/u)
+    assert.match(validation, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint$/mu)
+    assert.doesNotMatch(validation, /swift-clients\/ --lint --verbose/u)
     assert.match(validation, /"\$SWIFTLINT_IMAGE" --strict --cache-path/u)
     assert.match(
       validation,
