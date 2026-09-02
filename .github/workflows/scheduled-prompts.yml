@@ -112,7 +112,7 @@ jobs:
 
       - name: Render prompt
         id: render
-        uses: jonathanong/auto-harness/actions/harness-render-prompt@2f6b49b45dc7926c9dc1e7c4b7e89acd4908dd57
+        uses: jonathanong/auto-harness/actions/harness-render-prompt@9bda991f8251decdbe683a6ce3badaa8717d4c14 # v1.0.0
         with:
           template: >-
             ${{ steps.select.outputs.completion_mode == 'issue' &&
