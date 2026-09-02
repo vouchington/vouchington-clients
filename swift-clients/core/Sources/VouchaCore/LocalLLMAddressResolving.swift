@@ -108,7 +108,7 @@ struct SystemLocalLLMConnectProbe: LocalLLMConnectProbing {
         let socketFD = socket(
             Int32(target.family == .ipv4 ? AF_INET : AF_INET6),
             DarwinOrGlibc.streamSocketType,
-            Int32(IPPROTO_TCP)
+            DarwinOrGlibc.tcpProtocol
         )
         guard socketFD >= 0 else { return false }
         defer { close(socketFD) }
@@ -170,6 +170,14 @@ private enum DarwinOrGlibc {
             SOCK_STREAM
         #else
             Int32(SOCK_STREAM.rawValue)
+        #endif
+    }
+
+    static var tcpProtocol: Int32 {
+        #if canImport(Darwin)
+            IPPROTO_TCP
+        #else
+            Int32(IPPROTO_TCP)
         #endif
     }
 

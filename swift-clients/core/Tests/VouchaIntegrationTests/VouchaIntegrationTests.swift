@@ -68,7 +68,7 @@ final class VouchaIntegrationTests: XCTestCase {
                 makeCookie("dt", deviceToken),
                 makeCookie("st", sessionToken)
             ].compactMap { $0 }
-            cookieStorage.setCookies(cookies, for: url, mainDocumentURL: Optional<URL>.none)
+            cookieStorage.setCookies(cookies, for: url, mainDocumentURL: URL?.none)
         }
         apiClient = APIClient(config: config, cookieStorage: cookieStorage)
     }

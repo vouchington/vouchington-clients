@@ -38,6 +38,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
     }
 
     func testFailedRecordDoesNotPublishOrReplacePendingState() async throws {
+        await Task.yield()
         let fixture = try makeFixture()
         try seedPending(fixture.store, now: fixture.initialNow)
         fixture.persistence.failNextWrite = true
@@ -63,6 +64,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
     }
 
     func testColdStartExpirationWriteFailureExposesAuthorizationForCancellation() async throws {
+        await Task.yield()
         let persistence = ExpirationOAuthSecureState()
         let fixture = try makeFixture(persistence: persistence) { store, now in
             XCTAssertTrue(store.save(

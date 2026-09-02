@@ -47,47 +47,47 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
     }
 
     #if canImport(AuthenticationServices)
-    func testPasskeyAssertionResponseEncodesWebAuthnShape() throws {
-        let response = PasskeyAuthenticationResponse(
-            id: "credential-id",
-            rawId: "credential-id",
-            response: .init(
-                authenticatorData: "auth-data",
-                clientDataJSON: "client-json",
-                signature: "signature",
-                userHandle: "user-handle"
+        func testPasskeyAssertionResponseEncodesWebAuthnShape() throws {
+            let response = PasskeyAuthenticationResponse(
+                id: "credential-id",
+                rawId: "credential-id",
+                response: .init(
+                    authenticatorData: "auth-data",
+                    clientDataJSON: "client-json",
+                    signature: "signature",
+                    userHandle: "user-handle"
+                )
             )
-        )
 
-        let body = try encodedJSONObject(from: response)
-        XCTAssertEqual(body["id"] as? String, "credential-id")
-        XCTAssertEqual(body["rawId"] as? String, "credential-id")
-        XCTAssertEqual(body["type"] as? String, "public-key")
-        XCTAssertEqual((body["clientExtensionResults"] as? [String: String])?.isEmpty, true)
-        let assertion = try XCTUnwrap(body["response"] as? [String: String])
-        XCTAssertEqual(assertion["authenticatorData"], "auth-data")
-        XCTAssertEqual(assertion["clientDataJSON"], "client-json")
-        XCTAssertEqual(assertion["signature"], "signature")
-        XCTAssertEqual(assertion["userHandle"], "user-handle")
-    }
+            let body = try encodedJSONObject(from: response)
+            XCTAssertEqual(body["id"] as? String, "credential-id")
+            XCTAssertEqual(body["rawId"] as? String, "credential-id")
+            XCTAssertEqual(body["type"] as? String, "public-key")
+            XCTAssertEqual((body["clientExtensionResults"] as? [String: String])?.isEmpty, true)
+            let assertion = try XCTUnwrap(body["response"] as? [String: String])
+            XCTAssertEqual(assertion["authenticatorData"], "auth-data")
+            XCTAssertEqual(assertion["clientDataJSON"], "client-json")
+            XCTAssertEqual(assertion["signature"], "signature")
+            XCTAssertEqual(assertion["userHandle"], "user-handle")
+        }
 
-    func testPasskeyAuthEndpointsUseExpectedRoutesAndBody() throws {
-        XCTAssertEqual(Endpoint.passkeyAuthOptions.method, .POST)
-        XCTAssertEqual(Endpoint.passkeyAuthOptions.path, "/api/v1/auth/passkeys/authentication/options")
-        XCTAssertEqual(Endpoint.passkeyAuthVerify.path, "/api/v1/auth/passkeys/authentication/verify")
+        func testPasskeyAuthEndpointsUseExpectedRoutesAndBody() throws {
+            XCTAssertEqual(Endpoint.passkeyAuthOptions.method, .POST)
+            XCTAssertEqual(Endpoint.passkeyAuthOptions.path, "/api/v1/auth/passkeys/authentication/options")
+            XCTAssertEqual(Endpoint.passkeyAuthVerify.path, "/api/v1/auth/passkeys/authentication/verify")
 
-        let response = PasskeyAuthenticationResponse(
-            id: "credential-id",
-            rawId: "credential-id",
-            response: .init(authenticatorData: "auth", clientDataJSON: "client", signature: "sig", userHandle: "user")
-        )
-        let endpoint = Endpoint.passkeyAuthVerify(response: response)
-        let body = try encodedJSONObject(from: XCTUnwrap(endpoint.body))
+            let response = PasskeyAuthenticationResponse(
+                id: "credential-id",
+                rawId: "credential-id",
+                response: .init(authenticatorData: "auth", clientDataJSON: "client", signature: "sig", userHandle: "user")
+            )
+            let endpoint = Endpoint.passkeyAuthVerify(response: response)
+            let body = try encodedJSONObject(from: XCTUnwrap(endpoint.body))
 
-        XCTAssertEqual(endpoint.method, HTTPMethod.POST)
-        XCTAssertEqual(endpoint.path, "/api/v1/auth/passkeys/authentication/verify")
-        XCTAssertNotNil(body["response"])
-    }
+            XCTAssertEqual(endpoint.method, HTTPMethod.POST)
+            XCTAssertEqual(endpoint.path, "/api/v1/auth/passkeys/authentication/verify")
+            XCTAssertNotNil(body["response"])
+        }
     #endif
 
     func testCreateCommunityPostUsesCommunityRouteAndEncodesBody() throws {
