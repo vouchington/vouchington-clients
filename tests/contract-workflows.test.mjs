@@ -257,6 +257,8 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /dotnet_root="\$RUNNER_TEMP\/voucha-dotnet-sdk"/u)
     assert.match(validation, /printf 'DOTNET_INSTALL_DIR=%s\\n'.*"\$GITHUB_ENV"/u)
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
+    assert.equal(validation.split('mise_root="$RUNNER_TEMP/mise"').length - 1, 2)
+    assert.equal(validation.split('mise_dir: ${{ runner.temp }}/mise').length - 1, 2)
   })
 
   it('keeps the Filaments secret in the trusted producer', async () => {

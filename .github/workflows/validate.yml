@@ -105,9 +105,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - name: Configure isolated mise root
+        run: |
+          set -euo pipefail
+          mise_root="$RUNNER_TEMP/mise"
+          rm -rf -- "$mise_root"
+          mkdir -p -- "$mise_root"
+          printf 'MISE_DATA_DIR=%s\n' "$mise_root" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           install: true
+          mise_dir: ${{ runner.temp }}/mise
       - name: Install pinned tooling dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Run portable tooling checks
@@ -132,9 +140,17 @@ jobs:
           clean: false
           fetch-depth: 0
           persist-credentials: false
+      - name: Configure isolated mise root
+        run: |
+          set -euo pipefail
+          mise_root="$RUNNER_TEMP/mise"
+          rm -rf -- "$mise_root"
+          mkdir -p -- "$mise_root"
+          printf 'MISE_DATA_DIR=%s\n' "$mise_root" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           install: true
+          mise_dir: ${{ runner.temp }}/mise
       - name: Scan repository history
         run: mise exec -- gitleaks git --redact=100 --config .gitleaks.toml
       - name: Clean persistent runner workspace
