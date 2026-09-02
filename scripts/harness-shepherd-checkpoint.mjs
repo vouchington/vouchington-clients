@@ -12,7 +12,7 @@ export const CHECKPOINT_MARKER = 'shepherd-checkpoint:v1'
 /** Auto Harness production session id: `sess-` plus four random bytes as lowercase hex. */
 export const HARNESS_SESSION_ID = /^sess-[0-9a-f]{8}$/u
 
-const CODEC = {
+export const CODEC = {
   marker: CHECKPOINT_MARKER,
   sessionIdPattern: HARNESS_SESSION_ID,
 }

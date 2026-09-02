@@ -39,8 +39,8 @@ importers:
         specifier: 0.46.0
         version: 0.46.0
       vouchington-tooling:
-        specifier: 0.5.1
-        version: 0.5.1
+        specifier: 0.6.1
+        version: 0.6.1
 
 packages:
 
@@ -1571,8 +1571,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vouchington-tooling@0.5.1:
-    resolution: {integrity: sha512-AcMdT9api+lxbUACoyzsq4ZbMbvZkhwQJyIf9Q6xRZKt7Ys56fiI92cPqSw2qFa7CNeylTCdH+7kpQ3ku0Puaw==}
+  vouchington-tooling@0.6.1:
+    resolution: {integrity: sha512-yQxDFPFVTvzTyoIz7L7HSNg0AL2DHYHfTM8bW5AmM+vd2mx54byr11z26q6ME5wODoJIOj8v9uEXCQOKgFMdGw==}
     engines: {node: '>=24.0.0'}
     hasBin: true
 
@@ -3015,7 +3015,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vouchington-tooling@0.5.1:
+  vouchington-tooling@0.6.1:
     dependencies:
       csv-parse: 7.0.2
       csv-stringify: 6.8.3
