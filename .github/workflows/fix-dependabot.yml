@@ -2,7 +2,9 @@ name: Automation Fix Dependabot
 
 on:
   workflow_run:
-    workflows: [CI]
+    workflows:
+      - Validate
+      - Native contract tests
     types: [completed]
 
 concurrency:

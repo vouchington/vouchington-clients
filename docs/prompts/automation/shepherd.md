@@ -21,8 +21,10 @@ printed `## Instructions` exactly. Use a 4.5-minute timeout only for a bounded w
 make and validate the required changes on `{{PR_HEAD_REF}}`. `CANCEL` and `ESCALATE` mean stop and
 report. Never overwrite concurrent work.
 
-When environment setup is needed (dependency install, or an ecosystem-specific restore/build step for
-the .NET or Swift clients), start one process and wait for it; do not start competing installs. Before
+When environment setup is needed, start one process for the affected ecosystem and wait for it; do not
+start competing installs. JS/tooling: `pnpm install --frozen-lockfile`. .NET clients: `./dotnet-clients/
+tooling/harness.sh --checks restore`. Swift clients: `./swift-clients/tooling/harness.sh --checks build`
+(Swift Package Manager resolves dependencies as part of this build check). Before
 every push or PR mutation, re-fetch the PR and require the same open repository/ref plus the expected
 head SHA. Push with an exact lease so concurrent updates fail atomically. Do not create a new PR or
 run `gh pr create` in this flow.

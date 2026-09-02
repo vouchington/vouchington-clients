@@ -16,7 +16,7 @@
     "lint:dotnet": "bash dotnet-clients/tooling/harness.sh --checks fmt",
     "lint:format": "oxfmt --check scripts tests package.json pnpm-workspace.yaml .github .claude .codex .cursor .grok docs README.md CLAUDE.md",
     "lint:gitleaks": "mise exec -- vouchington gitleaks-directory-scan --config .gitleaks.toml",
-    "lint:github-actions": "mise exec -- actionlint && mise exec -- zizmor --offline --min-severity high --min-confidence high . && vouchington gha-workspace-policy",
+    "lint:github-actions": "mise exec -- actionlint -ignore 'unexpected key \"queue\" for \"concurrency\" section' && mise exec -- zizmor --offline --min-severity high --min-confidence high . && vouchington gha-workspace-policy",
     "lint:js": "oxlint --deny-warnings scripts tests",
     "lint:links": "mise exec -- vouchington lint-links --offline --config lychee.toml",
     "lint:no-mistakes": "no-mistakes check",
