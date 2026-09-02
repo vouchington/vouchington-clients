@@ -20,9 +20,10 @@ This workspace contains the .NET client stack for Voucha. The product target is 
 - Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations.
 - Deep linking: `voucha` protocol activation on Windows and Mac Catalyst, with MAUI lifecycle hooks and an app-shell coordinator that selects existing native targets or opens Session for login links.
 - Post compose: native signed-in post/community-post creation for discussions, reviews, data points, links, articles, and blogs. CAPTCHA-gated submissions open the shared MAUI Turnstile challenge and send the resulting token; local development can opt into omitting it with `VOUCHA_POST_COMPOSE_CAPTCHA_BYPASS=true`, which only succeeds against backends already configured with `SKIP_CAPTCHA_VERIFICATION=true`.
-- CI: portable restore/build/test on self-hosted test runners, Core changed-line coverage at 80%,
-  and rendered MAUI page tests plus a Mac Catalyst smoke build on macOS. App coverage is explicitly
-  exempt because the platform app shell is not instrumentable by Coverlet.
+- CI: portable restore/build/test plus Core changed-line coverage at 80% on Linux, and rendered
+  MAUI page tests plus a Mac Catalyst smoke build on macOS. Do not run `Voucha.DotNet.sln` on macOS.
+  App coverage is explicitly exempt because the platform app shell is not instrumentable by
+  Coverlet. See [native CI test placement](../docs/development/native-ci-test-placement.md).
 - Local models: Windows uses the Windows system language model through the Windows App SDK, while
   both heads support UUID-scoped OpenAI-compatible endpoint profiles. Windows model setup is an
   explicit user action, and local failures restore the draft without automatic fallback.
@@ -88,8 +89,8 @@ dotnet restore dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Te
 ```
 
 This affects local and pre-push planning only. GitHub's native .NET workflow intentionally remains
-full-suite: its portable job tests `Voucha.DotNet.sln`, while the macOS MAUI job builds and tests
-`Voucha.Client.App.Tests` separately and verifies the native lock inventory.
+full-suite: the Linux portable job tests `Voucha.DotNet.sln` once, while the macOS MAUI job builds
+and tests `Voucha.Client.App.Tests` separately and verifies the native lock inventory.
 
 CI collects LCOV from the portable Core test suite and runs the published `coverage-check` policy
 engine against `.coverage-rules.yml`, requiring `lcov.info` and failing empty or missing reports.
