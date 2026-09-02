@@ -82,17 +82,19 @@ final class ImportExportEndpointTests: XCTestCase {
         await XCTAssertThrowsErrorAsync { try await client.data(for: .exportTopicsDownload) }
     }
 
-    func testExportDownloadWritesResponseToOwnedTemporaryFile() async throws {
-        let expected = Data(repeating: 0x61, count: 1_024 * 1_024)
-        CapturingURLProtocol.responseData = expected
-        let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
+    #if canImport(Darwin)
+        func testExportDownloadWritesResponseToOwnedTemporaryFile() async throws {
+            let expected = Data(repeating: 0x61, count: 1_024 * 1_024)
+            CapturingURLProtocol.responseData = expected
+            let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
 
-        let url = try await client.download(for: .exportTopicsDownload, filename: "topics.json")
-        defer { try? FileManager.default.removeItem(at: url) }
+            let url = try await client.download(for: .exportTopicsDownload, filename: "topics.json")
+            defer { try? FileManager.default.removeItem(at: url) }
 
-        XCTAssertTrue(url.path.contains("voucha-import-export"))
-        XCTAssertEqual(try Data(contentsOf: url), expected)
-    }
+            XCTAssertTrue(url.path.contains("voucha-import-export"))
+            XCTAssertEqual(try Data(contentsOf: url), expected)
+        }
+    #endif
 
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {
         try assertFixtureCoversDTO(

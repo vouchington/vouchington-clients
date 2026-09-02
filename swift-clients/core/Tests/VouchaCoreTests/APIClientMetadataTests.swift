@@ -15,7 +15,11 @@ final class APIClientMetadataTests: XCTestCase {
     }
 
     private func makeCookieStorage() -> HTTPCookieStorage {
-        IsolatedHTTPCookieStorage.make()
+        #if canImport(Darwin)
+            InMemoryCookieStorage()
+        #else
+            IsolatedHTTPCookieStorage.make()
+        #endif
     }
 
     private func makeCookie(
