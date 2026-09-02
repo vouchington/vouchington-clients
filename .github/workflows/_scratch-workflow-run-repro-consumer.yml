@@ -1,0 +1,19 @@
+name: Scratch workflow_run repro consumer
+on:
+  workflow_run:
+    workflows: [Scratch workflow_run repro source]
+    types: [completed]
+
+concurrency:
+  group: scratch-workflow-run-repro-consumer-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: [self-hosted, Linux]
+    concurrency:
+      group: scratch-workflow-run-repro-test
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - run: echo "queue:max parsed and ran, dispatched via a real workflow_run trigger"
