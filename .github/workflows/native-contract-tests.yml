@@ -481,8 +481,11 @@ jobs:
           producer-run-id: ${{ github.run_id }}
       - name: Test core and test-support packages
         working-directory: candidate-clients
+        env:
+          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 1500
         run: >-
           bash swift-clients/tooling/with-build-lock.sh docker run --rm
+          --user "$(id -u):$(id -g)"
           --volume "$PWD:/workspace"
           --volume "$VOUCHA_FILAMENTS_CONTRACT_ROOT:/contract:ro"
           --tmpfs /tmp:rw,exec,mode=1777
@@ -490,7 +493,9 @@ jobs:
           --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract
           swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
           /bin/bash -c 'swift test --package-path swift-clients/test-support --force-resolved-versions
+          --build-path /tmp/voucha-test-support-build
           && swift test --package-path swift-clients/core --force-resolved-versions
+          --build-path /tmp/voucha-core-build
           --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
       - name: Clean persistent runner workspace
         if: always()

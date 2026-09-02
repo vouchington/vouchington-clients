@@ -239,6 +239,15 @@ describe('native contract workflow boundary', () => {
       jobBlock(workflow, 'test-swift-core-linux'),
       /swift test --package-path swift-clients\/test-support/u,
     )
+    assert.match(jobBlock(workflow, 'test-swift-core-linux'), /--user "\$\(id -u\):\$\(id -g\)"/u)
+    assert.match(
+      jobBlock(workflow, 'test-swift-core-linux'),
+      /VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 1500/u,
+    )
+    assert.match(
+      jobBlock(workflow, 'test-swift-core-linux'),
+      /--build-path \/tmp\/voucha-core-build/u,
+    )
     assert.equal(workflow.split('clean: false').length - 1, 13)
   })
 

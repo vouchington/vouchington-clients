@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import XCTest
@@ -52,7 +53,13 @@ final class VouchaIntegrationTests: XCTestCase {
         }
 
         let config = AppConfig.from(environment: env)
-        let cookieStorage = HTTPCookieStorage.shared
+        #if canImport(Darwin)
+            let cookieStorage = HTTPCookieStorage()
+        #else
+            let cookieStorage = HTTPCookieStorage.sharedCookieStorage(
+                forGroupContainerIdentifier: UUID().uuidString
+            )
+        #endif
         if let deviceToken = env["VOUCHA_TEST_DT"],
            let sessionToken = env["VOUCHA_TEST_ST"],
            let url = URL(string: config.baseURL.absoluteString) {
