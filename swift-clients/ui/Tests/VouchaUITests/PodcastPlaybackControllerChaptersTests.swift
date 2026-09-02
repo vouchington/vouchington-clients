@@ -17,6 +17,11 @@ final class PodcastPlaybackControllerChaptersTests: XCTestCase {
         CannedFeedURLProtocol.capturedBodies = []
     }
 
+    override func tearDown() {
+        CannedFeedURLProtocol.discardPendingResponses()
+        super.tearDown()
+    }
+
     private func makeClient() -> APIClient {
         APIClient(
             config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key"),
@@ -160,66 +165,66 @@ final class PodcastPlaybackControllerChaptersTests: XCTestCase {
             client: makeClient(),
             sessionManager: SessionManager(client: makeClient(), cookieStorage: HTTPCookieStorage())
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/podcast-episodes/item-1/chapters"] = [
-            (
-                Data(
-                    #"""
+        let item1Path = "/api/v1/podcast-episodes/item-1/chapters"
+        let item2Path = "/api/v1/podcast-episodes/item-2/chapters"
+        CannedFeedURLProtocol.handlers[item1Path] = (
+            Data(
+                #"""
+                {
+                  "chapters": [
                     {
-                      "chapters": [
-                        {
-                          "start_seconds": 0,
-                          "end_seconds": 60,
-                          "title": "First",
-                          "url": null,
-                          "image_url": null,
-                          "is_visible": true
-                        }
-                      ]
+                      "start_seconds": 0,
+                      "end_seconds": 60,
+                      "title": "First",
+                      "url": null,
+                      "image_url": null,
+                      "is_visible": true
                     }
-                    """#
-                    .utf8
-                ),
-                200,
-                0.2
-            )
-        ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/podcast-episodes/item-2/chapters"] = [
-            (
-                Data(
-                    #"""
+                  ]
+                }
+                """#
+                .utf8
+            ),
+            200
+        )
+        CannedFeedURLProtocol.handlers[item2Path] = (
+            Data(
+                #"""
+                {
+                  "chapters": [
                     {
-                      "chapters": [
-                        {
-                          "start_seconds": 0,
-                          "end_seconds": 30,
-                          "title": "Second",
-                          "url": null,
-                          "image_url": null,
-                          "is_visible": true
-                        }
-                      ]
+                      "start_seconds": 0,
+                      "end_seconds": 30,
+                      "title": "Second",
+                      "url": null,
+                      "image_url": null,
+                      "is_visible": true
                     }
-                    """#
-                    .utf8
-                ),
-                200,
-                0.05
-            )
-        ]
+                  ]
+                }
+                """#
+                .utf8
+            ),
+            200
+        )
+        CannedFeedURLProtocol.suspendResponse(path: item1Path)
         let item1 = makeAudioItem(id: "item-1")
         let item2 = makeAudioItem(id: "item-2")
 
         let firstStart = Task { @MainActor in
             await controller.togglePlayback(for: item1)
         }
-        await Task.yield()
-        let secondStart = Task { @MainActor in
-            await controller.togglePlayback(for: item2)
-        }
+        try await waitForSuspendedResponse(path: item1Path)
 
+        await controller.togglePlayback(for: item2)
+        try await waitForLoadedChapters(controller, path: item2Path)
+
+        XCTAssertEqual(controller.currentItem?.id, "item-2")
+        XCTAssertEqual(controller.chapters.count, 1)
+        XCTAssertEqual(controller.chapters.first?.title, "Second")
+
+        CannedFeedURLProtocol.releaseResponse(path: item1Path)
         await firstStart.value
-        await secondStart.value
-        try await Task.sleep(nanoseconds: 300_000_000)
 
         XCTAssertEqual(controller.currentItem?.id, "item-2")
         XCTAssertEqual(controller.chapters.count, 1)
