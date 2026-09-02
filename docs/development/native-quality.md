@@ -27,3 +27,7 @@ and
 Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
 `VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
 `contracts:check`. Native quality and test planning never read product source from Filaments.
+
+CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
+Linux and macOS only because those jobs compile different networking and Security slices. See
+[native CI test placement](native-ci-test-placement.md).

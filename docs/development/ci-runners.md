@@ -8,6 +8,9 @@ an organization-owned runner with an explicit self-hosted label set:
 - `[self-hosted, macOS, Tests]` is used for macOS native build, test, and dead-code checks.
 - `[self-hosted, Linux, Docker, Tests]` is used for Linux checks that run pinned tool containers.
 
+Which native tests belong on each label, and when a second OS is forbidden, is documented in
+[native CI test placement](native-ci-test-placement.md).
+
 Do not add `ubuntu-*`, `macos-*`, or `windows-*` labels to a workflow or matrix. Public companion
 repositories may use GitHub-hosted capacity under their own policy; that exception does not apply
 here.

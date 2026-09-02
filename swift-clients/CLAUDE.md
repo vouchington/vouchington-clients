@@ -20,6 +20,7 @@ test, and generation checks. Use the harness or CI wrappers for compiler-heavy c
 ## Key rules
 
 - **`core/` is Foundation-only** — no AppKit, UIKit, SwiftUI, SwiftData, or Network. POSIX libc (`getaddrinfo`, `connect`) is allowed for portable local-LLM DNS pinning. **Machine-enforced by `ast-grep-rules/swift-core-foundation-only.yml`** (runs in the Linux static-analysis CI job on every PR). `AuthenticationServices` is allowed only inside `VouchaAuth` for WebAuthn/passkey ceremony types, enforced by `ast-grep-rules/swift-authenticationservices-in-auth-only.yml`; presentation anchors must still be supplied by UI/app layers. `APIClient.responseLines(for:)` on Linux/Android must keep SSE/NDJSON streaming incremental via delegate callbacks while buffering non-2xx bodies long enough for `validate(response:data:)`.
+- **CI placement** — portable core and `test-support` run on Linux; Darwin `URLSession`, Security/Keychain, core LCOV, and Swift DTO parity stay on macOS. Dual-OS is required because those jobs compile different stacks, not for confidence. Gate Darwin-only tests with `#if canImport(Darwin)` or `#if canImport(Security)`. See [native CI test placement](../docs/development/native-ci-test-placement.md).
 - **`VouchaPersistence` uses a `CacheStore` protocol** — no SwiftData anywhere in `core/` even as a dependency. SwiftData belongs in a platform-specific store behind this protocol.
 - **XcodeGen, not committed `.xcodeproj`** — `apps/*/project.yml` is the source of truth. `DerivedData/` and `*.xcodeproj/` are gitignored.
 - **Native UI copy uses `VouchaLocalization`** — app-owned presentation text is a typed `UiMessageKey`/`UiMessage`. Use `UiVerbatimText.verbatim` for dynamic user/server values; literal external-provider, protocol, and user-content boundaries must use the explicit `externalProvider`, `protocolValue`, or `userContent` constructors. The `swift-no-hardcoded-view-copy`, `swift-no-hardcoded-presentation-data`, and `swift-no-direct-presentation-formatting` AST-grep rules reject raw SwiftUI/helper copy, raw presentation state and metadata, enum-label transforms, and locale-bypassing formatting across UI and app sources. Generated localization sources are excluded from SwiftFormat and SwiftLint because `pnpm run native-localization:check` is their canonical drift gate.
@@ -41,4 +42,5 @@ test, and generation checks. Use the harness or CI wrappers for compiler-heavy c
 ## See Also
 
 - [README.md](README.md) — commands, harness, gotchas
+- [Native CI test placement](../docs/development/native-ci-test-placement.md)
 - Native client strategy: Filaments' [native-clients.md](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/native-clients.md)

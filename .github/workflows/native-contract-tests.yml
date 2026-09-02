@@ -299,17 +299,9 @@ jobs:
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
   dotnet-portable:
-    name: .NET portable (${{ matrix.os }})
+    name: .NET portable
     needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: linux
-            runner: [self-hosted, Linux, Docker, Tests]
-          - os: macos
-            runner: [self-hosted, macOS, Tests]
-    runs-on: ${{ matrix.runner }}
+    runs-on: [self-hosted, Linux, Docker, Tests]
     timeout-minutes: 30
     env:
       MSBuildEnableWorkloadResolver: 'false'
@@ -362,7 +354,7 @@ jobs:
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
       - name: Test .NET DTO fixture parity separately
         id: dotnet-dto-fixture-parity
-        if: always() && matrix.os == 'linux'
+        if: always()
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -371,13 +363,13 @@ jobs:
           --configuration Release --no-build
           --filter "FullyQualifiedName~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto"
       - name: Record .NET DTO fixture parity result
-        if: always() && matrix.os == 'linux'
+        if: always()
         working-directory: candidate-clients
         env:
           DTO_FIXTURE_PARITY_OUTCOME: ${{ steps.dotnet-dto-fixture-parity.outcome }}
         run: printf '%s\n' "$DTO_FIXTURE_PARITY_OUTCOME" > dto-fixture-parity-dotnet.txt
       - name: Upload .NET DTO fixture parity result
-        if: always() && matrix.os == 'linux'
+        if: always()
         continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
@@ -386,7 +378,6 @@ jobs:
           retention-days: 1
           if-no-files-found: error
       - name: Normalize Core coverage report
-        if: matrix.os == 'linux'
         working-directory: candidate-clients/dotnet-clients
         run: |
           set -euo pipefail
@@ -397,7 +388,6 @@ jobs:
           }
           cp "$reports" TestResults/core/lcov.info
       - name: Enforce Core patch coverage
-        if: matrix.os == 'linux'
         working-directory: candidate-clients
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}

@@ -21,6 +21,11 @@ Run `pnpm run quality:check` for repository rules. Plan native tests with
 `pnpm run test:plan:dotnet --base origin/main --head HEAD`; do not plan native tests from the
 Filaments checkout. See [native quality and test planning](docs/development/native-quality.md).
 
+CI runs each test on the cheapest capable runner. Portable .NET is Linux-only. Swift core runs on
+Linux and macOS because Darwin `URLSession` and Linux `FoundationNetworking` are different
+runtimes. Do not add an OS matrix for confidence. See
+[native CI test placement](docs/development/native-ci-test-placement.md).
+
 Use `pnpm clean` to remove checkout-local native build, coverage, and test output. Recycle only a
 linked disposable worktree with `./dev/reset-worktree`; it refuses dirty state unless `--force` is
 explicit and must never be used from the primary worktree.

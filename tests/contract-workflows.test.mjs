@@ -76,17 +76,20 @@ describe('native contract workflow boundary', () => {
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
   })
 
-  it('runs native .NET tests on the supported runner matrix with coverage and cleanup', async () => {
+  it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
     const [action, workflow] = await Promise.all([
       readAction('prepare-native-contract'),
       readWorkflow('native-contract-tests.yml'),
     ])
+    const portable = jobBlock(workflow, 'dotnet-portable')
+    const maui = jobBlock(workflow, 'dotnet-maui')
 
-    for (const runner of [
-      'runner: [self-hosted, Linux, Docker, Tests]',
-      'runner: [self-hosted, macOS, Tests]',
-    ])
-      assert.ok(workflow.includes(runner))
+    assert.match(portable, /^    name: \.NET portable$/mu)
+    assert.match(portable, /runs-on: \[self-hosted, Linux, Docker, Tests\]/u)
+    assert.doesNotMatch(portable, /matrix:/u)
+    assert.doesNotMatch(portable, /macos/u)
+    assert.doesNotMatch(portable, /matrix\.os/u)
+    assert.match(maui, /runs-on: \[self-hosted, macOS, Tests\]/u)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
     assert.match(workflow, /pnpm run coverage:dotnet-core/u)
@@ -361,7 +364,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(
       dotnetJob,
-      /name: Test \.NET DTO fixture parity separately[\s\S]*if: always\(\) && matrix\.os == 'linux'[\s\S]*continue-on-error: true/u,
+      /name: Test \.NET DTO fixture parity separately[\s\S]*if: always\(\)[\s\S]*continue-on-error: true/u,
     )
     assert.match(
       swiftJob,
