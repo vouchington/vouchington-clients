@@ -114,4 +114,3 @@ final class SessionManagerLocalizationTests: XCTestCase {
 private struct IdentityEnvelope: Decodable {
     let identity: PrivateUser
 }
-
