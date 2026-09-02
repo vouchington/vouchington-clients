@@ -15,7 +15,11 @@ final class APIClientMetadataTests: XCTestCase {
     }
 
     private func makeCookieStorage() -> HTTPCookieStorage {
-        InMemoryCookieStorage()
+        #if canImport(Darwin)
+            InMemoryCookieStorage()
+        #else
+            IsolatedHTTPCookieStorage.make()
+        #endif
     }
 
     private func makeCookie(
@@ -158,84 +162,88 @@ final class APIClientMetadataTests: XCTestCase {
         XCTAssertEqual(SessionBootstrapURLProtocol.requestedPaths.filter { $0 == "/api/v1/session" }.count, 1)
     }
 
-    func testInMemoryCookieStorageMatchesSecureDomainAndPath() throws {
-        let cookieStorage = makeCookieStorage()
-        let cookie = try makeCookie(
-            name: "dt",
-            value: "device-token",
-            domain: ".voucha.test",
-            path: "/api",
-            secure: true
-        )
+    #if canImport(Darwin)
+        func testInMemoryCookieStorageMatchesSecureDomainAndPath() throws {
+            let cookieStorage = InMemoryCookieStorage()
+            let cookie = try makeCookie(
+                name: "dt",
+                value: "device-token",
+                domain: ".voucha.test",
+                path: "/api",
+                secure: true
+            )
 
-        cookieStorage.setCookie(cookie)
+            cookieStorage.setCookie(cookie)
 
-        let nestedURL = try XCTUnwrap(URL(string: "https://api.voucha.test/api/v1/session"))
-        let exactPathURL = try XCTUnwrap(URL(string: "https://api.voucha.test/api"))
-        let insecureURL = try XCTUnwrap(URL(string: "http://api.voucha.test/api/v1/session"))
+            let nestedURL = try XCTUnwrap(URL(string: "https://api.voucha.test/api/v1/session"))
+            let exactPathURL = try XCTUnwrap(URL(string: "https://api.voucha.test/api"))
+            let insecureURL = try XCTUnwrap(URL(string: "http://api.voucha.test/api/v1/session"))
 
-        XCTAssertEqual(cookieStorage.cookies(for: nestedURL)?.first?.value, "device-token")
-        XCTAssertEqual(cookieStorage.cookies(for: exactPathURL)?.first?.value, "device-token")
-        XCTAssertTrue(cookieStorage.cookies(for: insecureURL)?.isEmpty ?? true)
-    }
+            XCTAssertEqual(cookieStorage.cookies(for: nestedURL)?.first?.value, "device-token")
+            XCTAssertEqual(cookieStorage.cookies(for: exactPathURL)?.first?.value, "device-token")
+            XCTAssertTrue(cookieStorage.cookies(for: insecureURL)?.isEmpty ?? true)
+        }
+    #endif
 }
 
-private final class InMemoryCookieStorage: HTTPCookieStorage, @unchecked Sendable {
-    private let lock = NSLock()
-    private var storedCookies: [HTTPCookie] = []
+#if canImport(Darwin)
+    private final class InMemoryCookieStorage: HTTPCookieStorage, @unchecked Sendable {
+        private let lock = NSLock()
+        private var storedCookies: [HTTPCookie] = []
 
-    override var cookies: [HTTPCookie]? {
-        lock.withLock { storedCookies }
-    }
+        override var cookies: [HTTPCookie]? {
+            lock.withLock { storedCookies }
+        }
 
-    override func setCookie(_ cookie: HTTPCookie) {
-        lock.withLock {
-            storedCookies.removeAll { $0.matchesStorageKey(of: cookie) }
-            storedCookies.append(cookie)
+        override func setCookie(_ cookie: HTTPCookie) {
+            lock.withLock {
+                storedCookies.removeAll { $0.matchesStorageKey(of: cookie) }
+                storedCookies.append(cookie)
+            }
+        }
+
+        override func cookies(for url: URL) -> [HTTPCookie]? {
+            lock.withLock {
+                storedCookies.filter { $0.matches(url: url) }
+            }
+        }
+
+        override func deleteCookie(_ cookie: HTTPCookie) {
+            lock.withLock {
+                storedCookies.removeAll { $0.matchesStorageKey(of: cookie) }
+            }
         }
     }
 
-    override func cookies(for url: URL) -> [HTTPCookie]? {
-        lock.withLock {
-            storedCookies.filter { $0.matches(url: url) }
+    private extension HTTPCookie {
+        func matchesStorageKey(of cookie: HTTPCookie) -> Bool {
+            name == cookie.name && domain == cookie.domain && path == cookie.path
+        }
+
+        func matches(url: URL) -> Bool {
+            guard let host = url.host else { return false }
+            if isSecure && url.scheme?.lowercased() != "https" {
+                return false
+            }
+            guard matchesDomain(host) else { return false }
+            let cookiePath = path.isEmpty ? "/" : path
+            guard cookiePath != "/" else { return true }
+            let urlPath = url.path.isEmpty ? "/" : url.path
+            guard urlPath.hasPrefix(cookiePath) else { return false }
+            guard urlPath.count > cookiePath.count else { return true }
+            let boundary = urlPath.index(urlPath.startIndex, offsetBy: cookiePath.count)
+            return urlPath[boundary] == "/"
+        }
+
+        private func matchesDomain(_ host: String) -> Bool {
+            if domain.hasPrefix(".") {
+                let bareDomain = String(domain.dropFirst())
+                return host == bareDomain || host.hasSuffix("." + bareDomain)
+            }
+            return host == domain
         }
     }
-
-    override func deleteCookie(_ cookie: HTTPCookie) {
-        lock.withLock {
-            storedCookies.removeAll { $0.matchesStorageKey(of: cookie) }
-        }
-    }
-}
-
-private extension HTTPCookie {
-    func matchesStorageKey(of cookie: HTTPCookie) -> Bool {
-        name == cookie.name && domain == cookie.domain && path == cookie.path
-    }
-
-    func matches(url: URL) -> Bool {
-        guard let host = url.host else { return false }
-        if isSecure && url.scheme?.lowercased() != "https" {
-            return false
-        }
-        guard matchesDomain(host) else { return false }
-        let cookiePath = path.isEmpty ? "/" : path
-        guard cookiePath != "/" else { return true }
-        let urlPath = url.path.isEmpty ? "/" : url.path
-        guard urlPath.hasPrefix(cookiePath) else { return false }
-        guard urlPath.count > cookiePath.count else { return true }
-        let boundary = urlPath.index(urlPath.startIndex, offsetBy: cookiePath.count)
-        return urlPath[boundary] == "/"
-    }
-
-    private func matchesDomain(_ host: String) -> Bool {
-        if domain.hasPrefix(".") {
-            let bareDomain = String(domain.dropFirst())
-            return host == bareDomain || host.hasSuffix("." + bareDomain)
-        }
-        return host == domain
-    }
-}
+#endif
 
 private final class SessionBootstrapURLProtocol: URLProtocol {
     static var requestedPaths: [String] = []

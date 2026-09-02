@@ -48,12 +48,12 @@ final class NativeOAuthResultAcknowledgementPersistenceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             bootstrapSession: false
         )
         return NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
             store: store
         )
     }

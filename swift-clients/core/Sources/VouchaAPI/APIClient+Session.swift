@@ -65,17 +65,14 @@ extension APIClient {
         baseURL: URL,
         pinningPolicy: PublicKeyPinningPolicy
     ) -> URLSession {
-        let requiresPinning = pinningPolicy.requiresPinning(for: baseURL)
-
         #if canImport(Security)
-            guard requiresPinning else {
+            guard pinningPolicy.requiresPinning(for: baseURL) else {
                 return URLSession(configuration: configuration)
             }
 
             let delegate = PublicKeyPinningURLSessionDelegate(policy: pinningPolicy)
             return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
         #else
-            precondition(!requiresPinning, "Configured TLS pins require a platform SPKI validator.")
             return URLSession(configuration: configuration)
         #endif
     }

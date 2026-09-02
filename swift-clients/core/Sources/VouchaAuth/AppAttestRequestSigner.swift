@@ -1,8 +1,6 @@
+import Crypto
 import Foundation
 import VouchaAPI
-#if canImport(CryptoKit)
-    import CryptoKit
-#endif
 #if canImport(Security)
     import Security
 #endif
@@ -77,9 +75,5 @@ public struct AppAttestRequestSigner: RequestSigning {
 }
 
 private func sha256(_ data: Data) -> Data {
-    #if canImport(CryptoKit)
-        return Data(SHA256.hash(data: data))
-    #else
-        preconditionFailure("App Attest requires CryptoKit, which is unavailable on this platform")
-    #endif
+    Data(SHA256.hash(data: data))
 }

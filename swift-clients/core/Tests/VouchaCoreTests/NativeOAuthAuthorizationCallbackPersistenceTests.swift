@@ -359,7 +359,7 @@ final class NativeOAuthAuthorizationCallbackPersistenceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [CallbackPersistenceURLProtocol.self],
             bootstrapSession: false
         )
@@ -371,7 +371,7 @@ final class NativeOAuthAuthorizationCallbackPersistenceTests: XCTestCase {
                 client: client,
                 sessionManager: SessionManager(
                     client: client,
-                    cookieStorage: HTTPCookieStorage()
+                    cookieStorage: IsolatedHTTPCookieStorage.make()
                 ),
                 store: store,
                 now: { now }

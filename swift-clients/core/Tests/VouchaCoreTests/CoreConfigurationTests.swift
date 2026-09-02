@@ -175,14 +175,16 @@ final class ApiFixtureLoaderTests: XCTestCase {
         return temporaryRoot
     }
 
-    func testMissingFixtureReportsFailureAndReturnsFallbackData() {
-        XCTExpectFailure("Missing API fixtures should report XCTest failures and return fallback data.") {
-            XCTAssertEqual(
-                ApiFixtureLoader.data("missing.fixture"),
-                Data("{}".utf8)
-            )
+    #if canImport(Darwin)
+        func testMissingFixtureReportsFailureAndReturnsFallbackData() {
+            XCTExpectFailure("Missing API fixtures should report XCTest failures and return fallback data.") {
+                XCTAssertEqual(
+                    ApiFixtureLoader.data("missing.fixture"),
+                    Data("{}".utf8)
+                )
+            }
         }
-    }
+    #endif
 }
 
 // MARK: - VouchaError

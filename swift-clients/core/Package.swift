@@ -26,8 +26,23 @@ let package = Package(
             ]
         ),
         .target(name: "VouchaModels", dependencies: ["VouchaCore"]),
-        .target(name: "VouchaAPI", dependencies: ["VouchaModels", "VouchaCore"]),
-        .target(name: "VouchaAuth", dependencies: ["VouchaAPI", "VouchaCore", "VouchaModels"]),
+        .target(
+            name: "VouchaAPI",
+            dependencies: [
+                "VouchaModels",
+                "VouchaCore",
+                .product(name: "Crypto", package: "swift-crypto")
+            ]
+        ),
+        .target(
+            name: "VouchaAuth",
+            dependencies: [
+                "VouchaAPI",
+                "VouchaCore",
+                "VouchaModels",
+                .product(name: "Crypto", package: "swift-crypto")
+            ]
+        ),
         .target(name: "VouchaPersistence", dependencies: ["VouchaModels", "VouchaCore"]),
         .testTarget(
             name: "VouchaCoreTests",
@@ -37,6 +52,7 @@ let package = Package(
                 "VouchaAPI",
                 "VouchaAuth",
                 "VouchaPersistence",
+                .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "VouchaTestSupport", package: "VouchaTestSupport")
             ]
         ),

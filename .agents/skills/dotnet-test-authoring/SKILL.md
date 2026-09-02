@@ -26,4 +26,5 @@ have a 200-line cap and tests a 500-line cap; validate rendered changes against 
 
 Plan changed .NET tests with `pnpm run test:plan:dotnet --base origin/main --head HEAD`; do not plan
 from the Filaments checkout. Shared API fixtures and localization inputs remain Filaments-owned
-and must be supplied through the explicit contract root.
+and must be supplied through the explicit contract root. Portable Core tests belong on Linux CI
+only; see [native CI test placement](../../../docs/development/native-ci-test-placement.md).

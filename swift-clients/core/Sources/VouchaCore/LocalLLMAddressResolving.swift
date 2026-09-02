@@ -32,7 +32,7 @@ struct SystemLocalLLMAddressResolver: LocalLLMAddressResolving {
     private static func resolveBlocking(_ host: String) throws -> [LocalLLMIPAddress] {
         var hints = addrinfo()
         hints.ai_family = AF_UNSPEC
-        hints.ai_socktype = SOCK_STREAM
+        hints.ai_socktype = DarwinOrGlibc.streamSocketType
         var result: UnsafeMutablePointer<addrinfo>?
         let status = getaddrinfo(host, nil, &hints, &result)
         guard status == 0, let first = result else {
@@ -107,8 +107,8 @@ struct SystemLocalLLMConnectProbe: LocalLLMConnectProbing {
         let target = address.connectAddress
         let socketFD = socket(
             Int32(target.family == .ipv4 ? AF_INET : AF_INET6),
-            Int32(SOCK_STREAM),
-            Int32(IPPROTO_TCP)
+            DarwinOrGlibc.streamSocketType,
+            DarwinOrGlibc.tcpProtocol
         )
         guard socketFD >= 0 else { return false }
         defer { close(socketFD) }
@@ -165,6 +165,18 @@ struct SystemLocalLLMConnectProbe: LocalLLMConnectProbing {
 }
 
 private enum DarwinOrGlibc {
+    static var streamSocketType: Int32 {
+        #if canImport(Glibc) || canImport(Musl)
+            Int32(SOCK_STREAM.rawValue)
+        #else
+            SOCK_STREAM
+        #endif
+    }
+
+    static var tcpProtocol: Int32 {
+        Int32(IPPROTO_TCP)
+    }
+
     static func connect(
         _ socketFD: Int32,
         _ address: UnsafePointer<sockaddr>,

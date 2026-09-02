@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 @testable import VouchaAPI
 @testable import VouchaAuth
@@ -42,7 +42,7 @@ final class APIClientSigningTests: XCTestCase {
     private func makeClient(signer: (any RequestSigning)? = nil) -> APIClient {
         APIClient(
             config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key"),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [CapturingURLProtocol.self],
             signer: signer
         )
@@ -56,16 +56,18 @@ final class APIClientSigningTests: XCTestCase {
         XCTAssertNil(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-assertion"])
     }
 
-    func testSignerInjectsAllFourSigningHeaders() async throws {
-        let signer = StubRequestSigner()
-        let client = makeClient(signer: signer)
-        let _: EmptyResponse = try await client.send(.init(.GET, path: "/v1/posts"))
+    #if canImport(Darwin)
+        func testSignerInjectsAllFourSigningHeaders() async throws {
+            let signer = StubRequestSigner()
+            let client = makeClient(signer: signer)
+            let _: EmptyResponse = try await client.send(.init(.GET, path: "/v1/posts"))
 
-        XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-key-id"], "stub-key")
-        XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-assertion"], "stub-assertion")
-        XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-timestamp"], "1700000000")
-        XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-nonce"], "stub-nonce")
-    }
+            XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-key-id"], "stub-key")
+            XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-assertion"], "stub-assertion")
+            XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-timestamp"], "1700000000")
+            XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-nonce"], "stub-nonce")
+        }
+    #endif
 
     func testOptedOutSignerReturnsNilSendsUnsigned() async throws {
         let signer = StubRequestSigner()
@@ -77,20 +79,22 @@ final class APIClientSigningTests: XCTestCase {
         XCTAssertEqual(signer.callCount, 1)
     }
 
-    func testChallengeIdHeaderPresentSkipsPerRequestSigning() async throws {
-        let signer = StubRequestSigner()
-        let client = makeClient(signer: signer)
-        let endpoint = Endpoint(
-            .POST,
-            path: "/v1/posts",
-            headers: ["x-app-attest-challenge-id": "chal-abc"]
-        )
-        let _: EmptyResponse = try await client.send(endpoint)
+    #if canImport(Darwin)
+        func testChallengeIdHeaderPresentSkipsPerRequestSigning() async throws {
+            let signer = StubRequestSigner()
+            let client = makeClient(signer: signer)
+            let endpoint = Endpoint(
+                .POST,
+                path: "/v1/posts",
+                headers: ["x-app-attest-challenge-id": "chal-abc"]
+            )
+            let _: EmptyResponse = try await client.send(endpoint)
 
-        XCTAssertEqual(signer.callCount, 0, "signer must not be invoked when challenge-id header is present")
-        XCTAssertNil(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-key-id"])
-        XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-challenge-id"], "chal-abc")
-    }
+            XCTAssertEqual(signer.callCount, 0, "signer must not be invoked when challenge-id header is present")
+            XCTAssertNil(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-key-id"])
+            XCTAssertEqual(CapturingURLProtocol.capturedRequestHeaders["x-app-attest-challenge-id"], "chal-abc")
+        }
+    #endif
 
     func testSignerReceivesCorrectMethodAndPercentEncodedPath() async throws {
         let signer = StubRequestSigner()
@@ -109,7 +113,7 @@ final class APIClientSigningTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [protocolClass]
         )
 

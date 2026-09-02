@@ -1,7 +1,5 @@
+import Crypto
 import Foundation
-#if canImport(CryptoKit)
-    import CryptoKit
-#endif
 
 /// Protocol for per-request signing. Returning `nil` means "don't sign this request" (passthrough).
 public protocol RequestSigning: Sendable {
@@ -56,12 +54,8 @@ public enum CanonicalRequestString {
 
     /// Returns lowercase hex SHA-256 of `data`, or `emptyBodyHash` if nil/empty.
     public static func bodyHash(from data: Data?) -> String {
-        #if canImport(CryptoKit)
-            guard let data, !data.isEmpty else { return emptyBodyHash }
-            return SHA256.hash(data: data)
-                .compactMap { String(format: "%02x", $0) }.joined()
-        #else
-            return emptyBodyHash
-        #endif
+        guard let data, !data.isEmpty else { return emptyBodyHash }
+        return SHA256.hash(data: data)
+            .compactMap { String(format: "%02x", $0) }.joined()
     }
 }

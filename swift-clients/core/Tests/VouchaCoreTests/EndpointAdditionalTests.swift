@@ -86,7 +86,7 @@ final class EndpointTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [MockURLProtocol.self]
         )
 
@@ -314,7 +314,7 @@ final class PodcastEndpointBodyTests: XCTestCase {
         let config = AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key")
         apiClient = APIClient(
             config: config,
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [MockURLProtocol.self]
         )
     }

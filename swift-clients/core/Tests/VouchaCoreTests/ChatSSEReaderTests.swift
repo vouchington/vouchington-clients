@@ -268,32 +268,34 @@ final class ChatSSEReaderTests: XCTestCase {
         XCTAssertThrowsError(try ChatSSEReader.validateContentType(response))
     }
 
-    func testApiClientStreamsChatConversationEvents() async throws {
-        EventStreamURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            Data("event: text\ndata: {\"content\":\"Hi\"}\n\nevent: done\ndata: {}\n\n".utf8),
-            200,
-            "text/event-stream"
-        )
-        let client = try APIClient(
-            config: AppConfig(
-                baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
-                turnstileSiteKey: "test-site-key"
-            ),
-            cookieStorage: HTTPCookieStorage(),
-            protocolClasses: [EventStreamURLProtocol.self],
-            metadata: ClientMetadata(platform: .ios, appVersion: "2.3.4", sdkVersion: "1.2.0")
-        )
+    #if canImport(Darwin)
+        func testApiClientStreamsChatConversationEvents() async throws {
+            EventStreamURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
+                Data("event: text\ndata: {\"content\":\"Hi\"}\n\nevent: done\ndata: {}\n\n".utf8),
+                200,
+                "text/event-stream"
+            )
+            let client = try APIClient(
+                config: AppConfig(
+                    baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
+                    turnstileSiteKey: "test-site-key"
+                ),
+                cookieStorage: IsolatedHTTPCookieStorage.make(),
+                protocolClasses: [EventStreamURLProtocol.self],
+                metadata: ClientMetadata(platform: .ios, appVersion: "2.3.4", sdkVersion: "1.2.0")
+            )
 
-        let stream = await client.streamChatConversation(conversationId: "conversation-1", message: "Hello")
-        let events = try await collect(stream)
+            let stream = await client.streamChatConversation(conversationId: "conversation-1", message: "Hello")
+            let events = try await collect(stream)
 
-        XCTAssertEqual(EventStreamURLProtocol.capturedBodies.first??.contains(#""message":"Hello""#), true)
-        XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-client"], "swift")
-        XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-platform"], "ios")
-        XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-app-version"], "2.3.4")
-        XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-sdk-version"], "1.2.0")
-        XCTAssertEqual(events.count, 1)
-    }
+            XCTAssertEqual(EventStreamURLProtocol.capturedBodies.first??.contains(#""message":"Hello""#), true)
+            XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-client"], "swift")
+            XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-platform"], "ios")
+            XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-app-version"], "2.3.4")
+            XCTAssertEqual(EventStreamURLProtocol.capturedHeaders.first?["x-voucha-sdk-version"], "1.2.0")
+            XCTAssertEqual(events.count, 1)
+        }
+    #endif
 
     func testApiClientStreamSurfacesResponseErrors() async throws {
         EventStreamURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
@@ -306,7 +308,7 @@ final class ChatSSEReaderTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [EventStreamURLProtocol.self]
         )
 
@@ -331,7 +333,7 @@ final class ChatSSEReaderTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [EventStreamURLProtocol.self]
         )
 

@@ -71,7 +71,9 @@ final class ImageUploadServiceTests: XCTestCase {
         XCTAssertNil(ImageUploadURLProtocol.capturedRequests[1].value(forHTTPHeaderField: "x-voucha-client"))
         XCTAssertNil(ImageUploadURLProtocol.capturedRequests[1].value(forHTTPHeaderField: "x-voucha-platform"))
         XCTAssertNil(ImageUploadURLProtocol.capturedRequests[1].value(forHTTPHeaderField: "x-voucha-app-version"))
-        XCTAssertEqual(ImageUploadURLProtocol.capturedBody(at: 1), "binary-image-data")
+        #if canImport(Darwin)
+            XCTAssertEqual(ImageUploadURLProtocol.capturedBody(at: 1), "binary-image-data")
+        #endif
     }
 
     func testUploadImageTreatsCompleteStateAsTerminalEvenWhenNotReadyOrBlocked() async throws {
@@ -420,7 +422,7 @@ final class ImageUploadServiceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [ImageUploadURLProtocol.self]
         )
     }

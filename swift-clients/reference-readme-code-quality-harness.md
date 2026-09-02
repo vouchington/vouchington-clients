@@ -10,9 +10,10 @@ Run all local checks in one shot from the **repo root**:
 ./swift-clients/tooling/harness.sh
 ```
 
-The default invocation runs all checks including `test` (`swift test` for `core/` and `ui/`). On
-Linux, `test/core` and `test/ui` are skipped automatically; `build-android` is a Linux-only opt-in
-gate that cross-compiles `core/` with the Swift Android SDK. Select specific checks with
+The default invocation runs all checks including `test` (`swift test` for `test-support/`, `core/`,
+and `ui/`). On Linux, `test/ui` is skipped automatically because the UI package is SwiftUI-only;
+`test/core` and `test/test-support` run. `build-android` is a Linux-only opt-in gate that
+cross-compiles `core/` with the Swift Android SDK. Select specific checks with
 `--checks <comma-list>`:
 
 ```sh
@@ -31,7 +32,7 @@ gate that cross-compiles `core/` with the Swift Android SDK. Select specific che
 | `build-android` | `bash tooling/build-android-core.sh` | 1    | Cross-compile `core/` for Android on Linux                                               |
 | `periphery`     | periphery scan                       | 1    | Unused private/internal declarations in `core/` and `ui/`                                |
 | `generate`      | xcodegen                             | 2    | Validates `apps/*/project.yml` parses and produces a project                             |
-| `test`          | `swift test`                         | 1    | Unit tests for `core/` and `ui/` packages                                                |
+| `test`          | `swift test`                         | 1    | Unit tests for `test-support/`, `core/`, and `ui/` packages                              |
 
 **Dead-code scan** (`periphery`): `--retain-public` is set so public API is not flagged while the
 generated iOS/iPadOS shell is outside the package scan and Android UI integration remains future
@@ -40,10 +41,13 @@ locally and in CI; imports of external modules that Periphery cannot index have 
 analyzer.
 
 CI runs pinned SwiftFormat and SwiftLint containers on Linux, while the macOS runner image owns
-Periphery installation and native compiler checks. The local harness uses `vouchington-tooling`'s
-`with-host-lock` primitive for compiler-heavy commands, so Core, UI, Periphery, and Android builds
-share the same per-user lock without copying a Filaments CI helper. The local harness can run
-`fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
+Periphery installation and native compiler checks. Linux owns portable core and `test-support`
+tests. macOS still runs the full core suite so Darwin `URLSession`, Security/Keychain, core LCOV,
+and Swift DTO parity are exercised; those jobs compile different stacks. See
+[native CI test placement](../docs/development/native-ci-test-placement.md). The local harness uses
+`vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
+Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
+The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
 
 Each package's `Package.resolved` is its canonical SwiftPM lock; the generated app projects consume
 the UI lock. Build, test, and dead-code checks require pinned versions. To update dependencies
@@ -81,8 +85,9 @@ planner result. The Core and UI LCOV reports are checked with `pnpm run coverage
 `.coverage-rules.yml` keeps app shells, package manifests, and opt-in integration tests exempt
 while requiring 90% patch coverage for all other Swift sources.
 
-`build`, `periphery`, and `test` are macOS-only until the packages are Linux-portable.
-`build-android` is Linux-only and exists as a local opt-in compile gate for Android-via-Swift.
+`build/ui`, `periphery`, and `test/ui` are macOS-only until the UI package is Linux-portable.
+`build/core`, `test/core`, and `test/test-support` run on Linux. `build-android` is Linux-only and
+exists as a local opt-in compile gate for Android-via-Swift.
 
 On a failure, the harness preserves its normal live combined output, then appends an execution-
 ordered `failed checks:` table with the check name, classification, original exit status, integer
@@ -101,8 +106,8 @@ the exact `expensive-build` wrapper marker and matching exit status; every other
   render loop. Only mutate state in response to user events or via bindings passed to child views.
 - **macOS-vs-Linux portability**: `mktemp` behaves differently on Linux. The harness uses an explicit
   `$AST_GREP_BIN` when supplied; otherwise it uses only the repo-local
-  `node_modules/@ast-grep/cli/ast-grep` binary. The `test` check is also Darwin-only: `test/core` and `test/ui` are skipped
-  on Linux. Test CI jobs run on Linux; confirm shell recipes work there before relying on them
+  `node_modules/@ast-grep/cli/ast-grep` binary. The `test/ui` check is Darwin-only. `test/core` and
+  `test/test-support` run on Linux. Confirm shell recipes work there before relying on them
   locally.
 - **Diagnosing an `xctest` crash (native SIGSEGV, not an assertion failure)**: `test-ui`'s CI job
   uploads failure-only `~/Library/Logs/DiagnosticReports/*.ips`/`*.crash` reports — see
