@@ -28,6 +28,17 @@ API-only jobs do not need checkout cleanup, but still use the appropriate self-h
 Native contract producers follow the same cleanup boundary because they handle trusted checkouts,
 generated artifacts, or provider tooling on persistent hosts.
 
+## Shared host tool isolation
+
+Multiple runner processes on one persistent host share `$HOME`. Jobs that install or execute host
+tooling must point that tooling at `$RUNNER_TEMP` so concurrent jobs do not write and exec the same
+binary. That race surfaces as Linux `ETXTBSY` when one job extracts or replaces a file another job
+is spawning.
+
+- .NET uses `DOTNET_INSTALL_DIR=$RUNNER_TEMP/voucha-dotnet-sdk`.
+- mise uses `MISE_DATA_DIR=$RUNNER_TEMP/mise` and `mise_dir: ${{ runner.temp }}/mise` on
+  `jdx/mise-action`. Do not let mise-action default to `~/.local/share/mise`.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do

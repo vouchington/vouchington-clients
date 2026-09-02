@@ -1,16 +1,30 @@
 import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { describe, it } from 'node:test'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const workflowRoot = join(repositoryRoot, '.github/workflows')
+const githubRoot = join(repositoryRoot, '.github')
+const workflowRoot = join(githubRoot, 'workflows')
 
 async function readWorkflows() {
   const names = (await readdir(workflowRoot)).filter(name => name.endsWith('.yml')).sort()
   return Promise.all(
     names.map(async name => [name, await readFile(join(workflowRoot, name), 'utf8')]),
   )
+}
+
+async function readGithubYamlFiles(directory = githubRoot) {
+  const entries = await readdir(directory, { withFileTypes: true })
+  const files = await Promise.all(
+    entries.map(async entry => {
+      const fullPath = join(directory, entry.name)
+      if (entry.isDirectory()) return readGithubYamlFiles(fullPath)
+      if (!entry.name.endsWith('.yml') && !entry.name.endsWith('.yaml')) return []
+      return [[relative(repositoryRoot, fullPath), await readFile(fullPath, 'utf8')]]
+    }),
+  )
+  return files.flat()
 }
 
 function jobBlock(workflow, job) {
@@ -102,6 +116,31 @@ describe('private self-hosted runner policy', () => {
     assert.match(swiftManifest, /swift:6\.3\.3-noble@sha256:[0-9a-f]{64}/u)
     assert.match(swiftManifest, /swift package --package-path swift-clients\/core dump-package/u)
     assert.doesNotMatch(swiftManifest, /swift (?:build|test)/u)
+  })
+
+  it('isolates mise from the shared self-hosted home directory', async () => {
+    const files = await readGithubYamlFiles()
+    const miseFiles = files.filter(([, source]) => source.includes('jdx/mise-action@'))
+    assert.ok(miseFiles.length > 0, 'expected mise-action usages')
+    for (const [name, source] of miseFiles) {
+      const actionUsages = source.split('jdx/mise-action@').length - 1
+      assert.equal(
+        source.split('mise_dir: ${{ runner.temp }}/mise').length - 1,
+        actionUsages,
+        `${name} must point every mise-action at RUNNER_TEMP`,
+      )
+      assert.equal(
+        source.split('mise_root="$RUNNER_TEMP/mise"').length - 1,
+        actionUsages,
+        `${name} must isolate MISE_DATA_DIR once per mise-action`,
+      )
+      assert.match(source, /printf 'MISE_DATA_DIR=%s\\n' "\$mise_root" >> "\$GITHUB_ENV"/u)
+      assert.doesNotMatch(
+        source,
+        /~\/\.local\/share\/mise/u,
+        `${name} must not hardcode the host mise path`,
+      )
+    }
   })
 
   it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {
