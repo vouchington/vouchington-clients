@@ -13,6 +13,7 @@ import {
 } from 'auto-harness-client/actions'
 
 import { HARNESS_SESSION_ID } from './harness-shepherd-checkpoint.mjs'
+import { withSingleRetry } from './harness-dispatch-retry.mjs'
 
 export { HarnessDispatchError }
 
@@ -51,12 +52,14 @@ export async function dispatchHarnessSession(environment, fetchImplementation = 
         'HARNESS_RESUME_SESSION_ID contains unsupported characters',
       )
     }
-    const resumed = await client.resumeSession(resumeSessionId, {
-      concurrencyId,
-      priority,
-      prompt,
-      ...(timeout === undefined ? {} : { timeout }),
-    })
+    const resumed = await withSingleRetry(() =>
+      client.resumeSession(resumeSessionId, {
+        concurrencyId,
+        priority,
+        prompt,
+        ...(timeout === undefined ? {} : { timeout }),
+      }),
+    )
     const result = { created: resumed.created, id: resumed.id, url: resumed.url }
     writeOutputs(environment, result)
     return result
@@ -85,20 +88,22 @@ export async function dispatchHarnessSession(environment, fetchImplementation = 
     )
   }
 
-  const created = await client.createSession({
-    concurrencyId,
-    fallbacks,
-    metadata: parseMetadata(environment.HARNESS_METADATA),
-    priority,
-    prompt,
-    queueTtlSeconds,
-    ...(environment.HARNESS_REF?.trim() ? { ref: environment.HARNESS_REF.trim() } : {}),
-    repositoryId,
-    requiredLabels: parseRequiredLabels(environment.HARNESS_REQUIRED_LABELS),
-    source: 'webhook',
-    target,
-    timeout,
-  })
+  const created = await withSingleRetry(() =>
+    client.createSession({
+      concurrencyId,
+      fallbacks,
+      metadata: parseMetadata(environment.HARNESS_METADATA),
+      priority,
+      prompt,
+      queueTtlSeconds,
+      ...(environment.HARNESS_REF?.trim() ? { ref: environment.HARNESS_REF.trim() } : {}),
+      repositoryId,
+      requiredLabels: parseRequiredLabels(environment.HARNESS_REQUIRED_LABELS),
+      source: 'webhook',
+      target,
+      timeout,
+    }),
+  )
   const result = { created: created.created, id: created.id, url: created.url }
   writeOutputs(environment, result, created.created ? [target, ...fallbacks] : undefined)
   return result
