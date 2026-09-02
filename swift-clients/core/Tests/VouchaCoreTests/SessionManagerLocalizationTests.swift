@@ -57,7 +57,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
     }
 
     func testSignOutClearsCookiesAndSynchronizedLocaleWhenRequestFails() async throws {
-        let cookieStorage = SessionTestCookieStorage()
+        let cookieStorage = IsolatedHTTPCookieStorage.make()
         let sessionManager = makeSessionManager(cookieStorage: cookieStorage)
         try sessionManager.synchronize(with: identity(uiLocale: "pt"))
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
@@ -77,7 +77,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
     }
 
     private func makeSessionManager(
-        cookieStorage: HTTPCookieStorage = HTTPCookieStorage()
+        cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make()
     ) -> SessionManager {
         let client = APIClient(
             config: AppConfig(
@@ -115,27 +115,3 @@ private struct IdentityEnvelope: Decodable {
     let identity: PrivateUser
 }
 
-private final class SessionTestCookieStorage: HTTPCookieStorage, @unchecked Sendable {
-    private let lock = NSLock()
-    private var storedCookies: [HTTPCookie] = []
-
-    override var cookies: [HTTPCookie]? {
-        lock.withLock { storedCookies }
-    }
-
-    override func setCookie(_ cookie: HTTPCookie) {
-        lock.withLock {
-            storedCookies.append(cookie)
-        }
-    }
-
-    override func deleteCookie(_ cookie: HTTPCookie) {
-        lock.withLock {
-            storedCookies.removeAll { storedCookie in
-                storedCookie.name == cookie.name &&
-                    storedCookie.domain == cookie.domain &&
-                    storedCookie.path == cookie.path
-            }
-        }
-    }
-}

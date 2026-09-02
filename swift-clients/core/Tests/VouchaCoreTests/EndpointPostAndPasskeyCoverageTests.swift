@@ -46,6 +46,7 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual((data["items"] as? [Any])?.count, 2)
     }
 
+    #if canImport(AuthenticationServices)
     func testPasskeyAssertionResponseEncodesWebAuthnShape() throws {
         let response = PasskeyAuthenticationResponse(
             id: "credential-id",
@@ -87,6 +88,7 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual(endpoint.path, "/api/v1/auth/passkeys/authentication/verify")
         XCTAssertNotNil(body["response"])
     }
+    #endif
 
     func testCreateCommunityPostUsesCommunityRouteAndEncodesBody() throws {
         let endpoint = Endpoint.createCommunityPost(

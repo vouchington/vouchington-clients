@@ -73,7 +73,7 @@ describe('native contract workflow boundary', () => {
     ])
       assert.match(action, expectation)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 9)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
   })
 
   it('runs native .NET tests on the supported runner matrix with coverage and cleanup', async () => {
@@ -147,7 +147,9 @@ describe('native contract workflow boundary', () => {
     for (const job of [
       'periphery-swift-core:',
       'periphery-swift-ui:',
+      'test-swift-core-linux:',
       'test-swift-core:',
+      'test-swift-android:',
       'test-swift-ui:',
       'swift-patch-coverage:',
       'build-android-core:',
@@ -203,7 +205,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      9,
+      11,
     )
   })
 
@@ -222,15 +224,22 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-core',
       'periphery-swift-ui',
       'test-swift-core',
+      'test-swift-android',
       'test-swift-ui',
       'build-macos-app',
     ])
       assert.match(jobBlock(workflow, job), /runs-on: \[self-hosted, macOS, Tests\]/u)
+    for (const job of ['test-swift-core-linux', 'build-android-core'])
+      assert.match(jobBlock(workflow, job), /runs-on: \[self-hosted, Linux, Docker, Tests\]/u)
     assert.match(
-      jobBlock(workflow, 'build-android-core'),
-      /runs-on: \[self-hosted, Linux, Docker, Tests\]/u,
+      jobBlock(workflow, 'test-swift-core-linux'),
+      /swift test --package-path swift-clients\/core/u,
     )
-    assert.equal(workflow.split('clean: false').length - 1, 11)
+    assert.match(
+      jobBlock(workflow, 'test-swift-core-linux'),
+      /swift test --package-path swift-clients\/test-support/u,
+    )
+    assert.equal(workflow.split('clean: false').length - 1, 13)
   })
 
   it('runs Swift lint on Linux without compiling Swift', async () => {

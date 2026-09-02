@@ -107,7 +107,7 @@ private final class RoutingURLProtocol: URLProtocol {
 
 @MainActor
 final class SignInServiceTests: XCTestCase {
-    private var keyStore: AppAttestKeyStore!
+    private nonisolated(unsafe) var keyStore: AppAttestKeyStore!
 
     override func setUp() {
         super.setUp()
@@ -132,7 +132,7 @@ final class SignInServiceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [RoutingURLProtocol.self]
         )
         let attestationService = AppAttestationService(
@@ -142,7 +142,7 @@ final class SignInServiceTests: XCTestCase {
         )
         return SignInService(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
             appAttestationService: attestationService
         )
     }

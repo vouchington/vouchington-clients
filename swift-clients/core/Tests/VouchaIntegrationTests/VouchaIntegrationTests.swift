@@ -1,6 +1,9 @@
 import VouchaAPI
 import VouchaCore
 import XCTest
+#if !canImport(Darwin)
+    import FoundationNetworking
+#endif
 
 // MARK: - Response envelope for the RSS feed-item feed endpoint
 
@@ -49,7 +52,7 @@ final class VouchaIntegrationTests: XCTestCase {
         }
 
         let config = AppConfig.from(environment: env)
-        let cookieStorage = HTTPCookieStorage()
+        let cookieStorage = HTTPCookieStorage.shared
         if let deviceToken = env["VOUCHA_TEST_DT"],
            let sessionToken = env["VOUCHA_TEST_ST"],
            let url = URL(string: config.baseURL.absoluteString) {
@@ -65,7 +68,7 @@ final class VouchaIntegrationTests: XCTestCase {
                 makeCookie("dt", deviceToken),
                 makeCookie("st", sessionToken)
             ].compactMap { $0 }
-            cookieStorage.setCookies(cookies, for: url, mainDocumentURL: nil)
+            cookieStorage.setCookies(cookies, for: url, mainDocumentURL: Optional<URL>.none)
         }
         apiClient = APIClient(config: config, cookieStorage: cookieStorage)
     }

@@ -465,11 +465,43 @@ jobs:
         env: { PRESERVE_NODE_MODULES: 'false' }
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
 
+  test-swift-core-linux:
+    name: Swift core tests (Linux)
+    needs: verify
+    runs-on: [self-hosted, Linux, Docker, Tests]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { clean: false, persist-credentials: false }
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Test core and test-support packages
+        working-directory: candidate-clients
+        run: >-
+          bash swift-clients/tooling/with-build-lock.sh docker run --rm
+          --volume "$PWD:/workspace"
+          --volume "$VOUCHA_FILAMENTS_CONTRACT_ROOT:/contract:ro"
+          --tmpfs /tmp:rw,exec,mode=1777
+          --workdir /workspace --env HOME=/tmp --env TMPDIR=/tmp
+          --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract
+          swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
+          /bin/bash -c 'swift test --package-path swift-clients/test-support --force-resolved-versions
+          && swift test --package-path swift-clients/core --force-resolved-versions
+          --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
+      - name: Clean persistent runner workspace
+        if: always()
+        env: { PRESERVE_NODE_MODULES: 'false' }
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
   test-swift-core:
-    name: Swift core tests and Android Skip
+    name: Swift core tests
     needs: verify
     runs-on: [self-hosted, macOS, Tests]
-    timeout-minutes: 34
+    timeout-minutes: 22
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -487,6 +519,61 @@ jobs:
           bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
+      - name: Export deterministic core LCOV
+        working-directory: candidate-clients
+        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+      - name: Upload core LCOV
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/coverage/core/lcov.info
+          retention-days: 1
+          if-no-files-found: error
+      - name: Test Swift DTO fixture parity separately
+        id: swift-dto-fixture-parity
+        if: always()
+        continue-on-error: true
+        working-directory: candidate-clients
+        run: >-
+          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
+          --force-resolved-versions --disable-dependency-cache
+          --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
+      - name: Record Swift DTO fixture parity result
+        if: always()
+        working-directory: candidate-clients
+        env:
+          DTO_FIXTURE_PARITY_OUTCOME: ${{ steps.swift-dto-fixture-parity.outcome }}
+        run: printf '%s\n' "$DTO_FIXTURE_PARITY_OUTCOME" > dto-fixture-parity-swift.txt
+      - name: Upload Swift DTO fixture parity result
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: dto-fixture-parity-swift-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/dto-fixture-parity-swift.txt
+          retention-days: 1
+          if-no-files-found: error
+      - name: Clean persistent runner workspace
+        if: always()
+        env: { PRESERVE_NODE_MODULES: 'false' }
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+
+  test-swift-android:
+    name: Swift Android Skip
+    needs: verify
+    runs-on: [self-hosted, macOS, Tests]
+    timeout-minutes: 34
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { clean: false, persist-credentials: false }
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -577,40 +664,6 @@ jobs:
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           bash swift-clients/tooling/with-build-lock.sh bash swift-clients/apps/android/tooling/pre-push.sh
-      - name: Export deterministic core LCOV
-        working-directory: candidate-clients
-        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
-      - name: Upload core LCOV
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
-        with:
-          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
-          path: candidate-clients/coverage/core/lcov.info
-          retention-days: 1
-          if-no-files-found: error
-      - name: Test Swift DTO fixture parity separately
-        id: swift-dto-fixture-parity
-        if: always()
-        continue-on-error: true
-        working-directory: candidate-clients
-        run: >-
-          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
-          --force-resolved-versions --disable-dependency-cache
-          --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
-      - name: Record Swift DTO fixture parity result
-        if: always()
-        working-directory: candidate-clients
-        env:
-          DTO_FIXTURE_PARITY_OUTCOME: ${{ steps.swift-dto-fixture-parity.outcome }}
-        run: printf '%s\n' "$DTO_FIXTURE_PARITY_OUTCOME" > dto-fixture-parity-swift.txt
-      - name: Upload Swift DTO fixture parity result
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
-        with:
-          name: dto-fixture-parity-swift-${{ github.run_id }}-${{ github.run_attempt }}
-          path: candidate-clients/dto-fixture-parity-swift.txt
-          retention-days: 1
-          if-no-files-found: error
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: 'false' }
@@ -977,7 +1030,9 @@ jobs:
       - dotnet-portable
       - periphery-swift-core
       - periphery-swift-ui
+      - test-swift-core-linux
       - test-swift-core
+      - test-swift-android
       - test-swift-ui
       - swift-patch-coverage
       - build-android-core

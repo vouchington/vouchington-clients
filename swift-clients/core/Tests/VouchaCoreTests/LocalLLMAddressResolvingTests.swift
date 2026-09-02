@@ -52,7 +52,11 @@ private final class LoopbackListener {
     let port: Int
 
     init() throws {
-        let socketFD = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+        #if canImport(Darwin)
+            let socketFD = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+        #else
+            let socketFD = socket(AF_INET, Int32(SOCK_STREAM.rawValue), Int32(IPPROTO_TCP))
+        #endif
         guard socketFD >= 0 else { throw POSIXError(.EPERM) }
         var reuse: Int32 = 1
         _ = setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))

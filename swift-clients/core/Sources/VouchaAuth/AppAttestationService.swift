@@ -1,9 +1,6 @@
+import Crypto
 import Foundation
 import VouchaAPI
-
-#if canImport(CryptoKit)
-    import CryptoKit
-#endif
 
 private struct AppAttestChallengeResponse: Decodable {
     let challengeId: String
@@ -36,16 +33,8 @@ private actor AppAttestationKeyCoordinator {
     }
 }
 
-/// Non-Darwin fallback (Linux CI, non-Darwin test hosts) where `CryptoKit` is unavailable. App
-/// Attest itself never runs on these platforms — `AppAttestationService.makeDefault` only returns
-/// a working instance under `#if canImport(DeviceCheck)`, which implies CryptoKit availability —
-/// so this exists solely to keep `AppAttestationService` compiling wherever `VouchaAuth` builds.
 private func sha256(_ data: Data) -> Data {
-    #if canImport(CryptoKit)
-        return Data(SHA256.hash(data: data))
-    #else
-        preconditionFailure("App Attest requires CryptoKit, which is unavailable on this platform")
-    #endif
+    Data(SHA256.hash(data: data))
 }
 
 /// Hardware-backed device identity via Apple App Attest. On supported devices this lets protected

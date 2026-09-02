@@ -239,13 +239,12 @@ fi
 
 # ── build: swift build ────────────────────────────────────────────────────────
 if contains build; then
+  run_check "build/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "build/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/core" --force-resolved-versions
     run_check "build/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
-    echo "  build/core   - (skipped: macOS only; packages are not Linux-portable yet)"
-    echo "  build/ui     - (skipped: macOS only; packages are not Linux-portable yet)"
-    SKIPPED=$((SKIPPED + 2))
+    echo "  build/ui     - (skipped: macOS only; UI package is not Linux-portable yet)"
+    SKIPPED=$((SKIPPED + 1))
   fi
 fi
 
@@ -287,13 +286,13 @@ fi
 
 # ── test: swift test ─────────────────────────────────────────────────────────
 if contains test; then
+  run_check "test/test-support" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/test-support" --force-resolved-versions
+  run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/core" --force-resolved-versions
     run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
-    echo "  test/core    - (skipped: macOS only; Linux requires FoundationNetworking which is not linked)"
     echo "  test/ui      - (skipped — macOS only)"
-    SKIPPED=$((SKIPPED + 2))
+    SKIPPED=$((SKIPPED + 1))
   fi
 fi
 

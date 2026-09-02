@@ -354,12 +354,12 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [OAuthCoordinatorURLProtocol.self],
             bootstrapSession: false
         )
         let store = NativeOAuthAuthorizationStore(defaults: defaults)
-        let sessionManager = SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+        let sessionManager = SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make())
         return CoordinatorFixture(
             coordinator: NativeOAuthAuthorizationCoordinator(
                 client: client,

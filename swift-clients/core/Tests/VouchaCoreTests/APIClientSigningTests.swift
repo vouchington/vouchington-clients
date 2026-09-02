@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 @testable import VouchaAPI
 @testable import VouchaAuth
@@ -42,7 +42,7 @@ final class APIClientSigningTests: XCTestCase {
     private func makeClient(signer: (any RequestSigning)? = nil) -> APIClient {
         APIClient(
             config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key"),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [CapturingURLProtocol.self],
             signer: signer
         )
@@ -109,7 +109,7 @@ final class APIClientSigningTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [protocolClass]
         )
 

@@ -37,7 +37,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
         XCTAssertFalse(fixture.coordinator.canRecoverFailedFinalization)
     }
 
-    func testFailedRecordDoesNotPublishOrReplacePendingState() throws {
+    func testFailedRecordDoesNotPublishOrReplacePendingState() async throws {
         let fixture = try makeFixture()
         try seedPending(fixture.store, now: fixture.initialNow)
         fixture.persistence.failNextWrite = true
@@ -62,7 +62,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
         XCTAssertEqual(changeCount, 1)
     }
 
-    func testColdStartExpirationWriteFailureExposesAuthorizationForCancellation() throws {
+    func testColdStartExpirationWriteFailureExposesAuthorizationForCancellation() async throws {
         let persistence = ExpirationOAuthSecureState()
         let fixture = try makeFixture(persistence: persistence) { store, now in
             XCTAssertTrue(store.save(
@@ -106,12 +106,12 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             bootstrapSession: false
         )
         let coordinator = NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
             store: store,
             now: { clock.now() }
         )
@@ -136,7 +136,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             bootstrapSession: false
         )
         let store = NativeOAuthAuthorizationStore(secureState: persistence)
@@ -145,7 +145,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
         return ExpirationFixture(
             coordinator: NativeOAuthAuthorizationCoordinator(
                 client: client,
-                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+                sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
                 store: store,
                 now: { clock.now }
             ),

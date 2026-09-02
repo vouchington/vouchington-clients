@@ -279,7 +279,7 @@ final class ChatSSEReaderTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [EventStreamURLProtocol.self],
             metadata: ClientMetadata(platform: .ios, appVersion: "2.3.4", sdkVersion: "1.2.0")
         )
@@ -306,7 +306,7 @@ final class ChatSSEReaderTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [EventStreamURLProtocol.self]
         )
 
@@ -331,7 +331,7 @@ final class ChatSSEReaderTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [EventStreamURLProtocol.self]
         )
 

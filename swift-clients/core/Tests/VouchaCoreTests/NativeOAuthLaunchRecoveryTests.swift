@@ -52,7 +52,7 @@ final class NativeOAuthLaunchRecoveryTests: XCTestCase {
         store: NativeOAuthAuthorizationStore,
         now: Date
     ) throws -> NativeOAuthAuthorizationCoordinator {
-        let cookies = HTTPCookieStorage()
+        let cookies = IsolatedHTTPCookieStorage.make()
         let client = try APIClient(
             config: AppConfig(
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),

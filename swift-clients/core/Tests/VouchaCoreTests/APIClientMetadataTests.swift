@@ -15,7 +15,7 @@ final class APIClientMetadataTests: XCTestCase {
     }
 
     private func makeCookieStorage() -> HTTPCookieStorage {
-        InMemoryCookieStorage()
+        IsolatedHTTPCookieStorage.make()
     }
 
     private func makeCookie(
@@ -158,8 +158,9 @@ final class APIClientMetadataTests: XCTestCase {
         XCTAssertEqual(SessionBootstrapURLProtocol.requestedPaths.filter { $0 == "/api/v1/session" }.count, 1)
     }
 
+    #if canImport(Darwin)
     func testInMemoryCookieStorageMatchesSecureDomainAndPath() throws {
-        let cookieStorage = makeCookieStorage()
+        let cookieStorage = InMemoryCookieStorage()
         let cookie = try makeCookie(
             name: "dt",
             value: "device-token",
@@ -178,8 +179,10 @@ final class APIClientMetadataTests: XCTestCase {
         XCTAssertEqual(cookieStorage.cookies(for: exactPathURL)?.first?.value, "device-token")
         XCTAssertTrue(cookieStorage.cookies(for: insecureURL)?.isEmpty ?? true)
     }
+    #endif
 }
 
+#if canImport(Darwin)
 private final class InMemoryCookieStorage: HTTPCookieStorage, @unchecked Sendable {
     private let lock = NSLock()
     private var storedCookies: [HTTPCookie] = []
@@ -236,6 +239,7 @@ private extension HTTPCookie {
         return host == domain
     }
 }
+#endif
 
 private final class SessionBootstrapURLProtocol: URLProtocol {
     static var requestedPaths: [String] = []

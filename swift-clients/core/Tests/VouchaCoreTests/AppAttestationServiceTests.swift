@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 @testable import VouchaAPI
 @testable import VouchaAuth
@@ -117,7 +117,7 @@ final class AppAttestationServiceTests: XCTestCase {
                 baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                 turnstileSiteKey: "test-site-key"
             ),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: IsolatedHTTPCookieStorage.make(),
             protocolClasses: [CapturingURLProtocol.self]
         )
         return AppAttestationService(client: client, provider: provider, keyStore: keyStore)
@@ -134,7 +134,7 @@ final class AppAttestationServiceTests: XCTestCase {
     func testMakeDefaultDisablesAppAttestForUITestingEnvironment() throws {
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://ui-testing.voucha.invalid"))),
-            cookieStorage: HTTPCookieStorage()
+            cookieStorage: IsolatedHTTPCookieStorage.make()
         )
 
         XCTAssertNil(AppAttestationService.makeDefault(
