@@ -79,7 +79,12 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
             let response = PasskeyAuthenticationResponse(
                 id: "credential-id",
                 rawId: "credential-id",
-                response: .init(authenticatorData: "auth", clientDataJSON: "client", signature: "sig", userHandle: "user")
+                response: .init(
+                    authenticatorData: "auth",
+                    clientDataJSON: "client",
+                    signature: "sig",
+                    userHandle: "user"
+                )
             )
             let endpoint = Endpoint.passkeyAuthVerify(response: response)
             let body = try encodedJSONObject(from: XCTUnwrap(endpoint.body))

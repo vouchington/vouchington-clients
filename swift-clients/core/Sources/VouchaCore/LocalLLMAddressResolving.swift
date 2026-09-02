@@ -166,19 +166,15 @@ struct SystemLocalLLMConnectProbe: LocalLLMConnectProbing {
 
 private enum DarwinOrGlibc {
     static var streamSocketType: Int32 {
-        #if canImport(Darwin)
-            SOCK_STREAM
-        #else
+        #if canImport(Glibc) || canImport(Musl)
             Int32(SOCK_STREAM.rawValue)
+        #else
+            SOCK_STREAM
         #endif
     }
 
     static var tcpProtocol: Int32 {
-        #if canImport(Darwin)
-            IPPROTO_TCP
-        #else
-            Int32(IPPROTO_TCP)
-        #endif
+        Int32(IPPROTO_TCP)
     }
 
     static func connect(

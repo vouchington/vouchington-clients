@@ -493,9 +493,9 @@ jobs:
           --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract
           swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
           /bin/bash -c 'swift test --package-path swift-clients/test-support --force-resolved-versions
-          --build-path /tmp/voucha-test-support-build
+          --build-path /tmp/voucha-test-support-build --no-parallel
           && swift test --package-path swift-clients/core --force-resolved-versions
-          --build-path /tmp/voucha-core-build
+          --build-path /tmp/voucha-core-build --no-parallel
           --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
       - name: Clean persistent runner workspace
         if: always()
