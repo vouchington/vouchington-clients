@@ -1,0 +1,11 @@
+name: Scratch concurrent pressure repro source
+on:
+  push:
+    branches:
+      - 'scratch-concurrent-pressure-repro-fire-*'
+
+jobs:
+  noop:
+    runs-on: ubuntu-slim
+    steps:
+      - run: echo "source fired on ${{ github.ref_name }}"
