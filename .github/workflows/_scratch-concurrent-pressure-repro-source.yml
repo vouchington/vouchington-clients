@@ -6,7 +6,7 @@ on:
 
 jobs:
   noop:
-    runs-on: ubuntu-slim
+    runs-on: [self-hosted, Linux]
     steps:
       - env:
           REF_NAME: ${{ github.ref_name }}
