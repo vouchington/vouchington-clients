@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - scratch-repro8-fire
+  workflow_dispatch: {}
 
 concurrency:
   group: scratch-repro8-caller-${{ github.ref }}
