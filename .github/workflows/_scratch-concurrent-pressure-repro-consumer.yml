@@ -16,4 +16,6 @@ jobs:
       queue: max
       cancel-in-progress: false
     steps:
-      - run: echo "concurrent pressure repro ran on ${{ github.event.workflow_run.head_branch }} at $(date -u +%s)"
+      - env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: echo "concurrent pressure repro ran on $HEAD_BRANCH at $(date -u +%s)"
