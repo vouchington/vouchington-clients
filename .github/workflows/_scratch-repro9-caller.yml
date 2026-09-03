@@ -1,0 +1,72 @@
+name: Scratch repro9 caller
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: scratch-repro9-caller-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Validate /plan trigger (scratch stand-in)
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: harness-dispatch-fleet-admission
+      queue: max
+      cancel-in-progress: false
+    outputs:
+      accepted: ${{ steps.stand-in.outputs.accepted }}
+      plan_request: ${{ steps.stand-in.outputs.plan_request }}
+    steps:
+      - id: stand-in
+        run: |
+          set -euo pipefail
+          echo "accepted=true" >> "$GITHUB_OUTPUT"
+          echo "plan_request=scratch repro9 request" >> "$GITHUB_OUTPUT"
+
+  render-prompt:
+    name: Render automation prompt (scratch stand-in)
+    needs: [gate]
+    if: needs.gate.outputs.accepted == 'true'
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 5
+    concurrency:
+      group: harness-dispatch-fleet-admission
+      queue: max
+      cancel-in-progress: false
+    outputs:
+      prompt: ${{ steps.render.outputs.prompt }}
+    steps:
+      - id: render
+        run: |
+          set -euo pipefail
+          echo "prompt=scratch repro9 prompt" >> "$GITHUB_OUTPUT"
+
+  dispatch:
+    name: Harness dispatch
+    needs: [gate, render-prompt]
+    if: needs.gate.outputs.accepted == 'true'
+    uses: ./.github/workflows/_scratch-repro9-callee.yml
+    permissions:
+      contents: read
+    secrets:
+      HARNESS_API_KEY: ${{ secrets.HARNESS_API_KEY }}
+    with:
+      surface-gate: HARNESS_PLAN_ENABLED
+      agent-ref: ${{ github.sha }}
+      expected-head-sha: ${{ github.sha }}
+      concurrency-id: vouchington-clients:scratch-repro9:${{ github.run_id }}
+      completion-mode: issue-comment
+      issue-number: ${{ github.event.issue.number }}
+      trigger-comment-id: ${{ github.event.comment.id }}
+      slack-source: |
+        *Source:* scratch repro9 (issue #107 investigation)
+      prompt: ${{ needs.render-prompt.outputs.prompt }}
