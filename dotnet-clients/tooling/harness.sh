@@ -83,6 +83,48 @@ contains() {
   return 1
 }
 
+print_dotnet_install_policy() {
+  echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
+}
+
+resolve_dotnet_host_path() {
+  local host="$1"
+  local host_name host_parent host_dir
+  host_name="${host##*/}"
+  host_parent="${host%/*}"
+  [[ "$host_parent" == "$host" ]] && host_parent='.'
+  host_dir="$(cd -P -- "$host_parent" && pwd)" || return 1
+  printf '%s\n' "$host_dir/$host_name"
+}
+
+is_executable_file() {
+  [[ -f "$1" && -x "$1" ]]
+}
+
+append_preflight_replay() {
+  local host="$1"
+  local status="$2"
+  local output_file="$3"
+  local log_file="$4"
+  local last_byte
+
+  {
+    printf 'dotnet host: %s (exit %s)\n' "$host" "$status"
+    cat "$output_file"
+    if [[ -s "$output_file" ]]; then
+      last_byte="$(tail -c 1 "$output_file" | od -An -t x1)"
+      [[ "$last_byte" == *0a* ]] || printf '\n'
+    fi
+  } >>"$log_file"
+}
+
+is_homebrew_dotnet_host() {
+  case "$1" in
+    /opt/homebrew/* | /usr/local/Homebrew/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 DOTNET_HOST=''
 needs_dotnet=false
 if [[ "$MODE" == 'exec' ]] || contains restore || contains fmt || contains resx-path || contains build; then
@@ -90,36 +132,87 @@ if [[ "$MODE" == 'exec' ]] || contains restore || contains fmt || contains resx-
 fi
 
 if [[ "$needs_dotnet" == true ]]; then
-  DOTNET_HOST="$(type -P dotnet 2>/dev/null || true)"
-  if [[ -z "$DOTNET_HOST" ]]; then
+  requested_dotnet_root="${DOTNET_ROOT:-}"
+  path_dotnet="$(type -P dotnet 2>/dev/null || true)"
+  candidates=()
+  seen_hosts='|'
+
+  add_dotnet_candidate() {
+    local raw="$1"
+    local resolved
+    is_executable_file "$raw" || return 0
+    resolved="$(resolve_dotnet_host_path "$raw")" || return 0
+    is_executable_file "$resolved" || return 0
+    case "$seen_hosts" in
+      *"|$resolved|"*) return 0 ;;
+    esac
+    seen_hosts+="$resolved|"
+    candidates+=("$resolved")
+  }
+
+  if [[ -n "$path_dotnet" ]]; then
+    add_dotnet_candidate "$path_dotnet"
+  fi
+  if [[ -z "${GITHUB_ACTIONS:-}" ]]; then
+    if [[ -n "$requested_dotnet_root" ]]; then
+      add_dotnet_candidate "${requested_dotnet_root%/}/dotnet"
+    fi
+    if [[ -n "${HOME:-}" ]]; then
+      add_dotnet_candidate "$HOME/.dotnet/dotnet"
+    fi
+  fi
+
+  if [[ ${#candidates[@]} -eq 0 ]]; then
     echo 'Error: dotnet was not found on PATH.' >&2
-    echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
+    print_dotnet_install_policy
     exit 127
   fi
-  dotnet_host_name="${DOTNET_HOST##*/}"
-  dotnet_host_parent="${DOTNET_HOST%/*}"
-  [[ "$dotnet_host_parent" == "$DOTNET_HOST" ]] && dotnet_host_parent='.'
-  dotnet_host_dir="$(cd -P -- "$dotnet_host_parent" && pwd)"
-  DOTNET_HOST="$dotnet_host_dir/$dotnet_host_name"
 
   preflight_output="$(mktemp "${TMPDIR:-/tmp}/voucha-dotnet-preflight.XXXXXX")" || {
     echo 'Error: cannot create .NET SDK preflight output file' >&2
     exit 2
   }
-  if (cd "$ROOT_DIR" && "$DOTNET_HOST" --version) >"$preflight_output" 2>&1; then
+  preflight_log="$(mktemp "${TMPDIR:-/tmp}/voucha-dotnet-preflight-log.XXXXXX")" || {
     rm -f -- "$preflight_output"
-  else
-    preflight_status=$?
-    cat "$preflight_output"
-    if [[ -s "$preflight_output" ]]; then
-      last_byte="$(tail -c 1 "$preflight_output" | od -An -t x1)"
-      [[ "$last_byte" == *0a* ]] || printf '\n'
+    echo 'Error: cannot create .NET SDK preflight log file' >&2
+    exit 2
+  }
+  selected_host=''
+  last_preflight_status=0
+  homebrew_failed=false
+  for candidate in "${candidates[@]}"; do
+    if (cd "$ROOT_DIR" && "$candidate" --version) >"$preflight_output" 2>&1; then
+      selected_host="$candidate"
+      break
+    else
+      last_preflight_status=$?
+      append_preflight_replay "$candidate" "$last_preflight_status" "$preflight_output" "$preflight_log"
+      if is_homebrew_dotnet_host "$candidate"; then
+        homebrew_failed=true
+      fi
     fi
-    rm -f -- "$preflight_output"
+  done
+  rm -f -- "$preflight_output"
+
+  if [[ -z "$selected_host" ]]; then
+    cat "$preflight_log"
+    rm -f -- "$preflight_log"
     echo 'The PATH-selected dotnet host cannot satisfy the repository root global.json policy.' >&2
-    echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
-    exit "$preflight_status"
+    print_dotnet_install_policy
+    if [[ "$homebrew_failed" == true ]]; then
+      echo "Homebrew's dotnet host only sees SDKs registered in its own install; it cannot use $HOME/.dotnet." >&2
+    fi
+    if [[ "$last_preflight_status" -eq 0 ]]; then
+      last_preflight_status=1
+    fi
+    exit "$last_preflight_status"
   fi
+  rm -f -- "$preflight_log"
+
+  DOTNET_HOST="$selected_host"
+  dotnet_host_dir="${DOTNET_HOST%/*}"
+  export DOTNET_HOST
+  export DOTNET_ROOT="$dotnet_host_dir"
   export PATH="$dotnet_host_dir:$PATH"
 fi
 
