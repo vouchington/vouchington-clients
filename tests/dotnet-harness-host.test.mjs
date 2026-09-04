@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -10,21 +10,23 @@ import test from 'node:test'
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const harnessPath = join(repositoryRoot, 'dotnet-clients/tooling/harness.sh')
+const harnessTools = ['cat', 'env', 'mktemp', 'od', 'rm', 'tail', 'tr', 'whoami']
 
 async function writeExecutable(path, contents) {
   await writeFile(path, contents)
   await chmod(path, 0o755)
 }
 
-function pathWithoutDotnet(leadingDirectories) {
-  const inherited = (process.env.PATH || '')
-    .split(':')
-    .filter(Boolean)
-    .filter(
-      directory =>
-        !existsSync(join(directory, 'dotnet')) && !existsSync(join(directory, 'dotnet.exe')),
-    )
-  return [...leadingDirectories, ...inherited].join(':')
+async function isolatedPath(t, leadingDirectories) {
+  const tools = await mkdtemp(join(tmpdir(), 'voucha-dotnet-tools-'))
+  t.after(() => rm(tools, { recursive: true, force: true }))
+  for (const name of harnessTools) {
+    const source = ['/usr/bin', '/bin']
+      .map(directory => join(directory, name))
+      .find(candidate => existsSync(candidate))
+    if (source) await symlink(source, join(tools, name))
+  }
+  return [...leadingDirectories, tools].join(':')
 }
 
 function baseEnvironment() {
@@ -50,7 +52,7 @@ async function writeDotnetStub(directory, { status, message }) {
 
 async function invokeHarness(environment) {
   return execFileAsync(
-    'bash',
+    '/bin/bash',
     [harnessPath, '--exec', '/bin/bash', '-c', 'printf \'%s\\n\' "$DOTNET_HOST" "$DOTNET_ROOT"'],
     {
       cwd: repositoryRoot,
@@ -74,7 +76,7 @@ test('uses the first PATH host when it satisfies global.json', async t => {
   const result = await invokeHarness({
     ...baseEnvironment(),
     HOME: join(root, 'home'),
-    PATH: pathWithoutDotnet([join(root, 'path-bin')]),
+    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [pathHost, dirname(pathHost)])
   assert.notEqual(result.stdout.trim().split('\n')[0], fallbackHost)
@@ -94,7 +96,7 @@ test('falls back to the Microsoft user-local host when PATH-first fails locally'
   const result = await invokeHarness({
     ...baseEnvironment(),
     HOME: join(root, 'home'),
-    PATH: pathWithoutDotnet([join(root, 'path-bin')]),
+    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [fallbackHost, dirname(fallbackHost)])
 })
@@ -110,6 +112,7 @@ test('does not search HOME/.dotnet when GITHUB_ACTIONS is set', async t => {
     status: 0,
     message: '10.0.301',
   })
+  const path = await isolatedPath(t, [join(root, 'path-bin')])
   await assert.rejects(
     () =>
       invokeHarness({
@@ -117,7 +120,7 @@ test('does not search HOME/.dotnet when GITHUB_ACTIONS is set', async t => {
         DOTNET_ROOT: join(root, 'home/.dotnet'),
         GITHUB_ACTIONS: 'true',
         HOME: join(root, 'home'),
-        PATH: pathWithoutDotnet([join(root, 'path-bin')]),
+        PATH: path,
       }),
     error => {
       assert.equal(error.code, 155)
@@ -151,7 +154,7 @@ test('prefers an explicit DOTNET_ROOT host over HOME/.dotnet locally', async t =
     ...baseEnvironment(),
     DOTNET_ROOT: join(root, 'explicit-root'),
     HOME: join(root, 'home'),
-    PATH: pathWithoutDotnet([join(root, 'path-bin')]),
+    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [rootHost, dirname(rootHost)])
   assert.notEqual(result.stdout.trim().split('\n')[0], homeHost)
@@ -168,7 +171,7 @@ test('falls back to HOME/.dotnet when PATH has no dotnet host', async t => {
   const result = await invokeHarness({
     ...baseEnvironment(),
     HOME: join(root, 'home'),
-    PATH: pathWithoutDotnet([join(root, 'empty-bin')]),
+    PATH: await isolatedPath(t, [join(root, 'empty-bin')]),
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [fallbackHost, dirname(fallbackHost)])
 })
@@ -178,12 +181,13 @@ test('exits 127 when no PATH host or local fallback exists', async t => {
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, 'empty-bin'), { recursive: true })
   await mkdir(join(root, 'home'), { recursive: true })
+  const path = await isolatedPath(t, [join(root, 'empty-bin')])
   await assert.rejects(
     () =>
       invokeHarness({
         ...baseEnvironment(),
         HOME: join(root, 'home'),
-        PATH: pathWithoutDotnet([join(root, 'empty-bin')]),
+        PATH: path,
       }),
     error => {
       assert.equal(error.code, 127)
@@ -204,12 +208,13 @@ test('replays every failed candidate host path before giving up', async t => {
     status: 155,
     message: 'HOME host cannot satisfy global.json',
   })
+  const path = await isolatedPath(t, [join(root, 'path-bin')])
   await assert.rejects(
     () =>
       invokeHarness({
         ...baseEnvironment(),
         HOME: join(root, 'home'),
-        PATH: pathWithoutDotnet([join(root, 'path-bin')]),
+        PATH: path,
       }),
     error => {
       assert.equal(error.code, 155)
