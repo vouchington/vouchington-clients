@@ -1,6 +1,7 @@
 import SwiftUI
 import VouchaDesignSystem
 import VouchaLocalization
+import VouchaModels
 
 extension RSSFeedListView {
     var loadedListView: some View {
@@ -92,5 +93,23 @@ extension RSSFeedListView {
             .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
+    }
+}
+
+private extension RSSFeedListView {
+    func shouldShowPlaybackAccessory(for item: RssFeedItem) -> Bool {
+        guard case .embedOnlyVideo = item.playbackKind else {
+            return true
+        }
+        return viewModel.embedsByItemId[item.id]?.approvedPlayerWithSource == nil
+    }
+
+    var admissionErrorMessageKey: UiMessageKey? {
+        guard case let .error(.api(_, code)) = viewModel.state else { return nil }
+        return NativeContributionAdmissionPresentation.messageKey(code)
+    }
+
+    var showsPlaybackAccessory: Bool {
+        viewModel.contentType != .news
     }
 }

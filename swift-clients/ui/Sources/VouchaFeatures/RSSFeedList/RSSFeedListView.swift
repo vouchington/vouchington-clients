@@ -74,22 +74,6 @@ public struct RSSFeedListView: View {
 }
 
 private extension RSSFeedListView {
-    func shouldShowPlaybackAccessory(for item: RssFeedItem) -> Bool {
-        guard case .embedOnlyVideo = item.playbackKind else {
-            return true
-        }
-        return viewModel.embedsByItemId[item.id]?.approvedPlayerWithSource == nil
-    }
-
-    var admissionErrorMessageKey: UiMessageKey? {
-        guard case let .error(.api(_, code)) = viewModel.state else { return nil }
-        return NativeContributionAdmissionPresentation.messageKey(code)
-    }
-
-    var showsPlaybackAccessory: Bool {
-        viewModel.contentType != .news
-    }
-
     var navigationTitle: UiMessageKey {
         switch viewModel.contentType {
         case .news: .nativeSwiftNavigationTitlesNews
