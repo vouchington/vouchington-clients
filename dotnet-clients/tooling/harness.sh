@@ -89,12 +89,23 @@ print_dotnet_install_policy() {
 
 resolve_dotnet_host_path() {
   local host="$1"
+  local resolved=''
   local host_name host_parent host_dir
-  host_name="${host##*/}"
-  host_parent="${host%/*}"
-  [[ "$host_parent" == "$host" ]] && host_parent='.'
-  host_dir="$(cd -P -- "$host_parent" && pwd)" || return 1
-  printf '%s\n' "$host_dir/$host_name"
+  if command -v realpath >/dev/null 2>&1; then
+    resolved="$(realpath "$host" 2>/dev/null)" || resolved=''
+  fi
+  if [[ -z "$resolved" ]] && command -v python3 >/dev/null 2>&1; then
+    resolved="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$host")" || resolved=''
+  fi
+  if [[ -z "$resolved" ]]; then
+    host_name="${host##*/}"
+    host_parent="${host%/*}"
+    [[ "$host_parent" == "$host" ]] && host_parent='.'
+    host_dir="$(cd -P -- "$host_parent" && pwd)" || return 1
+    resolved="$host_dir/$host_name"
+  fi
+  is_executable_file "$resolved" || return 1
+  printf '%s\n' "$resolved"
 }
 
 is_executable_file() {

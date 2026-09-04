@@ -10,7 +10,18 @@ import test from 'node:test'
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const harnessPath = join(repositoryRoot, 'dotnet-clients/tooling/harness.sh')
-const harnessTools = ['cat', 'env', 'mktemp', 'od', 'rm', 'tail', 'tr', 'whoami']
+const harnessTools = [
+  'cat',
+  'dirname',
+  'env',
+  'mktemp',
+  'od',
+  'realpath',
+  'rm',
+  'tail',
+  'tr',
+  'whoami',
+]
 
 async function writeExecutable(path, contents) {
   await writeFile(path, contents)
@@ -80,6 +91,23 @@ test('uses the first PATH host when it satisfies global.json', async t => {
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [pathHost, dirname(pathHost)])
   assert.notEqual(result.stdout.trim().split('\n')[0], fallbackHost)
+})
+
+test('binds DOTNET_ROOT to the resolved install when PATH host is a symlink', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-symlink-host-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const realHost = await writeDotnetStub(join(root, 'real-install'), {
+    status: 0,
+    message: '10.0.301',
+  })
+  await mkdir(join(root, 'path-bin'), { recursive: true })
+  await symlink(realHost, join(root, 'path-bin/dotnet'))
+  const result = await invokeHarness({
+    ...baseEnvironment(),
+    HOME: join(root, 'home'),
+    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
+  })
+  assert.deepEqual(result.stdout.trim().split('\n'), [realHost, dirname(realHost)])
 })
 
 test('falls back to the Microsoft user-local host when PATH-first fails locally', async t => {
