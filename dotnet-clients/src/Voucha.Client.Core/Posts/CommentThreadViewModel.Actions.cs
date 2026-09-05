@@ -49,7 +49,7 @@ public sealed partial class CommentThreadViewModel
     await ReloadAsync(cancellationToken).ConfigureAwait(true);
   }
 
-  public async Task ReplyAsync(
+  public async Task<bool> ReplyAsync(
       string parentPostId,
       string markdown,
       bool isAnonymous = false,
@@ -86,15 +86,21 @@ public sealed partial class CommentThreadViewModel
       {
         await ReloadAsync(cancellationToken).ConfigureAwait(true);
       }
+      return created;
     }
     catch (VouchaApiException ex) when (ex.ErrorCode is "CONTRIBUTION_ADMISSION_IN_PROGRESS" or "IDEMPOTENCY_KEY_REUSED" or "CONTRIBUTION_QUOTA_EXCEEDED")
     {
+      if (ex.ErrorCode == "IDEMPOTENCY_KEY_REUSED")
+      {
+        contributionIdentity.Abandon(commentScope, canonicalIntent);
+      }
       ErrorMessage = ex.ErrorCode switch
       {
         "CONTRIBUTION_ADMISSION_IN_PROGRESS" => localization.Localize(UiMessageKey.NativeTaxonomyContributionAdmissionInProgress),
         "IDEMPOTENCY_KEY_REUSED" => localization.Localize(UiMessageKey.NativeTaxonomyContributionAdmissionIdempotencyMismatch),
         _ => localization.Localize(UiMessageKey.NativeTaxonomyContributionAdmissionCapacityUnavailable),
       };
+      return false;
     }
   }
 

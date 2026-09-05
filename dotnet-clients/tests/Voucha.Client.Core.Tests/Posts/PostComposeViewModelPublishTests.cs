@@ -183,6 +183,25 @@ public sealed class PostComposeViewModelPublishTests
   }
 
   [Fact]
+  public async Task PublishAsyncRotatesTheDraftKeyAfterAnIdempotencyReuseResponse()
+  {
+    var service = new KeyReuseThenSucceedPostsService();
+    var viewModel = new PostComposeViewModel(
+        service,
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true))
+    {
+      Title = "Title",
+      Markdown = "Draft",
+    };
+
+    Assert.False(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+
+    Assert.Equal(2, service.IdempotencyKeys.Count);
+    Assert.NotEqual(service.IdempotencyKeys[0], service.IdempotencyKeys[1]);
+  }
+
+  [Fact]
   public async Task PublishAsyncRotatesTheDraftKeyWhenTheCommunityDestinationChanges()
   {
     var service = new RecordingPostsService();
@@ -288,6 +307,27 @@ public sealed class PostComposeViewModelPublishTests
         return Task.FromException<PostMutationResponse>(new VouchaApiException(
             System.Net.HttpStatusCode.TooManyRequests,
             "{\"code\":\"CONTRIBUTION_QUOTA_EXCEEDED\"}"));
+      }
+      return base.CreatePostAsync(body, idempotencyKey, cancellationToken);
+    }
+  }
+
+  private sealed class KeyReuseThenSucceedPostsService : RecordingPostsService
+  {
+    private bool shouldFail = true;
+
+    public override Task<PostMutationResponse> CreatePostAsync(
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+      if (shouldFail)
+      {
+        shouldFail = false;
+        IdempotencyKeys.Add(idempotencyKey);
+        return Task.FromException<PostMutationResponse>(new VouchaApiException(
+            System.Net.HttpStatusCode.Conflict,
+            "{\"code\":\"IDEMPOTENCY_KEY_REUSED\"}"));
       }
       return base.CreatePostAsync(body, idempotencyKey, cancellationToken);
     }

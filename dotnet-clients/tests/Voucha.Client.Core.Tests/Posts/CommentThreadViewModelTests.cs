@@ -322,6 +322,10 @@ public sealed partial class CommentThreadViewModelTests
 
     public Exception? CreatePostException { get; init; }
 
+    public Queue<Exception> CreatePostExceptions { get; } = [];
+
+    public List<string> CreatePostIdempotencyKeys { get; } = [];
+
     public int RootFetchCount { get; private set; }
 
     public List<(string PostId, string Predicate, bool IsSaved)> BookmarkCalls { get; } = [];
@@ -435,12 +439,17 @@ public sealed partial class CommentThreadViewModelTests
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
+      CreatePostIdempotencyKeys.Add(idempotencyKey);
       CreatePostPostId = body.ParentId ?? body.RootId ?? "post-1";
       CreatePostRootId = body.RootId;
       CreatePostParentId = body.ParentId;
       CreatePostMarkdown = body.Markdown;
       CreatePostAnonymous = body.IsAnonymous;
       CreatePostTurnstileToken = body.TurnstileToken;
+      if (CreatePostExceptions.TryDequeue(out var queuedException))
+      {
+        return Task.FromException<PostMutationResponse>(queuedException);
+      }
       if (CreatePostException is not null)
       {
         return Task.FromException<PostMutationResponse>(CreatePostException);

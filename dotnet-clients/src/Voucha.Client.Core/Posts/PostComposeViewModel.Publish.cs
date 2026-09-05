@@ -71,6 +71,10 @@ public sealed partial class PostComposeViewModel
     }
     catch (VouchaApiException ex)
     {
+      if (ex.ErrorCode == "IDEMPOTENCY_KEY_REUSED")
+      {
+        contributionIdentity.Abandon("post", canonicalIntent);
+      }
       TurnstileToken = "";
       CompleteError(ContributionErrorMessage(ex));
       return false;

@@ -40,6 +40,18 @@ public sealed class ContributionRequestIdentity
     }
   }
 
+  public void Abandon(string surface, string canonicalIntent)
+  {
+    var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalIntent)));
+    lock (sync)
+    {
+      if (identities.TryGetValue(surface, out var identity) && identity.Fingerprint == fingerprint)
+      {
+        identities.Remove(surface);
+      }
+    }
+  }
+
   public static string CanonicalIntent(object body)
   {
     var node = JsonNode.Parse(JsonSerializer.Serialize(body, Api.VouchaApiJson.Options))!.AsObject();

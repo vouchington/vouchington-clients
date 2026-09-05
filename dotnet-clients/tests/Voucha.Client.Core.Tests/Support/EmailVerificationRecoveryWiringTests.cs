@@ -79,7 +79,8 @@ public sealed class EmailVerificationRecoveryWiringTests
     Assert.Equal(4, Count(
         postDetail,
         "if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))"));
-    Assert.Equal(4, Count(postDetail, "return;\n      }\n      binding.RefreshRows();"));
+    Assert.Equal(2, Count(postDetail, "return;\n      }\n      binding.RefreshRows();"));
+    Assert.Equal(2, Count(postDetail, "if (!created) return;\n      binding.RefreshRows();"));
 
     var storyDiscussion = File.ReadAllText(RepoPath(
         "dotnet-clients", "src", "Voucha.Client.App", "Pages", "NewsFeedsPage.StoryDiscussions.cs"));

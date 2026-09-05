@@ -62,7 +62,9 @@ public partial class PostDetailPage
   {
     if (!await EnsureSignedInAsync()) return;
     var row = RowFrom(sender);
-    var markdown = await ShowMarkdownEditorAsync(
+    var markdown = await ShowReplyEditorAsync(
+        row,
+        isQuote: false,
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowReply),
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowReply),
         string.Empty);
@@ -71,12 +73,14 @@ public partial class PostDetailPage
     if (turnstileToken is null) return;
     await RunMutationAsync(async () =>
     {
-      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
+      var created = await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
       if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))
       {
         return;
       }
+      if (!created) return;
       binding.RefreshRows();
+      ClearReplyDraft(row.Id, isQuote: false);
     });
   }
 
@@ -84,7 +88,9 @@ public partial class PostDetailPage
   {
     if (!await EnsureSignedInAsync()) return;
     var row = RowFrom(sender);
-    var markdown = await ShowMarkdownEditorAsync(
+    var markdown = await ShowReplyEditorAsync(
+        row,
+        isQuote: true,
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowQuote),
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowReply),
         BuildQuoteMarkdown(row));
@@ -93,12 +99,14 @@ public partial class PostDetailPage
     if (turnstileToken is null) return;
     await RunMutationAsync(async () =>
     {
-      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
+      var created = await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
       if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))
       {
         return;
       }
+      if (!created) return;
       binding.RefreshRows();
+      ClearReplyDraft(row.Id, isQuote: true);
     });
   }
 
