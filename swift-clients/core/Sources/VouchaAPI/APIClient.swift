@@ -53,35 +53,6 @@ public actor APIClient {
         try await send(endpoint, allowingStatusCodes: [])
     }
 
-    /// Streams line-delimited JSON objects of type `T`.
-    public func stream<T: Decodable>(_ endpoint: Endpoint) -> AsyncThrowingStream<T, Error> {
-        AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    try await self.ensureSessionBootstrap()
-                    let rawRequest = try self.buildRequest(endpoint)
-                    let request = await self.applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
-                    let lineResponse = try await self.responseLines(for: request)
-                    try self.validate(response: lineResponse.response, data: lineResponse.body)
-                    for try await line in lineResponse.lines {
-                        guard !line.isEmpty else { continue }
-                        guard let data = line.data(using: .utf8) else { continue }
-                        do {
-                            let item = try self.decoder.decode(T.self, from: data)
-                            continuation.yield(item)
-                        } catch {
-                            // skip malformed lines without killing the stream
-                        }
-                    }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
-    }
-
     func applySigningIfNeeded(_ request: URLRequest, method: String) async -> URLRequest {
         guard let signer, let url = request.url else { return request }
         guard request.value(forHTTPHeaderField: RequestSignatureHeader.challengeId) == nil else { return request }
@@ -142,6 +113,18 @@ public actor APIClient {
         guard status >= 200, status < 300 else {
             let payload = APIErrorPayload.decode(from: data, logger: logger)
             let code = payload?.code
+            if status == 409 || status == 429, [
+                "IDEMPOTENCY_KEY_REUSED",
+                "CONTRIBUTION_ADMISSION_IN_PROGRESS",
+                "CONTRIBUTION_QUOTA_EXCEEDED"
+            ].contains(code) {
+                throw ContributionAdmissionFailure(
+                    statusCode: status,
+                    code: code,
+                    responseBody: data,
+                    retryAfter: http.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+                )
+            }
             switch status {
             case 401: throw VouchaError.unauthorized
             case 403: throw VouchaError.forbidden(preconditionCode: code)
@@ -154,9 +137,14 @@ public actor APIClient {
             }
         }
     }
+
 }
 
 public extension APIClient {
+    func contributionStatus(action: String? = nil) async throws -> ContributionStatusResponse {
+        try await send(.contributionStatus(action: action))
+    }
+
     func send<T: Decodable>(
         _ endpoint: Endpoint,
         allowingStatusCodes allowedStatusCodes: Set<Int>

@@ -18,14 +18,22 @@ here.
 ## Persistent-runner cleanup
 
 The self-hosted fleet is persistent and is not an isolation boundary. Any job that checks out or
-executes repository code must:
+executes pull-request code must:
 
-1. Run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` before its first checkout with
-   `PRESERVE_NODE_MODULES=false`.
-2. Set `clean: false` and `persist-credentials: false` on checkout steps. Workspace cleanup owns
-   removal of stale files while preserving only explicitly requested dependencies.
-3. Run the same pinned cleanup in an `if: always()` final step, again with
-   `PRESERVE_NODE_MODULES=false`.
+1. Check out the pull request's exact trusted base SHA first with `clean: false` and
+   `persist-credentials: false`; this establishes the Git worktree without executing candidate
+   repository configuration or retaining checkout credentials. On a default-branch push, use the
+   event SHA for both trusted and candidate checkout.
+2. Immediately run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` with
+   `PRESERVE_NODE_MODULES=false`, but bootstrap that command from `$RUNNER_TEMP`, not the
+   workspace. Pin `NPM_CONFIG_REGISTRY` to the public registry and point the global and user npm
+   configuration at `/dev/null`; pass the workspace to the already-installed tool only when it
+   starts cleanup. Cleanup owns removal of stale files while preserving only explicitly requested
+   dependencies. It must not be expected to initialize an empty workspace.
+3. Check out the exact candidate SHA and run the job's candidate work.
+4. In an `if: always()` final path, restore the trusted base SHA before running the same pinned
+   isolated cleanup with `PRESERVE_NODE_MODULES=false`. Do not let a candidate `.npmrc` choose the
+   registry or other npm configuration used to bootstrap cleanup.
 
 API-only jobs do not need checkout cleanup, but still use the appropriate self-hosted runner. The
 Native contract producers follow the same cleanup boundary because they handle trusted checkouts,

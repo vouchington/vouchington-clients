@@ -57,6 +57,7 @@ public final class NativePostComposeViewModel {
     let communityIdOrSlug: String?
     let isAdministrator: Bool
     let appAttestationService: AppAttestationService?
+    let contributionIdentity = ContributionRequestIdentity()
     let logger = VouchaLogger(category: "NativePostComposeViewModel")
 
     public init(
@@ -161,8 +162,16 @@ public final class NativePostComposeViewModel {
             return
         }
 
-        if let endpoint = await attestedCreateEndpoint() {
-            await submit(client: client, endpoint: endpoint, fallbackToTurnstile: true)
+        let canonicalIntent = contributionCanonicalIntent
+        let idempotencyKey = await contributionIdentity.key(surface: "post", canonicalIntent: canonicalIntent)
+
+        if let endpoint = await attestedCreateEndpoint(idempotencyKey: idempotencyKey) {
+            await submit(
+                client: client,
+                endpoint: endpoint,
+                fallbackToTurnstile: true,
+                canonicalIntent: canonicalIntent
+            )
             return
         }
 
@@ -174,8 +183,9 @@ public final class NativePostComposeViewModel {
 
         await submit(
             client: client,
-            endpoint: makeCreateEndpoint(turnstileToken: turnstileToken),
-            fallbackToTurnstile: false
+            endpoint: makeCreateEndpoint(turnstileToken: turnstileToken, idempotencyKey: idempotencyKey),
+            fallbackToTurnstile: false,
+            canonicalIntent: canonicalIntent
         )
     }
 

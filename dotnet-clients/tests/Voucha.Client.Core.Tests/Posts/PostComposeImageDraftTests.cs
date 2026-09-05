@@ -115,12 +115,14 @@ public sealed class PostComposeImageDraftTests
 
     public Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 

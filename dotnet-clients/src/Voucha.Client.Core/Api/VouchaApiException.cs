@@ -24,14 +24,17 @@ public sealed class VouchaApiException : HttpRequestException
   {
   }
 
-  public VouchaApiException(HttpStatusCode statusCode, string? responseBody)
+  public VouchaApiException(HttpStatusCode statusCode, string? responseBody, TimeSpan? retryAfter = null)
       : base($"Voucha API request failed with HTTP {(int)statusCode}.", null, statusCode)
   {
     ResponseBody = responseBody;
+    RetryAfter = retryAfter;
     (ErrorCode, ApiMessage) = ParseError(responseBody);
   }
 
   public string? ResponseBody { get; }
+
+  public TimeSpan? RetryAfter { get; }
 
   public string? ErrorCode { get; }
 

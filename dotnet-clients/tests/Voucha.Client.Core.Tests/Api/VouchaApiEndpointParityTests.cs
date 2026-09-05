@@ -345,7 +345,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("passkeyAuthOptions", VouchaApiEndpoints.PasskeyAuthOptions(), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/options", Query());
     yield return Case("passkeyAuthVerify", VouchaApiEndpoints.PasskeyAuthVerify(new { id = "credential" }), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/verify", Query(), true);
     yield return Case("appleSignIn", VouchaApiEndpoints.AppleSignIn("token", "nonce", "Alice"), HttpMethod.Post, "/api/v1/auth/oauth/apple/continue", Query(), true);
-    yield return Case("createPost", VouchaApiEndpoints.CreatePost(new CreatePostBody("discussion", "Title", "Body", "turnstile")), HttpMethod.Post, "/api/v1/posts", Query(), true);
+    yield return Case("createPost", VouchaApiEndpoints.CreatePost(new CreatePostBody("discussion", "Title", "Body", "turnstile"), "00000000-0000-4000-8000-000000000031"), HttpMethod.Post, "/api/v1/posts", Query(), true);
     yield return Case("post", VouchaApiEndpoints.Post("post 1"), HttpMethod.Get, "/api/v1/posts/post%201", Query());
     yield return Case("postDescendants", VouchaApiEndpoints.PostDescendants("post 1"), HttpMethod.Get, "/api/v1/posts/post%201/descendants", Query());
     yield return Case("postAncestors", VouchaApiEndpoints.PostAncestors("comment 1"), HttpMethod.Get, "/api/v1/posts/comment%201/ancestors", Query());
@@ -359,7 +359,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("updatePostRating", VouchaApiEndpoints.UpdatePostRating("post 1", "topic 1", new UpdatePostRatingBody(Rating: 4)), HttpMethod.Patch, "/api/v1/posts/post%201/ratings/topic%201", Query(), true);
     yield return Case("deletePostRating", VouchaApiEndpoints.DeletePostRating("post 1", "topic 1"), HttpMethod.Delete, "/api/v1/posts/post%201/ratings/topic%201", Query());
     yield return Case("setPostImages", VouchaApiEndpoints.SetPostImages("post 1", new SetPostImagesBody([new CreatePostImageInput("image-1", 1)])), HttpMethod.Put, "/api/v1/posts/post%201/images", Query(), true);
-    yield return Case("createCommunityPost", VouchaApiEndpoints.CreateCommunityPost("community 1", new CreatePostBody("discussion", "Title", "Body", "turnstile")), HttpMethod.Post, "/api/v1/communities/community%201/posts", Query(), true);
+    yield return Case("createCommunityPost", VouchaApiEndpoints.CreateCommunityPost("community 1", new CreatePostBody("discussion", "Title", "Body", "turnstile"), "00000000-0000-4000-8000-000000000053"), HttpMethod.Post, "/api/v1/communities/community%201/posts", Query(), true);
     yield return Case("entityRelations", VouchaApiEndpoints.EntityRelations("post", "post 1", "related", "url", limit: 10), HttpMethod.Get, "/api/v1/entity-relations/post/post%201/related/url", Query(("limit", "10"), ("sort", "best")));
     yield return Case("createEntityRelation", VouchaApiEndpoints.CreateEntityRelation("post", "post 1", "related", "url", new CreateEntityRelationBody("url-1")), HttpMethod.Post, "/api/v1/entity-relations/post/post%201/related/url", Query(), true);
     yield return Case("voteEntityRelation", VouchaApiEndpoints.VoteEntityRelation("relation 1", ElectionVoteChoice.Dispute), HttpMethod.Put, "/api/v1/entity-relations/relation%201/vote", Query(), true);

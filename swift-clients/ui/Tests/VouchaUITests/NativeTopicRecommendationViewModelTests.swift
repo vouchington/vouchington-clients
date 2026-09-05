@@ -1,10 +1,27 @@
 import Foundation
 import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
 final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModelTestCase {
+    func testContributionAdmissionCodesSelectLocalizedPresentationKeys() {
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("CONTRIBUTION_ADMISSION_IN_PROGRESS"),
+            .nativeTaxonomyContributionAdmissionInProgress
+        )
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("IDEMPOTENCY_KEY_REUSED"),
+            .nativeTaxonomyContributionAdmissionIdempotencyMismatch
+        )
+        XCTAssertEqual(
+            NativeContributionAdmissionPresentation.messageKey("CONTRIBUTION_QUOTA_EXCEEDED"),
+            .nativeTaxonomyContributionAdmissionCapacityUnavailable
+        )
+        XCTAssertNil(NativeContributionAdmissionPresentation.messageKey("UNRELATED"))
+    }
+
     func testCreateRequiresCoreFieldsAndTurnstile() async throws {
         let viewModel = try NativeTopicRecommendationViewModel(client: makeClient())
 
@@ -40,6 +57,19 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topic-recommendations")
         XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
         XCTAssertEqual(viewModel.topicTitle, "")
+    }
+
+    func testCanonicalIntentIgnoresTurnstileTokenRefreshes() throws {
+        let viewModel = try NativeTopicRecommendationViewModel(client: makeClient())
+        viewModel.topicTitle = "Native Topic"
+        viewModel.topicSlug = "native-topic"
+        viewModel.bodyText = "Please add this topic."
+        viewModel.turnstileToken = "spent-token"
+        let first = viewModel.body.canonicalIntent
+
+        viewModel.turnstileToken = "refreshed-token"
+
+        XCTAssertEqual(first, viewModel.body.canonicalIntent)
     }
 
     func testReferralAndCardRequirements() throws {

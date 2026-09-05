@@ -1942,6 +1942,9 @@
   <data name="native.swift.topicManagementFields.primaryHostname" xml:space="preserve"><value>Primary hostname</value></data>
   <data name="native.swift.topicManagementFields.topicType" xml:space="preserve"><value>Topic type</value></data>
   <data name="native.swift.topicRecommendation.topic" xml:space="preserve"><value>Topic</value></data>
+  <data name="native.taxonomy.contributionAdmission.capacityUnavailable" xml:space="preserve"><value>You can&apos;t post right now. Try again later.</value></data>
+  <data name="native.taxonomy.contributionAdmission.idempotencyMismatch" xml:space="preserve"><value>We couldn&apos;t match this draft to the earlier request. Try again.</value></data>
+  <data name="native.taxonomy.contributionAdmission.inProgress" xml:space="preserve"><value>Your post is still being sent. Try again shortly.</value></data>
   <data name="native.taxonomy.crm.ai" xml:space="preserve"><value>AI</value></data>
   <data name="native.taxonomy.crm.cars" xml:space="preserve"><value>Cars</value></data>
   <data name="native.taxonomy.crm.creditCards" xml:space="preserve"><value>Credit cards</value></data>

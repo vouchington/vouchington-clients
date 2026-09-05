@@ -23,8 +23,8 @@ every field the verified `api-fixtures/v1` contract declares. The two underlying
   in the `swift-clients/core` package, runnable via `swift test --package-path swift-clients/core
 --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'`.
 
-Fetch the `dto-fixture-parity-dotnet-*`/`dto-fixture-parity-swift-*` artifacts (or the job logs) on
-run {{RUN_ID}} first to see which ecosystem actually failed — do not run both suites blind. A field
+Inspect the `.NET portable` and `Swift core tests` job logs on run {{RUN_ID}} first to see which
+ecosystem's separately filtered DTO parity step failed — do not run both suites blind. A field
 present in `api-fixtures/v1` and silently dropped, mistyped, or misnamed by a native DTO/model is
 the drift; the fix is a native client-side change, never a change to the fixture contract itself.
 

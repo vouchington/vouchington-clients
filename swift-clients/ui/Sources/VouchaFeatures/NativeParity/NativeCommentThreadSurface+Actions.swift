@@ -115,6 +115,9 @@ extension NativeCommentThreadSurface {
         case let .delete(postId):
             await viewModel.delete(postId: postId)
         }
+        if !viewModel.emailVerificationGate.isRecoveryPresented, case .error = viewModel.mutationState {
+            return
+        }
         if !viewModel.emailVerificationGate.isRecoveryPresented {
             self.composer = nil
         }

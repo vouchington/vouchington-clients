@@ -113,6 +113,47 @@ final class NativePostComposeViewModelTests: XCTestCase {
         assertState(viewModel.state, .loaded)
     }
 
+    func testCommunityPostTypeEndpointsPreserveTypeSpecificPayloads() throws {
+        let review = try NativePostComposeViewModel(client: makeClient(), communityIdOrSlug: "voucha")
+        review.postType = .review
+        review.title = "Community review"
+        review.bodyText = "Review body"
+        review.reviewTopicRatings = [.init(topicId: "topic-1", rating: 4)]
+
+        let dataPoint = try NativePostComposeViewModel(client: makeClient(), communityIdOrSlug: "voucha")
+        dataPoint.postType = .dataPoint
+        dataPoint.title = "Community data point"
+        dataPoint.bodyText = "Data point body"
+        dataPoint.dataPointVertical = .creditCard
+        dataPoint.dataPointStructuredDataJSON = #"{"score":0.9}"#
+
+        let reviewEndpoint = review.makeCreateEndpoint(turnstileToken: "turnstile", idempotencyKey: "review-key")
+        let dataPointEndpoint = dataPoint.makeCreateEndpoint(
+            turnstileToken: "turnstile",
+            idempotencyKey: "data-point-key"
+        )
+
+        XCTAssertEqual(reviewEndpoint.path, "/api/v1/communities/voucha/posts")
+        XCTAssertEqual(dataPointEndpoint.path, "/api/v1/communities/voucha/posts")
+        XCTAssertEqual(reviewEndpoint.headers["Idempotency-Key"], "review-key")
+        XCTAssertEqual(dataPointEndpoint.headers["Idempotency-Key"], "data-point-key")
+
+        let reviewBody = try endpointBody(reviewEndpoint)
+        XCTAssertEqual(reviewBody["post_type"] as? String, "review")
+        let reviewRatings = reviewBody["review_topic_ratings"] as? [[String: Any]]
+        XCTAssertEqual(reviewRatings?.first?["topic_id"] as? String, "topic-1")
+        XCTAssertEqual(reviewRatings?.first?["rating"] as? Int, 4)
+        XCTAssertNil(reviewBody["url"])
+        XCTAssertNil(reviewBody["data_point_vertical"])
+
+        let dataPointBody = try endpointBody(dataPointEndpoint)
+        XCTAssertEqual(dataPointBody["post_type"] as? String, "data_point")
+        XCTAssertEqual(dataPointBody["data_point_vertical"] as? String, "credit_card")
+        XCTAssertEqual((dataPointBody["structured_data"] as? [String: Double])?["score"], 0.9)
+        XCTAssertNil(dataPointBody["url"])
+        XCTAssertNil(dataPointBody["review_topic_ratings"])
+    }
+
     func testNoClientPublishSavesDraftWithoutNetwork() async {
         let viewModel = NativePostComposeViewModel(client: nil)
         viewModel.title = "Offline title"
@@ -376,6 +417,19 @@ final class NativePostComposeViewModelTests: XCTestCase {
           }
         }
         """.utf8)
+    }
+
+    private func endpointBody(_ endpoint: Endpoint) throws -> [String: Any] {
+        let body = try XCTUnwrap(endpoint.body)
+        let encoder = JSONEncoder()
+        switch endpoint.bodyKeyEncodingStrategy {
+        case .convertToSnakeCase:
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+        case .useDefaultKeys:
+            break
+        }
+        let data = try encoder.encode(body)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
     private func assertState(

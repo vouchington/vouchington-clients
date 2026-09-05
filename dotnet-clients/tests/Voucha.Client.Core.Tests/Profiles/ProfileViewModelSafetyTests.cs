@@ -453,8 +453,8 @@ public sealed partial class ProfileViewModelSafetyTests
     }
 
     public Task<PostsFeedResponse> FetchFeedAsync(FetchPostsFeedRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<PostMutationResponse> CreateCommunityPostAsync(string communityIdOrSlug, CreatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, string idempotencyKey, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<PostMutationResponse> CreateCommunityPostAsync(string communityIdOrSlug, CreatePostBody body, string idempotencyKey, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> UpdatePostAsync(string postIdOrSlug, UpdatePostBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> ArchivePostAsync(string postIdOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PostMutationResponse> UnarchivePostAsync(string postIdOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();

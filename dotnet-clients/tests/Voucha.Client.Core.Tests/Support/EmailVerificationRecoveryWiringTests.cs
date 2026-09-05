@@ -14,7 +14,7 @@ public sealed class EmailVerificationRecoveryWiringTests
       ["NewsFeedsPage.xaml.cs"] = 2,
       ["NewsFeedsPage.StoryDiscussions.cs"] = 1,
       ["PostsPage.xaml.cs"] = 2,
-      ["PostDetailPage.Actions.cs"] = 2,
+      ["PostDetailPage.Actions.cs"] = 4,
       ["PostComposePage.xaml.cs"] = 1,
       ["ProfilePage.Voting.cs"] = 2,
       ["OmnisearchPage.xaml.cs"] = 2,
@@ -44,7 +44,7 @@ public sealed class EmailVerificationRecoveryWiringTests
     Assert.Equal(9, sources.Count(source => source.Contains(
         "public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();",
         StringComparison.Ordinal)));
-    Assert.Equal(10, sources.Sum(source => Count(source, "EmailVerificationGate.RunAsync")));
+    Assert.Equal(11, sources.Sum(source => Count(source, "EmailVerificationGate.RunAsync")));
     Assert.DoesNotContain(sources, source => source.Contains(
         "TakeEmailVerificationRecoveryRequest",
         StringComparison.Ordinal));
@@ -76,10 +76,11 @@ public sealed class EmailVerificationRecoveryWiringTests
   {
     var postDetail = File.ReadAllText(RepoPath(
         "dotnet-clients", "src", "Voucha.Client.App", "Pages", "PostDetailPage.Actions.cs"));
-    Assert.Equal(2, Count(
+    Assert.Equal(4, Count(
         postDetail,
         "if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))"));
     Assert.Equal(2, Count(postDetail, "return;\n      }\n      binding.RefreshRows();"));
+    Assert.Equal(2, Count(postDetail, "if (!created) return;\n      binding.RefreshRows();"));
 
     var storyDiscussion = File.ReadAllText(RepoPath(
         "dotnet-clients", "src", "Voucha.Client.App", "Pages", "NewsFeedsPage.StoryDiscussions.cs"));

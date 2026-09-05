@@ -237,6 +237,30 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         XCTAssertNoThrow(try delete.inspect().find(button: "Delete"))
     }
 
+    func testComposerSheetRendersRetainedContributionAdmissionFailure() throws {
+        let surface = NativeCommentThreadSurface(
+            client: nil,
+            routeMatch: routeMatch(),
+            isSignedIn: true,
+            showSignIn: {}
+        )
+        let sheet = surface.composerSheet(
+            for: .init(kind: .reply(parentId: "comment-a"), markdown: "Reply")
+        )
+        let message = UiMessages.string(
+            .nativeTaxonomyContributionAdmissionCapacityUnavailable,
+            locale: .init(identifier: "en")
+        )
+
+        XCTAssertThrowsError(try sheet.inspect().find(text: message))
+
+        surface.viewModel.mutationState = .error(
+            .api(statusCode: 429, preconditionCode: "CONTRIBUTION_QUOTA_EXCEEDED")
+        )
+
+        XCTAssertNoThrow(try sheet.inspect().find(text: message))
+    }
+
     func testSurfaceHelperBranches() {
         var signInCount = 0
         let surface = NativeCommentThreadSurface(

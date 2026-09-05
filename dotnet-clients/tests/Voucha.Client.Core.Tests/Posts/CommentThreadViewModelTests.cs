@@ -130,7 +130,12 @@ public sealed partial class CommentThreadViewModelTests
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.VotePostAsync(comment.Id, ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
     await viewModel.ToggleSavePostAsync(comment.Id, false, TestContext.Current.CancellationToken);
-    await viewModel.ReplyAsync(comment.Id, "Reply body", true, TestContext.Current.CancellationToken);
+    await viewModel.ReplyAsync(
+        comment.Id,
+        "Reply body",
+        true,
+        "reply-turnstile",
+        TestContext.Current.CancellationToken);
     await viewModel.EditAsync(comment.Id, "Edited body", TestContext.Current.CancellationToken);
     await viewModel.ReportAsync(comment.Id, "spam", "details", "turnstile", TestContext.Current.CancellationToken);
     await viewModel.DeleteAsync(comment.Id, TestContext.Current.CancellationToken);
@@ -144,39 +149,13 @@ public sealed partial class CommentThreadViewModelTests
     Assert.Equal("comment-1", service.CreatePostParentId);
     Assert.Equal("Reply body", service.CreatePostMarkdown);
     Assert.True(service.CreatePostAnonymous);
+    Assert.Equal("reply-turnstile", service.CreatePostTurnstileToken);
     Assert.Equal("comment-1", service.UpdatePostId);
     Assert.Equal("Edited body", service.UpdatePostMarkdown);
     Assert.Equal(("post", "comment-1", "spam", "details", "turnstile"), service.ReportCall);
     Assert.Equal(new[] { "comment-1" }, service.DeleteCalls);
     Assert.Equal(new[] { "comment-1" }, service.LockCalls);
     Assert.Equal(new[] { "comment-1" }, service.UnlockCalls);
-  }
-
-  [Fact]
-  public async Task VoteRequestsEmailRecoveryWithoutReloadingWhenVerificationIsRequired()
-  {
-    var root = NewPost("root-1", postType: "discussion", title: "Root", markdown: "Root body", createdAt: Now(0));
-    var service = new RecordingPostsService
-    {
-      RootResponse = MakeDetailResponse(root),
-      DescendantsResponse = MakeThreadResponse(),
-      VoteException = new VouchaApiException(
-          System.Net.HttpStatusCode.Forbidden,
-          "{\"code\":\"EMAIL_VERIFICATION_REQUIRED\"}"),
-    };
-    var viewModel = new CommentThreadViewModel(service, service, root.Id, "user-1");
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
-    var rootFetches = service.RootFetchCount;
-
-    await viewModel.VotePostAsync(root.Id, ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
-
-    Assert.Equal(rootFetches, service.RootFetchCount);
-    Assert.True(await viewModel.EmailVerificationGate.ConsumeRecoveryRequestAsync(
-        _ => Task.CompletedTask,
-        TestContext.Current.CancellationToken));
-    Assert.False(await viewModel.EmailVerificationGate.ConsumeRecoveryRequestAsync(
-        _ => Task.CompletedTask,
-        TestContext.Current.CancellationToken));
   }
 
   [Fact]
@@ -341,6 +320,12 @@ public sealed partial class CommentThreadViewModelTests
 
     public Exception? VoteException { get; init; }
 
+    public Exception? CreatePostException { get; init; }
+
+    public Queue<Exception> CreatePostExceptions { get; } = [];
+
+    public List<string> CreatePostIdempotencyKeys { get; } = [];
+
     public int RootFetchCount { get; private set; }
 
     public List<(string PostId, string Predicate, bool IsSaved)> BookmarkCalls { get; } = [];
@@ -354,6 +339,8 @@ public sealed partial class CommentThreadViewModelTests
     public string? CreatePostMarkdown { get; private set; }
 
     public bool CreatePostAnonymous { get; private set; }
+
+    public string? CreatePostTurnstileToken { get; private set; }
 
     public string? UpdatePostId { get; private set; }
 
@@ -447,13 +434,26 @@ public sealed partial class CommentThreadViewModelTests
       return Task.CompletedTask;
     }
 
-    public Task<PostMutationResponse> CreatePostAsync(CreatePostBody body, CancellationToken cancellationToken = default)
+    public Task<PostMutationResponse> CreatePostAsync(
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
     {
+      CreatePostIdempotencyKeys.Add(idempotencyKey);
       CreatePostPostId = body.ParentId ?? body.RootId ?? "post-1";
       CreatePostRootId = body.RootId;
       CreatePostParentId = body.ParentId;
       CreatePostMarkdown = body.Markdown;
       CreatePostAnonymous = body.IsAnonymous;
+      CreatePostTurnstileToken = body.TurnstileToken;
+      if (CreatePostExceptions.TryDequeue(out var queuedException))
+      {
+        return Task.FromException<PostMutationResponse>(queuedException);
+      }
+      if (CreatePostException is not null)
+      {
+        return Task.FromException<PostMutationResponse>(CreatePostException);
+      }
       return Task.FromResult(
           new PostMutationResponse(NewPost("created-comment", body.ParentId, postType: body.PostType, markdown: body.Markdown)));
     }
@@ -461,6 +461,7 @@ public sealed partial class CommentThreadViewModelTests
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 

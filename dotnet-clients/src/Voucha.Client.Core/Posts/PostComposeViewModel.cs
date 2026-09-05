@@ -4,6 +4,7 @@ using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Relations;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Contributions;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -18,6 +19,7 @@ public sealed partial class PostComposeViewModel : ObservableObject, IDisposable
   private readonly AppConfig appConfig;
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
+  private readonly ContributionRequestIdentity contributionIdentity = new();
   private string postType = PostComposeTypes.Discussion;
   private string title = "";
   private string slug = "";

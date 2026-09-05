@@ -46,76 +46,43 @@ extension NativePostComposeViewModel {
         return inputs.isEmpty ? nil : inputs
     }
 
-    func makeCreateEndpoint(turnstileToken: String?) -> Endpoint {
-        if let communityIdOrSlug {
-            return makeCommunityCreateEndpoint(communityIdOrSlug: communityIdOrSlug, turnstileToken: turnstileToken)
-        }
-
-        switch postType {
-        case .link:
-            return Endpoint.createPost(
-                postType: postType,
-                title: title,
-                markdown: bodyText,
-                url: linkURL.trimmedOrNil,
-                categories: postCategoryInputs,
-                images: imageInputs.isEmpty ? nil : imageInputs,
-                turnstileToken: turnstileToken
-            )
-        case .review:
-            return makeReviewEndpoint(turnstileToken: turnstileToken)
-        case .dataPoint:
-            return Endpoint.createPost(
-                postType: postType,
-                title: title,
-                markdown: bodyText,
-                categories: postCategoryInputs,
-                images: imageInputs.isEmpty ? nil : imageInputs,
-                dataPointVertical: dataPointVertical,
-                structuredData: parseStructuredData(),
-                turnstileToken: turnstileToken
-            )
-        default:
-            return Endpoint.createPost(
-                postType: postType,
-                title: title,
-                markdown: bodyText,
-                categories: postCategoryInputs,
-                images: imageInputs.isEmpty ? nil : imageInputs,
-                turnstileToken: turnstileToken
-            )
-        }
+    var contributionCanonicalIntent: String {
+        let endpoint = makeCreateEndpoint(
+            turnstileToken: nil,
+            idempotencyKey: "00000000-0000-4000-8000-000000000000"
+        )
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.outputFormatting = [.sortedKeys]
+        let body = endpoint.body.flatMap { try? encoder.encode($0) }?.base64EncodedString() ?? ""
+        return "\(endpoint.method.rawValue)\u{001F}\(endpoint.path)\u{001F}\(body)"
     }
 
-    private func makeCommunityCreateEndpoint(communityIdOrSlug: String, turnstileToken: String?) -> Endpoint {
+    func makeCreateEndpoint(turnstileToken: String?, idempotencyKey: String) -> Endpoint {
+        if let communityIdOrSlug {
+            return makeCommunityCreateEndpoint(
+                communityIdOrSlug: communityIdOrSlug,
+                turnstileToken: turnstileToken,
+                idempotencyKey: idempotencyKey
+            )
+        }
+
         switch postType {
         case .link:
-            Endpoint.createCommunityPost(
-                communityIdOrSlug: communityIdOrSlug,
+            return Endpoint.createPost(
                 postType: postType,
                 title: title,
                 markdown: bodyText,
                 url: linkURL.trimmedOrNil,
                 categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
-                turnstileToken: turnstileToken
+                turnstileToken: turnstileToken,
+                idempotencyKey: idempotencyKey
             )
         case .review:
-            Endpoint.createCommunityPost(
-                communityIdOrSlug: communityIdOrSlug,
-                postType: postType,
-                title: title,
-                markdown: bodyText,
-                reviewTopicRatings: reviewTopicRatings.filter(\.isValid).map {
-                    .init(topicId: $0.topicId.trimmingCharacters(in: .whitespacesAndNewlines), rating: $0.rating)
-                },
-                categories: postCategoryInputs,
-                images: imageInputs.isEmpty ? nil : imageInputs,
-                turnstileToken: turnstileToken
-            )
+            return makeReviewEndpoint(turnstileToken: turnstileToken, idempotencyKey: idempotencyKey)
         case .dataPoint:
-            Endpoint.createCommunityPost(
-                communityIdOrSlug: communityIdOrSlug,
+            return Endpoint.createPost(
                 postType: postType,
                 title: title,
                 markdown: bodyText,
@@ -123,17 +90,18 @@ extension NativePostComposeViewModel {
                 images: imageInputs.isEmpty ? nil : imageInputs,
                 dataPointVertical: dataPointVertical,
                 structuredData: parseStructuredData(),
-                turnstileToken: turnstileToken
+                turnstileToken: turnstileToken,
+                idempotencyKey: idempotencyKey
             )
         default:
-            Endpoint.createCommunityPost(
-                communityIdOrSlug: communityIdOrSlug,
+            return Endpoint.createPost(
                 postType: postType,
                 title: title,
                 markdown: bodyText,
                 categories: postCategoryInputs,
                 images: imageInputs.isEmpty ? nil : imageInputs,
-                turnstileToken: turnstileToken
+                turnstileToken: turnstileToken,
+                idempotencyKey: idempotencyKey
             )
         }
     }
@@ -154,7 +122,7 @@ extension NativePostComposeViewModel {
         return try? CreatePostJSONValue.parse(jsonString: trimmed)
     }
 
-    private func makeReviewEndpoint(turnstileToken: String?) -> Endpoint {
+    private func makeReviewEndpoint(turnstileToken: String?, idempotencyKey: String) -> Endpoint {
         Endpoint.createPost(
             postType: postType,
             title: title,
@@ -164,7 +132,8 @@ extension NativePostComposeViewModel {
             },
             categories: postCategoryInputs,
             images: imageInputs.isEmpty ? nil : imageInputs,
-            turnstileToken: turnstileToken
+            turnstileToken: turnstileToken,
+            idempotencyKey: idempotencyKey
         )
     }
 

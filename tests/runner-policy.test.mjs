@@ -103,10 +103,14 @@ function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
   assert.match(block, /clean: false/u, `${job} must preserve checkout-managed dependencies`)
   assert.match(block, /persist-credentials: false/u, `${job} must not persist credentials`)
   assert.ok(cleanup.length >= 2, `${job} needs pre- and post-job cleanup`)
-  assert.ok(cleanup[0] < checkout, `${job} needs cleanup before checkout`)
+  assert.ok(checkout < cleanup[0], `${job} must bootstrap Git before cleanup`)
   assert.ok(cleanup.at(-1) > checkout, `${job} needs cleanup after checkout`)
   assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
-  assert.match(block, /pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/u)
+  assert.match(
+    block,
+    /(?:pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace|vouchington-tooling@0\.1\.5[\s\S]*vouchington clean-workspace)/u,
+    `${job} must run the pinned workspace-cleanup tool`,
+  )
   if (requireTempCleanup) {
     assert.equal(
       [...block.matchAll(/working-directory: \$\{\{ runner\.temp \}\}/gu)].length,
@@ -115,6 +119,95 @@ function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
     )
   }
   assert.match(block, /if: always\(\)/u, `${job} needs unconditional final cleanup`)
+}
+
+function assertCleanupBootstrapsFromCheckout(name, source) {
+  for (const [index, unit] of jobUnits(source).entries()) {
+    const cleanups = matchOffsets(unit, /vouchington-tooling@0\.1\.5 clean-workspace/gu)
+    if (cleanups.length === 0) continue
+    const checkout = unit.indexOf('actions/checkout@')
+    assert.notEqual(checkout, -1, `${name} unit ${index} must check out before cleanup`)
+    for (const cleanup of cleanups) {
+      assert.ok(
+        checkout < cleanup,
+        `${name} unit ${index} must bootstrap Git before every workspace cleanup`,
+      )
+    }
+  }
+}
+
+function assertValidateCleanupUsesTrustedCheckout(workflow, job) {
+  const block = jobBlock(workflow, job)
+  const cleanupSteps = [...block.matchAll(/name: Clean persistent runner workspace/gu)].map(
+    match => match.index,
+  )
+  const trustedCheckouts = [
+    ...block.matchAll(
+      /name: Check out trusted base for (?:final )?workspace cleanup[\s\S]*?ref: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}/gu,
+    ),
+  ].map(match => match.index)
+  const candidate = block.indexOf('name: Check out candidate')
+
+  assert.equal(cleanupSteps.length, 2, `${job} must clean exactly before and after candidate work`)
+  assert.equal(trustedCheckouts.length, 2, `${job} must restore the trusted base for both cleanups`)
+  assert.notEqual(candidate, -1, `${job} must check out the candidate after trusted cleanup`)
+  assert.ok(
+    trustedCheckouts[0] < cleanupSteps[0] && cleanupSteps[0] < candidate,
+    `${job} must clean from the trusted base before checking out candidate content`,
+  )
+  assert.ok(
+    candidate < trustedCheckouts[1] && trustedCheckouts[1] < cleanupSteps[1],
+    `${job} must restore the trusted base before final cleanup`,
+  )
+  assert.equal(
+    [...block.matchAll(/working-directory: \$\{\{ runner\.temp \}\}/gu)].length,
+    2,
+    `${job} must bootstrap cleanup outside the candidate workspace`,
+  )
+  assert.equal(
+    [...block.matchAll(/CLEANUP_WORKSPACE: \$\{\{ github\.workspace \}\}/gu)].length,
+    2,
+    `${job} must pass the workspace only to the already bootstrapped cleanup tool`,
+  )
+  assert.equal(
+    [...block.matchAll(/NPM_CONFIG_REGISTRY: https:\/\/registry\.npmjs\.org\//gu)].length,
+    2,
+    `${job} must pin the cleanup bootstrap registry outside project configuration`,
+  )
+  assert.equal(
+    [...block.matchAll(/NPM_CONFIG_(?:GLOBAL|USER)CONFIG: \/dev\/null/gu)].length,
+    4,
+    `${job} must not load ambient npm configuration while bootstrapping cleanup`,
+  )
+  assert.equal(
+    [...block.matchAll(/pnpm dlx --package vouchington-tooling@0\.1\.5 bash -c/gu)].length,
+    2,
+    `${job} must install the cleanup tool from the trusted temporary directory`,
+  )
+  assert.equal(
+    [...block.matchAll(/exec vouchington clean-workspace/gu)].length,
+    2,
+    `${job} must enter the workspace only after the trusted tool is installed`,
+  )
+  assert.doesNotMatch(
+    block,
+    /run: pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/gu,
+    `${job} must not resolve cleanup through workspace project configuration`,
+  )
+}
+
+function assertPrepareNativeContractCallersBootstrapCheckout(workflows) {
+  for (const [name, source] of Object.entries(workflows)) {
+    for (const [index, unit] of jobUnits(source).entries()) {
+      const action = unit.indexOf('uses: ./.github/actions/prepare-native-contract')
+      if (action === -1) continue
+      const checkout = unit.indexOf('actions/checkout@')
+      assert.ok(
+        checkout !== -1 && checkout < action,
+        `${name} unit ${index} must check out before prepare-native-contract cleans the workspace`,
+      )
+    }
+  }
 }
 
 describe('private self-hosted runner policy', () => {
@@ -207,7 +300,28 @@ jobs:
     )
   })
 
-  it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {
+  it('bootstraps Git before cleaning persistent-runner workspaces', async () => {
+    const workflows = Object.fromEntries(await readWorkflows())
+    for (const [name, workflow] of Object.entries(workflows)) {
+      assertCleanupBootstrapsFromCheckout(name, workflow)
+    }
+    assertPrepareNativeContractCallersBootstrapCheckout(workflows)
+  })
+
+  it('uses trusted base configuration for validate cleanup before and after candidate checkout', async () => {
+    const workflow = await readFile(join(workflowRoot, 'validate.yml'), 'utf8')
+    for (const job of [
+      'contract-tests',
+      'dotnet-core',
+      'swift-core',
+      'swift-lint',
+      'tooling-lint',
+      'gitleaks',
+    ])
+      assertValidateCleanupUsesTrustedCheckout(workflow, job)
+  })
+
+  it('cleans migrated and sensitive persistent-runner jobs after checkout and at job end', async () => {
     const workflows = Object.fromEntries(await readWorkflows())
     for (const [workflow, job, requireTempCleanup] of [
       ['validate.yml', 'contract-tests'],

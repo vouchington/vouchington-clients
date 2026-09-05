@@ -1,4 +1,6 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Contributions;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
@@ -19,15 +21,26 @@ public sealed partial class PostComposeViewModel
 
     State = LoadState.Loading;
     ErrorMessage = null;
+    var destinationIntent = IsCommunityPost ? $"community\u001f{CommunitySlug.Trim()}" : "global";
+    var canonicalIntent = $"{destinationIntent}\u001f{ContributionRequestIdentity.CanonicalIntent(BuildBody())}";
+    var idempotencyKey = contributionIdentity.KeyFor("post", canonicalIntent);
     try
     {
       var response = await EmailVerificationGate.RunAsync<PostMutationResponse?>(
-          async () => IsCommunityPost
-              ? await postsService.CreateCommunityPostAsync(
-                  CommunitySlug.Trim(),
-                  BuildBody(),
-                  cancellationToken).ConfigureAwait(true)
-              : await postsService.CreatePostAsync(BuildBody(), cancellationToken).ConfigureAwait(true),
+          async () =>
+          {
+            var currentBody = BuildBody();
+            return IsCommunityPost
+                ? await postsService.CreateCommunityPostAsync(
+                    CommunitySlug.Trim(),
+                    currentBody,
+                    idempotencyKey,
+                    cancellationToken).ConfigureAwait(true)
+                : await postsService.CreatePostAsync(
+                    currentBody,
+                    idempotencyKey,
+                    cancellationToken).ConfigureAwait(true);
+          },
           ex =>
           {
             TurnstileToken = "";
@@ -35,6 +48,7 @@ public sealed partial class PostComposeViewModel
             return null;
           }).ConfigureAwait(true);
       if (response is null) return false;
+      contributionIdentity.Complete("post", canonicalIntent);
       LastResponse = response;
       OnPropertyChanged(nameof(LastResponse));
       OnPropertyChanged(nameof(HasPublished));
@@ -57,8 +71,12 @@ public sealed partial class PostComposeViewModel
     }
     catch (VouchaApiException ex)
     {
+      if (ex.ErrorCode == "IDEMPOTENCY_KEY_REUSED")
+      {
+        contributionIdentity.Abandon("post", canonicalIntent);
+      }
       TurnstileToken = "";
-      CompleteError(ex.Message);
+      CompleteError(ContributionErrorMessage(ex));
       return false;
     }
     catch (HttpRequestException ex)
@@ -144,6 +162,18 @@ public sealed partial class PostComposeViewModel
     ErrorMessage = message;
     State = LoadState.Error;
   }
+
+  private string ContributionErrorMessage(VouchaApiException exception) =>
+      exception.ErrorCode switch
+      {
+        "CONTRIBUTION_ADMISSION_IN_PROGRESS" => localization.Localize(
+            UiMessageKey.NativeTaxonomyContributionAdmissionInProgress),
+        "CONTRIBUTION_QUOTA_EXCEEDED" => localization.Localize(
+            UiMessageKey.NativeTaxonomyContributionAdmissionCapacityUnavailable),
+        "IDEMPOTENCY_KEY_REUSED" => localization.Localize(
+            UiMessageKey.NativeTaxonomyContributionAdmissionIdempotencyMismatch),
+        _ => exception.Message,
+      };
 
   private static string? EmptyToNull(string? value) =>
       string.IsNullOrWhiteSpace(value) ? null : value.Trim();

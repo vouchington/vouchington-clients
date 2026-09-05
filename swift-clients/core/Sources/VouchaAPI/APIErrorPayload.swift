@@ -45,13 +45,14 @@ struct APIErrorPayload: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        code = container.decodeStringIfPresent(forKey: .code)
+        let nestedError = try? container.decode(APIErrorPayload.self, forKey: .error)
+        code = container.decodeStringIfPresent(forKey: .code) ?? nestedError?.code
         userErrorText = container.decodeStringIfPresent(forKey: .userErrorText)
         message = container.decodeStringIfPresent(forKey: .message)
         error = container.decodeStringIfPresent(forKey: .error)
         detail = container.decodeStringIfPresent(forKey: .detail)
         title = container.decodeStringIfPresent(forKey: .title)
-        nestedErrorMessage = (try? container.decode(APIErrorPayload.self, forKey: .error))?.displayMessage
+        nestedErrorMessage = nestedError?.displayMessage
     }
 }
 

@@ -11,12 +11,20 @@ public sealed partial class ApiNewsFeedService
   {
     try
     {
-      var result = await client.CreateStoryPostFromStoryAsync(storyId, cancellationToken).ConfigureAwait(false);
+      var storyIntent = $"story\u001f{storyId}";
+      var storyScope = $"story-discussion\u001f{storyId}";
+      var result = await client.CreateStoryPostFromStoryAsync(
+          storyId, contributionIdentity.KeyFor(storyScope, storyIntent), cancellationToken).ConfigureAwait(false);
+      contributionIdentity.Complete(storyScope, storyIntent);
       return new StoryDiscussionResult(result.Post.Id);
     }
     catch (VouchaApiException ex) when (StoryDiscussionApiError.IsFeedNotDiscoverable(ex))
     {
-      var result = await client.CreateLinkPostFromRssFeedItemAsync(fallbackRssFeedItemId, cancellationToken).ConfigureAwait(false);
+      var rssIntent = $"rss\u001f{fallbackRssFeedItemId}";
+      var rssScope = $"rss-discussion\u001f{fallbackRssFeedItemId}";
+      var result = await client.CreateLinkPostFromRssFeedItemAsync(
+          fallbackRssFeedItemId, contributionIdentity.KeyFor(rssScope, rssIntent), cancellationToken).ConfigureAwait(false);
+      contributionIdentity.Complete(rssScope, rssIntent);
       fallbackStoryDiscussionPostIds[storyId] = result.Post.Id;
       return new StoryDiscussionResult(result.Post.Id);
     }

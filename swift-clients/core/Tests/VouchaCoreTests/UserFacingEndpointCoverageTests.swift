@@ -247,7 +247,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
                 title: "Native title",
                 markdown: "Native body",
                 turnstileToken: "turnstile-token",
-                recaptchaToken: "recaptcha-token"
+                recaptchaToken: "recaptcha-token",
+                idempotencyKey: "00000000-0000-4000-8000-000000000010"
             ),
             method: .POST,
             path: "/api/v1/posts",
@@ -268,7 +269,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
                 postType: .link,
                 title: "Native link",
                 markdown: "",
-                url: "https://example.com/native"
+                url: "https://example.com/native",
+                idempotencyKey: "00000000-0000-4000-8000-000000000011"
             ),
             method: .POST,
             path: "/api/v1/posts",
@@ -291,7 +293,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
                 reviewTopicRatings: [
                     .init(topicId: "topic-1", rating: 5)
                 ],
-                turnstileToken: "turnstile-token"
+                turnstileToken: "turnstile-token",
+                idempotencyKey: "00000000-0000-4000-8000-000000000012"
             ),
             method: .POST,
             path: "/api/v1/posts",
@@ -319,7 +322,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
                     "topic_ids": .array([.string("topic-1")]),
                     "result": .string("approved")
                 ]),
-                turnstileToken: "turnstile-token"
+                turnstileToken: "turnstile-token",
+                idempotencyKey: "00000000-0000-4000-8000-000000000013"
             ),
             method: .POST,
             path: "/api/v1/posts",

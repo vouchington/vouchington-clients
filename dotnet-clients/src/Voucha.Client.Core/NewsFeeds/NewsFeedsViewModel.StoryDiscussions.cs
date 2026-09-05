@@ -55,6 +55,16 @@ public sealed partial class NewsFeedsViewModel
 
       return null;
     }
+    catch (VouchaApiException ex) when (StoryDiscussionApiError.ContributionAdmissionMessage(ex, localization) is { } message)
+    {
+      if (mutationLoadRequestId == loadRequestId)
+      {
+        Items = SetStoryDiscussionStarting(Items, storyId, false);
+        ErrorMessage = message;
+      }
+
+      return null;
+    }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
     {
       if (mutationLoadRequestId == loadRequestId)

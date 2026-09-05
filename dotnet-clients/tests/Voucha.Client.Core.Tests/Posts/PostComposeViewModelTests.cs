@@ -381,6 +381,7 @@ public sealed class PostComposeViewModelTests
 
     public virtual Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       GlobalBody = body;
@@ -390,6 +391,7 @@ public sealed class PostComposeViewModelTests
     public virtual Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       CommunitySlug = communityIdOrSlug;
@@ -424,6 +426,7 @@ public sealed class PostComposeViewModelTests
   {
     public override Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
         Task.FromException<PostMutationResponse>(new VouchaApiException("No posts today."));
   }
@@ -436,11 +439,12 @@ public sealed class PostComposeViewModelTests
 
     public override async Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       Started.SetResult();
       await Release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-      return await base.CreatePostAsync(body, cancellationToken).ConfigureAwait(false);
+      return await base.CreatePostAsync(body, idempotencyKey, cancellationToken).ConfigureAwait(false);
     }
   }
 

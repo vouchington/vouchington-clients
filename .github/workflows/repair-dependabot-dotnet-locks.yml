@@ -41,10 +41,6 @@ jobs:
       VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT: ${{ github.workspace }}/.nuget/lock-artifacts
       VOUCHA_DOTNET_LOCK_SCRATCH_ROOT: ${{ github.workspace }}/.nuget/scratch
     steps:
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Capture live Dependabot identity
         id: live
         env:
@@ -85,6 +81,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ steps.live.outputs.base-sha }}
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -233,10 +233,6 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -244,6 +240,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.base-sha }}
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

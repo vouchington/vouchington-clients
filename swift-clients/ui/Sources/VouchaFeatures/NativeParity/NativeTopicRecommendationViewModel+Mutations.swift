@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaModels
@@ -23,8 +24,17 @@ extension NativeTopicRecommendationViewModel {
     func submit() async {
         guard canSubmit, !isLoading else { return }
         state = .loading
-        if !isEdit, let client, let attested = await attestedEndpoint() {
-            await submit(client: client, endpoint: attested, fallbackToTurnstile: true)
+        let canonicalIntent = body.canonicalIntent
+        let idempotencyKey = await contributionIdentity.key(
+            surface: "topic-recommendation", canonicalIntent: canonicalIntent
+        )
+        if !isEdit, let client, let attested = await attestedEndpoint(idempotencyKey: idempotencyKey) {
+            await submit(
+                client: client,
+                endpoint: attested,
+                fallbackToTurnstile: true,
+                canonicalIntent: canonicalIntent
+            )
             return
         }
         if !isEdit, turnstileToken == nil {
@@ -36,7 +46,12 @@ extension NativeTopicRecommendationViewModel {
             state = .loaded
             return
         }
-        await submit(client: client, endpoint: endpoint, fallbackToTurnstile: false)
+        await submit(
+            client: client,
+            endpoint: endpoint(idempotencyKey: idempotencyKey),
+            fallbackToTurnstile: false,
+            canonicalIntent: canonicalIntent
+        )
     }
 
     func vote(_ choice: ElectionVoteChoice?) async {
@@ -72,20 +87,26 @@ extension NativeTopicRecommendationViewModel {
         })
     }
 
-    private func attestedEndpoint() async -> Endpoint? {
+    private func attestedEndpoint(idempotencyKey: String) async -> Endpoint? {
         guard let appAttestationService, appAttestationService.isSupported else { return nil }
         guard let headers = try? await appAttestationService.assertionHeaders(
             actionTag: .topicRecommendationsCreate
         ) else {
             return nil
         }
-        return endpoint.withHeaders(headers)
+        return endpoint(idempotencyKey: idempotencyKey).withHeaders(headers)
     }
 
-    private func submit(client: APIClient, endpoint: Endpoint, fallbackToTurnstile: Bool) async {
+    private func submit(
+        client: APIClient,
+        endpoint: Endpoint,
+        fallbackToTurnstile: Bool,
+        canonicalIntent: String
+    ) async {
         do {
             let response: NativeTopicRecommendationPostEnvelope = try await client.send(endpoint)
             savedPostId = response.post.id
+            await contributionIdentity.complete(surface: "topic-recommendation", canonicalIntent: canonicalIntent)
             if !isEdit {
                 resetAfterCreate()
             }
@@ -95,10 +116,17 @@ extension NativeTopicRecommendationViewModel {
                 appAttestationService?.forgetCachedKey()
             }
             if turnstileToken != nil {
-                await submit(client: client, endpoint: self.endpoint, fallbackToTurnstile: false)
+                await submit(
+                    client: client,
+                    endpoint: self.endpoint(idempotencyKey: endpoint.headers["Idempotency-Key"]),
+                    fallbackToTurnstile: false,
+                    canonicalIntent: canonicalIntent
+                )
             } else {
                 state = .required
             }
+        } catch let error as ContributionAdmissionFailure {
+            state = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
         } catch let error as VouchaError {
             state = .error(error)
         } catch {
@@ -107,11 +135,16 @@ extension NativeTopicRecommendationViewModel {
         }
     }
 
-    private var endpoint: Endpoint {
+    private func endpoint(idempotencyKey: String? = nil) -> Endpoint {
         if let recommendationId {
             Endpoint.updateTopicRecommendation(id: recommendationId, body: body)
         } else {
-            Endpoint(.POST, path: "/api/v1/topic-recommendations", body: body)
+            Endpoint(
+                .POST,
+                path: "/api/v1/topic-recommendations",
+                headers: idempotencyKey.map { ["Idempotency-Key": $0] } ?? [:],
+                body: body
+            )
         }
     }
 
@@ -130,5 +163,28 @@ extension NativeTopicRecommendationViewModel {
             landingPageUrls: landingPageUrls.nativeLines,
             cfTurnstileResponse: isEdit ? nil : turnstileToken
         )
+    }
+}
+
+extension NativeTopicRecommendationMutationBody {
+    var canonicalIntent: String {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.outputFormatting = [.sortedKeys]
+        let challengeIndependentBody = NativeTopicRecommendationMutationBody(
+            title: title,
+            markdown: markdown,
+            topicTitle: topicTitle,
+            topicSlug: topicSlug,
+            topicMarkdown: topicMarkdown,
+            topicHostname: topicHostname,
+            topicHostnames: topicHostnames,
+            topicAliases: topicAliases,
+            topicType: topicType,
+            exampleReferralLink: exampleReferralLink,
+            landingPageUrls: landingPageUrls,
+            cfTurnstileResponse: nil
+        )
+        return (try? encoder.encode(challengeIndependentBody)).map { $0.base64EncodedString() } ?? ""
     }
 }

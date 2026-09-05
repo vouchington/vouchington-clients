@@ -2,8 +2,8 @@ namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
-  public static ApiRequest CreatePost(CreatePostBody body) =>
-      new(HttpMethod.Post, "/api/v1/posts") { Body = body };
+  public static ApiRequest CreatePost(CreatePostBody body, string idempotencyKey) =>
+      new(HttpMethod.Post, "/api/v1/posts") { Body = body, Headers = IdempotencyHeader(idempotencyKey) };
 
   public static ApiRequest UpdatePost(string postId, UpdatePostBody body) =>
       new(HttpMethod.Patch, $"/api/v1/posts/{Path(postId)}") { Body = body };
@@ -46,8 +46,13 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest SetPostImages(string postId, SetPostImagesBody body) =>
       new(HttpMethod.Put, $"/api/v1/posts/{Path(postId)}/images") { Body = body };
 
-  public static ApiRequest CreateCommunityPost(string communityIdOrSlug, CreatePostBody body) =>
-      new(HttpMethod.Post, $"/api/v1/communities/{Path(communityIdOrSlug)}/posts") { Body = body };
+  public static ApiRequest CreateCommunityPost(string communityIdOrSlug, CreatePostBody body, string idempotencyKey) =>
+      new(HttpMethod.Post, $"/api/v1/communities/{Path(communityIdOrSlug)}/posts") { Body = body, Headers = IdempotencyHeader(idempotencyKey) };
+
+  internal static IReadOnlyDictionary<string, string> IdempotencyHeader(string key) =>
+      !string.IsNullOrWhiteSpace(key)
+          ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Idempotency-Key"] = key }
+          : throw new ArgumentException("An Idempotency-Key is required.", nameof(key));
 
   public static ApiRequest EntityRelations(
       string entityType,

@@ -181,8 +181,9 @@ extension NativeTopicRecommendationSurface {
             Text(UiMessages.string(.nativeSwiftPostComposeVerificationTokenRequired, locale: nativeUiLocale))
                 .foregroundStyle(Colors.secondaryLabel)
         case let .error(error):
-            Text(error.localizedDescription)
+            Text(contributionAdmissionMessage(error) ?? error.localizedDescription)
                 .foregroundStyle(Colors.negativeVote)
+                .accessibilityAddTraits(.isStaticText)
         default:
             if let saved = viewModel.savedPostId {
                 Text(UiMessages.string(

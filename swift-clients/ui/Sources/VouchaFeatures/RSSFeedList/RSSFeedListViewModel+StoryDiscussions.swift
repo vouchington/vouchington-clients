@@ -1,3 +1,4 @@
+import VouchaAPI
 import VouchaCore
 import VouchaModels
 
@@ -56,15 +57,25 @@ extension RSSFeedListViewModel {
         defer { startingDiscussionStoryIds.remove(storyId) }
 
         do {
+            let storyIntent = "story\u{001F}\(storyId)"
+            let storyScope = "story-discussion\u{001F}\(storyId)"
+            let idempotencyKey = await contributionIdentity.key(
+                surface: storyScope,
+                canonicalIntent: storyIntent
+            )
             let result: StoryPostResult = try await emailVerificationGate.perform(rollbackOnFailure: {}, {
-                try await client.send(.createStoryDiscussion(storyId: storyId))
+                try await client.send(.createStoryDiscussion(storyId: storyId, idempotencyKey: idempotencyKey))
             })
+            await contributionIdentity.complete(surface: storyScope, canonicalIntent: storyIntent)
             storyPostIdsByStoryId[storyId] = result.post.id
             let destination = StoryDiscussionDestination(postId: result.post.id, postType: result.post.postType)
             storyDiscussionDestinationsByStoryId[storyId] = destination
             startedDiscussionStoryIds.insert(storyId)
             state = .loaded
             return destination
+        } catch let error as ContributionAdmissionFailure {
+            state = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
+            return nil
         } catch let error as VouchaError where error.isFeedNotDiscoverable {
             return await startLinkDiscussionFallback(rssFeedItemId: rssFeedItemId, storyId: storyId)
         } catch let error as VouchaError where error.isConflict {
@@ -84,9 +95,15 @@ extension RSSFeedListViewModel {
         storyId: String
     ) async -> StoryDiscussionDestination? {
         do {
+            let rssIntent = "rss\u{001F}\(rssFeedItemId)"
+            let rssScope = "rss-discussion\u{001F}\(rssFeedItemId)"
+            let idempotencyKey = await contributionIdentity.key(surface: rssScope, canonicalIntent: rssIntent)
             let result: PostEnvelope = try await emailVerificationGate.perform(rollbackOnFailure: {}, {
-                try await client.send(.createRssFeedItemDiscussion(rssFeedItemId: rssFeedItemId))
+                try await client.send(.createRssFeedItemDiscussion(
+                    rssFeedItemId: rssFeedItemId, idempotencyKey: idempotencyKey
+                ))
             })
+            await contributionIdentity.complete(surface: rssScope, canonicalIntent: rssIntent)
             storyPostIdsByStoryId[storyId] = result.post.id
             let destination = StoryDiscussionDestination(postId: result.post.id, postType: result.post.postType)
             storyDiscussionDestinationsByStoryId[storyId] = destination
@@ -94,6 +111,9 @@ extension RSSFeedListViewModel {
             startedDiscussionStoryIds.insert(storyId)
             state = .loaded
             return destination
+        } catch let error as ContributionAdmissionFailure {
+            state = .error(.api(statusCode: error.statusCode, preconditionCode: error.code))
+            return nil
         } catch let error as VouchaError {
             state = .error(error)
             return nil

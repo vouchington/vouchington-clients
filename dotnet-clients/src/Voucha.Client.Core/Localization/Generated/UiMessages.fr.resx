@@ -1942,6 +1942,9 @@
   <data name="native.swift.topicManagementFields.primaryHostname" xml:space="preserve"><value>Nom d&apos;hôte principal</value></data>
   <data name="native.swift.topicManagementFields.topicType" xml:space="preserve"><value>Type de sujet</value></data>
   <data name="native.swift.topicRecommendation.topic" xml:space="preserve"><value>Sujet</value></data>
+  <data name="native.taxonomy.contributionAdmission.capacityUnavailable" xml:space="preserve"><value>Vous ne pouvez pas publier pour le moment. Réessayez plus tard.</value></data>
+  <data name="native.taxonomy.contributionAdmission.idempotencyMismatch" xml:space="preserve"><value>Nous n’avons pas pu associer ce brouillon à la demande précédente. Réessayez.</value></data>
+  <data name="native.taxonomy.contributionAdmission.inProgress" xml:space="preserve"><value>Votre publication est toujours en cours d’envoi. Réessayez dans un instant.</value></data>
   <data name="native.taxonomy.crm.ai" xml:space="preserve"><value>IA</value></data>
   <data name="native.taxonomy.crm.cars" xml:space="preserve"><value>Automobiles</value></data>
   <data name="native.taxonomy.crm.creditCards" xml:space="preserve"><value>Cartes de crédit</value></data>

@@ -431,6 +431,7 @@ public sealed class PostComposeImageTests
 
     public Task<PostMutationResponse> CreatePostAsync(
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
       Body = body;
@@ -440,8 +441,9 @@ public sealed class PostComposeImageTests
     public Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
+        string idempotencyKey,
         CancellationToken cancellationToken = default) =>
-        CreatePostAsync(body, cancellationToken);
+        CreatePostAsync(body, idempotencyKey, cancellationToken);
 
     public Task<PostMutationResponse> UpdatePostAsync(
         string postIdOrSlug,

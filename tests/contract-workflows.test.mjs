@@ -159,7 +159,7 @@ describe('native contract workflow boundary', () => {
       'build-macos-app:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
-    assert.match(validation, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint$/mu)
+    assert.match(validation, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --quiet --verbose$/mu)
     assert.doesNotMatch(validation, /swift-clients\/ --lint --verbose/u)
     assert.match(validation, /"\$SWIFTLINT_IMAGE" --strict --cache-path/u)
     assert.match(
@@ -269,6 +269,11 @@ describe('native contract workflow boundary', () => {
     assert.equal(lintJob.split('docker run').length - 1, 3)
     assert.equal(lintJob.split('"$SWIFTFORMAT_IMAGE"').length - 1, 1)
     assert.equal(lintJob.split('"$SWIFTLINT_IMAGE"').length - 1, 2)
+    assert.match(
+      lintJob,
+      /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --quiet --verbose/u,
+      'static Linux SwiftFormat needs quiet verbose execution to avoid swiftlang/swift#77841',
+    )
     assert.doesNotMatch(lintJob, /swift (?:build|test)/u)
   })
 

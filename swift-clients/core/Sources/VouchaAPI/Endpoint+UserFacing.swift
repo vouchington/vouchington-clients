@@ -9,6 +9,14 @@ struct CreateReferralLinkBody: Encodable {
 }
 
 public extension Endpoint {
+    static func contributionStatus(action: String? = nil) -> Endpoint {
+        Endpoint(
+            .GET,
+            path: "/api/v1/my/contribution-status",
+            queryItems: action.map { [URLQueryItem(name: "action", value: $0)] } ?? []
+        )
+    }
+
     static var featureFlags: Endpoint {
         Endpoint(.GET, path: "/api/v1/feature-flags")
     }

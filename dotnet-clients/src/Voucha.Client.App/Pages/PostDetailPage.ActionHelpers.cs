@@ -21,6 +21,28 @@ public partial class PostDetailPage
           initialMarkdown,
           serviceProvider.GetRequiredService<VouchaApiClient>());
 
+  private async Task<string?> GetTurnstileTokenAsync()
+  {
+    try
+    {
+      return await serviceProvider.GetRequiredService<ITurnstileTokenProvider>()
+          .GetTokenAsync()
+          .ConfigureAwait(true);
+    }
+    catch (OperationCanceledException)
+    {
+      return null;
+    }
+    catch (InvalidOperationException ex)
+    {
+      await DisplayAlertAsync(
+          UiCopy.Localize(UiMessageKey.NativeDotnetCsharpDialogsPostActionFailed),
+          ex.Message,
+          UiCopy.Localize(UiMessageKey.NativeDotnetCsharpOk));
+      return null;
+    }
+  }
+
   private void AttachSessionChanged()
   {
     if (isSessionChangedAttached) return;

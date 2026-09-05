@@ -21,11 +21,13 @@ public extension Endpoint {
         structuredData: CreatePostJSONValue? = nil,
         declaredLanguage: String? = nil,
         turnstileToken: String? = nil,
-        recaptchaToken: String? = nil
+        recaptchaToken: String? = nil,
+        idempotencyKey: String
     ) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/communities/\(Endpoint.pathSegment(communityIdOrSlug))/posts",
+            headers: ["Idempotency-Key": idempotencyKey],
             body: CreatePostBody(
                 postType: postType,
                 title: title,

@@ -36,14 +36,16 @@ public sealed partial class ApiPostsService : IPostsService, ICommentThreadServi
 
   public Task<PostMutationResponse> CreatePostAsync(
       CreatePostBody body,
+      string idempotencyKey,
       CancellationToken cancellationToken = default) =>
-      client.CreatePostAsync(body, cancellationToken);
+      client.CreatePostAsync(body, idempotencyKey, cancellationToken);
 
   public Task<PostMutationResponse> CreateCommunityPostAsync(
       string communityIdOrSlug,
       CreatePostBody body,
+      string idempotencyKey,
       CancellationToken cancellationToken = default) =>
-      client.CreateCommunityPostAsync(communityIdOrSlug, body, cancellationToken);
+      client.CreateCommunityPostAsync(communityIdOrSlug, body, idempotencyKey, cancellationToken);
 
   public Task<PostMutationResponse> UpdatePostAsync(
       string postIdOrSlug,

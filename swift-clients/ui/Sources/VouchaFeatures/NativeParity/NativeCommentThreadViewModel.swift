@@ -51,6 +51,7 @@ public final class NativeCommentThreadViewModel {
     public internal(set) var inFlightVotePostIds: Set<String> = []
     public var mutationState: LoadState = .idle
     let emailVerificationGate = EmailVerificationGatedMutation()
+    let contributionIdentity = ContributionRequestIdentity()
 
     let client: APIClient?
     var descendantPosts: [Post] = []
