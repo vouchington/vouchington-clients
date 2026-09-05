@@ -20,10 +20,12 @@ here.
 The self-hosted fleet is persistent and is not an isolation boundary. Any job that checks out or
 executes repository code must:
 
-1. Run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` before its first checkout with
-   `PRESERVE_NODE_MODULES=false`.
-2. Set `clean: false` and `persist-credentials: false` on checkout steps. Workspace cleanup owns
-   removal of stale files while preserving only explicitly requested dependencies.
+1. Check out the trusted workflow ref first with `clean: false` and
+   `persist-credentials: false`; this establishes the Git worktree without executing repository
+   code or retaining checkout credentials.
+2. Immediately run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` with
+   `PRESERVE_NODE_MODULES=false`. Cleanup owns removal of stale files while preserving only
+   explicitly requested dependencies. It must not be expected to initialize an empty workspace.
 3. Run the same pinned cleanup in an `if: always()` final step, again with
    `PRESERVE_NODE_MODULES=false`.
 

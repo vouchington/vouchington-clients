@@ -103,7 +103,7 @@ function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
   assert.match(block, /clean: false/u, `${job} must preserve checkout-managed dependencies`)
   assert.match(block, /persist-credentials: false/u, `${job} must not persist credentials`)
   assert.ok(cleanup.length >= 2, `${job} needs pre- and post-job cleanup`)
-  assert.ok(cleanup[0] < checkout, `${job} needs cleanup before checkout`)
+  assert.ok(checkout < cleanup[0], `${job} must bootstrap Git before cleanup`)
   assert.ok(cleanup.at(-1) > checkout, `${job} needs cleanup after checkout`)
   assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
   assert.match(block, /pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/u)
@@ -115,6 +115,35 @@ function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
     )
   }
   assert.match(block, /if: always\(\)/u, `${job} needs unconditional final cleanup`)
+}
+
+function assertCleanupBootstrapsFromCheckout(name, source) {
+  for (const [index, unit] of jobUnits(source).entries()) {
+    const cleanups = matchOffsets(unit, /vouchington-tooling@0\.1\.5 clean-workspace/gu)
+    if (cleanups.length === 0) continue
+    const checkout = unit.indexOf('actions/checkout@')
+    assert.notEqual(checkout, -1, `${name} unit ${index} must check out before cleanup`)
+    for (const cleanup of cleanups) {
+      assert.ok(
+        checkout < cleanup,
+        `${name} unit ${index} must bootstrap Git before every workspace cleanup`,
+      )
+    }
+  }
+}
+
+function assertPrepareNativeContractCallersBootstrapCheckout(workflows) {
+  for (const [name, source] of Object.entries(workflows)) {
+    for (const [index, unit] of jobUnits(source).entries()) {
+      const action = unit.indexOf('uses: ./.github/actions/prepare-native-contract')
+      if (action === -1) continue
+      const checkout = unit.indexOf('actions/checkout@')
+      assert.ok(
+        checkout !== -1 && checkout < action,
+        `${name} unit ${index} must check out before prepare-native-contract cleans the workspace`,
+      )
+    }
+  }
 }
 
 describe('private self-hosted runner policy', () => {
@@ -207,7 +236,15 @@ jobs:
     )
   })
 
-  it('cleans migrated and sensitive persistent-runner jobs before and after checkout', async () => {
+  it('bootstraps Git before cleaning persistent-runner workspaces', async () => {
+    const workflows = Object.fromEntries(await readWorkflows())
+    for (const [name, workflow] of Object.entries(workflows)) {
+      assertCleanupBootstrapsFromCheckout(name, workflow)
+    }
+    assertPrepareNativeContractCallersBootstrapCheckout(workflows)
+  })
+
+  it('cleans migrated and sensitive persistent-runner jobs after checkout and at job end', async () => {
     const workflows = Object.fromEntries(await readWorkflows())
     for (const [workflow, job, requireTempCleanup] of [
       ['validate.yml', 'contract-tests'],
