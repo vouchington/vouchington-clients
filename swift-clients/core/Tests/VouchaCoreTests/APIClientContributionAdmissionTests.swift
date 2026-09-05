@@ -26,7 +26,7 @@ final class APIClientContributionAdmissionTests: XCTestCase {
                     baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
                     turnstileSiteKey: "test"
                 ),
-                cookieStorage: HTTPCookieStorage(), protocolClasses: [CapturingURLProtocol.self]
+                cookieStorage: IsolatedHTTPCookieStorage.make(), protocolClasses: [CapturingURLProtocol.self]
             )
 
             do {
@@ -47,7 +47,7 @@ final class APIClientContributionAdmissionTests: XCTestCase {
         """.utf8)
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999")), turnstileSiteKey: "test"),
-            cookieStorage: HTTPCookieStorage(), protocolClasses: [CapturingURLProtocol.self]
+            cookieStorage: IsolatedHTTPCookieStorage.make(), protocolClasses: [CapturingURLProtocol.self]
         )
 
         let response = try await client.contributionStatus(action: "story_discussion")
