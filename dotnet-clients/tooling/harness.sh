@@ -131,12 +131,12 @@ append_preflight_replay() {
 
 is_homebrew_dotnet_host() {
   case "$1" in
-    /opt/homebrew/* | /usr/local/Homebrew/*) return 0 ;;
+    /opt/homebrew/* | /usr/local/Homebrew/* | /usr/local/Cellar/* | /usr/local/opt/dotnet/*) return 0 ;;
     *) return 1 ;;
   esac
 }
 
-DOTNET_HOST=''
+VOUCHA_DOTNET_HOST=''
 needs_dotnet=false
 if [[ "$MODE" == 'exec' ]] || contains restore || contains fmt || contains resx-path || contains build; then
   needs_dotnet=true
@@ -164,6 +164,10 @@ if [[ "$needs_dotnet" == true ]]; then
   if [[ -n "$path_dotnet" ]]; then
     add_dotnet_candidate "$path_dotnet"
   fi
+  path_candidate=''
+  if [[ ${#candidates[@]} -gt 0 ]]; then
+    path_candidate="${candidates[0]}"
+  fi
   if [[ -z "${GITHUB_ACTIONS:-}" ]]; then
     if [[ -n "$requested_dotnet_root" ]]; then
       add_dotnet_candidate "${requested_dotnet_root%/}/dotnet"
@@ -174,7 +178,7 @@ if [[ "$needs_dotnet" == true ]]; then
   fi
 
   if [[ ${#candidates[@]} -eq 0 ]]; then
-    echo 'Error: dotnet was not found on PATH.' >&2
+    echo 'Error: no dotnet host was found on PATH or in any fallback location.' >&2
     print_dotnet_install_policy
     exit 127
   fi
@@ -208,7 +212,7 @@ if [[ "$needs_dotnet" == true ]]; then
   if [[ -z "$selected_host" ]]; then
     cat "$preflight_log"
     rm -f -- "$preflight_log"
-    echo 'The PATH-selected dotnet host cannot satisfy the repository root global.json policy.' >&2
+    echo 'No dotnet host on PATH or in any fallback location can satisfy the repository root global.json policy.' >&2
     print_dotnet_install_policy
     if [[ "$homebrew_failed" == true ]]; then
       echo "Homebrew's dotnet host only sees SDKs registered in its own install; it cannot use $HOME/.dotnet." >&2
@@ -220,16 +224,28 @@ if [[ "$needs_dotnet" == true ]]; then
   fi
   rm -f -- "$preflight_log"
 
-  DOTNET_HOST="$selected_host"
-  dotnet_host_dir="${DOTNET_HOST%/*}"
-  export DOTNET_HOST
-  export DOTNET_ROOT="$dotnet_host_dir"
+  if [[ "$selected_host" != "$path_candidate" ]]; then
+    if [[ -n "$path_candidate" ]]; then
+      printf 'Warning: the PATH-first dotnet host %s could not satisfy the repository root global.json policy; using %s instead. Put a compatible SDK selected by global.json first on PATH, or see dotnet-clients/README.md.\n' \
+        "$path_candidate" "$selected_host" >&2
+    else
+      printf 'Warning: no dotnet host was found on PATH; using %s instead. Put a compatible SDK selected by global.json first on PATH, or see dotnet-clients/README.md.\n' \
+        "$selected_host" >&2
+    fi
+  fi
+
+  VOUCHA_DOTNET_HOST="$selected_host"
+  dotnet_host_dir="${VOUCHA_DOTNET_HOST%/*}"
+  export VOUCHA_DOTNET_HOST
+  if [[ -d "$dotnet_host_dir/sdk" || -d "$dotnet_host_dir/shared" ]]; then
+    export DOTNET_ROOT="$dotnet_host_dir"
+  fi
   export PATH="$dotnet_host_dir:$PATH"
 fi
 
 if [[ "$MODE" == 'exec' ]]; then
   if [[ "${EXEC_COMMAND[0]}" == 'dotnet' ]]; then
-    EXEC_COMMAND[0]="$DOTNET_HOST"
+    EXEC_COMMAND[0]="$VOUCHA_DOTNET_HOST"
   fi
   cd "$DOTNET_DIR"
   exec "${EXEC_COMMAND[@]}"
@@ -364,11 +380,11 @@ echo "dotnet-clients harness"
 echo "----------------------"
 
 if contains restore; then
-  run_check "restore" npx --yes pnpm@11.13.1 exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
+  run_check "restore" pnpm exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$VOUCHA_DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
 fi
 
 if contains fmt; then
-  run_check "fmt" "$DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
+  run_check "fmt" "$VOUCHA_DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
 fi
 
 if contains ast-grep; then
@@ -390,7 +406,7 @@ if contains resx-path; then
 fi
 
 if contains build; then
-  run_check "build" "$SCRIPT_DIR/with-build-lock.sh" "$DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
+  run_check "build" "$SCRIPT_DIR/with-build-lock.sh" "$VOUCHA_DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 fi
 
 echo "----------------------"

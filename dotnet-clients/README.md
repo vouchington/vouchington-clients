@@ -59,16 +59,20 @@ build.
 
 Before `--exec` and any selected restore, format, RESX-path, or build check, the harness resolves
 the first `dotnet` host on `PATH` and validates it once from the repository root. The same absolute
-host then runs direct .NET commands, its directory is exported as `DOTNET_ROOT`, and that directory
-leads `PATH` for child scripts. If that host is missing or cannot satisfy the root `global.json`,
+host then runs direct .NET commands, and that directory leads `PATH` for child scripts. Its
+directory is exported as `DOTNET_ROOT` only when it has SDK-root shape (an `sdk/` or `shared/`
+subdirectory); a wrapper script's directory leaves any pre-existing `DOTNET_ROOT` untouched rather
+than masking the real SDK root. If that host is missing or cannot satisfy the root `global.json`,
 the harness replays each resolver output, preserves the failing exit status, and stops before a
 command or build lock starts.
 
 Outside GitHub Actions, a failed PATH host may fall back to `$DOTNET_ROOT/dotnet` when that
 variable was already set, then `$HOME/.dotnet/dotnet` (the Microsoft user-local layout). Those extra
 roots are skipped when `GITHUB_ACTIONS` is set so a persistent runner cannot hide a broken
-job-scoped install behind a leftover `$HOME` SDK. The harness does not walk the rest of `PATH`,
-search Homebrew prefixes, or install SDKs.
+job-scoped install behind a leftover `$HOME` SDK. When a fallback host is selected instead of the
+PATH-first candidate, the harness prints a single stderr warning naming the failed or absent PATH
+host and the host actually used; it stays silent when the PATH-first host is selected. The harness
+does not walk the rest of `PATH`, search Homebrew prefixes, or install SDKs.
 
 Homebrew's `/opt/homebrew/bin/dotnet` only sees SDKs registered in that install. A Microsoft
 user-local `10.0.3xx` SDK at `$HOME/.dotnet` is invisible to it, and non-interactive shells often

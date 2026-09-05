@@ -49,7 +49,7 @@ function baseEnvironment() {
   return environment
 }
 
-async function writeDotnetStub(directory, { status, message }) {
+async function writeDotnetStub(directory, { status, message, sdkRoot = true }) {
   await mkdir(directory, { recursive: true })
   const host = join(directory, 'dotnet')
   const quotedMessage = message.replaceAll("'", "'\\''")
@@ -58,13 +58,22 @@ async function writeDotnetStub(directory, { status, message }) {
     host,
     `#!/bin/bash\nprintf '%s\\n' '${quotedMessage}'${stream}\nexit ${status}\n`,
   )
+  if (sdkRoot) {
+    await mkdir(join(directory, 'sdk'), { recursive: true })
+  }
   return realpath(host)
 }
 
 async function invokeHarness(environment) {
   return execFileAsync(
     '/bin/bash',
-    [harnessPath, '--exec', '/bin/bash', '-c', 'printf \'%s\\n\' "$DOTNET_HOST" "$DOTNET_ROOT"'],
+    [
+      harnessPath,
+      '--exec',
+      '/bin/bash',
+      '-c',
+      'printf \'%s\\n\' "$VOUCHA_DOTNET_HOST" "$DOTNET_ROOT"',
+    ],
     {
       cwd: repositoryRoot,
       encoding: 'utf8',
@@ -91,6 +100,7 @@ test('uses the first PATH host when it satisfies global.json', async t => {
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [pathHost, dirname(pathHost)])
   assert.notEqual(result.stdout.trim().split('\n')[0], fallbackHost)
+  assert.equal(result.stderr, '')
 })
 
 test('binds DOTNET_ROOT to the resolved install when PATH host is a symlink', async t => {
@@ -110,10 +120,28 @@ test('binds DOTNET_ROOT to the resolved install when PATH host is a symlink', as
   assert.deepEqual(result.stdout.trim().split('\n'), [realHost, dirname(realHost)])
 })
 
+test('leaves a pre-existing DOTNET_ROOT untouched when the selected host has no SDK shape', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-wrapper-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const wrapperHost = await writeDotnetStub(join(root, 'path-bin'), {
+    status: 0,
+    message: '10.0.301',
+    sdkRoot: false,
+  })
+  const inheritedRoot = join(root, 'inherited-root')
+  const result = await invokeHarness({
+    ...baseEnvironment(),
+    DOTNET_ROOT: inheritedRoot,
+    HOME: join(root, 'home'),
+    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
+  })
+  assert.deepEqual(result.stdout.trim().split('\n'), [wrapperHost, inheritedRoot])
+})
+
 test('falls back to the Microsoft user-local host when PATH-first fails locally', async t => {
   const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-home-fallback-'))
   t.after(() => rm(root, { recursive: true, force: true }))
-  await writeDotnetStub(join(root, 'path-bin'), {
+  const pathHost = await writeDotnetStub(join(root, 'path-bin'), {
     status: 155,
     message: 'Voucha requires a compatible .NET 10.0.3xx SDK.',
   })
@@ -127,6 +155,9 @@ test('falls back to the Microsoft user-local host when PATH-first fails locally'
     PATH: await isolatedPath(t, [join(root, 'path-bin')]),
   })
   assert.deepEqual(result.stdout.trim().split('\n'), [fallbackHost, dirname(fallbackHost)])
+  assert.ok(result.stderr.includes(pathHost), 'names the failed PATH host')
+  assert.ok(result.stderr.includes(fallbackHost), 'names the host actually used')
+  assert.equal(result.stderr.trim().split('\n').length, 1)
 })
 
 test('does not search HOME/.dotnet when GITHUB_ACTIONS is set', async t => {
@@ -156,7 +187,7 @@ test('does not search HOME/.dotnet when GITHUB_ACTIONS is set', async t => {
       assert.equal(error.stdout.includes(fallbackHost), false)
       assert.match(
         error.stderr,
-        /The PATH-selected dotnet host cannot satisfy the repository root global\.json policy/u,
+        /No dotnet host on PATH or in any fallback location can satisfy the repository root global\.json policy/u,
       )
       return true
     },
@@ -219,7 +250,10 @@ test('exits 127 when no PATH host or local fallback exists', async t => {
       }),
     error => {
       assert.equal(error.code, 127)
-      assert.match(error.stderr, /Error: dotnet was not found on PATH/u)
+      assert.match(
+        error.stderr,
+        /Error: no dotnet host was found on PATH or in any fallback location/u,
+      )
       return true
     },
   )
