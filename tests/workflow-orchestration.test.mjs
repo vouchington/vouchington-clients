@@ -23,6 +23,23 @@ describe('event-driven CI orchestration', () => {
     assert.match(workflow, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u)
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
     assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u)
+    assert.match(
+      workflow,
+      /dotnet-portable:[\s\S]*?outputs:\n\s+dto-fixture-parity-outcome: \$\{\{ steps\.dotnet-dto-fixture-parity\.outcome \}\}/u,
+    )
+    assert.match(
+      workflow,
+      /test-swift-core:[\s\S]*?outputs:\n\s+dto-fixture-parity-outcome: \$\{\{ steps\.swift-dto-fixture-parity\.outcome \}\}/u,
+    )
+    assert.match(
+      workflow,
+      /DOTNET_OUTCOME: \$\{\{ needs\.dotnet-portable\.outputs\.dto-fixture-parity-outcome \}\}/u,
+    )
+    assert.match(
+      workflow,
+      /SWIFT_OUTCOME: \$\{\{ needs\.test-swift-core\.outputs\.dto-fixture-parity-outcome \}\}/u,
+    )
+    assert.doesNotMatch(workflow, /dto-fixture-parity-(?:dotnet|swift)-\$\{\{/u)
     assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u)
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
