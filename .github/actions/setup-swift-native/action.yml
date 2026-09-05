@@ -30,7 +30,7 @@ runs:
       run: |
         set -euo pipefail
         case "$TOOL_SET" in
-          lint) mise install github:nicklockwood/SwiftFormat@0.63.0 aqua:realm/SwiftLint@0.65.0 ;;
+          lint) mise install github:nicklockwood/SwiftFormat@0.61.1 aqua:realm/SwiftLint@0.65.0 ;;
           periphery) mise install aqua:peripheryapp/periphery@3.7.4 ;;
           *) echo "unsupported Swift quality tool set: $TOOL_SET" >&2; exit 2 ;;
         esac
