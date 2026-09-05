@@ -53,17 +53,39 @@ public sealed partial class CommentThreadViewModel
       string parentPostId,
       string markdown,
       bool isAnonymous = false,
+      string? turnstileToken = null,
       CancellationToken cancellationToken = default)
   {
     var posts = mutationPostsService ?? throw new InvalidOperationException("Replying requires a post mutation service.");
-    var body = new CreatePostBody("comment", string.Empty, markdown, ParentId: parentPostId, RootId: rootPostId, IsAnonymous: isAnonymous);
+    var body = new CreatePostBody(
+        "comment",
+        string.Empty,
+        markdown,
+        turnstileToken,
+        ParentId: parentPostId,
+        RootId: rootPostId,
+        IsAnonymous: isAnonymous);
     var canonicalIntent = ContributionRequestIdentity.CanonicalIntent(body);
-    var idempotencyKey = contributionIdentity.KeyFor("comment", canonicalIntent);
+    var commentScope = $"comment\u001f{parentPostId}";
+    var idempotencyKey = contributionIdentity.KeyFor(commentScope, canonicalIntent);
     try
     {
-      await posts.CreatePostAsync(body, idempotencyKey, cancellationToken).ConfigureAwait(true);
-      contributionIdentity.Complete("comment", canonicalIntent);
-      await ReloadAsync(cancellationToken).ConfigureAwait(true);
+      var created = await EmailVerificationGate.RunAsync(
+          async () =>
+          {
+            await posts.CreatePostAsync(body, idempotencyKey, cancellationToken).ConfigureAwait(true);
+            contributionIdentity.Complete(commentScope, canonicalIntent);
+            return true;
+          },
+          ex =>
+          {
+            ErrorMessage = ex.ApiMessage ?? ex.Message;
+            return false;
+          }).ConfigureAwait(true);
+      if (created)
+      {
+        await ReloadAsync(cancellationToken).ConfigureAwait(true);
+      }
     }
     catch (VouchaApiException ex) when (ex.ErrorCode is "CONTRIBUTION_ADMISSION_IN_PROGRESS" or "IDEMPOTENCY_KEY_REUSED" or "CONTRIBUTION_QUOTA_EXCEEDED")
     {

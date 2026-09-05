@@ -27,6 +27,7 @@ struct NativeCommentThreadComposerSheet: View {
     var composer: NativeCommentThreadComposerState
     @Binding
     var showingTurnstile: Bool
+    let viewModel: NativeCommentThreadViewModel?
     let client: APIClient?
     let turnstileSiteKey: String?
     let onSubmit: (NativeCommentThreadComposerState) async -> Void
@@ -36,6 +37,7 @@ struct NativeCommentThreadComposerSheet: View {
     init(
         composer: NativeCommentThreadComposerState,
         showingTurnstile: Binding<Bool>,
+        viewModel: NativeCommentThreadViewModel? = nil,
         client: APIClient? = nil,
         turnstileSiteKey: String?,
         onSubmit: @escaping (NativeCommentThreadComposerState) async -> Void,
@@ -44,6 +46,7 @@ struct NativeCommentThreadComposerSheet: View {
     ) {
         _composer = State(initialValue: composer)
         _showingTurnstile = showingTurnstile
+        self.viewModel = viewModel
         self.client = client
         self.turnstileSiteKey = turnstileSiteKey
         self.onSubmit = onSubmit
@@ -55,6 +58,13 @@ struct NativeCommentThreadComposerSheet: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text(UiMessages.string(title, locale: nativeUiLocale))
                 .font(Typography.headline)
+
+            if let admissionErrorMessageKey {
+                Text(UiMessages.string(admissionErrorMessageKey, locale: nativeUiLocale))
+                    .font(Typography.subheadline)
+                    .foregroundStyle(Colors.secondaryLabel)
+                    .accessibilityAddTraits(.isStaticText)
+            }
 
             if case .report = composer.kind {
                 Picker(
@@ -136,6 +146,11 @@ struct NativeCommentThreadComposerSheet: View {
         case .delete:
             false
         }
+    }
+
+    private var admissionErrorMessageKey: UiMessageKey? {
+        guard case let .error(.api(_, code)) = viewModel?.mutationState else { return nil }
+        return NativeContributionAdmissionPresentation.messageKey(code)
     }
 
 }

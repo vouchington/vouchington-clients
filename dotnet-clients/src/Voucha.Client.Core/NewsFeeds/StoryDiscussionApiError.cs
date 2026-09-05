@@ -14,14 +14,16 @@ internal static class StoryDiscussionApiError
   public static string? ContributionAdmissionMessage(
       VouchaApiException exception,
       IUiLocalization localization) =>
-      exception.StatusCode == HttpStatusCode.Conflict ? exception.ErrorCode switch
+      exception.ErrorCode switch
       {
-        "CONTRIBUTION_ADMISSION_IN_PROGRESS" => localization.Localize(
+        "CONTRIBUTION_ADMISSION_IN_PROGRESS" when exception.StatusCode == HttpStatusCode.Conflict => localization.Localize(
             UiMessageKey.NativeTaxonomyContributionAdmissionInProgress),
-        "IDEMPOTENCY_KEY_REUSED" => localization.Localize(
+        "IDEMPOTENCY_KEY_REUSED" when exception.StatusCode == HttpStatusCode.Conflict => localization.Localize(
             UiMessageKey.NativeTaxonomyContributionAdmissionIdempotencyMismatch),
+        "CONTRIBUTION_QUOTA_EXCEEDED" when exception.StatusCode == HttpStatusCode.TooManyRequests => localization.Localize(
+            UiMessageKey.NativeTaxonomyContributionAdmissionCapacityUnavailable),
         _ => null,
-      } : null;
+      };
 
   private static string? ReadCode(string? responseBody)
   {

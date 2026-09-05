@@ -78,7 +78,8 @@ public extension NativeCommentThreadViewModel {
         let trimmed = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let canonicalIntent = [rootPostId, parentId, trimmed, isAnonymous ? "1" : "0"].joined(separator: "\u{001F}")
-        let idempotencyKey = await contributionIdentity.key(surface: "comment", canonicalIntent: canonicalIntent)
+        let commentScope = "comment\u{001F}\(parentId)"
+        let idempotencyKey = await contributionIdentity.key(surface: commentScope, canonicalIntent: canonicalIntent)
         await mutate(operation: {
             let response: CommentThreadPostMutationResponse = try await client.send(.createPost(
                 postType: .comment,
@@ -90,7 +91,7 @@ public extension NativeCommentThreadViewModel {
                 turnstileToken: turnstileToken,
                 idempotencyKey: idempotencyKey
             ))
-            await contributionIdentity.complete(surface: "comment", canonicalIntent: canonicalIntent)
+            await contributionIdentity.complete(surface: commentScope, canonicalIntent: canonicalIntent)
             let post = await renderedMutationPost(response.post, client: client)
             apply(mutationPost: post)
         })

@@ -21,19 +21,26 @@ public sealed partial class PostComposeViewModel
 
     State = LoadState.Loading;
     ErrorMessage = null;
-    var body = BuildBody();
-    var canonicalIntent = ContributionRequestIdentity.CanonicalIntent(body);
+    var destinationIntent = IsCommunityPost ? $"community\u001f{CommunitySlug.Trim()}" : "global";
+    var canonicalIntent = $"{destinationIntent}\u001f{ContributionRequestIdentity.CanonicalIntent(BuildBody())}";
     var idempotencyKey = contributionIdentity.KeyFor("post", canonicalIntent);
     try
     {
       var response = await EmailVerificationGate.RunAsync<PostMutationResponse?>(
-          async () => IsCommunityPost
-              ? await postsService.CreateCommunityPostAsync(
-                  CommunitySlug.Trim(),
-                  body,
-                  idempotencyKey,
-                  cancellationToken).ConfigureAwait(true)
-              : await postsService.CreatePostAsync(body, idempotencyKey, cancellationToken).ConfigureAwait(true),
+          async () =>
+          {
+            var currentBody = BuildBody();
+            return IsCommunityPost
+                ? await postsService.CreateCommunityPostAsync(
+                    CommunitySlug.Trim(),
+                    currentBody,
+                    idempotencyKey,
+                    cancellationToken).ConfigureAwait(true)
+                : await postsService.CreatePostAsync(
+                    currentBody,
+                    idempotencyKey,
+                    cancellationToken).ConfigureAwait(true);
+          },
           ex =>
           {
             TurnstileToken = "";

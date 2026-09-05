@@ -59,6 +59,19 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
         XCTAssertEqual(viewModel.topicTitle, "")
     }
 
+    func testCanonicalIntentIgnoresTurnstileTokenRefreshes() throws {
+        let viewModel = try NativeTopicRecommendationViewModel(client: makeClient())
+        viewModel.topicTitle = "Native Topic"
+        viewModel.topicSlug = "native-topic"
+        viewModel.bodyText = "Please add this topic."
+        viewModel.turnstileToken = "spent-token"
+        let first = viewModel.body.canonicalIntent
+
+        viewModel.turnstileToken = "refreshed-token"
+
+        XCTAssertEqual(first, viewModel.body.canonicalIntent)
+    }
+
     func testReferralAndCardRequirements() throws {
         let viewModel = try NativeTopicRecommendationViewModel(client: makeClient())
         viewModel.topicTitle = "Native Topic"

@@ -132,16 +132,18 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
   }
 
   [Theory]
-  [InlineData("CONTRIBUTION_ADMISSION_IN_PROGRESS", "Your post is still being sent. Try again shortly.")]
-  [InlineData("IDEMPOTENCY_KEY_REUSED", "We couldn't match this draft to the earlier request. Try again.")]
+  [InlineData(HttpStatusCode.Conflict, "CONTRIBUTION_ADMISSION_IN_PROGRESS", "Your post is still being sent. Try again shortly.")]
+  [InlineData(HttpStatusCode.Conflict, "IDEMPOTENCY_KEY_REUSED", "We couldn't match this draft to the earlier request. Try again.")]
+  [InlineData(HttpStatusCode.TooManyRequests, "CONTRIBUTION_QUOTA_EXCEEDED", "You can't post right now. Try again later.")]
   public async Task StartStoryDiscussionAsyncKeepsTheDraftOnAdmissionConflicts(
+      HttpStatusCode statusCode,
       string code,
       string expectedMessage)
   {
     var service = new StoryDiscussionNewsFeedService(
         [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryPeerCount: 1)])
     {
-      Failure = new VouchaApiException(HttpStatusCode.Conflict, $$"""{"code":"{{code}}"}"""),
+      Failure = new VouchaApiException(statusCode, $$"""{"code":"{{code}}"}"""),
     };
     var viewModel = new NewsFeedsViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);

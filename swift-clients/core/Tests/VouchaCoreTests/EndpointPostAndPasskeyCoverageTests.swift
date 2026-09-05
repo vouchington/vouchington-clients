@@ -53,6 +53,7 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         let first = await identity.key(surface: "post", canonicalIntent: "title\u{001F}body")
         let retry = await identity.key(surface: "post", canonicalIntent: "title\u{001F}body")
         let changed = await identity.key(surface: "post", canonicalIntent: "title\u{001F}changed")
+        let restored = await identity.key(surface: "post", canonicalIntent: "title\u{001F}body")
         let endpoint = Endpoint.createPost(
             postType: .discussion,
             title: "Title",
@@ -62,6 +63,8 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
 
         XCTAssertEqual(first, retry)
         XCTAssertNotEqual(first, changed)
+        XCTAssertNotEqual(first, restored)
+        XCTAssertNotEqual(changed, restored)
         XCTAssertNotNil(UUID(uuidString: first))
         XCTAssertEqual(endpoint.headers["Idempotency-Key"], first)
         XCTAssertEqual(Endpoint.contributionStatus(action: "discussion").path, "/api/v1/my/contribution-status")

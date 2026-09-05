@@ -166,11 +166,25 @@ extension NativeTopicRecommendationViewModel {
     }
 }
 
-private extension NativeTopicRecommendationMutationBody {
+extension NativeTopicRecommendationMutationBody {
     var canonicalIntent: String {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         encoder.outputFormatting = [.sortedKeys]
-        return (try? encoder.encode(self)).map { $0.base64EncodedString() } ?? ""
+        let challengeIndependentBody = NativeTopicRecommendationMutationBody(
+            title: title,
+            markdown: markdown,
+            topicTitle: topicTitle,
+            topicSlug: topicSlug,
+            topicMarkdown: topicMarkdown,
+            topicHostname: topicHostname,
+            topicHostnames: topicHostnames,
+            topicAliases: topicAliases,
+            topicType: topicType,
+            exampleReferralLink: exampleReferralLink,
+            landingPageUrls: landingPageUrls,
+            cfTurnstileResponse: nil
+        )
+        return (try? encoder.encode(challengeIndependentBody)).map { $0.base64EncodedString() } ?? ""
     }
 }

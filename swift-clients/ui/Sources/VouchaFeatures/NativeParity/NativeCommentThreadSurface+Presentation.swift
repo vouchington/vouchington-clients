@@ -6,6 +6,7 @@ extension NativeCommentThreadSurface {
         NativeCommentThreadComposerSheet(
             composer: composer,
             showingTurnstile: $showingTurnstile,
+            viewModel: viewModel,
             client: client,
             turnstileSiteKey: turnstileSiteKey,
             onSubmit: submitComposer,

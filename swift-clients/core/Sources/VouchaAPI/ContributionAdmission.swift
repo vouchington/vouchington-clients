@@ -38,25 +38,30 @@ public struct ContributionLimitUsage: Decodable, Sendable {
     public let windowSeconds: Int
 }
 
-/// Stores an idempotency UUID by a caller-supplied canonical draft intent.
+/// Stores the current idempotency UUID for each caller-supplied draft scope.
 /// Call `complete` only after a successful create; challenge values are deliberately not input.
 public actor ContributionRequestIdentity {
-    private var keys: [String: UUID] = [:]
+    private struct CurrentIdentity {
+        let canonicalIntent: String
+        let key: UUID
+    }
+
+    private var identities: [String: CurrentIdentity] = [:]
 
     public init() {}
 
     public func key(surface: String, canonicalIntent: String) -> String {
-        let scope = surface + "\u{001F}" + canonicalIntent
-        if let existing = keys[scope] {
-            return existing.uuidString.lowercased()
+        if let existing = identities[surface], existing.canonicalIntent == canonicalIntent {
+            return existing.key.uuidString.lowercased()
         }
         let created = UUID()
-        keys[scope] = created
+        identities[surface] = CurrentIdentity(canonicalIntent: canonicalIntent, key: created)
         return created.uuidString.lowercased()
     }
 
     public func complete(surface: String, canonicalIntent: String) {
-        keys.removeValue(forKey: surface + "\u{001F}" + canonicalIntent)
+        guard identities[surface]?.canonicalIntent == canonicalIntent else { return }
+        identities.removeValue(forKey: surface)
     }
 }
 

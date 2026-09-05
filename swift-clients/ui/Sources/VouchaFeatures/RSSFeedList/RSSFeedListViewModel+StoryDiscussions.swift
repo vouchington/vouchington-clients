@@ -58,14 +58,15 @@ extension RSSFeedListViewModel {
 
         do {
             let storyIntent = "story\u{001F}\(storyId)"
+            let storyScope = "story-discussion\u{001F}\(storyId)"
             let idempotencyKey = await contributionIdentity.key(
-                surface: "story-discussion",
+                surface: storyScope,
                 canonicalIntent: storyIntent
             )
             let result: StoryPostResult = try await emailVerificationGate.perform(rollbackOnFailure: {}, {
                 try await client.send(.createStoryDiscussion(storyId: storyId, idempotencyKey: idempotencyKey))
             })
-            await contributionIdentity.complete(surface: "story-discussion", canonicalIntent: storyIntent)
+            await contributionIdentity.complete(surface: storyScope, canonicalIntent: storyIntent)
             storyPostIdsByStoryId[storyId] = result.post.id
             let destination = StoryDiscussionDestination(postId: result.post.id, postType: result.post.postType)
             storyDiscussionDestinationsByStoryId[storyId] = destination
@@ -95,13 +96,14 @@ extension RSSFeedListViewModel {
     ) async -> StoryDiscussionDestination? {
         do {
             let rssIntent = "rss\u{001F}\(rssFeedItemId)"
-            let idempotencyKey = await contributionIdentity.key(surface: "rss-discussion", canonicalIntent: rssIntent)
+            let rssScope = "rss-discussion\u{001F}\(rssFeedItemId)"
+            let idempotencyKey = await contributionIdentity.key(surface: rssScope, canonicalIntent: rssIntent)
             let result: PostEnvelope = try await emailVerificationGate.perform(rollbackOnFailure: {}, {
                 try await client.send(.createRssFeedItemDiscussion(
                     rssFeedItemId: rssFeedItemId, idempotencyKey: idempotencyKey
                 ))
             })
-            await contributionIdentity.complete(surface: "rss-discussion", canonicalIntent: rssIntent)
+            await contributionIdentity.complete(surface: rssScope, canonicalIntent: rssIntent)
             storyPostIdsByStoryId[storyId] = result.post.id
             let destination = StoryDiscussionDestination(postId: result.post.id, postType: result.post.postType)
             storyDiscussionDestinationsByStoryId[storyId] = destination

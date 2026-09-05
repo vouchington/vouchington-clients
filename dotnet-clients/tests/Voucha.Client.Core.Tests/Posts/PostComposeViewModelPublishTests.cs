@@ -1,6 +1,7 @@
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Contributions;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Support;
 using Xunit;
@@ -9,6 +10,42 @@ namespace Voucha.Client.Core.Tests.Posts;
 
 public sealed class PostComposeViewModelPublishTests
 {
+  [Fact]
+  public void ContributionIdentityRotatesWhenADraftChangesAndThenReturnsToItsEarlierContent()
+  {
+    var identity = new ContributionRequestIdentity();
+
+    var first = identity.KeyFor("post", "intent-a");
+    var changed = identity.KeyFor("post", "intent-b");
+    var restored = identity.KeyFor("post", "intent-a");
+    var independent = identity.KeyFor("story-discussion\u001fstory-1", "intent-a");
+
+    Assert.NotEqual(first, changed);
+    Assert.NotEqual(first, restored);
+    Assert.NotEqual(changed, restored);
+    Assert.Equal(restored, identity.KeyFor("post", "intent-a"));
+    Assert.Equal(independent, identity.KeyFor("story-discussion\u001fstory-1", "intent-a"));
+  }
+
+  [Fact]
+  public async Task ContributionIdentityReturnsOneKeyWhenTheSameDraftIsRequestedConcurrently()
+  {
+    var identity = new ContributionRequestIdentity();
+    var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var requests = Enumerable.Range(0, 100)
+        .Select(async _ =>
+        {
+          await start.Task;
+          return identity.KeyFor("story-discussion\u001fstory-1", "intent-a");
+        })
+        .ToArray();
+
+    start.SetResult();
+    var keys = await Task.WhenAll(requests);
+
+    Assert.Single(keys.Distinct());
+  }
+
   [Fact]
   public async Task PublishAsyncOmitsSlugForNonAdminUsers()
   {
@@ -145,6 +182,27 @@ public sealed class PostComposeViewModelPublishTests
     Assert.All(service.IdempotencyKeys, key => Assert.True(Guid.TryParse(key, out _)));
   }
 
+  [Fact]
+  public async Task PublishAsyncRotatesTheDraftKeyWhenTheCommunityDestinationChanges()
+  {
+    var service = new RecordingPostsService();
+    var viewModel = new PostComposeViewModel(
+        service,
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true))
+    {
+      Title = "Title",
+      Markdown = "Draft",
+      CommunitySlug = "community-a",
+    };
+
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    var first = service.IdempotencyKeys.Single();
+    viewModel.CommunitySlug = "community-b";
+    Assert.True(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+
+    Assert.NotEqual(first, service.IdempotencyKeys[1]);
+  }
+
   private class RecordingPostsService : IPostsService
   {
     public List<string> IdempotencyKeys { get; } = [];
@@ -226,6 +284,7 @@ public sealed class PostComposeViewModelPublishTests
       if (shouldFail)
       {
         shouldFail = false;
+        IdempotencyKeys.Add(idempotencyKey);
         return Task.FromException<PostMutationResponse>(new VouchaApiException(
             System.Net.HttpStatusCode.TooManyRequests,
             "{\"code\":\"CONTRIBUTION_QUOTA_EXCEEDED\"}"));

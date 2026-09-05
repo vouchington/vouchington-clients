@@ -67,9 +67,15 @@ public partial class PostDetailPage
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowReply),
         string.Empty);
     if (string.IsNullOrWhiteSpace(markdown)) return;
+    var turnstileToken = await GetTurnstileTokenAsync().ConfigureAwait(true);
+    if (turnstileToken is null) return;
     await RunMutationAsync(async () =>
     {
-      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false);
+      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
+      if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))
+      {
+        return;
+      }
       binding.RefreshRows();
     });
   }
@@ -83,9 +89,15 @@ public partial class PostDetailPage
         UiCopy.Localize(UiMessageKey.NativeSwiftCommentThreadActionRowReply),
         BuildQuoteMarkdown(row));
     if (string.IsNullOrWhiteSpace(markdown)) return;
+    var turnstileToken = await GetTurnstileTokenAsync().ConfigureAwait(true);
+    if (turnstileToken is null) return;
     await RunMutationAsync(async () =>
     {
-      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false);
+      await binding.ViewModel.ReplyAsync(row.Id, markdown.Trim(), false, turnstileToken);
+      if (await emailRecovery.PresentIfRequestedAsync(this, binding.ViewModel.EmailVerificationGate))
+      {
+        return;
+      }
       binding.RefreshRows();
     });
   }

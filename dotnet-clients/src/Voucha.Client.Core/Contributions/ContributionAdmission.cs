@@ -9,24 +9,36 @@ namespace Voucha.Client.Core.Contributions;
 /// Keeps one idempotency key for an unchanged draft and creates a new key for new content.
 public sealed class ContributionRequestIdentity
 {
-  private readonly Dictionary<string, Guid> keys = new(StringComparer.Ordinal);
+  private readonly object sync = new();
+  private readonly Dictionary<string, CurrentIdentity> identities = new(StringComparer.Ordinal);
 
   public string KeyFor(string surface, string canonicalIntent)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(surface);
     ArgumentNullException.ThrowIfNull(canonicalIntent);
     var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalIntent)));
-    var scope = $"{surface}:{fingerprint}";
-    if (!keys.TryGetValue(scope, out var key))
+    lock (sync)
     {
-      key = Guid.NewGuid();
-      keys[scope] = key;
+      if (!identities.TryGetValue(surface, out var identity) || identity.Fingerprint != fingerprint)
+      {
+        identity = new CurrentIdentity(fingerprint, Guid.NewGuid());
+        identities[surface] = identity;
+      }
+      return identity.Key.ToString();
     }
-    return key.ToString();
   }
 
-  public void Complete(string surface, string canonicalIntent) =>
-      keys.Remove($"{surface}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalIntent)))}");
+  public void Complete(string surface, string canonicalIntent)
+  {
+    var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalIntent)));
+    lock (sync)
+    {
+      if (identities.TryGetValue(surface, out var identity) && identity.Fingerprint == fingerprint)
+      {
+        identities.Remove(surface);
+      }
+    }
+  }
 
   public static string CanonicalIntent(object body)
   {
@@ -37,6 +49,8 @@ public sealed class ContributionRequestIdentity
     node.Remove("hp_phone");
     return node.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
   }
+
+  private sealed record CurrentIdentity(string Fingerprint, Guid Key);
 }
 
 public sealed record ContributionAdmission(
