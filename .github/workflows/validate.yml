@@ -174,7 +174,7 @@ jobs:
         run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Check Swift formatting and lint
         env:
-          SWIFTFORMAT_IMAGE: ghcr.io/nicklockwood/swiftformat:0.61.1@sha256:10f870fb7ae917d0373acb582ea87d60ffca92d75eee3260cbede710666f0fca
+          SWIFTFORMAT_IMAGE: ghcr.io/nicklockwood/swiftformat:0.63.0@sha256:cb50a33496b4f5123b99241437f24f154a68085398cfda1412ed3b6bab9c02ec
           SWIFTLINT_IMAGE: ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e
         run: |
           set -euo pipefail
