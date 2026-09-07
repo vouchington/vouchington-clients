@@ -44,11 +44,12 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
     var fallbackLabel = Assert.IsType<Label>(Assert.Single(
         Assert.IsType<VerticalStackLayout>(fallback.Content).Children));
 
+    authored.FlowDirection = FlowDirection.LeftToRight;
+    fallback.FlowDirection = FlowDirection.LeftToRight;
+
     Assert.Equal("وصف", authoredLabel.Text);
     Assert.Equal(FlowDirection.RightToLeft, authoredLabel.FlowDirection);
-    Assert.True(authoredLabel.IsSet(VisualElement.FlowDirectionProperty));
-    Assert.False(fallbackLabel.IsSet(VisualElement.FlowDirectionProperty));
-    Assert.Equal(FlowDirection.RightToLeft, fallbackLabel.FlowDirection);
+    Assert.Equal(FlowDirection.LeftToRight, fallbackLabel.FlowDirection);
   }
 
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider
