@@ -16,8 +16,10 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
     _ = new Application();
     var view = new NativeHtmlContentView { Fallback = "محتوى", IsRightToLeft = true };
 
-    var label = Assert.IsType<Label>(view.Content);
+    var stack = Assert.IsType<VerticalStackLayout>(view.Content);
+    var label = Assert.IsType<Label>(Assert.Single(stack.Children));
 
+    Assert.Equal("محتوى", Assert.Single(label.FormattedText.Spans).Text);
     Assert.Equal(FlowDirection.RightToLeft, label.FlowDirection);
   }
 
