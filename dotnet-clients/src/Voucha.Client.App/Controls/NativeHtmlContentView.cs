@@ -107,7 +107,6 @@ public sealed partial class NativeHtmlContentView :
         label.FontFamily = "Courier";
         break;
     }
-
     return label;
   }
 
@@ -126,15 +125,20 @@ public sealed partial class NativeHtmlContentView :
     return formatted;
   }
 
-  private static Label ImagePlaceholder(NativeHtmlBlock block) =>
-      new()
-      {
-        Text = string.IsNullOrWhiteSpace(block.ImageAlt)
-            ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualImage)
-            : block.ImageAlt,
-        FontAttributes = FontAttributes.Italic,
-        TextColor = Colors.DimGray,
-      };
+  private Label ImagePlaceholder(NativeHtmlBlock block)
+  {
+    var hasAuthoredAlt = !string.IsNullOrWhiteSpace(block.ImageAlt);
+    var label = new Label
+    {
+      Text = hasAuthoredAlt
+          ? block.ImageAlt
+          : UiCopy.Localize(UiMessageKey.NativeDotnetResidualImage),
+      FontAttributes = FontAttributes.Italic,
+      TextColor = Colors.DimGray,
+    };
+    if (hasAuthoredAlt) ApplyAuthoredLanguage(label);
+    return label;
+  }
 
   private static FormattedString Formatted(IReadOnlyList<NativeHtmlInline> inlines)
   {
@@ -190,7 +194,6 @@ public sealed partial class NativeHtmlContentView :
     if (inline.Emphasis) attrs |= FontAttributes.Italic;
     return attrs;
   }
-
   private static bool IsSafeLinkScheme(Uri url) =>
       url.Scheme is "http" or "https" or "mailto";
 

@@ -35,11 +35,19 @@ public sealed partial class CommunityDetailViewModel
         source,
         cancellationToken).ConfigureAwait(true);
     Moderation = response.AutomodActions
-        .Select(action => Summary(
-            action.SourceKey,
-            UiText.Verbatim(action.AuthoredTitle ?? action.Title),
-            UiText.Verbatim(action.CurrentState),
-            Verbatim(action.Reason ?? action.PostType)))
+        .Select(action =>
+        {
+          var authoredTitle = string.IsNullOrWhiteSpace(action.AuthoredTitle)
+              ? null
+              : action.AuthoredTitle;
+          return Summary(
+              action.SourceKey,
+              UiText.Verbatim(authoredTitle ?? action.Title),
+              UiText.Verbatim(action.CurrentState),
+              Verbatim(action.Reason ?? action.PostType),
+              titleDeclaredLanguage: authoredTitle is null ? null : action.DeclaredLanguage,
+              titleDetectedLanguage: authoredTitle is null ? null : action.LinguaRsDetectedLanguage);
+        })
         .ToArray();
     OnPropertyChanged(nameof(Moderation));
   }

@@ -1,5 +1,6 @@
-using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
 
@@ -9,7 +10,10 @@ public sealed record CommunitySummaryRow(
     UiText SubtitleText,
     UiText? DetailText,
     IUiLocalization Localization,
-    UrlEmbedPreview? EmbedPreview = null)
+    UrlEmbedPreview? EmbedPreview = null,
+    string? TitleDeclaredLanguage = null,
+    string? TitleDetectedLanguage = null,
+    AuthoredContentText? Content = null)
 {
   public CommunitySummaryRow(string id, string title, string subtitle, string? detail = null)
       : this(
@@ -26,4 +30,17 @@ public sealed record CommunitySummaryRow(
   public string Subtitle => Localization.Resolve(SubtitleText);
 
   public string? Detail => DetailText is UiText detail ? Localization.Resolve(detail) : null;
+
+  public string? TitleFlowDirection =>
+      AuthoredContentLanguage.Resolve(TitleDeclaredLanguage, TitleDetectedLanguage).Direction?.ToString();
+
+  public string? AuthoredContent => Content?.Text;
+
+  public string? AuthoredContentFlowDirection => Content is null
+      ? null
+      : AuthoredContentLanguage.Resolve(
+          Content.DeclaredLanguage,
+          Content.LinguaRsDetectedLanguage).Direction?.ToString();
+
+  public bool HasAuthoredContent => !string.IsNullOrWhiteSpace(AuthoredContent);
 }

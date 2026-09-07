@@ -33,7 +33,9 @@ public sealed class CommunityPendingReportPaginationTests
     Assert.Equal(["report-1", "report-2"], viewModel.PendingReportRows.Select(row => row.Id));
     Assert.Equal([null, "next"], service.PendingReportCursors);
     Assert.Contains(viewModel.ModerationRows, row => row.Id == "report-1");
-    Assert.Contains(viewModel.Moderation, row => row.Id == "report-1");
+    var summary = Assert.Single(viewModel.Moderation, row => row.Id == "report-1");
+    Assert.Equal("محتوى مبلّغ عنه", summary.AuthoredContent);
+    Assert.Equal("RightToLeft", summary.AuthoredContentFlowDirection);
 
     Assert.True(await viewModel.ResolveModerationReportAsync(
         "report-1", "resolved", TestContext.Current.CancellationToken));
@@ -305,7 +307,9 @@ public sealed class CommunityPendingReportPaginationTests
           "target_user_id":null,"reporter_user_id":null,"reporter_username":null,
           "resolved_by_id":null,"judgement":null,"flagged_reason":"spam","admin_action_path":null,
           "community_ban_evasion":null,"post_moderation_context":null,"is_system_generated":false,
-          "cursor_created_at":null,"cursor_report_count":null,"cursor_severity_rank":null}],
+          "cursor_created_at":null,"cursor_report_count":null,"cursor_severity_rank":null,
+          "target_content":{"text":"محتوى مبلّغ عنه","declared_language":"ar",
+          "lingua_rs_detected_language":null}}],
           "page_info":{"has_next_page":false},"viewer_tier":"moderator"}
           """,
           VouchaApiJson.Options)!;

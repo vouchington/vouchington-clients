@@ -81,11 +81,7 @@ public sealed partial class CommunityDetailViewModel
               UiText.Verbatim(stat.ActorId),
               UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesModeratorStats),
               UiText.Verbatim(localization.FormatNumber(stat.Total)))),
-          .. ModerationRows.Select(row => Summary(
-              row.Id,
-              UiText.Verbatim(row.Target),
-              UiText.Verbatim(row.Status),
-              Verbatim(row.Reason))),
+          .. ModerationRows.Select(ModerationSummary),
         ];
         return true;
       default:
@@ -121,8 +117,20 @@ public sealed partial class CommunityDetailViewModel
       UiText title,
       UiText subtitle,
       UiText? detail = null,
-      UrlEmbedPreview? embedPreview = null) =>
-      new(id, title, subtitle, detail, localization, embedPreview);
+      UrlEmbedPreview? embedPreview = null,
+      string? titleDeclaredLanguage = null,
+      string? titleDetectedLanguage = null,
+      AuthoredContentText? authoredContent = null) =>
+      new(
+          id,
+          title,
+          subtitle,
+          detail,
+          localization,
+          embedPreview,
+          titleDeclaredLanguage,
+          titleDetectedLanguage,
+          authoredContent);
 
   private static UiText? Verbatim(string? value) =>
       value is null ? null : UiText.Verbatim(value);

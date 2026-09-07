@@ -23,6 +23,32 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
     Assert.Equal(FlowDirection.RightToLeft, label.FlowDirection);
   }
 
+  [Fact]
+  public void AppliesAuthoredDirectionOnlyToImageAltText()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var authored = new NativeHtmlContentView
+    {
+      Html = "<img src=\"https://example.com/image.jpg\" alt=\"وصف\">",
+      IsRightToLeft = true,
+    };
+    var fallback = new NativeHtmlContentView
+    {
+      Html = "<img src=\"https://example.com/image.jpg\">",
+      IsRightToLeft = true,
+    };
+
+    var authoredLabel = Assert.IsType<Label>(Assert.Single(
+        Assert.IsType<VerticalStackLayout>(authored.Content).Children));
+    var fallbackLabel = Assert.IsType<Label>(Assert.Single(
+        Assert.IsType<VerticalStackLayout>(fallback.Content).Children));
+
+    Assert.Equal("وصف", authoredLabel.Text);
+    Assert.Equal(FlowDirection.RightToLeft, authoredLabel.FlowDirection);
+    Assert.Equal(FlowDirection.MatchParent, fallbackLabel.FlowDirection);
+  }
+
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider
   {
     public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
