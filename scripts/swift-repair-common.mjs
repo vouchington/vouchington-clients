@@ -84,10 +84,6 @@ export function parseRawGitDiff(raw) {
     assertion(parts.length === 5, 'raw git diff record is malformed')
     const [oldMode, newMode, oldSha, newSha, status] = parts
     assertion(
-      oldMode === '100644' && newMode === '100644',
-      'Swift repair accepts regular files only',
-    )
-    assertion(
       /^[0-9a-f]{7,64}$/u.test(oldSha) && /^[0-9a-f]{7,64}$/u.test(newSha),
       'raw git diff contains an invalid object id',
     )
@@ -96,6 +92,11 @@ export function parseRawGitDiff(raw) {
     assertion(
       path && !path.includes('\0') && !path.startsWith('/') && !path.includes('..'),
       'raw git diff contains an invalid path',
+    )
+    const expectedMode = path === SWIFT_ANDROID_MATERIALIZER_PATH ? '100755' : '100644'
+    assertion(
+      oldMode === expectedMode && newMode === expectedMode,
+      'Swift repair accepts regular files only',
     )
     entries.push({ oldMode, newMode, oldSha, newSha, status, path })
   }
