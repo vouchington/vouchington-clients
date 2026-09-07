@@ -24,9 +24,9 @@
                     <RoundRectangle CornerRadius="8" />
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="{Binding RootRow.LocalizedTitle}" Style="{StaticResource Headline}" />
+                    <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
                     <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
-                    <controls:NativeHtmlContentView Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" />
+                    <controls:NativeHtmlContentView Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" IsRightToLeft="{Binding RootRow.ContentIsRightToLeft}" />
                     <VerticalStackLayout Spacing="4" IsVisible="{Binding RootRow.EmbedPreview.HasPreview}">
                         <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.EmbedPreview.ThumbnailUrl}" />
                         <Label Text="{Binding RootRow.EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
@@ -85,7 +85,7 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="pages:PostDetailPageRow">
                             <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
-                                <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Body}" />
+                                <Label Text="{Binding LocalizedTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Body}" />
                                 <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                     <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
@@ -126,7 +126,7 @@
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
-                                <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" />
+                                <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" IsRightToLeft="{Binding ContentIsRightToLeft}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                     <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
                                     <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />

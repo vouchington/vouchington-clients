@@ -30,6 +30,8 @@ public sealed record CommunityAutomodAction(
     [property: JsonPropertyName("agent_moderation_id")] string? AgentModerationId,
     [property: JsonPropertyName("moderator_slug")] string? ModeratorSlug,
     [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage,
     [property: JsonPropertyName("markdown_preview")] string MarkdownPreview,
     [property: JsonPropertyName("post_type")] string PostType,
     [property: JsonPropertyName("post_href")] string PostHref,
@@ -41,7 +43,8 @@ public sealed record CommunityAutomodAction(
     [property: JsonPropertyName("categories")] IReadOnlyList<string> Categories,
     [property: JsonPropertyName("model_output")] JsonElement ModelOutput,
     [property: JsonPropertyName("current_state")] string CurrentState,
-    [property: JsonPropertyName("feedback_label")] string? FeedbackLabel);
+    [property: JsonPropertyName("feedback_label")] string? FeedbackLabel,
+    [property: JsonPropertyName("authored_title")] string? AuthoredTitle = null);
 
 public sealed record CommunityAutomodActionsResponse(
     [property: JsonPropertyName("automod_actions")] IReadOnlyList<CommunityAutomodAction> AutomodActions,

@@ -88,6 +88,9 @@ public struct CommunityAutomodAction: Codable, Sendable {
     public let agentModerationId: String?
     public let moderatorSlug: String?
     public let title: String
+    public let authoredTitle: String?
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
     public let markdownPreview: String
     public let postType: String
     public let postHref: String
@@ -123,6 +126,8 @@ public struct CommunityAutomodFeedbackInput: Codable, Sendable {
 public struct CommunityAutomodSimulationResult: Codable, Sendable {
     public let postId: String
     public let title: String
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
     public let postType: String
     public let approvedAt: Date
     public let contentExcerpt: String

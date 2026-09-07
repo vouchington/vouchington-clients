@@ -1133,7 +1133,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetResidualPendingTotal = new("native.dotnet.residual.pendingTotal");
     public static readonly UiMessageKey NativeDotnetResidualPost = new("native.dotnet.residual.post");
     public static readonly UiMessageKey NativeDotnetResidualPostReference = new("native.dotnet.residual.postReference");
-    public static readonly UiMessageKey NativeDotnetResidualPostTitle = new("native.dotnet.residual.postTitle");
     public static readonly UiMessageKey NativeDotnetResidualPosts = new("native.dotnet.residual.posts");
     public static readonly UiMessageKey NativeDotnetResidualProfile = new("native.dotnet.residual.profile");
     public static readonly UiMessageKey NativeDotnetResidualProfileLink = new("native.dotnet.residual.profileLink");
@@ -1658,7 +1657,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftModerationAppealsOriginalDecisionReason = new("native.swift.moderationAppeals.originalDecisionReason");
     public static readonly UiMessageKey NativeSwiftModerationAppealsOverdue = new("native.swift.moderationAppeals.overdue");
     public static readonly UiMessageKey NativeSwiftModerationAppealsPlatformPostRemovalAppeal = new("native.swift.moderationAppeals.platformPostRemovalAppeal");
-    public static readonly UiMessageKey NativeSwiftModerationAppealsPostContext = new("native.swift.moderationAppeals.postContext");
     public static readonly UiMessageKey NativeSwiftModerationAppealsPostTarget = new("native.swift.moderationAppeals.postTarget");
     public static readonly UiMessageKey NativeSwiftModerationAppealsPublicResponse = new("native.swift.moderationAppeals.publicResponse");
     public static readonly UiMessageKey NativeSwiftModerationAppealsReduce = new("native.swift.moderationAppeals.reduce");
@@ -3132,7 +3130,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetResidualPendingTotal,
         NativeDotnetResidualPost,
         NativeDotnetResidualPostReference,
-        NativeDotnetResidualPostTitle,
         NativeDotnetResidualPosts,
         NativeDotnetResidualProfile,
         NativeDotnetResidualProfileLink,
@@ -3657,7 +3654,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftModerationAppealsOriginalDecisionReason,
         NativeSwiftModerationAppealsOverdue,
         NativeSwiftModerationAppealsPlatformPostRemovalAppeal,
-        NativeSwiftModerationAppealsPostContext,
         NativeSwiftModerationAppealsPostTarget,
         NativeSwiftModerationAppealsPublicResponse,
         NativeSwiftModerationAppealsReduce,

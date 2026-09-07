@@ -29,8 +29,16 @@ struct MemberAppealNoticeCard: View {
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryLabel)
             }
-            if let context = target.context {
-                Text(verbatim: context).font(Typography.body)
+            if let context = target.authoredContext {
+                Text(verbatim: context.value)
+                    .font(Typography.body)
+                    .authoredContentLanguage(
+                        declared: context.declaredLanguage,
+                        detected: context.detectedLanguage
+                    )
+            } else if let context = target.context {
+                Text(verbatim: context)
+                    .font(Typography.body)
             }
             Button(
                 UiMessages.string(
@@ -55,7 +63,7 @@ extension MemberAppealTarget {
         switch self {
         case .warning: .nativeSwiftModerationAppealsWarningAppeal
         case .ban: .nativeSwiftModerationAppealsCommunityBanAppeal
-        case let .removal(_, _, _, kind, _): kind.memberAppealTitleKey
+        case let .removal(_, _, _, _, _, kind, _): kind.memberAppealTitleKey
         case .suspension: .nativeSwiftModerationAppealsSuspensionAppeal
         }
     }
@@ -75,11 +83,16 @@ extension MemberAppealTarget {
             message ?? community
         case let .ban(_, reason, community, _):
             reason ?? community
-        case let .removal(_, title, community, _, _):
-            title ?? community
+        case let .removal(_, _, community, _, _, _, _):
+            community
         case .suspension:
             nil
         }
+    }
+
+    var authoredContext: NormalizedAuthoredText? {
+        guard case let .removal(_, title, _, declared, detected, _, _) = self else { return nil }
+        return NormalizedAuthoredText(text: title, declaredLanguage: declared, detectedLanguage: detected)
     }
 }
 

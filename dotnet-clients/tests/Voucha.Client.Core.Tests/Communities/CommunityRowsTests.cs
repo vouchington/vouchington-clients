@@ -57,6 +57,20 @@ public sealed class CommunityRowsTests
   }
 
   [Fact]
+  public void CommunityPostRowOnlyAppliesLanguageToAnAuthoredTitle()
+  {
+    var authored = CommunityPostRow.FromPost(
+        new Post("post-1", "discussion", "  عنوان  ", null, "user-1", DeclaredLanguage: "ar"), null);
+    var fallback = CommunityPostRow.FromPost(
+        new Post("post-2", "discussion", "  ", null, "user-1", Slug: "system-slug", DeclaredLanguage: "ar"), null);
+
+    Assert.Equal("عنوان", authored.Title);
+    Assert.Equal("RightToLeft", authored.TitleFlowDirection);
+    Assert.Equal("system-slug", fallback.Title);
+    Assert.Null(fallback.TitleFlowDirection);
+  }
+
+  [Fact]
   public void LocalizedManagementRowsResolveAgainAfterLocaleChanges()
   {
     var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));

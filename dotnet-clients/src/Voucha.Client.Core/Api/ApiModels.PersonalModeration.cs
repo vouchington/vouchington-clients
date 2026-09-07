@@ -38,7 +38,9 @@ public sealed record PersonalRemovedPost(
     [property: JsonPropertyName("community_slug")] string? CommunitySlug,
     [property: JsonPropertyName("unpublished_at")] DateTimeOffset UnpublishedAt,
     [property: JsonPropertyName("post_removal_kind")] string? PostRemovalKind,
-    [property: JsonPropertyName("__entity_type")] string? EntityType = null);
+    [property: JsonPropertyName("__entity_type")] string? EntityType = null,
+    [property: JsonPropertyName("post_declared_language")] string? PostDeclaredLanguage = null,
+    [property: JsonPropertyName("post_lingua_rs_detected_language")] string? PostLinguaRsDetectedLanguage = null);
 
 public sealed record PersonalRemovedPostsResponse(
     [property: JsonPropertyName("removed_posts")] IReadOnlyList<PersonalRemovedPost> RemovedPosts,

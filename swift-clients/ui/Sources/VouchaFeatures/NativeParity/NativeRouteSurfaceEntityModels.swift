@@ -69,7 +69,9 @@ struct NativeGenericListResponse: Decodable {
             hostname: nil,
             url: nil,
             description: post.markdown,
-            summary: post.createdById
+            summary: post.createdById,
+            declaredLanguage: post.declaredLanguage,
+            linguaRsDetectedLanguage: post.linguaRsDetectedLanguage
         )
     }
 

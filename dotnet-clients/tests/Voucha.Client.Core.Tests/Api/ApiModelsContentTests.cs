@@ -17,8 +17,9 @@ public sealed class ApiModelsContentTests
         .ToArray();
 
     Assert.Equal(
-        ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags"],
-        parameterNames[^5..]);
+        ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags",
+         "DeclaredLanguage", "LinguaRsDetectedLanguage"],
+        parameterNames[^7..]);
   }
 
   [Fact]
@@ -158,5 +159,30 @@ public sealed class ApiModelsContentTests
     var hashtag = Assert.Single(post.PostHashtags!);
     Assert.Equal(("hashtag-1", "travel", "#Travel", "topic-1"),
         (hashtag.Id, hashtag.Key, hashtag.DisplayToken, hashtag.TopicId));
+  }
+
+  [Fact]
+  public void AuthoredContentTextDecodesOnlyWhenItsRequiredFieldsArePresent()
+  {
+    var content = JsonSerializer.Deserialize<AuthoredContentText>("""
+      {"kind":"post","text":"Original content","declared_language":null,"lingua_rs_detected_language":"en"}
+      """, VouchaApiJson.Options);
+
+    Assert.Equal("post", content?.Kind);
+    Assert.Equal("Original content", content?.Text);
+    Assert.Equal("en", content?.LinguaRsDetectedLanguage);
+    Assert.Null(JsonSerializer.Deserialize<AuthoredContentText?>("null", VouchaApiJson.Options));
+  }
+
+  [Theory]
+  [InlineData("{}")]
+  [InlineData("{\"kind\":\"post\"}")]
+  [InlineData("{\"text\":\"Original content\"}")]
+  [InlineData("{\"kind\":null,\"text\":\"Original content\"}")]
+  [InlineData("{\"kind\":\"post\",\"text\":null}")]
+  public void AuthoredContentTextRejectsMissingOrNullRequiredFields(string json)
+  {
+    Assert.ThrowsAny<ArgumentNullException>(() =>
+        JsonSerializer.Deserialize<AuthoredContentText>(json, VouchaApiJson.Options));
   }
 }

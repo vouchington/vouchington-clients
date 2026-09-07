@@ -1,3 +1,5 @@
+import Foundation
+
 struct NativeGenericEntity: Decodable {
     let id: String
     let slug: String?
@@ -14,6 +16,8 @@ struct NativeGenericEntity: Decodable {
     let url: String?
     let description: String?
     let summary: String?
+    let declaredLanguage: String?
+    let linguaRsDetectedLanguage: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -32,6 +36,8 @@ struct NativeGenericEntity: Decodable {
         case url
         case description
         case summary
+        case declaredLanguage
+        case linguaRsDetectedLanguage
     }
 
     init(from decoder: any Decoder) throws {
@@ -51,6 +57,8 @@ struct NativeGenericEntity: Decodable {
         url = try container.decodeIfPresent(String.self, forKey: .url)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        declaredLanguage = try container.decodeIfPresent(String.self, forKey: .declaredLanguage)
+        linguaRsDetectedLanguage = try container.decodeIfPresent(String.self, forKey: .linguaRsDetectedLanguage)
     }
 
     init(id: String) {
@@ -69,6 +77,8 @@ struct NativeGenericEntity: Decodable {
         url = nil
         description = nil
         summary = nil
+        declaredLanguage = nil
+        linguaRsDetectedLanguage = nil
     }
 
     init(
@@ -86,7 +96,9 @@ struct NativeGenericEntity: Decodable {
         hostname: NativeGenericHostname?,
         url: String?,
         description: String?,
-        summary: String?
+        summary: String?,
+        declaredLanguage: String? = nil,
+        linguaRsDetectedLanguage: String? = nil
     ) {
         self.id = id
         self.slug = slug
@@ -103,14 +115,30 @@ struct NativeGenericEntity: Decodable {
         self.url = url
         self.description = description
         self.summary = summary
+        self.declaredLanguage = declaredLanguage
+        self.linguaRsDetectedLanguage = linguaRsDetectedLanguage
     }
 
     func displayTitle(fallback: String) -> String {
-        title ?? name ?? subject ?? username ?? hostname?.displayName ?? url ?? slug ?? id.ifNotEmpty ?? fallback
+        normalizedAuthoredTitle?.value
+            ?? firstNonBlank(name, subject, username, hostname?.displayName, url, slug, id, fallback)
+    }
+
+    var normalizedAuthoredTitle: NormalizedAuthoredText? {
+        NormalizedAuthoredText(
+            text: title,
+            declaredLanguage: declaredLanguage,
+            detectedLanguage: linguaRsDetectedLanguage
+        )
     }
 
     var displayDetail: String {
-        description ?? summary ?? status ?? topicType ?? postType ?? feedType ?? pathname ?? slug ?? id
+        firstNonBlank(description, summary, status, topicType, postType, feedType, pathname, slug, id)
+    }
+
+    private func firstNonBlank(_ values: String?...) -> String {
+        values.lazy.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty }) ?? ""
     }
 }
 

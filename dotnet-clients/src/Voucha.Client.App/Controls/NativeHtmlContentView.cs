@@ -8,16 +8,10 @@ public sealed partial class NativeHtmlContentView :
     IUiLocaleChangeListener
 {
   public static readonly BindableProperty HtmlProperty = BindableProperty.Create(
-      nameof(Html),
-      typeof(string),
-      typeof(NativeHtmlContentView),
-      propertyChanged: OnContentChanged);
+      nameof(Html), typeof(string), typeof(NativeHtmlContentView), propertyChanged: OnContentChanged);
 
   public static readonly BindableProperty FallbackProperty = BindableProperty.Create(
-      nameof(Fallback),
-      typeof(string),
-      typeof(NativeHtmlContentView),
-      propertyChanged: OnContentChanged);
+      nameof(Fallback), typeof(string), typeof(NativeHtmlContentView), propertyChanged: OnContentChanged);
 
   public static readonly BindableProperty MaxLinesProperty = BindableProperty.Create(
       nameof(MaxLines),
@@ -79,6 +73,7 @@ public sealed partial class NativeHtmlContentView :
       LineBreakMode = LineBreakMode.TailTruncation,
       MaxLines = MaxLines,
     };
+    ApplyAuthoredLanguage(label);
     return label;
   }
 
@@ -97,6 +92,7 @@ public sealed partial class NativeHtmlContentView :
       FormattedText = Formatted(block.Inlines),
       LineBreakMode = LineBreakMode.WordWrap,
     };
+    ApplyAuthoredLanguage(label);
     if (MaxLines > 0) label.MaxLines = MaxLines;
     switch (block.Kind)
     {
@@ -197,4 +193,5 @@ public sealed partial class NativeHtmlContentView :
 
   private static bool IsSafeLinkScheme(Uri url) =>
       url.Scheme is "http" or "https" or "mailto";
+
 }

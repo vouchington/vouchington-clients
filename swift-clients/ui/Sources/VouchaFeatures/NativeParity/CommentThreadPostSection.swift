@@ -48,7 +48,12 @@ struct CommentThreadPostSection: View {
             }
 
             if let markdown = post.markdown, !markdown.isEmpty {
-                NativeHtmlContent(html: post.html, fallback: markdown)
+                NativeHtmlContent(
+                    html: post.html,
+                    fallback: markdown,
+                    declaredLanguage: post.declaredLanguage,
+                    detectedLanguage: post.linguaRsDetectedLanguage
+                )
             }
             if let embed {
                 ProviderEmbedPreview(embed: embed)

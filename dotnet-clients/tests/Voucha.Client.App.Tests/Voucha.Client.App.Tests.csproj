@@ -36,6 +36,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputesPage.Lifecycle.cs" Link="Pages/ModerationDisputesPage.Lifecycle.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputesPageLifetime.cs" Link="Pages/ModerationDisputesPageLifetime.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardView.cs" Link="Pages/ModerationDisputeCardView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.AuthoredLanguage.cs" Link="Controls/NativeHtmlContentView.AuthoredLanguage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardView.Actions.cs" Link="Pages/ModerationDisputeCardView.Actions.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardPresentation.cs" Link="Pages/ModerationDisputeCardPresentation.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardPresentation.cs" Link="Pages/ModerationAppealCardPresentation.cs" />

@@ -135,7 +135,38 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById = null,
     [property: JsonPropertyName("resolution_action")] string? ResolutionAction = null,
     [property: JsonPropertyName("latest_lifecycle_change_id")] string? LatestLifecycleChangeId = null,
+    [property: JsonPropertyName("post_content")] AuthoredContentText? PostContent = null,
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null);
+
+public sealed record AuthoredContentText
+{
+  [JsonConstructor]
+  public AuthoredContentText(
+      string kind,
+      string text,
+      string? declaredLanguage = null,
+      string? linguaRsDetectedLanguage = null)
+  {
+    ArgumentNullException.ThrowIfNull(kind);
+    ArgumentNullException.ThrowIfNull(text);
+    Kind = kind;
+    Text = text;
+    DeclaredLanguage = declaredLanguage;
+    LinguaRsDetectedLanguage = linguaRsDetectedLanguage;
+  }
+
+  [JsonPropertyName("kind")]
+  public string Kind { get; }
+
+  [JsonPropertyName("text")]
+  public string Text { get; }
+
+  [JsonPropertyName("declared_language")]
+  public string? DeclaredLanguage { get; }
+
+  [JsonPropertyName("lingua_rs_detected_language")]
+  public string? LinguaRsDetectedLanguage { get; }
+}
 
 public sealed record ModerationDisputeListResponse(
     [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDispute> Disputes,

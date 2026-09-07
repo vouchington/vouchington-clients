@@ -48,6 +48,12 @@ public sealed record PostDetailPageRow(
 
   public string BodyText => Post.Markdown ?? Post.Html ?? string.Empty;
 
+  public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(
+      Post.DeclaredLanguage, Post.LinguaRsDetectedLanguage);
+  public bool? ContentIsRightToLeft => ContentLanguage.Direction is null ? null : ContentLanguage.Direction == AuthoredTextDirection.RightToLeft;
+  public string? ContentFlowDirection => ContentLanguage.Direction?.ToString();
+  public string? TitleFlowDirection => string.IsNullOrWhiteSpace(Post.Title) ? null : ContentFlowDirection;
+
   public string AuthorText => Post.DeletedAt is not null
       ? Localization.Localize(UiMessageKey.NativeDotnetPostsDeleted)
       : Post.IsAnonymous == true || Post.CreatedBy is null

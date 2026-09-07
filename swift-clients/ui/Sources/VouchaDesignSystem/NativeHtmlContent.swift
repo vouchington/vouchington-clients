@@ -10,19 +10,25 @@ public struct NativeHtmlContent: View {
     private let lineLimit: Int?
     private let font: Font
     private let foregroundStyle: Color?
+    private let declaredLanguage: String?
+    private let detectedLanguage: String?
 
     public init(
         html: String?,
         fallback: String? = nil,
         lineLimit: Int? = nil,
         font: Font = Typography.body,
-        foregroundStyle: Color? = nil
+        foregroundStyle: Color? = nil,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil
     ) {
         self.html = html
         self.fallback = fallback
         self.lineLimit = lineLimit
         self.font = font
         self.foregroundStyle = foregroundStyle
+        self.declaredLanguage = declaredLanguage
+        self.detectedLanguage = detectedLanguage
     }
 
     public var body: some View {
@@ -31,12 +37,13 @@ public struct NativeHtmlContent: View {
             fallback: fallback,
             locale: nativeUiLocale
         )
-        if !attributed.characters.isEmpty {
+        if !String(attributed.characters).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(attributed)
                 .font(font)
                 .foregroundStyle(foregroundStyle ?? Color.primary)
                 .lineLimit(lineLimit)
                 .fixedSize(horizontal: false, vertical: true)
+                .authoredContentLanguage(declared: declaredLanguage, detected: detectedLanguage)
         }
     }
 

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Moderation;
@@ -19,6 +20,9 @@ public sealed record ReviewQueueRow(
   public string Id => Post.Id;
   public string DisplayTitle => Normalize(Post.Title) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueUntitledPost);
   public string UserContentPreview => Normalize(Post.MarkdownPreview) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueNoPreview);
+  public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(Post.DeclaredLanguage, Post.LinguaRsDetectedLanguage);
+  public string? TitleFlowDirection => Normalize(Post.Title) is null ? null : ContentLanguage.Direction?.ToString();
+  public string? PreviewFlowDirection => Normalize(Post.MarkdownPreview) is null ? null : ContentLanguage.Direction?.ToString();
   public string Author => Normalize(Post.CreatedById) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous);
   public string PostType => Post.PostType;
   public DateTimeOffset CreatedAt => Post.CreatedAt;

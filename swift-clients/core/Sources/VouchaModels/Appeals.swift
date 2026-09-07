@@ -159,6 +159,7 @@ public struct ModerationDispute: Codable, Identifiable, Sendable {
     public var resolvedById: String?
     @RequiredNullable
     public var sentAt: Date?
+    @RequiredNullable public var postContent: AuthoredContentText?
     public let staffContext: ReviewDisputeStaffContext?
 }
 

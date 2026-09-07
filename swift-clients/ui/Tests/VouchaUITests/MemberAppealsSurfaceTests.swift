@@ -383,7 +383,7 @@ final class MemberAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             ),
             (
                 """
-                {"type":"post_removal","id":"post-1","title":"A removed review","kind":"platform",\
+                {"type":"post_removal","id":"post-1","title":"A removed review","declared_language":null,"lingua_rs_detected_language":null,"kind":"platform",\
                 "community":null,"public_reason":"Policy reason","decided_at":"2026-07-01T09:00:00Z"}
                 """,
                 "A removed review",

@@ -127,6 +127,11 @@ extension NativeRouteSurfaceViewModel {
             ? .comment(id: post.id, rootId: post.rootId)
             : .path(NativeBookmarkRow.postPath(type: post.postType, id: post.id, slug: post.slug)
                 ?? "/discussion/\(post.id)")
+        let title = NormalizedAuthoredText(
+            text: post.title,
+            declaredLanguage: post.declaredLanguage,
+            detectedLanguage: post.linguaRsDetectedLanguage
+        )
         return NativeBookmarkRow(
             entityType: collection.entityType,
             entityId: post.id,
@@ -135,7 +140,9 @@ extension NativeRouteSurfaceViewModel {
             detail: post.createdById.map(UiVerbatimText.userContent) ?? .message(post.postType.titleKey),
             destination: destination,
             inverseAction: collection.inverseAction,
-            rank: rank
+            rank: rank,
+            declaredLanguage: title?.declaredLanguage,
+            detectedLanguage: title?.detectedLanguage
         )
     }
 
@@ -157,26 +164,6 @@ extension NativeRouteSurfaceViewModel {
         )
     }
 
-    private func bookmarkedGenericRow(
-        _ entity: NativeGenericEntity,
-        response: NativeGenericListResponse,
-        collection: NativeBookmarkCollection,
-        rank: Int
-    ) -> NativeBookmarkRow {
-        let entityType = collection.kind == .users ? "user" : collection.entityType
-        return NativeBookmarkRow(
-            entityType: collection.entityType,
-            entityId: entity.id,
-            icon: collection.kind == .users
-                ? "person"
-                : genericBookmarkIcon(entity, response: response, fallback: collection.icon),
-            title: genericBookmarkTitle(entity, entityType: entityType),
-            detail: genericBookmarkDetail(entity, entityType: entityType),
-            destination: .path(genericBookmarkPath(entity, entityType: entityType)),
-            inverseAction: collection.inverseAction,
-            rank: rank
-        )
-    }
 }
 
 private extension Endpoint {

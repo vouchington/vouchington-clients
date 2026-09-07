@@ -29,6 +29,8 @@ public struct Post: Codable, Identifiable, Sendable {
     public let slug: String?
     public let postType: PostType
     public let title: String?
+    public let declaredLanguage: String?
+    public let linguaRsDetectedLanguage: String?
     public let markdown: String?
     public let html: String?
     @TolerantNullable
@@ -87,11 +89,29 @@ public struct Post: Codable, Identifiable, Sendable {
     public let postExplicitCategories: [PostExplicitCategory]?
     public let postHashtags: [PostHashtag]?
 
+    /** compatibility initializer is in Post+Compatibility.swift */
+    private enum TransportCodingKeys: String, CodingKey {
+        case entityType = "__entityType"
+        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html, parentId, rootId
+        case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
+        case clearanceStatus, approvedAt, inReviewAt, rejectedAt
+        case metrics, election, createdBy, updatedAt, deletedAt, deletedById
+        case lockedAt, lockedById, canEditContent, canDelete, canLock
+        case aiSummaryMarkdown, archivedAt, archivedById, clearanceReason
+        case clearanceUpdatedAt, spamDetectionCreatedAt, spamDetectionFlagged
+        case spamDetectionResults, spamDetectionScore, updatedById
+        case postExplicitCategories, postHashtags
+    }
+}
+
+extension Post {
     public init(
         id: String,
         slug: String?,
         postType: PostType,
         title: String?,
+        declaredLanguage: String? = nil,
+        linguaRsDetectedLanguage: String? = nil,
         markdown: String?,
         html: String?,
         parentId: String?,
@@ -122,6 +142,8 @@ public struct Post: Codable, Identifiable, Sendable {
         self.slug = slug
         self.postType = postType
         self.title = title
+        self.declaredLanguage = declaredLanguage
+        self.linguaRsDetectedLanguage = linguaRsDetectedLanguage
         self.markdown = markdown
         self.html = html
         self.parentId = parentId
@@ -163,7 +185,7 @@ public struct Post: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, slug, postType, title, markdown, html, parentId, rootId
+        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html, parentId, rootId
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
         case metrics, election, createdBy, updatedAt, deletedAt, deletedById
@@ -172,18 +194,5 @@ public struct Post: Codable, Identifiable, Sendable {
         case clearanceUpdatedAt, spamDetectionCreatedAt, spamDetectionFlagged
         case spamDetectionResults, spamDetectionScore, updatedById
         case postExplicitCategories, postHashtags
-    }
-}
-
-public struct PostVote: Codable, Sendable {
-    public let entityType: String
-    public let entityId: String?
-    public let userId: String?
-    public let choice: ElectionVoteChoice
-    public let createdAt: Date?
-
-    private enum CodingKeys: String, CodingKey {
-        case entityType = "__entityType"
-        case entityId, userId, choice, createdAt
     }
 }

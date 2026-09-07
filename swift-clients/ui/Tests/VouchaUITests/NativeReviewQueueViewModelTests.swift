@@ -344,7 +344,7 @@ final class NativeReviewQueueViewModelTests: NativeRouteSurfaceViewModelTestCase
     ) -> String {
         let authorJSON = author.map { #""\#($0)""# } ?? "null"
         let rootJSON = rootId.map { #""\#($0)""# } ?? "null"
-        return #"{"id":"\#(id)","title":"Title \#(id)","slug":"\#(id)","markdown_preview":"Preview \#(id)","post_type":"discussion","created_by_id":\#(authorJSON),"created_at":"2026-06-01T11:30:00.000Z","root_id":\#(rootJSON),"root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"spam_detection_flagged":true,"spam_detection_score":0.75,"spam_detection_results":{},"openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{}}"#
+        return #"{"id":"\#(id)","title":"Title \#(id)","declared_language":null,"lingua_rs_detected_language":null,"slug":"\#(id)","markdown_preview":"Preview \#(id)","post_type":"discussion","created_by_id":\#(authorJSON),"created_at":"2026-06-01T11:30:00.000Z","root_id":\#(rootJSON),"root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"spam_detection_flagged":true,"spam_detection_score":0.75,"spam_detection_results":{},"openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{}}"#
     }
 
     private func clearanceData(_ status: String) -> Data {

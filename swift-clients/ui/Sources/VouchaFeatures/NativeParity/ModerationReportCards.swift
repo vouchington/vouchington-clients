@@ -5,7 +5,7 @@ import VouchaModels
 
 struct StaffModerationReportCard: View {
     @Environment(\.locale)
-    private var nativeUiLocale
+    var nativeUiLocale
     let report: StaffModerationReport
     @Bindable
     var viewModel: ModerationReportsViewModel
@@ -49,6 +49,19 @@ struct StaffModerationReportCard: View {
                     ],
                     locale: nativeUiLocale
                 ))
+                if let content = report.targetContent,
+                   let text = NormalizedAuthoredText(
+                       text: content.text,
+                       declaredLanguage: content.declaredLanguage,
+                       detectedLanguage: content.linguaRsDetectedLanguage
+                   ) {
+                    Text(text.value)
+                        .font(Typography.subheadline)
+                        .authoredContentLanguage(
+                            declared: text.declaredLanguage,
+                            detected: text.detectedLanguage
+                        )
+                }
                 Text(UiMessages.string(
                     .nativeSwiftModerationReportsReporter,
                     parameters: ["reporter": report.reporterUsername ?? report.reporterUserId],
@@ -93,70 +106,6 @@ struct StaffModerationReportCard: View {
         }
     }
 
-    @ViewBuilder
-    private var judgement: some View {
-        if let judgement = report.judgement {
-            VStack(alignment: .leading) {
-                Text(UiMessages.string(
-                    .nativeSwiftModerationReportsAiJudgement,
-                    parameters: ["action": judgement.recommendedAction],
-                    locale: nativeUiLocale
-                ))
-                Text(judgement.internalResponse)
-                if !judgement.publicResponse.isEmpty {
-                    Text(judgement.publicResponse)
-                }
-                if judgement.isStale {
-                    Label(
-                        UiMessages.string(.nativeSwiftModerationReportsOutdated, locale: nativeUiLocale),
-                        systemImage: "clock.badge.exclamationmark"
-                    )
-                }
-            }
-        } else {
-            Text(UiMessages.string(
-                .nativeSwiftModerationReportsAiJudgementUnavailable,
-                locale: nativeUiLocale
-            )).foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var banEvasion: some View {
-        if let context = report.communityBanEvasion {
-            VStack(alignment: .leading) {
-                Label(
-                    UiMessages.string(.nativeSwiftModerationReportsBanEvasionSignal, locale: nativeUiLocale),
-                    systemImage: "person.crop.circle.badge.exclamationmark"
-                )
-                Text(UiMessages.string(
-                    .nativeSwiftModerationReportsCommunity,
-                    parameters: ["community": context.communitySlug],
-                    locale: nativeUiLocale
-                ))
-                Text(UiMessages.string(
-                    .nativeSwiftModerationReportsMatchedAccount,
-                    parameters: ["account": context.sourceUsername ?? context.sourceUserId],
-                    locale: nativeUiLocale
-                ))
-                Text(UiMessages.string(
-                    .nativeSwiftModerationReportsScore,
-                    parameters: ["score": UiMessages.percent(context.score, locale: nativeUiLocale)],
-                    locale: nativeUiLocale
-                ))
-            }
-        }
-    }
-
-    private func reportCountText(_ count: Int) -> String {
-        UiMessages.string(
-            UiMessage(
-                .nativeSwiftModerationReportsReportCount,
-                numberParameters: ["count": Double(count)]
-            ),
-            locale: nativeUiLocale
-        )
-    }
 }
 
 func reportHeader(

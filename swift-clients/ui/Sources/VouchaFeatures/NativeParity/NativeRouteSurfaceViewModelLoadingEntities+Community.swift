@@ -39,11 +39,14 @@ extension NativeRouteSurfaceViewModel {
         posts: NativeCommunityPostsResponse,
         counts: NativeCommunityListItemCounts
     ) -> [NativeRouteDestinationRow] {
+        let communityTitle = detail.community.normalizedAuthoredTitle
         var rows = [
             row(
                 "person.3",
-                .verbatim(detail.community.displayTitle(fallback: routeEntityId)),
-                .verbatim(detail.community.displayDetail)
+                communityTitle?.text ?? .verbatim(detail.community.displayTitle(fallback: routeEntityId)),
+                .verbatim(detail.community.displayDetail),
+                declaredLanguage: communityTitle?.declaredLanguage,
+                detectedLanguage: communityTitle?.detectedLanguage
             )
         ]
         if let metrics = detail.communityMetrics {
@@ -117,10 +120,17 @@ extension NativeRouteSurfaceViewModel {
     ) -> [NativeRouteDestinationRow] {
         posts.results.prefix(3).compactMap { result in
             guard let post = posts.posts[result.id] else { return nil }
+            let title = NormalizedAuthoredText(
+                text: post.title,
+                declaredLanguage: post.declaredLanguage,
+                detectedLanguage: post.linguaRsDetectedLanguage
+            )
             return row(
                 "doc.text",
-                .verbatim(post.title ?? post.slug ?? post.id),
-                postTypeText(post.postType)
+                title?.text ?? .verbatim(post.slug ?? post.id),
+                postTypeText(post.postType),
+                declaredLanguage: title?.declaredLanguage,
+                detectedLanguage: title?.detectedLanguage
             )
         }
     }

@@ -121,6 +121,7 @@ public struct CommunityModerationQueueEntry: Codable, Identifiable, Sendable {
     public let targetAvailable: Bool
     public let targetLabel: String?
     public let targetPath: String?
+    @RequiredNullable public var targetContent: AuthoredContentText?
     public let targetIsAnonymous: Bool?
     public let targetIsRestricted: Bool?
     @RequiredNullable

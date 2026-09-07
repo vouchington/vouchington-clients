@@ -28,10 +28,12 @@ struct NativeSurfaceRow: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(row.localizedTitle(locale: locale, timeZone: timeZone))
                     .font(Typography.headline)
+                    .authoredContentLanguage(declared: row.declaredLanguage, detected: row.detectedLanguage)
                 Text(row.localizedDetail(locale: locale, timeZone: timeZone))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)
                     .fixedSize(horizontal: false, vertical: true)
+                    .authoredContentLanguage(declared: row.detailDeclaredLanguage, detected: row.detailDetectedLanguage)
             }
             Spacer(minLength: 0)
             if row.externalURL != nil {

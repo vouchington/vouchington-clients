@@ -37,6 +37,8 @@ public struct ModerationAppealCommunityBanContext: Codable, Sendable {
 public struct ModerationAppealPostRemovalContext: Codable, Sendable {
     public let id: String
     public let title: String
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
     public let kind: ModerationAppealPostRemovalKind
     @RequiredNullable
     public var community: ModerationAppealCommunitySummary?

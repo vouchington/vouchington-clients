@@ -38,6 +38,8 @@ public struct ReviewDisputeActorSummary: Codable, Sendable {
 public struct ReviewDisputePostContext: Codable, Sendable {
     public let id: String
     public let title: String
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
     @RequiredNullable
     public var slug: String?
     public let markdownPreview: String
@@ -93,6 +95,7 @@ public struct ReviewDispute: Codable, Identifiable, Sendable {
     public let latestLifecycleChangeId: String?
     public let createdAt: Date
     public let updatedAt: Date
+    @RequiredNullable public var postContent: AuthoredContentText?
     public let staffContext: ReviewDisputeStaffContext?
 }
 

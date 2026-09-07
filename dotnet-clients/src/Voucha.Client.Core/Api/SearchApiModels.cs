@@ -18,7 +18,10 @@ public sealed record CombinedSearchTopic(
 public sealed record CombinedSearchPost(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("post_type")] string PostType,
-    [property: JsonPropertyName("title")] string Title);
+    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("authored_title")] string? AuthoredTitle = null,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record CombinedSearchNewsItem(
     [property: JsonPropertyName("id")] string Id,

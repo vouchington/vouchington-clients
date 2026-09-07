@@ -58,10 +58,14 @@ extension NativeRouteSurfaceViewModel {
         }
         return response.results.enumerated().map { index, result in
             let entity = response.hydratedEntity(for: result)
+            let authoredTitle = entity.normalizedAuthoredTitle
             return row(
                 icon,
-                .verbatim(entity.displayTitle(fallback: entity.id.ifNotEmpty ?? String(index + 1))),
-                topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response)
+                authoredTitle?.text
+                    ?? .verbatim(entity.displayTitle(fallback: entity.id.ifNotEmpty ?? String(index + 1))),
+                topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response),
+                declaredLanguage: authoredTitle?.declaredLanguage,
+                detectedLanguage: authoredTitle?.detectedLanguage
             )
         }
     }

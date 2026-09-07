@@ -286,7 +286,9 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
     private func post(id: String, requiresReveal: Bool) -> String {
         """
         {
-          "id":"\(id)","title":"\(id)","slug":"\(id)","markdown_preview":"Preview",
+          "id":"\(id)","title":"\(id)","declared_language":null,"lingua_rs_detected_language":null,"slug":"\(
+              id
+          )","markdown_preview":"Preview",
           "post_type":"discussion","created_by_id":"author","created_at":"2026-06-01T11:30:00.000Z",
           "root_id":null,"root_post_type":null,"root_slug":null,"clearance_status":"rejected",
           "clearance_updated_at":null,"spam_detection_flagged":false,"spam_detection_score":null,

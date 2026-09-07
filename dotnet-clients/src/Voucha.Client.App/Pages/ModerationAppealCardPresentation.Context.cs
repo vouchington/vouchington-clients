@@ -24,8 +24,6 @@ internal static partial class ModerationAppealCardPresentation
             "value", ban.Community.Name);
         break;
       case ModerationAppealPostRemovalContext removal:
-        AddValue(lines, UiMessageKey.NativeSwiftModerationAppealsPostContext,
-            "value", removal.Title);
         AddValue(lines, UiMessageKey.NativeSwiftModerationAppealsDecisionContext,
             "value", removal.PublicReason);
         AddValue(lines, UiMessageKey.NativeSwiftModerationAppealsCommunityContext,

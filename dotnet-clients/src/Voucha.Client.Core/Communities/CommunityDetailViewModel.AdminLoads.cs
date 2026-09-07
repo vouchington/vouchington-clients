@@ -37,7 +37,7 @@ public sealed partial class CommunityDetailViewModel
     Moderation = response.AutomodActions
         .Select(action => Summary(
             action.SourceKey,
-            UiText.Verbatim(action.Title),
+            UiText.Verbatim(action.AuthoredTitle ?? action.Title),
             UiText.Verbatim(action.CurrentState),
             Verbatim(action.Reason ?? action.PostType)))
         .ToArray();

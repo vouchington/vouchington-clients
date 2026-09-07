@@ -81,6 +81,7 @@ public sealed partial class ModerationReportsPage
         Reasons(viewModel.PresentationReasons(cluster)),
         Indicators(cluster.Indicators),
         FirstLatest(cluster.FirstReportedAt, cluster.LastReportedAt));
+    AddAuthoredContent(content, cluster.TargetContent);
     AddTargetLink(content, cluster.TargetPath ?? cluster.AdminActionPath);
     content.Children.Add(ClusterActions(cluster.Id));
     foreach (var report in reports) content.Children.Add(StaffReportCard(report));
@@ -111,6 +112,7 @@ public sealed partial class ModerationReportsPage
                 UiMessageKey.NativeDotnetModerationRebasedResolvedBy,
                 ("actor", report.ResolvedById)));
     AddTargetLink(content, report.TargetPath ?? report.AdminActionPath);
+    AddAuthoredContent(content, report.TargetContent);
     AddJudgement(content, report.Judgement);
     AddBanEvasion(content, report.CommunityBanEvasion);
     if (report.PostModerationContext is { } context)
@@ -138,6 +140,7 @@ public sealed partial class ModerationReportsPage
                 UiMessageKey.NativeDotnetModerationRebasedReviewed,
                 ("date", UiCopy.FormatDateTime(report.ReviewedAt.Value))));
     AddTargetLink(content, report.TargetPath);
+    AddAuthoredContent(content, report.TargetContent);
     if (report.PostModerationContext is { } context)
       AddLine(content, UiText.Localized(
           UiMessageKey.NativeDotnetModerationRebasedContext,

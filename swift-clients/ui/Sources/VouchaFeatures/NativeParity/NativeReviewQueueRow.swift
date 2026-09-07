@@ -12,8 +12,13 @@ struct NativeReviewQueueRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(displayTitle).font(Typography.headline)
-            Text(displayExcerpt).foregroundStyle(.secondary)
+            authoredOrFallback(title: item.post.title, fallback: .nativeSwiftModerationReportsReviewQueueUntitledPost)
+                .font(Typography.headline)
+            authoredOrFallback(
+                title: item.post.markdownPreview,
+                fallback: .nativeSwiftModerationReportsReviewQueueNoPreview
+            )
+            .foregroundStyle(.secondary)
             Text(localized(
                 .nativeSwiftModerationReportsReviewQueueAuthor,
                 parameters: ["author": item.post
@@ -78,14 +83,17 @@ struct NativeReviewQueueRow: View {
             .disabled(viewModel.actionsAreDisabled(for: item.id))
     }
 
-    private var displayTitle: String {
-        let title = item.post.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return title.isEmpty ? localized(.nativeSwiftModerationReportsReviewQueueUntitledPost) : title
-    }
-
-    private var displayExcerpt: String {
-        let excerpt = item.post.markdownPreview.trimmingCharacters(in: .whitespacesAndNewlines)
-        return excerpt.isEmpty ? localized(.nativeSwiftModerationReportsReviewQueueNoPreview) : excerpt
+    @ViewBuilder
+    private func authoredOrFallback(title: String, fallback: UiMessageKey) -> some View {
+        let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty {
+            Text(localized(fallback))
+        } else {
+            Text(value).authoredContentLanguage(
+                declared: item.post.declaredLanguage,
+                detected: item.post.linguaRsDetectedLanguage
+            )
+        }
     }
 
     private var rootContext: String? {

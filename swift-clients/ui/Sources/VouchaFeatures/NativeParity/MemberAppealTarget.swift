@@ -23,14 +23,22 @@ enum MemberAppealsRoute: Hashable {
 enum MemberAppealTarget: Identifiable, Hashable {
     case warning(id: String, message: String?, community: String?, createdAt: Date)
     case ban(id: String, reason: String?, community: String?, createdAt: Date)
-    case removal(id: String, title: String?, community: String?, kind: ModerationAppealPostRemovalKind, date: Date)
+    case removal(
+        id: String,
+        title: String?,
+        community: String?,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil,
+        kind: ModerationAppealPostRemovalKind,
+        date: Date
+    )
     case suspension(date: Date)
 
     var id: String {
         switch self {
         case let .warning(id, _, _, _): "warning:\(id)"
         case let .ban(id, _, _, _): "ban:\(id)"
-        case let .removal(id, _, _, kind, _): "removal:\(kind.rawValue):\(id)"
+        case let .removal(id, _, _, _, _, kind, _): "removal:\(kind.rawValue):\(id)"
         case let .suspension(date): "suspension:\(date.timeIntervalSinceReferenceDate.bitPattern)"
         }
     }
@@ -46,19 +54,19 @@ enum MemberAppealTarget: Identifiable, Hashable {
 
     var targetId: String? {
         switch self {
-        case let .warning(id, _, _, _), let .ban(id, _, _, _), let .removal(id, _, _, _, _): id
+        case let .warning(id, _, _, _), let .ban(id, _, _, _), let .removal(id, _, _, _, _, _, _): id
         case .suspension: nil
         }
     }
 
     var postRemovalKind: ModerationAppealPostRemovalKind? {
-        guard case let .removal(_, _, _, kind, _) = self else { return nil }
+        guard case let .removal(_, _, _, _, _, kind, _) = self else { return nil }
         return kind
     }
 
     var date: Date {
         switch self {
-        case let .warning(_, _, _, date), let .ban(_, _, _, date), let .removal(_, _, _, _, date),
+        case let .warning(_, _, _, date), let .ban(_, _, _, date), let .removal(_, _, _, _, _, _, date),
              let .suspension(date):
             date
         }
@@ -83,6 +91,8 @@ extension MemberRemovedPostNotice {
             id: postId,
             title: postTitle,
             community: communitySlug,
+            declaredLanguage: postDeclaredLanguage,
+            detectedLanguage: postLinguaRsDetectedLanguage,
             kind: postRemovalKind,
             date: unpublishedAt
         )

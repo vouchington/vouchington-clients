@@ -1,4 +1,5 @@
 import Foundation
+import VouchaModels
 
 public struct LandingPagesResponse: Decodable, Sendable {
     public let results: [LandingPage]
@@ -69,15 +70,6 @@ public struct LandingPageProfileLink: Decodable, Identifiable, Equatable, Sendab
     public let url: String?
     public let handle: String?
     public let name: String?
-}
-
-public struct LandingPageReview: Decodable, Identifiable, Equatable, Sendable {
-    public let id: String
-    public let title: String
-    public let slug: String?
-    public let markdown: String
-    public let createdAt: Date
-    public let reviewTopicRatings: [LandingPageReviewTopicRating]
 }
 
 public struct LandingPageReviewTopicRating: Decodable, Equatable, Sendable {
@@ -173,10 +165,7 @@ public enum LandingPageTopicGroupEntry: Decodable, Identifiable, Equatable, Send
     }
 
     enum CodingKeys: String, CodingKey {
-        case id
-        case type
-        case review
-        case referralLink
+        case id, type, review, referralLink
     }
 
     public init(from decoder: any Decoder) throws {

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.App.Pages;
 
@@ -10,6 +11,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
   private readonly ModerationAppealsViewModel viewModel;
   private readonly Label heading = new() { FontAttributes = FontAttributes.Bold };
   private readonly Label context = new() { FontSize = 12 };
+  private readonly Label removalTitle = new();
   private readonly Label reason = new();
   private readonly Label recommendation = new();
   private readonly Label aiInternalResponse = new();
@@ -59,6 +61,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     Spacing = 8;
     Children.Add(heading);
     Children.Add(context);
+    Children.Add(removalTitle);
     Children.Add(reason);
     Children.Add(recommendation);
     Children.Add(aiInternalResponse);
@@ -96,6 +99,17 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     if (Appeal is not { } appeal) return;
     heading.Text = ModerationAppealCardPresentation.Heading(appeal);
     context.Text = ModerationAppealCardPresentation.Context(appeal);
+    removalTitle.Text = (appeal.TargetContext as ModerationAppealPostRemovalContext)?.Title;
+    removalTitle.IsVisible = !string.IsNullOrWhiteSpace(removalTitle.Text);
+    var language = appeal.TargetContext as ModerationAppealPostRemovalContext;
+    var resolvedLanguage = AuthoredContentLanguage.Resolve(
+        language?.DeclaredLanguage, language?.LinguaRsDetectedLanguage);
+    removalTitle.FlowDirection = resolvedLanguage.Direction switch
+    {
+      AuthoredTextDirection.RightToLeft => FlowDirection.RightToLeft,
+      AuthoredTextDirection.LeftToRight => FlowDirection.LeftToRight,
+      _ => FlowDirection.MatchParent,
+    };
     reason.Text = ModerationAppealCardPresentation.Reason(appeal);
     recommendation.Text = ModerationAppealCardPresentation.Recommendation(appeal);
     PopulateReadOnly(

@@ -58,7 +58,9 @@ public sealed record LandingPageReview(
     [property: JsonPropertyName("slug")] string? Slug,
     [property: JsonPropertyName("markdown")] string Markdown,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("review_topic_ratings")] IReadOnlyList<LandingPageReviewTopicRating> ReviewTopicRatings);
+    [property: JsonPropertyName("review_topic_ratings")] IReadOnlyList<LandingPageReviewTopicRating> ReviewTopicRatings,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record LandingPageReferralLink(
     [property: JsonPropertyName("id")] string Id,

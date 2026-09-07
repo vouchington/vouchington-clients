@@ -13,7 +13,8 @@ public sealed partial class CommunityDetailViewModel
           report.Id,
           report.TargetLabel ?? report.EntityId ?? report.Id,
           report.Status,
-          report.Reason)).ToArray();
+          report.Reason,
+          report.TargetContent)).ToArray();
 
   public bool HasMorePendingReports => pendingReportPages.HasMore;
   public bool IsLoadingMorePendingReports => pendingReportPages.IsLoading;

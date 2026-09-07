@@ -40,9 +40,15 @@ public sealed record CommunityPostRow(
     int ReplyCount,
     UiText PostTypeText,
     IUiLocalization Localization,
-    UrlEmbedPreview? EmbedPreview = null)
+    UrlEmbedPreview? EmbedPreview = null,
+    string? DeclaredLanguage = null,
+    string? DetectedLanguage = null,
+    bool HasAuthoredTitle = false)
 {
   public string PostType => Localization.Resolve(PostTypeText);
+
+  public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(DeclaredLanguage, DetectedLanguage);
+  public string? TitleFlowDirection => HasAuthoredTitle ? ContentLanguage.Direction?.ToString() : null;
 
   public static CommunityPostRow FromPost(
       Post post,
@@ -59,12 +65,16 @@ public sealed record CommunityPostRow(
     ArgumentNullException.ThrowIfNull(post);
     return new(
         post.Id,
-        post.Title ?? post.Slug ?? post.Id,
+        Normalize(post.Title) ?? Normalize(post.Slug) ?? post.Id,
         post.PostType ?? "post",
         post.CreatedAt,
         metrics?.Count.Descendants ?? 0,
         UiTaxonomy.PostType(post.PostType),
         localization ?? UiLocalization.English,
-        UrlEmbedPreviews.From(embed));
+        UrlEmbedPreviews.From(embed), Normalize(post.Title) is null ? null : post.DeclaredLanguage,
+        Normalize(post.Title) is null ? null : post.LinguaRsDetectedLanguage,
+        HasAuthoredTitle: Normalize(post.Title) is not null);
   }
+
+  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

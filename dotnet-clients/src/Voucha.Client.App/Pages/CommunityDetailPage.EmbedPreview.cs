@@ -10,7 +10,10 @@ public sealed partial class CommunityDetailPage
     foreach (var row in rows)
     {
       var content = new VerticalStackLayout { Spacing = 4 };
-      content.Add(new Label { Text = row.Title });
+      var title = new Label { Text = row.Title };
+      if (row.TitleFlowDirection is { } direction)
+        title.FlowDirection = direction == "RightToLeft" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+      content.Add(title);
       content.Add(new Label { Text = row.PostType, FontSize = 12 });
       if (row.EmbedPreview is { } preview)
       {
