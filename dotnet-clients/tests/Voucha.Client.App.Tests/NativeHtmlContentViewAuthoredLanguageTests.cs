@@ -30,22 +30,21 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
     _ = new Application();
     var authored = new NativeHtmlContentView
     {
-      Html = "<img src=\"https://example.com/image.jpg\" alt=\"وصف\">",
+      FlowDirection = FlowDirection.LeftToRight,
       IsRightToLeft = true,
+      Html = "<img src=\"https://example.com/image.jpg\" alt=\"وصف\">",
     };
     var fallback = new NativeHtmlContentView
     {
-      Html = "<img src=\"https://example.com/image.jpg\">",
+      FlowDirection = FlowDirection.LeftToRight,
       IsRightToLeft = true,
+      Html = "<img src=\"https://example.com/image.jpg\">",
     };
 
     var authoredStack = Assert.IsType<VerticalStackLayout>(authored.Content);
     var fallbackStack = Assert.IsType<VerticalStackLayout>(fallback.Content);
     var authoredLabel = Assert.IsType<Label>(Assert.Single(authoredStack.Children));
     var fallbackLabel = Assert.IsType<Label>(Assert.Single(fallbackStack.Children));
-
-    authoredStack.FlowDirection = FlowDirection.LeftToRight;
-    fallbackStack.FlowDirection = FlowDirection.LeftToRight;
 
     Assert.Equal("وصف", authoredLabel.Text);
     Assert.Equal(FlowDirection.RightToLeft, authoredLabel.FlowDirection);
