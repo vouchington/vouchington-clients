@@ -308,7 +308,7 @@ public sealed class CommunityPendingReportPaginationTests
           "resolved_by_id":null,"judgement":null,"flagged_reason":"spam","admin_action_path":null,
           "community_ban_evasion":null,"post_moderation_context":null,"is_system_generated":false,
           "cursor_created_at":null,"cursor_report_count":null,"cursor_severity_rank":null,
-          "target_content":{"text":"محتوى مبلّغ عنه","declared_language":"ar",
+          "target_content":{"kind":"post","text":"محتوى مبلّغ عنه","declared_language":"ar",
           "lingua_rs_detected_language":null}}],
           "page_info":{"has_next_page":false},"viewer_tier":"moderator"}
           """,
