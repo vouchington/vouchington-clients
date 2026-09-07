@@ -29,10 +29,10 @@ public sealed class DirectMessagesViewModelCreateRaceTests
         TestContext.Current.CancellationToken);
     service.CompleteCreateConversation(new DirectConversationResponse(Conversation("c-new", "", "Alice")));
 
-    for (var attempt = 0; attempt < 20 && service.SendRequests.Count == 0; attempt++)
-    {
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    }
+    await service.WaitForPendingSendRequestsAsync(
+        "c-new",
+        1,
+        TestContext.Current.CancellationToken);
 
     Assert.Single(service.SendRequests);
 

@@ -124,6 +124,17 @@ public sealed class BlockingDirectMessagesService : IDirectMessagesService
     }
   }
 
+  public async Task WaitForPendingSendRequestsAsync(
+      string conversationId,
+      int count,
+      CancellationToken cancellationToken)
+  {
+    while (!HasPendingSendRequestCount(conversationId, count))
+    {
+      await requestsChanged.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+  }
+
   public void CompleteCreateConversation(DirectConversationResponse response) =>
       NextCreateConversation().SetResult(response);
 
@@ -149,10 +160,10 @@ public sealed class BlockingDirectMessagesService : IDirectMessagesService
       NextSource(policyResponses, conversationId).SetException(exception);
 
   public void CompleteSend(string conversationId, DirectMessageResponse response) =>
-      NextSource(sendResponses, conversationId).SetResult(response);
+      DequeueThreadSource(sendResponses, conversationId).SetResult(response);
 
   public void FailSend(string conversationId, Exception exception) =>
-      NextSource(sendResponses, conversationId).SetException(exception);
+      DequeueThreadSource(sendResponses, conversationId).SetException(exception);
 
   private TaskCompletionSource<DirectConversationsResponse> RecordConversationFetch(FetchDirectMessagesRequest request)
   {
@@ -189,8 +200,14 @@ public sealed class BlockingDirectMessagesService : IDirectMessagesService
 
   private TaskCompletionSource<DirectMessageResponse> RecordSend(SendDirectMessageRequest request)
   {
-    SendRequests.Add(request);
-    return EnqueueSource(sendResponses, request.ConversationId);
+    TaskCompletionSource<DirectMessageResponse> source;
+    lock (requestGate)
+    {
+      SendRequests.Add(request);
+      source = EnqueueSource(sendResponses, request.ConversationId);
+    }
+    requestsChanged.Release();
+    return source;
   }
 
   private TaskCompletionSource<DirectMessagesResponse> RecordMessageFetch(FetchDirectConversationMessagesRequest request)
@@ -298,6 +315,14 @@ public sealed class BlockingDirectMessagesService : IDirectMessagesService
     lock (requestGate)
     {
       return SourceCount(searchResponses, query) >= count;
+    }
+  }
+
+  private bool HasPendingSendRequestCount(string conversationId, int count)
+  {
+    lock (requestGate)
+    {
+      return SourceCount(sendResponses, conversationId) >= count;
     }
   }
 
