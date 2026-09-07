@@ -39,13 +39,13 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
       IsRightToLeft = true,
     };
 
-    var authoredLabel = Assert.IsType<Label>(Assert.Single(
-        Assert.IsType<VerticalStackLayout>(authored.Content).Children));
-    var fallbackLabel = Assert.IsType<Label>(Assert.Single(
-        Assert.IsType<VerticalStackLayout>(fallback.Content).Children));
+    var authoredStack = Assert.IsType<VerticalStackLayout>(authored.Content);
+    var fallbackStack = Assert.IsType<VerticalStackLayout>(fallback.Content);
+    var authoredLabel = Assert.IsType<Label>(Assert.Single(authoredStack.Children));
+    var fallbackLabel = Assert.IsType<Label>(Assert.Single(fallbackStack.Children));
 
-    authored.FlowDirection = FlowDirection.LeftToRight;
-    fallback.FlowDirection = FlowDirection.LeftToRight;
+    authoredStack.FlowDirection = FlowDirection.LeftToRight;
+    fallbackStack.FlowDirection = FlowDirection.LeftToRight;
 
     Assert.Equal("وصف", authoredLabel.Text);
     Assert.Equal(FlowDirection.RightToLeft, authoredLabel.FlowDirection);
