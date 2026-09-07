@@ -5,17 +5,6 @@ namespace Voucha.Client.App.Pages;
 
 internal static partial class ModerationAppealCardPresentation
 {
-  public static string? RemovalTitle(ModerationAppeal appeal)
-  {
-    ArgumentNullException.ThrowIfNull(appeal);
-    return appeal.TargetContext is ModerationAppealPostRemovalContext removal &&
-        !string.IsNullOrWhiteSpace(removal.Title)
-        ? UiCopy.Format(
-            UiMessageKey.NativeSwiftModerationAppealsPostContext,
-            ("value", UiText.UserContent(removal.Title)))
-        : null;
-  }
-
   private static void AddTargetContext(
       List<string> lines,
       ModerationAppealTargetContext? context)

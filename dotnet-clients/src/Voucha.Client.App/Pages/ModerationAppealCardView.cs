@@ -99,7 +99,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     if (Appeal is not { } appeal) return;
     heading.Text = ModerationAppealCardPresentation.Heading(appeal);
     context.Text = ModerationAppealCardPresentation.Context(appeal);
-    removalTitle.Text = ModerationAppealCardPresentation.RemovalTitle(appeal);
+    removalTitle.Text = (appeal.TargetContext as ModerationAppealPostRemovalContext)?.Title;
     removalTitle.IsVisible = !string.IsNullOrWhiteSpace(removalTitle.Text);
     var language = appeal.TargetContext as ModerationAppealPostRemovalContext;
     var resolvedLanguage = AuthoredContentLanguage.Resolve(
