@@ -1132,7 +1132,6 @@
   <data name="native.dotnet.residual.pendingTotal" xml:space="preserve"><value>{pending} pending · {total} total</value></data>
   <data name="native.dotnet.residual.post" xml:space="preserve"><value>Post</value></data>
   <data name="native.dotnet.residual.postReference" xml:space="preserve"><value>post {id}</value></data>
-  <data name="native.dotnet.residual.postTitle" xml:space="preserve"><value>Post: {title}</value></data>
   <data name="native.dotnet.residual.posts" xml:space="preserve"><value>Posts</value></data>
   <data name="native.dotnet.residual.profile" xml:space="preserve"><value>Profile</value></data>
   <data name="native.dotnet.residual.profileLink" xml:space="preserve"><value>Profile link</value></data>
@@ -1657,7 +1656,6 @@
   <data name="native.swift.moderationAppeals.originalDecisionReason" xml:space="preserve"><value>Original decision reason: {value}</value></data>
   <data name="native.swift.moderationAppeals.overdue" xml:space="preserve"><value>Overdue</value></data>
   <data name="native.swift.moderationAppeals.platformPostRemovalAppeal" xml:space="preserve"><value>Platform post removal appeal</value></data>
-  <data name="native.swift.moderationAppeals.postContext" xml:space="preserve"><value>Post: {value}</value></data>
   <data name="native.swift.moderationAppeals.postTarget" xml:space="preserve"><value>Post {id}</value></data>
   <data name="native.swift.moderationAppeals.publicResponse" xml:space="preserve"><value>Public response</value></data>
   <data name="native.swift.moderationAppeals.reduce" xml:space="preserve"><value>Reduce</value></data>

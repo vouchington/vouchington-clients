@@ -180,7 +180,7 @@ private extension ModerationAppeal {
         switch target {
         case let .warning(id, _, _, _): return userWarningId == id
         case let .ban(id, _, _, _): return communityBanId == id
-        case let .removal(id, _, _, kind, _):
+        case let .removal(id, _, _, _, _, kind, _):
             return postId == id && postRemovalKind == kind
         case let .suspension(date):
             guard let targetContext else { return userSuspensionId != nil }

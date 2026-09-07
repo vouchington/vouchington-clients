@@ -88,14 +88,16 @@ public static partial class NativeHtmlRenderer
     }
   }
 
-  private static List<NativeHtmlInline> QuoteChildren(IElement element)
+  private static List<NativeHtmlInline> QuoteChildren(
+      IElement element,
+      IReadOnlySet<IElement> authoredImageAlts)
   {
     if (!element.Children.Any(IsQuoteStructuredChild)) return InlineChildren(element);
 
     var blocks = new List<NativeHtmlBlock>();
     foreach (var child in element.ChildNodes)
     {
-      AppendNode(child, blocks);
+      AppendNode(child, blocks, authoredImageAlts);
     }
     if (blocks.Count == 0) return InlineChildren(element);
 

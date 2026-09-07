@@ -46,14 +46,16 @@ extension CommunityDetailViewModel {
     private func automodRow(_ action: CommunityAutomodAction) -> NativeRouteDestinationRow {
         NativeRouteDestinationRow(
             icon: action.flagged ? "exclamationmark.triangle" : "checkmark.shield",
-            title: .verbatim(action.sourceKey),
+            title: .verbatim(action.authoredTitle ?? action.title),
             detail: .joined([
                 .message(action.currentState.titleKey),
                 action.reason.map(UiVerbatimText.verbatim),
                 action.confidenceScore.map {
                     .message(.nativeSwiftRouteSurfaceNumberValue, numberParameters: ["value": $0])
                 }
-            ].compactMap { $0 })
+            ].compactMap { $0 }),
+            declaredLanguage: action.declaredLanguage,
+            detectedLanguage: action.linguaRsDetectedLanguage
         )
     }
 }

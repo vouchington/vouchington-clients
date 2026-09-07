@@ -8,9 +8,22 @@ extension NativeRouteSurfaceViewModel {
         _ icon: String,
         _ title: UiVerbatimText,
         _ detail: UiVerbatimText,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil,
+        detailDeclaredLanguage: String? = nil,
+        detailDetectedLanguage: String? = nil,
         targetPath: String? = nil
     ) -> NativeRouteDestinationRow {
-        .init(icon: icon, title: title, detail: detail, targetPath: targetPath)
+        .init(
+            icon: icon,
+            title: title,
+            detail: detail,
+            declaredLanguage: declaredLanguage,
+            detectedLanguage: detectedLanguage,
+            detailDeclaredLanguage: detailDeclaredLanguage,
+            detailDetectedLanguage: detailDetectedLanguage,
+            targetPath: targetPath
+        )
     }
 
     func appText(
@@ -97,57 +110,6 @@ extension NativeRouteSurfaceViewModel {
 }
 
 extension NativeRouteSurfaceViewModel {
-    private func loadPostRows(for destination: NativeRouteDestinationIdentifier, client: APIClient) async throws
-        -> [NativeRouteDestinationRow] {
-        if destination == .postDetail {
-            return try await loadPostDetailRows(client: client)
-        }
-
-        let postTypes = postTypesFilter(for: destination)
-
-        var publicPostQuery = [
-            URLQueryItem(name: "limit", value: "10"),
-            URLQueryItem(name: "sort", value: "hot")
-        ]
-        if let postTypes {
-            publicPostQuery.append(URLQueryItem(name: "post_types", value: postTypes))
-        }
-        let endpoint = destination == .postsBrowse || destination == .storiesBrowse
-            ? Endpoint(.GET, path: "/api/v1/posts", queryItems: publicPostQuery)
-            : Endpoint.posts(feedType: postFeedType, limit: 10, postTypes: postTypes)
-        let response: NativePostFeedResponse = try await client.send(endpoint)
-        return response.results.compactMap { result in
-            guard let post = response.posts[result.entityId ?? result.id] else { return nil }
-            let subtitle: UiVerbatimText = if let userId = result.sharedByUserId {
-                appText(.nativeSwiftRouteSurfaceSharedByUser, parameters: ["user": userId])
-            } else if let userId = post.createdById {
-                appText(.nativeSwiftRouteSurfaceByUser, parameters: ["user": userId])
-            } else if let deliveryType = result.deliveryType {
-                postTypeText(deliveryType)
-            } else {
-                postTypeText(post.postType)
-            }
-            return row(
-                postTypeIcon(for: post.postType),
-                post.title.map(rawText) ?? post.slug.map(rawText) ?? postTypeText(post.postType),
-                subtitle
-            )
-        }
-    }
-
-    private func loadPostDetailRows(client: APIClient) async throws -> [NativeRouteDestinationRow] {
-        let idOrSlug = routeMatch?.param("id") ?? routeMatch?.path.routeLastSegment ?? ""
-        let response: NativePostDetailResponse = try await client.send(.post(idOrSlug: idOrSlug))
-        let post = response.post
-        return [
-            row(
-                postTypeIcon(for: post.postType),
-                post.title.map(rawText) ?? post.slug.map(rawText) ?? postTypeText(post.postType),
-                rawText(post.markdown ?? post.createdById ?? post.id)
-            )
-        ]
-    }
-
     private func loadRssFeedItemRows(for destination: NativeRouteDestinationIdentifier, client: APIClient) async throws
         -> [NativeRouteDestinationRow] {
         let mediaType: String? = switch destination {

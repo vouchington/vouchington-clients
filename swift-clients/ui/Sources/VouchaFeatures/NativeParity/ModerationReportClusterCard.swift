@@ -41,6 +41,18 @@ struct StaffModerationReportClusterCard: View {
             } label: {
                 VStack(alignment: .leading) {
                     Text(cluster.targetLabel ?? cluster.entityType).font(Typography.headline)
+                    if let content = cluster.targetContent,
+                       let text = NormalizedAuthoredText(
+                           text: content.text,
+                           declaredLanguage: content.declaredLanguage,
+                           detectedLanguage: content.linguaRsDetectedLanguage
+                       ) {
+                        Text(text.value)
+                            .authoredContentLanguage(
+                                declared: text.declaredLanguage,
+                                detected: text.detectedLanguage
+                            )
+                    }
                     Text(UiMessages.string(
                         .nativeSwiftModerationReportsClusterSummary,
                         parameters: [

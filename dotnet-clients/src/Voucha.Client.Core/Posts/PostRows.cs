@@ -25,7 +25,10 @@ public sealed record PostRow(
     string? Broadcast = null,
     string? Privacy = null,
     string? ParentId = null,
-    UrlEmbedPreview? EmbedPreview = null)
+    UrlEmbedPreview? EmbedPreview = null,
+    string? DeclaredLanguage = null,
+    string? DetectedLanguage = null,
+    bool HasAuthoredTitle = false)
 {
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
@@ -34,6 +37,10 @@ public sealed record PostRow(
   public string Subtitle => L.Resolve(SubtitleText);
 
   public string LocalizedPostType => L.Resolve(PostTypeText);
+
+  public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(DeclaredLanguage, DetectedLanguage);
+  public bool? ContentIsRightToLeft => ContentLanguage.Direction is null ? null : ContentLanguage.Direction == AuthoredTextDirection.RightToLeft;
+  public string? TitleFlowDirection => HasAuthoredTitle ? ContentLanguage.Direction?.ToString() : null;
 
   public bool HasVoteCounts => VoteCountUp is not null || VoteCountDown is not null;
 
@@ -74,11 +81,11 @@ public static class PostRows
 
     return new PostRow(
         post.Id,
-        string.IsNullOrWhiteSpace(post.Title)
+        Normalize(post.Title) is not { } title
             ? UiText.Localized(
                 UiMessageKey.NativeDotnetPostsUntitledPostType,
                 ("type", localizer.Resolve(type)))
-            : UiText.Verbatim(post.Title!),
+            : UiText.Verbatim(title),
         post.CreatedById is null
             ? type
             : UiText.Localized(
@@ -101,7 +108,10 @@ public static class PostRows
         Broadcast: post.Broadcast,
         Privacy: post.Privacy,
         ParentId: post.ParentId,
-        EmbedPreview: EmbedFor(post.Id, embeds));
+        EmbedPreview: EmbedFor(post.Id, embeds),
+        DeclaredLanguage: post.DeclaredLanguage,
+        DetectedLanguage: post.LinguaRsDetectedLanguage,
+        HasAuthoredTitle: Normalize(post.Title) is not null);
   }
 
   public static PostRow From(
@@ -135,6 +145,8 @@ public static class PostRows
       embeds is not null && embeds.TryGetValue(postId, out var embed)
           ? UrlEmbedPreviews.From(embed)
           : null;
+
+  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private static UiText PostTypeText(string? value) => UiTaxonomy.PostType(value);
 }

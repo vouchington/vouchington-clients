@@ -328,7 +328,7 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
 
     private var disputesData: Data {
         Data(
-            #"{"disputes":[{"id":"dispute-1","post_id":"post-1","topic_id":"topic-1","reason":"incorrect","claim_text":"Native post","disputant_user_id":"user-1","recommended_action":null,"is_overdue":false,"status":"pending","target_label":"Native post","target_path":"/review/post-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","ai_drafted_at":null,"ai_internal_response":null,"ai_public_response":null,"approved_at":null,"approved_by_id":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"internal_notes":null,"latest_lifecycle_change_id":null,"model":null,"public_response":null,"resolution_action":null,"resolved_at":null,"resolved_by_id":null,"sent_at":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
+            #"{"disputes":[{"id":"dispute-1","post_id":"post-1","topic_id":"topic-1","reason":"incorrect","claim_text":"Native post","disputant_user_id":"user-1","recommended_action":null,"is_overdue":false,"status":"pending","target_label":"Native post","target_path":"/review/post-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","ai_drafted_at":null,"ai_internal_response":null,"ai_public_response":null,"approved_at":null,"approved_by_id":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"internal_notes":null,"latest_lifecycle_change_id":null,"model":null,"public_response":null,"resolution_action":null,"resolved_at":null,"resolved_by_id":null,"sent_at":null,"post_content":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                 .utf8
         )
     }

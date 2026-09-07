@@ -38,7 +38,9 @@ public sealed record AdminReviewQueuePost(
     [property: JsonPropertyName("spam_detection_results")] JsonElement SpamDetectionResults,
     [property: JsonPropertyName("openai_omni_moderation_flagged")] bool? OpenAIOmniModerationFlagged,
     [property: JsonPropertyName("openai_omni_moderation_results")] JsonElement OpenAIOmniModerationResults,
-    [property: JsonPropertyName("media_context")] AdminReviewQueueMediaContext? MediaContext = null);
+    [property: JsonPropertyName("media_context")] AdminReviewQueueMediaContext? MediaContext = null,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record AdminReviewQueueResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<AdminReviewQueuePost> Results,

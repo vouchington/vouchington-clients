@@ -63,11 +63,12 @@ extension CommunityDetailActionTests {
             note: "Reviewed"
         )
         await viewModel.loadCommunityAutomodRecentActions()
-        XCTAssertEqual(viewModel.summary.rows.first, verbatimRow(
-            icon: "exclamationmark.triangle",
-            title: "source-1",
-            detail: "Unpublished · Spam · 0.94"
-        ))
+        let automodRow = try XCTUnwrap(viewModel.summary.rows.first)
+        XCTAssertEqual(automodRow.icon, "exclamationmark.triangle")
+        XCTAssertEqual(automodRow.title, "Flagged post")
+        XCTAssertEqual(automodRow.detail, "Unpublished · Spam · 0.94")
+        XCTAssertNil(automodRow.declaredLanguage)
+        XCTAssertNil(automodRow.detectedLanguage)
         await viewModel.simulateCommunityAutomod(
             promptId: "prompt-1",
             prompt: "Review the content",

@@ -220,7 +220,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let simulation = try decoder.decode(
             CommunityAutomodSimulation.self,
             from: Data(
-                #"{"simulation":{"prompt_id":"prompt-1","time_window_hours":24,"sample_count":1,"would_flag_count":1,"would_unpublish_count":1,"false_positive_estimate":null},"results":[{"post_id":"post-1","title":"Test post","post_type":"discussion","approved_at":"2026-01-01T00:00:00Z","content_excerpt":"excerpt","flagged":true,"reason":"Spam","would_unpublish":true}]}"#
+                #"{"simulation":{"prompt_id":"prompt-1","time_window_hours":24,"sample_count":1,"would_flag_count":1,"would_unpublish_count":1,"false_positive_estimate":null},"results":[{"post_id":"post-1","title":"Test post","declared_language":null,"lingua_rs_detected_language":null,"post_type":"discussion","approved_at":"2026-01-01T00:00:00Z","content_excerpt":"excerpt","flagged":true,"reason":"Spam","would_unpublish":true}]}"#
                     .utf8
             )
         )

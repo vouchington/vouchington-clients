@@ -32,7 +32,8 @@ public sealed record NativeHtmlBlock(
     IReadOnlyList<NativeHtmlInline> Inlines,
     int Level = 0,
     string? ImageSource = null,
-    string? ImageAlt = null);
+    string? ImageAlt = null,
+    bool HasAuthoredImageAlt = false);
 
 public sealed class NativeHtmlDocument
 {

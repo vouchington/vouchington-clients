@@ -42,8 +42,20 @@ extension NativeRouteSurfaceViewModel {
         icon: String,
         title: UiVerbatimText,
         detail: UiVerbatimText,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil,
         targetPath: String? = nil
     ) -> NativeForwardRow {
-        .init(id: id, row: .init(icon: icon, title: title, detail: detail, targetPath: targetPath))
+        .init(
+            id: id,
+            row: .init(
+                icon: icon,
+                title: title,
+                detail: detail,
+                declaredLanguage: declaredLanguage,
+                detectedLanguage: detectedLanguage,
+                targetPath: targetPath
+            )
+        )
     }
 }

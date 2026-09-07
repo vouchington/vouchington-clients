@@ -15,25 +15,32 @@ internal static class ModerationDisputeCardPresentation
     if (string.IsNullOrWhiteSpace(disputant)) disputant = staff?.Disputant.Username;
     if (string.IsNullOrWhiteSpace(disputant)) disputant = staff?.Disputant.Id;
     if (string.IsNullOrWhiteSpace(disputant)) disputant = dispute.DisputantUserId;
-    var post = staff?.Review.Post.Title;
-    if (string.IsNullOrWhiteSpace(post)) post = dispute.PostId;
     var topic = staff?.Review.Topic?.Name;
     if (string.IsNullOrWhiteSpace(topic)) topic = dispute.TopicId;
     var rating = staff is null
         ? UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesNotAvailable)
         : staff.Review.Rating.ToString();
-    return string.Join(
-        Environment.NewLine,
+    var lines = new List<string>
+    {
         UiCopy.Format(
             UiMessageKey.NativeSwiftReviewDisputesByActor,
             ("actor", disputant ?? UiCopy.Localize(
                 UiMessageKey.NativeSwiftReviewDisputesNotAvailable))),
-        post ?? UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesNotAvailable),
+    };
+    if (dispute.PostContent is null)
+    {
+      var post = staff?.Review.Post.Title;
+      if (string.IsNullOrWhiteSpace(post)) post = dispute.PostId;
+      lines.Add(post ?? UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesNotAvailable));
+    }
+    lines.AddRange([
         Labeled(
             UiMessageKey.NativeSwiftReviewDisputesTopic,
             topic ?? UiCopy.Localize(
                 UiMessageKey.NativeSwiftReviewDisputesNotAvailable)),
-        UiCopy.Format(UiMessageKey.NativeSwiftReviewDisputesRating, ("rating", rating)));
+        UiCopy.Format(UiMessageKey.NativeSwiftReviewDisputesRating, ("rating", rating)),
+    ]);
+    return string.Join(Environment.NewLine, lines);
   }
 
   public static string Claim(ModerationDispute dispute) =>

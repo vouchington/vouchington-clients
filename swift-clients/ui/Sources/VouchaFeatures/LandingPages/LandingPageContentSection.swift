@@ -94,6 +94,10 @@ struct LandingPageContentSection: View {
     private func itemRow(_ item: LandingPageItem) -> some View {
         HStack {
             Text(verbatim: UiMessages.string(item.titleText, locale: locale))
+                .authoredContentLanguage(
+                    declared: item.authoredLanguage?.0,
+                    detected: item.authoredLanguage?.1
+                )
             Spacer()
             Button(UiMessages.string(.nativeSwiftCommonUp, locale: locale)) {
                 viewModel.moveItem(id: item.id, direction: -1)
@@ -154,7 +158,7 @@ private extension LandingPageItem {
             }
             return .message(.nativeSwiftLandingPagesProfileLink)
         case let .review(_, review):
-            return .userContent(review.title)
+            return review.landingPageReviewDisplay.text
         case let .referralLink(_, referralLink):
             return .userContent(referralLink.label ?? referralLink.referralProgramName)
         case let .topicGroup(_, topic, entries):
@@ -166,5 +170,12 @@ private extension LandingPageItem {
         case let .link(_, label, _):
             return .userContent(label)
         }
+    }
+
+    var authoredLanguage: (String?, String?)? {
+        guard case let .review(_, review) = self else { return nil }
+        let display = review.landingPageReviewDisplay
+        guard display.declaredLanguage != nil || display.detectedLanguage != nil else { return nil }
+        return (display.declaredLanguage, display.detectedLanguage)
     }
 }

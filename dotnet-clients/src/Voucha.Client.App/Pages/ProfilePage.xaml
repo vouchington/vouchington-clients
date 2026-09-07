@@ -209,8 +209,8 @@
                                 </Border.GestureRecognizers>
                                 <VerticalStackLayout Spacing="6">
                                     <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
-                                    <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
-                                    <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding Body}" MaxLines="3" />
+                                    <Label Text="{Binding Title}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Headline}" />
+                                    <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding Body}" MaxLines="3" IsRightToLeft="{Binding ContentIsRightToLeft}" />
                                     <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                         <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
                                         <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />

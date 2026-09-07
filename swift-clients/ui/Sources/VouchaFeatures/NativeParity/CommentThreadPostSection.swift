@@ -40,6 +40,10 @@ struct CommentThreadPostSection: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
                         .font(Typography.headline)
+                        .authoredContentLanguage(
+                            declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
+                            detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
+                        )
                     Text(pathText)
                         .font(Typography.caption.monospaced())
                         .foregroundStyle(Colors.secondaryLabel)
@@ -48,7 +52,12 @@ struct CommentThreadPostSection: View {
             }
 
             if let markdown = post.markdown, !markdown.isEmpty {
-                NativeHtmlContent(html: post.html, fallback: markdown)
+                NativeHtmlContent(
+                    html: post.html,
+                    fallback: markdown,
+                    declaredLanguage: post.declaredLanguage,
+                    detectedLanguage: post.linguaRsDetectedLanguage
+                )
             }
             if let embed {
                 ProviderEmbedPreview(embed: embed)

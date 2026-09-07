@@ -2,9 +2,13 @@ import VouchaLocalization
 
 extension NativeRouteSurfaceViewModel {
     func genericBookmarkTitle(_ entity: NativeGenericEntity, entityType: String) -> UiVerbatimText {
-        let title = entity.title ?? entity.name ?? entity.subject ?? entity.username ?? entity.hostname?.displayName
-            ?? entity.url ?? entity.slug
-        guard let title, title != entity.id else {
+        if let title = entity.normalizedAuthoredTitle {
+            return title.text
+        }
+        let title = entity.name ?? entity.subject ?? entity.username ?? entity.hostname?.displayName ?? entity
+            .url ?? entity.slug
+        guard let title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty,
+              title != entity.id else {
             return .message(friendlyBookmarkEntityName(entityType))
         }
         return .userContent(title)

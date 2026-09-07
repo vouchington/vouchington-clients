@@ -9,13 +9,42 @@ extension ReviewDisputeCard {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(localized(.nativeSwiftReviewDisputesDisputant))
             Text(disputantLabel).font(Typography.subheadline)
-            if let review = context?.review {
-                Text(review.post.title.isEmpty ? dispute.postId : review.post.title)
+            if let content = dispute.postContent,
+               let text = NormalizedAuthoredText(
+                   text: content.text,
+                   declaredLanguage: content.declaredLanguage,
+                   detectedLanguage: content.linguaRsDetectedLanguage
+               ) {
+                Text(text.value)
                     .font(Typography.subheadline)
-                if !review.post.markdownPreview.isEmpty {
-                    Text(review.post.markdownPreview)
+                    .authoredContentLanguage(
+                        declared: text.declaredLanguage,
+                        detected: text.detectedLanguage
+                    )
+            } else if let review = context?.review {
+                let title = NormalizedAuthoredText(
+                    text: review.post.title,
+                    declaredLanguage: review.post.declaredLanguage,
+                    detectedLanguage: review.post.linguaRsDetectedLanguage
+                )
+                Text(title?.value ?? dispute.postId)
+                    .font(Typography.subheadline)
+                    .authoredContentLanguage(
+                        declared: title?.declaredLanguage,
+                        detected: title?.detectedLanguage
+                    )
+                if let preview = NormalizedAuthoredText(
+                    text: review.post.markdownPreview,
+                    declaredLanguage: review.post.declaredLanguage,
+                    detectedLanguage: review.post.linguaRsDetectedLanguage
+                ) {
+                    Text(preview.value)
                         .font(Typography.caption)
                         .foregroundStyle(Colors.secondaryLabel)
+                        .authoredContentLanguage(
+                            declared: preview.declaredLanguage,
+                            detected: preview.detectedLanguage
+                        )
                 }
                 Text(localized(.nativeSwiftReviewDisputesTopic))
                 Text(review.topic?.name ?? dispute.topicId).font(Typography.subheadline)

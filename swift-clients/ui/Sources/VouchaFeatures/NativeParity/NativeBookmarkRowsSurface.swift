@@ -107,6 +107,7 @@ private struct NativeBookmarkRowContent: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(UiMessages.string(row.title, locale: nativeUiLocale))
                     .font(Typography.headline)
+                    .authoredContentLanguage(declared: row.declaredLanguage, detected: row.detectedLanguage)
                 Text(UiMessages.string(row.detail, locale: nativeUiLocale))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)

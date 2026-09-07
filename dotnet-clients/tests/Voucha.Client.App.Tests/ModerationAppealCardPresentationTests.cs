@@ -28,13 +28,12 @@ public sealed class ModerationAppealCardPresentationTests
       (new ModerationAppealPostRemovalContext(
           "post-rich", "A thoughtful title", ModerationAppealPostRemovalKind.Platform,
           null, "Violates the site rules", Instant),
-        ["Platform post removal appeal", "Post: A thoughtful title", "Decision: Violates the site rules"]),
+        ["Platform post removal appeal", "Decision: Violates the site rules"]),
       (new ModerationAppealPostRemovalContext(
           "community-post-rich", "Local announcement",
           ModerationAppealPostRemovalKind.Community,
           new("community-3", "Neighborhood"), "Off topic", Instant),
-        ["Community post removal appeal", "Post: Local announcement",
-          "Decision: Off topic", "Community: Neighborhood"]),
+        ["Community post removal appeal", "Decision: Off topic", "Community: Neighborhood"]),
       (new ModerationAppealSuspensionContext(
           "suspension-rich", "Repeated policy violations", Instant),
         ["Suspension appeal", "Decision: Repeated policy violations"]),
@@ -107,7 +106,6 @@ public sealed class ModerationAppealCardPresentationTests
         staff));
 
     Assert.Contains("Apelación por eliminación de publicación de comunidad", rendered);
-    Assert.Contains("Publicación: Un título", rendered);
     Assert.Contains("Decisión: Fuera de tema", rendered);
     Assert.Contains("Comunidad: Vecindario", rendered);
     Assert.Contains("Motivo de la decisión original: Motivo interno", rendered);

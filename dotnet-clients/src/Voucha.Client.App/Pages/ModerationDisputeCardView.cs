@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Content;
 
 namespace Voucha.Client.App.Pages;
 
@@ -11,6 +12,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
   private readonly Func<CancellationToken> lifecycleToken;
   private readonly Label heading = new() { FontAttributes = FontAttributes.Bold };
   private readonly Label context = new() { FontSize = 12 };
+  private readonly Label postContent = new();
   private readonly Label claim = new();
   private readonly Label recommendation = new();
   private readonly Label lifecycle = new() { FontSize = 12 };
@@ -64,6 +66,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     Spacing = 8;
     Children.Add(heading);
     Children.Add(context);
+    Children.Add(postContent);
     Children.Add(claim);
     Children.Add(recommendation);
     Children.Add(lifecycle);
@@ -116,6 +119,15 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     AutomationId = $"review-dispute-{dispute.Id}";
     heading.Text = ModerationDisputeCardPresentation.Heading(dispute);
     context.Text = ModerationDisputeCardPresentation.Context(dispute);
+    postContent.Text = dispute.PostContent?.Text;
+    postContent.IsVisible = !string.IsNullOrWhiteSpace(postContent.Text);
+    var language = AuthoredContentLanguage.Resolve(
+        dispute.PostContent?.DeclaredLanguage, dispute.PostContent?.LinguaRsDetectedLanguage);
+    if (language.Direction is { } direction)
+      postContent.FlowDirection = direction == AuthoredTextDirection.RightToLeft
+          ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    else
+      postContent.FlowDirection = FlowDirection.MatchParent;
     claim.Text = ModerationDisputeCardPresentation.Claim(dispute);
     recommendation.Text = ModerationDisputeCardPresentation.Recommendation(dispute);
     recommendation.IsVisible = !string.IsNullOrWhiteSpace(recommendation.Text);

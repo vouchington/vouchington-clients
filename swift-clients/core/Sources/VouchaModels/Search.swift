@@ -17,6 +17,9 @@ public struct OmnisearchPost: Decodable, Identifiable, Sendable {
     public let id: String
     public let postType: String
     public let title: String
+    public let authoredTitle: String?
+    public let declaredLanguage: String?
+    public let linguaRsDetectedLanguage: String?
 }
 
 public struct OmnisearchNewsItem: Decodable, Identifiable, Sendable {

@@ -146,7 +146,12 @@ public sealed partial class CommunityDetailViewModel
       Summary(row.Id, UiText.Verbatim(row.RestrictionType), UiText.Verbatim(row.Status), Verbatim(row.Reason));
 
   private CommunitySummaryRow ModerationSummary(CommunityModerationRow row) =>
-      Summary(row.Id, UiText.Verbatim(row.Target), UiText.Verbatim(row.Status), Verbatim(row.Reason));
+      Summary(
+          row.Id,
+          UiText.Verbatim(row.Target),
+          UiText.Verbatim(row.Status),
+          Verbatim(row.Reason),
+          authoredContent: row.TargetContent);
 
   private void SetCommunityContinuation(string? endCursor)
   {

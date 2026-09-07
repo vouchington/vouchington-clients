@@ -76,6 +76,15 @@ public abstract partial class CommunitySectionPage
   {
     var title = new Label { FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Title));
+    title.SetBinding(Label.FlowDirectionProperty, nameof(CommunitySummaryRow.TitleFlowDirection));
+    var authoredContent = new Label();
+    authoredContent.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.AuthoredContent));
+    authoredContent.SetBinding(
+        Label.FlowDirectionProperty,
+        nameof(CommunitySummaryRow.AuthoredContentFlowDirection));
+    authoredContent.SetBinding(
+        IsVisibleProperty,
+        nameof(CommunitySummaryRow.HasAuthoredContent));
     var subtitle = new Label();
     subtitle.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Subtitle));
     var detail = new Label();
@@ -96,6 +105,10 @@ public abstract partial class CommunitySectionPage
     open.Clicked += OnEmbedOpenClicked;
     var embed = new VerticalStackLayout { Spacing = 3, Children = { image, provider, embedTitle, description, play, open } };
     embed.SetBinding(IsVisibleProperty, "EmbedPreview.HasPreview");
-    return new VerticalStackLayout { Spacing = 3, Children = { title, subtitle, detail, embed } };
+    return new VerticalStackLayout
+    {
+      Spacing = 3,
+      Children = { title, authoredContent, subtitle, detail, embed },
+    };
   }
 }

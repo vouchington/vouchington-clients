@@ -75,6 +75,8 @@ public struct LandingPageReview: Codable, Identifiable, Sendable {
     public let markdown: String
     public let createdAt: Date
     public let reviewTopicRatings: [LandingPageReviewTopicRating]
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
 }
 
 public struct LandingPageReviewTopicRating: Codable, Sendable {

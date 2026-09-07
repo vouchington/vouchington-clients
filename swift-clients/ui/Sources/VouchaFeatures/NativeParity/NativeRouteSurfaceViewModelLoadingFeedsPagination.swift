@@ -33,11 +33,18 @@ extension NativeRouteSurfaceViewModel {
             } else {
                 postTypeText(post.postType)
             }
+            let title = NormalizedAuthoredText(
+                text: post.title,
+                declaredLanguage: post.declaredLanguage,
+                detectedLanguage: post.linguaRsDetectedLanguage
+            )
             return forwardRow(
                 id: result.id,
                 icon: postTypeIcon(for: post.postType),
-                title: post.title.map(rawText) ?? post.slug.map(rawText) ?? postTypeText(post.postType),
-                detail: subtitle
+                title: title?.text ?? post.slug.map(rawText) ?? postTypeText(post.postType),
+                detail: subtitle,
+                declaredLanguage: title?.declaredLanguage,
+                detectedLanguage: title?.detectedLanguage
             )
         }
         return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)

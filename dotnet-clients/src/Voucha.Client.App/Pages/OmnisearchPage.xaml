@@ -64,7 +64,7 @@
                                         </Border.StrokeShape>
                                         <VerticalStackLayout Spacing="4">
                                             <Label Text="{Binding Kind}" Style="{StaticResource Eyebrow}" />
-                                            <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                            <Label Text="{Binding Title}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Headline}" />
                                             <Label Text="{Binding Detail}" Style="{StaticResource Metadata}" />
                                             <Button Text="{DynamicResource native.swift.communityActions.open}" Clicked="OnOpenRowClicked" IsVisible="{Binding CanOpen}" />
                                         </VerticalStackLayout>

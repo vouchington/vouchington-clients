@@ -18,6 +18,8 @@ public struct AdminReviewQueueMediaContext: Codable, Sendable {
 public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
     public let id: String
     public let title: String
+    @RequiredNullable public var declaredLanguage: String?
+    @RequiredNullable public var linguaRsDetectedLanguage: String?
     public let slug: String?
     public let markdownPreview: String
     public let postType: String

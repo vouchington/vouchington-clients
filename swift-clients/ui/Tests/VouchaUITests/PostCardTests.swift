@@ -69,6 +69,14 @@ final class PostCardTests: XCTestCase {
         XCTAssertEqual(try expanded.inspect().find(text: "Body\n\n").string(), "Body\n\n")
     }
 
+    func testWhitespaceTitleUsesTrimmedMarkdownAsTheAuthoredCompactFallback() throws {
+        let post = makePost(title: " \n\t ", markdown: "  Fallback  ", html: nil)
+        let compact = PostCard(post: post, variant: .compact)
+
+        XCTAssertEqual(try compact.inspect().find(text: "Fallback").string(), "Fallback")
+        XCTAssertThrowsError(try compact.inspect().find(text: " \n\t "))
+    }
+
     func testUserRowRendersMarkdownBioNatively() throws {
         let user = try makePublicUser(markdown: "_Native bio_")
         let sut = UserRow(user: user, avatarURL: nil)

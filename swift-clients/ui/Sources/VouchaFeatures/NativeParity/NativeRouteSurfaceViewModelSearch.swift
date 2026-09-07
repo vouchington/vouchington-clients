@@ -74,11 +74,15 @@ extension NativeRouteSurfaceViewModel {
         guard !response.posts.isEmpty else { return nil }
         return NativeSearchSection(
             title: .message(.nativeSwiftRouteSurfacePosts),
-            rows: response.posts.map {
-                NativeRouteDestinationRow(
+            rows: response.posts.map { post in
+                let authoredTitle = post.authoredTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let title = authoredTitle.flatMap { $0.isEmpty ? nil : $0 }
+                return NativeRouteDestinationRow(
                     icon: "doc.text",
-                    title: .message(.nativeSwiftRouteSurfacePostValue, parameters: ["value": $0.title]),
-                    detail: humanizedPostType($0.postType)
+                    title: .verbatim(title ?? post.title),
+                    detail: humanizedPostType(post.postType),
+                    declaredLanguage: title == nil ? nil : post.declaredLanguage,
+                    detectedLanguage: title == nil ? nil : post.linguaRsDetectedLanguage
                 )
             }
         )

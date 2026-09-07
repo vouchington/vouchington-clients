@@ -47,4 +47,19 @@ public sealed class PostRowsTests
     Assert.Equal("Provider title", row.EmbedPreview?.Title);
     Assert.Equal(new Uri("https://cdn.example/thumbnail.jpg"), row.EmbedPreview?.ThumbnailUrl);
   }
+
+  [Fact]
+  public void FromNormalizesAuthoredTitlesBeforeApplyingTheirLanguage()
+  {
+    var authored = PostRows.From(
+        new Post("post-1", "discussion", "  عنوان  ", null, "user-1", DeclaredLanguage: "ar"),
+        null, null, null);
+    var fallback = PostRows.From(
+        new Post("post-2", "discussion", "  ", null, "user-1", DeclaredLanguage: "ar"),
+        null, null, null);
+
+    Assert.Equal("عنوان", authored.Title);
+    Assert.Equal("RightToLeft", authored.TitleFlowDirection);
+    Assert.Null(fallback.TitleFlowDirection);
+  }
 }

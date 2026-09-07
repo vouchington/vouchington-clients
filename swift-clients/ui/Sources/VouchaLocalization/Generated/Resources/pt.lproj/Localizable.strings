@@ -1183,7 +1183,6 @@
 "native.swift.moderationAppeals.overdue" = "Em atraso";
 "native.swift.moderationAppeals.pending" = "Pendente";
 "native.swift.moderationAppeals.platformPostRemovalAppeal" = "Recurso de remoção de publicação da plataforma";
-"native.swift.moderationAppeals.postContext" = "Publicação: {value}";
 "native.swift.moderationAppeals.postRemovalAppeal" = "Recurso de remoção de publicação";
 "native.swift.moderationAppeals.publicResponse" = "Resposta pública";
 "native.swift.moderationAppeals.publicResponseAccessibility" = "Resposta pública para o recurso {id}";
@@ -1921,7 +1920,6 @@
 "native.swift.routeSurface.openGraphImage" = "Imagem Open Graph";
 "native.swift.routeSurface.pending" = "Pendente";
 "native.swift.routeSurface.pendingCount" = "{count} pendentes";
-"native.swift.routeSurface.postValue" = "Publicação: {value}";
 "native.swift.routeSurface.posts" = "Publicações";
 "native.swift.routeSurface.protocol" = "Protocolo";
 "native.swift.routeSurface.providerUnavailable" = "{provider} não está disponível.";

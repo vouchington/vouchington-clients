@@ -222,7 +222,7 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
     }
 
     private func pendingReport(id: String) -> String {
-        #"{"id":"\#(id)","case_id":"case-\#(id)","entity_type":"post","entity_id":"post-\#(id)","target_label":"\#(id)","target_path":null,"reason":"spam","status":"pending","report_count":1,"created_at":"2026-01-01T00:00:00Z","reviewed_at":null,"target_user_id":null,"reporter_user_id":null,"reporter_username":null,"note":null,"resolved_by_id":null,"admin_action_path":null,"target_available":true,"judgement":null,"community_ban_evasion":null,"claim":null,"escalated_at":null,"escalated_by_id":null}"#
+        #"{"id":"\#(id)","case_id":"case-\#(id)","entity_type":"post","entity_id":"post-\#(id)","target_label":"\#(id)","target_path":null,"target_content":null,"reason":"spam","status":"pending","report_count":1,"created_at":"2026-01-01T00:00:00Z","reviewed_at":null,"target_user_id":null,"reporter_user_id":null,"reporter_username":null,"note":null,"resolved_by_id":null,"admin_action_path":null,"target_available":true,"judgement":null,"community_ban_evasion":null,"claim":null,"escalated_at":null,"escalated_by_id":null}"#
     }
 
     private func modmailPage(ids: [String], cursor: String?, hasMore: Bool) -> Data {

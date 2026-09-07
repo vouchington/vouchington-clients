@@ -1,4 +1,6 @@
+import Foundation
 import VouchaAPI
+import VouchaLocalization
 
 extension NativeRouteSurfaceViewModel {
     func loadTopicRecommendationRows(client: APIClient) async throws -> [NativeRouteDestinationRow] {
@@ -21,11 +23,14 @@ extension NativeRouteSurfaceViewModel {
                 .topicRecommendation(id: recommendationId)
             )
             let post = response.post
+            let title = recommendationTitle(post)
             return [
                 row(
                     "lightbulb",
-                    rawText(post.title ?? post.slug ?? post.id),
-                    rawText(post.markdown ?? post.id)
+                    title.text,
+                    rawText(post.markdown ?? post.id),
+                    declaredLanguage: title.declaredLanguage,
+                    detectedLanguage: title.detectedLanguage
                 ),
                 row(
                     "square.and.pencil",
@@ -39,11 +44,38 @@ extension NativeRouteSurfaceViewModel {
         )
         return response.results.compactMap {
             guard let post = response.posts[$0.entityId ?? $0.id] else { return nil }
+            let title = recommendationTitle(post)
             return row(
                 "lightbulb",
-                rawText(post.title ?? post.slug ?? post.id),
-                rawText(post.markdown ?? post.id)
+                title.text,
+                rawText(post.markdown ?? post.id),
+                declaredLanguage: title.declaredLanguage,
+                detectedLanguage: title.detectedLanguage
             )
         }
+    }
+}
+
+private struct RecommendationTitle {
+    let text: UiVerbatimText
+    let declaredLanguage: String?
+    let detectedLanguage: String?
+
+    init(post: NativePostSummary) {
+        if let title = post.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            text = .userContent(title)
+            declaredLanguage = post.declaredLanguage
+            detectedLanguage = post.linguaRsDetectedLanguage
+            return
+        }
+        text = .userContent(post.slug ?? post.id)
+        declaredLanguage = nil
+        detectedLanguage = nil
+    }
+}
+
+private extension NativeRouteSurfaceViewModel {
+    func recommendationTitle(_ post: NativePostSummary) -> RecommendationTitle {
+        RecommendationTitle(post: post)
     }
 }

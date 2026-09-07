@@ -30,7 +30,6 @@ public sealed record Post(
     [property: JsonPropertyName("can_delete")] bool? CanDelete = null,
     [property: JsonPropertyName("can_lock")] bool? CanLock = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
-    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("ai_summary_markdown")] string? AiSummaryMarkdown = null,
     [property: JsonPropertyName("archived_at")] DateTimeOffset? ArchivedAt = null,
     [property: JsonPropertyName("archived_by_id")] string? ArchivedById = null,
@@ -48,7 +47,9 @@ public sealed record Post(
     [property: JsonPropertyName("in_review_at")] DateTimeOffset? InReviewAt = null,
     [property: JsonPropertyName("rejected_at")] DateTimeOffset? RejectedAt = null,
     [property: JsonPropertyName("post_explicit_categories")] IReadOnlyList<PostExplicitCategory>? PostExplicitCategories = null,
-    [property: JsonPropertyName("post_hashtags")] IReadOnlyList<PostHashtag>? PostHashtags = null);
+    [property: JsonPropertyName("post_hashtags")] IReadOnlyList<PostHashtag>? PostHashtags = null,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record PostExplicitCategory(
     [property: JsonPropertyName("type")] string Type,

@@ -10,12 +10,20 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     private let detailText: UiVerbatimText
     public let externalURL: URL?
     public let targetPath: String?
+    public let declaredLanguage: String?
+    public let detectedLanguage: String?
+    public let detailDeclaredLanguage: String?
+    public let detailDetectedLanguage: String?
 
     public init(
         id: String = UUID().uuidString,
         icon: String,
         title: UiVerbatimText,
         detail: UiVerbatimText,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil,
+        detailDeclaredLanguage: String? = nil,
+        detailDetectedLanguage: String? = nil,
         externalURL: URL? = nil,
         targetPath: String? = nil
     ) {
@@ -25,6 +33,10 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         detailText = detail
         self.title = UiMessages.string(title, locale: .english)
         self.detail = UiMessages.string(detail, locale: .english)
+        self.declaredLanguage = declaredLanguage
+        self.detectedLanguage = detectedLanguage
+        self.detailDeclaredLanguage = detailDeclaredLanguage
+        self.detailDetectedLanguage = detailDetectedLanguage
         self.externalURL = externalURL
         self.targetPath = targetPath
     }
@@ -50,6 +62,9 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
 
     public static func == (lhs: NativeRouteDestinationRow, rhs: NativeRouteDestinationRow) -> Bool {
         lhs.icon == rhs.icon && lhs.title == rhs.title && lhs.detail == rhs.detail
+            && lhs.declaredLanguage == rhs.declaredLanguage && lhs.detectedLanguage == rhs.detectedLanguage
+            && lhs.detailDeclaredLanguage == rhs.detailDeclaredLanguage
+            && lhs.detailDetectedLanguage == rhs.detailDetectedLanguage
             && lhs.externalURL == rhs.externalURL && lhs.targetPath == rhs.targetPath
     }
 
@@ -57,6 +72,10 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         hasher.combine(icon)
         hasher.combine(title)
         hasher.combine(detail)
+        hasher.combine(declaredLanguage)
+        hasher.combine(detectedLanguage)
+        hasher.combine(detailDeclaredLanguage)
+        hasher.combine(detailDetectedLanguage)
         hasher.combine(externalURL)
         hasher.combine(targetPath)
     }

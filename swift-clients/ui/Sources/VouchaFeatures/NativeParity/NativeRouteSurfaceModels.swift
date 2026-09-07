@@ -34,6 +34,8 @@ struct NativePostSummary: Decodable, Identifiable {
     let postType: PostType
     let title: String?
     let markdown: String?
+    let declaredLanguage: String?
+    let linguaRsDetectedLanguage: String?
     let createdById: String?
     let rootId: String?
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Search;
@@ -99,8 +100,11 @@ public sealed partial class OmnisearchViewModel
               EmptyIfNull(response.Posts)
                   .Select(post => new OmnisearchResultRow(
                       L(localization, UiMessageKey.NativeDotnetResidualPost),
-                      F(localization, UiMessageKey.NativeDotnetResidualPostTitle, ("title", post.Title)),
-                      HumanizedPostType(post.PostType, localization)))
+                      Normalize(post.AuthoredTitle) ?? post.Title,
+                      HumanizedPostType(post.PostType, localization),
+                      HasAuthoredTitle: Normalize(post.AuthoredTitle) is not null,
+                      DeclaredLanguage: post.DeclaredLanguage,
+                      DetectedLanguage: post.LinguaRsDetectedLanguage))
                   .ToArray());
 
   private static OmnisearchResultGroup? NewsGroup(CombinedSearchResponse response, IUiLocalization localization) =>
@@ -158,6 +162,8 @@ public sealed partial class OmnisearchViewModel
 
   private static IReadOnlyList<T> EmptyIfNull<T>(IReadOnlyList<T>? values) => values ?? [];
 
+  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
   private static string FediverseResultDetail(FediverseSearchResult item, IUiLocalization localization) =>
       string.IsNullOrWhiteSpace(item.AuthorName)
           ? item.SourceHostname ?? item.Provider
@@ -178,7 +184,13 @@ public sealed record OmnisearchResultRow(
     string Detail,
     string? Route = null,
     string? PrimaryAction = null,
-    Uri? ExternalUrl = null)
+    Uri? ExternalUrl = null,
+    bool HasAuthoredTitle = false,
+    string? DeclaredLanguage = null,
+    string? DetectedLanguage = null)
 {
   public bool CanOpen => Route is not null || PrimaryAction is not null || ExternalUrl is not null;
+  public string? TitleFlowDirection => HasAuthoredTitle
+      ? AuthoredContentLanguage.Resolve(DeclaredLanguage, DetectedLanguage).Direction?.ToString()
+      : null;
 }

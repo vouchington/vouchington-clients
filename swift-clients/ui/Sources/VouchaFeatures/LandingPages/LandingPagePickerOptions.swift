@@ -155,10 +155,7 @@ private extension LandingPageProfileLink {
 
 private extension LandingPageReview {
     var pickerLabel: UiVerbatimText {
-        if let label = firstNonempty(title, String(markdown.prefix(40))) {
-            return .userContent(label)
-        }
-        return .message(.nativeSwiftLandingPagesReview)
+        landingPageReviewDisplay.text
     }
 }
 

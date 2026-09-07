@@ -28,7 +28,8 @@ public sealed class ModerationAppealsPageSourceTests
     Assert.DoesNotContain("Placeholder = \"Internal notes\"", page, StringComparison.Ordinal);
     Assert.Contains("UiMessageKey.NativeSwiftModerationAppealsDecisionContext", page, StringComparison.Ordinal);
     Assert.Contains("UiMessageKey.NativeSwiftModerationAppealsCommunityContext", page, StringComparison.Ordinal);
-    Assert.Contains("UiMessageKey.NativeSwiftModerationAppealsPostContext", page, StringComparison.Ordinal);
+    Assert.Contains("removalTitle", page, StringComparison.Ordinal);
+    Assert.Contains("AuthoredContentLanguage.Resolve", page, StringComparison.Ordinal);
     Assert.Contains("StaffContext", page, StringComparison.Ordinal);
   }
 

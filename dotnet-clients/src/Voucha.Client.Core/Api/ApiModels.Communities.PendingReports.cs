@@ -19,6 +19,7 @@ public sealed record CommunityPendingReport(
     [property: JsonPropertyName("entity_id")] string? EntityId = null,
     [property: JsonPropertyName("target_label")] string? TargetLabel = null,
     [property: JsonPropertyName("target_path")] string? TargetPath = null,
+    [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null,
     [property: JsonPropertyName("reason")] string? Reason = null,
     [property: JsonPropertyName("status")] string Status = "pending",
     [property: JsonPropertyName("report_count")] int ReportCount = 1,

@@ -30,6 +30,7 @@ enum ReviewDisputesTestSupport {
           "resolution_action":\(json(resolutionAction)),
           "latest_lifecycle_change_id":\(json(lifecycleChangeId)),
           "created_at":"2026-07-01T09:00:00Z","updated_at":"2026-07-01T10:00:00Z",
+          "post_content":null,
           "staff_context":{
             "disputant":{
               "id":"user-1","username":"issuer","verified_display_name":null,
@@ -37,7 +38,7 @@ enum ReviewDisputesTestSupport {
             },
             "review":{
               "post":{
-                "id":"post-1","title":"Quarterly review","slug":"quarterly-review",
+                "id":"post-1","title":"Quarterly review","declared_language":null,"lingua_rs_detected_language":null,"slug":"quarterly-review",
                 "markdown_preview":"The rating was calculated from old data.",
                 "created_by_id":"author-1","created_at":"2026-06-30T09:00:00Z"
               },

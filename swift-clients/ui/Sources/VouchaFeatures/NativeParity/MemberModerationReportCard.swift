@@ -19,6 +19,19 @@ struct MemberModerationReportCard: View {
                     locale: nativeUiLocale,
                     onNavigate: onNavigate
                 )
+                if let content = report.targetContent,
+                   let text = NormalizedAuthoredText(
+                       text: content.text,
+                       declaredLanguage: content.declaredLanguage,
+                       detectedLanguage: content.linguaRsDetectedLanguage
+                   ) {
+                    Text(text.value)
+                        .font(Typography.subheadline)
+                        .authoredContentLanguage(
+                            declared: text.declaredLanguage,
+                            detected: text.detectedLanguage
+                        )
+                }
                 Label(reportCountText(report.reportCount), systemImage: "flag")
                 Text(UiMessages.string(
                     .nativeSwiftModerationReportsReason,

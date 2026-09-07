@@ -16,8 +16,8 @@ final class ModerationAppealContextTests: XCTestCase {
                 ["Decision: Ban reason", "Community: Builders"]
             ),
             (
-                #"{"type":"post_removal","id":"post-1","title":"Removed post","kind":"community","community":{"id":"community-1","name":"Builders"},"public_reason":"Removal reason","decided_at":"2026-07-01T09:00:00Z"}"#,
-                ["Post: Removed post", "Decision: Removal reason", "Community: Builders"]
+                #"{"type":"post_removal","id":"post-1","title":"Removed post","declared_language":null,"lingua_rs_detected_language":null,"kind":"community","community":{"id":"community-1","name":"Builders"},"public_reason":"Removal reason","decided_at":"2026-07-01T09:00:00Z"}"#,
+                ["Removed post", "Decision: Removal reason", "Community: Builders"]
             ),
             (
                 #"{"type":"suspension","id":"suspension-1","reason":"Suspension reason","created_at":"2026-07-01T09:00:00Z"}"#,

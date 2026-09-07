@@ -59,17 +59,20 @@ public struct PostCard: View {
                 postTypeBadge
                 Spacer(minLength: 0)
             }
-            if let title = post.title {
+            if let title = authoredTitle {
                 Text(title)
                     .font(Typography.subheadline)
                     .lineLimit(2)
-            } else if let markdown = post.markdown {
+                    .authoredContentLanguage(declared: post.declaredLanguage, detected: post.linguaRsDetectedLanguage)
+            } else if let markdown = authoredMarkdown {
                 NativeHtmlContent(
                     html: post.html,
                     fallback: markdown,
                     lineLimit: 2,
                     font: Typography.body,
-                    foregroundStyle: Colors.secondaryLabel
+                    foregroundStyle: Colors.secondaryLabel,
+                    declaredLanguage: post.declaredLanguage,
+                    detectedLanguage: post.linguaRsDetectedLanguage
                 )
             }
             postFooter
@@ -83,18 +86,21 @@ public struct PostCard: View {
                 postTypeBadge
                 Spacer()
             }
-            if let title = post.title {
+            if let title = authoredTitle {
                 Text(title)
                     .font(Typography.headline)
+                    .authoredContentLanguage(declared: post.declaredLanguage, detected: post.linguaRsDetectedLanguage)
                     .lineLimit(4)
             }
-            if let markdown = post.markdown {
+            if let markdown = authoredMarkdown {
                 NativeHtmlContent(
                     html: post.html,
                     fallback: markdown,
                     lineLimit: 6,
                     font: Typography.body,
-                    foregroundStyle: Colors.secondaryLabel
+                    foregroundStyle: Colors.secondaryLabel,
+                    declaredLanguage: post.declaredLanguage,
+                    detectedLanguage: post.linguaRsDetectedLanguage
                 )
             }
             postFooter

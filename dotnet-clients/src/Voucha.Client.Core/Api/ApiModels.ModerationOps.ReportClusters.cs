@@ -18,7 +18,8 @@ public sealed record StaffModerationReportEntityCluster(
     [property: JsonPropertyName("target_available")] bool? TargetAvailable,
     [property: JsonPropertyName("target_is_restricted")] bool TargetIsRestricted,
     [property: JsonPropertyName("indicators")] ModerationReportIndicators Indicators,
-    [property: JsonPropertyName("reports")] IReadOnlyList<StaffModerationReport> Reports);
+    [property: JsonPropertyName("reports")] IReadOnlyList<StaffModerationReport> Reports,
+    [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null);
 
 public sealed record StaffModerationReportDuplicateCluster(
     [property: JsonPropertyName("id")] string Id,

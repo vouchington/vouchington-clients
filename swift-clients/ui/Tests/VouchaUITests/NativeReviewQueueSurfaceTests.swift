@@ -158,7 +158,7 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
     private func decodedPost(status: String = "rejected") throws -> AdminReviewQueuePost {
         let data = Data(
-            #"{"id":"post-1","title":" ","slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"spam_detection_flagged":true,"spam_detection_score":0.91,"spam_detection_results":{},"openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{}}"#
+            #"{"id":"post-1","title":" ","declared_language":null,"lingua_rs_detected_language":null,"slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"spam_detection_flagged":true,"spam_detection_score":0.91,"spam_detection_results":{},"openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{}}"#
                 .utf8
         )
         return try JSONDecoder.vouchaFixtureDecoder.decode(AdminReviewQueuePost.self, from: data)

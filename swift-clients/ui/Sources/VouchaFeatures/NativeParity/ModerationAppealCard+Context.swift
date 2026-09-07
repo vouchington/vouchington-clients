@@ -15,7 +15,19 @@ extension ModerationAppealCard {
                 contextValue(.nativeSwiftModerationAppealsDecisionContext, value: ban.reason)
                 contextValue(.nativeSwiftModerationAppealsCommunityContext, value: ban.community.name)
             case let .postRemoval(removal):
-                contextValue(.nativeSwiftModerationAppealsPostContext, value: removal.title)
+                if let title = NormalizedAuthoredText(
+                    text: removal.title,
+                    declaredLanguage: removal.declaredLanguage,
+                    detectedLanguage: removal.linguaRsDetectedLanguage
+                ) {
+                    Text(title.value)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryLabel)
+                        .authoredContentLanguage(
+                            declared: title.declaredLanguage,
+                            detected: title.detectedLanguage
+                        )
+                }
                 contextValue(.nativeSwiftModerationAppealsDecisionContext, value: removal.publicReason)
                 contextValue(.nativeSwiftModerationAppealsCommunityContext, value: removal.community?.name)
             case let .suspension(suspension):

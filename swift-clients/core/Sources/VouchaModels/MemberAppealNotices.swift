@@ -50,12 +50,16 @@ public struct MemberRemovedPostNotice: Codable, Identifiable, Sendable {
     public var communitySlug: String?
     @RequiredNullable
     public var postTitle: String?
+    @TolerantNullable public var postDeclaredLanguage: String?
+    @TolerantNullable public var postLinguaRsDetectedLanguage: String?
     public let postRemovalKind: ModerationAppealPostRemovalKind
     public let unpublishedAt: Date
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case postId, communityId, communitySlug, postTitle, postRemovalKind, unpublishedAt
+        case postId, communityId, communitySlug, postTitle, postDeclaredLanguage, postLinguaRsDetectedLanguage,
+             postRemovalKind,
+             unpublishedAt
     }
 }
 

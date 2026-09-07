@@ -373,6 +373,8 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
                       "agent_moderation_id": null,
                       "moderator_slug": "automod",
                       "title": "Flagged post",
+                      "declared_language": null,
+                      "lingua_rs_detected_language": null,
                       "markdown_preview": "Spam content",
                       "post_type": "discussion",
                       "post_href": "/p/post-1",

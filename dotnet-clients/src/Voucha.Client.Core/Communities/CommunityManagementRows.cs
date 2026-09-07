@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
@@ -45,13 +46,25 @@ public sealed record CommunityInviteRow(
   }
 }
 
-public sealed record CommunityModerationRow(string Id, string Target, string Status, string? Reason)
+public sealed record CommunityModerationRow(
+    string Id, string Target, string Status, string? Reason, AuthoredContentText? TargetContent = null)
 {
+  public string Title => Target;
+  public string Subtitle => Status;
+  public string? Detail => Reason;
+  public string? AuthoredContent => TargetContent?.Text;
+  public string? AuthoredContentFlowDirection => TargetContent is null
+      ? null
+      : AuthoredContentLanguage.Resolve(
+          TargetContent.DeclaredLanguage,
+          TargetContent.LinguaRsDetectedLanguage).Direction?.ToString();
+  public bool HasAuthoredContent => !string.IsNullOrWhiteSpace(AuthoredContent);
+
   public static CommunityModerationRow FromQueueEntry(CommunityModerationQueueEntry entry)
   {
     ArgumentNullException.ThrowIfNull(entry);
 
-    return new(entry.Id, entry.TargetLabel ?? entry.EntityId, entry.Status, entry.Reason ?? entry.FlaggedReason);
+    return new(entry.Id, entry.TargetLabel ?? entry.EntityId, entry.Status, entry.Reason ?? entry.FlaggedReason, entry.TargetContent);
   }
 }
 

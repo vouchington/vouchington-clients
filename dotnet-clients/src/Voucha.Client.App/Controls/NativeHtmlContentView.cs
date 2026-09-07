@@ -8,16 +8,10 @@ public sealed partial class NativeHtmlContentView :
     IUiLocaleChangeListener
 {
   public static readonly BindableProperty HtmlProperty = BindableProperty.Create(
-      nameof(Html),
-      typeof(string),
-      typeof(NativeHtmlContentView),
-      propertyChanged: OnContentChanged);
+      nameof(Html), typeof(string), typeof(NativeHtmlContentView), propertyChanged: OnContentChanged);
 
   public static readonly BindableProperty FallbackProperty = BindableProperty.Create(
-      nameof(Fallback),
-      typeof(string),
-      typeof(NativeHtmlContentView),
-      propertyChanged: OnContentChanged);
+      nameof(Fallback), typeof(string), typeof(NativeHtmlContentView), propertyChanged: OnContentChanged);
 
   public static readonly BindableProperty MaxLinesProperty = BindableProperty.Create(
       nameof(MaxLines),
@@ -79,6 +73,7 @@ public sealed partial class NativeHtmlContentView :
       LineBreakMode = LineBreakMode.TailTruncation,
       MaxLines = MaxLines,
     };
+    ApplyAuthoredLanguage(label);
     return label;
   }
 
@@ -97,6 +92,7 @@ public sealed partial class NativeHtmlContentView :
       FormattedText = Formatted(block.Inlines),
       LineBreakMode = LineBreakMode.WordWrap,
     };
+    ApplyAuthoredLanguage(label);
     if (MaxLines > 0) label.MaxLines = MaxLines;
     switch (block.Kind)
     {
@@ -111,7 +107,6 @@ public sealed partial class NativeHtmlContentView :
         label.FontFamily = "Courier";
         break;
     }
-
     return label;
   }
 
@@ -130,15 +125,19 @@ public sealed partial class NativeHtmlContentView :
     return formatted;
   }
 
-  private static Label ImagePlaceholder(NativeHtmlBlock block) =>
-      new()
-      {
-        Text = string.IsNullOrWhiteSpace(block.ImageAlt)
-            ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualImage)
-            : block.ImageAlt,
-        FontAttributes = FontAttributes.Italic,
-        TextColor = Colors.DimGray,
-      };
+  private Label ImagePlaceholder(NativeHtmlBlock block)
+  {
+    var label = new Label
+    {
+      Text = block.HasAuthoredImageAlt
+          ? block.ImageAlt
+          : UiCopy.Localize(UiMessageKey.NativeDotnetResidualImage),
+      FontAttributes = FontAttributes.Italic,
+      TextColor = Colors.DimGray,
+    };
+    if (block.HasAuthoredImageAlt) ApplyAuthoredLanguage(label);
+    return label;
+  }
 
   private static FormattedString Formatted(IReadOnlyList<NativeHtmlInline> inlines)
   {
@@ -194,7 +193,7 @@ public sealed partial class NativeHtmlContentView :
     if (inline.Emphasis) attrs |= FontAttributes.Italic;
     return attrs;
   }
-
   private static bool IsSafeLinkScheme(Uri url) =>
       url.Scheme is "http" or "https" or "mailto";
+
 }

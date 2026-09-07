@@ -66,6 +66,21 @@ public sealed class ModerationDisputesPageTests
   }
 
   [Fact]
+  public void CanonicalPostContentReplacesTheStaffContextPostTitle()
+  {
+    var dispute = new Service().Dispute with
+    {
+      PostContent = new ModerationDisputePostContent("Card review", "ar"),
+    };
+
+    var context = ModerationDisputeCardPresentation.Context(dispute);
+
+    Assert.DoesNotContain("Card review", context, StringComparison.Ordinal);
+    Assert.DoesNotContain("post-1", context, StringComparison.Ordinal);
+    Assert.Contains("Travel", context, StringComparison.Ordinal);
+  }
+
+  [Fact]
   public async Task DisappearingPageCancelsInFlightCardMutation()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());

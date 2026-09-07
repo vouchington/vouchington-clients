@@ -83,6 +83,7 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
             "last_reported_at": "2026-01-02T00:00:00Z",
             "target_label": "Native post",
             "target_path": "/discussion/post-1",
+            "target_content": null,
             "admin_action_path": "/admin/posts/post-1",
             "target_user_id": "target-1",
             "target_available": true,
@@ -215,6 +216,7 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
             "resolved_by_id": null,
             "resolution_action": null,
             "latest_lifecycle_change_id": null,
+            "post_content": null,
             "created_at": "2026-01-01T00:00:00Z",
             "updated_at": "2026-01-01T00:00:00Z"
           }],

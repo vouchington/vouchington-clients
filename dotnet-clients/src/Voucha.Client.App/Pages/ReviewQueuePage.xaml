@@ -36,8 +36,8 @@
                         <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9">
                             <Border.StrokeShape><RoundRectangle CornerRadius="8" /></Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
-                                <Label AutomationId="review-queue-row-title" Text="{Binding DisplayTitle}" Style="{StaticResource Headline}" />
-                                <Label AutomationId="review-queue-row-preview" Text="{Binding UserContentPreview}" Style="{StaticResource Body}" />
+                                <Label AutomationId="review-queue-row-title" Text="{Binding DisplayTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Headline}" />
+                                <Label AutomationId="review-queue-row-preview" Text="{Binding UserContentPreview}" FlowDirection="{Binding PreviewFlowDirection}" Style="{StaticResource Body}" />
                                 <Label AutomationId="review-queue-row-author" Text="{Binding AuthorPresentation}" Style="{StaticResource Metadata}" />
                                 <Label AutomationId="review-queue-row-post-type" Text="{Binding PostTypePresentation}" Style="{StaticResource Metadata}" />
                                 <Label AutomationId="review-queue-row-root" Text="{Binding RootContextPresentation}" Style="{StaticResource Metadata}" />

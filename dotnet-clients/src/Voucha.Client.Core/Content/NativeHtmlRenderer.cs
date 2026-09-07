@@ -23,7 +23,11 @@ public static partial class NativeHtmlRenderer
     var document = Parser.ParseDocument(html);
     var effectiveImageLabel = imageLabel
         ?? UiLocalization.English.Localize(UiMessageKey.NativeDotnetResidualImage);
-    foreach (var image in document.QuerySelectorAll("img"))
+    var images = document.QuerySelectorAll("img").OfType<IElement>().ToArray();
+    var authoredImageAlts = images
+        .Where(image => !string.IsNullOrWhiteSpace(image.GetAttribute("alt")))
+        .ToHashSet();
+    foreach (var image in images)
     {
       if (string.IsNullOrWhiteSpace(image.GetAttribute("alt")))
       {
@@ -35,7 +39,7 @@ public static partial class NativeHtmlRenderer
     {
       foreach (var child in body.ChildNodes)
       {
-        AppendNode(child, blocks);
+        AppendNode(child, blocks, authoredImageAlts);
       }
     }
 
@@ -53,7 +57,10 @@ public static partial class NativeHtmlRenderer
       block.Kind is NativeHtmlBlockKind.Rule or NativeHtmlBlockKind.Image ||
       block.Inlines.Any(inline => !string.IsNullOrWhiteSpace(inline.Text));
 
-  private static void AppendNode(INode node, List<NativeHtmlBlock> blocks)
+  private static void AppendNode(
+      INode node,
+      List<NativeHtmlBlock> blocks,
+      IReadOnlySet<IElement> authoredImageAlts)
   {
     if (node is IText textNode)
     {
@@ -83,7 +90,9 @@ public static partial class NativeHtmlRenderer
         AddBlock(blocks, Paragraph(InlineChildren(element)));
         return;
       case "BLOCKQUOTE":
-        AddBlock(blocks, new NativeHtmlBlock(NativeHtmlBlockKind.Quote, QuoteChildren(element)));
+        AddBlock(blocks, new NativeHtmlBlock(
+            NativeHtmlBlockKind.Quote,
+            QuoteChildren(element, authoredImageAlts)));
         return;
       case "PRE":
         AddBlock(blocks, new NativeHtmlBlock(NativeHtmlBlockKind.Code, [Text(TrimRendererTrailingLineBreak(element.TextContent))]));
@@ -103,7 +112,8 @@ public static partial class NativeHtmlRenderer
             NativeHtmlBlockKind.Image,
             [],
             ImageSource: element.GetAttribute("src"),
-            ImageAlt: element.GetAttribute("alt")));
+            ImageAlt: element.GetAttribute("alt"),
+            HasAuthoredImageAlt: authoredImageAlts.Contains(element)));
         return;
       default:
         var runs = InlineChildren(element);

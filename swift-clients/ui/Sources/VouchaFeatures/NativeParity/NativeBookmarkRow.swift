@@ -22,6 +22,32 @@ struct NativeBookmarkRow: Identifiable, Equatable {
     let destination: Destination
     let inverseAction: InverseAction?
     let rank: Int
+    let declaredLanguage: String?
+    let detectedLanguage: String?
+
+    init(
+        entityType: String,
+        entityId: String,
+        icon: String,
+        title: UiVerbatimText,
+        detail: UiVerbatimText,
+        destination: Destination,
+        inverseAction: InverseAction?,
+        rank: Int,
+        declaredLanguage: String? = nil,
+        detectedLanguage: String? = nil
+    ) {
+        self.entityType = entityType
+        self.entityId = entityId
+        self.icon = icon
+        self.title = title
+        self.detail = detail
+        self.destination = destination
+        self.inverseAction = inverseAction
+        self.rank = rank
+        self.declaredLanguage = declaredLanguage
+        self.detectedLanguage = detectedLanguage
+    }
 
     var id: String {
         "\(entityType):\(entityId)"
@@ -47,7 +73,7 @@ extension NativeBookmarkRow {
     }
 
     static func postTitle(type: PostType, title: String?) -> UiVerbatimText {
-        if let title, !title.isEmpty {
+        if let title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
             return .userContent(title)
         }
         return switch type {

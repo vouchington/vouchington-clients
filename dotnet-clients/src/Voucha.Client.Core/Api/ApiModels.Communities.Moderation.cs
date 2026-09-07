@@ -37,7 +37,8 @@ public sealed record CommunityModerationQueueEntry(
     [property: JsonPropertyName("cursor_report_count")] int? CursorReportCount,
     [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank,
     [property: JsonPropertyName("case_id")] string? CaseId = null,
-    [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt = null);
+    [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt = null,
+    [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null);
 
 public sealed record CommunityModerationQueueResponse(
     [property: JsonPropertyName("entries")] IReadOnlyList<CommunityModerationQueueEntry> Entries,
@@ -94,7 +95,9 @@ public sealed record CommunityAutomodSimulationResult(
     [property: JsonPropertyName("content_excerpt")] string ContentExcerpt,
     [property: JsonPropertyName("flagged")] bool Flagged,
     [property: JsonPropertyName("reason")] string Reason,
-    [property: JsonPropertyName("would_unpublish")] bool WouldUnpublish);
+    [property: JsonPropertyName("would_unpublish")] bool WouldUnpublish,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record CommunityAutomodSimulation(
     [property: JsonPropertyName("simulation")] CommunityAutomodSimulationSummary Simulation,

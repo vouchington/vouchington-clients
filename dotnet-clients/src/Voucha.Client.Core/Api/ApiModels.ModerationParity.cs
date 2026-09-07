@@ -40,7 +40,9 @@ public sealed record ModerationAppealPostRemovalContext(
     [property: JsonPropertyName("kind")] ModerationAppealPostRemovalKind Kind,
     [property: JsonPropertyName("community")] ModerationAppealCommunitySummary? Community,
     [property: JsonPropertyName("public_reason")] string? PublicReason,
-    [property: JsonPropertyName("decided_at")] DateTimeOffset? DecidedAt)
+    [property: JsonPropertyName("decided_at")] DateTimeOffset? DecidedAt,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null)
     : ModerationAppealTargetContext;
 
 public sealed record ModerationAppealSuspensionContext(
@@ -70,7 +72,9 @@ public sealed record ModerationDisputePostContext(
     [property: JsonPropertyName("slug")] string? Slug,
     [property: JsonPropertyName("markdown_preview")] string MarkdownPreview,
     [property: JsonPropertyName("created_by_id")] string? CreatedById,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record ModerationDisputeTopicContext(
     [property: JsonPropertyName("id")] string Id,

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 
@@ -98,4 +99,15 @@ public sealed partial class ModerationReportsPage
 
   private static void AddLine(VerticalStackLayout content, UiText text) =>
       content.Children.Add(new Label { Text = UiCopy.Resolve(text) });
+
+  private static void AddAuthoredContent(VerticalStackLayout content, AuthoredContentText? source)
+  {
+    if (string.IsNullOrWhiteSpace(source?.Text)) return;
+    var language = AuthoredContentLanguage.Resolve(source.DeclaredLanguage, source.LinguaRsDetectedLanguage);
+    var label = new Label { Text = source.Text };
+    if (language.Direction is { } direction)
+      label.FlowDirection = direction == AuthoredTextDirection.RightToLeft
+          ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    content.Children.Add(label);
+  }
 }
