@@ -4,7 +4,9 @@ import { describe, it } from 'node:test'
 
 import {
   parseRawGitDiff,
+  parseSkipDependency,
   validateDependabotPullRequest,
+  validateMaterializerSource,
   validatePublishedArtifactPaths,
   validatePublishedCommitPaths,
   validatePullRequestPaths,
@@ -36,8 +38,16 @@ const materializer = await readFile(
   'utf8',
 )
 const sha = 'a'.repeat(40)
+const trustedSkipVersion = parseSkipDependency(manifest).version
 
-function candidateResolved(version = '1.9.8') {
+function nextPatchVersion(version) {
+  const [major, minor, patch] = version.split('.').map(Number)
+  return `${major}.${minor}.${patch + 1}`
+}
+
+const candidateSkipVersion = nextPatchVersion(trustedSkipVersion)
+
+function candidateResolved(version = candidateSkipVersion) {
   const candidate = structuredClone(resolved)
   candidate.originHash = 'b'.repeat(64)
   const skip = candidate.pins.find(pin => pin.identity === 'skip')
@@ -50,8 +60,13 @@ describe('Swift Android Dependabot repair validation', () => {
   it('parses NUL-delimited raw git records and rejects symlinks, additions, and renames', () => {
     const raw = `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.swift\0`
     assert.deepEqual(parseRawGitDiff(raw)[0].path, 'swift-clients/apps/android/Package.swift')
+    assert.deepEqual(
+      parseRawGitDiff(Buffer.from(raw))[0].path,
+      'swift-clients/apps/android/Package.swift',
+    )
     assert.throws(() => parseRawGitDiff(`:120000 100644 ${sha} ${'b'.repeat(40)} M\0x\0`))
     assert.throws(() => parseRawGitDiff(`:100644 100644 ${sha} ${'b'.repeat(40)} A\0x\0`))
+    assert.throws(() => parseRawGitDiff(null))
   })
 
   it('accepts only the three established Dependabot path sets', () => {
@@ -74,19 +89,30 @@ describe('Swift Android Dependabot repair validation', () => {
   })
 
   it('requires the manifest delta to contain exactly one Skip version replacement', () => {
-    const candidate = manifest.replace('exact: "1.9.7"', 'exact: "1.9.8"')
-    assert.deepEqual(validateSkipManifestDelta(manifest, candidate).candidateVersion, '1.9.8')
+    const candidate = manifest.replace(
+      `exact: "${trustedSkipVersion}"`,
+      `exact: "${candidateSkipVersion}"`,
+    )
+    assert.deepEqual(
+      validateSkipManifestDelta(manifest, candidate).candidateVersion,
+      candidateSkipVersion,
+    )
     assert.throws(() => validateSkipManifestDelta(manifest, `${candidate}\n// injected`))
   })
 
   it('freezes non-Skip pins while permitting fully specified transitive additions', () => {
     const candidate = candidateResolved()
-    assert.equal(validateSkipResolvedDelta(resolved, candidate, '1.9.8').candidateRevision, sha)
+    assert.equal(
+      validateSkipResolvedDelta(resolved, candidate, candidateSkipVersion).candidateRevision,
+      sha,
+    )
     const tampered = structuredClone(candidate)
     const unrelatedPin = tampered.pins.find(pin => pin.identity !== 'skip')
     assert.ok(unrelatedPin, 'fixture requires one non-Skip pin')
     unrelatedPin.state.revision = sha
-    assert.throws(() => validateSkipResolvedDelta(resolved, tampered, '1.9.9'))
+    assert.throws(() =>
+      validateSkipResolvedDelta(resolved, tampered, nextPatchVersion(candidateSkipVersion)),
+    )
   })
 
   it('validates trusted Dependabot identity, repository, ref, and full SHAs', () => {
@@ -122,6 +148,15 @@ describe('Swift Android Dependabot repair validation', () => {
       sha,
       'b'.repeat(40),
     )
+    validateSwiftAndroidRepairPullRequest(
+      live,
+      Buffer.from(raw),
+      'main',
+      'vouchington/vouchington-clients',
+      'dependabot/swift/skip',
+      sha,
+      'b'.repeat(40),
+    )
     assert.throws(() =>
       validateSwiftAndroidRepairPullRequest(
         { ...live, head: { ...live.head, sha: 'c'.repeat(40) } },
@@ -136,8 +171,8 @@ describe('Swift Android Dependabot repair validation', () => {
   })
 
   it('materializes only the version and checksum fields and hashes the downloaded bytes', async () => {
-    const source = materializeSkipSdkSource(materializer, '1.9.8', 'c'.repeat(64))
-    assert.match(source, /SKIP_VERSION="1\.9\.8"/u)
+    const source = materializeSkipSdkSource(materializer, candidateSkipVersion, 'c'.repeat(64))
+    assert.equal(validateMaterializerSource(source).version, candidateSkipVersion)
     assert.match(source, /SKIP_MACOS_ZIP_SHA256="c{64}"/u)
     const archive = await hashSkipArchive({
       archiveUrl: 'unused',
