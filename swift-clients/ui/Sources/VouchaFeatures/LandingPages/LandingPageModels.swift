@@ -1,5 +1,4 @@
 import Foundation
-import VouchaModels
 
 public struct LandingPagesResponse: Decodable, Sendable {
     public let results: [LandingPage]

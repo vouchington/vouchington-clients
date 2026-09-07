@@ -135,7 +135,7 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById = null,
     [property: JsonPropertyName("resolution_action")] string? ResolutionAction = null,
     [property: JsonPropertyName("latest_lifecycle_change_id")] string? LatestLifecycleChangeId = null,
-    [property: JsonPropertyName("post_content")] AuthoredContentText? PostContent = null,
+    [property: JsonPropertyName("post_content")] ModerationDisputePostContent? PostContent = null,
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null);
 
 public sealed record AuthoredContentText
