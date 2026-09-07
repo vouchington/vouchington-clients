@@ -298,8 +298,8 @@ public sealed class CommunityPendingReportPaginationTests
 
   private static CommunityModerationQueueResponse QueueResponse(string id) =>
       JsonSerializer.Deserialize<CommunityModerationQueueResponse>(
-          $$"""
-          {"entries":[{"id":"{{id}}","community_id":"community-1","entity_type":"post",
+          $$$"""
+          {"entries":[{"id":"{{{id}}}","community_id":"community-1","entity_type":"post",
           "entity_id":"post-1","post_id":"post-1","status":"pending","queue_source":"report",
           "reason":"spam","note":null,"report_count":1,"action_at":"2026-07-01T00:00:00Z",
           "created_at":"2026-07-01T00:00:00Z","target_label":"Post","target_path":null,
