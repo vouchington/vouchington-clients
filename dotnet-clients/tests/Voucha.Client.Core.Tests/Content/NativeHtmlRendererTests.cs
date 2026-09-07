@@ -51,8 +51,18 @@ public sealed class NativeHtmlRendererTests
     Assert.Equal(NativeHtmlBlockKind.Image, document.Blocks[4].Kind);
     Assert.Equal("/images/a.png", document.Blocks[4].ImageSource);
     Assert.Equal("Alt text", document.Blocks[4].ImageAlt);
+    Assert.True(document.Blocks[4].HasAuthoredImageAlt);
     Assert.Equal(NativeHtmlBlockKind.Paragraph, document.Blocks[5].Kind);
     Assert.Equal("Nested text", document.Blocks[5].Inlines[0].Text);
+  }
+
+  [Fact]
+  public void ParseDistinguishesLocalizedImageFallbackFromAuthoredAltText()
+  {
+    var block = Assert.Single(NativeHtmlRenderer.Parse("<img src=\"image.png\">", imageLabel: "Image").Blocks);
+
+    Assert.Equal("Image", block.ImageAlt);
+    Assert.False(block.HasAuthoredImageAlt);
   }
 
   [Fact]

@@ -127,16 +127,15 @@ public sealed partial class NativeHtmlContentView :
 
   private Label ImagePlaceholder(NativeHtmlBlock block)
   {
-    var hasAuthoredAlt = !string.IsNullOrWhiteSpace(block.ImageAlt);
     var label = new Label
     {
-      Text = hasAuthoredAlt
+      Text = block.HasAuthoredImageAlt
           ? block.ImageAlt
           : UiCopy.Localize(UiMessageKey.NativeDotnetResidualImage),
       FontAttributes = FontAttributes.Italic,
       TextColor = Colors.DimGray,
     };
-    if (hasAuthoredAlt) ApplyAuthoredLanguage(label);
+    if (block.HasAuthoredImageAlt) ApplyAuthoredLanguage(label);
     return label;
   }
 
