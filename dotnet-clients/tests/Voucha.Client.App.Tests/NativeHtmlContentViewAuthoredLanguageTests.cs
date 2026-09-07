@@ -48,7 +48,7 @@ public sealed class NativeHtmlContentViewAuthoredLanguageTests
 
     Assert.Equal("وصف", authoredLabel.Text);
     Assert.Equal(FlowDirection.RightToLeft, authoredLabel.FlowDirection);
-    Assert.Equal(FlowDirection.LeftToRight, fallbackLabel.FlowDirection);
+    Assert.Equal(FlowDirection.MatchParent, fallbackLabel.FlowDirection);
   }
 
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider
