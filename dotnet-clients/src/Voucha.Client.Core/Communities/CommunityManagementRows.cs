@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
