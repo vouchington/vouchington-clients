@@ -64,6 +64,17 @@ describe('Swift Android Dependabot repair validation', () => {
       parseRawGitDiff(Buffer.from(raw))[0].path,
       'swift-clients/apps/android/Package.swift',
     )
+    assert.deepEqual(
+      parseRawGitDiff(
+        `:100755 100755 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/tooling/materialize-skip-sdk.sh\0`,
+      )[0].path,
+      'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
+    )
+    assert.throws(() =>
+      parseRawGitDiff(
+        `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/tooling/materialize-skip-sdk.sh\0`,
+      ),
+    )
     assert.throws(() => parseRawGitDiff(`:120000 100644 ${sha} ${'b'.repeat(40)} M\0x\0`))
     assert.throws(() => parseRawGitDiff(`:100644 100644 ${sha} ${'b'.repeat(40)} A\0x\0`))
     assert.throws(() => parseRawGitDiff(null))
@@ -74,6 +85,11 @@ describe('Swift Android Dependabot repair validation', () => {
     validatePullRequestPaths([
       'swift-clients/apps/android/Package.swift',
       'swift-clients/apps/android/Package.resolved',
+    ])
+    validatePullRequestPaths([
+      'swift-clients/apps/android/Package.swift',
+      'swift-clients/apps/android/Package.resolved',
+      'swift-clients/apps/android/tooling/materialize-skip-sdk.sh',
     ])
     assert.throws(() => validatePullRequestPaths(['swift-clients/apps/android/Package.swift']))
     assert.throws(() =>
@@ -151,6 +167,17 @@ describe('Swift Android Dependabot repair validation', () => {
     validateSwiftAndroidRepairPullRequest(
       live,
       Buffer.from(raw),
+      'main',
+      'vouchington/vouchington-clients',
+      'dependabot/swift/skip',
+      sha,
+      'b'.repeat(40),
+    )
+    validateSwiftAndroidRepairPullRequest(
+      { ...live, changed_files: 3 },
+      `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.swift\0` +
+        `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.resolved\0` +
+        `:100755 100755 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/tooling/materialize-skip-sdk.sh\0`,
       'main',
       'vouchington/vouchington-clients',
       'dependabot/swift/skip',
