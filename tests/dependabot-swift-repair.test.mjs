@@ -50,8 +50,13 @@ describe('Swift Android Dependabot repair validation', () => {
   it('parses NUL-delimited raw git records and rejects symlinks, additions, and renames', () => {
     const raw = `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.swift\0`
     assert.deepEqual(parseRawGitDiff(raw)[0].path, 'swift-clients/apps/android/Package.swift')
+    assert.deepEqual(
+      parseRawGitDiff(Buffer.from(raw))[0].path,
+      'swift-clients/apps/android/Package.swift',
+    )
     assert.throws(() => parseRawGitDiff(`:120000 100644 ${sha} ${'b'.repeat(40)} M\0x\0`))
     assert.throws(() => parseRawGitDiff(`:100644 100644 ${sha} ${'b'.repeat(40)} A\0x\0`))
+    assert.throws(() => parseRawGitDiff(null))
   })
 
   it('accepts only the three established Dependabot path sets', () => {
@@ -116,6 +121,15 @@ describe('Swift Android Dependabot repair validation', () => {
     validateSwiftAndroidRepairPullRequest(
       live,
       raw,
+      'main',
+      'vouchington/vouchington-clients',
+      'dependabot/swift/skip',
+      sha,
+      'b'.repeat(40),
+    )
+    validateSwiftAndroidRepairPullRequest(
+      live,
+      Buffer.from(raw),
       'main',
       'vouchington/vouchington-clients',
       'dependabot/swift/skip',

@@ -72,8 +72,9 @@ export function validatePublishedArtifactPaths(paths) {
   return validateChangedPaths(names, SWIFT_ANDROID_ARTIFACT_PATHS)
 }
 export function parseRawGitDiff(raw) {
-  assertion(typeof raw === 'string', 'raw git diff is required')
-  const fields = raw.split('\0'),
+  assertion(typeof raw === 'string' || Buffer.isBuffer(raw), 'raw git diff is required')
+  const source = Buffer.isBuffer(raw) ? raw.toString('utf8') : raw
+  const fields = source.split('\0'),
     entries = []
   for (let index = 0; index < fields.length;) {
     const header = fields[index++]
