@@ -15,36 +15,45 @@ public sealed class ModerationAppealCardPresentationTests
   public void TypedTargetContextsRenderEnrichedValuesWithoutRawIds()
   {
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
-    var contexts = new (ModerationAppealTargetContext Context, string[] Expected)[]
+    var contexts = new (
+        ModerationAppealTargetContext Context,
+        string[] Expected,
+        string? ExpectedRemovalTitle)[]
     {
       (new ModerationAppealWarningContext(
           "warning-rich", "Please keep replies civil",
           new("community-1", "Gardeners"), Instant),
-        ["Warning appeal", "Decision: Please keep replies civil", "Community: Gardeners"]),
+        ["Warning appeal", "Decision: Please keep replies civil", "Community: Gardeners"],
+        null),
       (new ModerationAppealCommunityBanContext(
           "ban-rich", new("community-2", "Book Club"),
           "Repeated personal attacks", null, Instant),
-        ["Community ban appeal", "Decision: Repeated personal attacks", "Community: Book Club"]),
+        ["Community ban appeal", "Decision: Repeated personal attacks", "Community: Book Club"],
+        null),
       (new ModerationAppealPostRemovalContext(
           "post-rich", "A thoughtful title", ModerationAppealPostRemovalKind.Platform,
           null, "Violates the site rules", Instant),
-        ["Platform post removal appeal", "Post: A thoughtful title", "Decision: Violates the site rules"]),
+        ["Platform post removal appeal", "Decision: Violates the site rules"],
+        "Post: A thoughtful title"),
       (new ModerationAppealPostRemovalContext(
           "community-post-rich", "Local announcement",
           ModerationAppealPostRemovalKind.Community,
           new("community-3", "Neighborhood"), "Off topic", Instant),
-        ["Community post removal appeal", "Post: Local announcement",
-          "Decision: Off topic", "Community: Neighborhood"]),
+        ["Community post removal appeal", "Decision: Off topic", "Community: Neighborhood"],
+        "Post: Local announcement"),
       (new ModerationAppealSuspensionContext(
           "suspension-rich", "Repeated policy violations", Instant),
-        ["Suspension appeal", "Decision: Repeated policy violations"]),
+        ["Suspension appeal", "Decision: Repeated policy violations"],
+        null),
     };
 
-    foreach (var (context, expected) in contexts)
+    foreach (var (context, expected, expectedRemovalTitle) in contexts)
     {
-      var rendered = ModerationAppealCardPresentation.Context(Appeal(context));
+      var appeal = Appeal(context);
+      var rendered = ModerationAppealCardPresentation.Context(appeal);
 
       Assert.All(expected, value => Assert.Contains(value, rendered));
+      Assert.Equal(expectedRemovalTitle, ModerationAppealCardPresentation.RemovalTitle(appeal));
       Assert.DoesNotContain(context switch
       {
         ModerationAppealWarningContext warning => warning.Id,
@@ -100,14 +109,15 @@ public sealed class ModerationAppealCardPresentationTests
     var staff = new ModerationAppealStaffContext(
         new("appellant-id", "alicia", "Alicia", null),
         new(null, "Motivo interno"));
-    var rendered = ModerationAppealCardPresentation.Context(Appeal(
+    var appeal = Appeal(
         new ModerationAppealPostRemovalContext(
             "post-rich", "Un título", ModerationAppealPostRemovalKind.Community,
             new("community-id", "Vecindario"), "Fuera de tema", Instant),
-        staff));
+        staff);
+    var rendered = ModerationAppealCardPresentation.Context(appeal);
 
     Assert.Contains("Apelación por eliminación de publicación de comunidad", rendered);
-    Assert.Contains("Publicación: Un título", rendered);
+    Assert.Equal("Publicación: Un título", ModerationAppealCardPresentation.RemovalTitle(appeal));
     Assert.Contains("Decisión: Fuera de tema", rendered);
     Assert.Contains("Comunidad: Vecindario", rendered);
     Assert.Contains("Motivo de la decisión original: Motivo interno", rendered);
