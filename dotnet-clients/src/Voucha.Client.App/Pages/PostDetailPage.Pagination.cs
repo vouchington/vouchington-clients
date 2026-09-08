@@ -6,6 +6,9 @@ public partial class PostDetailPage
 {
   private readonly ViewportPaginationTrigger<HybridPaginationControl> descendantPaginationVisibility = new();
 
+  private async void OnLoadMoreAncestorsRequested(object? sender, EventArgs args) =>
+      await binding.LoadMoreAncestorsAsync().ConfigureAwait(true);
+
   private async void OnLoadMoreDescendantsRequested(object? sender, EventArgs args)
   {
     await binding.LoadMoreDescendantsAsync().ConfigureAwait(true);

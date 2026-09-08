@@ -43,6 +43,15 @@ public sealed partial class VouchaApiClient
           VouchaApiEndpoints.PostAncestors(postId),
           cancellationToken);
 
+  public Task<PostThreadResponse> FetchPostAncestorsPageAsync(
+      string postId,
+      string? after,
+      int limit,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<PostThreadResponse>(
+          VouchaApiEndpoints.PostAncestors(postId, after, limit),
+          cancellationToken);
+
   public Task<PostMutationResponse> CreatePostAsync(
       CreatePostBody body,
       string idempotencyKey,

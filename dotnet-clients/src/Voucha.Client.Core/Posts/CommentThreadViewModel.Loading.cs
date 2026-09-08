@@ -16,7 +16,7 @@ public sealed partial class CommentThreadViewModel
       var descendantsTask = postsService.FetchPostDescendantsPageAsync(rootPostId, null, 100, cancellationToken);
       Task<PostThreadResponse>? ancestorsTask = normalizedFocusedCommentId is null
           ? null
-          : postsService.FetchPostAncestorsAsync(normalizedFocusedCommentId, cancellationToken);
+          : postsService.FetchPostAncestorsPageAsync(normalizedFocusedCommentId, null, 5, cancellationToken);
 
       if (ancestorsTask is null)
       {
@@ -29,7 +29,16 @@ public sealed partial class CommentThreadViewModel
 
       rootPostResponse = await rootTask.ConfigureAwait(true);
       ReplaceDescendantsEnvelope(await descendantsTask.ConfigureAwait(true));
-      ancestorsResponse = ancestorsTask is null ? null : await ancestorsTask.ConfigureAwait(true);
+      if (ancestorsTask is null)
+      {
+        ancestorPages.Reset();
+        ancestorsResponse = null;
+        NotifyAncestorPagination();
+      }
+      else
+      {
+        ReplaceAncestorsEnvelope(await ancestorsTask.ConfigureAwait(true));
+      }
       AncestorPosts = BuildAncestorPosts();
       FocusedComment = ResolveFocusedComment();
       RebuildComments();
@@ -63,6 +72,8 @@ public sealed partial class CommentThreadViewModel
     descendantsResponse = null;
     descendantPages.Reset();
     NotifyDescendantPagination();
+    ancestorPages.Reset();
+    NotifyAncestorPagination();
     ancestorsResponse = null;
     AncestorPosts = [];
     Comments = [];

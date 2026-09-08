@@ -54,6 +54,8 @@ extension NativeCommentThreadSurface {
                         client: client
                     )
 
+                    ancestorPaginationControl
+
                     if !viewModel.ancestorPosts.isEmpty {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text(UiMessages.string(.nativeSwiftCommentThreadAncestorChain, locale: nativeUiLocale))

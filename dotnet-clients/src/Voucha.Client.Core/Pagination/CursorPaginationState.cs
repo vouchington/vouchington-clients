@@ -68,6 +68,24 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
     return true;
   }
 
+  public bool CompletePrepending(
+      CursorPageRequest request,
+      IEnumerable<T> items,
+      string? endCursor,
+      bool hasNextPage)
+  {
+    if (!IsCurrent(request)) return false;
+    var incoming = Unique(items);
+    var incomingIds = incoming.Select(idSelector).ToHashSet();
+    Items = [.. incoming, .. Items.Where(item => !incomingIds.Contains(idSelector(item)))];
+    EndCursor = endCursor;
+    HasMore = hasNextPage;
+    loadedPage = true;
+    LastError = null;
+    inFlightRequest = null;
+    return true;
+  }
+
   public bool CompleteReplacing(
       CursorPageRequest request,
       IEnumerable<T> items,

@@ -102,6 +102,11 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     OnPropertyChanged(nameof(HasMoreDescendants));
     OnPropertyChanged(nameof(IsLoadingMoreDescendants));
     OnPropertyChanged(nameof(HasDescendantPaginationError));
+    OnPropertyChanged(nameof(HasMoreAncestors));
+    OnPropertyChanged(nameof(IsLoadingMoreAncestors));
+    OnPropertyChanged(nameof(HasAncestorPaginationError));
+    OnPropertyChanged(nameof(CanLoadMoreAncestors));
+    OnPropertyChanged(nameof(AncestorPaginationLabel));
     OnPropertyChanged(nameof(CanVote));
     OnPropertyChanged(nameof(CanCompose));
     OnPropertyChanged(nameof(CurrentUserId));
