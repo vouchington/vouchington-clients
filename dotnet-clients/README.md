@@ -113,9 +113,17 @@ engine against `.coverage-rules.yml`, requiring `lcov.info` and failing empty or
 The rendered App test project remains a documented 0% exemption: MAUI's platform shell is compiled
 and smoke-tested on Mac Catalyst, but Coverlet cannot instrument it reliably. Use
 `COVERAGE_BASE=origin/main COVERAGE_HEAD=HEAD pnpm run coverage:dotnet-core` after producing
-`dotnet-clients/TestResults/core/lcov.info`. Local compiler-capable commands may use
-`with-build-lock.sh`; it waits up to 60 seconds and fails closed. GitHub Actions does not wrap
-those commands. `dotnet test --no-build` remains outside that lock.
+`dotnet-clients/TestResults/core/lcov.info`. Before pushing, run `pnpm run coverage:dotnet-core:local`
+instead: it uses the same rules and artifact path but passes `--advisory` and drops
+`--require-artifact`/`--fail-on-empty`, so it reports a shortfall without blocking and skips
+cleanly if you have not produced `lcov.info` yet — early insight only, not the gate. Use
+`pnpm run test:plan:dotnet --base origin/main --head HEAD` first to get the affected test commands
+to run. Unlike the Swift recipe's `write-lcov.sh`, Coverlet's raw `lcov.info` is not repo-relative
+path-normalized; a `contributed 0 coverable lines … path prefix mismatch` warning means the run did
+not actually evaluate your diff, not that you are covered — re-check the artifact path if you see it.
+Local compiler-capable commands may use `with-build-lock.sh`; it waits up to 60 seconds and fails
+closed. GitHub Actions does not wrap those commands. `dotnet test --no-build` remains outside that
+lock.
 
 NuGet restores use nuget.org as the only package source. The SDK's local `library-packs` and
 fallback folders are disabled because different .NET distributions can contain packages with the

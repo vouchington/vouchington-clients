@@ -136,3 +136,19 @@ for a reference pattern using `EmptyStateView`.
 
 See the [swift-test-authoring skill](../.agents/skills/swift-test-authoring/SKILL.md) for the
 required thresholds and exemptions.
+
+CI enforces the 90% patch-coverage threshold with the published `coverage-check` policy engine
+against `.coverage-rules.yml` (`pnpm run coverage:swift`, which requires `BASE_SHA` and the CI
+LCOV artifacts). To get the same signal locally before pushing, export per-package LCOV and run
+the advisory variant from the repository root:
+
+```sh
+bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
+pnpm run coverage:swift:local
+```
+
+`coverage:swift:local` uses the same rules but passes `--advisory` and skips cleanly if
+`coverage/{core,ui}/lcov.info` are absent — early insight only, not the gate. Use
+`pnpm run test:plan:swift --base origin/main --head HEAD` first to get the affected test commands
+to run.
