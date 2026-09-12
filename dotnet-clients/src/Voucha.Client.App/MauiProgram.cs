@@ -49,13 +49,7 @@ public static partial class MauiProgram
 
     builder.Services.AddSingleton(AppConfig.FromEnvironment());
     AddAuthSessionServices(builder.Services);
-    builder.Services.AddSingleton<IDeviceLanguageProvider, MauiDeviceLanguageProvider>();
-    builder.Services.AddSingleton<IUiThreadDispatcher, MauiUiThreadDispatcher>();
-    builder.Services.AddSingleton<UiLocaleController>();
-    builder.Services.AddSingleton<IUiLocaleController>(sp => sp.GetRequiredService<UiLocaleController>());
-    builder.Services.AddSingleton<LocalizationValueCache>();
-    builder.Services.AddSingleton<IUiLocalization, UiLocalization>();
-    builder.Services.AddSingleton<LocalizationRefreshService>();
+    AddLocalizationServices(builder.Services);
     builder.Services.AddSingleton<IHnDiscussionsSettings>(sp =>
         new SessionHnDiscussionsSettings(sp.GetRequiredService<ISessionStore>()));
     builder.Services.AddSingleton(_ => new HnDiscussionsClient(new HttpClient()));
