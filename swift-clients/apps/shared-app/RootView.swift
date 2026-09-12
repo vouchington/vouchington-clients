@@ -95,11 +95,13 @@ public struct RootView: View {
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
                 await refreshFeatureFlags()
+                await refreshLocalization()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
                 handleNativeOAuthAuthorizationResult(nativeOAuthCoordinator.result)
             }
             .onChange(of: viewModelFactory.sessionManager.uiLocale) { _, uiLocale in
                 viewModelFactory.uiLocaleController.update(savedUiLocale: uiLocale)
+                Task { await refreshLocalization() }
             }
             .onChange(of: viewModelFactory.nativeOAuthAuthorizationCoordinator.result) { _, result in
                 handleNativeOAuthAuthorizationResult(result)

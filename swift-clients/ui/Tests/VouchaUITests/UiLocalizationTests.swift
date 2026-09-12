@@ -4,6 +4,11 @@ import XCTest
 
 @MainActor
 final class UiLocalizationTests: XCTestCase {
+    override func tearDown() {
+        LocalizationValueCache.shared.reset()
+        super.tearDown()
+    }
+
     func testResolverUsesSavedLocaleBeforePreferredLanguages() {
         XCTAssertEqual(
             UiLocaleResolver.resolve(savedUiLocale: "fr-CA", preferredLanguages: ["pt-BR"]),
@@ -27,6 +32,19 @@ final class UiLocalizationTests: XCTestCase {
         XCTAssertEqual(controller.string(.commonCancel), "Cancel")
         controller.update(savedUiLocale: "fr")
         XCTAssertEqual(controller.string(.commonCancel), "Annuler")
+    }
+
+    func testControllerServesLiveCatalogOverlayValues() {
+        LocalizationValueCache.shared.apply(
+            locale: "en",
+            revision: "rev-1",
+            ttlSeconds: 60,
+            values: ["common.cancel": "Abort"]
+        )
+        let controller = UiLocaleController(savedUiLocale: "en", preferredLanguages: [])
+        XCTAssertEqual(controller.string(.commonCancel), "Abort")
+        LocalizationValueCache.shared.reset()
+        XCTAssertEqual(controller.string(.commonCancel), "Cancel")
     }
 
     func testControllerInterpolatesAndSelectsPluralResources() {

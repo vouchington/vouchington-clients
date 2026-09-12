@@ -375,6 +375,7 @@ public sealed partial class VouchaApiEndpointParityTests
   {
     yield return Case("webSearch", VouchaApiEndpoints.WebSearch("swift", 11), HttpMethod.Get, "/api/v1/web-search", Query(("query", "swift"), ("limit", "11")));
     yield return Case("featureFlags", VouchaApiEndpoints.FeatureFlags(), HttpMethod.Get, "/api/v1/feature-flags", Query());
+    yield return Case("localization", VouchaApiEndpoints.Localization("dotnet", "en", "common.*,nav.*"), HttpMethod.Get, "/api/v1/localization", Query(("consumer", "dotnet"), ("locales", "en"), ("selectors", "common.*,nav.*")));
     yield return Case("fediverseSearch", VouchaApiEndpoints.FediverseSearch("swift", "peertube,mastodon", "video", 12, "cursor-1"), HttpMethod.Get, "/api/v1/fediverse/search", Query(("q", "swift"), ("providers", "peertube,mastodon"), ("type", "video"), ("limit", "12"), ("after", "cursor-1")));
     yield return Case("trendingCommunities", VouchaApiEndpoints.TrendingCommunities("cursor-1", 12), HttpMethod.Get, "/api/v1/trending-communities", Query(("limit", "12"), ("after", "cursor-1")));
     yield return Case("trendingReferralPrograms", VouchaApiEndpoints.TrendingReferralPrograms("cursor-2", 13), HttpMethod.Get, "/api/v1/trending-referral-programs", Query(("limit", "13"), ("after", "cursor-2")));

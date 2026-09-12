@@ -41,6 +41,10 @@ public sealed class MauiLocalizationWiringTests
         "sp.GetRequiredService<IUiLocaleController>()",
         source,
         StringComparison.Ordinal);
+    Assert.Contains("AddSingleton<LocalizationValueCache>()", source, StringComparison.Ordinal);
+    Assert.Contains("AddSingleton<LocalizationRefreshService>()", source, StringComparison.Ordinal);
+    var navigation = ReadAppSource("MauiProgram.NavigationFeatureFlags.cs");
+    Assert.Contains("RefreshChromeAsync()", navigation, StringComparison.Ordinal);
     Assert.Contains(
         "new DirectMessagesViewModel(",
         source,

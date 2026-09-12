@@ -3,36 +3,6 @@ using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Localization;
 
-public interface IDeviceLanguageProvider
-{
-  IReadOnlyList<string> PreferredLanguages { get; }
-}
-
-public interface IUiThreadDispatcher
-{
-  bool IsDispatchRequired { get; }
-
-  void Dispatch(Action action);
-}
-
-public interface IUiLocaleChangeListener
-{
-  void OnUiLocaleChanged();
-}
-
-public interface IUiLocaleController
-{
-  event EventHandler? LocaleChanged;
-
-  string EffectiveLocale { get; }
-
-  CultureInfo Culture { get; }
-
-  void ApplySavedLocale(string? locale);
-
-  IDisposable SubscribeLocaleChanges(IUiLocaleChangeListener listener);
-}
-
 public sealed class UiLocaleController : IUiLocaleController, IDisposable
 {
   private static readonly HashSet<string> SupportedLocales = ["en", "es", "fr", "pt"];
@@ -79,6 +49,17 @@ public sealed class UiLocaleController : IUiLocaleController, IDisposable
     ApplySavedLocaleOnUiThread(locale);
   }
 
+  public void NotifyLocalizedCopyChanged()
+  {
+    if (dispatcher.IsDispatchRequired)
+    {
+      dispatcher.Dispatch(NotifyLocalizedCopyChangedOnUiThread);
+      return;
+    }
+
+    NotifyLocalizedCopyChangedOnUiThread();
+  }
+
   public IDisposable SubscribeLocaleChanges(IUiLocaleChangeListener listener)
   {
     ArgumentNullException.ThrowIfNull(listener);
@@ -95,6 +76,12 @@ public sealed class UiLocaleController : IUiLocaleController, IDisposable
     var next = ResolveEffectiveLocale(locale);
     if (next == EffectiveLocale) return;
     EffectiveLocale = next;
+    LocaleChanged?.Invoke(this, EventArgs.Empty);
+    NotifyWeakListeners();
+  }
+
+  private void NotifyLocalizedCopyChangedOnUiThread()
+  {
     LocaleChanged?.Invoke(this, EventArgs.Empty);
     NotifyWeakListeners();
   }

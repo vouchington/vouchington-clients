@@ -5,6 +5,7 @@ import Observation
 @MainActor
 public final class UiLocaleController {
     public private(set) var locale: UiLocale
+    public private(set) var overlayGeneration = 0
     private var savedUiLocale: String?
     private var preferredLanguages: [String]
 
@@ -37,6 +38,10 @@ public final class UiLocaleController {
         )
         guard locale != resolvedLocale else { return }
         locale = resolvedLocale
+    }
+
+    public func noteOverlayRefresh() {
+        overlayGeneration += 1
     }
 
     public func string(_ key: UiMessageKey, parameters: [String: String] = [:]) -> String {

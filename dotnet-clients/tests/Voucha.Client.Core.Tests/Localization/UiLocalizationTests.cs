@@ -71,6 +71,24 @@ public sealed class UiLocalizationTests
   }
 
   [Fact]
+  public void OverlayValuesWinOverBundledResourcesUntilReset()
+  {
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
+    var overlay = new LocalizationValueCache();
+    overlay.Apply(
+        "en",
+        "rev-1",
+        60,
+        new Dictionary<string, string> { ["common.cancel"] = "Abort" },
+        DateTimeOffset.UnixEpoch);
+    var localization = new UiLocalization(controller, overlay);
+
+    Assert.Equal("Abort", localization.Localize(UiMessageKey.CommonCancel));
+    overlay.Reset();
+    Assert.Equal("Cancel", localization.Localize(UiMessageKey.CommonCancel));
+  }
+
+  [Fact]
   public void SessionLocaleChangesAndSignOutReapplyLocalePrecedence()
   {
     var controller = new UiLocaleController(new StubDeviceLanguageProvider("fr-CA"));
