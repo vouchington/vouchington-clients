@@ -41,6 +41,12 @@ jobs:
       accepted: ${{ steps.extract-fix.outputs.accepted }}
       fix_request: ${{ steps.extract-fix.outputs.fix_request }}
     steps:
+      # This job deliberately has no checkout -- it validates an untrusted comment
+      # before anything is trusted -- so `node-version-file: .nvmrc` has no file to
+      # read and the version is pinned literally. Keep it in sync with .nvmrc.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
       - name: Extract /fix request
         id: extract-fix
         env:
