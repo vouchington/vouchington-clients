@@ -469,7 +469,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesEnabled = new("native.dotnet.csharpCommunities.enabled");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesEndsAt = new("native.dotnet.csharpCommunities.endsAt");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesExpiresAt = new("native.dotnet.csharpCommunities.expiresAt");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesFlagged = new("native.dotnet.csharpCommunities.flagged");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesInviteCode = new("native.dotnet.csharpCommunities.inviteCode");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesInviteId = new("native.dotnet.csharpCommunities.inviteId");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesInviteMember = new("native.dotnet.csharpCommunities.inviteMember");
@@ -495,7 +494,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesNewsItem = new("native.dotnet.csharpCommunities.newsItem");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesNoStateChange = new("native.dotnet.csharpCommunities.noStateChange");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOpen = new("native.dotnet.csharpCommunities.open");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOpenAiModeration = new("native.dotnet.csharpCommunities.openAiModeration");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOrder = new("native.dotnet.csharpCommunities.order");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesPauseDigests = new("native.dotnet.csharpCommunities.pauseDigests");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesPendingReports = new("native.dotnet.csharpCommunities.pendingReports");
@@ -540,7 +538,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesTransferUserId = new("native.dotnet.csharpCommunities.transferUserId");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUnallocated = new("native.dotnet.csharpCommunities.unallocated");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUnarchive = new("native.dotnet.csharpCommunities.unarchive");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUnknown = new("native.dotnet.csharpCommunities.unknown");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUpdate = new("native.dotnet.csharpCommunities.update");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUpdateRole = new("native.dotnet.csharpCommunities.updateRole");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUpdateSettings = new("native.dotnet.csharpCommunities.updateSettings");
@@ -1291,6 +1288,14 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeLegalPrivacyPolicy = new("native.legal.privacyPolicy");
     public static readonly UiMessageKey NativeLegalTermsOfService = new("native.legal.termsOfService");
     public static readonly UiMessageKey NativeLegalTitle = new("native.legal.title");
+    public static readonly UiMessageKey NativeModerationSummaryDispositionIncomplete = new("native.moderation.summary.disposition.incomplete");
+    public static readonly UiMessageKey NativeModerationSummaryDispositionNone = new("native.moderation.summary.disposition.none");
+    public static readonly UiMessageKey NativeModerationSummaryDispositionPass = new("native.moderation.summary.disposition.pass");
+    public static readonly UiMessageKey NativeModerationSummaryDispositionReject = new("native.moderation.summary.disposition.reject");
+    public static readonly UiMessageKey NativeModerationSummaryDispositionReview = new("native.moderation.summary.disposition.review");
+    public static readonly UiMessageKey NativeModerationSummaryEvidenceFlaggedCategories = new("native.moderation.summary.evidence.flaggedCategories");
+    public static readonly UiMessageKey NativeModerationSummaryEvidenceSignals = new("native.moderation.summary.evidence.signals");
+    public static readonly UiMessageKey NativeModerationSummaryTitle = new("native.moderation.summary.title");
     public static readonly UiMessageKey NativeSwiftChatConversationTitle = new("native.swift.chat.conversationTitle");
     public static readonly UiMessageKey NativeSwiftChatRename = new("native.swift.chat.rename");
     public static readonly UiMessageKey NativeSwiftChatStop = new("native.swift.chat.stop");
@@ -1725,23 +1730,15 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueCreated = new("native.swift.moderationReports.reviewQueueCreated");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueEmptyMessage = new("native.swift.moderationReports.reviewQueueEmptyMessage");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueExposureStale = new("native.swift.moderationReports.reviewQueueExposureStale");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueFlagged = new("native.swift.moderationReports.reviewQueueFlagged");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueFlaggedScore = new("native.swift.moderationReports.reviewQueueFlaggedScore");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueInReview = new("native.swift.moderationReports.reviewQueueInReview");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueLoadFailed = new("native.swift.moderationReports.reviewQueueLoadFailed");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueLoadMoreFailed = new("native.swift.moderationReports.reviewQueueLoadMoreFailed");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueMarkForReview = new("native.swift.moderationReports.reviewQueueMarkForReview");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueNoPreview = new("native.swift.moderationReports.reviewQueueNoPreview");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueNotFlagged = new("native.swift.moderationReports.reviewQueueNotFlagged");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueOpenAiModeration = new("native.swift.moderationReports.reviewQueueOpenAiModeration");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueuePostType = new("native.swift.moderationReports.reviewQueuePostType");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueReject = new("native.swift.moderationReports.reviewQueueReject");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueRejected = new("native.swift.moderationReports.reviewQueueRejected");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueReveal = new("native.swift.moderationReports.reviewQueueReveal");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueRootThread = new("native.swift.moderationReports.reviewQueueRootThread");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueSensitiveMediaHidden = new("native.swift.moderationReports.reviewQueueSensitiveMediaHidden");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueSpam = new("native.swift.moderationReports.reviewQueueSpam");
-    public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueStatus = new("native.swift.moderationReports.reviewQueueStatus");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueUnsupportedStatus = new("native.swift.moderationReports.reviewQueueUnsupportedStatus");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueUntitledPost = new("native.swift.moderationReports.reviewQueueUntitledPost");
     public static readonly UiMessageKey NativeSwiftModerationReportsReviewQueueUpdateFailed = new("native.swift.moderationReports.reviewQueueUpdateFailed");
@@ -2466,7 +2463,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesEnabled,
         NativeDotnetCsharpCommunitiesEndsAt,
         NativeDotnetCsharpCommunitiesExpiresAt,
-        NativeDotnetCsharpCommunitiesFlagged,
         NativeDotnetCsharpCommunitiesInviteCode,
         NativeDotnetCsharpCommunitiesInviteId,
         NativeDotnetCsharpCommunitiesInviteMember,
@@ -2492,7 +2488,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesNewsItem,
         NativeDotnetCsharpCommunitiesNoStateChange,
         NativeDotnetCsharpCommunitiesOpen,
-        NativeDotnetCsharpCommunitiesOpenAiModeration,
         NativeDotnetCsharpCommunitiesOrder,
         NativeDotnetCsharpCommunitiesPauseDigests,
         NativeDotnetCsharpCommunitiesPendingReports,
@@ -2537,7 +2532,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesTransferUserId,
         NativeDotnetCsharpCommunitiesUnallocated,
         NativeDotnetCsharpCommunitiesUnarchive,
-        NativeDotnetCsharpCommunitiesUnknown,
         NativeDotnetCsharpCommunitiesUpdate,
         NativeDotnetCsharpCommunitiesUpdateRole,
         NativeDotnetCsharpCommunitiesUpdateSettings,
@@ -3288,6 +3282,14 @@ public readonly record struct UiMessageKey(string Value)
         NativeLegalPrivacyPolicy,
         NativeLegalTermsOfService,
         NativeLegalTitle,
+        NativeModerationSummaryDispositionIncomplete,
+        NativeModerationSummaryDispositionNone,
+        NativeModerationSummaryDispositionPass,
+        NativeModerationSummaryDispositionReject,
+        NativeModerationSummaryDispositionReview,
+        NativeModerationSummaryEvidenceFlaggedCategories,
+        NativeModerationSummaryEvidenceSignals,
+        NativeModerationSummaryTitle,
         NativeSwiftChatConversationTitle,
         NativeSwiftChatRename,
         NativeSwiftChatStop,
@@ -3722,23 +3724,15 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftModerationReportsReviewQueueCreated,
         NativeSwiftModerationReportsReviewQueueEmptyMessage,
         NativeSwiftModerationReportsReviewQueueExposureStale,
-        NativeSwiftModerationReportsReviewQueueFlagged,
-        NativeSwiftModerationReportsReviewQueueFlaggedScore,
-        NativeSwiftModerationReportsReviewQueueInReview,
         NativeSwiftModerationReportsReviewQueueLoadFailed,
         NativeSwiftModerationReportsReviewQueueLoadMoreFailed,
         NativeSwiftModerationReportsReviewQueueMarkForReview,
         NativeSwiftModerationReportsReviewQueueNoPreview,
-        NativeSwiftModerationReportsReviewQueueNotFlagged,
-        NativeSwiftModerationReportsReviewQueueOpenAiModeration,
         NativeSwiftModerationReportsReviewQueuePostType,
         NativeSwiftModerationReportsReviewQueueReject,
-        NativeSwiftModerationReportsReviewQueueRejected,
         NativeSwiftModerationReportsReviewQueueReveal,
         NativeSwiftModerationReportsReviewQueueRootThread,
         NativeSwiftModerationReportsReviewQueueSensitiveMediaHidden,
-        NativeSwiftModerationReportsReviewQueueSpam,
-        NativeSwiftModerationReportsReviewQueueStatus,
         NativeSwiftModerationReportsReviewQueueUnsupportedStatus,
         NativeSwiftModerationReportsReviewQueueUntitledPost,
         NativeSwiftModerationReportsReviewQueueUpdateFailed,

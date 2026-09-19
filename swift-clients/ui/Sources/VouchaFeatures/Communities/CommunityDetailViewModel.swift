@@ -17,6 +17,7 @@ final class CommunityDetailViewModel {
             modmailPageRequestRevision += 1
             moderationTransparencyContinuationToken += 1
             moderationTransparencyIsLoadingOlder = false
+            moderationResults = []
             modmailThreadPagination.reset(items: modmailThreadPagination.items)
             isLoadingMoreModmail = false
             modmailPaginationError = nil
@@ -32,6 +33,7 @@ final class CommunityDetailViewModel {
     var moderationTransparencyIsLoadingOlder = false
     var moderationTransparencyLoadMoreError: UiMessage?
     var moderationAnalyticsRows: [NativeRouteDestinationRow] = []
+    var moderationResults: [NativeRouteDestinationRow] = []
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()
@@ -49,6 +51,8 @@ final class CommunityDetailViewModel {
     var modmailLoadRevision = 0
     @ObservationIgnored
     var communityLoadRevision = 0
+    @ObservationIgnored
+    var moderationResultsRequestRevision = 0
     @ObservationIgnored
     var moderationTransparencyContinuationToken = 0
     @ObservationIgnored

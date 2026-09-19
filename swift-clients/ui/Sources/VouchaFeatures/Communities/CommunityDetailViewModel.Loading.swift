@@ -113,6 +113,7 @@ private extension CommunityDetailViewModel {
         moderationTransparencyIsLoadingOlder = false
         moderationTransparencyLoadMoreError = nil
         moderationAnalyticsRows = []
+        moderationResults = []
         state = .loading
         return communityLoadRevision
     }

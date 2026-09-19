@@ -52,12 +52,15 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             }
             for text in [
                 "Untitled post", "No preview available.", "Author: Anonymous", "Post type: comment",
-                "Root thread: discussion · root-slug · root-1", "Status: Rejected", "Spam: Flagged · 0.91",
-                "OpenAI moderation: Not flagged",
+                "Root thread: discussion · root-slug · root-1", "Moderation summary", "Requires review",
+                "0 flagged categories", "1 signal",
                 "Created: \(createdAt)"
             ] {
                 XCTAssertTrue(renderedTexts.contains(normalizedUiText(text)), "Missing \(text)")
             }
+            XCTAssertFalse(renderedTexts.contains { $0.contains("Spam") })
+            XCTAssertFalse(renderedTexts.contains { $0.contains("OpenAI") })
+            XCTAssertFalse(renderedTexts.contains { $0.contains("spam_signal") })
             XCTAssertNoThrow(try inspection.find(button: "Approve"))
             XCTAssertNoThrow(try inspection.find(button: "Reject"))
             XCTAssertFalse(try inspection.find(button: "Mark for re-review").isDisabled())
@@ -84,7 +87,7 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try inspection.find(button: "Load more"))
     }
 
-    func testDisablesActionsForListAndRowWork() throws {
+    func testDisablesActionsForListAndRowWork() async throws {
         let viewModel = NativeReviewQueueViewModel(client: nil, isSignedIn: true, isAdministrator: true)
         let item = try NativeReviewQueueItem(post: decodedPost(status: "in_review"), clearanceStatus: .inReview)
         viewModel.items = [item]
@@ -93,20 +96,30 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.endCursor = item.id
         viewModel.isListLoading = true
 
-        var inspection = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
-        XCTAssertNoThrow(try inspection.find(text: "Status: In review"))
-        XCTAssertTrue(try inspection.find(button: "Approve").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Reject").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Mark for re-review").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Refresh").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Load more").isDisabled())
+        var sut = NativeReviewQueueSurface(viewModel: viewModel)
+        let listLoadingInspection = sut.on(\.inspectionDidAppear) { inspection in
+            XCTAssertNoThrow(try inspection.find(text: "Requires review"))
+            XCTAssertTrue(try inspection.find(button: "Approve").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Reject").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Mark for re-review").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Refresh").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Load more").isDisabled())
+        }
+        ViewHosting.host(view: sut.environment(\.locale, uiEnglishTestLocale))
+        await fulfillment(of: [listLoadingInspection], timeout: 1)
+        ViewHosting.expel()
 
         viewModel.isListLoading = false
         viewModel.inFlightPostIds.insert(item.id)
-        inspection = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
-        XCTAssertTrue(try inspection.find(button: "Approve").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Refresh").isDisabled())
-        XCTAssertTrue(try inspection.find(button: "Load more").isDisabled())
+        sut = NativeReviewQueueSurface(viewModel: viewModel)
+        let rowLoadingInspection = sut.on(\.inspectionDidAppear) { inspection in
+            XCTAssertTrue(try inspection.find(button: "Approve").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Refresh").isDisabled())
+            XCTAssertTrue(try inspection.find(button: "Load more").isDisabled())
+        }
+        ViewHosting.host(view: sut.environment(\.locale, uiEnglishTestLocale))
+        defer { ViewHosting.expel() }
+        await fulfillment(of: [rowLoadingInspection], timeout: 1)
     }
 
     func testReviewQueueRouteUsesDedicatedSurfaceWithoutGenericLoad() async throws {
@@ -158,7 +171,7 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
     private func decodedPost(status: String = "rejected") throws -> AdminReviewQueuePost {
         let data = Data(
-            #"{"id":"post-1","title":" ","declared_language":null,"lingua_rs_detected_language":null,"slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"spam_detection_flagged":true,"spam_detection_score":0.91,"spam_detection_results":{},"openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{}}"#
+            #"{"id":"post-1","title":" ","declared_language":null,"lingua_rs_detected_language":null,"slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":0,"signal_count":1},"reason_codes":["spam_signal"]},"media_reveal":{"requires_reveal":false,"images":[]}}"#
                 .utf8
         )
         return try JSONDecoder.vouchaFixtureDecoder.decode(AdminReviewQueuePost.self, from: data)

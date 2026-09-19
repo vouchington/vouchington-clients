@@ -42,9 +42,10 @@
                                 <Label AutomationId="review-queue-row-post-type" Text="{Binding PostTypePresentation}" Style="{StaticResource Metadata}" />
                                 <Label AutomationId="review-queue-row-root" Text="{Binding RootContextPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding CreatedPresentation}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding StatusPresentation}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding SpamPresentation}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding OpenAIModerationPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ModerationTitlePresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding DispositionPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding FlaggedCategoriesPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding SignalsPresentation}" Style="{StaticResource Metadata}" />
                                 <VerticalStackLayout
                                     AutomationId="review-queue-media"
                                     Spacing="8"

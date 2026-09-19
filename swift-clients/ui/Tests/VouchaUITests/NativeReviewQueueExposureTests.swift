@@ -50,16 +50,25 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertFalse(viewModel.canRevealMedia(postId: "another-sensitive"))
     }
 
-    func testRevealShowsWholeGroupAndRecordsExactlyOnce() async throws {
+    func testRevealStaysGatedUntilTheServerAcceptsItAndRecordsExactlyOnce() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
         CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
         let viewModel = try makeViewModel()
         await viewModel.load()
 
-        async let first: Void = viewModel.revealMedia(postId: "sensitive")
-        async let duplicate: Void = viewModel.revealMedia(postId: "sensitive")
-        _ = await (first, duplicate)
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let first = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+        let duplicate = Task { await viewModel.revealMedia(postId: "sensitive") }
+
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(revealPath), 1)
+
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await first.value
+        await duplicate.value
 
         XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
         XCTAssertEqual(viewModel.exposureState?.count, 1)
@@ -71,7 +80,7 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertEqual(object, ["postId": "sensitive", "surface": "review_queue"])
     }
 
-    func testAmbiguousRevealFailureKeepsMediaVisibleAndGatesUntilRefetch() async throws {
+    func testFailedRevealKeepsMediaGatedAndGatesUntilRefetch() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.queuedHandlers[exposurePath] = [
             (exposureData(count: 0, threshold: 10), 200, 0),
@@ -83,7 +92,7 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
 
         await viewModel.revealMedia(postId: "sensitive")
 
-        XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
         XCTAssertTrue(viewModel.exposureIsStale)
         XCTAssertFalse(viewModel.canRevealMedia(postId: "another-sensitive"))
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(revealPath), 1)
@@ -92,11 +101,10 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
 
         XCTAssertFalse(viewModel.exposureIsStale)
         XCTAssertTrue(viewModel.canRevealMedia(postId: "another-sensitive"))
-        await viewModel.revealMedia(postId: "sensitive")
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(revealPath), 1)
+        XCTAssertTrue(viewModel.canRevealMedia(postId: "sensitive"))
     }
 
-    func testCancelledRevealKeepsMediaVisibleAndGatesUntilRefetch() async throws {
+    func testCancelledRevealKeepsMediaGatedAndGatesUntilRefetch() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
         CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
@@ -111,7 +119,52 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         CannedFeedURLProtocol.releaseResponse(path: revealPath)
         await reveal.value
 
-        XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertTrue(viewModel.exposureIsStale)
+        XCTAssertFalse(viewModel.canRevealMedia(postId: "another-sensitive"))
+    }
+
+    func testStaleSuccessfulRevealKeepsMediaGated() async throws {
+        CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
+        CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
+        CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let viewModel = try makeViewModel()
+        await viewModel.load()
+
+        let reveal = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+        viewModel.cancelListOperations()
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await reveal.value
+
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertTrue(viewModel.exposureIsStale)
+    }
+
+    func testRevealSuccessAfterApprovalRemovesRowAndKeepsMediaGated() async throws {
+        CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
+        CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
+        CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/posts/sensitive/clearances"] = (
+            Data(#"{"clearance_status":"approved"}"#.utf8),
+            200
+        )
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let viewModel = try makeViewModel()
+        await viewModel.load()
+
+        let reveal = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+        await viewModel.perform(.approve, postId: "sensitive")
+        XCTAssertFalse(viewModel.items.contains(where: { $0.id == "sensitive" }))
+
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await reveal.value
+
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
         XCTAssertTrue(viewModel.exposureIsStale)
         XCTAssertFalse(viewModel.canRevealMedia(postId: "another-sensitive"))
     }
@@ -291,10 +344,9 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
           )","markdown_preview":"Preview",
           "post_type":"discussion","created_by_id":"author","created_at":"2026-06-01T11:30:00.000Z",
           "root_id":null,"root_post_type":null,"root_slug":null,"clearance_status":"rejected",
-          "clearance_updated_at":null,"spam_detection_flagged":false,"spam_detection_score":null,
-          "spam_detection_results":{},"openai_omni_moderation_flagged":false,
-          "openai_omni_moderation_results":{},
-          "media_context":{
+          "clearance_updated_at":null,
+          "moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":1,"signal_count":2},"reason_codes":["provider_flagged"]},
+          "media_reveal":{
             "requires_reveal":\(requiresReveal),
             "images":[
               {"image_id":"\(id)-1","order_index":0,"caption":"First"},

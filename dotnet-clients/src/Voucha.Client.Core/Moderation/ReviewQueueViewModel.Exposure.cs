@@ -28,14 +28,14 @@ public sealed partial class ReviewQueueViewModel
     ArgumentNullException.ThrowIfNull(row);
     if (exposureService is null || revealInFlightPostId is not null) return Task.CompletedTask;
     var current = Items.FirstOrDefault(item => item.Id == row.Id);
-    if (current is not { CanRevealMedia: true } || !revealedPostIds.Add(current.Id))
+    if (current is not { CanRevealMedia: true })
     {
       return Task.CompletedTask;
     }
 
     revealInFlightPostId = current.Id;
     RefreshExposureRows();
-    return RecordRevealAsync(current.Id, cancellationToken);
+    return RecordRevealAsync(current.Id, listGeneration, cancellationToken);
   }
 
   public void CancelExposureOperations()
@@ -48,9 +48,10 @@ public sealed partial class ReviewQueueViewModel
   [SuppressMessage(
       "Design",
       "CA1031:Do not catch general exception types",
-      Justification = "Any reveal response failure is ambiguous and must preserve media while gating later reveals.")]
+      Justification = "Any reveal response failure is ambiguous and must keep media gated while gating later reveals.")]
   private async Task RecordRevealAsync(
       string postId,
+      int observedListGeneration,
       CancellationToken cancellationToken)
   {
     var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
@@ -62,8 +63,13 @@ public sealed partial class ReviewQueueViewModel
           cancellationToken).ConfigureAwait(true);
       Interlocked.Increment(ref revealOutcomeVersion);
       outcomeVersionAdvanced = true;
-      if (AcceptsReveal(observedExposureLifecycleVersion, cancellationToken))
+      if (AcceptsReveal(
+          postId,
+          observedListGeneration,
+          observedExposureLifecycleVersion,
+          cancellationToken))
       {
+        revealedPostIds.Add(postId);
         AcceptExposure(response.Exposure, scheduleCooldownRefresh: true);
       }
       else
@@ -84,9 +90,13 @@ public sealed partial class ReviewQueueViewModel
   }
 
   private bool AcceptsReveal(
+      string postId,
+      int observedListGeneration,
       long observedExposureLifecycleVersion,
       CancellationToken cancellationToken) =>
       !cancellationToken.IsCancellationRequested &&
+      observedListGeneration == listGeneration &&
+      Items.Any(row => row.Id == postId) &&
       observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion);
 
   private void RejectRevealOutcome(long observedExposureLifecycleVersion)

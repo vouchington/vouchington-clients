@@ -28,7 +28,7 @@ enum NativeReviewQueueAction {
     case reject
     case reReview
 
-    var status: AdminReviewQueueClearanceStatus {
+    var status: PostClearanceAction {
         switch self {
         case .approve: .approved
         case .reject: .rejected

@@ -38,11 +38,17 @@ struct NativeReviewQueueRow: View {
                 .nativeSwiftModerationReportsReviewQueueCreated,
                 parameters: ["date": Self.createdTimestamp(item, locale: nativeUiLocale, timeZone: timeZone)]
             ))
-            Text(localized(.nativeSwiftModerationReportsReviewQueueStatus, parameters: ["status": statusLabel]))
-            Text(localized(.nativeSwiftModerationReportsReviewQueueSpam, parameters: ["spam": spamLabel]))
+            Text(localized(.nativeModerationSummaryTitle))
+            Text(localized(dispositionKey))
             Text(localized(
-                .nativeSwiftModerationReportsReviewQueueOpenAiModeration,
-                parameters: ["status": flaggedLabel(item.post.openaiOmniModerationFlagged == true)]
+                .nativeModerationSummaryEvidenceFlaggedCategories,
+                numberParameters: [
+                    "count": Double(item.post.moderationSummary.evidenceSummary.flaggedCategoryCount)
+                ]
+            ))
+            Text(localized(
+                .nativeModerationSummaryEvidenceSignals,
+                numberParameters: ["count": Double(item.post.moderationSummary.evidenceSummary.signalCount)]
             ))
             NativeReviewQueueMediaGroup(post: item.post, viewModel: viewModel)
             actionButtons
@@ -101,31 +107,24 @@ struct NativeReviewQueueRow: View {
         return [item.post.rootPostType, item.post.rootSlug, rootId].compactMap { $0 }.joined(separator: " · ")
     }
 
-    private var statusLabel: String {
-        localized(item.clearanceStatus == .inReview
-            ? .nativeSwiftModerationReportsReviewQueueInReview
-            : .nativeSwiftModerationReportsReviewQueueRejected)
+    private var dispositionKey: UiMessageKey {
+        switch item.post.moderationSummary.disposition {
+        case .pass?: .nativeModerationSummaryDispositionPass
+        case .review?: .nativeModerationSummaryDispositionReview
+        case .reject?: .nativeModerationSummaryDispositionReject
+        case .incomplete?: .nativeModerationSummaryDispositionIncomplete
+        case nil: .nativeModerationSummaryDispositionNone
+        }
     }
 
-    private var spamLabel: String {
-        let flag = flaggedLabel(item.post.spamDetectionFlagged == true)
-        guard let score = item.post.spamDetectionScore else { return flag }
-        return localized(
-            .nativeSwiftModerationReportsReviewQueueFlaggedScore,
-            parameters: [
-                "flag": flag,
-                "score": UiMessages.number(score, maximumFractionDigits: 2, locale: nativeUiLocale)
-            ]
+    private func localized(
+        _ key: UiMessageKey,
+        parameters: [String: String] = [:],
+        numberParameters: [String: Double] = [:]
+    ) -> String {
+        UiMessages.string(
+            UiMessage(key, parameters: parameters, numberParameters: numberParameters),
+            locale: nativeUiLocale
         )
-    }
-
-    private func flaggedLabel(_ flagged: Bool) -> String {
-        localized(flagged
-            ? .nativeSwiftModerationReportsReviewQueueFlagged
-            : .nativeSwiftModerationReportsReviewQueueNotFlagged)
-    }
-
-    private func localized(_ key: UiMessageKey, parameters: [String: String] = [:]) -> String {
-        UiMessages.string(key, parameters: parameters, locale: nativeUiLocale)
     }
 }

@@ -58,7 +58,7 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("/api/v1/reports/report-1/judgements", handler.Requests[5].PathAndQuery);
     Assert.Equal("/api/v1/posts/review-queue?after=cursor-5&limit=15", handler.Requests[6].PathAndQuery);
     Assert.Equal("/api/v1/posts/post-1/clearances", handler.Requests[7].PathAndQuery);
-    Assert.Equal("""{"status":"approved"}""", handler.Requests[7].Body);
+    Assert.Equal("""{"status":"approved","reason_code":"staff_approved"}""", handler.Requests[7].Body);
     Assert.Equal(AdminReviewQueueClearanceStatus.Approved, clearance.ClearanceStatus);
     Assert.Equal("/api/v1/admin/modlog?action_type=ban&actor_id=user-1&after=cursor-6&community_id=community-1", handler.Requests[8].PathAndQuery);
     Assert.Equal("/api/v1/admin/moderation-analytics?range=90d", handler.Requests[9].PathAndQuery);

@@ -145,6 +145,10 @@ internal sealed partial class ScriptedCommunitiesService : ICommunitiesService
 
   public Queue<CommunityAutomodActionsResponse> AutomodRecentActionsResponses { get; } = [];
 
+  public Func<string, string, CancellationToken, Task<CommunityModerationResultsResponse>>?
+      ModerationResultsHandler
+  { get; set; }
+
   public Exception? DetailFailure { get; init; }
 
   public Exception? MembersFailure { get; init; }
@@ -366,12 +370,12 @@ internal sealed partial class ScriptedCommunitiesService : ICommunitiesService
       string idOrSlug,
       string postId,
       CancellationToken cancellationToken = default) =>
+      ModerationResultsHandler?.Invoke(idOrSlug, postId, cancellationToken) ??
       Task.FromResult(JsonSerializer.Deserialize<CommunityModerationResultsResponse>("""
           {
             "community_agent_moderations": [],
-            "openai_moderation": {
-              "flagged": null,
-              "results": null
+            "platform_moderation": {
+              "status": "in_review"
             }
           }
           """, VouchaApiJson.Options)!);

@@ -466,7 +466,6 @@
   <data name="native.dotnet.csharpCommunities.enabled" xml:space="preserve"><value>Activé</value></data>
   <data name="native.dotnet.csharpCommunities.endsAt" xml:space="preserve"><value>Se termine le</value></data>
   <data name="native.dotnet.csharpCommunities.expiresAt" xml:space="preserve"><value>Expire le</value></data>
-  <data name="native.dotnet.csharpCommunities.flagged" xml:space="preserve"><value>Signalé</value></data>
   <data name="native.dotnet.csharpCommunities.inviteCode" xml:space="preserve"><value>Code d’invitation</value></data>
   <data name="native.dotnet.csharpCommunities.inviteId" xml:space="preserve"><value>ID de l’invitation</value></data>
   <data name="native.dotnet.csharpCommunities.inviteMember" xml:space="preserve"><value>Inviter un membre</value></data>
@@ -492,7 +491,6 @@
   <data name="native.dotnet.csharpCommunities.newsItem" xml:space="preserve"><value>Actualité</value></data>
   <data name="native.dotnet.csharpCommunities.noStateChange" xml:space="preserve"><value>Aucun changement d’état</value></data>
   <data name="native.dotnet.csharpCommunities.open" xml:space="preserve"><value>Ouvrir</value></data>
-  <data name="native.dotnet.csharpCommunities.openAiModeration" xml:space="preserve"><value>Modération OpenAI</value></data>
   <data name="native.dotnet.csharpCommunities.order" xml:space="preserve"><value>Ordre {value}</value></data>
   <data name="native.dotnet.csharpCommunities.pauseDigests" xml:space="preserve"><value>Suspendre les récapitulatifs de la communauté pendant les vacances</value></data>
   <data name="native.dotnet.csharpCommunities.pendingReports" xml:space="preserve"><value>{count} en attente</value></data>
@@ -537,7 +535,6 @@
   <data name="native.dotnet.csharpCommunities.transferUserId" xml:space="preserve"><value>Transférer à l’ID utilisateur</value></data>
   <data name="native.dotnet.csharpCommunities.unallocated" xml:space="preserve"><value>Non attribué</value></data>
   <data name="native.dotnet.csharpCommunities.unarchive" xml:space="preserve"><value>Désarchiver</value></data>
-  <data name="native.dotnet.csharpCommunities.unknown" xml:space="preserve"><value>Inconnu</value></data>
   <data name="native.dotnet.csharpCommunities.update" xml:space="preserve"><value>Mettre à jour</value></data>
   <data name="native.dotnet.csharpCommunities.updateRole" xml:space="preserve"><value>Mettre à jour le rôle</value></data>
   <data name="native.dotnet.csharpCommunities.updateSettings" xml:space="preserve"><value>Mettre à jour les paramètres</value></data>
@@ -1290,6 +1287,16 @@
   <data name="native.legal.privacyPolicy" xml:space="preserve"><value>Politique de confidentialité</value></data>
   <data name="native.legal.termsOfService" xml:space="preserve"><value>Conditions d’utilisation</value></data>
   <data name="native.legal.title" xml:space="preserve"><value>Mentions légales</value></data>
+  <data name="native.moderation.summary.disposition.incomplete" xml:space="preserve"><value>Modération indisponible</value></data>
+  <data name="native.moderation.summary.disposition.none" xml:space="preserve"><value>Aucun résultat de modération</value></data>
+  <data name="native.moderation.summary.disposition.pass" xml:space="preserve"><value>Modération validée</value></data>
+  <data name="native.moderation.summary.disposition.reject" xml:space="preserve"><value>Rejeté</value></data>
+  <data name="native.moderation.summary.disposition.review" xml:space="preserve"><value>Nécessite un examen</value></data>
+  <data name="native.moderation.summary.evidence.flaggedCategories.__plural.one" xml:space="preserve"><value>{count} catégorie signalée</value></data>
+  <data name="native.moderation.summary.evidence.flaggedCategories.__plural.other" xml:space="preserve"><value>{count} catégories signalées</value></data>
+  <data name="native.moderation.summary.evidence.signals.__plural.one" xml:space="preserve"><value>{count} signal</value></data>
+  <data name="native.moderation.summary.evidence.signals.__plural.other" xml:space="preserve"><value>{count} signaux</value></data>
+  <data name="native.moderation.summary.title" xml:space="preserve"><value>Résumé de la modération</value></data>
   <data name="native.swift.chat.conversationTitle" xml:space="preserve"><value>Titre de la conversation</value></data>
   <data name="native.swift.chat.rename" xml:space="preserve"><value>Renommer</value></data>
   <data name="native.swift.chat.stop" xml:space="preserve"><value>Arrêter</value></data>
@@ -1727,23 +1734,15 @@
   <data name="native.swift.moderationReports.reviewQueueCreated" xml:space="preserve"><value>Créé : {date}</value></data>
   <data name="native.swift.moderationReports.reviewQueueEmptyMessage" xml:space="preserve"><value>Aucune publication n’est à examiner.</value></data>
   <data name="native.swift.moderationReports.reviewQueueExposureStale" xml:space="preserve"><value>Le statut d’exposition doit être actualisé.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueFlagged" xml:space="preserve"><value>Signalé</value></data>
-  <data name="native.swift.moderationReports.reviewQueueFlaggedScore" xml:space="preserve"><value>{flag} · {score}</value></data>
-  <data name="native.swift.moderationReports.reviewQueueInReview" xml:space="preserve"><value>En cours d’examen</value></data>
   <data name="native.swift.moderationReports.reviewQueueLoadFailed" xml:space="preserve"><value>Impossible de charger la file d’examen. Réessayez.</value></data>
   <data name="native.swift.moderationReports.reviewQueueLoadMoreFailed" xml:space="preserve"><value>Impossible de charger plus de publications. Réessayez.</value></data>
   <data name="native.swift.moderationReports.reviewQueueMarkForReview" xml:space="preserve"><value>Marquer pour un nouvel examen</value></data>
   <data name="native.swift.moderationReports.reviewQueueNoPreview" xml:space="preserve"><value>Aucun aperçu disponible.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueNotFlagged" xml:space="preserve"><value>Non signalé</value></data>
-  <data name="native.swift.moderationReports.reviewQueueOpenAiModeration" xml:space="preserve"><value>Modération OpenAI : {status}</value></data>
   <data name="native.swift.moderationReports.reviewQueuePostType" xml:space="preserve"><value>Type de publication : {postType}</value></data>
   <data name="native.swift.moderationReports.reviewQueueReject" xml:space="preserve"><value>Rejeter</value></data>
-  <data name="native.swift.moderationReports.reviewQueueRejected" xml:space="preserve"><value>Rejeté</value></data>
   <data name="native.swift.moderationReports.reviewQueueReveal" xml:space="preserve"><value>Révéler</value></data>
   <data name="native.swift.moderationReports.reviewQueueRootThread" xml:space="preserve"><value>Fil racine : {root}</value></data>
   <data name="native.swift.moderationReports.reviewQueueSensitiveMediaHidden" xml:space="preserve"><value>Les médias sensibles sont masqués.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueSpam" xml:space="preserve"><value>Spam : {spam}</value></data>
-  <data name="native.swift.moderationReports.reviewQueueStatus" xml:space="preserve"><value>État : {status}</value></data>
   <data name="native.swift.moderationReports.reviewQueueUnsupportedStatus" xml:space="preserve"><value>Le serveur a renvoyé un état d’examen non pris en charge. Actualisez et réessayez.</value></data>
   <data name="native.swift.moderationReports.reviewQueueUntitledPost" xml:space="preserve"><value>Publication sans titre</value></data>
   <data name="native.swift.moderationReports.reviewQueueUpdateFailed" xml:space="preserve"><value>Impossible de mettre à jour cette publication. Réessayez.</value></data>

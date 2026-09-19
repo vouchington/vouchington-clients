@@ -8,8 +8,8 @@ extension NativeReviewQueueViewModel {
     func canRevealMedia(postId: String) -> Bool {
         guard !revealedPostIds.contains(postId),
               let item = items.first(where: { $0.id == postId }),
-              item.post.mediaContext?.requiresReveal == true,
-              item.post.mediaContext?.images.isEmpty == false,
+              item.post.mediaReveal.requiresReveal,
+              !item.post.mediaReveal.images.isEmpty,
               exposureState != nil,
               !exposureIsStale,
               inFlightRevealPostId == nil
@@ -23,18 +23,23 @@ extension NativeReviewQueueViewModel {
 
     func revealMedia(postId: String) async {
         guard canRevealMedia(postId: postId), let client else { return }
-        revealedPostIds.insert(postId)
+        let revealGeneration = listGeneration
         inFlightRevealPostId = postId
         defer { inFlightRevealPostId = nil }
         do {
             let response: ModerationExposureResponse = try await client.send(
                 .recordModerationReveal(postId: postId, surface: .reviewQueue)
             )
-            guard !Task.isCancelled else {
+            guard !Task.isCancelled,
+                  revealGeneration == listGeneration,
+                  items.contains(where: { $0.id == postId }),
+                  inFlightRevealPostId == postId
+            else {
                 exposureOutcomeRevision += 1
                 markExposureStale()
                 return
             }
+            revealedPostIds.insert(postId)
             exposureOutcomeRevision += 1
             acceptExposure(response.exposure)
         } catch {

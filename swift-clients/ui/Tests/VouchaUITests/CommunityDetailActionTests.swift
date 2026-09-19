@@ -82,6 +82,20 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.claimPendingPost(postId: "post-1")
         await viewModel.releasePendingPost(postId: "post-1")
         await viewModel.escalatePendingPost(postId: "post-1")
+        CannedFeedURLProtocol.handlers[
+            "/api/v1/communities/builders/posts/post-1/moderation-results"
+        ] = (
+            Data("""
+            {
+              "community_agent_moderations": [],
+              "platform_moderation": { "status": "in_review" }
+            }
+            """.utf8),
+            200
+        )
+        await viewModel.loadModerationResults(postId: "post-1")
+        XCTAssertEqual(viewModel.moderationResults.map(\.title), ["Moderation summary"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["In review"])
 
         await viewModel.claimModerationReport(reportId: "report-1")
         await viewModel.releaseModerationReport(reportId: "report-1")
@@ -112,6 +126,9 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/posts/post-1/escalation" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains {
+            $0.path == "/api/v1/communities/builders/posts/post-1/moderation-results"
+        })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/reports/report-1/escalation" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs

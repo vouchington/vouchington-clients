@@ -22,8 +22,11 @@ public sealed class ReviewQueuePageSourceTests
     Assert.Contains("OnRevealClicked", xaml, StringComparison.Ordinal);
     Assert.Contains("OnCheckExposureClicked", xaml, StringComparison.Ordinal);
     Assert.Contains("CreatedPresentation", xaml, StringComparison.Ordinal);
-    Assert.Contains("SpamPresentation", xaml, StringComparison.Ordinal);
-    Assert.Contains("OpenAIModerationPresentation", xaml, StringComparison.Ordinal);
+    Assert.Contains("DispositionPresentation", xaml, StringComparison.Ordinal);
+    Assert.Contains("FlaggedCategoriesPresentation", xaml, StringComparison.Ordinal);
+    Assert.Contains("SignalsPresentation", xaml, StringComparison.Ordinal);
+    Assert.DoesNotContain("SpamPresentation", xaml, StringComparison.Ordinal);
+    Assert.DoesNotContain("OpenAIModerationPresentation", xaml, StringComparison.Ordinal);
     Assert.Contains("IsVisible=\"{Binding IsLoading}\"", xaml, StringComparison.Ordinal);
     Assert.Contains("IsVisible=\"{Binding ShowEmptyState}\"", xaml, StringComparison.Ordinal);
     Assert.DoesNotContain("<RefreshView IsRefreshing=\"{Binding IsRefreshing}\" IsEnabled=", xaml, StringComparison.Ordinal);

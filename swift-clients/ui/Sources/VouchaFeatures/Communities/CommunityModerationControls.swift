@@ -43,6 +43,12 @@ extension CommunityModerationAdminControls {
                     .font(Typography.subheadline)
                 TextField(UiMessages.string(.nativeSwiftCommunitiesPostId, locale: nativeUiLocale), text: $postId)
                     .textFieldStyle(.roundedBorder)
+                moderationButton(.nativeModerationSummaryTitle, systemImage: "checkmark.shield") {
+                    Task { await viewModel.loadModerationResults(postId: postId) }
+                }
+                ForEach(viewModel.moderationResults) { row in
+                    NativeSurfaceRow(row: row)
+                }
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesRejectReason, locale: nativeUiLocale),
                     text: $moderationReason

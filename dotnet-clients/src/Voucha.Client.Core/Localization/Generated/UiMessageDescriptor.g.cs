@@ -13,6 +13,8 @@ public static class UiMessageDescriptors
         [UiMessageKey.ExtractedAiCostsPageUnpricedRequestCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeDotnetPostsImageNumber] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeDotnetReferralLinksActiveLinks] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
+        [UiMessageKey.NativeModerationSummaryEvidenceFlaggedCategories] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
+        [UiMessageKey.NativeModerationSummaryEvidenceSignals] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeSwiftModerationReportsPostCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeSwiftModerationReportsReportCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeSwiftModerationReportsReporterCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),

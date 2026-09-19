@@ -466,7 +466,6 @@
   <data name="native.dotnet.csharpCommunities.enabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="native.dotnet.csharpCommunities.endsAt" xml:space="preserve"><value>Ends at</value></data>
   <data name="native.dotnet.csharpCommunities.expiresAt" xml:space="preserve"><value>Expires at</value></data>
-  <data name="native.dotnet.csharpCommunities.flagged" xml:space="preserve"><value>Flagged</value></data>
   <data name="native.dotnet.csharpCommunities.inviteCode" xml:space="preserve"><value>Invite code</value></data>
   <data name="native.dotnet.csharpCommunities.inviteId" xml:space="preserve"><value>Invite ID</value></data>
   <data name="native.dotnet.csharpCommunities.inviteMember" xml:space="preserve"><value>Invite member</value></data>
@@ -492,7 +491,6 @@
   <data name="native.dotnet.csharpCommunities.newsItem" xml:space="preserve"><value>News item</value></data>
   <data name="native.dotnet.csharpCommunities.noStateChange" xml:space="preserve"><value>No state change</value></data>
   <data name="native.dotnet.csharpCommunities.open" xml:space="preserve"><value>Open</value></data>
-  <data name="native.dotnet.csharpCommunities.openAiModeration" xml:space="preserve"><value>OpenAI moderation</value></data>
   <data name="native.dotnet.csharpCommunities.order" xml:space="preserve"><value>Order {value}</value></data>
   <data name="native.dotnet.csharpCommunities.pauseDigests" xml:space="preserve"><value>Pause community digests while on vacation</value></data>
   <data name="native.dotnet.csharpCommunities.pendingReports" xml:space="preserve"><value>{count} pending</value></data>
@@ -537,7 +535,6 @@
   <data name="native.dotnet.csharpCommunities.transferUserId" xml:space="preserve"><value>Transfer to user ID</value></data>
   <data name="native.dotnet.csharpCommunities.unallocated" xml:space="preserve"><value>Unallocated</value></data>
   <data name="native.dotnet.csharpCommunities.unarchive" xml:space="preserve"><value>Unarchive</value></data>
-  <data name="native.dotnet.csharpCommunities.unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="native.dotnet.csharpCommunities.update" xml:space="preserve"><value>Update</value></data>
   <data name="native.dotnet.csharpCommunities.updateRole" xml:space="preserve"><value>Update role</value></data>
   <data name="native.dotnet.csharpCommunities.updateSettings" xml:space="preserve"><value>Update settings</value></data>
@@ -1290,6 +1287,16 @@
   <data name="native.legal.privacyPolicy" xml:space="preserve"><value>Privacy Policy</value></data>
   <data name="native.legal.termsOfService" xml:space="preserve"><value>Terms of Service</value></data>
   <data name="native.legal.title" xml:space="preserve"><value>Legal</value></data>
+  <data name="native.moderation.summary.disposition.incomplete" xml:space="preserve"><value>Moderation unavailable</value></data>
+  <data name="native.moderation.summary.disposition.none" xml:space="preserve"><value>No moderation result</value></data>
+  <data name="native.moderation.summary.disposition.pass" xml:space="preserve"><value>Passed</value></data>
+  <data name="native.moderation.summary.disposition.reject" xml:space="preserve"><value>Rejected</value></data>
+  <data name="native.moderation.summary.disposition.review" xml:space="preserve"><value>Requires review</value></data>
+  <data name="native.moderation.summary.evidence.flaggedCategories.__plural.one" xml:space="preserve"><value>{count} flagged category</value></data>
+  <data name="native.moderation.summary.evidence.flaggedCategories.__plural.other" xml:space="preserve"><value>{count} flagged categories</value></data>
+  <data name="native.moderation.summary.evidence.signals.__plural.one" xml:space="preserve"><value>{count} signal</value></data>
+  <data name="native.moderation.summary.evidence.signals.__plural.other" xml:space="preserve"><value>{count} signals</value></data>
+  <data name="native.moderation.summary.title" xml:space="preserve"><value>Moderation summary</value></data>
   <data name="native.swift.chat.conversationTitle" xml:space="preserve"><value>Conversation title</value></data>
   <data name="native.swift.chat.rename" xml:space="preserve"><value>Rename</value></data>
   <data name="native.swift.chat.stop" xml:space="preserve"><value>Stop</value></data>
@@ -1727,23 +1734,15 @@
   <data name="native.swift.moderationReports.reviewQueueCreated" xml:space="preserve"><value>Created: {date}</value></data>
   <data name="native.swift.moderationReports.reviewQueueEmptyMessage" xml:space="preserve"><value>There are no posts to review.</value></data>
   <data name="native.swift.moderationReports.reviewQueueExposureStale" xml:space="preserve"><value>Exposure status needs an update.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueFlagged" xml:space="preserve"><value>Flagged</value></data>
-  <data name="native.swift.moderationReports.reviewQueueFlaggedScore" xml:space="preserve"><value>{flag} · {score}</value></data>
-  <data name="native.swift.moderationReports.reviewQueueInReview" xml:space="preserve"><value>In review</value></data>
   <data name="native.swift.moderationReports.reviewQueueLoadFailed" xml:space="preserve"><value>Could not load the review queue. Try again.</value></data>
   <data name="native.swift.moderationReports.reviewQueueLoadMoreFailed" xml:space="preserve"><value>Could not load more posts. Try again.</value></data>
   <data name="native.swift.moderationReports.reviewQueueMarkForReview" xml:space="preserve"><value>Mark for re-review</value></data>
   <data name="native.swift.moderationReports.reviewQueueNoPreview" xml:space="preserve"><value>No preview available.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueNotFlagged" xml:space="preserve"><value>Not flagged</value></data>
-  <data name="native.swift.moderationReports.reviewQueueOpenAiModeration" xml:space="preserve"><value>OpenAI moderation: {status}</value></data>
   <data name="native.swift.moderationReports.reviewQueuePostType" xml:space="preserve"><value>Post type: {postType}</value></data>
   <data name="native.swift.moderationReports.reviewQueueReject" xml:space="preserve"><value>Reject</value></data>
-  <data name="native.swift.moderationReports.reviewQueueRejected" xml:space="preserve"><value>Rejected</value></data>
   <data name="native.swift.moderationReports.reviewQueueReveal" xml:space="preserve"><value>Reveal</value></data>
   <data name="native.swift.moderationReports.reviewQueueRootThread" xml:space="preserve"><value>Root thread: {root}</value></data>
   <data name="native.swift.moderationReports.reviewQueueSensitiveMediaHidden" xml:space="preserve"><value>Sensitive media is hidden.</value></data>
-  <data name="native.swift.moderationReports.reviewQueueSpam" xml:space="preserve"><value>Spam: {spam}</value></data>
-  <data name="native.swift.moderationReports.reviewQueueStatus" xml:space="preserve"><value>Status: {status}</value></data>
   <data name="native.swift.moderationReports.reviewQueueUnsupportedStatus" xml:space="preserve"><value>The server returned an unsupported clearance status. Refresh and try again.</value></data>
   <data name="native.swift.moderationReports.reviewQueueUntitledPost" xml:space="preserve"><value>Untitled post</value></data>
   <data name="native.swift.moderationReports.reviewQueueUpdateFailed" xml:space="preserve"><value>Could not update this post. Try again.</value></data>

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Moderation;
 using Xunit;
@@ -23,7 +22,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
   }
 
   [Fact]
-  public async Task RevealIsOptimisticAndSubmittedExactlyOnce()
+  public async Task RevealStaysGatedUntilTheServerAcceptsItAndSubmitsExactlyOnce()
   {
     var exposure = new ExposureService(Exposure()) { HoldReveal = true };
     var viewModel = Create(exposure, Post("sensitive", true, Image("image-1"), Image("image-2")));
@@ -34,19 +33,21 @@ public sealed partial class ReviewQueueExposureViewModelTests
     var duplicate = viewModel.RevealMediaAsync(viewModel.Items[0], TestContext.Current.CancellationToken);
 
     var revealed = Assert.Single(viewModel.Items);
-    Assert.True(revealed.ShowMedia);
+    Assert.False(revealed.ShowMedia);
     Assert.True(revealed.IsRevealInFlight);
     Assert.Equal(2, revealed.Media.Count);
     Assert.Equal(["sensitive"], exposure.RevealedPostIds);
 
     exposure.ReleaseReveal();
     await Task.WhenAll(first, duplicate);
-    Assert.False(Assert.Single(viewModel.Items).IsRevealInFlight);
+    var accepted = Assert.Single(viewModel.Items);
+    Assert.True(accepted.ShowMedia);
+    Assert.False(accepted.IsRevealInFlight);
     Assert.Single(exposure.RevealedPostIds);
   }
 
   [Fact]
-  public async Task AmbiguousFailureKeepsMediaVisibleAndGatesOtherReveals()
+  public async Task FailedRevealKeepsMediaGatedAndGatesOtherReveals()
   {
     var exposure = new ExposureService(Exposure()) { RevealFailure = new HttpRequestException("lost") };
     var viewModel = Create(
@@ -59,7 +60,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
 
     var first = viewModel.Items.Single(row => row.Id == "first");
     var second = viewModel.Items.Single(row => row.Id == "second");
-    Assert.True(first.ShowMedia);
+    Assert.False(first.ShowMedia);
     Assert.True(first.IsExposureStale);
     Assert.False(second.CanRevealMedia);
     await viewModel.RevealMediaAsync(second, TestContext.Current.CancellationToken);
@@ -151,7 +152,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
   }
 
   [Fact]
-  public async Task OlderExposureGetCannotOverwriteRevealWriterState()
+  public async Task QueueRefreshRejectsLateRevealAndOlderExposureGet()
   {
     var posts = new[]
     {
@@ -178,13 +179,15 @@ public sealed partial class ReviewQueueExposureViewModelTests
 
     exposure.CompleteRevealInCooldown();
     await reveal;
-    Assert.True(viewModel.Items.Single(row => row.Id == "second").IsInExposureCooldown);
+    Assert.False(viewModel.Items.Single(row => row.Id == "first").ShowMedia);
+    Assert.True(viewModel.Items.Single(row => row.Id == "second").IsExposureStale);
 
     exposure.CompleteOlderGetWithoutCooldown();
     await refresh;
 
     var second = viewModel.Items.Single(row => row.Id == "second");
-    Assert.True(second.IsInExposureCooldown);
+    Assert.True(second.IsExposureStale);
+    Assert.False(second.IsInExposureCooldown);
     Assert.False(second.CanRevealMedia);
   }
 
@@ -215,6 +218,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
     exposure.ReleaseReveal();
     await reveal;
 
+    Assert.False(viewModel.Items.Single(row => row.Id == "first").ShowMedia);
     Assert.True(viewModel.Items.Single(row => row.Id == "second").IsExposureStale);
     await viewModel.ResumeAsync(TestContext.Current.CancellationToken);
 
@@ -259,6 +263,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
     exposure.ReleaseReveal();
     await reveal;
 
+    Assert.False(viewModel.Items.Single(row => row.Id == "first").ShowMedia);
     var second = viewModel.Items.Single(row => row.Id == "second");
     Assert.False(second.IsExposureStale);
     Assert.True(second.IsInExposureCooldown);
@@ -326,9 +331,11 @@ public sealed partial class ReviewQueueExposureViewModelTests
       new(
           id, id, id, "Preview", "discussion", "author", DateTimeOffset.UnixEpoch,
           null, null, null, AdminReviewQueueClearanceStatus.Rejected, null,
-          false, 0, EmptyJson(), false, EmptyJson(), new(requiresReveal, images));
-
-  private static JsonElement EmptyJson() => JsonDocument.Parse("{}").RootElement.Clone();
+          new AdminModerationSummary(
+              AdminModerationDisposition.Review,
+              new AdminModerationEvidenceSummary(0, 0),
+              []),
+          new(requiresReveal, images));
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {
@@ -344,6 +351,12 @@ public sealed partial class ReviewQueueExposureViewModelTests
         int limit = 25,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(new AdminReviewQueueResponse(posts, new PageInfo(null, false, null)));
+
+    public override Task<ClearanceUpdateResponse> UpdatePostClearanceAsync(
+        string postId,
+        PostClearanceAction status,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new ClearanceUpdateResponse(AdminReviewQueueClearanceStatus.Approved));
   }
 
   private sealed class ExposureService(params object[] fetchResults) : IModerationExposureService

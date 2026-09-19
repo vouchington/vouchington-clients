@@ -22,7 +22,13 @@ private struct ResolveReviewDisputeBody: Encodable {
 }
 
 private struct ClearanceStatusBody: Encodable {
-    let status: AdminReviewQueueClearanceStatus
+    let status: PostClearanceAction
+    let reasonCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case reasonCode = "reason_code"
+    }
 }
 
 private struct ModerationRevealBody: Encodable {
@@ -46,11 +52,11 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/posts/review-queue", queryItems: items)
     }
 
-    static func updatePostClearance(postId: String, status: AdminReviewQueueClearanceStatus) -> Endpoint {
+    static func updatePostClearance(postId: String, status: PostClearanceAction) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/posts/\(pathSegment(postId))/clearances",
-            body: ClearanceStatusBody(status: status)
+            body: ClearanceStatusBody(status: status, reasonCode: status.staffReasonCode)
         )
     }
 
@@ -154,5 +160,15 @@ public extension Endpoint {
 
     static func disputeResolutionDrafts(id: String) -> Endpoint {
         Endpoint(.POST, path: "/api/v1/disputes/\(pathSegment(id))/resolution-drafts")
+    }
+}
+
+private extension PostClearanceAction {
+    var staffReasonCode: String {
+        switch self {
+        case .approved: "staff_approved"
+        case .rejected: "staff_rejected"
+        case .inReview: "staff_reviewed"
+        }
     }
 }
