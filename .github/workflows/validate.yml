@@ -32,10 +32,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -65,10 +65,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -95,10 +95,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -149,10 +149,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -177,10 +177,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -223,10 +223,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -251,10 +251,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -292,10 +292,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -319,10 +319,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -363,10 +363,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -390,10 +390,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
@@ -425,10 +425,10 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
           NPM_CONFIG_IGNORE_SCRIPTS: 'true'
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
           PRESERVE_NODE_MODULES: 'false'
         run: >-
           npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c

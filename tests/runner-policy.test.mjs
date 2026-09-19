@@ -174,10 +174,26 @@ function assertValidateCleanupUsesTrustedCheckout(workflow, job) {
     2,
     `${job} must pin the cleanup bootstrap registry outside project configuration`,
   )
+  // The value holds spaces (`${{ runner.temp }}/...`), so capture to end of line.
+  const npmConfigPaths = [
+    ...block.matchAll(/NPM_CONFIG_(?:GLOBAL|USER)CONFIG: (?<path>[^\n]+)/gu),
+  ].map(match => match.groups.path.trim())
   assert.equal(
-    [...block.matchAll(/NPM_CONFIG_(?:GLOBAL|USER)CONFIG: \/dev\/null/gu)].length,
+    npmConfigPaths.length,
     4,
     `${job} must not load ambient npm configuration while bootstrapping cleanup`,
+  )
+  assert.ok(
+    npmConfigPaths.every(path => path.startsWith('${{ runner.temp }}/')),
+    `${job} must point npm's global and user config outside the host and the project`,
+  )
+  // npm exits before resolving config when the global and user config name the
+  // same file ("double-loading config ... as global, previously loaded as user"),
+  // so the two must stay distinct -- a shared /dev/null breaks every npx call.
+  assert.equal(
+    new Set(npmConfigPaths).size,
+    2,
+    `${job} must give npm's global and user config distinct paths`,
   )
   assert.equal(
     [

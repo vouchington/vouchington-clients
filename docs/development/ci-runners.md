@@ -24,11 +24,15 @@ executes pull-request code must:
    `persist-credentials: false`; this establishes the Git worktree without executing candidate
    repository configuration or retaining checkout credentials. On a default-branch push, use the
    event SHA for both trusted and candidate checkout.
-2. Immediately run `pnpm dlx vouchington-tooling@0.1.5 clean-workspace` with
-   `PRESERVE_NODE_MODULES=false`, but bootstrap that command from `$RUNNER_TEMP`, not the
-   workspace. Pin `NPM_CONFIG_REGISTRY` to the public registry and point the global and user npm
-   configuration at `/dev/null`; pass the workspace to the already-installed tool only when it
-   starts cleanup. Cleanup owns removal of stale files while preserving only explicitly requested
+2. Immediately run `npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 clean-workspace`
+   with `PRESERVE_NODE_MODULES=false`, but bootstrap that command from `$RUNNER_TEMP`, not the
+   workspace. Go through `npx` rather than a bare `pnpm`: `pnpm` is a global install that is present
+   on some runner hosts and absent on others, while `npx` ships with Node, which
+   `actions/setup-node` provisions per job. Pin `NPM_CONFIG_REGISTRY` to the public registry and
+   point the global and user npm configuration at two **distinct** absent paths under
+   `$RUNNER_TEMP` — npm exits before resolving config when both name the same file, so a shared
+   `/dev/null` breaks every `npx` call. Pass the workspace to the already-installed tool only when
+   it starts cleanup. Cleanup owns removal of stale files while preserving only explicitly requested
    dependencies. It must not be expected to initialize an empty workspace.
 3. Check out the exact candidate SHA and run the job's candidate work.
 4. In an `if: always()` final path, restore the trusted base SHA before running the same pinned
