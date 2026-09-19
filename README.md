@@ -50,3 +50,17 @@ minutes. Runner labels and the required persistent-runner cleanup boundary are d
 [`docs/development/ci-runners.md`](docs/development/ci-runners.md). Which native tests run on
 Linux vs macOS, and when dual-OS is required, is documented in
 [`docs/development/native-ci-test-placement.md`](docs/development/native-ci-test-placement.md).
+
+## License
+
+Voucha is source-available under the
+[Functional Source License, Version 1.1, MIT Future License](LICENSE)
+(`FSL-1.1-MIT`), the same terms as
+[`vouchington/vouchington`](https://github.com/vouchington/vouchington). You may read, run, modify,
+and redistribute the source for any purpose other than a Competing Use — broadly, offering it to
+others as a commercial product or service that substitutes for Voucha. Internal use, non-commercial
+education, and non-commercial research are explicitly permitted.
+
+Each version additionally becomes available under the MIT license two years after it is published.
+See [LICENSE](LICENSE) for the controlling terms, and [CONTRIBUTING.md](CONTRIBUTING.md) for the
+contribution policy.
