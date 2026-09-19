@@ -92,7 +92,7 @@ describe('native contract workflow boundary', () => {
     assert.match(maui, /runs-on: \[self-hosted, macOS, Tests\]/u)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
-    assert.match(workflow, /pnpm run coverage:dotnet-core/u)
+    assert.match(workflow, /npx --yes pnpm@11\.13\.1 run coverage:dotnet-core/u)
     for (const command of [
       /restore-locks\.sh verify/u,
       /dotnet build dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
@@ -176,7 +176,7 @@ describe('native contract workflow boundary', () => {
       workflow,
       /write-lcov\.sh swift-clients\/ui VouchaUIPackageTests coverage\/ui\/lcov\.info/u,
     )
-    assert.match(workflow, /pnpm run coverage:swift/u)
+    assert.match(workflow, /npx --yes pnpm@11\.13\.1 run coverage:swift/u)
     assert.match(
       workflow,
       /android-actions\/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699/u,
@@ -218,7 +218,7 @@ describe('native contract workflow boundary', () => {
     const coverageJob = jobBlock(workflow, 'swift-patch-coverage')
 
     assert.match(coverageJob, /runs-on: \[self-hosted, Linux\]/u)
-    assert.equal(coverageJob.split('pnpm run coverage:swift').length - 1, 1)
+    assert.equal(coverageJob.split('npx --yes pnpm@11.13.1 run coverage:swift').length - 1, 1)
     assert.doesNotMatch(coverageJob, /swift (?:build|test)/u)
   })
 
@@ -313,7 +313,7 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Filaments exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Filaments exporter dependencies\n\s+working-directory: filaments\n\s+run: pnpm install --frozen-lockfile/u,
+      /name: Install trusted Filaments exporter dependencies\n\s+working-directory: filaments\n\s+run: npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)

@@ -115,7 +115,7 @@ jobs:
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
       - name: Install trusted Filaments exporter dependencies
         working-directory: filaments
-        run: pnpm install --frozen-lockfile
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
@@ -382,7 +382,7 @@ jobs:
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
           COVERAGE_HEAD: ${{ needs.verify.outputs.revision-sha }}
-        run: pnpm run coverage:dotnet-core
+        run: npx --yes pnpm@11.13.1 run coverage:dotnet-core
       - name: Clean persistent runner workspace
         if: always()
         env:
@@ -757,7 +757,7 @@ jobs:
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
         env: { BASE_SHA: '${{ needs.verify.outputs.base-sha }}' }
-        run: pnpm run coverage:swift
+        run: npx --yes pnpm@11.13.1 run coverage:swift
       - name: Clean persistent runner workspace
         if: always()
         env: { PRESERVE_NODE_MODULES: 'false' }
@@ -917,7 +917,7 @@ jobs:
         if: steps.workload.outputs.install == 'true'
         working-directory: candidate-clients
         run: >-
-          pnpm exec vouchington with-host-lock
+          npx --yes pnpm@11.13.1 exec vouchington with-host-lock
           --name host-package-manager
           --timeout-seconds 300
           --command-timeout-seconds 720
@@ -926,7 +926,7 @@ jobs:
       - name: Verify all seven committed NuGet locks
         working-directory: candidate-clients
         run: >-
-          pnpm exec vouchington with-host-lock
+          npx --yes pnpm@11.13.1 exec vouchington with-host-lock
           --name host-package-manager
           --timeout-seconds 300
           --command-timeout-seconds 900

@@ -72,4 +72,4 @@ runs:
     - name: Install candidate tooling
       shell: bash
       working-directory: candidate-clients
-      run: pnpm install --frozen-lockfile
+      run: npx --yes pnpm@11.13.1 install --frozen-lockfile

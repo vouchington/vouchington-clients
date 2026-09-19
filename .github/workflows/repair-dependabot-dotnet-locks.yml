@@ -147,7 +147,7 @@ jobs:
           mkdir -p -- "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT" "$VOUCHA_DOTNET_LOCK_SCRATCH_ROOT"
       - name: Install pinned MAUI workload under host lock
         run: >-
-          pnpm exec vouchington with-host-lock
+          npx --yes pnpm@11.13.1 exec vouchington with-host-lock
           --name host-package-manager
           --timeout-seconds 300
           --command-timeout-seconds 720
@@ -177,7 +177,7 @@ jobs:
           } > "$sandbox_profile"
           props_hash="$(shasum -a 256 "$RUNNER_TEMP/validated.props" | cut -d ' ' -f 1)"
           cp "$RUNNER_TEMP/validated.props" dotnet-clients/Directory.Packages.props
-          pnpm exec vouchington with-host-lock \
+          npx --yes pnpm@11.13.1 exec vouchington with-host-lock \
             --name host-package-manager \
             --timeout-seconds 300 \
             --command-timeout-seconds 1200 \

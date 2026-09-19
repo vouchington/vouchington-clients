@@ -116,7 +116,7 @@ jobs:
             exit 1
           fi
 
-          pnpm dlx vouchington-tooling@0.1.5 gha-output fix_request < "$REQUEST_FILE"
+          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 gha-output fix_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge with eyes reaction and run link
