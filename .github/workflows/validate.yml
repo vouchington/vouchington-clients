@@ -25,6 +25,9 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           clean: false
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -35,7 +38,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -68,7 +71,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   dotnet-core:
@@ -85,6 +88,9 @@ jobs:
           clean: false
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -95,7 +101,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -149,7 +155,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   tooling-lint:
@@ -164,6 +170,9 @@ jobs:
           clean: false
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -174,7 +183,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -220,7 +229,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   gitleaks:
@@ -235,6 +244,9 @@ jobs:
           clean: false
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -245,7 +257,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -286,7 +298,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   swift-lint:
@@ -300,6 +312,9 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           clean: false
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -310,7 +325,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -354,7 +369,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   swift-core:
@@ -368,6 +383,9 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           clean: false
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Clean persistent runner workspace
         working-directory: ${{ runner.temp }}
         env:
@@ -378,7 +396,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -413,7 +431,7 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           PRESERVE_NODE_MODULES: 'false'
         run: >-
-          pnpm dlx --package vouchington-tooling@0.1.5 bash -c
+          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
           "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   validate:

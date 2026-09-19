@@ -26,7 +26,7 @@ runs:
       shell: bash
       env:
         PRESERVE_NODE_MODULES: 'false'
-      run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
     - name: Configure isolated native paths
       shell: bash
       run: |

@@ -61,14 +61,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ steps.live.outputs.base-sha }}
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install trusted repair dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Bind the live PR to its exact commit diff
@@ -166,7 +166,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
 
   publish-swift-android:
     needs: prepare
@@ -187,14 +187,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.base-sha }}
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install trusted repair dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Download same-run Swift Android artifact
@@ -291,7 +291,7 @@ jobs:
         if: always()
         env:
           PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
 
   automerge:
     needs: [prepare, publish-swift-android]

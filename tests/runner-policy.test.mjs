@@ -108,7 +108,7 @@ function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
   assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
   assert.match(
     block,
-    /(?:pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace|vouchington-tooling@0\.1\.5[\s\S]*vouchington clean-workspace)/u,
+    /(?:npx --yes pnpm@11\.13\.1 dlx vouchington-tooling@0\.1\.5 clean-workspace|vouchington-tooling@0\.1\.5[\s\S]*vouchington clean-workspace)/u,
     `${job} must run the pinned workspace-cleanup tool`,
   )
   if (requireTempCleanup) {
@@ -180,7 +180,11 @@ function assertValidateCleanupUsesTrustedCheckout(workflow, job) {
     `${job} must not load ambient npm configuration while bootstrapping cleanup`,
   )
   assert.equal(
-    [...block.matchAll(/pnpm dlx --package vouchington-tooling@0\.1\.5 bash -c/gu)].length,
+    [
+      ...block.matchAll(
+        /npx --yes pnpm@11\.13\.1 dlx --package vouchington-tooling@0\.1\.5 bash -c/gu,
+      ),
+    ].length,
     2,
     `${job} must install the cleanup tool from the trusted temporary directory`,
   )

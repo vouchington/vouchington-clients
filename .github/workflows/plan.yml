@@ -158,13 +158,13 @@ jobs:
         with:
           clean: false
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - name: Clean persistent runner workspace
+        env:
+          PRESERVE_NODE_MODULES: 'false'
+        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install pinned dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
 
