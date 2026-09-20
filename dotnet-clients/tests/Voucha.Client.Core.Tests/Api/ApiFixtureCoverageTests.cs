@@ -64,7 +64,7 @@ public sealed class ApiFixtureCoverageTests
   [Fact]
   public void EveryManifestFixtureIsRepresentedByTheEndpointRegistry()
   {
-    var manifestIds = new HashSet<string>(ApiFixtureLoader.ManifestFixtures.Select(entry => entry.Id), StringComparer.Ordinal);
+    var manifestIds = new HashSet<string>(ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => entry.Id), StringComparer.Ordinal);
     var registryIds = new HashSet<string>(ApiFixtureCoverage.EndpointRegistry.Keys, StringComparer.Ordinal);
 
     var missing = new HashSet<string>(manifestIds, StringComparer.Ordinal);
@@ -76,7 +76,7 @@ public sealed class ApiFixtureCoverageTests
             string.Join(", ", missing.OrderBy(id => id, StringComparer.Ordinal)));
 
     var stale = new HashSet<string>(registryIds, StringComparer.Ordinal);
-    stale.ExceptWith(manifestIds);
+    stale.ExceptWith(ApiFixtureLoader.ManifestFixtures.Select(entry => entry.Id));
 
     Assert.True(
         stale.Count == 0,
@@ -110,7 +110,7 @@ public sealed class ApiFixtureCoverageTests
   }
 
   public static IEnumerable<object[]> ManifestFixtureEntries() =>
-      ApiFixtureLoader.ManifestFixtures.Select(entry => new object[] { entry });
+      ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => new object[] { entry });
 
   private static void AssertQuerySubset(
       string fixtureId,

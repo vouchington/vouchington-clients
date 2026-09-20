@@ -19,12 +19,6 @@ private struct CheckoutSessionBody: Encodable {
     }
 }
 
-private struct MembershipGrantBody: Encodable {
-    let userId: String
-    let plan: MembershipPlanSlug
-    let skuId: String
-}
-
 private struct PortalSessionBody: Encodable {
     let returnUrl: String
 
@@ -123,18 +117,6 @@ public extension Endpoint {
 
     static func revokeMyApiKey(id: String) -> Endpoint {
         Endpoint(.DELETE, path: "/api/v1/my/api-keys/\(pathSegment(id))")
-    }
-
-    static var membershipPlans: Endpoint {
-        Endpoint(.GET, path: "/api/v1/memberships/plans")
-    }
-
-    static func grantMembership(userId: String, plan: MembershipPlanSlug, skuId: String) -> Endpoint {
-        Endpoint(
-            .POST,
-            path: "/api/v1/memberships",
-            body: MembershipGrantBody(userId: userId, plan: plan, skuId: skuId)
-        )
     }
 
     static var membershipMe: Endpoint {

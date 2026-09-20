@@ -87,8 +87,8 @@ extension MembershipGrantViewModelTests {
             (grantPlansResponse, 200, 0),
             (grantPlansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(
-            Data(#"{"membership":{"id":"membership-1"}}"#.utf8),
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(
+            Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8),
             201,
             0
         )]
@@ -100,6 +100,7 @@ extension MembershipGrantViewModelTests {
         await viewModel.loadPlans()
         viewModel.selectPlan(.plus)
         viewModel.selectedSkuId = "sku-plus"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
         let body = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.last.flatMap { $0 })
@@ -182,8 +183,9 @@ extension MembershipGrantViewModelTests {
     private var grantPlansResponse: Data {
         Data(
             #"""
-            {"plans":{"plus":[{"id":"sku-plus","plan":"plus","price":{"amount":500,"currency":"usd"},
-            "interval":"monthly","stripe_price_id":"price-plus"}]}}
+            {"products":[{"id":"sku-plus","plan":"plus","interval":"monthly","providers":[{"provider":"stripe",
+            "environment":"test","application_id":"voucha-web","product_id":"price-plus","base_plan_id":null,
+            "offer_id":null,"sku_id":null,"price":{"amount":500,"currency":"usd"}}]}]}
             """#
             .utf8
         )

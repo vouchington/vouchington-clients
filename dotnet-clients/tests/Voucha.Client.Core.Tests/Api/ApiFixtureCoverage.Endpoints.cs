@@ -8,7 +8,7 @@ internal static partial class ApiFixtureCoverage
       WithOAuthBrokerEndpoints(WithRewardsProgramStatusEndpoints(WithAiCostEndpoints(WithAgentEndpoints(new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
-        ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701")),
+        ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(
             "00000000-0000-7000-8000-000000000003",
             new GrantIdentityVerificationAttemptBody("Provider terminal error reviewed by support.")),

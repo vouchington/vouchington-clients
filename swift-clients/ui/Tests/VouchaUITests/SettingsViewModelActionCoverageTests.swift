@@ -363,18 +363,14 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (
             Data("""
             {
-              "plans": {
-                "pro": [
+              "products": [
                   {
                     "id": "sku-1",
                     "plan": "pro",
-                    "price": { "amount": 1299, "currency": "usd" },
                     "interval": "monthly",
-                    "stripe_price_id": "price-pro",
-                    "retired_at": null
+                    "providers": [{ "provider": "stripe", "product_id": "price-pro", "price": { "amount": 1299, "currency": "usd" } }]
                   }
-                ]
-              }
+              ]
             }
             """.utf8),
             200

@@ -77,7 +77,7 @@ final class SettingsViewModelLocaleTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/memberships/me"] = (Data(#"{"membership":null}"#.utf8), 200)
-        CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (Data(#"{"plans":{}}"#.utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (Data(#"{"products":[]}"#.utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/users/user-1/data-request"] = (Data("{}".utf8), 404)
     }
 

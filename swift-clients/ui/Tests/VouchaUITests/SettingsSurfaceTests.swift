@@ -435,7 +435,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (
             Data(
-                #"{"plans":{"plus":[{"id":"sku-1","plan":"plus","price":{"amount":1299,"currency":"usd"},"interval":"monthly","stripe_price_id":"price-plus-monthly","retired_at":null},{"id":"sku-2","plan":"plus","price":{"amount":9999,"currency":"usd"},"interval":"yearly","stripe_price_id":"price-plus-yearly","retired_at":null}],"pro":[{"id":"sku-3","plan":"pro","price":{"amount":2499,"currency":"usd"},"interval":"monthly","stripe_price_id":"price-pro-monthly","retired_at":null}]}}"#
+                #"{"products":[{"id":"sku-1","plan":"plus","interval":"monthly","providers":[{"provider":"stripe","product_id":"price-plus-monthly","price":{"amount":1299,"currency":"usd"}}]},{"id":"sku-2","plan":"plus","interval":"yearly","providers":[{"provider":"stripe","product_id":"price-plus-yearly","price":{"amount":9999,"currency":"usd"}}]},{"id":"sku-3","plan":"pro","interval":"monthly","providers":[{"provider":"stripe","product_id":"price-pro-monthly","price":{"amount":2499,"currency":"usd"}}]}]}"#
                     .utf8
             ),
             200

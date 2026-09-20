@@ -897,6 +897,15 @@ jobs:
             *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Restore the shared MAUI project-reference graph
+        if: steps.xcode.outputs.compatible == 'true'
+        working-directory: candidate-clients
+        env:
+          ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: >-
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+          -p:Configuration=Release -p:TargetFramework=net10.0-maccatalyst
+          -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
       - name: Build MAUI Mac Catalyst app
         if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
