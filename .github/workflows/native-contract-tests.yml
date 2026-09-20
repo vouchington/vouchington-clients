@@ -885,13 +885,14 @@ jobs:
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
+            xcodebuild_path="$developer_dir/usr/bin/xcodebuild"
             macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
             maccatalyst_sdk="$developer_dir/Platforms/MacCatalyst.platform/Developer/SDKs/MacCatalyst.sdk"
             actool=""
             find_status=1
-            if [ -f "$macosx_sdk/SDKSettings.plist" ] && [ -f "$maccatalyst_sdk/SDKSettings.plist" ]; then
+            if [ -x "$xcodebuild_path" ] && [ -f "$macosx_sdk/SDKSettings.plist" ] && [ -f "$maccatalyst_sdk/SDKSettings.plist" ]; then
               set +e
-              actool=$(DEVELOPER_DIR="$developer_dir" xcodebuild -sdk "$macosx_sdk" -find actool)
+              actool=$(DEVELOPER_DIR="$developer_dir" "$xcodebuild_path" -sdk "$macosx_sdk" -find actool)
               find_status=$?
               set -e
             fi
