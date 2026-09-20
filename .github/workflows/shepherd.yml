@@ -98,7 +98,7 @@ jobs:
             echo "pr_head_sha=$PR_HEAD_SHA"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
-          pnpm dlx vouchington-tooling@0.1.5 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
+          pnpm dlx vouchington-tooling@0.18.1 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare durable shepherd checkpoint

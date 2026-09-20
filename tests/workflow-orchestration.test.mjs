@@ -6,6 +6,23 @@ const workflowUrl = name => new URL(`../.github/workflows/${name}`, import.meta.
 const readWorkflow = name => readFile(workflowUrl(name), 'utf8')
 
 describe('event-driven CI orchestration', () => {
+  it('uses the portable GitHub multiline output helper for automation requests', async () => {
+    const invocations = [
+      ['plan.yml', 'plan_request'],
+      ['fix-issue.yml', 'fix_request'],
+      ['shepherd.yml', 'pr_title'],
+    ]
+
+    for (const [workflowName, outputName] of invocations) {
+      const workflow = await readWorkflow(workflowName)
+
+      assert.match(
+        workflow,
+        new RegExp(`pnpm dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`, 'u'),
+      )
+    }
+  })
+
   it('runs native contract tests on the pull request with one aggregate gate', async () => {
     await assert.rejects(access(workflowUrl('contract-parity.yml')))
     await assert.rejects(access(workflowUrl('native-contract-producer.yml')))
