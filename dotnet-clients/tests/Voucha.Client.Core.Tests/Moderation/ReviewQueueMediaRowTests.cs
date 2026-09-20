@@ -11,8 +11,8 @@ public sealed class ReviewQueueMediaRowTests
   public async Task MapsOrderedImageUrlsAndCaptionContentBoundary()
   {
     var post = Post(new AdminReviewQueueMediaReveal(true, [
-      new("image/second", 2, "Second caption"),
-      new("image first", 1, "First caption"),
+      new("image/second", "placement/second", 2, 2, "Second caption"),
+      new("image first", "placement first", 1, 1, "First caption"),
     ]));
     var viewModel = new ReviewQueueViewModel(
         new QueueService(post),
@@ -27,7 +27,9 @@ public sealed class ReviewQueueMediaRowTests
 
     var media = Assert.Single(viewModel.Items).Media;
     Assert.Equal([1, 2], media.Select(item => item.OrderIndex));
-    Assert.Equal("https://cdn.test/base/images/image%20first?w=960", media[0].Source.AbsoluteUri);
+    Assert.Equal(
+        "https://cdn.test/base/images/placements/placement%20first/1/image%20first?w=960",
+        media[0].Source.AbsoluteUri);
     Assert.Equal("First caption", media[0].CaptionPresentation);
     Assert.Equal("First caption", media[0].CaptionText.VerbatimValue);
   }

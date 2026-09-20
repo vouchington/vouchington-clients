@@ -495,5 +495,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStaffSupportEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints()))));
+      }.WithStaffSupportEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints()))));
 }

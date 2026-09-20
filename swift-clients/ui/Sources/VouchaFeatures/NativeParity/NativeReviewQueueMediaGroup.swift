@@ -45,7 +45,12 @@ struct NativeReviewQueueMediaGroup: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ForEach(values.sorted(by: { $0.orderIndex < $1.orderIndex }), id: \.imageId) { image in
                 AsyncImageView(
-                    urlString: "/images/\(image.imageId)",
+                    urlString: AppConfig.shared.imageURL(
+                        forPlacementId: image.placementId,
+                        revision: image.placementRevision,
+                        imageId: image.imageId,
+                        width: 960
+                    ),
                     baseURL: AppConfig.shared.imageBaseURL,
                     contentMode: .fit
                 )

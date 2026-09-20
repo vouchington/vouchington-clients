@@ -492,6 +492,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(moderationAppealEndpointRegistry) { _, replacement in replacement }
         .merging(nativeOAuthAndFriendRecommendationFixtureEndpoints) { _, replacement in replacement }
         .merging(followerDistributionFixtureEndpoints) { _, replacement in replacement }
+        .merging(copyrightMediaFixtureEndpoints) { _, replacement in replacement }
         .merging(staffSupportFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipGrantAndAncestorFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }

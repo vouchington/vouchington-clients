@@ -127,7 +127,7 @@ public sealed partial class ReviewQueueViewModel
       post.MediaReveal.Images
           .OrderBy(image => image.OrderIndex)
           .Select(image => new ReviewQueueMediaRow(
-              appConfig.ImageUrlForImageId(image.ImageId, 960)!,
+              appConfig.ImageUrlForPlacement(image.PlacementId, image.PlacementRevision, image.ImageId, 960)!,
               UiText.UserContent(image.Caption),
               image.OrderIndex,
               localization))

@@ -438,8 +438,14 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
           "media_reveal":{
             "requires_reveal":\(requiresReveal),
             "images":[
-              {"image_id":"\(id)-1","order_index":0,"caption":"First"},
-              {"image_id":"\(id)-2","order_index":1,"caption":"Second"}
+              {
+                "image_id":"\(id)-1","placement_id":"\(id)-placement-1",
+                "placement_revision":0,"order_index":0,"caption":"First"
+              },
+              {
+                "image_id":"\(id)-2","placement_id":"\(id)-placement-2",
+                "placement_revision":0,"order_index":1,"caption":"Second"
+              }
             ]
           }
         }

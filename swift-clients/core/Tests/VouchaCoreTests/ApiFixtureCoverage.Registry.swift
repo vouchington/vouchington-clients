@@ -69,5 +69,6 @@ enum ApiFixtureCoverage {
         dynamicConfigApiFixtureCoverage +
         accountFeedFixtureCoverage +
         nativeOAuthAndFriendRecommendationFixtureCoverage
+        + copyrightMediaFixtureCoverage
         + staffSupportApiFixtureCoverage
 }

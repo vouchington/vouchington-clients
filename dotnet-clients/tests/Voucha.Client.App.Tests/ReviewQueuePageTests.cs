@@ -104,8 +104,8 @@ public sealed class ReviewQueuePageTests
         "post-1",
         "Sensitive review",
         new AdminReviewQueueMediaReveal(true, [
-          new AdminReviewQueueImage("image-1", 0, "First image"),
-          new AdminReviewQueueImage("image-2", 1, "Second image"),
+          new AdminReviewQueueImage("image-1", "placement-1", 0, 0, "First image"),
+          new AdminReviewQueueImage("image-2", "placement-2", 0, 1, "Second image"),
         ]));
     var exposure = new ExposureService();
     var viewModel = new ReviewQueueViewModel(
@@ -214,7 +214,7 @@ public sealed class ReviewQueuePageTests
         "post-1",
         "Sensitive review",
         new AdminReviewQueueMediaReveal(true, [
-          new AdminReviewQueueImage("image-1", 0, "Sensitive image"),
+          new AdminReviewQueueImage("image-1", "placement-1", 0, 0, "Sensitive image"),
         ]));
     var viewModel = new ReviewQueueViewModel(
         new QueueService(Response([post])),
