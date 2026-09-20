@@ -16,6 +16,7 @@ public sealed partial class ReviewQueueViewModel
   private bool isExposureStale = true;
   private long exposureLifecycleVersion;
   private long acceptedExposureLifecycleVersion = -1;
+  private long exposureAcceptanceVersion;
   private long revealOutcomeVersion;
 
   public Task RefreshExposureAsync(CancellationToken cancellationToken = default) =>
@@ -58,6 +59,7 @@ public sealed partial class ReviewQueueViewModel
       CancellationToken cancellationToken)
   {
     var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
+    var observedExposureAcceptanceVersion = Volatile.Read(ref exposureAcceptanceVersion);
     var outcomeVersionAdvanced = false;
     try
     {
@@ -70,6 +72,7 @@ public sealed partial class ReviewQueueViewModel
           postId,
           observedRevealContextVersion,
           observedExposureLifecycleVersion,
+          observedExposureAcceptanceVersion,
           cancellationToken))
       {
         revealedPostIds.Add(postId);
@@ -77,13 +80,13 @@ public sealed partial class ReviewQueueViewModel
       }
       else
       {
-        RejectRevealOutcome(observedExposureLifecycleVersion);
+        RejectRevealOutcome(observedExposureLifecycleVersion, observedExposureAcceptanceVersion);
       }
     }
     catch (Exception)
     {
       if (!outcomeVersionAdvanced) Interlocked.Increment(ref revealOutcomeVersion);
-      RejectRevealOutcome(observedExposureLifecycleVersion);
+      RejectRevealOutcome(observedExposureLifecycleVersion, observedExposureAcceptanceVersion);
     }
     finally
     {
@@ -96,26 +99,13 @@ public sealed partial class ReviewQueueViewModel
       string postId,
       long observedRevealContextVersion,
       long observedExposureLifecycleVersion,
+      long observedExposureAcceptanceVersion,
       CancellationToken cancellationToken) =>
       !cancellationToken.IsCancellationRequested &&
       observedRevealContextVersion == Volatile.Read(ref revealContextVersion) &&
       Items.Any(row => row.Id == postId) &&
-      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion);
-
-  private void RejectRevealOutcome(long observedExposureLifecycleVersion)
-  {
-    var currentLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
-    if (observedExposureLifecycleVersion == currentLifecycleVersion)
-    {
-      CancelExposureSchedule();
-      SetExposureStale();
-    }
-    else if (Volatile.Read(ref acceptedExposureLifecycleVersion) !=
-        currentLifecycleVersion)
-    {
-      SetExposureStale();
-    }
-  }
+      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion) &&
+      observedExposureAcceptanceVersion == Volatile.Read(ref exposureAcceptanceVersion);
 
   [SuppressMessage(
       "Design",
@@ -172,7 +162,7 @@ public sealed partial class ReviewQueueViewModel
       bool scheduleCooldownRefresh)
   {
     exposureState = next;
-    Interlocked.Increment(ref exposureLifecycleVersion);
+    Interlocked.Increment(ref exposureAcceptanceVersion);
     Volatile.Write(
         ref acceptedExposureLifecycleVersion,
         Volatile.Read(ref exposureLifecycleVersion));

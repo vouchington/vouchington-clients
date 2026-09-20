@@ -439,6 +439,9 @@ public sealed partial class ReviewQueueExposureViewModelTests
 
     public void CompleteOlderGetWithoutCooldown() =>
         olderGet.TrySetResult(new ModerationExposureResponse(Exposure()));
+
+    public void CompleteOlderGetInCooldown() =>
+        olderGet.TrySetResult(new ModerationExposureResponse(Exposure(inCooldown: true)));
   }
 
   private sealed class PageLifecycleExposureService : IModerationExposureService
