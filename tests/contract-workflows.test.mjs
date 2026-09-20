@@ -80,10 +80,7 @@ describe('native contract workflow boundary', () => {
     ])
       assert.match(action, expectation)
 
-    assert.match(
-      action,
-      /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u,
-    )
+    assert.match(action, /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
   })
