@@ -159,6 +159,7 @@ jobs:
           node scripts/contract-artifact.mjs create \
             --filaments-root "$FILAMENTS_ROOT" \
             --output-root "$ARTIFACT_ROOT" \
+            --contract-repository vouchington/vouchington \
             --filaments-sha "$FILAMENTS_SHA" \
             --clients-repository "$GITHUB_REPOSITORY" \
             "${candidate_args[@]}" \
@@ -225,6 +226,7 @@ jobs:
         run: >-
           node scripts/contract-artifact.mjs verify
           --artifact-root "$ARTIFACT_ROOT"
+          --expected-contract-repository vouchington/vouchington
           --expected-clients-repository "$GITHUB_REPOSITORY"
           --expected-producer-run-id "$PRODUCER_RUN_ID"
           --expected-producer-run-attempt "$PRODUCER_RUN_ATTEMPT"

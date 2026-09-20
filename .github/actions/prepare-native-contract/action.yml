@@ -58,6 +58,7 @@ runs:
       run: >-
         node scripts/contract-artifact.mjs verify
         --artifact-root "$ARTIFACT_ROOT"
+        --expected-contract-repository vouchington/vouchington
         --expected-clients-repository "$GITHUB_REPOSITORY"
         --expected-producer-run-id "$EXPECTED_PRODUCER_RUN_ID"
         --expected-producer-run-attempt "$EXPECTED_PRODUCER_RUN_ATTEMPT"

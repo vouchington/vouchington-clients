@@ -309,6 +309,12 @@ describe('native contract workflow boundary', () => {
       workflow,
       /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,
     )
+    assert.equal(workflow.split('--contract-repository vouchington/vouchington').length - 1, 1)
+    assert.equal(
+      `${workflow}\n${action}`.split('--expected-contract-repository vouchington/vouchington')
+        .length - 1,
+      2,
+    )
     assert.doesNotMatch(action, /secrets\./u)
     assert.doesNotMatch(workflow, /workflow_run:/u)
   })
