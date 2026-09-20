@@ -107,14 +107,14 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertFalse(viewModel.exposureIsStale)
     }
 
-    func testFailedQueueRefreshDoesNotDiscardAnAcceptedReveal() async throws {
+    func testRevealDoesNotOverwriteExposureRefetchedAfterFailedQueueRefresh() async throws {
         CannedFeedURLProtocol.queuedHandlers[queuePath] = [
             (queueData(), 200, 0),
             (Data("{}".utf8), 500, 0)
         ]
         CannedFeedURLProtocol.queuedHandlers[exposurePath] = [
             (exposureData(count: 0, threshold: 10), 200, 0),
-            (exposureData(count: 0, threshold: 10), 200, 0)
+            (exposureData(count: 4, threshold: 10), 200, 0)
         ]
         CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
         CannedFeedURLProtocol.suspendResponse(path: revealPath)
@@ -131,8 +131,8 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         CannedFeedURLProtocol.releaseResponse(path: revealPath)
         await reveal.value
 
-        XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
-        XCTAssertEqual(viewModel.exposureState?.count, 1)
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertEqual(viewModel.exposureState?.count, 4)
         XCTAssertFalse(viewModel.exposureIsStale)
     }
 

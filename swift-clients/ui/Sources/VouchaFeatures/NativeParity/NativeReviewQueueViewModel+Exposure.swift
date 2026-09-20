@@ -33,6 +33,7 @@ extension NativeReviewQueueViewModel {
             )
             guard !Task.isCancelled,
                   isAuthorized,
+                  observedRequestRevision == exposureRequestRevision,
                   observedRevealContextRevision == revealContextRevision,
                   items.contains(where: { $0.id == postId }),
                   inFlightRevealPostId == postId

@@ -287,10 +287,7 @@ describe('native contract workflow boundary', () => {
 
     assert.match(workflow, /pull_request:/u)
     assert.doesNotMatch(workflow, /pull_request_target:/u)
-    assert.match(
-      workflow,
-      /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
-    )
+    assert.doesNotMatch(jobBlock(workflow, 'produce'), /pull_request\.head\.repo\.full_name/u)
     assert.doesNotMatch(workflow, /FILAMENTS_DEPLOY_KEY/u)
     assert.doesNotMatch(workflow, /ssh-key:/u)
     assert.match(workflow, /candidate-clients\/contracts\/filaments\.json/u)
@@ -355,6 +352,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
     assert.match(workflow, /--expected-producer-run-attempt/u)
     assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u)
+    assert.doesNotMatch(workflow, /pull_request\.head\.repo\.full_name/u)
     assert.doesNotMatch(workflow, /Filaments contract parity|check-runs/u)
   })
 
