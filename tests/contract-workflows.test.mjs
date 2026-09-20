@@ -59,7 +59,12 @@ describe('native contract workflow boundary', () => {
       readWorkflow('native-contract-tests.yml'),
     ])
 
-    for (const input of ['candidate-revision-sha', 'producer-run-id', 'producer-run-attempt'])
+    for (const input of [
+      'candidate-revision-sha',
+      'expected-contract-repository',
+      'producer-run-id',
+      'producer-run-attempt',
+    ])
       assert.match(action, new RegExp(`inputs\\.${input}`, 'u'))
     for (const expectation of [
       /fetch-depth: 0/u,
@@ -69,9 +74,16 @@ describe('native contract workflow boundary', () => {
       /run-id: \$\{\{ inputs\.producer-run-id \}\}/u,
       /native-contract-\$\{\{ inputs\.producer-run-id \}\}-\$\{\{ inputs\.producer-run-attempt \}\}/u,
       /EXPECTED_REVISION_SHA: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
+      /EXPECTED_CONTRACT_REPOSITORY: \$\{\{ inputs\.expected-contract-repository \}\}/u,
+      /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u,
       /--expected-revision-sha "\$EXPECTED_REVISION_SHA"/u,
     ])
       assert.match(action, expectation)
+
+    assert.match(
+      action,
+      /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u,
+    )
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
   })

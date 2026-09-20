@@ -5,6 +5,10 @@ inputs:
   candidate-revision-sha:
     description: Verified pull request merge or main push revision
     required: true
+  expected-contract-repository:
+    description: Trusted repository recorded in the producer artifact
+    required: false
+    default: jonathanong/filaments
   github-token:
     description: Read-only token used to download the producer artifact
     required: true
@@ -52,12 +56,14 @@ runs:
       shell: bash
       env:
         ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
+        EXPECTED_CONTRACT_REPOSITORY: ${{ inputs.expected-contract-repository }}
         EXPECTED_PRODUCER_RUN_ATTEMPT: ${{ inputs.producer-run-attempt }}
         EXPECTED_PRODUCER_RUN_ID: ${{ inputs.producer-run-id }}
         EXPECTED_REVISION_SHA: ${{ inputs.candidate-revision-sha }}
       run: >-
         node scripts/contract-artifact.mjs verify
         --artifact-root "$ARTIFACT_ROOT"
+        --expected-contract-repository "$EXPECTED_CONTRACT_REPOSITORY"
         --expected-clients-repository "$GITHUB_REPOSITORY"
         --expected-producer-run-id "$EXPECTED_PRODUCER_RUN_ID"
         --expected-producer-run-attempt "$EXPECTED_PRODUCER_RUN_ATTEMPT"
