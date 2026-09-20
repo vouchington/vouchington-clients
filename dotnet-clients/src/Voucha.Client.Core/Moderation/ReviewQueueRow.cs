@@ -35,14 +35,14 @@ public sealed record ReviewQueueRow(
     _ => UiMessageKey.NativeModerationSummaryDispositionNone,
   };
   public string ModerationTitlePresentation => Localization.Localize(UiMessageKey.NativeModerationSummaryTitle);
-  public string ClearanceStatusPresentation => Localization.Localize(ClearanceStatus switch
+  public string ClearanceStatusPresentation => ClearanceStatus switch
   {
-    AdminReviewQueueClearanceStatus.Rejected => UiMessageKey.NativeDotnetModerationRejected,
-    AdminReviewQueueClearanceStatus.InReview => UiMessageKey.NativeDotnetModerationInReview,
-    AdminReviewQueueClearanceStatus.Approved => UiMessageKey.NativeDotnetModerationApproved,
-    AdminReviewQueueClearanceStatus.Pending => UiMessageKey.NativeDotnetModerationPending,
-    _ => throw new ArgumentOutOfRangeException(nameof(ClearanceStatus), ClearanceStatus, null),
-  });
+    AdminReviewQueueClearanceStatus.Rejected => Localization.Localize(UiMessageKey.NativeDotnetModerationRejected),
+    AdminReviewQueueClearanceStatus.InReview => Localization.Localize(UiMessageKey.NativeDotnetModerationInReview),
+    AdminReviewQueueClearanceStatus.Approved => Localization.Localize(UiMessageKey.NativeDotnetModerationApproved),
+    AdminReviewQueueClearanceStatus.Pending => Localization.Localize(UiMessageKey.NativeDotnetModerationPending),
+    _ => ClearanceStatus.ToString(),
+  };
   public string DispositionPresentation => Localization.Localize(DispositionKey);
   public string? ReasonCodesPresentation
   {

@@ -1,4 +1,3 @@
-import VouchaAPI
 import VouchaModels
 
 let nativeMembershipStoreFixtureCoverage: [RegisteredFixture] = [
