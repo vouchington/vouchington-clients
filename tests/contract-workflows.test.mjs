@@ -300,6 +300,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.doesNotMatch(workflow, /FILAMENTS_DEPLOY_KEY/u)
     assert.doesNotMatch(workflow, /ssh-key:/u)
+    assert.match(workflow, /candidate-clients\/contracts\/filaments\.json/u)
     assert.match(
       workflow,
       /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,

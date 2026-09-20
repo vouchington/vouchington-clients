@@ -84,11 +84,6 @@ jobs:
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
-      - name: Assert authorized Vouchington source
-        run: >-
-          jq -e
-          '.repository == "vouchington/vouchington" and .ref == "main"'
-          contracts/filaments.json
       - name: Check out candidate clients as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,6 +91,11 @@ jobs:
           path: candidate-clients
           persist-credentials: false
           allow-unsafe-pr-checkout: true
+      - name: Assert authorized Vouchington source
+        run: >-
+          jq -e
+          '.repository == "vouchington/vouchington" and .ref == "main"'
+          candidate-clients/contracts/filaments.json
       - name: Check out Vouchington
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
