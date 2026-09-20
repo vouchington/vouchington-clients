@@ -80,6 +80,33 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertEqual(object, ["postId": "sensitive", "surface": "review_queue"])
     }
 
+    func testAppendOnlyPaginationDoesNotDiscardAnAcceptedReveal() async throws {
+        CannedFeedURLProtocol.queuedHandlers[queuePath] = [
+            (queueData(hasNextPage: true, endCursor: "next"), 200, 0),
+            (queueData(results: [post(id: "page-two", requiresReveal: false)]), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
+        CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let viewModel = try makeViewModel()
+        await viewModel.load()
+
+        let reveal = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+
+        await viewModel.loadMore()
+        XCTAssertTrue(viewModel.items.contains(where: { $0.id == "sensitive" }))
+        XCTAssertTrue(viewModel.items.contains(where: { $0.id == "page-two" }))
+
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await reveal.value
+
+        XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertEqual(viewModel.exposureState?.count, 1)
+        XCTAssertFalse(viewModel.exposureIsStale)
+    }
+
     func testFailedRevealKeepsMediaGatedAndGatesUntilRefetch() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.queuedHandlers[exposurePath] = [
@@ -350,14 +377,21 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         try NativeReviewQueueViewModel(client: makeClient(), isSignedIn: true, isAdministrator: true)
     }
 
-    private func queueData() -> Data {
-        Data(
+    private func queueData(
+        hasNextPage: Bool = false,
+        endCursor: String? = nil,
+        results: [String]? = nil
+    ) -> Data {
+        let cursor = endCursor.map { "\"\($0)\"" } ?? "null"
+        let rows = results ?? [
+            post(id: "sensitive", requiresReveal: true),
+            post(id: "another-sensitive", requiresReveal: true),
+            post(id: "safe", requiresReveal: false)
+        ]
+        return Data(
             """
-            {"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null},"results":[
-              \(post(id: "sensitive", requiresReveal: true)),
-              \(post(id: "another-sensitive", requiresReveal: true)),
-              \(post(id: "safe", requiresReveal: false))
-            ]}
+            {"page_info":{"has_next_page":\(hasNextPage),"end_cursor":\(cursor),"start_cursor":null},
+            "results":[\(rows.joined(separator: ","))]}
             """.utf8
         )
     }

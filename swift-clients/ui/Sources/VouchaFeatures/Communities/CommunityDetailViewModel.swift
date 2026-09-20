@@ -17,7 +17,7 @@ final class CommunityDetailViewModel {
             modmailPageRequestRevision += 1
             moderationTransparencyContinuationToken += 1
             moderationTransparencyIsLoadingOlder = false
-            moderationResults = []
+            discardModerationResults()
             modmailThreadPagination.reset(items: modmailThreadPagination.items)
             isLoadingMoreModmail = false
             modmailPaginationError = nil
@@ -34,6 +34,7 @@ final class CommunityDetailViewModel {
     var moderationTransparencyLoadMoreError: UiMessage?
     var moderationAnalyticsRows: [NativeRouteDestinationRow] = []
     var moderationResults: [NativeRouteDestinationRow] = []
+    var moderationResultsError: UiMessage?
     var moderationQueryPostId = "" {
         didSet {
             guard oldValue != moderationQueryPostId else { return }

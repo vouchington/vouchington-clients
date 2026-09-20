@@ -23,8 +23,8 @@ extension NativeReviewQueueViewModel {
 
     func revealMedia(postId: String) async {
         guard canRevealMedia(postId: postId), let client else { return }
-        let revealGeneration = listGeneration
         let observedRequestRevision = exposureRequestRevision
+        let observedRevealContextRevision = revealContextRevision
         inFlightRevealPostId = postId
         defer { inFlightRevealPostId = nil }
         do {
@@ -32,7 +32,8 @@ extension NativeReviewQueueViewModel {
                 .recordModerationReveal(postId: postId, surface: .reviewQueue)
             )
             guard !Task.isCancelled,
-                  revealGeneration == listGeneration,
+                  isAuthorized,
+                  observedRevealContextRevision == revealContextRevision,
                   items.contains(where: { $0.id == postId }),
                   inFlightRevealPostId == postId
             else {

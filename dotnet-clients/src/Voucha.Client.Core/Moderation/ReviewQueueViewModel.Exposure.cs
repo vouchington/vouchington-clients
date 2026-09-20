@@ -35,7 +35,10 @@ public sealed partial class ReviewQueueViewModel
 
     revealInFlightPostId = current.Id;
     RefreshExposureRows();
-    return RecordRevealAsync(current.Id, listGeneration, cancellationToken);
+    return RecordRevealAsync(
+        current.Id,
+        Volatile.Read(ref revealContextVersion),
+        cancellationToken);
   }
 
   public void CancelExposureOperations()
@@ -51,7 +54,7 @@ public sealed partial class ReviewQueueViewModel
       Justification = "Any reveal response failure is ambiguous and must keep media gated while gating later reveals.")]
   private async Task RecordRevealAsync(
       string postId,
-      int observedListGeneration,
+      long observedRevealContextVersion,
       CancellationToken cancellationToken)
   {
     var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
@@ -65,7 +68,7 @@ public sealed partial class ReviewQueueViewModel
       outcomeVersionAdvanced = true;
       if (AcceptsReveal(
           postId,
-          observedListGeneration,
+          observedRevealContextVersion,
           observedExposureLifecycleVersion,
           cancellationToken))
       {
@@ -91,11 +94,11 @@ public sealed partial class ReviewQueueViewModel
 
   private bool AcceptsReveal(
       string postId,
-      int observedListGeneration,
+      long observedRevealContextVersion,
       long observedExposureLifecycleVersion,
       CancellationToken cancellationToken) =>
       !cancellationToken.IsCancellationRequested &&
-      observedListGeneration == listGeneration &&
+      observedRevealContextVersion == Volatile.Read(ref revealContextVersion) &&
       Items.Any(row => row.Id == postId) &&
       observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion);
 

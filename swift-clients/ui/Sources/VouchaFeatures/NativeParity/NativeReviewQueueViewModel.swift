@@ -73,6 +73,8 @@ final class NativeReviewQueueViewModel {
     var exposureRequestRevision = 0
     @ObservationIgnored
     var exposureOutcomeRevision = 0
+    @ObservationIgnored
+    var revealContextRevision = 0
 
     let client: APIClient?
     let cooldownSleep: @Sendable (UInt64) async throws -> Void

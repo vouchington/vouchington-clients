@@ -69,10 +69,11 @@ describe('native contract workflow boundary', () => {
       assert.match(action, expectation)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
-    assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 13)
+    assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
+    assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
-      0,
+      12,
     )
   })
 

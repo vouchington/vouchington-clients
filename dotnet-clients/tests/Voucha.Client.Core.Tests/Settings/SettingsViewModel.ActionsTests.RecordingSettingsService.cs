@@ -160,12 +160,21 @@ public sealed partial class SettingsViewModelActionsTests
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(new MembershipPlansResponse(
-            [new MembershipCatalogProduct(
-                "sku-1",
-                "pro",
-                "month",
-                [new MembershipCatalogProvider("stripe", "test", "voucha-web", "price-1", null, null, null, new Money(1500, "usd"))])])));
+        Task.FromResult(
+            new MembershipPlansResponse(
+                [new MembershipCatalogProduct(
+                    "sku-1",
+                    "pro",
+                    "month",
+                    [new MembershipCatalogProvider(
+                        "stripe",
+                        "test",
+                        "voucha-web",
+                        "price-1",
+                        null,
+                        null,
+                        null,
+                        new Money(1500, "usd"))])]));
 
     public Task<CheckoutSessionResponse> CreateMembershipCheckoutSessionAsync(
         MembershipCheckoutBody body,

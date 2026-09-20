@@ -8,6 +8,7 @@ public sealed partial class ReviewQueueViewModel
 {
   private async Task ReplaceAsync(CancellationToken cancellationToken, bool reconcilesMutations = false)
   {
+    Interlocked.Increment(ref revealContextVersion);
     var generation = BeginListOperation();
     if (!HasItems) State = LoadState.Loading;
     try

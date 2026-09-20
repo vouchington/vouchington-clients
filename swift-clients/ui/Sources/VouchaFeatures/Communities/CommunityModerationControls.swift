@@ -50,6 +50,10 @@ extension CommunityModerationAdminControls {
                 ForEach(viewModel.moderationResults) { row in
                     NativeSurfaceRow(row: row)
                 }
+                if let error = viewModel.moderationResultsError {
+                    Text(verbatim: UiMessages.string(error, locale: nativeUiLocale))
+                        .foregroundStyle(.red)
+                }
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesRejectReason, locale: nativeUiLocale),
                     text: $moderationReason
