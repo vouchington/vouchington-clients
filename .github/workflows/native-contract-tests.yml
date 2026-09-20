@@ -296,6 +296,7 @@ jobs:
         uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -371,6 +372,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -399,6 +401,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -425,6 +428,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -464,6 +468,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -510,6 +515,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -621,6 +627,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -687,6 +694,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -720,6 +728,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -758,6 +767,7 @@ jobs:
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -805,6 +815,7 @@ jobs:
         uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
