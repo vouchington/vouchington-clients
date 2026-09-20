@@ -8,7 +8,7 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
         let stalePath = "/api/v1/communities/builders/posts/stale-post/moderation-results"
         let currentPath = "/api/v1/communities/builders/posts/current-post/moderation-results"
         CannedFeedURLProtocol.handlers[stalePath] = (response(status: "rejected"), 200)
-        CannedFeedURLProtocol.handlers[currentPath] = (response(status: "approved"), 200)
+        CannedFeedURLProtocol.handlers[currentPath] = (response(status: "approved", agentCount: 2), 200)
         CannedFeedURLProtocol.suspendResponse(path: stalePath)
         let viewModel = try CommunityDetailViewModel(
             client: makeClient(),
@@ -20,19 +20,85 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
         let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: stalePath)
         XCTAssertTrue(didSuspend)
         await viewModel.loadModerationResults(postId: "current-post")
-        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["Approved"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.title), ["AI agents", "Moderation summary"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["2 results", "Approved"])
 
         CannedFeedURLProtocol.releaseResponse(path: stalePath)
         await staleLoad.value
 
-        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["Approved"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["2 results", "Approved"])
     }
 
-    private func response(status: String) -> Data {
-        Data(
+    func testNewLookupClearsPreviousRowsBeforeTheReplacementResponseArrives() async throws {
+        let firstPath = "/api/v1/communities/builders/posts/first-post/moderation-results"
+        let secondPath = "/api/v1/communities/builders/posts/second-post/moderation-results"
+        CannedFeedURLProtocol.handlers[firstPath] = (response(status: "rejected"), 200)
+        CannedFeedURLProtocol.handlers[secondPath] = (response(status: "approved"), 200)
+        let viewModel = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation
+        )
+        await viewModel.loadModerationResults(postId: "first-post")
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["0 results", "Rejected"])
+
+        CannedFeedURLProtocol.suspendResponse(path: secondPath)
+        let secondLoad = Task { await viewModel.loadModerationResults(postId: "second-post") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: secondPath)
+        XCTAssertTrue(didSuspend)
+        XCTAssertEqual(viewModel.moderationResults, [])
+
+        CannedFeedURLProtocol.releaseResponse(path: secondPath)
+        await secondLoad.value
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["0 results", "Approved"])
+    }
+
+    func testChangingQueryPostIdClearsPreviousRows() {
+        let viewModel = CommunityDetailViewModel(
+            client: nil,
+            slug: "builders",
+            initialTab: .moderation
+        )
+        viewModel.moderationResults = [
+            NativeRouteDestinationRow(
+                id: "platform-moderation",
+                icon: "checkmark.shield",
+                title: .verbatim("stale title"),
+                detail: .verbatim("stale detail")
+            )
+        ]
+
+        viewModel.moderationQueryPostId = "other-post"
+
+        XCTAssertEqual(viewModel.moderationResults, [])
+    }
+
+    func testBlankLookupDiscardsPreviousRows() async {
+        let viewModel = CommunityDetailViewModel(
+            client: nil,
+            slug: "builders",
+            initialTab: .moderation
+        )
+        viewModel.moderationResults = [
+            NativeRouteDestinationRow(
+                id: "platform-moderation",
+                icon: "checkmark.shield",
+                title: .verbatim("stale title"),
+                detail: .verbatim("stale detail")
+            )
+        ]
+
+        await viewModel.loadModerationResults(postId: "   ")
+
+        XCTAssertEqual(viewModel.moderationResults, [])
+    }
+
+    private func response(status: String, agentCount: Int = 0) -> Data {
+        let agents = Array(repeating: "{}", count: agentCount).joined(separator: ",")
+        return Data(
             """
             {
-              "community_agent_moderations": [],
+              "community_agent_moderations": [\(agents)],
               "platform_moderation": { "status": "\(status)" }
             }
             """.utf8

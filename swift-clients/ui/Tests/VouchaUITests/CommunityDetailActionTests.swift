@@ -94,8 +94,8 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         await viewModel.loadModerationResults(postId: "post-1")
-        XCTAssertEqual(viewModel.moderationResults.map(\.title), ["Moderation summary"])
-        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["In review"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.title), ["AI agents", "Moderation summary"])
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["0 results", "In review"])
 
         await viewModel.claimModerationReport(reportId: "report-1")
         await viewModel.releaseModerationReport(reportId: "report-1")

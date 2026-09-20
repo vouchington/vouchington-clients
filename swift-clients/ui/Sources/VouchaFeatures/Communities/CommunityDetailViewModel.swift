@@ -34,6 +34,13 @@ final class CommunityDetailViewModel {
     var moderationTransparencyLoadMoreError: UiMessage?
     var moderationAnalyticsRows: [NativeRouteDestinationRow] = []
     var moderationResults: [NativeRouteDestinationRow] = []
+    var moderationQueryPostId = "" {
+        didSet {
+            guard oldValue != moderationQueryPostId else { return }
+            discardModerationResults()
+        }
+    }
+
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()

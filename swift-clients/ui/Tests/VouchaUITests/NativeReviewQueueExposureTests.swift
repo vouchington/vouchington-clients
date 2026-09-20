@@ -143,6 +143,32 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertTrue(viewModel.exposureIsStale)
     }
 
+    func testObsoleteRevealDoesNotOverwriteANewerAcceptedExposureRefresh() async throws {
+        CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
+        CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)
+        CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let viewModel = try makeViewModel()
+        await viewModel.load()
+
+        let reveal = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+        viewModel.cancelListOperations()
+        CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 4, threshold: 10), 200)
+        await viewModel.load()
+        XCTAssertEqual(viewModel.exposureState?.count, 4)
+        XCTAssertFalse(viewModel.exposureIsStale)
+
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await reveal.value
+
+        XCTAssertFalse(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertEqual(viewModel.exposureState?.count, 4)
+        XCTAssertFalse(viewModel.exposureIsStale)
+        XCTAssertTrue(viewModel.canRevealMedia(postId: "sensitive"))
+    }
+
     func testRevealSuccessAfterApprovalRemovesRowAndKeepsMediaGated() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.handlers[exposurePath] = (exposureData(count: 0, threshold: 10), 200)

@@ -24,6 +24,7 @@ extension NativeReviewQueueViewModel {
     func revealMedia(postId: String) async {
         guard canRevealMedia(postId: postId), let client else { return }
         let revealGeneration = listGeneration
+        let observedRequestRevision = exposureRequestRevision
         inFlightRevealPostId = postId
         defer { inFlightRevealPostId = nil }
         do {
@@ -35,16 +36,14 @@ extension NativeReviewQueueViewModel {
                   items.contains(where: { $0.id == postId }),
                   inFlightRevealPostId == postId
             else {
-                exposureOutcomeRevision += 1
-                markExposureStale()
+                ignoreObsoleteReveal(observedRequestRevision: observedRequestRevision)
                 return
             }
             revealedPostIds.insert(postId)
             exposureOutcomeRevision += 1
             acceptExposure(response.exposure)
         } catch {
-            exposureOutcomeRevision += 1
-            markExposureStale()
+            ignoreObsoleteReveal(observedRequestRevision: observedRequestRevision)
         }
     }
 
@@ -78,6 +77,12 @@ extension NativeReviewQueueViewModel {
         exposureState = exposure
         exposureIsStale = false
         scheduleCooldownRefetch(for: exposure)
+    }
+
+    private func ignoreObsoleteReveal(observedRequestRevision: Int) {
+        guard observedRequestRevision == exposureRequestRevision else { return }
+        exposureOutcomeRevision += 1
+        markExposureStale()
     }
 
     private func markExposureStale() {

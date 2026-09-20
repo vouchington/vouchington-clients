@@ -3,10 +3,19 @@ import VouchaLocalization
 import VouchaModels
 
 extension CommunityDetailViewModel {
+    func discardModerationResults() {
+        moderationResultsRequestRevision += 1
+        moderationResults = []
+    }
+
     func loadModerationResults(postId: String) async {
         let postId = postId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !postId.isEmpty, let client else { return }
-        moderationResultsRequestRevision += 1
+        guard !postId.isEmpty else {
+            discardModerationResults()
+            return
+        }
+        guard let client else { return }
+        discardModerationResults()
         let requestRevision = moderationResultsRequestRevision
         let communityRevision = communityLoadRevision
         do {
@@ -17,13 +26,7 @@ extension CommunityDetailViewModel {
                   requestRevision == moderationResultsRequestRevision,
                   isCurrentCommunityLoad(communityRevision, tab: .moderation)
             else { return }
-            moderationResults = [
-                .init(
-                    icon: "checkmark.shield",
-                    title: UiMessage(.nativeModerationSummaryTitle),
-                    detail: UiMessage(platformModerationStatusKey(response.platformModeration.status))
-                )
-            ]
+            moderationResults = moderationResultRows(for: response)
         } catch {
             guard !Task.isCancelled,
                   requestRevision == moderationResultsRequestRevision,
@@ -31,6 +34,25 @@ extension CommunityDetailViewModel {
             else { return }
             moderationResults = []
         }
+    }
+
+    private func moderationResultRows(
+        for response: CommunityModerationResultsResponse
+    ) -> [NativeRouteDestinationRow] {
+        [
+            NativeRouteDestinationRow(
+                id: "community-agent-moderations",
+                icon: "sparkles",
+                title: .app(UiMessage(.nativeSwiftCommunitiesAiAgents)),
+                detail: .count(response.communityAgentModerations.count, item: "result")
+            ),
+            NativeRouteDestinationRow(
+                id: "platform-moderation",
+                icon: "checkmark.shield",
+                title: .app(UiMessage(.nativeModerationSummaryTitle)),
+                detail: .app(UiMessage(platformModerationStatusKey(response.platformModeration.status)))
+            )
+        ]
     }
 
     private func platformModerationStatusKey(_ status: AdminReviewQueueClearanceStatus) -> UiMessageKey {
