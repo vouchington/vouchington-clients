@@ -8,7 +8,7 @@ inputs:
   expected-contract-repository:
     description: Trusted repository recorded in the producer artifact
     required: false
-    default: vouchington/vouchington
+    default: jonathanong/filaments
   github-token:
     description: Read-only token used to download the producer artifact
     required: true

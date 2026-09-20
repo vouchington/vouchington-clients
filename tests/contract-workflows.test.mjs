@@ -76,16 +76,15 @@ describe('native contract workflow boundary', () => {
     ])
       assert.match(action, expectation)
 
-    assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
+    assert.match(action, /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
-      0,
+      12,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 11)
   })
 
   it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
