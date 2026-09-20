@@ -885,10 +885,11 @@ jobs:
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
+            xcodebuild_path="$developer_dir/usr/bin/xcodebuild"
             macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
             actool=""
-            if [ -e "$macosx_sdk" ]; then
-              actool=$(DEVELOPER_DIR="$developer_dir" xcodebuild -sdk "$macosx_sdk" -find actool 2>/dev/null || true)
+            if [ -x "$xcodebuild_path" ] && [ -e "$macosx_sdk" ]; then
+              actool=$(DEVELOPER_DIR="$developer_dir" "$xcodebuild_path" -sdk "$macosx_sdk" -find actool 2>/dev/null || true)
             fi
             if [[ "$version" == "$required_version"* ]] && [ -n "$actool" ] && [ -x "$actool" ]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
