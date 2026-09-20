@@ -104,7 +104,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /name: Select compatible Xcode[\s\S]*id: xcode[\s\S]*compatible=false/u)
     assert.match(
       workflow,
-      /xcrun --sdk macosx --show-sdk-path[\s\S]*xcrun --sdk macosx --find actool[\s\S]*\[ -d "\$sdk_path" \][\s\S]*\[ -x "\$actool" \]/u,
+      /MacOSX\.sdk[\s\S]*xcodebuild -sdk "\$macosx_sdk" -find actool[\s\S]*\[ -n "\$actool" \][\s\S]*\[ -x "\$actool" \]/u,
     )
     assert.match(
       workflow,

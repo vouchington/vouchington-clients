@@ -874,9 +874,12 @@ jobs:
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
-            sdk_path=$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)
-            actool=$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --find actool 2>/dev/null || true)
-            if [[ "$version" == "$required_version"* ]] && [ -d "$sdk_path" ] && [ -x "$actool" ]; then
+            macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+            actool=""
+            if [ -e "$macosx_sdk" ]; then
+              actool=$(DEVELOPER_DIR="$developer_dir" xcodebuild -sdk "$macosx_sdk" -find actool 2>/dev/null || true)
+            fi
+            if [[ "$version" == "$required_version"* ]] && [ -n "$actool" ] && [ -x "$actool" ]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
               echo 'compatible=true' >>"$GITHUB_OUTPUT"
               echo "Selected Xcode $version at $developer_dir"
