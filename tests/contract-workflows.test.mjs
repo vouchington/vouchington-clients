@@ -21,11 +21,6 @@ const preparedCandidateInputs = [
   'producer-run-id: ${{ github.run_id }}',
 ]
 
-const cleanupWorkspace = workflow => {
-  assert.match(workflow, /Clean persistent runner workspace/u)
-  assert.match(workflow, /PRESERVE_NODE_MODULES: ["']false["']/u)
-}
-
 describe('native contract workflow boundary', () => {
   it('keeps contract path ownership in the checked-in configuration', async () => {
     const config = JSON.parse(
@@ -89,11 +84,11 @@ describe('native contract workflow boundary', () => {
     const maui = jobBlock(workflow, 'dotnet-maui')
 
     assert.match(portable, /^    name: \.NET portable$/mu)
-    assert.match(portable, /runs-on: \[self-hosted, Linux, Docker, Tests\]/u)
+    assert.match(portable, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(portable, /matrix:/u)
     assert.doesNotMatch(portable, /macos/u)
     assert.doesNotMatch(portable, /matrix\.os/u)
-    assert.match(maui, /runs-on: \[self-hosted, macOS, Tests\]/u)
+    assert.match(maui, /runs-on: macos-latest/u)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
     assert.match(workflow, /npx --yes pnpm@11\.13\.1 run coverage:dotnet-core/u)
@@ -113,8 +108,8 @@ describe('native contract workflow boundary', () => {
       workflow.indexOf('name: Test rendered MAUI pages') <
         workflow.indexOf('name: Select compatible Xcode'),
     )
-    cleanupWorkspace(action)
-    cleanupWorkspace(workflow)
+    assert.doesNotMatch(workflow, /clean-workspace/u)
+    assert.doesNotMatch(action, /clean-workspace/u)
   })
 
   it('installs each candidate .NET SDK at its exact global.json version', async () => {
@@ -122,12 +117,6 @@ describe('native contract workflow boundary', () => {
 
     assert.equal(workflow.split('name: Read exact .NET SDK version').length - 1, 2)
     assert.equal(workflow.split('id: dotnet-sdk').length - 1, 2)
-    assert.equal(workflow.split('name: Reset exact .NET SDK root').length - 1, 2)
-    assert.equal(
-      workflow.split('[[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]').length - 1,
-      2,
-    )
-    assert.equal(workflow.split('rm -rf -- "$DOTNET_INSTALL_DIR"').length - 1, 2)
     assert.equal(workflow.split('working-directory: candidate-clients').length - 1 >= 2, true)
     assert.equal(
       workflow.split(
@@ -221,7 +210,7 @@ describe('native contract workflow boundary', () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
     const coverageJob = jobBlock(workflow, 'swift-patch-coverage')
 
-    assert.match(coverageJob, /runs-on: \[self-hosted, Linux\]/u)
+    assert.match(coverageJob, /runs-on: ubuntu-latest/u)
     assert.equal(coverageJob.split('npx --yes pnpm@11.13.1 run coverage:swift').length - 1, 1)
     assert.doesNotMatch(coverageJob, /swift (?:build|test)/u)
   })
@@ -236,9 +225,9 @@ describe('native contract workflow boundary', () => {
       'test-swift-ui',
       'build-macos-app',
     ])
-      assert.match(jobBlock(workflow, job), /runs-on: \[self-hosted, macOS, Tests\]/u)
+      assert.match(jobBlock(workflow, job), /runs-on: macos-latest/u)
     for (const job of ['test-swift-core-linux', 'build-android-core'])
-      assert.match(jobBlock(workflow, job), /runs-on: \[self-hosted, Linux, Docker, Tests\]/u)
+      assert.match(jobBlock(workflow, job), /runs-on: ubuntu-latest/u)
     assert.match(
       jobBlock(workflow, 'test-swift-core-linux'),
       /swift test --package-path swift-clients\/core/u,
@@ -250,20 +239,16 @@ describe('native contract workflow boundary', () => {
     assert.match(jobBlock(workflow, 'test-swift-core-linux'), /--user "\$\(id -u\):\$\(id -g\)"/u)
     assert.match(
       jobBlock(workflow, 'test-swift-core-linux'),
-      /VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 1500/u,
-    )
-    assert.match(
-      jobBlock(workflow, 'test-swift-core-linux'),
       /--build-path \/tmp\/voucha-core-build/u,
     )
-    assert.equal(workflow.split('clean: false').length - 1, 13)
+    assert.doesNotMatch(workflow, /clean: false/u)
   })
 
   it('runs Swift lint on Linux without compiling Swift', async () => {
     const workflow = await readWorkflow('validate.yml')
     const lintJob = jobBlock(workflow, 'swift-lint')
 
-    assert.match(lintJob, /runs-on: \[self-hosted, Linux, Docker, Tests\]/u)
+    assert.match(lintJob, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(lintJob, /DEVELOPER_DIR|setup-swift-native/u)
     assert.match(
       lintJob,
@@ -285,11 +270,9 @@ describe('native contract workflow boundary', () => {
     const validation = await readWorkflow('validate.yml')
 
     assert.match(validation, /global-json-file: global\.json/u)
-    assert.match(validation, /dotnet_root="\$RUNNER_TEMP\/voucha-dotnet-sdk"/u)
-    assert.match(validation, /printf 'DOTNET_INSTALL_DIR=%s\\n'.*"\$GITHUB_ENV"/u)
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
-    assert.equal(validation.split('mise_root="$RUNNER_TEMP/mise"').length - 1, 2)
-    assert.equal(validation.split('mise_dir: ${{ runner.temp }}/mise').length - 1, 2)
+    assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
+    assert.doesNotMatch(validation, /mise_dir:/u)
   })
 
   it('checks out the public Vouchington producer without a deploy key', async () => {

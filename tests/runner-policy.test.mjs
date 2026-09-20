@@ -6,6 +6,7 @@ import { describe, it } from 'node:test'
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const githubRoot = join(repositoryRoot, '.github')
 const workflowRoot = join(githubRoot, 'workflows')
+const allowedLabels = new Set(['ubuntu-slim', 'ubuntu-latest', 'macos-latest'])
 
 async function readWorkflows() {
   const names = (await readdir(workflowRoot)).filter(name => name.endsWith('.yml')).sort()
@@ -39,240 +40,40 @@ function assertRunner(workflow, job, runner) {
   assert.match(jobBlock(workflow, job), new RegExp(`runs-on: ${runner}`, 'u'))
 }
 
-function jobUnits(source) {
-  const jobsAt = source.search(/^jobs:/mu)
-  if (jobsAt === -1) return [source]
-  const jobs = source.slice(jobsAt)
-  const starts = [...jobs.matchAll(/^ {2}[A-Za-z0-9_-]+:/gmu)].map(match => match.index)
-  if (starts.length === 0) return [source]
-  return starts.map((start, i) => jobs.slice(start, starts[i + 1]))
-}
-
-function matchOffsets(source, pattern) {
-  return [...source.matchAll(pattern)].map(match => match.index)
-}
-
-function assertMiseIsolation(name, source) {
-  const units = jobUnits(source).filter(unit => unit.includes('jdx/mise-action@'))
-  assert.ok(units.length > 0, `${name} must contain mise-action`)
-  for (const unit of units) {
-    const actions = matchOffsets(unit, /jdx\/mise-action@/gu)
-    const setups = matchOffsets(unit, /mise_root="\$RUNNER_TEMP\/mise"/gu)
-    const dirs = matchOffsets(unit, /mise_dir: \$\{\{ runner\.temp \}\}\/mise/gu)
-    assert.equal(
-      setups.length,
-      actions.length,
-      `${name} must isolate MISE_DATA_DIR once per mise-action in the same job`,
-    )
-    assert.equal(
-      dirs.length,
-      actions.length,
-      `${name} must point every mise-action at RUNNER_TEMP in the same job`,
-    )
-    actions.forEach((actionAt, index) => {
-      assert.ok(
-        setups[index] < actionAt,
-        `${name} must set MISE_DATA_DIR before mise-action ${index}`,
-      )
-      assert.ok(dirs[index] > actionAt, `${name} must set mise_dir on mise-action ${index}`)
-      assert.ok(
-        index === actions.length - 1 || dirs[index] < actions[index + 1],
-        `${name} mise_dir ${index} must belong to mise-action ${index}`,
-      )
-      assert.ok(
-        index === actions.length - 1 || setups[index + 1] > actionAt,
-        `${name} must not reuse a later job's mise isolation`,
-      )
-    })
-    assert.match(unit, /printf 'MISE_DATA_DIR=%s\\n' "\$mise_root" >> "\$GITHUB_ENV"/u)
-  }
-  assert.doesNotMatch(
-    source,
-    /~\/\.local\/share\/mise/u,
-    `${name} must not hardcode the host mise path`,
-  )
-}
-
-function assertPersistentCleanup(workflow, job, requireTempCleanup = false) {
-  const block = jobBlock(workflow, job)
-  const checkout = block.indexOf('actions/checkout@')
-  const cleanup = [...block.matchAll(/name: Clean persistent runner workspace/gu)].map(
-    match => match.index,
-  )
-  assert.notEqual(checkout, -1, `${job} must check out code`)
-  assert.match(block, /clean: false/u, `${job} must preserve checkout-managed dependencies`)
-  assert.match(block, /persist-credentials: false/u, `${job} must not persist credentials`)
-  assert.ok(cleanup.length >= 2, `${job} needs pre- and post-job cleanup`)
-  assert.ok(checkout < cleanup[0], `${job} must bootstrap Git before cleanup`)
-  assert.ok(cleanup.at(-1) > checkout, `${job} needs cleanup after checkout`)
-  assert.match(block, /PRESERVE_NODE_MODULES: ["']false["']/u)
-  assert.match(
-    block,
-    /(?:npx --yes pnpm@11\.13\.1 dlx vouchington-tooling@0\.1\.5 clean-workspace|vouchington-tooling@0\.1\.5[\s\S]*vouchington clean-workspace)/u,
-    `${job} must run the pinned workspace-cleanup tool`,
-  )
-  if (requireTempCleanup) {
-    assert.equal(
-      [...block.matchAll(/working-directory: \$\{\{ runner\.temp \}\}/gu)].length,
-      cleanup.length,
-      `${job} must run every persistent-workspace cleanup outside the checkout`,
-    )
-  }
-  assert.match(block, /if: always\(\)/u, `${job} needs unconditional final cleanup`)
-}
-
-function assertCleanupBootstrapsFromCheckout(name, source) {
-  for (const [index, unit] of jobUnits(source).entries()) {
-    const cleanups = matchOffsets(unit, /vouchington-tooling@0\.1\.5 clean-workspace/gu)
-    if (cleanups.length === 0) continue
-    const checkout = unit.indexOf('actions/checkout@')
-    assert.notEqual(checkout, -1, `${name} unit ${index} must check out before cleanup`)
-    for (const cleanup of cleanups) {
-      assert.ok(
-        checkout < cleanup,
-        `${name} unit ${index} must bootstrap Git before every workspace cleanup`,
-      )
-    }
-  }
-}
-
-function assertValidateCleanupUsesTrustedCheckout(workflow, job) {
-  const block = jobBlock(workflow, job)
-  const cleanupSteps = [...block.matchAll(/name: Clean persistent runner workspace/gu)].map(
-    match => match.index,
-  )
-  const trustedCheckouts = [
-    ...block.matchAll(
-      /name: Check out trusted base for (?:final )?workspace cleanup[\s\S]*?ref: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}/gu,
-    ),
-  ].map(match => match.index)
-  const candidate = block.indexOf('name: Check out candidate')
-
-  assert.equal(cleanupSteps.length, 2, `${job} must clean exactly before and after candidate work`)
-  assert.equal(trustedCheckouts.length, 2, `${job} must restore the trusted base for both cleanups`)
-  assert.notEqual(candidate, -1, `${job} must check out the candidate after trusted cleanup`)
-  assert.ok(
-    trustedCheckouts[0] < cleanupSteps[0] && cleanupSteps[0] < candidate,
-    `${job} must clean from the trusted base before checking out candidate content`,
-  )
-  assert.ok(
-    candidate < trustedCheckouts[1] && trustedCheckouts[1] < cleanupSteps[1],
-    `${job} must restore the trusted base before final cleanup`,
-  )
-  assert.equal(
-    [...block.matchAll(/working-directory: \$\{\{ runner\.temp \}\}/gu)].length,
-    2,
-    `${job} must bootstrap cleanup outside the candidate workspace`,
-  )
-  assert.equal(
-    [...block.matchAll(/CLEANUP_WORKSPACE: \$\{\{ github\.workspace \}\}/gu)].length,
-    2,
-    `${job} must pass the workspace only to the already bootstrapped cleanup tool`,
-  )
-  assert.equal(
-    [...block.matchAll(/NPM_CONFIG_REGISTRY: https:\/\/registry\.npmjs\.org\//gu)].length,
-    2,
-    `${job} must pin the cleanup bootstrap registry outside project configuration`,
-  )
-  // The value holds spaces (`${{ runner.temp }}/...`), so capture to end of line.
-  const npmConfigPaths = [
-    ...block.matchAll(/NPM_CONFIG_(?:GLOBAL|USER)CONFIG: (?<path>[^\n]+)/gu),
-  ].map(match => match.groups.path.trim())
-  assert.equal(
-    npmConfigPaths.length,
-    4,
-    `${job} must not load ambient npm configuration while bootstrapping cleanup`,
-  )
-  assert.ok(
-    npmConfigPaths.every(path => path.startsWith('${{ runner.temp }}/')),
-    `${job} must point npm's global and user config outside the host and the project`,
-  )
-  // npm exits before resolving config when the global and user config name the
-  // same file ("double-loading config ... as global, previously loaded as user"),
-  // so the two must stay distinct -- a shared /dev/null breaks every npx call.
-  assert.equal(
-    new Set(npmConfigPaths).size,
-    2,
-    `${job} must give npm's global and user config distinct paths`,
-  )
-  assert.equal(
-    [
-      ...block.matchAll(
-        /npx --yes pnpm@11\.13\.1 dlx --package vouchington-tooling@0\.1\.5 bash -c/gu,
-      ),
-    ].length,
-    2,
-    `${job} must install the cleanup tool from the trusted temporary directory`,
-  )
-  assert.equal(
-    [...block.matchAll(/exec vouchington clean-workspace/gu)].length,
-    2,
-    `${job} must enter the workspace only after the trusted tool is installed`,
-  )
-  assert.doesNotMatch(
-    block,
-    /run: pnpm dlx vouchington-tooling@0\.1\.5 clean-workspace/gu,
-    `${job} must not resolve cleanup through workspace project configuration`,
-  )
-}
-
-function assertPrepareNativeContractCallersBootstrapCheckout(workflows) {
-  for (const [name, source] of Object.entries(workflows)) {
-    for (const [index, unit] of jobUnits(source).entries()) {
-      const action = unit.indexOf('uses: ./.github/actions/prepare-native-contract')
-      if (action === -1) continue
-      const checkout = unit.indexOf('actions/checkout@')
-      assert.ok(
-        checkout !== -1 && checkout < action,
-        `${name} unit ${index} must check out before prepare-native-contract cleans the workspace`,
-      )
-    }
-  }
-}
-
-describe('private self-hosted runner policy', () => {
-  it('rejects GitHub-hosted runner labels in every workflow', async () => {
+describe('GitHub-hosted runner policy', () => {
+  it('rejects self-hosted labels and unlisted hosted images', async () => {
     for (const [name, workflow] of await readWorkflows()) {
-      assert.doesNotMatch(
-        workflow,
-        /\b(?:ubuntu|macos|windows)-(?:latest|slim|\d[\w.-]*)\b/iu,
-        `${name} selects a GitHub-hosted runner`,
-      )
+      assert.doesNotMatch(workflow, /\bself-hosted\b/u, `${name} selects a self-hosted runner`)
+      const labels = [...workflow.matchAll(/^\s+runs-on:\s*(.+)$/gmu)].map(match => match[1].trim())
+      assert.ok(labels.length > 0, `${name} must declare runs-on`)
+      for (const label of labels) {
+        assert.ok(allowedLabels.has(label), `${name} uses disallowed runs-on ${label}`)
+      }
     }
   })
 
-  it('uses the exact self-hosted labels for the former hosted jobs', async () => {
+  it('maps former self-hosted jobs onto the closed hosted allowlist', async () => {
     const workflows = Object.fromEntries(await readWorkflows())
     for (const [job, runner] of [
-      ['contract-tests', '\\[self-hosted, Linux\\]'],
-      ['dotnet-core', '\\[self-hosted, Linux\\]'],
-      ['swift-core', '\\[self-hosted, Linux, Docker, Tests\\]'],
-      ['swift-lint', '\\[self-hosted, Linux, Docker, Tests\\]'],
-      ['tooling-lint', '\\[self-hosted, Linux\\]'],
-      ['gitleaks', '\\[self-hosted, Linux\\]'],
-      ['validate', '\\[self-hosted, Linux\\]'],
+      ['contract-tests', 'ubuntu-latest'],
+      ['dotnet-core', 'ubuntu-latest'],
+      ['swift-core', 'ubuntu-latest'],
+      ['swift-lint', 'ubuntu-latest'],
+      ['tooling-lint', 'ubuntu-latest'],
+      ['gitleaks', 'ubuntu-slim'],
+      ['validate', 'ubuntu-slim'],
     ])
       assertRunner(workflows['validate.yml'], job, runner)
-    assertRunner(workflows['native-contract-tests.yml'], 'produce', '\\[self-hosted, Linux\\]')
-    assertRunner(workflows['native-contract-tests.yml'], 'verify', '\\[self-hosted, Linux\\]')
-    assertRunner(workflows['native-contract-tests.yml'], 'tests', '\\[self-hosted, Linux\\]')
-    assertRunner(workflows['dependabot-automerge.yml'], 'automerge', '\\[self-hosted, Linux\\]')
-    assertRunner(workflows['dependabot-automerge.yml'], 'prepare', '\\[self-hosted, Linux\\]')
-    assertRunner(
-      workflows['dependabot-automerge.yml'],
-      'publish-swift-android',
-      '\\[self-hosted, Linux\\]',
-    )
-    assertRunner(
-      workflows['repair-dependabot-dotnet-locks.yml'],
-      'prepare',
-      '\\[self-hosted, macOS, Tests\\]',
-    )
-    assertRunner(
-      workflows['repair-dependabot-dotnet-locks.yml'],
-      'publish',
-      '\\[self-hosted, Linux\\]',
-    )
+    assertRunner(workflows['native-contract-tests.yml'], 'produce', 'ubuntu-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'verify', 'ubuntu-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'tests', 'ubuntu-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'dotnet-portable', 'ubuntu-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'test-swift-core', 'macos-latest')
+    assertRunner(workflows['dependabot-automerge.yml'], 'automerge', 'ubuntu-slim')
+    assertRunner(workflows['dependabot-automerge.yml'], 'prepare', 'ubuntu-slim')
+    assertRunner(workflows['dependabot-automerge.yml'], 'publish-swift-android', 'ubuntu-slim')
+    assertRunner(workflows['repair-dependabot-dotnet-locks.yml'], 'prepare', 'macos-latest')
+    assertRunner(workflows['repair-dependabot-dotnet-locks.yml'], 'publish', 'ubuntu-slim')
 
     const swiftManifest = jobBlock(workflows['validate.yml'], 'swift-core')
     assert.match(swiftManifest, /docker run --rm/u)
@@ -285,78 +86,21 @@ describe('private self-hosted runner policy', () => {
     assert.doesNotMatch(swiftManifest, /swift (?:build|test)/u)
   })
 
-  it('isolates mise from the shared self-hosted home directory', async () => {
-    const files = await readGithubYamlFiles()
-    const miseFiles = files.filter(([, source]) => source.includes('jdx/mise-action@'))
-    assert.ok(miseFiles.length > 0, 'expected mise-action usages')
-    for (const [name, source] of miseFiles) assertMiseIsolation(name, source)
-  })
-
-  it('rejects a mise-action job that borrows isolation from another job', () => {
-    const leaked = `
-jobs:
-  isolated:
-    steps:
-      - run: |
-          mise_root="$RUNNER_TEMP/mise"
-          printf 'MISE_DATA_DIR=%s\\n' "$mise_root" >> "$GITHUB_ENV"
-      - uses: jdx/mise-action@deadbeef
-        with:
-          mise_dir: \${{ runner.temp }}/mise
-  unused:
-    steps:
-      - run: |
-          mise_root="$RUNNER_TEMP/mise"
-          printf 'MISE_DATA_DIR=%s\\n' "$mise_root" >> "$GITHUB_ENV"
-  leaked:
-    steps:
-      - uses: jdx/mise-action@deadbeef
-        with:
-          mise_dir: \${{ runner.temp }}/mise
-`
-    assert.throws(
-      () => assertMiseIsolation('fixture.yml', leaked),
-      /must isolate MISE_DATA_DIR once per mise-action in the same job/u,
-    )
-  })
-
-  it('bootstraps Git before cleaning persistent-runner workspaces', async () => {
-    const workflows = Object.fromEntries(await readWorkflows())
-    for (const [name, workflow] of Object.entries(workflows)) {
-      assertCleanupBootstrapsFromCheckout(name, workflow)
+  it('does not run persistent-workspace cleanup or shared-host isolation', async () => {
+    for (const [name, source] of await readGithubYamlFiles()) {
+      assert.doesNotMatch(source, /clean-workspace/u, `${name} still cleans a persistent workspace`)
+      assert.doesNotMatch(source, /with-host-lock/u, `${name} still acquires a host lock`)
+      assert.doesNotMatch(
+        source,
+        /with-build-lock/u,
+        `${name} still wraps a shared-host build lock`,
+      )
+      assert.doesNotMatch(
+        source,
+        /MISE_DATA_DIR/u,
+        `${name} still jails mise against a shared home`,
+      )
+      assert.doesNotMatch(source, /clean: false/u, `${name} still preserves a persistent checkout`)
     }
-    assertPrepareNativeContractCallersBootstrapCheckout(workflows)
-  })
-
-  it('uses trusted base configuration for validate cleanup before and after candidate checkout', async () => {
-    const workflow = await readFile(join(workflowRoot, 'validate.yml'), 'utf8')
-    for (const job of [
-      'contract-tests',
-      'dotnet-core',
-      'swift-core',
-      'swift-lint',
-      'tooling-lint',
-      'gitleaks',
-    ])
-      assertValidateCleanupUsesTrustedCheckout(workflow, job)
-  })
-
-  it('cleans migrated and sensitive persistent-runner jobs after checkout and at job end', async () => {
-    const workflows = Object.fromEntries(await readWorkflows())
-    for (const [workflow, job, requireTempCleanup] of [
-      ['validate.yml', 'contract-tests'],
-      ['validate.yml', 'dotnet-core'],
-      ['validate.yml', 'swift-core'],
-      ['validate.yml', 'swift-lint'],
-      ['validate.yml', 'tooling-lint'],
-      ['validate.yml', 'gitleaks'],
-      ['native-contract-tests.yml', 'verify'],
-      ['native-contract-tests.yml', 'produce'],
-      ['dependabot-automerge.yml', 'prepare'],
-      ['dependabot-automerge.yml', 'publish-swift-android'],
-      ['repair-dependabot-dotnet-locks.yml', 'prepare'],
-      ['repair-dependabot-dotnet-locks.yml', 'publish'],
-    ])
-      assertPersistentCleanup(workflows[workflow], job, requireTempCleanup)
   })
 })

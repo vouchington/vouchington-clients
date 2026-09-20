@@ -94,7 +94,7 @@ Run lock-aware package and app checks from the repository root:
 ```
 
 The harness and Xcode wrapper share the per-user policy in
-[Per-User Host Locks](../docs/development/host-locks.md).
+[Host Locks](../docs/development/host-locks.md).
 
 ## Architecture
 

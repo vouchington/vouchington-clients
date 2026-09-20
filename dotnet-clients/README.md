@@ -97,11 +97,9 @@ engine against `.coverage-rules.yml`, requiring `lcov.info` and failing empty or
 The rendered App test project remains a documented 0% exemption: MAUI's platform shell is compiled
 and smoke-tested on Mac Catalyst, but Coverlet cannot instrument it reliably. Use
 `COVERAGE_BASE=origin/main COVERAGE_HEAD=HEAD pnpm run coverage:dotnet-core` after producing
-`dotnet-clients/TestResults/core/lcov.info`. Compiler-capable commands use
-`with-build-lock.sh`; it waits up to 60 seconds locally and fails closed, while GitHub Actions
-uses a 300-second command cap and may continue unlocked after a contention timeout. Override those
-defaults with the validated `VOUCHA_BUILD_LOCK_*` variables. `dotnet test --no-build` remains
-outside that lock.
+`dotnet-clients/TestResults/core/lcov.info`. Local compiler-capable commands may use
+`with-build-lock.sh`; it waits up to 60 seconds and fails closed. GitHub Actions does not wrap
+those commands. `dotnet test --no-build` remains outside that lock.
 
 NuGet restores use nuget.org as the only package source. The SDK's local `library-packs` and
 fallback folders are disabled because different .NET distributions can contain packages with the
@@ -117,7 +115,7 @@ classification, original exit status, integer elapsed seconds, and its final 40 
 lines. `host-timeout` and `lock-timeout` require exact `expensive-build` or
 `host-package-manager` wrapper markers with their matching exit statuses; generic host-pressure
 diagnostics remain `check-failure`. See
-[Per-User Host Locks](../docs/development/host-locks.md#native-harness-timeout-classification).
+[Host Locks](../docs/development/host-locks.md#native-harness-timeout-classification).
 
 When changing a MAUI dependency, regenerate both app and Core Mac Catalyst locks for `maccatalyst-arm64` and `maccatalyst-x64` with `dotnet restore --force-evaluate` and the corresponding `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 

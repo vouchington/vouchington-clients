@@ -14,8 +14,8 @@ thresholds/exemptions, the ViewInspector pattern, the test file-length cap, and 
 test-double synchronization rules.
 
 Use [README.md#code-quality-harness](README.md#code-quality-harness) for formatting, lint, build,
-test, and generation checks. Use the harness or CI wrappers for compiler-heavy commands; see
-[Per-User Host Locks](../docs/development/host-locks.md).
+test, and generation checks. Local concurrent worktrees may wrap compiler-heavy commands; see
+[Host Locks](../docs/development/host-locks.md). CI does not.
 
 ## Key rules
 

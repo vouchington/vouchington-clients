@@ -45,8 +45,7 @@ and the explicit Vouchington producer boundaries.
 
 ## CI runners
 
-This repository uses the organization self-hosted fleet to avoid consuming GitHub-hosted
-minutes. Runner labels and the required persistent-runner cleanup boundary are documented in
+This repository uses GitHub-hosted ephemeral runners. The closed label set is documented in
 [`docs/development/ci-runners.md`](docs/development/ci-runners.md). Which native tests run on
 Linux vs macOS, and when dual-OS is required, is documented in
 [`docs/development/native-ci-test-placement.md`](docs/development/native-ci-test-placement.md).

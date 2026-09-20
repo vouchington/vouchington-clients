@@ -5,8 +5,8 @@ CI testing client, and Android is outside this workspace. Use [README.md](README
 status, structure, SDK/configuration details, and local commands.
 Batch all compatible changed .NET files in one `pnpm run test:plan:dotnet` invocation before
 running selected targets.
-Use the harness or CI wrappers for compiler-capable commands; see
-[Per-User Host Locks](../docs/development/host-locks.md).
+Use the harness for compiler-capable commands. Local concurrent worktrees may wrap those commands;
+see [Host Locks](../docs/development/host-locks.md). CI does not.
 Before adding or changing a .NET test, load the
 [dotnet-test-authoring skill](../.agents/skills/dotnet-test-authoring/SKILL.md) — it owns the
 Core-vs-App test split, the test file-length cap, and local coverage.
@@ -42,7 +42,7 @@ Core-vs-App test split, the test file-length cap, and local coverage.
 - Keep posts, referral links, and topics native in MAUI; do not use WebView fallback for parity surfaces.
 - Keep member chat and support native in MAUI, with list/detail/create flows backed by core chat/support services.
 - Every database-backed native list must forward opaque cursors and append pages safely; follow Vouchington's [cross-surface pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
-- Do not add Windows CI packaging steps until a Windows self-hosted runner exists.
+- Do not add Windows CI packaging steps until a hosted Windows job is actually needed.
 - **CI placement** — portable Core tests, DTO parity, and patch coverage run once on Linux. Do not add a macOS copy of `Voucha.DotNet.sln`. MAUI App tests and Mac Catalyst smoke stay macOS. See [native CI test placement](../docs/development/native-ci-test-placement.md).
 - Keep source files under the native cap: 200 physical lines for `dotnet-clients/src/**/*.cs`,
   enforced by `repo-file-policy`. The test cap and Core-vs-App split live in the
