@@ -40,11 +40,16 @@ public sealed partial class ReviewQueueExposureViewModelTests
   [Fact]
   public async Task RefreshExposureAcceptedAfterRevealStartsRemainsFresh()
   {
+    var posts = new[]
+    {
+      Post("first", true, Image("image-1")),
+      Post("second", true, Image("image-2")),
+    };
     var exposure = new RacingExposureService();
-    var viewModel = Create(
+    var viewModel = new ReviewQueueViewModel(
+        new QueueService(posts),
         exposure,
-        Post("first", true, Image("image-1")),
-        Post("second", true, Image("image-2")));
+        new AppConfig(new Uri("https://api.test")));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
     var reveal = viewModel.RevealMediaAsync(
