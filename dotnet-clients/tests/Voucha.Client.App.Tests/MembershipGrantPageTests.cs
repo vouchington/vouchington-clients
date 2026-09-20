@@ -35,6 +35,7 @@ public sealed class MembershipGrantPageTests
 
     Assert.Equal("Membership grants", page.Title);
     Assert.Single(Descendants<Entry>(page), value => value.AutomationId == "membership-grant-query");
+    Assert.Single(Descendants<Entry>(page), value => value.AutomationId == "membership-grant-duration-days");
     Assert.Single(Descendants<Button>(page), value => value.AutomationId == "membership-grant-search");
     Assert.Single(Descendants<Button>(page), value => value.AutomationId == "membership-grant-submit");
     Assert.Single(Descendants<Button>(page), value => value.AutomationId == "membership-grant-retry");
@@ -65,6 +66,7 @@ public sealed class MembershipGrantPageTests
     Assert.Contains(skuOptions, option => option.Label.Contains("sku-monthly-b", StringComparison.Ordinal));
 
     model.SelectUser(new UserSearchResult("user-1", "alice"));
+    model.DurationDays = "30";
     Assert.True(await model.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Equal(
         localization.Localize(UiMessageKey.NativeSwiftMembershipMembershipGrantSuccess),
@@ -103,19 +105,22 @@ public sealed class MembershipGrantPageTests
   private sealed class Service : IMembershipAdministrationService
   {
     public Task<MembershipPlansResponse> FetchPlansAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(MembershipPlansResponse.FromLegacyPlans(new Dictionary<string, IReadOnlyList<MembershipSku>>
-        {
-          ["plus"] =
-          [
-            new("sku-monthly-a", "plus", new Money(500, "usd"), "monthly", "price-monthly-a"),
-            new("sku-monthly-b", "plus", new Money(500, "usd"), "monthly", "price-monthly-b"),
-            new("sku-yearly", "plus", new Money(500, "usd"), "yearly", "price-yearly"),
-          ],
-        }));
+        Task.FromResult(new MembershipPlansResponse(
+        [
+          Product("sku-monthly-a", "monthly", "price-monthly-a"),
+          Product("sku-monthly-b", "monthly", "price-monthly-b"),
+          Product("sku-yearly", "yearly", "price-yearly"),
+        ]));
     public Task<UsersSearchResponse> SearchUsersAsync(SearchUsersRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new UsersSearchResponse([], new PageInfo(null, false, null)));
     public Task<GrantMembershipResponse> GrantAsync(GrantMembershipBody body, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership"), new MembershipGrantResult("grant"), false));
+        Task.FromResult(new GrantMembershipResponse(
+            new MembershipGrantResult("grant"),
+            new MembershipGrantResult("membership"),
+            false));
+
+    private static MembershipCatalogProduct Product(string id, string interval, string priceId) =>
+        new(id, "plus", interval, [new MembershipCatalogProvider("stripe", "test", "voucha-web", priceId, null, null, null, new Money(500, "usd"))]);
   }
 
   private sealed class ErrorService : IMembershipAdministrationService

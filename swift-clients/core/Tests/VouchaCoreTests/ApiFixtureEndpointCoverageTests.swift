@@ -399,7 +399,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.memberships.grant.default": Endpoint.grantMembership(
                 userId: "00000000-0000-7000-8000-000000000003",
                 plan: .plus,
-                skuId: "00000000-0000-7000-8000-000000000701"
+                skuId: "00000000-0000-7000-8000-000000000701",
+                durationDays: 30
             ),
             "native.crm.contacts.default": Endpoint.crmContacts(
                 query: "alice",

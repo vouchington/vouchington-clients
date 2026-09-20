@@ -17,8 +17,10 @@ public sealed class MembershipGrantViewModelTests
     viewModel.SelectUser(User());
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = "30";
     Assert.True(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Equal("user-1", service.Grant!.UserId);
+    Assert.Equal(30, service.Grant.DurationDays);
     Assert.Null(viewModel.SelectedUser);
     Assert.NotNull(viewModel.Success);
   }
@@ -33,6 +35,7 @@ public sealed class MembershipGrantViewModelTests
     Assert.Equal("user-without-username", viewModel.Query);
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = "30";
 
     Assert.True(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Equal("user-without-username", service.Grant!.UserId);
@@ -57,7 +60,7 @@ public sealed class MembershipGrantViewModelTests
     var service = new Service { GrantError = new InvalidOperationException("denied") };
     var viewModel = new MembershipGrantViewModel(service);
     await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
-    viewModel.SelectUser(User()); viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus; viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.SelectUser(User()); viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus; viewModel.SelectedSku = viewModel.AvailableSkus.Single(); viewModel.DurationDays = "30";
     Assert.False(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.NotNull(viewModel.SelectedUser); Assert.NotNull(viewModel.SelectedSku); Assert.NotNull(viewModel.Error);
   }
@@ -75,7 +78,7 @@ public sealed class MembershipGrantViewModelTests
     Assert.False(viewModel.IsSearching);
     await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
-    viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus; viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus; viewModel.SelectedSku = viewModel.AvailableSkus.Single(); viewModel.DurationDays = "30";
     Assert.True(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Equal(2, service.PlanCalls);
   }
@@ -89,7 +92,8 @@ public sealed class MembershipGrantViewModelTests
     viewModel.SelectUser(User());
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
-    service.Plans = new Dictionary<string, IReadOnlyList<MembershipSku>>();
+    viewModel.DurationDays = "30";
+    service.Products = [];
 
     Assert.False(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Null(service.Grant);
@@ -102,21 +106,22 @@ public sealed class MembershipGrantViewModelTests
   public async Task GrantUsesTheSelectionCapturedBeforeItsPlanRefresh()
   {
     var refresh = new TaskCompletionSource<MembershipPlansResponse>();
-    var service = new Service { Plans = Plans(), PendingRefresh = refresh };
+    var service = new Service { Products = Products(), PendingRefresh = refresh };
     var viewModel = new MembershipGrantViewModel(service);
     await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
     viewModel.SelectUser(User());
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = "30";
 
     var granting = viewModel.GrantAsync(TestContext.Current.CancellationToken);
     viewModel.SelectUser(new UserSearchResult("user-2", "bob"));
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Pro;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
-    refresh.SetResult(MembershipPlansResponse.FromLegacyPlans(Plans()));
+    refresh.SetResult(new MembershipPlansResponse(Products()));
 
     Assert.True(await granting);
-    Assert.Equal(new GrantMembershipBody("user-1", MembershipGrantPlanSlug.Plus, "sku-plus"), service.Grant);
+    Assert.Equal(new GrantMembershipBody("user-1", MembershipGrantPlanSlug.Plus, "sku-plus", 30), service.Grant);
   }
 
   [Fact]
@@ -128,6 +133,7 @@ public sealed class MembershipGrantViewModelTests
     viewModel.SelectUser(User());
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = "30";
     service.PlanError = new HttpRequestException("offline");
 
     Assert.False(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
@@ -161,10 +167,13 @@ public sealed class MembershipGrantViewModelTests
   {
     var service = new Service
     {
-      Plans = new Dictionary<string, IReadOnlyList<MembershipSku>>
-      {
-        ["plus"] = [new("ok", "plus", new Money(500, "usd"), "monthly", "price")],
-      }
+      Products = [
+        new MembershipCatalogProduct(
+            "ok",
+            "plus",
+            "monthly",
+            [new MembershipCatalogProvider("stripe", "test", "voucha-web", "price-ok", null, null, null, new Money(500, "usd"))]),
+      ]
     };
     var viewModel = new MembershipGrantViewModel(service);
     await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
@@ -224,11 +233,32 @@ public sealed class MembershipGrantViewModelTests
     viewModel.SelectUser(User());
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = "30";
     Assert.True(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.NotNull(viewModel.Success);
 
     Assert.False(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
     Assert.Null(viewModel.Success);
+    Assert.Equal(UiMessageKey.NativeSwiftMembershipMembershipGrantValidation, viewModel.SearchError!.Value.Key);
+  }
+
+  [Theory]
+  [InlineData("0")]
+  [InlineData("3661")]
+  [InlineData("30.5")]
+  [InlineData("thirty")]
+  public async Task GrantRejectsDurationOutsideTheContractRange(string durationDays)
+  {
+    var service = new Service();
+    var viewModel = new MembershipGrantViewModel(service);
+    await viewModel.LoadPlansAsync(TestContext.Current.CancellationToken);
+    viewModel.SelectUser(User());
+    viewModel.SelectedPlan = MembershipGrantPlanSlug.Plus;
+    viewModel.SelectedSku = viewModel.AvailableSkus.Single();
+    viewModel.DurationDays = durationDays;
+
+    Assert.False(await viewModel.GrantAsync(TestContext.Current.CancellationToken));
+    Assert.Null(service.Grant);
     Assert.Equal(UiMessageKey.NativeSwiftMembershipMembershipGrantValidation, viewModel.SearchError!.Value.Key);
   }
 
@@ -290,12 +320,14 @@ public sealed class MembershipGrantViewModelTests
 
   private static UserSearchResult User() => new("user-1", "alice");
 
-  private static IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> Plans() =>
-      new Dictionary<string, IReadOnlyList<MembershipSku>>
-      {
-        ["plus"] = [new("sku-plus", "plus", new Money(500, "usd"), "monthly", "price")],
-        ["pro"] = [new("sku-pro", "pro", new Money(1_000, "usd"), "monthly", "price")],
-      };
+  private static IReadOnlyList<MembershipCatalogProduct> Products() =>
+  [
+    Product("sku-plus", "plus", new Money(500, "usd")),
+    Product("sku-pro", "pro", new Money(1_000, "usd")),
+  ];
+
+  private static MembershipCatalogProduct Product(string id, string plan, Money? price) =>
+      new(id, plan, "monthly", [new("stripe", "test", "voucha-web", $"price-{id}", null, null, null, price)]);
 
   private sealed class Service : IMembershipAdministrationService
   {
@@ -303,7 +335,7 @@ public sealed class MembershipGrantViewModelTests
     public Exception? GrantError { get; init; }
     public Exception? PlanError { get; set; }
     public int PlanCalls { get; private set; }
-    public IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>>? Plans { get; set; }
+    public IReadOnlyList<MembershipCatalogProduct>? Products { get; set; }
     public TaskCompletionSource<MembershipPlansResponse>? PendingRefresh { get; init; }
     public TaskCompletionSource<UsersSearchResponse>? Search { get; init; }
     public Exception? SearchError { get; init; }
@@ -313,7 +345,9 @@ public sealed class MembershipGrantViewModelTests
     {
       PlanCalls++;
       if (PlanCalls > 1 && PendingRefresh is not null) return PendingRefresh.Task;
-      return PlanError is null ? Task.FromResult(MembershipPlansResponse.FromLegacyPlans(Plans ?? new Dictionary<string, IReadOnlyList<MembershipSku>> { ["plus"] = [new("sku-1", "plus", new Money(500, "usd"), "monthly", "price")] })) : Task.FromException<MembershipPlansResponse>(PlanError);
+      return PlanError is null
+          ? Task.FromResult(new MembershipPlansResponse(Products ?? [Product("sku-1", "plus", new Money(500, "usd"))]))
+          : Task.FromException<MembershipPlansResponse>(PlanError);
     }
     public Task<UsersSearchResponse> SearchUsersAsync(SearchUsersRequest request, CancellationToken cancellationToken = default)
     {
@@ -325,7 +359,13 @@ public sealed class MembershipGrantViewModelTests
     }
     public Task<GrantMembershipResponse> GrantAsync(GrantMembershipBody body, CancellationToken cancellationToken = default)
     {
-      Grant = body; return GrantError is null ? Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership-1"), new MembershipGrantResult("grant-1"), false)) : Task.FromException<GrantMembershipResponse>(GrantError);
+      Grant = body;
+      return GrantError is null
+          ? Task.FromResult(new GrantMembershipResponse(
+              new MembershipGrantResult("grant-1"),
+              new MembershipGrantResult("membership-1"),
+              false))
+          : Task.FromException<GrantMembershipResponse>(GrantError);
     }
   }
 }

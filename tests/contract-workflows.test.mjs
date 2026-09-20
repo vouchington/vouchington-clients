@@ -69,10 +69,11 @@ describe('native contract workflow boundary', () => {
       assert.match(action, expectation)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
-    assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 13)
+    assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
+    assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
-      0,
+      12,
     )
   })
 
@@ -104,6 +105,10 @@ describe('native contract workflow boundary', () => {
     assert.match(
       workflow,
       /name: Build MAUI Mac Catalyst app\n\s+if: steps\.xcode\.outputs\.compatible == 'true'/u,
+    )
+    assert.match(
+      workflow,
+      /name: Restore the shared MAUI project-reference graph\n\s+if: steps\.xcode\.outputs\.compatible == 'true'[\s\S]*?dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+- name: Build MAUI Mac Catalyst app/u,
     )
     assert.ok(
       workflow.indexOf('name: Test rendered MAUI pages') <

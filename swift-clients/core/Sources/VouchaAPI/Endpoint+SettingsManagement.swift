@@ -119,10 +119,6 @@ public extension Endpoint {
         Endpoint(.DELETE, path: "/api/v1/my/api-keys/\(pathSegment(id))")
     }
 
-    static var membershipPlans: Endpoint {
-        Endpoint(.GET, path: "/api/v1/memberships/plans")
-    }
-
     static var membershipMe: Endpoint {
         Endpoint(.GET, path: "/api/v1/memberships/me")
     }

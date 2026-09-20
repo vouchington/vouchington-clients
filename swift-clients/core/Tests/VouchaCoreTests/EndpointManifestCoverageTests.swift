@@ -5,31 +5,22 @@ import XCTest
 
 final class EndpointManifestCoverageTests: XCTestCase {
     func testEveryManifestFixtureIsRepresentedInTheSwiftCoverageRegistry() {
-        let manifestIds = Set(ManifestLoader.fixtures.map(\.id))
+        let manifestIds = Set(ManifestLoader.swiftRouteFixtures.map(\.id))
         let registeredIds = Set(EndpointManifestCoverage.registry.map(\.id))
         let duplicateIds = Dictionary(grouping: EndpointManifestCoverage.registry, by: \.id)
             .filter { $0.value.count > 1 }
             .keys.sorted()
-        let nonSwiftIds = EndpointManifestCoverage.nonSwiftManifestFixtureIds
-        let accountedFor = registeredIds.union(nonSwiftIds)
 
         XCTAssertTrue(duplicateIds.isEmpty, "Duplicate Swift endpoint registrations: \(duplicateIds)")
 
-        let conflictingIds = registeredIds.intersection(nonSwiftIds)
-        XCTAssertTrue(
-            conflictingIds.isEmpty,
-            "Fixtures cannot be both Swift endpoint registrations and explicitly non-Swift: " +
-                "\(conflictingIds.sorted())"
-        )
-
-        let unaccounted = manifestIds.subtracting(accountedFor)
+        let unaccounted = manifestIds.subtracting(registeredIds)
         XCTAssertTrue(
             unaccounted.isEmpty,
-            "Fixtures in api-fixtures/v1/manifest.json that are not represented in the Swift coverage registry: " +
+            "Swift-consumed route fixtures not represented in the Swift coverage registry: " +
                 "\(unaccounted.sorted())"
         )
 
-        let stale = accountedFor.subtracting(manifestIds)
+        let stale = registeredIds.subtracting(Set(ManifestLoader.fixtures.map(\.id)))
         XCTAssertTrue(stale.isEmpty, "Unexpected stale manifest coverage entries: \(stale.sorted())")
     }
 
@@ -49,6 +40,8 @@ private struct ManifestFixture {
     let path: String
     let query: [String: String]
     let requestBody: Any?
+    let consumers: [String]
+    let hasRoute: Bool
 }
 
 private enum ManifestLoader {
@@ -67,6 +60,10 @@ private enum ManifestLoader {
 
     static func fixture(id: String) -> ManifestFixture? {
         fixtures.first { $0.id == id }
+    }
+
+    static let swiftRouteFixtures = fixtures.filter { fixture in
+        fixture.hasRoute && fixture.consumers.contains { ["swift-core", "swift-ui"].contains($0) }
     }
 
     private static func manifestURL() -> URL? {
@@ -92,6 +89,8 @@ private extension ManifestFixture {
         self.path = path
         query = raw["query"] as? [String: String] ?? [:]
         requestBody = raw["requestBody"]
+        consumers = raw["consumers"] as? [String] ?? []
+        hasRoute = raw["route"] is [String: Any]
     }
 }
 

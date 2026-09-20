@@ -73,7 +73,7 @@ jobs:
       - name: Check out client tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ steps.event.outputs.trusted_ref }}
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -188,7 +188,7 @@ jobs:
       - name: Check out trusted consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -291,7 +291,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -367,7 +367,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -395,7 +395,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -421,7 +421,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -460,7 +460,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -506,7 +506,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -617,7 +617,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -683,7 +683,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -716,7 +716,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -754,7 +754,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -800,7 +800,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -897,14 +897,15 @@ jobs:
             *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
-      - name: Restore portable Core assets for the Mac Catalyst app
+      - name: Restore the shared MAUI project-reference graph
         if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
         env:
           ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
         run: >-
           dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
-          --locked-mode -p:Configuration=Release
+          -p:Configuration=Release -p:TargetFramework=net10.0-maccatalyst
+          -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
       - name: Build MAUI Mac Catalyst app
         if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients

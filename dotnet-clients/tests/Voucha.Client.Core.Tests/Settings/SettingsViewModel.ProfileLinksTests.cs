@@ -216,7 +216,7 @@ public sealed class SettingsViewModelProfileLinksTests
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(MembershipPlansResponse.FromLegacyPlans(new Dictionary<string, IReadOnlyList<MembershipSku>>()));
+        Task.FromResult(new MembershipPlansResponse([]));
 
     public Task<CheckoutSessionResponse> CreateMembershipCheckoutSessionAsync(
         MembershipCheckoutBody body,

@@ -12,6 +12,7 @@ public sealed class MembershipGrantPage : ContentPage, IUiLocaleChangeListener, 
   private readonly Entry query = UiCopy.Bind(new Entry { AutomationId = "membership-grant-query" }, Entry.PlaceholderProperty, UiMessageKey.NativeSwiftMembershipSearchUsers);
   private readonly Picker plan = new() { AutomationId = "membership-grant-plan" };
   private readonly Picker sku = new() { AutomationId = "membership-grant-sku" };
+  private readonly Entry durationDays = new() { AutomationId = "membership-grant-duration-days", Keyboard = Keyboard.Numeric };
   private readonly Label errorMessage = new() { TextColor = Colors.IndianRed };
   private readonly Label successMessage = new() { TextColor = Colors.ForestGreen };
   private readonly Label planStatus = new();
@@ -39,6 +40,7 @@ public sealed class MembershipGrantPage : ContentPage, IUiLocaleChangeListener, 
     query.SetBinding(Entry.TextProperty, nameof(MembershipGrantViewModel.Query), BindingMode.TwoWay);
     plan.SelectedIndexChanged += OnPlanSelected;
     sku.SelectedIndexChanged += OnSkuSelected;
+    durationDays.SetBinding(Entry.TextProperty, nameof(MembershipGrantViewModel.DurationDays), BindingMode.TwoWay);
     Title = localization.Localize(UiMessageKey.NativeSwiftMembershipMembershipGrants);
     searchButton = LocalizedButton(UiMessageKey.NativeSwiftMembershipSearch, OnSearchClicked); searchButton.AutomationId = "membership-grant-search";
     submitButton = LocalizedButton(UiMessageKey.NativeSwiftMembershipMembershipGrant, OnSubmitClicked); submitButton.AutomationId = "membership-grant-submit";
@@ -71,6 +73,7 @@ public sealed class MembershipGrantPage : ContentPage, IUiLocaleChangeListener, 
       UiCopy.Bind(new Label(), Label.TextProperty, UiMessageKey.NativeSwiftMembershipSelectPlan), plan,
       planStatus,
       UiCopy.Bind(new Label(), Label.TextProperty, UiMessageKey.NativeSwiftMembershipSelectSku), sku,
+      UiCopy.Bind(new Label(), Label.TextProperty, UiMessageKey.NativeSwiftSettingsSelectedDays), durationDays,
       noSkus,
       retryButton,
       submitButton,

@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
@@ -73,6 +74,28 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
         XCTAssertEqual(viewModel.moderationResults, [])
     }
 
+    func testChangingTabDiscardsModerationRowsAndError() {
+        let viewModel = CommunityDetailViewModel(
+            client: nil,
+            slug: "builders",
+            initialTab: .moderation
+        )
+        viewModel.moderationResults = [
+            NativeRouteDestinationRow(
+                id: "platform-moderation",
+                icon: "checkmark.shield",
+                title: .verbatim("stale title"),
+                detail: .verbatim("stale detail")
+            )
+        ]
+        viewModel.moderationResultsError = UiMessage(.nativeSwiftEmptyStateUnableToLoad)
+
+        viewModel.selectedTab = .posts
+
+        XCTAssertEqual(viewModel.moderationResults, [])
+        XCTAssertNil(viewModel.moderationResultsError)
+    }
+
     func testBlankLookupDiscardsPreviousRows() async {
         let viewModel = CommunityDetailViewModel(
             client: nil,
@@ -91,6 +114,29 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
         await viewModel.loadModerationResults(postId: "   ")
 
         XCTAssertEqual(viewModel.moderationResults, [])
+    }
+
+    func testCurrentLookupFailurePublishesVisibleErrorAndSuccessfulRetryClearsIt() async throws {
+        let path = "/api/v1/communities/builders/posts/current-post/moderation-results"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (Data("{}".utf8), 500, 0),
+            (response(status: "approved"), 200, 0)
+        ]
+        let viewModel = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation
+        )
+
+        await viewModel.loadModerationResults(postId: "current-post")
+
+        XCTAssertEqual(viewModel.moderationResults, [])
+        XCTAssertEqual(viewModel.moderationResultsError, UiMessage(.nativeSwiftEmptyStateUnableToLoad))
+
+        await viewModel.loadModerationResults(postId: "current-post")
+
+        XCTAssertNil(viewModel.moderationResultsError)
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["0 results", "Approved"])
     }
 
     private func response(status: String, agentCount: Int = 0) -> Data {

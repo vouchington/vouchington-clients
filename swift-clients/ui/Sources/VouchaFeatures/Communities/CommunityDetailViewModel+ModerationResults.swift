@@ -6,6 +6,7 @@ extension CommunityDetailViewModel {
     func discardModerationResults() {
         moderationResultsRequestRevision += 1
         moderationResults = []
+        moderationResultsError = nil
     }
 
     func loadModerationResults(postId: String) async {
@@ -27,12 +28,14 @@ extension CommunityDetailViewModel {
                   isCurrentCommunityLoad(communityRevision, tab: .moderation)
             else { return }
             moderationResults = moderationResultRows(for: response)
+            moderationResultsError = nil
         } catch {
             guard !Task.isCancelled,
                   requestRevision == moderationResultsRequestRevision,
                   isCurrentCommunityLoad(communityRevision, tab: .moderation)
             else { return }
             moderationResults = []
+            moderationResultsError = UiMessage(.nativeSwiftEmptyStateUnableToLoad)
         }
     }
 

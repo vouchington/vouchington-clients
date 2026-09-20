@@ -49,14 +49,12 @@ public sealed partial class SettingsViewModelTests
   {
     var service = new FakeSettingsService
     {
-      MembershipPlansResponse = MembershipPlansResponse.FromLegacyPlans(
-          new Dictionary<string, IReadOnlyList<MembershipSku>>
-          {
-            ["pro"] =
-            [
-              new MembershipSku("sku-jpy", "pro", new Money(1234, "jpy"), "month", "price-jpy"),
-            ],
-          }),
+      MembershipPlansResponse = new MembershipPlansResponse(
+          [new MembershipCatalogProduct(
+              "sku-jpy",
+              "pro",
+              "month",
+              [new MembershipCatalogProvider("stripe", "test", "voucha-web", "price-jpy", null, null, null, new Money(1234, "jpy"))])]),
     };
     var viewModel = new SettingsViewModel(service);
 

@@ -70,12 +70,8 @@ final class UserFacingModelDecodingTests: XCTestCase {
 
         let plansJSON = ApiFixtureLoader.data("native.memberships.plans.default")
         let plans = try decoder.decode(MembershipPlansResponse.self, from: plansJSON)
-        XCTAssertEqual(plans.products.count, 3)
-        XCTAssertEqual(Set(plans.products.map(\.plan)), ["plus", "pro"])
-        XCTAssertEqual(
-            plans.products.first { $0.plan == "plus" }?.providers.first { $0.provider == "stripe" }?.productId,
-            "price_native_plus_monthly"
-        )
+        XCTAssertEqual(plans.plans["plus"]?.first?.stripePriceId, "price_native_plus_monthly")
+        XCTAssertNil(plans.plans["pro"])
         XCTAssertEqual(plans.benefitCatalog?.version, 1)
         XCTAssertEqual(plans.benefitCatalog?.groups.first?.benefits.first?.id, "public_contribution_access")
         XCTAssertEqual(plans.benefitCatalog?.groups.flatMap(\.benefits).count, 11)
