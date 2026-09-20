@@ -76,10 +76,7 @@ describe('native contract workflow boundary', () => {
     ])
       assert.match(action, expectation)
 
-    assert.match(
-      action,
-      /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u,
-    )
+    assert.match(action, /expected-contract-repository:[\s\S]*?default: jonathanong\/filaments/u)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
@@ -313,7 +310,10 @@ describe('native contract workflow boundary', () => {
       /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,
     )
     assert.equal(workflow.split('--contract-repository vouchington/vouchington').length - 1, 1)
-    assert.equal(workflow.split('--expected-contract-repository vouchington/vouchington').length - 1, 1)
+    assert.equal(
+      workflow.split('--expected-contract-repository vouchington/vouchington').length - 1,
+      1,
+    )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
       11,
