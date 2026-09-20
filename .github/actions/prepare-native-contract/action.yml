@@ -24,9 +24,17 @@ runs:
         node-version-file: .nvmrc
     - name: Clean persistent runner workspace
       shell: bash
+      working-directory: ${{ runner.temp }}
       env:
+        CLEANUP_WORKSPACE: ${{ github.workspace }}
+        NPM_CONFIG_GLOBALCONFIG: /dev/null
+        NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+        NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+        NPM_CONFIG_USERCONFIG: /dev/null
         PRESERVE_NODE_MODULES: 'false'
-      run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
+      run: >-
+        npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
+        "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
     - name: Configure isolated native paths
       shell: bash
       run: |
@@ -72,4 +80,4 @@ runs:
     - name: Install candidate tooling
       shell: bash
       working-directory: candidate-clients
-      run: pnpm install --frozen-lockfile
+      run: npx --yes pnpm@11.13.1 install --frozen-lockfile

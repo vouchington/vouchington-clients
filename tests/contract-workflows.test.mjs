@@ -74,6 +74,19 @@ describe('native contract workflow boundary', () => {
       assert.match(action, expectation)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 11)
+    assert.match(
+      action,
+      /working-directory: \$\{\{ runner\.temp \}\}[\s\S]*CLEANUP_WORKSPACE: \$\{\{ github\.workspace \}\}/u,
+    )
+    assert.match(action, /NPM_CONFIG_REGISTRY: https:\/\/registry\.npmjs\.org\//u)
+    assert.equal(action.match(/NPM_CONFIG_(?:GLOBAL|USER)CONFIG: \/dev\/null/gu)?.length, 2)
+    assert.match(
+      action,
+      /npx --yes pnpm@11\.13\.1 dlx --package vouchington-tooling@0\.1\.5 bash -c/u,
+    )
+    assert.match(action, /exec vouchington clean-workspace/u)
+    assert.match(action, /npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u)
+    assert.doesNotMatch(action, /run: pnpm /u)
   })
 
   it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
