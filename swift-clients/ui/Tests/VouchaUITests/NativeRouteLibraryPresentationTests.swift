@@ -88,19 +88,19 @@ final class NativeRouteLibraryPresentationTests: NativeRouteSurfaceViewModelTest
                         "id": "month",
                         "plan": "plus",
                         "interval": "monthly",
-                        "providers": [{ "provider": "stripe", "product_id": "month", "price": { "amount": 1299, "currency": "usd" } }]
+                        "providers": [{ "provider": "stripe", "environment": "test", "application_id": "voucha-web", "product_id": "month", "base_plan_id": null, "offer_id": null, "sku_id": null, "price": { "amount": 1299, "currency": "usd" } }]
                       },
                       {
                         "id": "year",
                         "plan": "plus",
                         "interval": "yearly",
-                        "providers": [{ "provider": "stripe", "product_id": "year", "price": { "amount": 9999, "currency": "usd" } }]
+                        "providers": [{ "provider": "stripe", "environment": "test", "application_id": "voucha-web", "product_id": "year", "base_plan_id": null, "offer_id": null, "sku_id": null, "price": { "amount": 9999, "currency": "usd" } }]
                       },
                       {
                         "id": "custom",
                         "plan": "plus",
                         "interval": "lifetime",
-                        "providers": [{ "provider": "stripe", "product_id": "custom", "price": { "amount": 500, "currency": "eur" } }]
+                        "providers": [{ "provider": "stripe", "environment": "test", "application_id": "voucha-web", "product_id": "custom", "base_plan_id": null, "offer_id": null, "sku_id": null, "price": { "amount": 500, "currency": "eur" } }]
                       }
                   ]
                 }

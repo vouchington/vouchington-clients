@@ -435,7 +435,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (
             Data(
-                #"{"products":[{"id":"sku-1","plan":"plus","interval":"monthly","providers":[{"provider":"stripe","product_id":"price-plus-monthly","price":{"amount":1299,"currency":"usd"}}]},{"id":"sku-2","plan":"plus","interval":"yearly","providers":[{"provider":"stripe","product_id":"price-plus-yearly","price":{"amount":9999,"currency":"usd"}}]},{"id":"sku-3","plan":"pro","interval":"monthly","providers":[{"provider":"stripe","product_id":"price-pro-monthly","price":{"amount":2499,"currency":"usd"}}]}]}"#
+                #"{"products":[{"id":"sku-1","plan":"plus","interval":"monthly","providers":[{"provider":"stripe","environment":"test","application_id":"voucha-web","product_id":"price-plus-monthly","base_plan_id":null,"offer_id":null,"sku_id":null,"price":{"amount":1299,"currency":"usd"}}]},{"id":"sku-2","plan":"plus","interval":"yearly","providers":[{"provider":"stripe","environment":"test","application_id":"voucha-web","product_id":"price-plus-yearly","base_plan_id":null,"offer_id":null,"sku_id":null,"price":{"amount":9999,"currency":"usd"}}]},{"id":"sku-3","plan":"pro","interval":"monthly","providers":[{"provider":"stripe","environment":"test","application_id":"voucha-web","product_id":"price-pro-monthly","base_plan_id":null,"offer_id":null,"sku_id":null,"price":{"amount":2499,"currency":"usd"}}]}]}"#
                     .utf8
             ),
             200

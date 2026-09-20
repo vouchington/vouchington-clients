@@ -368,7 +368,7 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
                     "id": "sku-1",
                     "plan": "pro",
                     "interval": "monthly",
-                    "providers": [{ "provider": "stripe", "product_id": "price-pro", "price": { "amount": 1299, "currency": "usd" } }]
+                    "providers": [{ "provider": "stripe", "environment": "test", "application_id": "voucha-web", "product_id": "price-pro", "base_plan_id": null, "offer_id": null, "sku_id": null, "price": { "amount": 1299, "currency": "usd" } }]
                   }
               ]
             }
