@@ -160,7 +160,7 @@ public sealed partial class SettingsViewModelActionsTests
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(new MembershipPlansResponse(
+        Task.FromResult(MembershipPlansResponse.FromLegacyPlans(
             new Dictionary<string, IReadOnlyList<MembershipSku>>
             {
               ["pro"] = [new MembershipSku("sku-1", "pro", new Money(1500, "usd"), "month", "price-1")],

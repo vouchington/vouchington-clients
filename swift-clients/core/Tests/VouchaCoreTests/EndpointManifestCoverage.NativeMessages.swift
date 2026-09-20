@@ -60,6 +60,12 @@ extension EndpointManifestCoverage {
                 skuId: "00000000-0000-7000-8000-000000000701"
             )
         },
+        ManifestRegisteredEndpoint(id: "native.memberships.grant.delete.default") {
+            Endpoint.revokeMembershipGrant(
+                grantId: "00000000-0000-7000-8000-000000000802",
+                reason: "Incorrect grant"
+            )
+        },
         ManifestRegisteredEndpoint(id: "native.identity-verification-attempts.grant.default") {
             Endpoint.grantIdentityVerificationAttempt(
                 userId: "00000000-0000-7000-8000-000000000003",

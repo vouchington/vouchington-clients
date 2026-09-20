@@ -49,8 +49,8 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(
-            Data(#"{"membership":{"id":"m-1"}}"#.utf8),
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(
+            Data(#"{"grant":{"id":"g-1"},"membership":{"id":"m-1"},"queued":false}"#.utf8),
             201,
             0
         )]
@@ -88,7 +88,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/memberships/plans" }.count,
             2
         )
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships" })
+        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/membership-grants" })
         XCTAssertNil(viewModel.selectedSkuId)
         XCTAssertEqual(viewModel.submissionMessage, .message(.nativeSwiftMembershipMembershipGrantValidation))
     }
@@ -98,8 +98,8 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
-            (Data(#"{"membership":{"id":"membership-1"}}"#.utf8), 201, 0)
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
+            (Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8), 201, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
@@ -119,8 +119,8 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (multiplePlansResponse, 200, 0),
             (multiplePlansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
-            (Data(#"{"membership":{"id":"membership-1"}}"#.utf8), 201, 0)
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
+            (Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8), 201, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
@@ -166,7 +166,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertFalse(viewModel.canSubmit)
         await viewModel.grant()
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/memberships"), 0)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/membership-grants"), 0)
 
         CannedFeedURLProtocol.releaseResponse(path: plansPath)
         await refresh.value
@@ -195,7 +195,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/memberships/plans" }.count,
             3
         )
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships" })
+        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/membership-grants" })
     }
 
     func testGrantFailurePreservesSelections() async throws {
@@ -203,7 +203,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(Data("{}".utf8), 500, 0)]
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(Data("{}".utf8), 500, 0)]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         let user = try user()
         await viewModel.loadPlans()

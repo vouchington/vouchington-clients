@@ -49,7 +49,7 @@ public sealed partial class SettingsViewModelTests
   {
     var service = new FakeSettingsService
     {
-      MembershipPlansResponse = new MembershipPlansResponse(
+      MembershipPlansResponse = MembershipPlansResponse.FromLegacyPlans(
           new Dictionary<string, IReadOnlyList<MembershipSku>>
           {
             ["pro"] =

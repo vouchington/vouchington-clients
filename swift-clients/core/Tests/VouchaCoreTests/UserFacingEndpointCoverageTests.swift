@@ -179,8 +179,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
         assertEndpoint(
             Endpoint.grantMembership(userId: "user-1", plan: .pro, skuId: "sku-1"),
             method: .POST,
-            path: "/api/v1/memberships",
-            body: ["user_id": "user-1", "plan": "pro", "sku_id": "sku-1"]
+            path: "/api/v1/membership-grants",
+            body: ["user_id": "user-1", "plan": "pro", "sku_id": "sku-1", "duration_days": 30]
         )
         assertEndpoint(
             Endpoint.bookmarks(entityType: "topic", entityId: "topic 1"),

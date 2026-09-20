@@ -13,7 +13,9 @@ public sealed partial class VouchaApiClientTests
     var response = await client.GrantMembershipAsync(
         new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701"),
         TestContext.Current.CancellationToken);
-    AssertRequest(handler, HttpMethod.Post, "/api/v1/memberships");
+    AssertRequest(handler, HttpMethod.Post, "/api/v1/membership-grants");
     Assert.Equal("00000000-0000-7000-8000-000000000801", response.Membership.Id);
+    Assert.Equal("00000000-0000-7000-8000-000000000802", response.Grant.Id);
+    Assert.False(response.Queued);
   }
 }

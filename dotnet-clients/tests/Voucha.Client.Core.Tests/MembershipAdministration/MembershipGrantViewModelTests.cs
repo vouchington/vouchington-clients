@@ -113,7 +113,7 @@ public sealed class MembershipGrantViewModelTests
     viewModel.SelectUser(new UserSearchResult("user-2", "bob"));
     viewModel.SelectedPlan = MembershipGrantPlanSlug.Pro;
     viewModel.SelectedSku = viewModel.AvailableSkus.Single();
-    refresh.SetResult(new MembershipPlansResponse(Plans()));
+    refresh.SetResult(MembershipPlansResponse.FromLegacyPlans(Plans()));
 
     Assert.True(await granting);
     Assert.Equal(new GrantMembershipBody("user-1", MembershipGrantPlanSlug.Plus, "sku-plus"), service.Grant);
@@ -163,7 +163,7 @@ public sealed class MembershipGrantViewModelTests
     {
       Plans = new Dictionary<string, IReadOnlyList<MembershipSku>>
       {
-        ["plus"] = [new("ok", "plus", new Money(500, "usd"), "monthly", "price"), new("wrong", "pro", new Money(500, "usd"), "monthly", "price")],
+        ["plus"] = [new("ok", "plus", new Money(500, "usd"), "monthly", "price")],
       }
     };
     var viewModel = new MembershipGrantViewModel(service);
@@ -313,7 +313,7 @@ public sealed class MembershipGrantViewModelTests
     {
       PlanCalls++;
       if (PlanCalls > 1 && PendingRefresh is not null) return PendingRefresh.Task;
-      return PlanError is null ? Task.FromResult(new MembershipPlansResponse(Plans ?? new Dictionary<string, IReadOnlyList<MembershipSku>> { ["plus"] = [new("sku-1", "plus", new Money(500, "usd"), "monthly", "price")] })) : Task.FromException<MembershipPlansResponse>(PlanError);
+      return PlanError is null ? Task.FromResult(MembershipPlansResponse.FromLegacyPlans(Plans ?? new Dictionary<string, IReadOnlyList<MembershipSku>> { ["plus"] = [new("sku-1", "plus", new Money(500, "usd"), "monthly", "price")] })) : Task.FromException<MembershipPlansResponse>(PlanError);
     }
     public Task<UsersSearchResponse> SearchUsersAsync(SearchUsersRequest request, CancellationToken cancellationToken = default)
     {
@@ -325,7 +325,7 @@ public sealed class MembershipGrantViewModelTests
     }
     public Task<GrantMembershipResponse> GrantAsync(GrantMembershipBody body, CancellationToken cancellationToken = default)
     {
-      Grant = body; return GrantError is null ? Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership-1"))) : Task.FromException<GrantMembershipResponse>(GrantError);
+      Grant = body; return GrantError is null ? Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership-1"), new MembershipGrantResult("grant-1"), false)) : Task.FromException<GrantMembershipResponse>(GrantError);
     }
   }
 }

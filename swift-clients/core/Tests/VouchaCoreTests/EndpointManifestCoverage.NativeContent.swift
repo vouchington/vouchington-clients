@@ -15,6 +15,19 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.comments.ancestors.permalink") {
             Endpoint.postAncestors(postId: "comment-b")
         },
+        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.shallow") {
+            Endpoint.postAncestors(postId: "comment-b", limit: 5)
+        },
+        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-initial") {
+            Endpoint.postAncestors(postId: "bounded-ancestor-comment-7", limit: 5)
+        },
+        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-continuation") {
+            Endpoint.postAncestors(
+                postId: "bounded-ancestor-comment-7",
+                after: "fixture-ancestor-deep-initial-end",
+                limit: 5
+            )
+        },
         ManifestRegisteredEndpoint(id: "native.lists.default") {
             Endpoint.lists()
         },

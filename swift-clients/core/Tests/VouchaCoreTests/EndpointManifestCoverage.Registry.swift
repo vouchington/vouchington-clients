@@ -28,6 +28,7 @@ enum EndpointManifestCoverage {
             + nativeCrmEndpoints
             + nativeAgentConversationEndpoints
             + nativeMessageEndpoints
+            + membershipStoreEndpoints
             + importExportEndpoints
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints

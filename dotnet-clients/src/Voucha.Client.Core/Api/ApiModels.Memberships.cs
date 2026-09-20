@@ -12,6 +12,22 @@ public sealed record MembershipSku(
     [property: JsonPropertyName("stripe_price_id")] string StripePriceId,
     [property: JsonPropertyName("retired_at")] DateTimeOffset? RetiredAt = null);
 
+public sealed record MembershipProductProvider(
+    [property: JsonPropertyName("application_id")] string ApplicationId,
+    [property: JsonPropertyName("base_plan_id")] string? BasePlanId,
+    [property: JsonPropertyName("environment")] string Environment,
+    [property: JsonPropertyName("offer_id")] string? OfferId,
+    [property: JsonPropertyName("price")] Money? Price,
+    [property: JsonPropertyName("product_id")] string ProductId,
+    [property: JsonPropertyName("provider")] string Provider,
+    [property: JsonPropertyName("sku_id")] string? SkuId);
+
+public sealed record MembershipProduct(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("interval")] string Interval,
+    [property: JsonPropertyName("plan")] string Plan,
+    [property: JsonPropertyName("providers")] IReadOnlyList<MembershipProductProvider> Providers);
+
 public sealed record Membership(
     [property: JsonPropertyName("__entity_type")] string EntityType,
     [property: JsonPropertyName("id")] string Id,
@@ -37,8 +53,51 @@ public sealed record Membership(
 public sealed record MembershipResponse([property: JsonPropertyName("membership")] Membership? Membership);
 
 public sealed record MembershipPlansResponse(
-    [property: JsonPropertyName("plans")] IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> Plans,
-    [property: JsonPropertyName("benefit_catalog")] MembershipBenefitCatalog? BenefitCatalog = null);
+    [property: JsonPropertyName("products")] IReadOnlyList<MembershipProduct> Products,
+    [property: JsonPropertyName("benefit_catalog")] MembershipBenefitCatalog? BenefitCatalog = null)
+{
+  public static MembershipPlansResponse FromLegacyPlans(
+      IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> plans,
+      MembershipBenefitCatalog? benefitCatalog = null) =>
+      new(FromLegacyPlanProducts(plans), benefitCatalog);
+
+  [JsonIgnore]
+  public IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> Plans =>
+      Products
+          .GroupBy(product => product.Plan, StringComparer.Ordinal)
+          .ToDictionary(
+              group => group.Key,
+              group => (IReadOnlyList<MembershipSku>)group.Select(ToSku).ToArray(),
+              StringComparer.Ordinal);
+
+  private static MembershipProduct[] FromLegacyPlanProducts(
+      IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> plans) =>
+      plans.SelectMany(pair => pair.Value.Select(sku => new MembershipProduct(
+          sku.Id,
+          sku.Interval,
+          sku.Plan,
+          [
+            new MembershipProductProvider(
+                "voucha-web",
+                null,
+                "test",
+                null,
+                sku.Price,
+                sku.StripePriceId,
+                "stripe",
+                null)
+          ]))).ToArray();
+
+  private static MembershipSku ToSku(MembershipProduct product)
+  {
+    var stripe = product.Providers.FirstOrDefault(provider =>
+        string.Equals(provider.Provider, "stripe", StringComparison.Ordinal));
+    var price = stripe?.Price
+        ?? product.Providers.Select(provider => provider.Price).FirstOrDefault(value => value is not null)
+        ?? new Money(0, "usd");
+    return new MembershipSku(product.Id, product.Plan, price, product.Interval, stripe?.ProductId ?? string.Empty);
+  }
+}
 
 public sealed record MembershipBenefitCatalog(
     [property: JsonPropertyName("version")] int Version,

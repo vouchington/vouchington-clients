@@ -87,8 +87,8 @@ extension MembershipGrantViewModelTests {
             (grantPlansResponse, 200, 0),
             (grantPlansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(
-            Data(#"{"membership":{"id":"membership-1"}}"#.utf8),
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(
+            Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8),
             201,
             0
         )]

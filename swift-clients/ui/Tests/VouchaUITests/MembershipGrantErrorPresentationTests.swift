@@ -7,7 +7,7 @@ import XCTest
 final class MembershipGrantErrorPresentationTests: NativeRouteSurfaceViewModelTestCase {
     func testGrantShowsIntentionalClientErrorMessage() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships/plans"] = [(plansResponse, 200, 0)]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
             (Data(#"{"message":"Choose another SKU."}"#.utf8), 422, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.Tests.Api;
@@ -237,7 +238,20 @@ internal static partial class ApiFixtureCoverage
     ["native.messages.policy.default"] = typeof(DirectConversationPolicyResponse),
     ["native.messages.user-search.default"] = typeof(UsersSearchResponse),
     ["native.memberships.plans.default"] = typeof(MembershipPlansResponse),
+    ["native.memberships.me.default"] = typeof(JsonElement),
+    ["native.memberships.me.lifecycle.default"] = typeof(JsonElement),
     ["native.memberships.grant.default"] = typeof(GrantMembershipResponse),
+    ["native.memberships.purchase-intent.apple.default"] = typeof(JsonElement),
+    ["native.memberships.purchase-intent.conflict.default"] = typeof(JsonElement),
+    ["native.memberships.purchase-intent.google.default"] = typeof(JsonElement),
+    ["native.memberships.purchase-intent.microsoft.default"] = typeof(JsonElement),
+    ["native.memberships.purchase-intent.stripe.default"] = typeof(JsonElement),
+    ["native.memberships.verification.pending.default"] = typeof(JsonElement),
+    ["native.memberships.verification-status.conflict.default"] = typeof(JsonElement),
+    ["native.memberships.verification-status.pending.default"] = typeof(JsonElement),
+    ["native.memberships.verification-status.rejected.default"] = typeof(JsonElement),
+    ["native.memberships.verification-status.verified.default"] = typeof(JsonElement),
+    ["native.memberships.microsoft.service-tickets.default"] = typeof(JsonElement),
     ["native.crm.contacts.default"] = typeof(CrmContactListResponse),
     ["native.crm.contact-detail.default"] = typeof(CrmContactDetailResponse),
     ["native.crm.contact-create.default"] = typeof(CrmContactResponse),
@@ -254,6 +268,9 @@ internal static partial class ApiFixtureCoverage
     ["native.comments.post-detail.default"] = typeof(PostResponse),
     ["native.comments.descendants.default"] = typeof(PostThreadResponse),
     ["native.comments.ancestors.permalink"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.shallow"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.deep-initial"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.deep-continuation"] = typeof(PostThreadResponse),
     ["native.lists.default"] = typeof(ListsSearchResponse),
     ["native.list-items.default"] = typeof(ListItemsResponse),
     ["native.lists-containing.default"] = typeof(ListsContainingResponse),

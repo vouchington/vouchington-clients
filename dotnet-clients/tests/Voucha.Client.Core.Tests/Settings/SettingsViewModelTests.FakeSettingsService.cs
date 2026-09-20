@@ -24,7 +24,7 @@ public sealed partial class SettingsViewModelTests
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
 
     public MembershipPlansResponse MembershipPlansResponse { get; set; } =
-        new(new Dictionary<string, IReadOnlyList<MembershipSku>>
+        MembershipPlansResponse.FromLegacyPlans(new Dictionary<string, IReadOnlyList<MembershipSku>>
         {
           ["plus"] = [new MembershipSku("sku-1", "plus", new Money(500, "usd"), "month", "price-1")],
           ["pro"] =

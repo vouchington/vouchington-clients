@@ -103,7 +103,7 @@ public sealed class MembershipGrantPageTests
   private sealed class Service : IMembershipAdministrationService
   {
     public Task<MembershipPlansResponse> FetchPlansAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(new MembershipPlansResponse(new Dictionary<string, IReadOnlyList<MembershipSku>>
+        Task.FromResult(MembershipPlansResponse.FromLegacyPlans(new Dictionary<string, IReadOnlyList<MembershipSku>>
         {
           ["plus"] =
           [
@@ -115,7 +115,7 @@ public sealed class MembershipGrantPageTests
     public Task<UsersSearchResponse> SearchUsersAsync(SearchUsersRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new UsersSearchResponse([], new PageInfo(null, false, null)));
     public Task<GrantMembershipResponse> GrantAsync(GrantMembershipBody body, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership")));
+        Task.FromResult(new GrantMembershipResponse(new MembershipGrantResult("membership"), new MembershipGrantResult("grant"), false));
   }
 
   private sealed class ErrorService : IMembershipAdministrationService

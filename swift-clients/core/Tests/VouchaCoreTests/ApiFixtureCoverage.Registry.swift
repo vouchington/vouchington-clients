@@ -59,10 +59,12 @@ enum ApiFixtureCoverage {
         moderationAppealLifecycleFixtureCoverage +
         moderationParityFixtureCoverage +
         nativeListMessageCoverage +
+        nativeCommentAncestorCoverage +
         nativeUrlApiFixtureCoverage +
         userProfileApiFixtureCoverage +
         nativeCrmApiFixtureCoverage +
         nativeMembershipFixtureCoverage +
+        nativeMembershipStoreFixtureCoverage +
         engineeringOpsApiFixtureCoverage +
         dynamicConfigApiFixtureCoverage +
         accountFeedFixtureCoverage +

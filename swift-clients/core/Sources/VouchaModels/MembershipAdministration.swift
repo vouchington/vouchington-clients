@@ -9,7 +9,9 @@ public enum MembershipPlanSlug: String, Codable, CaseIterable, Identifiable, Sen
 }
 
 public struct MembershipGrantResponse: Codable, Sendable {
+    public let grant: MembershipGrant
     public let membership: MembershipGrant
+    public let queued: Bool
 }
 
 public struct MembershipGrant: Codable, Identifiable, Sendable {

@@ -70,16 +70,23 @@ final class UserFacingModelDecodingTests: XCTestCase {
 
         let plansJSON = ApiFixtureLoader.data("native.memberships.plans.default")
         let plans = try decoder.decode(MembershipPlansResponse.self, from: plansJSON)
-        XCTAssertEqual(plans.plans["pro"]?.first?.stripePriceId, "price_native_pro_monthly")
+        XCTAssertEqual(plans.products.count, 3)
+        XCTAssertEqual(Set(plans.products.map(\.plan)), ["plus", "pro"])
+        XCTAssertEqual(
+            plans.products.first { $0.plan == "plus" }?.providers.first { $0.provider == "stripe" }?.productId,
+            "price_native_plus_monthly"
+        )
         XCTAssertEqual(plans.benefitCatalog?.version, 1)
         XCTAssertEqual(plans.benefitCatalog?.groups.first?.benefits.first?.id, "public_contribution_access")
         XCTAssertEqual(plans.benefitCatalog?.groups.flatMap(\.benefits).count, 11)
 
         let grant = try decoder.decode(
             MembershipGrantResponse.self,
-            from: Data(#"{"membership":{"id":"membership-1"}}"#.utf8)
+            from: Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8)
         )
+        XCTAssertEqual(grant.grant.id, "grant-1")
         XCTAssertEqual(grant.membership.id, "membership-1")
+        XCTAssertFalse(grant.queued)
     }
 
     func testDecodesSharedReferralLinkFixtures() throws {

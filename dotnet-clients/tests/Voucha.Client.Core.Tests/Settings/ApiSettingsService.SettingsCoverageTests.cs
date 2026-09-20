@@ -206,7 +206,7 @@ public sealed class ApiSettingsServiceSettingsCoverageTests
   private static ProfileLinkResponse CreateProfileLinkResponse() => new(CreateProfileLink());
 
   private static MembershipPlansResponse CreateMembershipPlansResponse() =>
-      new(
+      MembershipPlansResponse.FromLegacyPlans(
           new Dictionary<string, IReadOnlyList<MembershipSku>>
           {
             ["pro"] = [new MembershipSku("sku-1", "pro", new Money(1500, "usd"), "month", "price-1")],
