@@ -13,7 +13,8 @@ public sealed class CopyrightMediaContractTests
         ApiFixtureLoader.LoadResponse("native.posts.images.placement.default"),
         VouchaApiJson.Options);
 
-    var image = Assert.Single(Assert.NotNull(response).Images);
+    Assert.NotNull(response);
+    var image = Assert.Single(response.Images);
     Assert.Equal("00000000-0000-7000-8000-000000000803", image.PlacementId);
     Assert.Equal(1, image.PlacementRevision);
     Assert.Equal("00000000-0000-7000-8000-000000000802", image.ImageId);
@@ -26,7 +27,8 @@ public sealed class CopyrightMediaContractTests
         ApiFixtureLoader.LoadResponse("native.moderation.copyright.image-similarity-candidates.default"),
         VouchaApiJson.Options);
 
-    var candidate = Assert.Single(Assert.NotNull(response).CopyrightImageSimilarityCandidates);
+    Assert.NotNull(response);
+    var candidate = Assert.Single(response.CopyrightImageSimilarityCandidates);
     Assert.Equal(CopyrightImageSimilarityAvailability.Available, response.Availability);
     Assert.Equal("00000000-0000-7000-8000-000000000803", candidate.PlacementId);
     Assert.Equal(1, candidate.PlacementRevision);
