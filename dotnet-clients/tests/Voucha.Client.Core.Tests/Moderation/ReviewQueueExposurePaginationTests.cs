@@ -69,6 +69,39 @@ public sealed partial class ReviewQueueExposureViewModelTests
     Assert.False(row.IsExposureStale);
   }
 
+  [Fact]
+  public async Task SuccessfulQueueRefreshKeepsAcceptedExposureWhenALateRevealFinishes()
+  {
+    var exposure = new ExposureService(Exposure(), Exposure()) { HoldReveal = true };
+    var post = Post("sensitive", true, Image("image-1"));
+    var viewModel = new ReviewQueueViewModel(
+        new QueueService([post]),
+        exposure,
+        new AppConfig(new Uri("https://api.test")),
+        localization: null,
+        localeController: null,
+        utcNow: () => DateTimeOffset.UnixEpoch,
+        delay: static (_, _) => Task.CompletedTask);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var reveal = viewModel.RevealMediaAsync(
+        Assert.Single(viewModel.Items),
+        TestContext.Current.CancellationToken);
+    await exposure.RevealStarted.Task;
+
+    await viewModel.RefreshAsync(TestContext.Current.CancellationToken);
+    Assert.Equal("sensitive", Assert.Single(viewModel.Items).Id);
+    Assert.False(Assert.Single(viewModel.Items).IsExposureStale);
+
+    exposure.ReleaseReveal();
+    await reveal;
+
+    var row = Assert.Single(viewModel.Items);
+    Assert.False(row.ShowMedia);
+    Assert.False(row.IsExposureStale);
+    Assert.True(row.CanRevealMedia);
+  }
+
   private sealed class PagedQueueService(
       AdminReviewQueuePost first,
       AdminReviewQueuePost second) : ReviewQueueModerationServiceStub

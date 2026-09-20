@@ -172,6 +172,7 @@ public sealed partial class ReviewQueueViewModel
       bool scheduleCooldownRefresh)
   {
     exposureState = next;
+    Interlocked.Increment(ref exposureLifecycleVersion);
     Volatile.Write(
         ref acceptedExposureLifecycleVersion,
         Volatile.Read(ref exposureLifecycleVersion));
