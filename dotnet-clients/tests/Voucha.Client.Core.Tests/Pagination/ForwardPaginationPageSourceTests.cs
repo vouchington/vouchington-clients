@@ -40,7 +40,6 @@ public sealed class ForwardPaginationPageSourceTests
   }
 
   [Theory]
-  [InlineData("AgentListsPage.cs")]
   [InlineData("CommunitySectionPages.cs")]
   [InlineData("ModerationAppealsPage.cs")]
   [InlineData("ModerationReportsPage.cs")]

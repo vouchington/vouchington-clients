@@ -410,29 +410,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
         ["native.messages.conversations.default"] = VouchaApiEndpoints.MyMessages(),
-        ["native.agents.default"] = VouchaApiEndpoints.Agents(limit: 2),
-        ["native.agents.page-2"] = VouchaApiEndpoints.Agents(
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDMwMSIsInNjb3BlIjoiYWdlbnQtZGlyZWN0b3J5OmlkLWRlc2MifQ",
-            2),
-        ["native.agents.detail.default"] = VouchaApiEndpoints.Agent("helper"),
-        ["native.agents.conversations.default"] = VouchaApiEndpoints.AgentConversations(
-            "helper",
-            limit: 2),
-        ["native.agents.conversations.filtered-username"] = VouchaApiEndpoints.AgentConversations(
-            "helper", limit: 2, filter: new AgentConversationFilter(AgentConversationFilterKind.Username, "fixture-agent-user-011")),
-        ["native.agents.conversations.page-2"] = VouchaApiEndpoints.AgentConversations(
-            "helper",
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMTAxMSIsInNjb3BlIjoie1wiYWdlbnRTeXN0ZW1Vc2VySWRcIjpcIjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDAwMVwiLFwidXNlcklkXCI6bnVsbCxcInBvc3RJZFwiOm51bGwsXCJyc3NGZWVkSXRlbUlkXCI6bnVsbCxcIm9ubHlMaW5rZWRcIjp0cnVlLFwib3JkZXJcIjpcImlkLWRlc2NcIn0ifQ",
-            2),
-        ["native.agents.conversation.default"] = VouchaApiEndpoints.AgentConversation(
-            "helper",
-            "00000000-0000-7000-8000-000000000101",
-            limit: 2),
-        ["native.agents.conversation.page-2"] = VouchaApiEndpoints.AgentConversation(
-            "helper",
-            "00000000-0000-7000-8000-000000000101",
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDIwMSIsInNjb3BlIjoie1wiYWdlbnRJZFwiOlwiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMzAyXCIsXCJjb252ZXJzYXRpb25JZFwiOlwiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMTAxXCIsXCJvcmRlclwiOlwiaWQtZGVzY1wifSJ9",
-            2),
         ["native.messages.conversations.page-2"] = VouchaApiEndpoints.MyMessages(
             "eyJ0aW1lc3RhbXAiOiIyMDI2LTA3LTAxVDA5OjE1OjAwLjAwMDAwMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiJ9"),
         ["native.messages.conversation.default"] = VouchaApiEndpoints.MyMessage("00000000-0000-7000-8000-000000000101"),

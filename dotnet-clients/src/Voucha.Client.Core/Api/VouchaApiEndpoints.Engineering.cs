@@ -45,28 +45,4 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest FlushValkey(FlushValkeyBody body) =>
       new(HttpMethod.Post, "/api/v1/valkey/flush") { Body = body };
 
-  public static ApiRequest AgentConversation(
-      string agentIdOrSlug,
-      string conversationId,
-      string? after = null,
-      int limit = 50) =>
-      Get(
-          $"/api/v1/agents/{Path(agentIdOrSlug)}/conversations/{Path(conversationId)}",
-          Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest Agents(string? after = null, int limit = 25) =>
-      Get("/api/v1/agents", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest Agent(string idOrSlug) => Get($"/api/v1/agents/{Path(idOrSlug)}");
-
-  public static ApiRequest AgentConversations(
-      string agentIdOrSlug,
-      string? after = null,
-      int limit = 25,
-      AgentConversationFilter? filter = null) =>
-      Get(
-          $"/api/v1/agents/{Path(agentIdOrSlug)}/conversations",
-          filter is null
-              ? Query(("limit", limit), ("after", after))
-              : Query(("limit", limit), ("after", after), (filter.QueryName, filter.Value)));
 }

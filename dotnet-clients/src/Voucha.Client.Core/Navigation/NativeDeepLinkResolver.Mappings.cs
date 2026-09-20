@@ -41,7 +41,7 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.UserAdmin => "friends",
         NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or NativeRouteDestinationId.SupportStaffThreads or
             NativeRouteDestinationId.SupportStaffContacts => "crm",
-        NativeRouteDestinationId.EngineeringAgents or NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
+        NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
         NativeRouteDestinationId.EngineeringValkey or NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig => "engineering",
         NativeRouteDestinationId.GrowthDashboard => "growth",
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -113,7 +113,7 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.AdvancedSettings or NativeRouteDestinationId.Referrals or
         NativeRouteDestinationId.Bookmarks or NativeRouteDestinationId.TopicRecommendations or NativeRouteDestinationId.TagManagement or
         NativeRouteDestinationId.ModerationCases or NativeRouteDestinationId.UserAdmin or NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or
-        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or NativeRouteDestinationId.EngineeringAgents or
+        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig or NativeRouteDestinationId.GrowthDashboard or
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -135,7 +135,7 @@ public static partial class NativeDeepLinkResolver
     }
 
     if (destinationId is NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or
-        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or NativeRouteDestinationId.EngineeringAgents or
+        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.ModerationReviewQueue or
         NativeRouteDestinationId.ModerationAdmin or NativeRouteDestinationId.ModerationIntegrity)

@@ -5,7 +5,7 @@ namespace Voucha.Client.Core.Tests.Api;
 internal static partial class ApiFixtureCoverage
 {
   public static readonly IReadOnlyDictionary<string, ApiRequest> EndpointRegistry =
-      WithOAuthBrokerEndpoints(WithRewardsProgramStatusEndpoints(WithAiCostEndpoints(WithAgentEndpoints(new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
+      WithOAuthBrokerEndpoints(WithRewardsProgramStatusEndpoints(WithAiCostEndpoints(new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),

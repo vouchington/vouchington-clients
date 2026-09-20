@@ -17,17 +17,6 @@ public sealed class VouchaApiEngineeringEndpointTests
     Assert.Equal("/api/v1/mq/backfills/backfill%20a/runs", VouchaApiEndpoints.TriggerBackfill("backfill a").Path);
   }
 
-  [Fact]
-  public void AgentConversationEndpointEscapesPathAndForwardsOpaqueCursor()
-  {
-    var request = VouchaApiEndpoints.AgentConversation("helper agent", "conversation/id", "opaque+cursor=", 17);
-
-    Assert.Equal(HttpMethod.Get, request.Method);
-    Assert.Equal("/api/v1/agents/helper%20agent/conversations/conversation%2Fid", request.Path);
-    Assert.Equal("17", request.Query["limit"]);
-    Assert.Equal("opaque+cursor=", request.Query["after"]);
-  }
-
   [Theory]
   [InlineData("runMigrations")]
   [InlineData("runViews")]
