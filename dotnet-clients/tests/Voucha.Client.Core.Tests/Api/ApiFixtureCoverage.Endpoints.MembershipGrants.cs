@@ -16,10 +16,6 @@ internal static partial class ApiFixtureCoverage
             "bounded-ancestor-comment-7",
             "fixture-ancestor-deep-initial-end",
             5);
-    registry["native.memberships.grant.delete.default"] =
-        VouchaApiEndpoints.RevokeMembershipGrant(
-            "00000000-0000-7000-8000-000000000802",
-            new RevokeMembershipGrantBody("Incorrect grant"));
     return registry;
   }
 }

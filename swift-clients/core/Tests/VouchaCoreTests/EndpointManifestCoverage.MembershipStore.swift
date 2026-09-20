@@ -5,9 +5,6 @@ extension EndpointManifestCoverage {
         membershipStoreFixtureEndpoints.map { id, endpoint in
             ManifestRegisteredEndpoint(id: id) { endpoint }
         } + [
-            ManifestRegisteredEndpoint(id: "native.memberships.microsoft.service-tickets.default") {
-                Endpoint.microsoftStoreServiceTickets
-            },
             ManifestRegisteredEndpoint(id: "web.memberships.refund.completed") {
                 membershipRefundManifestEndpoint
             },

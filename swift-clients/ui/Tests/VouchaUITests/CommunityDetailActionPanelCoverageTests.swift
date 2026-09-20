@@ -44,7 +44,10 @@ final class CommunityDetailActionPanelCoverageTests: NativeRouteSurfaceViewModel
             isSignedIn: true,
             showSignIn: {}
         ))
-        XCTAssertEqual(moderationButtons.count, 28)
+        XCTAssertEqual(moderationButtons.count, 29)
+        XCTAssertNoThrow(try CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+            .inspect()
+            .find(button: "Moderation summary"))
         XCTAssertNoThrow(try CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
             .inspect()
             .find(button: "Update"))

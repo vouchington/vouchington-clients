@@ -289,9 +289,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             "bounded-ancestor-comment-7",
             "fixture-ancestor-deep-initial-end",
             5),
-        ["native.memberships.grant.delete.default"] = VouchaApiEndpoints.RevokeMembershipGrant(
-            "00000000-0000-7000-8000-000000000802",
-            new RevokeMembershipGrantBody("Incorrect grant")),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.landing-pages.default"] = VouchaApiEndpoints.MyLandingPages(),

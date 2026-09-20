@@ -108,7 +108,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(
       workflow,
-      /name: Restore the shared MAUI project-reference graph\n\s+if: steps\.xcode\.outputs\.compatible == 'true'[\s\S]*?dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+- name: Build MAUI Mac Catalyst app/u,
+      /name: Restore the shared MAUI project-reference graph\n\s+if: steps\.xcode\.outputs\.compatible == 'true'[\s\S]*?dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+- name: Build MAUI Mac Catalyst app/u,
     )
     assert.ok(
       workflow.indexOf('name: Test rendered MAUI pages') <
