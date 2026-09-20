@@ -92,7 +92,6 @@ extension NativeReviewQueueViewModel {
 
     private func replaceItems(isInitial: Bool) async {
         guard isAuthorized, inFlightPostIds.isEmpty, let client else { return }
-        revealContextRevision += 1
         let existingPagination = pagination
         pagination.reset()
         guard let request = pagination.beginNextPage() else { return }
@@ -107,6 +106,7 @@ extension NativeReviewQueueViewModel {
                 pagination = existingPagination
                 return
             }
+            revealContextRevision += 1
             pagination.complete(
                 request,
                 items: supportedItems(response.results),

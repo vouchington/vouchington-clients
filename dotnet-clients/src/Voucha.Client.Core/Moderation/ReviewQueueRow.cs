@@ -35,7 +35,30 @@ public sealed record ReviewQueueRow(
     _ => UiMessageKey.NativeModerationSummaryDispositionNone,
   };
   public string ModerationTitlePresentation => Localization.Localize(UiMessageKey.NativeModerationSummaryTitle);
+  public string ClearanceStatusPresentation => Localization.Localize(ClearanceStatus switch
+  {
+    AdminReviewQueueClearanceStatus.Rejected => UiMessageKey.NativeDotnetModerationRejected,
+    AdminReviewQueueClearanceStatus.InReview => UiMessageKey.NativeDotnetModerationInReview,
+    AdminReviewQueueClearanceStatus.Approved => UiMessageKey.NativeDotnetModerationApproved,
+    AdminReviewQueueClearanceStatus.Pending => UiMessageKey.NativeDotnetModerationPending,
+    _ => throw new ArgumentOutOfRangeException(nameof(ClearanceStatus), ClearanceStatus, null),
+  });
   public string DispositionPresentation => Localization.Localize(DispositionKey);
+  public string? ReasonCodesPresentation
+  {
+    get
+    {
+      var reasons = Post.ModerationSummary.ReasonCodes
+          .Where(reason => !string.IsNullOrWhiteSpace(reason))
+          .Select(reason => reason.Trim())
+          .ToArray();
+      return reasons.Length == 0
+          ? null
+          : Localization.Format(
+              UiMessageKey.NativeSwiftModerationReportsReason,
+              ("reason", string.Join(", ", reasons)));
+    }
+  }
   public string FlaggedCategoriesPresentation => Localization.Format(
       UiMessageKey.NativeModerationSummaryEvidenceFlaggedCategories,
       ("count", Post.ModerationSummary.EvidenceSummary.FlaggedCategoryCount));

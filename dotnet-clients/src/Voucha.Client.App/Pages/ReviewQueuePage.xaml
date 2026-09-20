@@ -43,7 +43,9 @@
                                 <Label AutomationId="review-queue-row-root" Text="{Binding RootContextPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding CreatedPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding ModerationTitlePresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ClearanceStatusPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding DispositionPresentation}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ReasonCodesPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding FlaggedCategoriesPresentation}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding SignalsPresentation}" Style="{StaticResource Metadata}" />
                                 <VerticalStackLayout

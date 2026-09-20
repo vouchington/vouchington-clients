@@ -107,6 +107,35 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertFalse(viewModel.exposureIsStale)
     }
 
+    func testFailedQueueRefreshDoesNotDiscardAnAcceptedReveal() async throws {
+        CannedFeedURLProtocol.queuedHandlers[queuePath] = [
+            (queueData(), 200, 0),
+            (Data("{}".utf8), 500, 0)
+        ]
+        CannedFeedURLProtocol.queuedHandlers[exposurePath] = [
+            (exposureData(count: 0, threshold: 10), 200, 0),
+            (exposureData(count: 0, threshold: 10), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers[revealPath] = (exposureData(count: 1, threshold: 10), 200)
+        CannedFeedURLProtocol.suspendResponse(path: revealPath)
+        let viewModel = try makeViewModel()
+        await viewModel.load()
+
+        let reveal = Task { await viewModel.revealMedia(postId: "sensitive") }
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: revealPath)
+        XCTAssertTrue(didSuspend)
+
+        await viewModel.refresh()
+        XCTAssertTrue(viewModel.items.contains(where: { $0.id == "sensitive" }))
+
+        CannedFeedURLProtocol.releaseResponse(path: revealPath)
+        await reveal.value
+
+        XCTAssertTrue(viewModel.isMediaRevealed(postId: "sensitive"))
+        XCTAssertEqual(viewModel.exposureState?.count, 1)
+        XCTAssertFalse(viewModel.exposureIsStale)
+    }
+
     func testFailedRevealKeepsMediaGatedAndGatesUntilRefetch() async throws {
         CannedFeedURLProtocol.handlers[queuePath] = (queueData(), 200)
         CannedFeedURLProtocol.queuedHandlers[exposurePath] = [
@@ -448,42 +477,5 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
             await Task.yield()
         }
         return viewModel.exposureState?.count == expectedCount
-    }
-}
-
-private actor CooldownSleepProbe {
-    private(set) var delays: [UInt64] = []
-    private var cancellationCount = 0
-    private let suspends: Bool
-
-    init(suspends: Bool = true) {
-        self.suspends = suspends
-    }
-
-    func sleep(nanoseconds: UInt64) async throws {
-        delays.append(nanoseconds)
-        guard suspends else { return }
-        do {
-            try await Task.sleep(nanoseconds: 60_000_000_000)
-        } catch {
-            cancellationCount += 1
-            throw error
-        }
-    }
-
-    func waitForInvocationCount(_ expectedCount: Int) async -> Bool {
-        let deadline = ContinuousClock.now + .seconds(2)
-        while delays.count < expectedCount, ContinuousClock.now < deadline {
-            await Task.yield()
-        }
-        return delays.count >= expectedCount
-    }
-
-    func waitForCancellationCount(_ expectedCount: Int) async -> Bool {
-        let deadline = ContinuousClock.now + .seconds(2)
-        while cancellationCount < expectedCount, ContinuousClock.now < deadline {
-            await Task.yield()
-        }
-        return cancellationCount >= expectedCount
     }
 }

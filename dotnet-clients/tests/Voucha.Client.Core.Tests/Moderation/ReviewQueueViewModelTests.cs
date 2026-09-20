@@ -28,6 +28,9 @@ public sealed class ReviewQueueViewModelTests
     Assert.Equal("discussion", rejected.PostType);
     Assert.Equal(new DateTimeOffset(2026, 6, 1, 11, 30, 0, TimeSpan.Zero), rejected.CreatedAt);
     Assert.Equal(UiMessageKey.NativeModerationSummaryDispositionReview, rejected.DispositionKey);
+    Assert.Equal("Rejected", rejected.ClearanceStatusPresentation);
+    Assert.Equal("Requires review", rejected.DispositionPresentation);
+    Assert.Equal("Reason: provider_flagged", rejected.ReasonCodesPresentation);
     Assert.DoesNotContain("spam", rejected.ModerationTitlePresentation, StringComparison.OrdinalIgnoreCase);
     Assert.Equal("1 flagged category", rejected.FlaggedCategoriesPresentation);
     Assert.Equal("0 signals", rejected.SignalsPresentation);

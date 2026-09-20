@@ -39,7 +39,11 @@ struct NativeReviewQueueRow: View {
                 parameters: ["date": Self.createdTimestamp(item, locale: nativeUiLocale, timeZone: timeZone)]
             ))
             Text(localized(.nativeModerationSummaryTitle))
+            Text(localized(item.clearanceStatus.titleKey))
             Text(localized(dispositionKey))
+            if let reasonCodesPresentation {
+                Text(reasonCodesPresentation)
+            }
             Text(localized(
                 .nativeModerationSummaryEvidenceFlaggedCategories,
                 numberParameters: [
@@ -115,6 +119,17 @@ struct NativeReviewQueueRow: View {
         case .incomplete?: .nativeModerationSummaryDispositionIncomplete
         case nil: .nativeModerationSummaryDispositionNone
         }
+    }
+
+    private var reasonCodesPresentation: String? {
+        let reasonCodes = item.post.moderationSummary.reasonCodes
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !reasonCodes.isEmpty else { return nil }
+        return localized(
+            .nativeSwiftModerationReportsReason,
+            parameters: ["reason": reasonCodes.joined(separator: ", ")]
+        )
     }
 
     private func localized(

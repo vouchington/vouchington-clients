@@ -22,7 +22,9 @@ public sealed class ReviewQueuePageSourceTests
     Assert.Contains("OnRevealClicked", xaml, StringComparison.Ordinal);
     Assert.Contains("OnCheckExposureClicked", xaml, StringComparison.Ordinal);
     Assert.Contains("CreatedPresentation", xaml, StringComparison.Ordinal);
+    Assert.Contains("ClearanceStatusPresentation", xaml, StringComparison.Ordinal);
     Assert.Contains("DispositionPresentation", xaml, StringComparison.Ordinal);
+    Assert.Contains("ReasonCodesPresentation", xaml, StringComparison.Ordinal);
     Assert.Contains("FlaggedCategoriesPresentation", xaml, StringComparison.Ordinal);
     Assert.Contains("SignalsPresentation", xaml, StringComparison.Ordinal);
     Assert.DoesNotContain("SpamPresentation", xaml, StringComparison.Ordinal);

@@ -19,20 +19,21 @@ extension CommunityDetailViewModel {
         discardModerationResults()
         let requestRevision = moderationResultsRequestRevision
         let communityRevision = communityLoadRevision
+        let tab = selectedTab
         do {
             let response: CommunityModerationResultsResponse = try await client.send(
                 .communityModerationResults(idOrSlug: slug, postId: postId)
             )
             guard !Task.isCancelled,
                   requestRevision == moderationResultsRequestRevision,
-                  isCurrentCommunityLoad(communityRevision, tab: .moderation)
+                  isCurrentCommunityLoad(communityRevision, tab: tab)
             else { return }
             moderationResults = moderationResultRows(for: response)
             moderationResultsError = nil
         } catch {
             guard !Task.isCancelled,
                   requestRevision == moderationResultsRequestRevision,
-                  isCurrentCommunityLoad(communityRevision, tab: .moderation)
+                  isCurrentCommunityLoad(communityRevision, tab: tab)
             else { return }
             moderationResults = []
             moderationResultsError = UiMessage(.nativeSwiftEmptyStateUnableToLoad)

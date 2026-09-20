@@ -5,6 +5,21 @@ import XCTest
 
 @MainActor
 final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testLookupPublishesFromTheLaunchingManagementTab() async throws {
+        let path = "/api/v1/communities/builders/posts/current-post/moderation-results"
+        CannedFeedURLProtocol.handlers[path] = (response(status: "approved", agentCount: 1), 200)
+        let viewModel = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .settings
+        )
+
+        await viewModel.loadModerationResults(postId: "current-post")
+
+        XCTAssertEqual(viewModel.moderationResults.map(\.detail), ["1 result", "Approved"])
+        XCTAssertNil(viewModel.moderationResultsError)
+    }
+
     func testLateEarlierPostResultCannotOverwriteCurrentModerationSurface() async throws {
         let stalePath = "/api/v1/communities/builders/posts/stale-post/moderation-results"
         let currentPath = "/api/v1/communities/builders/posts/current-post/moderation-results"

@@ -52,7 +52,8 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             }
             for text in [
                 "Untitled post", "No preview available.", "Author: Anonymous", "Post type: comment",
-                "Root thread: discussion · root-slug · root-1", "Moderation summary", "Requires review",
+                "Root thread: discussion · root-slug · root-1", "Moderation summary", "Rejected",
+                "Requires review", "Reason: spam_signal",
                 "0 flagged categories", "1 signal",
                 "Created: \(createdAt)"
             ] {
@@ -60,7 +61,6 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             }
             XCTAssertFalse(renderedTexts.contains { $0.contains("Spam") })
             XCTAssertFalse(renderedTexts.contains { $0.contains("OpenAI") })
-            XCTAssertFalse(renderedTexts.contains { $0.contains("spam_signal") })
             XCTAssertNoThrow(try inspection.find(button: "Approve"))
             XCTAssertNoThrow(try inspection.find(button: "Reject"))
             XCTAssertFalse(try inspection.find(button: "Mark for re-review").isDisabled())

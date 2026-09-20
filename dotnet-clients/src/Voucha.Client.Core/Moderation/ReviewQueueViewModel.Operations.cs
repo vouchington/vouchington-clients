@@ -8,13 +8,13 @@ public sealed partial class ReviewQueueViewModel
 {
   private async Task ReplaceAsync(CancellationToken cancellationToken, bool reconcilesMutations = false)
   {
-    Interlocked.Increment(ref revealContextVersion);
     var generation = BeginListOperation();
     if (!HasItems) State = LoadState.Loading;
     try
     {
       var response = await service.FetchReviewQueueAsync(cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!Accepts(generation, cancellationToken)) return;
+      Interlocked.Increment(ref revealContextVersion);
       Items = SupportedRows(response.Results);
       ApplyPageInfo(response);
       State = LoadState.Loaded;
