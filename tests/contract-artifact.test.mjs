@@ -79,6 +79,28 @@ test('creates a narrow, deterministic manifest and verifies it', async t => {
   )
 })
 
+test('records an explicitly trusted producer without changing the trusted path allowlist', async t => {
+  const identity = {
+    ...(await fixture(t)),
+    contractRepository: 'vouchington/vouchington',
+  }
+  const manifest = await createContractArtifact(identity)
+
+  assert.equal(manifest.filaments.repository, identity.contractRepository)
+  assert.deepEqual(manifest.allowlistedPaths, [...paths].sort())
+  await verifyContractArtifact({
+    ...expected(identity),
+    expectedContractRepository: identity.contractRepository,
+  })
+  await assert.rejects(
+    verifyContractArtifact({
+      ...expected(identity),
+      expectedContractRepository: 'jonathanong/filaments',
+    }),
+    /invalid manifest Filaments repository/,
+  )
+})
+
 test('uses the verifier ordinal order for punctuation-bearing paths', async t => {
   const identity = await fixture(t)
   await writeTree(identity.filamentsRoot, {
