@@ -874,15 +874,17 @@ jobs:
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
-            if [[ "$version" == "$required_version"* ]]; then
+            sdk_path=$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)
+            actool=$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --find actool 2>/dev/null || true)
+            if [[ "$version" == "$required_version"* ]] && [ -d "$sdk_path" ] && [ -x "$actool" ]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
               echo 'compatible=true' >>"$GITHUB_OUTPUT"
               echo "Selected Xcode $version at $developer_dir"
               exit 0
             fi
-            echo "Skipping $developer_dir because it is Xcode ${version:-unknown}, not $required_version"
+            echo "Skipping incomplete or incompatible Xcode ${version:-unknown} at $developer_dir"
           done
-          echo "::notice::Xcode $required_version not found; skipping MAUI Mac Catalyst smoke build on this runner"
+          echo "::notice::Complete Xcode $required_version toolchain not found; skipping MAUI Mac Catalyst smoke build on this runner"
           echo 'compatible=false' >>"$GITHUB_OUTPUT"
       - name: Detect host Mac Catalyst RID
         id: rid
