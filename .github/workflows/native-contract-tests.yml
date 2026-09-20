@@ -886,11 +886,16 @@ jobs:
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
             macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+            maccatalyst_sdk="$developer_dir/Platforms/MacCatalyst.platform/Developer/SDKs/MacCatalyst.sdk"
             actool=""
-            if [ -e "$macosx_sdk" ]; then
-              actool=$(DEVELOPER_DIR="$developer_dir" xcodebuild -sdk "$macosx_sdk" -find actool 2>/dev/null || true)
+            find_status=1
+            if [ -f "$macosx_sdk/SDKSettings.plist" ] && [ -f "$maccatalyst_sdk/SDKSettings.plist" ]; then
+              set +e
+              actool=$(DEVELOPER_DIR="$developer_dir" xcodebuild -sdk "$macosx_sdk" -find actool)
+              find_status=$?
+              set -e
             fi
-            if [[ "$version" == "$required_version"* ]] && [ -n "$actool" ] && [ -x "$actool" ]; then
+            if [[ "$version" == "$required_version"* ]] && [ "$find_status" -eq 0 ] && [ -n "$actool" ] && [ -x "$actool" ]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
               echo 'compatible=true' >>"$GITHUB_OUTPUT"
               echo "Selected Xcode $version at $developer_dir"
