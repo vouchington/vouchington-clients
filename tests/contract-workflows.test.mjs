@@ -288,7 +288,7 @@ describe('native contract workflow boundary', () => {
     assert.equal(validation.split('mise_dir: ${{ runner.temp }}/mise').length - 1, 2)
   })
 
-  it('keeps the Filaments secret in the trusted producer', async () => {
+  it('checks out the public Vouchington producer without a deploy key', async () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
     const action = await readAction('prepare-native-contract')
 
@@ -298,10 +298,11 @@ describe('native contract workflow boundary', () => {
       workflow,
       /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
     )
-    assert.equal(workflow.split('secrets.FILAMENTS_DEPLOY_KEY').length - 1, 1)
+    assert.doesNotMatch(workflow, /FILAMENTS_DEPLOY_KEY/u)
+    assert.doesNotMatch(workflow, /ssh-key:/u)
     assert.match(
       workflow,
-      /  produce:[\s\S]*?ssh-key: \$\{\{ secrets\.FILAMENTS_DEPLOY_KEY \}\}[\s\S]*?  verify:/u,
+      /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,
     )
     assert.doesNotMatch(action, /secrets\./u)
     assert.doesNotMatch(workflow, /workflow_run:/u)
@@ -310,10 +311,10 @@ describe('native contract workflow boundary', () => {
   it('stages the trusted contract before parity and artifact creation', async () => {
     const producer = await readWorkflow('native-contract-tests.yml')
 
-    assert.match(producer, /name: Install trusted Filaments exporter dependencies/u)
+    assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Filaments exporter dependencies\n\s+working-directory: filaments\n\s+run: npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+run: npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
@@ -327,7 +328,7 @@ describe('native contract workflow boundary', () => {
       /VOUCHA_FILAMENTS_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
     )
     assert.equal(
-      producer.indexOf('name: Install trusted Filaments exporter dependencies') <
+      producer.indexOf('name: Install trusted Vouchington exporter dependencies') <
         producer.indexOf('name: Stage trusted native contract'),
       true,
     )

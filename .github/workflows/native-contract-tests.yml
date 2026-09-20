@@ -84,10 +84,10 @@ jobs:
         env:
           PRESERVE_NODE_MODULES: 'false'
         run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
-      - name: Assert authorized Filaments source
+      - name: Assert authorized Vouchington source
         run: >-
           jq -e
-          '.repository == "jonathanong/filaments" and .ref == "main"'
+          '.repository == "vouchington/vouchington" and .ref == "main"'
           contracts/filaments.json
       - name: Check out candidate clients as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,13 +96,12 @@ jobs:
           path: candidate-clients
           persist-credentials: false
           allow-unsafe-pr-checkout: true
-      - name: Check out Filaments
+      - name: Check out Vouchington
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: jonathanong/filaments
+          repository: vouchington/vouchington
           ref: main
           path: filaments
-          ssh-key: ${{ secrets.FILAMENTS_DEPLOY_KEY }}
           persist-credentials: false
       - name: Resolve immutable checkout identities
         id: identities
@@ -113,7 +112,7 @@ jobs:
           set -euo pipefail
           printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
-      - name: Install trusted Filaments exporter dependencies
+      - name: Install trusted Vouchington exporter dependencies
         working-directory: filaments
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Stage trusted native contract

@@ -13,8 +13,8 @@
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
   product parity remain tracked in #6745 and #6620.
 
-See the Filaments [client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
-and its [machine-readable evidence contract](https://github.com/jonathanong/filaments/blob/main/docs/requirements/client-feature-parity.json)
+See the Vouchington [client parity matrix](https://github.com/vouchington/vouchington/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
+and its [machine-readable evidence contract](https://github.com/vouchington/vouchington/blob/main/docs/requirements/client-feature-parity.json)
 for current capability status and tracked gaps.
 
 ## Requirements
@@ -52,7 +52,7 @@ schemes reference it through `$(VOUCHA_API_BASE_URL)`, so an existing `.xcodepro
 port reallocation without regeneration. Run initialization again after allocation changes, and run
 `./swift-clients/tooling/generate.sh macOS` or `iOS` only after changing the project spec. Clean
 generation creates the production-default XCConfig when it is absent. See [web-mode resource
-allocation](https://github.com/jonathanong/filaments/blob/main/dev/reference-resource-allocation-web-mode.md)
+allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
 for the saved-port contract. Set
 `VOUCHA_TURNSTILE_SITE_KEY` (or shared `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`) when testing
 CAPTCHA-gated flows against an environment with a Cloudflare Turnstile widget — native clients

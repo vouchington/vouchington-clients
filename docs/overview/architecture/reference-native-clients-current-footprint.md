@@ -1,8 +1,8 @@
 # Native Client Current Footprint
 
 This page records the client-owned implementation footprint. Product parity requirements and the
-cross-surface API contract remain owned by the [Filaments native client strategy](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/native-clients.md)
-and [client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md).
+cross-surface API contract remain owned by the [Vouchington native client strategy](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/native-clients.md)
+and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md).
 
 ## Swift
 
@@ -32,7 +32,7 @@ and [client parity matrix](https://github.com/jonathanong/filaments/blob/main/do
 
 - Both clients forward opaque `after` cursors, append pages by stable entity id, preserve rows on
   continuation failure, and reset traversal when filters change. The API and parity requirements
-  are defined by Filaments' [pagination contract](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/pagination.md).
+  are defined by Vouchington's [pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
 - Native chat supports OS-managed language models and local OpenAI-compatible Responses API
   endpoints. Endpoint profiles, bearer credentials, and selected provider ids remain device-local;
   local generation is text-only and never silently falls back to another provider.
@@ -45,7 +45,7 @@ and [client parity matrix](https://github.com/jonathanong/filaments/blob/main/do
 
 ## Ownership boundaries
 
-Filaments produces the shared API fixtures and localization contract consumed through the explicit
+Vouchington produces the shared API fixtures and localization contract consumed through the explicit
 `VOUCHA_FILAMENTS_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
 decisions. This repository owns the Swift/.NET implementation, native test harnesses, and the
 client-specific deep-linking behavior documented in [`.NET deep linking`](dotnet-deep-linking.md).

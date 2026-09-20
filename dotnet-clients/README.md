@@ -13,8 +13,8 @@ This workspace contains the .NET client stack for Voucha. The product target is 
   topic/source import and export plus signed-in top-hashtag recommendations and administrator
   mapping actions, profiles and friends, notifications, direct messages and support,
   lists, referral and landing pages, media playback, search, and role-gated staff operations. This is not
-  a claim of web parity; see the Filaments [client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
-  and [machine-readable evidence contract](https://github.com/jonathanong/filaments/blob/main/docs/requirements/client-feature-parity.json)
+  a claim of web parity; see the Vouchington [client parity matrix](https://github.com/vouchington/vouchington/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
+  and [machine-readable evidence contract](https://github.com/vouchington/vouchington/blob/main/docs/requirements/client-feature-parity.json)
   for exact capability status and tracked gaps.
 - API core: typed fixture-backed helpers plus Swift/web-route-parity endpoint factories under `src/Voucha.Client.Core/Api`.
 - Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations.
