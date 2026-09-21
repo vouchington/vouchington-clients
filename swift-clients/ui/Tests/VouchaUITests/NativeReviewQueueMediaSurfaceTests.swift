@@ -88,9 +88,8 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
               "post_type":"discussion","created_by_id":"author",
               "created_at":"2026-06-01T11:30:00.000Z","root_id":null,"root_post_type":null,
               "root_slug":null,"clearance_status":"rejected","clearance_updated_at":null,
-              "spam_detection_flagged":false,"spam_detection_score":null,"spam_detection_results":{},
-              "openai_omni_moderation_flagged":false,"openai_omni_moderation_results":{},
-              "media_context":{
+              "moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":1,"signal_count":2},"reason_codes":["provider_flagged"]},
+              "media_reveal":{
                 "requires_reveal":\(requiresReveal),
                 "images":[
                   {"image_id":"image-1","order_index":0,"caption":"First image"},

@@ -72,20 +72,18 @@ public sealed class ModerationParityContractTests
   }
 
   [Fact]
-  public void ReviewMediaAndExposureContractsDecodeWithOldShapeCompatibility()
+  public void ReviewModerationSummaryAndMediaRevealContractsDecode()
   {
     var queueJson = ApiFixtureLoader.LoadResponse("native.moderation.review-queue.default");
     var queue = JsonSerializer.Deserialize<AdminReviewQueueResponse>(queueJson, VouchaApiJson.Options);
     var rows = Assert.IsType<AdminReviewQueueResponse>(queue).Results;
-    Assert.False(rows[0].MediaContext?.RequiresReveal);
-    Assert.True(rows[1].MediaContext?.RequiresReveal);
-    Assert.Equal("019e82f2-a2c0-7000-8000-000000000001", rows[1].MediaContext?.Images[0].ImageId);
-
-    var oldQueueJson = RemoveAggregateKey(queueJson, "results", "media_context");
-    var oldQueue = JsonSerializer.Deserialize<AdminReviewQueueResponse>(
-        oldQueueJson,
-        VouchaApiJson.Options);
-    Assert.All(Assert.IsType<AdminReviewQueueResponse>(oldQueue).Results, row => Assert.Null(row.MediaContext));
+    Assert.False(rows[0].MediaReveal.RequiresReveal);
+    Assert.True(rows[1].MediaReveal.RequiresReveal);
+    Assert.Equal("019e82f2-a2c0-7000-8000-000000000001", rows[1].MediaReveal.Images[0].ImageId);
+    Assert.Equal(AdminModerationDisposition.Review, rows[0].ModerationSummary.Disposition);
+    Assert.Equal(1, rows[1].ModerationSummary.EvidenceSummary.FlaggedCategoryCount);
+    Assert.Equal(0, rows[1].ModerationSummary.EvidenceSummary.SignalCount);
+    Assert.NotEmpty(rows[1].ModerationSummary.ReasonCodes);
 
     var exposure = JsonSerializer.Deserialize<ModerationExposureResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.exposure.default"),

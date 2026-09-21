@@ -4,8 +4,49 @@ import { describe, it } from 'node:test'
 
 const workflowUrl = name => new URL(`../.github/workflows/${name}`, import.meta.url)
 const readWorkflow = name => readFile(workflowUrl(name), 'utf8')
+const readPrompt = name =>
+  readFile(new URL(`../docs/prompts/automation/${name}`, import.meta.url), 'utf8')
 
 describe('event-driven CI orchestration', () => {
+  it('uses the portable GitHub multiline output helper for automation requests', async () => {
+    const invocations = [
+      ['plan.yml', 'plan_request'],
+      ['fix-issue.yml', 'fix_request'],
+      ['shepherd.yml', 'pr_title'],
+    ]
+
+    for (const [workflowName, outputName] of invocations) {
+      const workflow = await readWorkflow(workflowName)
+
+      assert.match(
+        workflow,
+        new RegExp(
+          `npx --yes pnpm@11\\.13\\.1 dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`,
+          'u',
+        ),
+      )
+    }
+  })
+
+  it('authorizes organization members for slash-command automation', async () => {
+    for (const [workflowName, promptName] of [
+      ['plan.yml', 'plan.md'],
+      ['fix-issue.yml', 'fix-issue.md'],
+      ['shepherd.yml', 'shepherd.md'],
+    ]) {
+      const [workflow, prompt] = await Promise.all([
+        readWorkflow(workflowName),
+        readPrompt(promptName),
+      ])
+      assert.match(workflow, /fromJSON\('\["OWNER","COLLABORATOR","MEMBER"\]'\)/u)
+      assert.match(
+        workflow,
+        /\.author_association == "OWNER" or \.author_association == "COLLABORATOR" or \.author_association == "MEMBER"/u,
+      )
+      assert.match(prompt, /`OWNER`, `COLLABORATOR`, or `MEMBER`/u)
+    }
+  })
+
   it('runs native contract tests on the pull request with one aggregate gate', async () => {
     await assert.rejects(access(workflowUrl('contract-parity.yml')))
     await assert.rejects(access(workflowUrl('native-contract-producer.yml')))

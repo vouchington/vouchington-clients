@@ -468,6 +468,7 @@ public sealed class CommunityDetailViewModelCoverageTests
     var results = await viewModel.LoadModerationResultsAsync("post-1", TestContext.Current.CancellationToken);
 
     Assert.NotNull(results);
+    Assert.Equal(UiMessageKey.NativeDotnetModerationInReview, viewModel.Moderation[1].SubtitleText.Key);
     Assert.Equal(System.Text.Json.JsonValueKind.Object, testRun.ValueKind);
     Assert.Contains(("post-type-settings", "community-1"), service.MutationCalls);
     Assert.Contains(("warning", "community-1"), service.MutationCalls);

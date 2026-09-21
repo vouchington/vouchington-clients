@@ -195,8 +195,8 @@ public sealed class AgentListsViewModelTests
   }
 
   [Theory]
-  [InlineData("en", "", "Agent conversation")]
-  [InlineData("es", "   ", "Conversación del agente")]
+  [InlineData("en", "", "Conversation title")]
+  [InlineData("es", "   ", "Título de la conversación")]
   public async Task UntitledConversationUsesLocalizedFallback(string language, string title, string expected)
   {
     var service = new StubService
@@ -214,11 +214,12 @@ public sealed class AgentListsViewModelTests
   [Fact]
   public async Task ConversationRowsResolveCreatorDisplayNamesAndIdFallback()
   {
+    var createdAt = new DateTimeOffset(2026, 7, 1, 16, 0, 0, TimeSpan.Zero);
     var service = new StubService
     {
       ConversationPages = new([Task.FromResult(Conversations(
           [
-            Conversation("first", createdById: "support-one"),
+            Conversation("first", createdById: "support-one", createdAt: createdAt),
             Conversation("second", createdById: "missing-user"),
             Conversation("deleted", createdById: null),
           ],
@@ -239,6 +240,10 @@ public sealed class AgentListsViewModelTests
     Assert.StartsWith("Deleted ·", viewModel.Rows[2].Detail);
     var englishDetail = viewModel.Rows[0].Detail;
     controller.ApplySavedLocale("es");
+    var spanishLocalization = new UiLocalization(controller);
+    Assert.Equal(
+        $"Support One · {TimeZoneInfo.ConvertTime(createdAt, TimeZoneInfo.Local).ToString("d", spanishLocalization.Culture)}",
+        viewModel.Rows[0].Detail);
     Assert.NotEqual(englishDetail, viewModel.Rows[0].Detail);
   }
 
@@ -291,7 +296,7 @@ public sealed class AgentListsViewModelTests
 
     controller.ApplySavedLocale("es");
 
-    Assert.Equal("Conversación del agente", Assert.Single(viewModel.Rows).Title);
+    Assert.Equal("Título de la conversación", Assert.Single(viewModel.Rows).Title);
   }
 
   [Fact]
@@ -335,8 +340,20 @@ public sealed class AgentListsViewModelTests
       IReadOnlyDictionary<string, PublicUser>? users = null) =>
       new(rows, new PageInfo(cursor, more, rows.FirstOrDefault()?.Id), users ?? new Dictionary<string, PublicUser>());
 
-  private static AgentConversationSummary Conversation(string id, string? title = null, string? createdById = "user") =>
-      new(id, title ?? id, DateTimeOffset.UnixEpoch, createdById, DateTimeOffset.UnixEpoch, null, null, null);
+  private static AgentConversationSummary Conversation(
+      string id,
+      string? title = null,
+      string? createdById = "user",
+      DateTimeOffset? createdAt = null) =>
+      new(
+          id,
+          title ?? id,
+          createdAt ?? DateTimeOffset.UnixEpoch,
+          createdById,
+          createdAt ?? DateTimeOffset.UnixEpoch,
+          null,
+          null,
+          null);
 
   private sealed class StubService : IAgentConversationsService
   {

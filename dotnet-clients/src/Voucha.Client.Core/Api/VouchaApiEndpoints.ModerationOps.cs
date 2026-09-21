@@ -31,7 +31,16 @@ public static partial class VouchaApiEndpoints
       Get("/api/v1/posts/review-queue", Query(("limit", limit), ("after", after)));
 
   public static ApiRequest UpdatePostClearance(string postId, PostClearanceAction status) =>
-      new(HttpMethod.Post, $"/api/v1/posts/{Path(postId)}/clearances") { Body = new UpdatePostClearanceBody(status) };
+      new(HttpMethod.Post, $"/api/v1/posts/{Path(postId)}/clearances")
+      {
+        Body = new UpdatePostClearanceBody(status, status switch
+        {
+          PostClearanceAction.Approved => "staff_approved",
+          PostClearanceAction.Rejected => "staff_rejected",
+          PostClearanceAction.InReview => "staff_reviewed",
+          _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        })
+      };
 
   public static ApiRequest AdminModlog(string? communityId = null, string? actorId = null, string? actionType = null, string? after = null) =>
       Get("/api/v1/admin/modlog", Query(("community_id", communityId), ("actor_id", actorId), ("action_type", actionType), ("after", after)));

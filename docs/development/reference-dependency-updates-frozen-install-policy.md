@@ -46,8 +46,8 @@ manual-only.
 
 Record the current and candidate versions, source release metadata, the authoritative manifest
 paths, every expected lock or materializer path, and the exact frozen commands that passed. A
-dependency update must not use version overrides to hide a stale transitive graph. For persistent
-self-hosted runners, cached package state is operational reuse, not authoritative resolution.
+dependency update must not use version overrides to hide a stale transitive graph. Cached package
+state on a runner is operational reuse, not authoritative resolution.
 
-Use [Per-User Host Locks](host-locks.md) for compiler-heavy checks and host package-manager
-mutations.
+Local concurrent worktrees may still use [host locks](host-locks.md) for compiler-heavy checks and
+host package-manager mutations. GitHub Actions must not.

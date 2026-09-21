@@ -19,7 +19,7 @@ public sealed record AgentTranscriptRow(string Id, string Role, string Body, str
           ? localization.Localize(UiMessageKey.NativeSwiftPresentationValuesDeleted)
           : message.CreatedById == selectedAgentSystemUserId
               ? localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgent)
-              : localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgentUser),
+              : localization.Localize(UiMessageKey.NativeSwiftHouseholdsBookmarksUser),
       FirstText(message.Content?.Content, message.Content?.Error) ??
           localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceNoResults),
       localization.FormatDateTime(message.CreatedAt, TimeZoneInfo.Local));

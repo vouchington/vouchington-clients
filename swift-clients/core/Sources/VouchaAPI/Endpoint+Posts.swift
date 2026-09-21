@@ -91,26 +91,6 @@ struct CreatePostBody: Encodable {
 }
 
 public extension Endpoint {
-    static func post(idOrSlug: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/posts/\(pathSegment(idOrSlug))")
-    }
-
-    static func postDescendants(postId: String, after: String? = nil, limit: Int = 100) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
-        return Endpoint(
-            .GET,
-            path: "/api/v1/posts/\(pathSegment(postId))/descendants",
-            queryItems: queryItems
-        )
-    }
-
-    static func postAncestors(postId: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/posts/\(pathSegment(postId))/ancestors")
-    }
-
     static func createPost(
         postType: PostType,
         title: String,

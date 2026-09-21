@@ -1,7 +1,7 @@
 # Native client extraction
 
 This repository was bootstrapped from an exact snapshot of the native clients in
-[`jonathanong/filaments`](https://github.com/jonathanong/filaments).
+the predecessor Filaments repository (`jonathanong/filaments`).
 
 - Source commit: `fbffcbf9acf631940347a06a50daaeeb5d04fc85`
 - Swift subtree: `a74933953b41648969c9f990f9953a1eeb0cc956`
@@ -14,8 +14,8 @@ history and provenance.
 
 ## Post-snapshot native behavior audit
 
-The extraction snapshot predates Filaments commit
-[`47cf489b42d074d2e7e4bfdb0ddee36bbba34962`](https://github.com/jonathanong/filaments/commit/47cf489b42d074d2e7e4bfdb0ddee36bbba34962)
+The extraction snapshot predates predecessor commit
+`47cf489b42d074d2e7e4bfdb0ddee36bbba34962`
 (`fix(streaming): bound large-file memory paths`). This port audited the exact
 source window `55084d48f644addc290fe8aed701405c761dd504..47cf489b42d074d2e7e4bfdb0ddee36bbba34962`.
 Every one of its 55 native paths is classified below against this repository at

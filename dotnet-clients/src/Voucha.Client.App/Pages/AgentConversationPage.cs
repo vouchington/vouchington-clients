@@ -16,7 +16,7 @@ public sealed class AgentConversationPage : ContentPage
     BindingContext = viewModel;
     SetDynamicResource(
         TitleProperty,
-        UiMessageKey.NativeDotnetEngineeringAgentConversationTitle.Value);
+        UiMessageKey.NativeSwiftChatConversationTitle.Value);
 
     var title = new Label { FontSize = 20, FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(AgentConversationViewModel.ConversationDisplayTitle));

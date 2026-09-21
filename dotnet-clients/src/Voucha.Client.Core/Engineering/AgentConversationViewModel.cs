@@ -50,7 +50,7 @@ public sealed partial class AgentConversationViewModel : ObservableObject, IDisp
 
   public string ConversationDisplayTitle => Conversation is { Title: var title } && !string.IsNullOrWhiteSpace(title)
       ? title
-      : localization.Localize(UiMessageKey.NativeDotnetEngineeringAgentConversationTitle);
+      : localization.Localize(UiMessageKey.NativeSwiftChatConversationTitle);
   public string? ConversationCreatedAt => Conversation is { } conversation
       ? localization.FormatDateTime(conversation.CreatedAt, TimeZoneInfo.Local)
       : null;

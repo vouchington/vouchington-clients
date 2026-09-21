@@ -12,8 +12,6 @@ struct CommunityModerationAdminControls: View {
     let showSignIn: () -> Void
 
     @State
-    private var postId = ""
-    @State
     private var reportId = ""
     @State
     private var moderationReason = ""
@@ -41,30 +39,48 @@ extension CommunityModerationAdminControls {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(UiMessages.string(.nativeSwiftCommunitiesPostReview, locale: nativeUiLocale))
                     .font(Typography.subheadline)
-                TextField(UiMessages.string(.nativeSwiftCommunitiesPostId, locale: nativeUiLocale), text: $postId)
-                    .textFieldStyle(.roundedBorder)
+                TextField(
+                    UiMessages.string(.nativeSwiftCommunitiesPostId, locale: nativeUiLocale),
+                    text: $viewModel.moderationQueryPostId
+                )
+                .textFieldStyle(.roundedBorder)
+                moderationButton(.nativeModerationSummaryTitle, systemImage: "checkmark.shield") {
+                    Task { await viewModel.loadModerationResults(postId: viewModel.moderationQueryPostId) }
+                }
+                ForEach(viewModel.moderationResults) { row in
+                    NativeSurfaceRow(row: row)
+                }
+                if let error = viewModel.moderationResultsError {
+                    Text(verbatim: UiMessages.string(error, locale: nativeUiLocale))
+                        .foregroundStyle(.red)
+                }
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesRejectReason, locale: nativeUiLocale),
                     text: $moderationReason
                 ).textFieldStyle(.roundedBorder)
                 HStack {
                     moderationButton(.nativeSwiftCommonApprove, systemImage: "checkmark.circle") {
-                        Task { await viewModel.approvePendingPost(postId: postId) }
+                        Task { await viewModel.approvePendingPost(postId: viewModel.moderationQueryPostId) }
                     }
                     moderationButton(.nativeSwiftCommunitiesReject, systemImage: "xmark.circle") {
-                        Task { await viewModel.rejectPendingPost(postId: postId, reason: moderationReason) }
+                        Task {
+                            await viewModel.rejectPendingPost(
+                                postId: viewModel.moderationQueryPostId,
+                                reason: moderationReason
+                            )
+                        }
                     }
                     moderationButton(.nativeSwiftCommunityActionsUnpublish, systemImage: "eye.slash") {
-                        Task { await viewModel.unpublishPendingPost(postId: postId) }
+                        Task { await viewModel.unpublishPendingPost(postId: viewModel.moderationQueryPostId) }
                     }
                     moderationButton(.nativeSwiftCommunityActionsClaim, systemImage: "hand.raised") {
-                        Task { await viewModel.claimPendingPost(postId: postId) }
+                        Task { await viewModel.claimPendingPost(postId: viewModel.moderationQueryPostId) }
                     }
                     moderationButton(.nativeSwiftCommunityActionsRelease, systemImage: "hand.thumbsdown") {
-                        Task { await viewModel.releasePendingPost(postId: postId) }
+                        Task { await viewModel.releasePendingPost(postId: viewModel.moderationQueryPostId) }
                     }
                     moderationButton(.nativeSwiftCommunityActionsEscalate, systemImage: "arrow.up.circle") {
-                        Task { await viewModel.escalatePendingPost(postId: postId) }
+                        Task { await viewModel.escalatePendingPost(postId: viewModel.moderationQueryPostId) }
                     }
                 }
             }

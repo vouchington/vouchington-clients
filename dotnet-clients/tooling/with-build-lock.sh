@@ -31,7 +31,7 @@ fi
 
 root_dir="$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)"
 cd "$root_dir" || fail 'repository root is unavailable'
-exec pnpm exec vouchington with-host-lock \
+exec npx --yes pnpm@11.13.1 exec vouchington with-host-lock \
   --name expensive-build \
   --timeout-seconds "$wait_seconds" \
   --command-timeout-seconds "$command_timeout" \

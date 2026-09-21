@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Voucha.Client.Core.Api;
@@ -20,6 +19,23 @@ public enum PostClearanceAction
   InReview,
 }
 
+public enum AdminModerationDisposition
+{
+  Pass,
+  Review,
+  Reject,
+  Incomplete,
+}
+
+public sealed record AdminModerationEvidenceSummary(
+    [property: JsonPropertyName("flagged_category_count")] int FlaggedCategoryCount,
+    [property: JsonPropertyName("signal_count")] int SignalCount);
+
+public sealed record AdminModerationSummary(
+    [property: JsonPropertyName("disposition")] AdminModerationDisposition? Disposition,
+    [property: JsonPropertyName("evidence_summary")] AdminModerationEvidenceSummary EvidenceSummary,
+    [property: JsonPropertyName("reason_codes")] IReadOnlyList<string> ReasonCodes);
+
 public sealed record AdminReviewQueuePost(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("title")] string Title,
@@ -33,12 +49,8 @@ public sealed record AdminReviewQueuePost(
     [property: JsonPropertyName("root_slug")] string? RootSlug,
     [property: JsonPropertyName("clearance_status")] AdminReviewQueueClearanceStatus ClearanceStatus,
     [property: JsonPropertyName("clearance_updated_at")] DateTimeOffset? ClearanceUpdatedAt,
-    [property: JsonPropertyName("spam_detection_flagged")] bool? SpamDetectionFlagged,
-    [property: JsonPropertyName("spam_detection_score")] double? SpamDetectionScore,
-    [property: JsonPropertyName("spam_detection_results")] JsonElement SpamDetectionResults,
-    [property: JsonPropertyName("openai_omni_moderation_flagged")] bool? OpenAIOmniModerationFlagged,
-    [property: JsonPropertyName("openai_omni_moderation_results")] JsonElement OpenAIOmniModerationResults,
-    [property: JsonPropertyName("media_context")] AdminReviewQueueMediaContext? MediaContext = null,
+    [property: JsonPropertyName("moderation_summary")] AdminModerationSummary ModerationSummary,
+    [property: JsonPropertyName("media_reveal")] AdminReviewQueueMediaReveal MediaReveal,
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 

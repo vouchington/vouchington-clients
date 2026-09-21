@@ -95,7 +95,7 @@ async function contractRoot({
   }
   if (
     parsed.schemaVersion !== 1 ||
-    parsed.repository !== 'jonathanong/filaments' ||
+    parsed.repository !== 'vouchington/vouchington' ||
     parsed.ref !== 'main' ||
     JSON.stringify(parsed.paths) !== JSON.stringify(declaredFilamentsContractPaths)
   )
