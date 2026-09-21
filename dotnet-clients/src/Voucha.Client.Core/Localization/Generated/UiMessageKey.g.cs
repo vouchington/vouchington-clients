@@ -694,8 +694,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetDynamicUnmuteTopic = new("native.dotnet.dynamic.unmuteTopic");
     public static readonly UiMessageKey NativeDotnetDynamicUnread = new("native.dotnet.dynamic.unread");
     public static readonly UiMessageKey NativeDotnetDynamicUnsave = new("native.dotnet.dynamic.unsave");
-    public static readonly UiMessageKey NativeDotnetEngineeringAgentConversationTitle = new("native.dotnet.engineering.agentConversationTitle");
-    public static readonly UiMessageKey NativeDotnetEngineeringAgentConversationsTitle = new("native.dotnet.engineering.agentConversationsTitle");
     public static readonly UiMessageKey NativeDotnetEngineeringDatabaseDescription = new("native.dotnet.engineering.databaseDescription");
     public static readonly UiMessageKey NativeDotnetEngineeringDescription = new("native.dotnet.engineering.description");
     public static readonly UiMessageKey NativeDotnetEngineeringMessageQueues = new("native.dotnet.engineering.messageQueues");
@@ -1842,11 +1840,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentStatusActive = new("native.swift.routeSurface.agentStatusActive");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentStatusInactive = new("native.swift.routeSurface.agentStatusInactive");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentSystemUserId = new("native.swift.routeSurface.agentSystemUserId");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentType = new("native.swift.routeSurface.agentType");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentUser = new("native.swift.routeSurface.agentUser");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceAllProviders = new("native.swift.routeSurface.allProviders");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceClosed = new("native.swift.routeSurface.closed");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceCreated = new("native.swift.routeSurface.created");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceDistrusted = new("native.swift.routeSurface.distrusted");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceMonthlyActiveUsers = new("native.swift.routeSurface.monthlyActiveUsers");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceNeutral = new("native.swift.routeSurface.neutral");
@@ -2688,8 +2683,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetDynamicUnmuteTopic,
         NativeDotnetDynamicUnread,
         NativeDotnetDynamicUnsave,
-        NativeDotnetEngineeringAgentConversationTitle,
-        NativeDotnetEngineeringAgentConversationsTitle,
         NativeDotnetEngineeringDatabaseDescription,
         NativeDotnetEngineeringDescription,
         NativeDotnetEngineeringMessageQueues,
@@ -3836,11 +3829,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftRouteSurfaceAgentStatusActive,
         NativeSwiftRouteSurfaceAgentStatusInactive,
         NativeSwiftRouteSurfaceAgentSystemUserId,
-        NativeSwiftRouteSurfaceAgentType,
-        NativeSwiftRouteSurfaceAgentUser,
         NativeSwiftRouteSurfaceAllProviders,
         NativeSwiftRouteSurfaceClosed,
-        NativeSwiftRouteSurfaceCreated,
         NativeSwiftRouteSurfaceDistrusted,
         NativeSwiftRouteSurfaceMonthlyActiveUsers,
         NativeSwiftRouteSurfaceNeutral,

@@ -691,8 +691,6 @@
   <data name="native.dotnet.dynamic.unmuteTopic" xml:space="preserve"><value>Activar tema</value></data>
   <data name="native.dotnet.dynamic.unread" xml:space="preserve"><value>No leído</value></data>
   <data name="native.dotnet.dynamic.unsave" xml:space="preserve"><value>Quitar de guardados</value></data>
-  <data name="native.dotnet.engineering.agentConversationTitle" xml:space="preserve"><value>Conversación del agente</value></data>
-  <data name="native.dotnet.engineering.agentConversationsTitle" xml:space="preserve"><value>Conversaciones del agente</value></data>
   <data name="native.dotnet.engineering.databaseDescription" xml:space="preserve"><value>Estado de migraciones, inventario de particiones, tareas de mantenimiento y seguimiento de sincronización de artículos.</value></data>
   <data name="native.dotnet.engineering.description" xml:space="preserve"><value>Supervisión de colas, administración de PostgreSQL y herramientas de caché Valkey.</value></data>
   <data name="native.dotnet.engineering.messageQueues" xml:space="preserve"><value>Colas de mensajes</value></data>
@@ -1848,11 +1846,8 @@
   <data name="native.swift.routeSurface.agentStatusActive" xml:space="preserve"><value>Activo</value></data>
   <data name="native.swift.routeSurface.agentStatusInactive" xml:space="preserve"><value>Inactivo</value></data>
   <data name="native.swift.routeSurface.agentSystemUserId" xml:space="preserve"><value>ID de usuario del sistema</value></data>
-  <data name="native.swift.routeSurface.agentType" xml:space="preserve"><value>Tipo</value></data>
-  <data name="native.swift.routeSurface.agentUser" xml:space="preserve"><value>Usuario</value></data>
   <data name="native.swift.routeSurface.allProviders" xml:space="preserve"><value>Todos</value></data>
   <data name="native.swift.routeSurface.closed" xml:space="preserve"><value>Cerrados</value></data>
-  <data name="native.swift.routeSurface.created" xml:space="preserve"><value>Creado</value></data>
   <data name="native.swift.routeSurface.distrusted" xml:space="preserve"><value>No confiable</value></data>
   <data name="native.swift.routeSurface.monthlyActiveUsers" xml:space="preserve"><value>Activos este mes</value></data>
   <data name="native.swift.routeSurface.neutral" xml:space="preserve"><value>Neutral</value></data>

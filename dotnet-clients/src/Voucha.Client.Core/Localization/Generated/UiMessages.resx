@@ -691,8 +691,6 @@
   <data name="native.dotnet.dynamic.unmuteTopic" xml:space="preserve"><value>Unmute Topic</value></data>
   <data name="native.dotnet.dynamic.unread" xml:space="preserve"><value>Unread</value></data>
   <data name="native.dotnet.dynamic.unsave" xml:space="preserve"><value>Unsave</value></data>
-  <data name="native.dotnet.engineering.agentConversationTitle" xml:space="preserve"><value>Agent conversation</value></data>
-  <data name="native.dotnet.engineering.agentConversationsTitle" xml:space="preserve"><value>Agent conversations</value></data>
   <data name="native.dotnet.engineering.databaseDescription" xml:space="preserve"><value>Migration status, partition inventory, maintenance jobs, and article sync tracking.</value></data>
   <data name="native.dotnet.engineering.description" xml:space="preserve"><value>Queue monitoring, PostgreSQL admin, and Valkey cache tools.</value></data>
   <data name="native.dotnet.engineering.messageQueues" xml:space="preserve"><value>Message queues</value></data>
@@ -1848,11 +1846,8 @@
   <data name="native.swift.routeSurface.agentStatusActive" xml:space="preserve"><value>Active</value></data>
   <data name="native.swift.routeSurface.agentStatusInactive" xml:space="preserve"><value>Inactive</value></data>
   <data name="native.swift.routeSurface.agentSystemUserId" xml:space="preserve"><value>System user ID</value></data>
-  <data name="native.swift.routeSurface.agentType" xml:space="preserve"><value>Type</value></data>
-  <data name="native.swift.routeSurface.agentUser" xml:space="preserve"><value>User</value></data>
   <data name="native.swift.routeSurface.allProviders" xml:space="preserve"><value>All</value></data>
   <data name="native.swift.routeSurface.closed" xml:space="preserve"><value>Closed</value></data>
-  <data name="native.swift.routeSurface.created" xml:space="preserve"><value>Created</value></data>
   <data name="native.swift.routeSurface.distrusted" xml:space="preserve"><value>Distrusted</value></data>
   <data name="native.swift.routeSurface.monthlyActiveUsers" xml:space="preserve"><value>Active this month</value></data>
   <data name="native.swift.routeSurface.neutral" xml:space="preserve"><value>Neutral</value></data>
