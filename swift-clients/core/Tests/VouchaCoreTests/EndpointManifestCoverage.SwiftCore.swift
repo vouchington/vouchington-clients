@@ -126,6 +126,6 @@ extension EndpointManifestCoverage {
         },
         ManifestRegisteredEndpoint(id: "shared.currencies.list.default") {
             Endpoint.currencies()
-        },
+        }
     ]
 }

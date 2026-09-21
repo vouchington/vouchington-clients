@@ -24,7 +24,9 @@ struct NativeChatToolResult: Identifiable {
     let toolCallId: String
     let result: DecodedJSONValue
 
-    var id: String { toolCallId }
+    var id: String {
+        toolCallId
+    }
 
     var displayText: UiVerbatimText {
         switch result {

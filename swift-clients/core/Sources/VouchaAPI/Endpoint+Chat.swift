@@ -30,7 +30,11 @@ public extension Endpoint {
     }
 
     static func renameConversation(conversationId: String, title: String) -> Endpoint {
-        Endpoint(.PATCH, path: "/api/v1/my/conversations/\(pathSegment(conversationId))", body: UpdateConversationTitleBody(title: title))
+        Endpoint(
+            .PATCH,
+            path: "/api/v1/my/conversations/\(pathSegment(conversationId))",
+            body: UpdateConversationTitleBody(title: title)
+        )
     }
 
     static func deleteConversation(conversationId: String) -> Endpoint {
@@ -38,10 +42,30 @@ public extension Endpoint {
     }
 
     static func chatConversationStream(conversationId: String, message: String, provider: String? = nil) -> Endpoint {
-        Endpoint(.POST, path: "/api/v1/conversations/\(pathSegment(conversationId))/chat", headers: ["Accept": "text/event-stream"], body: SendConversationMessageBody(message: message, provider: provider))
+        Endpoint(
+            .POST,
+            path: "/api/v1/conversations/\(pathSegment(conversationId))/chat",
+            headers: ["Accept": "text/event-stream"],
+            body: SendConversationMessageBody(message: message, provider: provider)
+        )
     }
 
-    static func clientGeneratedChat(conversationId: String, message: String, assistantContent: String, modelProvider: String, modelName: String? = nil) -> Endpoint {
-        Endpoint(.POST, path: "/api/v1/conversations/\(pathSegment(conversationId))/client-generated-chat", body: ClientGeneratedChatBody(message: message, assistantContent: assistantContent, modelProvider: modelProvider, modelName: modelName))
+    static func clientGeneratedChat(
+        conversationId: String,
+        message: String,
+        assistantContent: String,
+        modelProvider: String,
+        modelName: String? = nil
+    ) -> Endpoint {
+        Endpoint(
+            .POST,
+            path: "/api/v1/conversations/\(pathSegment(conversationId))/client-generated-chat",
+            body: ClientGeneratedChatBody(
+                message: message,
+                assistantContent: assistantContent,
+                modelProvider: modelProvider,
+                modelName: modelName
+            )
+        )
     }
 }
