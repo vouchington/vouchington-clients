@@ -20,7 +20,7 @@ public sealed class AgentDetailPage : ContentPage
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     BindingContext = viewModel;
-    SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetEngineeringAgentConversationsTitle.Value);
+    SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetChatListRecent.Value);
 
     var error = new Label { TextColor = Colors.IndianRed };
     error.SetBinding(Label.TextProperty, nameof(AgentListsViewModel.ErrorMessage));

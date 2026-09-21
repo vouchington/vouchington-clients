@@ -126,7 +126,7 @@ public sealed partial class AgentListsViewModel
       return new AgentListRow(
           item.Id,
           untitled
-              ? localization.Localize(UiMessageKey.NativeDotnetEngineeringAgentConversationTitle)
+              ? localization.Localize(UiMessageKey.NativeSwiftChatConversationTitle)
               : item.Title,
           ConversationCreatorName(item, conversations.Users, localization),
           AgentNavigationTargets.Conversation(agent, item.Id),

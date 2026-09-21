@@ -195,8 +195,8 @@ public sealed class AgentListsViewModelTests
   }
 
   [Theory]
-  [InlineData("en", "", "Agent conversation")]
-  [InlineData("es", "   ", "Conversación del agente")]
+  [InlineData("en", "", "Conversation title")]
+  [InlineData("es", "   ", "Título de la conversación")]
   public async Task UntitledConversationUsesLocalizedFallback(string language, string title, string expected)
   {
     var service = new StubService
@@ -296,7 +296,7 @@ public sealed class AgentListsViewModelTests
 
     controller.ApplySavedLocale("es");
 
-    Assert.Equal("Conversación del agente", Assert.Single(viewModel.Rows).Title);
+    Assert.Equal("Título de la conversación", Assert.Single(viewModel.Rows).Title);
   }
 
   [Fact]
