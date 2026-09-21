@@ -71,6 +71,7 @@ public sealed partial class CommunityDetailViewModel
     {
       if (SetProperty(ref selectedSection, value))
       {
+        Interlocked.Increment(ref communityContextRevision);
         InvalidateCommunityListRequests();
         InvalidatePendingReportRequests();
       }

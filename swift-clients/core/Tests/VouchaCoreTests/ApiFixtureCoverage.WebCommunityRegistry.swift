@@ -261,7 +261,7 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
         try assertFixtureCoversDTO(
             $0,
             as: CommunityModerationResultsResponse.self,
-            ignoring: ["openai_moderation.flagged", "openai_moderation.results"]
+            ignoring: []
         )
     },
     RegisteredFixture(id: "web.communities.warning.create.default") {

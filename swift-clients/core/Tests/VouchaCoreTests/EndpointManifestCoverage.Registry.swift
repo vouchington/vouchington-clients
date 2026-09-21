@@ -6,10 +6,6 @@ struct ManifestRegisteredEndpoint {
 }
 
 enum EndpointManifestCoverage {
-    static let nonSwiftManifestFixtureIds: Set<String> = [
-        "web.oauth.authorization.complete.acknowledged"
-    ]
-
     static let registry: [ManifestRegisteredEndpoint] =
         communityEndpoints
             + householdEndpoints
@@ -28,6 +24,7 @@ enum EndpointManifestCoverage {
             + nativeCrmEndpoints
             + nativeAgentConversationEndpoints
             + nativeMessageEndpoints
+            + membershipStoreEndpoints
             + importExportEndpoints
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints

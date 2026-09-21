@@ -58,7 +58,7 @@ export async function verifyContractArtifact(options) {
   } catch (error) {
     fail(`cannot read manifest: ${error.message}`)
   }
-  validateManifest(manifest, config)
+  validateManifest(manifest, config, options?.expectedContractRepository)
   checkExpected(manifest, options ?? {})
   await verifyFiles(root, manifest)
   return manifest

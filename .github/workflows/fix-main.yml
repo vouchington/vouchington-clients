@@ -27,7 +27,7 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository &&
       contains(fromJSON('["failure", "timed_out", "cancelled"]'),
                github.event.workflow_run.conclusion)
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       actions: read
@@ -61,8 +61,7 @@ jobs:
           }
 
           # The age check happens inside jq (fromdateiso8601/now) rather than shell `date`
-          # arithmetic: `date -d`/`date -j` differ between GNU and BSD, and the self-hosted fleet
-          # includes macOS hosts. `fromdateiso8601` is resolved by gojq, the jq processor `gh`
+          # arithmetic: `date -d`/`date -j` differ between GNU and BSD. `fromdateiso8601` is resolved by gojq, the jq processor `gh`
           # bundles for --jq, not the host's system jq. Freshness is measured from
           # `run_started_at`, not `created_at`: `created_at` is fixed at the run's original
           # creation and does not move on a manual re-run, while `run_started_at` resets to when
@@ -78,8 +77,7 @@ jobs:
           IFS=$'\t' read -r actual_repo actual_id actual_attempt actual_status actual_conclusion actual_fresh \
             <<< "$run_state"
 
-          # Case-insensitive, portable comparison (no ${var,,}: the self-hosted fleet includes
-          # macOS hosts whose /bin/bash is 3.2, which predates bash 4's lowercase expansion).
+          # Case-insensitive, portable comparison (no ${var,,}: macOS /bin/bash is 3.2).
           actual_repo_lower="$(printf '%s' "$actual_repo" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
           expected_repo_lower="$(printf '%s' "$GITHUB_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
           if [[ "$actual_repo_lower" != "$expected_repo_lower" ]]; then
@@ -118,7 +116,7 @@ jobs:
     name: Find related open PRs or issues
     needs: [triage]
     if: needs.triage.outputs.should_dispatch == 'true'
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: read
@@ -133,12 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -152,19 +145,13 @@ jobs:
           related-title-key: 'Automation fix: ${{ github.event.workflow_run.name }}'
           related-extra-labels: ''
           github-token: ${{ github.token }}
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   render-prompt:
     name: Render automation prompt
     needs: [triage, related-candidates]
     if: >-
       !cancelled() &&
       needs.triage.outputs.should_dispatch == 'true'
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       actions: read
@@ -179,12 +166,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -267,12 +249,6 @@ jobs:
             COMMIT_SHA=${{ github.event.workflow_run.head_sha }}
             RELATED_CANDIDATES=${{ needs.related-candidates.outputs.related-candidates || '[]' }}
 
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   dispatch:
     name: Harness dispatch
     needs: [triage, related-candidates, render-prompt]
@@ -321,7 +297,7 @@ jobs:
         needs.dispatch.result == 'failure' ||
         needs.dispatch.result == 'cancelled'
       )
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       actions: read

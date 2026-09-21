@@ -10,6 +10,8 @@ public struct UiMessageDescriptor: Sendable {
 
 public let uiMessageDescriptors: [UiMessageKey: UiMessageDescriptor] = [
     .extractedAiCostsPageUnpricedRequestCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
+    .nativeModerationSummaryEvidenceFlaggedCategories: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
+    .nativeModerationSummaryEvidenceSignals: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeSwiftModerationReportsPostCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeSwiftModerationReportsReportCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeSwiftModerationReportsReporterCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),

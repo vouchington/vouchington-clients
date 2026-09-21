@@ -14,6 +14,7 @@ final class MembershipGrantViewModel {
     var selectedUser: MembershipGrantUser?
     var selectedPlan: MembershipPlanSlug?
     var selectedSkuId: String?
+    var durationDays = ""
     var plans: [String: [MembershipSkuSummary]] = [:]
     var isLoadingPlans = false
     var isSearching = false
@@ -86,7 +87,8 @@ final class MembershipGrantViewModel {
               let client,
               let selectedUserId = selectedUser?.id,
               let selectedPlan,
-              let selectedSkuId
+              let selectedSkuId,
+              let duration = validDurationDays
         else {
             submissionMessage = .message(.nativeSwiftMembershipMembershipGrantValidation)
             return
@@ -104,13 +106,19 @@ final class MembershipGrantViewModel {
         }
         do {
             let _: MembershipGrantResponse = try await client.send(
-                .grantMembership(userId: selectedUserId, plan: selectedPlan, skuId: selectedSkuId)
+                .grantMembership(
+                    userId: selectedUserId,
+                    plan: selectedPlan,
+                    skuId: selectedSkuId,
+                    durationDays: duration
+                )
             )
             query = ""
             candidates = []
             selectedUser = nil
             self.selectedPlan = nil
             self.selectedSkuId = nil
+            durationDays = ""
             searchGeneration += 1
             submissionMessage = .message(.nativeSwiftMembershipMembershipGrantSuccess)
         } catch {
@@ -130,7 +138,14 @@ final class MembershipGrantViewModel {
     }
 
     private var hasValidSelection: Bool {
-        selectedUser != nil && selectedPlan != nil && selectedSku != nil
+        selectedUser != nil && selectedPlan != nil && selectedSku != nil && validDurationDays != nil
+    }
+
+    private var validDurationDays: Int? {
+        guard let duration = Int(durationDays), (1 ... 3_660).contains(duration) else {
+            return nil
+        }
+        return duration
     }
 
     private func refreshedCatalogContains(plan: MembershipPlanSlug, skuId: String) -> Bool {

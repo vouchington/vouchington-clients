@@ -8,8 +8,8 @@ extension NativeReviewQueueViewModel {
     func canRevealMedia(postId: String) -> Bool {
         guard !revealedPostIds.contains(postId),
               let item = items.first(where: { $0.id == postId }),
-              item.post.mediaContext?.requiresReveal == true,
-              item.post.mediaContext?.images.isEmpty == false,
+              item.post.mediaReveal.requiresReveal,
+              !item.post.mediaReveal.images.isEmpty,
               exposureState != nil,
               !exposureIsStale,
               inFlightRevealPostId == nil
@@ -23,23 +23,29 @@ extension NativeReviewQueueViewModel {
 
     func revealMedia(postId: String) async {
         guard canRevealMedia(postId: postId), let client else { return }
-        revealedPostIds.insert(postId)
+        let observedRequestRevision = exposureRequestRevision
+        let observedRevealContextRevision = revealContextRevision
         inFlightRevealPostId = postId
         defer { inFlightRevealPostId = nil }
         do {
             let response: ModerationExposureResponse = try await client.send(
                 .recordModerationReveal(postId: postId, surface: .reviewQueue)
             )
-            guard !Task.isCancelled else {
-                exposureOutcomeRevision += 1
-                markExposureStale()
+            guard !Task.isCancelled,
+                  isAuthorized,
+                  observedRequestRevision == exposureRequestRevision,
+                  observedRevealContextRevision == revealContextRevision,
+                  items.contains(where: { $0.id == postId }),
+                  inFlightRevealPostId == postId
+            else {
+                ignoreObsoleteReveal(observedRequestRevision: observedRequestRevision)
                 return
             }
+            revealedPostIds.insert(postId)
             exposureOutcomeRevision += 1
             acceptExposure(response.exposure)
         } catch {
-            exposureOutcomeRevision += 1
-            markExposureStale()
+            ignoreObsoleteReveal(observedRequestRevision: observedRequestRevision)
         }
     }
 
@@ -73,6 +79,12 @@ extension NativeReviewQueueViewModel {
         exposureState = exposure
         exposureIsStale = false
         scheduleCooldownRefetch(for: exposure)
+    }
+
+    private func ignoreObsoleteReveal(observedRequestRevision: Int) {
+        guard observedRequestRevision == exposureRequestRevision else { return }
+        exposureOutcomeRevision += 1
+        markExposureStale()
     }
 
     private func markExposureStale() {

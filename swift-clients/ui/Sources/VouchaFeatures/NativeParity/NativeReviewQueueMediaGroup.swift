@@ -12,7 +12,8 @@ struct NativeReviewQueueMediaGroup: View {
     var viewModel: NativeReviewQueueViewModel
 
     var body: some View {
-        if let media = post.mediaContext, !media.images.isEmpty {
+        let media = post.mediaReveal
+        if !media.images.isEmpty {
             if media.requiresReveal, !viewModel.isMediaRevealed(postId: post.id) {
                 revealGate
             } else {

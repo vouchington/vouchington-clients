@@ -67,11 +67,10 @@ public sealed record IssueCommunityWarningRequest(
     [property: JsonPropertyName("reportId")] string? ReportId = null,
     [property: JsonPropertyName("resolveReport")] bool? ResolveReport = null);
 
-public sealed record CommunityModerationResultsOpenAIModeration(
-    [property: JsonPropertyName("flagged")] bool? Flagged,
-    [property: JsonPropertyName("results")] JsonElement? Results);
+public sealed record CommunityPlatformModeration(
+    [property: JsonPropertyName("status")] AdminReviewQueueClearanceStatus Status);
 
 public sealed record CommunityModerationResultsResponse(
     [property: JsonPropertyName("community_agent_moderations")] IReadOnlyList<JsonElement> CommunityAgentModerations,
-    [property: JsonPropertyName("openai_moderation")] CommunityModerationResultsOpenAIModeration? OpenAIModeration);
+    [property: JsonPropertyName("platform_moderation")] CommunityPlatformModeration PlatformModeration);
 #pragma warning restore CA1054, CA1056, CA1720

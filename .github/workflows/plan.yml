@@ -22,9 +22,9 @@ jobs:
       vars.HARNESS_PLAN_ENABLED == 'true' &&
       github.event.issue.pull_request == null &&
       contains(github.event.comment.body, '/plan') &&
-      contains(fromJSON('["OWNER","COLLABORATOR"]'),
+      contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'),
                github.event.comment.author_association)
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: read
@@ -39,6 +39,12 @@ jobs:
       accepted: ${{ steps.extract-plan.outputs.accepted }}
       plan_request: ${{ steps.extract-plan.outputs.plan_request }}
     steps:
+      # This job deliberately has no checkout -- it validates an untrusted comment
+      # before anything is trusted -- so `node-version-file: .nvmrc` has no file to
+      # read and the version is pinned literally. Keep it in sync with .nvmrc.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
       - name: Extract /plan request
         id: extract-plan
         env:
@@ -115,7 +121,7 @@ jobs:
             exit 1
           fi
 
-          pnpm dlx vouchington-tooling@0.1.5 gha-output plan_request < "$REQUEST_FILE"
+          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.18.1 gha-output plan_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge with eyes reaction and run link
@@ -145,7 +151,7 @@ jobs:
     name: Render automation prompt
     needs: [gate]
     if: needs.gate.outputs.accepted == 'true'
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     concurrency:
       group: harness-dispatch-fleet-admission
@@ -156,12 +162,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -225,7 +226,7 @@ jobs:
         needs.render-prompt.result == 'cancelled' ||
         (needs.dispatch.result == 'failure' || needs.dispatch.result == 'cancelled')
       )
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:
       issues: write
@@ -250,7 +251,7 @@ jobs:
           jq -e \
             'select((.id | tostring) == env.TRIGGER_COMMENT_ID and
               (.issue_url | endswith("/issues/" + env.ISSUE_NUMBER)) and
-              (.author_association == "OWNER" or .author_association == "COLLABORATOR"))' \
+              (.author_association == "OWNER" or .author_association == "COLLABORATOR" or .author_association == "MEMBER"))' \
             <<< "$COMMENT_JSON" > /dev/null
           COMMAND="$(jq -r '.body | split("\n")[0]' <<< "$COMMENT_JSON" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$COMMAND" != "/plan" ]]; then

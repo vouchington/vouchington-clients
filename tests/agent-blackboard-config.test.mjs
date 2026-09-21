@@ -164,23 +164,23 @@ describe('Agent Blackboard host configuration', () => {
     }
   })
 
-  it('keeps client-owned architecture links local and Filaments-owned links explicit', () => {
+  it('keeps client-owned architecture links local and Vouchington-owned links explicit', () => {
     const swift = readFileSync(resolve(root, 'swift-clients/CLAUDE.md'), 'utf8')
     const dotnet = readFileSync(resolve(root, 'dotnet-clients/CLAUDE.md'), 'utf8')
     for (const instructions of [swift, dotnet]) {
       assert.match(
         instructions,
-        /github\.com\/jonathanong\/filaments\/blob\/main\/docs\/overview\/architecture\/pagination\.md/u,
+        /github\.com\/vouchington\/vouchington\/blob\/main\/docs\/overview\/architecture\/pagination\.md/u,
       )
       assert.match(
         instructions,
-        /github\.com\/jonathanong\/filaments\/blob\/main\/docs\/overview\/architecture\/native-clients\.md/u,
+        /github\.com\/vouchington\/vouchington\/blob\/main\/docs\/overview\/architecture\/native-clients\.md/u,
       )
     }
     assert.match(dotnet, /docs\/overview\/architecture\/dotnet-deep-linking\.md/u)
     assert.match(
       dotnet,
-      /github\.com\/jonathanong\/filaments\/blob\/main\/docs\/runbooks\/native-tls-pinning\.md/u,
+      /github\.com\/vouchington\/vouchington\/blob\/main\/docs\/runbooks\/native-tls-pinning\.md/u,
     )
     assert.equal(
       existsSync(

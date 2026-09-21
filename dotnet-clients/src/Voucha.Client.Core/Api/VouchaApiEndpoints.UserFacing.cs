@@ -102,7 +102,7 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest MembershipPlans() => Get("/api/v1/memberships/plans");
 
   public static ApiRequest GrantMembership(GrantMembershipBody body) =>
-      new(HttpMethod.Post, "/api/v1/memberships") { Body = body };
+      new(HttpMethod.Post, "/api/v1/membership-grants") { Body = body };
 
   public static ApiRequest Bookmarks(string entityType, string entityId) =>
       Get($"/api/v1/bookmarks/{Path(entityType)}/{Path(entityId)}");

@@ -4,13 +4,32 @@ public enum AdminReviewQueueClearanceStatus: String, Codable, Sendable {
     case rejected, inReview = "in_review", approved, pending
 }
 
+public enum PostClearanceAction: String, Codable, Sendable {
+    case approved, rejected, inReview = "in_review"
+}
+
 public struct AdminReviewQueueImage: Codable, Sendable {
     public let imageId: String
     public let orderIndex: Int
     public let caption: String
 }
 
-public struct AdminReviewQueueMediaContext: Codable, Sendable {
+public enum AdminModerationDisposition: String, Codable, Sendable {
+    case pass, review, reject, incomplete
+}
+
+public struct AdminModerationEvidenceSummary: Codable, Sendable {
+    public let flaggedCategoryCount: Int
+    public let signalCount: Int
+}
+
+public struct AdminModerationSummary: Codable, Sendable {
+    public let disposition: AdminModerationDisposition?
+    public let evidenceSummary: AdminModerationEvidenceSummary
+    public let reasonCodes: [String]
+}
+
+public struct AdminReviewQueueMediaReveal: Codable, Sendable {
     public let requiresReveal: Bool
     public let images: [AdminReviewQueueImage]
 }
@@ -30,12 +49,8 @@ public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
     public let rootSlug: String?
     public let clearanceStatus: AdminReviewQueueClearanceStatus
     public let clearanceUpdatedAt: Date?
-    public let spamDetectionFlagged: Bool?
-    public let spamDetectionScore: Double?
-    public let spamDetectionResults: DecodedJSONValue
-    public let openaiOmniModerationFlagged: Bool?
-    public let openaiOmniModerationResults: DecodedJSONValue
-    public let mediaContext: AdminReviewQueueMediaContext?
+    public let moderationSummary: AdminModerationSummary
+    public let mediaReveal: AdminReviewQueueMediaReveal
 }
 
 public struct AdminReviewQueueResponse: Codable, Sendable {

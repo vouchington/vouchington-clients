@@ -74,9 +74,9 @@ final class MembershipGrantSurfaceTests: XCTestCase {
             MembershipPlansResponse.self,
             from: Data(
                 #"""
-                {"plans":{"pro":[{"id":"\#(id)","plan":"pro","price":{"amount":\#(amount),"currency":"\#(
-                    currency
-                )"},"interval":"\#(interval)","stripe_price_id":"price-\#(id)"}]}}
+                {"products":[{"id":"\#(id)","plan":"pro","interval":"\#(interval)","providers":[{"provider":"stripe",
+                "environment":"test","application_id":"voucha-web","product_id":"price-\#(id)","base_plan_id":null,
+                "offer_id":null,"sku_id":null,"price":{"amount":\#(amount),"currency":"\#(currency)"}}]}]}
                 """#
                 .utf8
             )

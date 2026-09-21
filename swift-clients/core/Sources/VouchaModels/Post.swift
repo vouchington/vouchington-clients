@@ -76,13 +76,13 @@ public struct Post: Codable, Identifiable, Sendable {
     public var clearanceReason: String?
     @RequiredNullable
     public var clearanceUpdatedAt: Date?
-    @RequiredNullable
+    @TolerantNullable
     public var spamDetectionCreatedAt: Date?
-    @RequiredNullable
+    @TolerantNullable
     public var spamDetectionFlagged: Bool?
-    @RequiredNullable
+    @TolerantNullable
     public var spamDetectionResults: DecodedJSONValue?
-    @RequiredNullable
+    @TolerantNullable
     public var spamDetectionScore: Double?
     @RequiredNullable
     public var updatedById: String?

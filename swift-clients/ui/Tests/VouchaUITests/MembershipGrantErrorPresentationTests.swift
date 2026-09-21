@@ -7,7 +7,7 @@ import XCTest
 final class MembershipGrantErrorPresentationTests: NativeRouteSurfaceViewModelTestCase {
     func testGrantShowsIntentionalClientErrorMessage() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships/plans"] = [(plansResponse, 200, 0)]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
             (Data(#"{"message":"Choose another SKU."}"#.utf8), 422, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
@@ -15,6 +15,7 @@ final class MembershipGrantErrorPresentationTests: NativeRouteSurfaceViewModelTe
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -32,8 +33,9 @@ final class MembershipGrantErrorPresentationTests: NativeRouteSurfaceViewModelTe
     private var plansResponse: Data {
         Data(
             #"""
-            {"plans":{"pro":[{"id":"sku-pro","plan":"pro","price":{"amount":1200,"currency":"usd"},
-            "interval":"monthly","stripe_price_id":"price-pro"}]}}
+            {"products":[{"id":"sku-pro","plan":"pro","interval":"monthly","providers":[{"provider":"stripe",
+            "environment":"test","application_id":"voucha-web","product_id":"price-pro","base_plan_id":null,
+            "offer_id":null,"sku_id":null,"price":{"amount":1200,"currency":"usd"}}]}]}
             """#
             .utf8
         )

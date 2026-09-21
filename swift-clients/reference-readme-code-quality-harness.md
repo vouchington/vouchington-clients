@@ -93,7 +93,7 @@ On a failure, the harness preserves its normal live combined output, then append
 ordered `failed checks:` table with the check name, classification, original exit status, integer
 elapsed seconds, and the final 40 combined-output lines. `host-timeout` and `lock-timeout` require
 the exact `expensive-build` wrapper marker and matching exit status; every other failure is
-`check-failure`. See [Per-User Host Locks](../docs/development/host-locks.md#native-harness-timeout-classification).
+`check-failure`. See [Host Locks](../docs/development/host-locks.md#native-harness-timeout-classification).
 
 ## Gotchas
 

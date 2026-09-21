@@ -100,7 +100,7 @@ final class SettingsViewModelDataRequestTests: NativeRouteSurfaceViewModelTestCa
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (
-            Data(#"{"plans":{}}"#.utf8),
+            Data(#"{"products":[]}"#.utf8),
             200
         )
     }

@@ -155,10 +155,9 @@ extension NativeRouteSurfaceViewModelTests {
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topics/topic-1/vote"] = [
-            (Data("{}".utf8), 200, 0.05),
-            (Data("{}".utf8), 200, 0)
-        ]
+        let votePath = "/api/v1/topics/topic-1/vote"
+        CannedFeedURLProtocol.handlers[votePath] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.suspendResponse(path: votePath)
         let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
@@ -167,14 +166,22 @@ extension NativeRouteSurfaceViewModelTests {
         )
 
         await viewModel.load()
-        async let staleVote: Void = viewModel.vote(topicId: "topic-1", choice: .like)
-        try await Task.sleep(for: .milliseconds(10))
+        async let inFlightVote: Void = viewModel.vote(topicId: "topic-1", choice: .like)
+        let didSuspend = await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: votePath)
+        XCTAssertTrue(didSuspend)
         await viewModel.vote(topicId: "topic-1", choice: .dislike)
-        await staleVote
 
-        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/topics/topic-1/vote" }
+        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }
         XCTAssertEqual(voteRequests.count, 1)
         XCTAssertEqual(viewModel.myVotesByTopicId["topic-1"], .like)
         XCTAssertEqual(viewModel.topicVoteSummary(for: "topic-1")?.myVote, .like)
+
+        CannedFeedURLProtocol.releaseResponse(path: votePath)
+        await inFlightVote
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }.count,
+            1
+        )
+        XCTAssertEqual(viewModel.myVotesByTopicId["topic-1"], .like)
     }
 }
