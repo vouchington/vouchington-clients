@@ -20,7 +20,7 @@ public sealed class AgentDetailPage : ContentPage
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     BindingContext = viewModel;
-    SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetEngineeringAgentConversationsTitle.Value);
+    SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetChatListRecent.Value);
 
     var error = new Label { TextColor = Colors.IndianRed };
     error.SetBinding(Label.TextProperty, nameof(AgentListsViewModel.ErrorMessage));
@@ -58,11 +58,11 @@ public sealed class AgentDetailPage : ContentPage
 
     var detail = new VerticalStackLayout { AutomationId = "agent-detail" };
     detail.Children.Add(UiCopy.Bind(new Label { FontAttributes = FontAttributes.Bold }, Label.TextProperty, UiMessageKey.NativeSwiftRouteSurfaceAgent));
-    detail.Children.Add(BoundLabel(nameof(AgentListsViewModel.AgentDisplayName), UiMessageKey.NativeSwiftRouteSurfaceAgentUser));
-    detail.Children.Add(BoundLabel("AgentDetail.Agent.AgentType", UiMessageKey.NativeSwiftRouteSurfaceAgentType));
+    detail.Children.Add(BoundLabel(nameof(AgentListsViewModel.AgentDisplayName), UiMessageKey.NativeSwiftHouseholdsBookmarksUser));
+    detail.Children.Add(BoundLabel("AgentDetail.Agent.AgentType", UiMessageKey.NativeDotnetCsharpCrmType));
     detail.Children.Add(BoundLabel("AgentDetail.Agent.Id", UiMessageKey.NativeSwiftRouteSurfaceAgentId));
     detail.Children.Add(BoundLabel("AgentDetail.Agent.SystemUserId", UiMessageKey.NativeSwiftRouteSurfaceAgentSystemUserId));
-    detail.Children.Add(BoundLabel(nameof(AgentListsViewModel.AgentCreatedAt), UiMessageKey.NativeSwiftRouteSurfaceCreated));
+    detail.Children.Add(BoundLabel(nameof(AgentListsViewModel.AgentCreatedAt), UiMessageKey.NativeSwiftIntegrityCreated));
     var status = new Label { AutomationId = "agent-status" };
     status.SetBinding(Label.TextProperty, nameof(AgentListsViewModel.AgentStatusTitle));
     status.SetBinding(IsVisibleProperty, nameof(AgentListsViewModel.HasAgentStatus));

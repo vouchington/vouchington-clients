@@ -14,6 +14,7 @@ public sealed partial class ReviewQueueViewModel
     {
       var response = await service.FetchReviewQueueAsync(cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!Accepts(generation, cancellationToken)) return;
+      Interlocked.Increment(ref revealContextVersion);
       Items = SupportedRows(response.Results);
       ApplyPageInfo(response);
       State = LoadState.Loaded;
@@ -123,14 +124,14 @@ public sealed partial class ReviewQueueViewModel
           revealInFlightPostId is null && !isExposureRefreshInFlight);
 
   private ReviewQueueMediaRow[] MediaRows(AdminReviewQueuePost post) =>
-      post.MediaContext?.Images
+      post.MediaReveal.Images
           .OrderBy(image => image.OrderIndex)
           .Select(image => new ReviewQueueMediaRow(
               appConfig.ImageUrlForImageId(image.ImageId, 960)!,
               UiText.UserContent(image.Caption),
               image.OrderIndex,
               localization))
-          .ToArray() ?? [];
+          .ToArray();
 
   private void ApplyPageInfo(AdminReviewQueueResponse response)
   {

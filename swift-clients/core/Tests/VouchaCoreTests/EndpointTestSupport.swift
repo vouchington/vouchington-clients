@@ -95,6 +95,12 @@ private func jsonObject(_ lhs: Any, matches rhs: Any) -> Bool {
         return lhs == rhs
     case let (lhs as Int, rhs as Int):
         return lhs == rhs
+    case let (lhs as NSNumber, rhs as Int):
+        return lhs.intValue == rhs
+    case let (lhs as Int, rhs as NSNumber):
+        return lhs == rhs.intValue
+    case let (lhs as NSNumber, rhs as NSNumber):
+        return lhs == rhs
     case let (lhs as Double, rhs as Double):
         return lhs == rhs
     case let (lhs as Bool, rhs as Bool):

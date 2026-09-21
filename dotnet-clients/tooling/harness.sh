@@ -260,7 +260,7 @@ echo "dotnet-clients harness"
 echo "----------------------"
 
 if contains restore; then
-  run_check "restore" pnpm exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
+  run_check "restore" npx --yes pnpm@11.13.1 exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
 fi
 
 if contains fmt; then

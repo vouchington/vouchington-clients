@@ -71,6 +71,11 @@ export async function configuredPaths(configPath) {
 export function createMetadata(options, config) {
   const clientsRepository = requiredString(options.clientsRepository, 'clients repository')
   if (!repositoryPattern.test(clientsRepository)) fail('clients repository must be owner/name')
+  const contractRepository = requiredString(
+    options.contractRepository ?? config.repository,
+    'contract repository',
+  )
+  if (!repositoryPattern.test(contractRepository)) fail('contract repository must be owner/name')
   const candidateEvent = requiredString(options.candidateEvent, 'candidate event')
   if (!['pull_request', 'push'].includes(candidateEvent))
     fail('candidate event must be pull_request or push')
@@ -83,7 +88,7 @@ export function createMetadata(options, config) {
   return {
     schema: 2,
     clientsRepository,
-    filaments: { repository: config.repository, sha: sha(options.filamentsSha, 'Filaments SHA') },
+    filaments: { repository: contractRepository, sha: sha(options.filamentsSha, 'Filaments SHA') },
     candidate: {
       event: candidateEvent,
       number: candidateNumber,
@@ -97,7 +102,7 @@ export function createMetadata(options, config) {
     },
   }
 }
-export function validateManifest(value, config) {
+export function validateManifest(value, config, expectedContractRepository = config.repository) {
   exactKeys(
     value,
     [
@@ -117,7 +122,13 @@ export function validateManifest(value, config) {
   )
     fail('invalid manifest clients repository')
   exactKeys(value.filaments, ['repository', 'sha'], 'manifest filaments metadata')
-  if (value.filaments.repository !== config.repository)
+  const contractRepository = requiredString(
+    expectedContractRepository,
+    'expected contract repository',
+  )
+  if (!repositoryPattern.test(contractRepository))
+    fail('expected contract repository must be owner/name')
+  if (value.filaments.repository !== contractRepository)
     fail('invalid manifest Filaments repository')
   sha(value.filaments.sha, 'manifest Filaments SHA')
   exactKeys(value.candidate, ['event', 'number', 'base', 'head', 'revision'], 'manifest candidate')

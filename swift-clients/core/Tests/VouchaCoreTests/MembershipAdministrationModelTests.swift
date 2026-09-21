@@ -14,10 +14,12 @@ final class MembershipAdministrationModelTests: XCTestCase {
     func testDecodesMembershipGrantResponse() throws {
         let response = try JSONDecoder().decode(
             MembershipGrantResponse.self,
-            from: Data(#"{"membership":{"id":"membership-1"}}"#.utf8)
+            from: Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8)
         )
 
+        XCTAssertEqual(response.grant.id, "grant-1")
         XCTAssertEqual(response.membership.id, "membership-1")
+        XCTAssertFalse(response.queued)
     }
 
     func testGrantSearchUserAcceptsMissingUsernameAndUsesIdentifierFallback() throws {

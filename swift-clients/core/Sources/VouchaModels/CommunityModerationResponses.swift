@@ -110,14 +110,13 @@ public struct CommunityAutomodFeedbackResponse: Codable, Sendable {
     public let appliedAction: Bool
 }
 
-public struct CommunityOpenAIModeration: Codable, Sendable {
-    public let flagged: Bool?
-    public let results: DecodedJSONValue?
+public struct CommunityPlatformModeration: Codable, Sendable {
+    public let status: AdminReviewQueueClearanceStatus
 }
 
 public struct CommunityModerationResultsResponse: Codable, Sendable {
     public let communityAgentModerations: [DecodedJSONValue]
-    public let openaiModeration: CommunityOpenAIModeration?
+    public let platformModeration: CommunityPlatformModeration
 }
 
 public struct CommunityWarning: Codable, Identifiable, Sendable {

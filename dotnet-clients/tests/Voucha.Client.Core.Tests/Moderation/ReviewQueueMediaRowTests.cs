@@ -10,7 +10,7 @@ public sealed class ReviewQueueMediaRowTests
   [Fact]
   public async Task MapsOrderedImageUrlsAndCaptionContentBoundary()
   {
-    var post = Post(new AdminReviewQueueMediaContext(true, [
+    var post = Post(new AdminReviewQueueMediaReveal(true, [
       new("image/second", 2, "Second caption"),
       new("image first", 1, "First caption"),
     ]));
@@ -35,7 +35,7 @@ public sealed class ReviewQueueMediaRowTests
   [Fact]
   public async Task MissingMediaProducesNoPresentationRows()
   {
-    var viewModel = new ReviewQueueViewModel(new QueueService(Post(null)));
+    var viewModel = new ReviewQueueViewModel(new QueueService(Post(new(false, []))));
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -45,14 +45,16 @@ public sealed class ReviewQueueMediaRowTests
     Assert.False(row.ShowMedia);
   }
 
-  private static AdminReviewQueuePost Post(AdminReviewQueueMediaContext? media) =>
+  private static AdminReviewQueuePost Post(AdminReviewQueueMediaReveal media) =>
       new(
           "post-1", "Title", "slug", "Preview", "discussion", "author",
           DateTimeOffset.UnixEpoch, null, null, null,
-          AdminReviewQueueClearanceStatus.Rejected, null, false, 0,
-          EmptyJson(), false, EmptyJson(), media);
-
-  private static JsonElement EmptyJson() => JsonDocument.Parse("{}").RootElement.Clone();
+          AdminReviewQueueClearanceStatus.Rejected, null,
+          new AdminModerationSummary(
+              AdminModerationDisposition.Review,
+              new AdminModerationEvidenceSummary(1, 2),
+              ["provider_flagged"]),
+          media);
 
   private sealed class QueueService(AdminReviewQueuePost post) : ReviewQueueModerationServiceStub
   {

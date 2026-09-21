@@ -36,7 +36,7 @@ case "$command_timeout" in
     ;;
 esac
 
-exec pnpm exec vouchington with-host-lock \
+exec npx --yes pnpm@11.13.1 exec vouchington with-host-lock \
   --name expensive-build \
   --timeout-seconds "$wait_seconds" \
   --command-timeout-seconds "$command_timeout" \

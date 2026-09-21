@@ -19,7 +19,7 @@ jobs:
       github.event.pull_request.base.ref == github.event.repository.default_branch &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'dependabot/')
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       contents: read
@@ -57,14 +57,9 @@ jobs:
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ steps.live.outputs.base-sha }}
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -162,16 +157,10 @@ jobs:
           overwrite: true
           path: ${{ runner.temp }}/dependabot-swift-android-repair
           retention-days: 1
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   publish-swift-android:
     needs: prepare
     if: needs.prepare.outputs.repair-kind == 'swift-android'
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       actions: read
@@ -183,14 +172,9 @@ jobs:
       - name: Check out exact trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.base-sha }}
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up trusted Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -287,18 +271,12 @@ jobs:
           GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $write_token_b64" \
             git push --force-with-lease="refs/heads/$HEAD_REF:$EXPECTED_HEAD_SHA" \
               origin "$REPAIRED_HEAD_SHA:refs/heads/$HEAD_REF"
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   automerge:
     needs: [prepare, publish-swift-android]
     if: >-
       always() && needs.prepare.result == 'success' &&
       (needs.prepare.outputs.repair-kind == 'none' || needs.publish-swift-android.result == 'success')
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     steps:
       - name: Enable eligible Dependabot auto-merge
@@ -315,7 +293,7 @@ jobs:
       github.event.pull_request.base.ref != github.event.repository.default_branch &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'dependabot/')
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     steps:
       - name: Disable stale Dependabot auto-merge

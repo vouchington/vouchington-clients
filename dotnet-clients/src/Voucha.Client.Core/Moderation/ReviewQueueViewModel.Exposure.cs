@@ -16,6 +16,7 @@ public sealed partial class ReviewQueueViewModel
   private bool isExposureStale = true;
   private long exposureLifecycleVersion;
   private long acceptedExposureLifecycleVersion = -1;
+  private long exposureAcceptanceVersion;
   private long revealOutcomeVersion;
 
   public Task RefreshExposureAsync(CancellationToken cancellationToken = default) =>
@@ -28,14 +29,17 @@ public sealed partial class ReviewQueueViewModel
     ArgumentNullException.ThrowIfNull(row);
     if (exposureService is null || revealInFlightPostId is not null) return Task.CompletedTask;
     var current = Items.FirstOrDefault(item => item.Id == row.Id);
-    if (current is not { CanRevealMedia: true } || !revealedPostIds.Add(current.Id))
+    if (current is not { CanRevealMedia: true })
     {
       return Task.CompletedTask;
     }
 
     revealInFlightPostId = current.Id;
     RefreshExposureRows();
-    return RecordRevealAsync(current.Id, cancellationToken);
+    return RecordRevealAsync(
+        current.Id,
+        Volatile.Read(ref revealContextVersion),
+        cancellationToken);
   }
 
   public void CancelExposureOperations()
@@ -48,12 +52,14 @@ public sealed partial class ReviewQueueViewModel
   [SuppressMessage(
       "Design",
       "CA1031:Do not catch general exception types",
-      Justification = "Any reveal response failure is ambiguous and must preserve media while gating later reveals.")]
+      Justification = "Any reveal response failure is ambiguous and must keep media gated while gating later reveals.")]
   private async Task RecordRevealAsync(
       string postId,
+      long observedRevealContextVersion,
       CancellationToken cancellationToken)
   {
     var observedExposureLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
+    var observedExposureAcceptanceVersion = Volatile.Read(ref exposureAcceptanceVersion);
     var outcomeVersionAdvanced = false;
     try
     {
@@ -62,19 +68,25 @@ public sealed partial class ReviewQueueViewModel
           cancellationToken).ConfigureAwait(true);
       Interlocked.Increment(ref revealOutcomeVersion);
       outcomeVersionAdvanced = true;
-      if (AcceptsReveal(observedExposureLifecycleVersion, cancellationToken))
+      if (AcceptsReveal(
+          postId,
+          observedRevealContextVersion,
+          observedExposureLifecycleVersion,
+          observedExposureAcceptanceVersion,
+          cancellationToken))
       {
+        revealedPostIds.Add(postId);
         AcceptExposure(response.Exposure, scheduleCooldownRefresh: true);
       }
       else
       {
-        RejectRevealOutcome(observedExposureLifecycleVersion);
+        RejectRevealOutcome(observedExposureLifecycleVersion, observedExposureAcceptanceVersion);
       }
     }
     catch (Exception)
     {
       if (!outcomeVersionAdvanced) Interlocked.Increment(ref revealOutcomeVersion);
-      RejectRevealOutcome(observedExposureLifecycleVersion);
+      RejectRevealOutcome(observedExposureLifecycleVersion, observedExposureAcceptanceVersion);
     }
     finally
     {
@@ -84,25 +96,16 @@ public sealed partial class ReviewQueueViewModel
   }
 
   private bool AcceptsReveal(
+      string postId,
+      long observedRevealContextVersion,
       long observedExposureLifecycleVersion,
+      long observedExposureAcceptanceVersion,
       CancellationToken cancellationToken) =>
       !cancellationToken.IsCancellationRequested &&
-      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion);
-
-  private void RejectRevealOutcome(long observedExposureLifecycleVersion)
-  {
-    var currentLifecycleVersion = Volatile.Read(ref exposureLifecycleVersion);
-    if (observedExposureLifecycleVersion == currentLifecycleVersion)
-    {
-      CancelExposureSchedule();
-      SetExposureStale();
-    }
-    else if (Volatile.Read(ref acceptedExposureLifecycleVersion) !=
-        currentLifecycleVersion)
-    {
-      SetExposureStale();
-    }
-  }
+      observedRevealContextVersion == Volatile.Read(ref revealContextVersion) &&
+      Items.Any(row => row.Id == postId) &&
+      observedExposureLifecycleVersion == Volatile.Read(ref exposureLifecycleVersion) &&
+      observedExposureAcceptanceVersion == Volatile.Read(ref exposureAcceptanceVersion);
 
   [SuppressMessage(
       "Design",
@@ -159,6 +162,7 @@ public sealed partial class ReviewQueueViewModel
       bool scheduleCooldownRefresh)
   {
     exposureState = next;
+    Interlocked.Increment(ref exposureAcceptanceVersion);
     Volatile.Write(
         ref acceptedExposureLifecycleVersion,
         Volatile.Read(ref exposureLifecycleVersion));

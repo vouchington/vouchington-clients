@@ -37,7 +37,12 @@ async function fixture(t) {
   const config = join(configRoot, 'filaments.json')
   await writeFile(
     config,
-    JSON.stringify({ schemaVersion: 1, repository: 'jonathanong/filaments', ref: 'main', paths }),
+    JSON.stringify({
+      schemaVersion: 1,
+      repository: 'vouchington/vouchington',
+      ref: 'main',
+      paths,
+    }),
   )
   const generatedRoot = await mkdtemp(join(repositoryRoot, '.contracts-test-'))
   t.after(async () => {

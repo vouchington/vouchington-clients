@@ -9,20 +9,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Configure isolated mise root
-      shell: bash
-      run: |
-        set -euo pipefail
-        mise_root="$RUNNER_TEMP/mise"
-        rm -rf -- "$mise_root"
-        mkdir -p -- "$mise_root"
-        printf 'MISE_DATA_DIR=%s\n' "$mise_root" >> "$GITHUB_ENV"
     - name: Install mise
       uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
       with:
         cache: false
         install: false
-        mise_dir: ${{ runner.temp }}/mise
     - name: Install pinned Swift quality tools
       shell: bash
       env:

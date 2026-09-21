@@ -32,7 +32,7 @@ public sealed partial class AgentListsViewModel
               ? row with
               {
                 Title = row.UsesLocalizedUntitledConversationTitle
-                    ? localization.Localize(UiMessageKey.NativeDotnetEngineeringAgentConversationTitle)
+                    ? localization.Localize(UiMessageKey.NativeSwiftChatConversationTitle)
                     : row.Title,
                 Detail = ConversationDetail(agentConversationUsers.GetValueOrDefault(row.UserId ?? string.Empty), row.UserId, createdAt),
               }

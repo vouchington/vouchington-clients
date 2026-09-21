@@ -253,10 +253,10 @@ public sealed class AgentPagesTests
     Assert.Equal(["earlier", "later", "fallback error", localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceNoResults), "selected"], rows.Select(row => Labels(row).ElementAt(1)));
     Assert.Equal(
         [
-          localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgentUser),
-          localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgentUser),
-          localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgentUser),
-          localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgentUser),
+          localization.Localize(UiMessageKey.NativeSwiftHouseholdsBookmarksUser),
+          localization.Localize(UiMessageKey.NativeSwiftHouseholdsBookmarksUser),
+          localization.Localize(UiMessageKey.NativeSwiftHouseholdsBookmarksUser),
+          localization.Localize(UiMessageKey.NativeSwiftHouseholdsBookmarksUser),
           localization.Localize(UiMessageKey.NativeSwiftRouteSurfaceAgent),
         ],
         rows.Select(row => Labels(row).First()));

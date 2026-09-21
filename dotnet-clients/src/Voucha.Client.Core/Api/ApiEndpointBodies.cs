@@ -62,7 +62,9 @@ public sealed record UpdateAppealBody(
 public sealed record ResolveAppealBody(
     [property: JsonPropertyName("action")] ModerationAppealAction Action);
 
-public sealed record UpdatePostClearanceBody([property: JsonPropertyName("status")] PostClearanceAction Status);
+public sealed record UpdatePostClearanceBody(
+    [property: JsonPropertyName("status")] PostClearanceAction Status,
+    [property: JsonPropertyName("reason_code")] string ReasonCode);
 
 public sealed record ResolveReportIntegrityFlagBody(
     [property: JsonPropertyName("resolution")] ReportIntegrityPatchResolution Resolution);

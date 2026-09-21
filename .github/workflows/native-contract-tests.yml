@@ -19,10 +19,7 @@ concurrency:
 jobs:
   produce:
     name: Publish verified native contracts
-    if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
@@ -46,7 +43,7 @@ jobs:
             candidate_event=pull_request
             candidate_number="$PR_NUMBER"
             candidate_ref="refs/pull/$PR_NUMBER/merge"
-            trusted_ref="$PR_BASE_SHA"
+            trusted_ref="$EVENT_SHA"
             base_sha="$PR_BASE_SHA"
             head_sha="$PR_HEAD_SHA"
           elif [ "$EVENT_NAME" = push ] && [ "$EVENT_REF" = refs/heads/main ]; then
@@ -70,21 +67,15 @@ jobs:
             printf 'base_sha=%s\n' "$base_sha"
             printf 'head_sha=%s\n' "$head_sha"
           } >>"$GITHUB_OUTPUT"
-      - name: Check out trusted client tooling
+      - name: Check out client tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           ref: ${{ steps.event.outputs.trusted_ref }}
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-      - name: Assert authorized Filaments source
-        run: >-
-          jq -e
-          '.repository == "jonathanong/filaments" and .ref == "main"'
-          contracts/filaments.json
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Check out candidate clients as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -92,18 +83,18 @@ jobs:
           path: candidate-clients
           persist-credentials: false
           allow-unsafe-pr-checkout: true
-      - name: Check out Filaments
+      - name: Assert authorized Vouchington source
+        run: >-
+          jq -e
+          '.repository == "vouchington/vouchington" and .ref == "main"'
+          candidate-clients/contracts/filaments.json
+      - name: Check out Vouchington
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: jonathanong/filaments
+          repository: vouchington/vouchington
           ref: main
           path: filaments
-          ssh-key: ${{ secrets.FILAMENTS_DEPLOY_KEY }}
           persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
       - name: Resolve immutable checkout identities
         id: identities
         env:
@@ -113,9 +104,9 @@ jobs:
           set -euo pipefail
           printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
-      - name: Install trusted Filaments exporter dependencies
+      - name: Install trusted Vouchington exporter dependencies
         working-directory: filaments
-        run: pnpm install --frozen-lockfile
+        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
@@ -160,6 +151,7 @@ jobs:
           node scripts/contract-artifact.mjs create \
             --filaments-root "$FILAMENTS_ROOT" \
             --output-root "$ARTIFACT_ROOT" \
+            --contract-repository vouchington/vouchington \
             --filaments-sha "$FILAMENTS_SHA" \
             --clients-repository "$GITHUB_REPOSITORY" \
             "${candidate_args[@]}" \
@@ -177,16 +169,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           overwrite: true
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   verify:
     name: Verify native contract handoff
     needs: produce
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       actions: read
@@ -196,16 +182,10 @@ jobs:
       base-sha: ${{ steps.identity.outputs.base_sha }}
       revision-sha: ${{ steps.identity.outputs.revision_sha }}
     steps:
-      - name: Check out trusted consumer tooling
+      - name: Check out consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -226,6 +206,7 @@ jobs:
         run: >-
           node scripts/contract-artifact.mjs verify
           --artifact-root "$ARTIFACT_ROOT"
+          --expected-contract-repository vouchington/vouchington
           --expected-clients-repository "$GITHUB_REPOSITORY"
           --expected-producer-run-id "$PRODUCER_RUN_ID"
           --expected-producer-run-attempt "$PRODUCER_RUN_ATTEMPT"
@@ -292,31 +273,28 @@ jobs:
         run: >-
           node candidate-clients/scripts/contracts.mjs check
           --destination-root "${{ github.workspace }}/candidate-clients"
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   dotnet-portable:
     name: .NET portable
     needs: verify
-    runs-on: [self-hosted, Linux, Docker, Tests]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
       dto-fixture-parity-outcome: ${{ steps.dotnet-dto-fixture-parity.outcome }}
     env:
       MSBuildEnableWorkloadResolver: 'false'
     steps:
-      - name: Check out trusted consumer tooling
+      - name: Check out consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Prepare verified candidate
         uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -330,12 +308,6 @@ jobs:
             exit 1
           }
           printf 'version=%s\n' "$sdk_version" >> "$GITHUB_OUTPUT"
-      - name: Reset exact .NET SDK root
-        run: |
-          set -euo pipefail
-          [[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]
-          rm -rf -- "$DOTNET_INSTALL_DIR"
-          mkdir -p -- "$DOTNET_INSTALL_DIR"
       - name: Set up exact .NET SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -379,26 +351,25 @@ jobs:
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
           COVERAGE_HEAD: ${{ needs.verify.outputs.revision-sha }}
-        run: pnpm run coverage:dotnet-core
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
+        run: npx --yes pnpm@11.13.1 run coverage:dotnet-core
   periphery-swift-core:
     name: Swift Periphery (core)
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 15
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -407,26 +378,26 @@ jobs:
       - name: Find unused declarations in core
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh mise exec aqua:peripheryapp/periphery@3.7.4 --
+          mise exec aqua:peripheryapp/periphery@3.7.4 --
           bash -c 'cd swift-clients/core && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   periphery-swift-ui:
     name: Swift Periphery (UI)
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 15
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -435,33 +406,31 @@ jobs:
       - name: Find unused declarations in UI
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh mise exec aqua:peripheryapp/periphery@3.7.4 --
+          mise exec aqua:peripheryapp/periphery@3.7.4 --
           bash -c 'cd swift-clients/ui && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   test-swift-core-linux:
     name: Swift core tests (Linux)
     needs: verify
-    runs-on: [self-hosted, Linux, Docker, Tests]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Test core and test-support packages
         working-directory: candidate-clients
-        env:
-          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 1500
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh docker run --rm
+          docker run --rm
           --user "$(id -u):$(id -g)"
           --volume "$PWD:/workspace"
           --volume "$VOUCHA_FILAMENTS_CONTRACT_ROOT:/contract:ro"
@@ -474,15 +443,10 @@ jobs:
           && swift test --package-path swift-clients/core --force-resolved-versions
           --build-path /tmp/voucha-core-build --no-parallel
           --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   test-swift-core:
     name: Swift core tests
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 22
     outputs:
       dto-fixture-parity-outcome: ${{ steps.swift-dto-fixture-parity.outcome }}
@@ -490,17 +454,22 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Test core package with coverage
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
+          swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
       - name: Export deterministic core LCOV
@@ -519,27 +488,27 @@ jobs:
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core
+          swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   test-swift-android:
     name: Swift Android Skip
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 34
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -622,7 +591,7 @@ jobs:
       - name: Test Android Swift package
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/apps/android
+          swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Build and test Android application without a device
         working-directory: candidate-clients
@@ -632,25 +601,25 @@ jobs:
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          bash swift-clients/tooling/with-build-lock.sh bash swift-clients/apps/android/tooling/pre-push.sh
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
+          bash swift-clients/apps/android/tooling/pre-push.sh
   test-swift-ui:
     name: Swift UI tests and coverage
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 22
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -661,7 +630,7 @@ jobs:
       - name: Test UI package with coverage
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/ui
+          swift test --package-path swift-clients/ui
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
       - name: Collect xctest crash reports
         if: ${{ failure() }}
@@ -701,22 +670,22 @@ jobs:
           path: candidate-clients/coverage/ui/lcov.info
           retention-days: 1
           if-no-files-found: error
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   swift-patch-coverage:
     name: Swift patch coverage
     needs: [verify, test-swift-core, test-swift-ui]
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -733,23 +702,23 @@ jobs:
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
         env: { BASE_SHA: '${{ needs.verify.outputs.base-sha }}' }
-        run: pnpm run coverage:swift
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
+        run: npx --yes pnpm@11.13.1 run coverage:swift
   build-android-core:
     name: Swift Android core build
     needs: verify
-    runs-on: [self-hosted, Linux, Docker, Tests]
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -761,22 +730,17 @@ jobs:
       - name: Build Android core package
         working-directory: candidate-clients
         run: >-
-          bash swift-clients/tooling/with-build-lock.sh docker run --rm
+          docker run --rm
           --volume "$PWD:/workspace" --tmpfs /tmp:rw,exec,mode=1777
           --volume "$HOME/.cache/voucha/swift-android/downloads:/opt/swift-android-downloads:ro"
           --workdir /workspace --env HOME=/root --env RUNNER_TEMP=/tmp --env TMPDIR=/tmp
           --env VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR=/opt/swift-android-downloads --env VOUCHA_SWIFT_ANDROID_OFFLINE=1
           swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
           /bin/bash -c 'bash swift-clients/tooling/build-android-core.sh'
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   build-macos-app:
     name: Swift macOS app smoke
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 25
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -784,10 +748,15 @@ jobs:
       XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { clean: false, persist-credentials: false }
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -810,33 +779,31 @@ jobs:
         run: |
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
-          bash swift-clients/tooling/with-build-lock.sh xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Clean persistent runner workspace
-        if: always()
-        env: { PRESERVE_NODE_MODULES: 'false' }
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
-  # iOS simulator smoke remains disabled pending #6705: the self-hosted runner's
-  # CoreSimulator framework is incompatible with its installed Xcode, so no iOS
-  # Simulator destination resolves. Do not replace this with a no-op green job.
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+  # iOS simulator smoke remains disabled pending #6705: hosted macOS images do
+  # not currently expose a usable iOS Simulator destination. Do not replace this
+  # with a no-op green job.
 
   dotnet-maui:
     name: .NET MAUI Mac Catalyst
     needs: verify
-    runs-on: [self-hosted, macOS, Tests]
+    runs-on: macos-latest
     timeout-minutes: 40
     env:
       UseArtifactsOutput: 'true'
     steps:
-      - name: Check out trusted consumer tooling
+      - name: Check out consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
       - name: Prepare verified candidate
         uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
@@ -858,12 +825,6 @@ jobs:
             exit 1
           }
           printf 'version=%s\n' "$sdk_version" >> "$GITHUB_OUTPUT"
-      - name: Reset exact .NET SDK root
-        run: |
-          set -euo pipefail
-          [[ "$DOTNET_INSTALL_DIR" == "$RUNNER_TEMP/voucha-dotnet-sdk" ]]
-          rm -rf -- "$DOTNET_INSTALL_DIR"
-          mkdir -p -- "$DOTNET_INSTALL_DIR"
       - name: Set up exact .NET SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -880,28 +841,19 @@ jobs:
           else
             echo 'install=true' >>"$GITHUB_OUTPUT"
           fi
-      - name: Install pinned MAUI workload under host lock
+      - name: Install pinned MAUI workload
         if: steps.workload.outputs.install == 'true'
         working-directory: candidate-clients
         run: >-
-          pnpm exec vouchington with-host-lock
-          --name host-package-manager
-          --timeout-seconds 300
-          --command-timeout-seconds 720
-          -- dotnet workload install maui-maccatalyst
+          dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
       - name: Verify all seven committed NuGet locks
         working-directory: candidate-clients
         run: >-
-          pnpm exec vouchington with-host-lock
-          --name host-package-manager
-          --timeout-seconds 300
-          --command-timeout-seconds 900
-          -- bash dotnet-clients/tooling/restore-locks.sh verify
+          bash dotnet-clients/tooling/restore-locks.sh verify
       - name: Build rendered MAUI page tests
         working-directory: candidate-clients
         run: >-
-          ./dotnet-clients/tooling/with-build-lock.sh
           dotnet build dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Release --no-restore
       - name: Test rendered MAUI pages
@@ -921,15 +873,26 @@ jobs:
           for developer_dir in "${candidates[@]}"; do
             [ -d "$developer_dir" ] || continue
             version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
-            if [[ "$version" == "$required_version"* ]]; then
+            xcodebuild_path="$developer_dir/usr/bin/xcodebuild"
+            macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+            maccatalyst_sdk="$developer_dir/Platforms/MacCatalyst.platform/Developer/SDKs/MacCatalyst.sdk"
+            actool=""
+            find_status=1
+            if [ -x "$xcodebuild_path" ] && [ -f "$macosx_sdk/SDKSettings.plist" ] && [ -f "$maccatalyst_sdk/SDKSettings.plist" ]; then
+              set +e
+              actool=$(DEVELOPER_DIR="$developer_dir" "$xcodebuild_path" -sdk "$macosx_sdk" -find actool)
+              find_status=$?
+              set -e
+            fi
+            if [[ "$version" == "$required_version"* ]] && [ "$find_status" -eq 0 ] && [ -n "$actool" ] && [ -x "$actool" ]; then
               echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
               echo 'compatible=true' >>"$GITHUB_OUTPUT"
               echo "Selected Xcode $version at $developer_dir"
               exit 0
             fi
-            echo "Skipping $developer_dir because it is Xcode ${version:-unknown}, not $required_version"
+            echo "Skipping incomplete or incompatible Xcode ${version:-unknown} at $developer_dir"
           done
-          echo "::notice::Xcode $required_version not found; skipping MAUI Mac Catalyst smoke build on this runner"
+          echo "::notice::Complete Xcode $required_version toolchain not found; skipping MAUI Mac Catalyst smoke build on this runner"
           echo 'compatible=false' >>"$GITHUB_OUTPUT"
       - name: Detect host Mac Catalyst RID
         id: rid
@@ -941,30 +904,34 @@ jobs:
             *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Restore the shared MAUI project-reference graph
+        if: steps.xcode.outputs.compatible == 'true'
+        working-directory: candidate-clients
+        env:
+          ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: |
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            -p:Configuration=Release -p:TargetFramework=net10.0-maccatalyst \
+            -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
+            -p:Configuration=Release -p:TargetFramework=net10.0 --locked-mode
       - name: Build MAUI Mac Catalyst app
         if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
         env:
           ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
         run: >-
-          ./dotnet-clients/tooling/with-build-lock.sh
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: pnpm dlx vouchington-tooling@0.1.5 clean-workspace
-
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: always()
     needs:
       - dotnet-portable
       - test-swift-core
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -996,7 +963,7 @@ jobs:
       - build-android-core
       - build-macos-app
       - dotnet-maui
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
     steps:

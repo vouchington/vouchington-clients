@@ -24,7 +24,7 @@ Delayed `URLProtocol` doubles must synchronize mutable state and guard callbacks
 
 Use the native harness and the repository's host-lock guidance for compiler-heavy checks. Plan
 changed Swift tests with `pnpm run test:plan:swift --base origin/main --head HEAD`; do not plan from
-the Filaments checkout. Shared API fixtures and localization inputs remain Filaments-owned and
+the Vouchington checkout. Shared API fixtures and localization inputs remain Vouchington-owned and
 must be supplied through the explicit contract root. Darwin-only tests must use
 `#if canImport(Darwin)` or `#if canImport(Security)`; CI placement is
 [native CI test placement](../../../docs/development/native-ci-test-placement.md).

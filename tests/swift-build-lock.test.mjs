@@ -17,12 +17,12 @@ async function writeExecutable(path, contents) {
 
 async function lockFixture(t) {
   const binDirectory = await mkdtemp(join(tmpdir(), 'voucha-build-lock-'))
-  const argumentsPath = join(binDirectory, 'pnpm-arguments.txt')
+  const argumentsPath = join(binDirectory, 'npx-arguments.txt')
   const localEnvironment = { ...process.env }
   delete localEnvironment.GITHUB_ACTIONS
   await writeExecutable(
-    join(binDirectory, 'pnpm'),
-    '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$PNPM_ARGUMENTS_PATH"\n',
+    join(binDirectory, 'npx'),
+    '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$NPX_ARGUMENTS_PATH"\n',
   )
   t.after(() => rm(binDirectory, { recursive: true, force: true }))
   return {
@@ -30,7 +30,7 @@ async function lockFixture(t) {
     environment: {
       ...localEnvironment,
       PATH: `${binDirectory}:${process.env.PATH}`,
-      PNPM_ARGUMENTS_PATH: argumentsPath,
+      NPX_ARGUMENTS_PATH: argumentsPath,
     },
   }
 }
@@ -53,6 +53,8 @@ test('passes the validated effective local and CI command timeouts to the host l
   const fixture = await lockFixture(t)
   await invokeLock(fixture.environment)
   assert.deepEqual((await readFile(fixture.argumentsPath, 'utf8')).trim().split('\n'), [
+    '--yes',
+    'pnpm@11.13.1',
     'exec',
     'vouchington',
     'with-host-lock',
@@ -71,7 +73,7 @@ test('passes the validated effective local and CI command timeouts to the host l
 
   await invokeLock({ ...fixture.environment, GITHUB_ACTIONS: 'true' })
   assert.deepEqual(
-    (await readFile(fixture.argumentsPath, 'utf8')).trim().split('\n').slice(7, 13),
+    (await readFile(fixture.argumentsPath, 'utf8')).trim().split('\n').slice(9, 15),
     ['--command-timeout-seconds', '300', '--on-acquire-timeout', 'run-unlocked', '--', 'echo'],
   )
 })

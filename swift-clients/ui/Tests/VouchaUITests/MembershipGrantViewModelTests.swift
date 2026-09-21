@@ -49,8 +49,8 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(
-            Data(#"{"membership":{"id":"m-1"}}"#.utf8),
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(
+            Data(#"{"grant":{"id":"g-1"},"membership":{"id":"m-1"},"queued":false}"#.utf8),
             201,
             0
         )]
@@ -60,6 +60,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.selectedUser = user
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -69,18 +70,20 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.last, "POST")
         let body = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.last ?? nil)
         XCTAssertTrue(body.contains("sku-pro"))
+        XCTAssertTrue(body.contains(#""duration_days":30"#))
     }
 
     func testGrantRefreshesCatalogAndRejectsRetiredSelectionBeforePosting() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships/plans"] = [
             (plansResponse, 200, 0),
-            (Data(#"{"plans":{"plus":[]}}"#.utf8), 200, 0)
+            (Data(#"{"products":[]}"#.utf8), 200, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -88,7 +91,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/memberships/plans" }.count,
             2
         )
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships" })
+        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/membership-grants" })
         XCTAssertNil(viewModel.selectedSkuId)
         XCTAssertEqual(viewModel.submissionMessage, .message(.nativeSwiftMembershipMembershipGrantValidation))
     }
@@ -98,14 +101,15 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
-            (Data(#"{"membership":{"id":"membership-1"}}"#.utf8), 201, 0)
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
+            (Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8), 201, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -119,14 +123,15 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (multiplePlansResponse, 200, 0),
             (multiplePlansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [
-            (Data(#"{"membership":{"id":"membership-1"}}"#.utf8), 201, 0)
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [
+            (Data(#"{"grant":{"id":"grant-1"},"membership":{"id":"membership-1"},"queued":false}"#.utf8), 201, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         CannedFeedURLProtocol.suspendResponse(path: plansPath)
         defer { CannedFeedURLProtocol.releaseResponse(path: plansPath) }
@@ -158,6 +163,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         CannedFeedURLProtocol.suspendResponse(path: plansPath)
         defer { CannedFeedURLProtocol.releaseResponse(path: plansPath) }
@@ -166,7 +172,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertFalse(viewModel.canSubmit)
         await viewModel.grant()
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/memberships"), 0)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/membership-grants"), 0)
 
         CannedFeedURLProtocol.releaseResponse(path: plansPath)
         await refresh.value
@@ -176,13 +182,14 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships/plans"] = [
             (plansResponse, 200, 0),
             (Data("{}".utf8), 500, 0),
-            (Data(#"{"plans":{"pro":[]}}"#.utf8), 200, 0)
+            (Data(#"{"products":[]}"#.utf8), 200, 0)
         ]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         await viewModel.loadPlans()
         viewModel.selectedUser = try user()
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -195,7 +202,7 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/memberships/plans" }.count,
             3
         )
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships" })
+        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/membership-grants" })
     }
 
     func testGrantFailurePreservesSelections() async throws {
@@ -203,13 +210,14 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
             (plansResponse, 200, 0),
             (plansResponse, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships"] = [(Data("{}".utf8), 500, 0)]
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/membership-grants"] = [(Data("{}".utf8), 500, 0)]
         let viewModel = try MembershipGrantViewModel(client: makeClient())
         let user = try user()
         await viewModel.loadPlans()
         viewModel.selectedUser = user
         viewModel.selectPlan(.pro)
         viewModel.selectedSkuId = "sku-pro"
+        viewModel.durationDays = "30"
 
         await viewModel.grant()
 
@@ -227,11 +235,28 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNotNil(viewModel.submissionMessage)
     }
 
+    func testGrantRejectsDurationOutsideTheContractRange() async throws {
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/memberships/plans"] = [(plansResponse, 200, 0)]
+        let viewModel = try MembershipGrantViewModel(client: makeClient())
+        await viewModel.loadPlans()
+        viewModel.selectedUser = try user()
+        viewModel.selectPlan(.pro)
+        viewModel.selectedSkuId = "sku-pro"
+
+        for duration in ["0", "3661", "30.5", "thirty"] {
+            viewModel.durationDays = duration
+            await viewModel.grant()
+            XCTAssertEqual(viewModel.submissionMessage, .message(.nativeSwiftMembershipMembershipGrantValidation))
+        }
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/membership-grants"), 0)
+    }
+
     private var plansResponse: Data {
         Data(
             #"""
-            {"plans":{"pro":[{"id":"sku-pro","plan":"pro","price":{"amount":1200,"currency":"usd"},
-            "interval":"monthly","stripe_price_id":"price-pro"}]}}
+            {"products":[{"id":"sku-pro","plan":"pro","interval":"monthly","providers":[{"provider":"stripe",
+            "environment":"test","application_id":"voucha-web","product_id":"price-pro","base_plan_id":null,
+            "offer_id":null,"sku_id":null,"price":{"amount":1200,"currency":"usd"}}]}]}
             """#
             .utf8
         )
@@ -240,9 +265,12 @@ final class MembershipGrantViewModelTests: NativeRouteSurfaceViewModelTestCase {
     private var multiplePlansResponse: Data {
         Data(
             #"""
-            {"plans":{"pro":[{"id":"sku-pro","plan":"pro","price":{"amount":1200,"currency":"usd"},
-            "interval":"monthly","stripe_price_id":"price-pro"}],"plus":[{"id":"sku-plus","plan":"plus",
-            "price":{"amount":2400,"currency":"usd"},"interval":"monthly","stripe_price_id":"price-plus"}]}}
+            {"products":[{"id":"sku-pro","plan":"pro","interval":"monthly","providers":[{"provider":"stripe",
+            "environment":"test","application_id":"voucha-web","product_id":"price-pro","base_plan_id":null,
+            "offer_id":null,"sku_id":null,"price":{"amount":1200,"currency":"usd"}}]},{"id":"sku-plus","plan":"plus",
+            "interval":"monthly","providers":[{"provider":"stripe","environment":"test","application_id":"voucha-web",
+            "product_id":"price-plus","base_plan_id":null,"offer_id":null,"sku_id":null,
+            "price":{"amount":2400,"currency":"usd"}}]}]}
             """#
             .utf8
         )

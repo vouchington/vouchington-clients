@@ -207,10 +207,11 @@ public sealed class ApiSettingsServiceSettingsCoverageTests
 
   private static MembershipPlansResponse CreateMembershipPlansResponse() =>
       new(
-          new Dictionary<string, IReadOnlyList<MembershipSku>>
-          {
-            ["pro"] = [new MembershipSku("sku-1", "pro", new Money(1500, "usd"), "month", "price-1")],
-          });
+          [new MembershipCatalogProduct(
+              "sku-1",
+              "pro",
+              "month",
+              [new MembershipCatalogProvider("stripe", "test", "voucha-web", "price-1", null, null, null, new Money(1500, "usd"))])]);
 
   private static CheckoutSessionResponse CreateCheckoutSessionResponse() =>
       new(new CheckoutSession("checkout-1", new Uri("https://checkout")));

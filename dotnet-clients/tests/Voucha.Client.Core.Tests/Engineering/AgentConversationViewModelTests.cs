@@ -81,7 +81,7 @@ public sealed class AgentConversationViewModelTests
 
     await viewModel.LoadAsync("helper", "conversation-1", TestContext.Current.CancellationToken);
 
-    Assert.Equal("Conversación del agente", viewModel.ConversationDisplayTitle);
+    Assert.Equal("Título de la conversación", viewModel.ConversationDisplayTitle);
   }
 
   [Fact]

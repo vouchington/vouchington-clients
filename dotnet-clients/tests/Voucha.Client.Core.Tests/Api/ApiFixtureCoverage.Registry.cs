@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.Tests.Api;
@@ -237,6 +238,7 @@ internal static partial class ApiFixtureCoverage
     ["native.messages.policy.default"] = typeof(DirectConversationPolicyResponse),
     ["native.messages.user-search.default"] = typeof(UsersSearchResponse),
     ["native.memberships.plans.default"] = typeof(MembershipPlansResponse),
+    ["native.memberships.me.default"] = typeof(JsonElement),
     ["native.memberships.grant.default"] = typeof(GrantMembershipResponse),
     ["native.crm.contacts.default"] = typeof(CrmContactListResponse),
     ["native.crm.contact-detail.default"] = typeof(CrmContactDetailResponse),
@@ -254,6 +256,9 @@ internal static partial class ApiFixtureCoverage
     ["native.comments.post-detail.default"] = typeof(PostResponse),
     ["native.comments.descendants.default"] = typeof(PostThreadResponse),
     ["native.comments.ancestors.permalink"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.shallow"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.deep-initial"] = typeof(PostThreadResponse),
+    ["native.comments.ancestors.bounded.deep-continuation"] = typeof(PostThreadResponse),
     ["native.lists.default"] = typeof(ListsSearchResponse),
     ["native.list-items.default"] = typeof(ListItemsResponse),
     ["native.lists-containing.default"] = typeof(ListsContainingResponse),

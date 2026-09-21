@@ -8,12 +8,13 @@ public sealed class MembershipGrantViewModel : ObservableObject
 {
   private readonly IMembershipAdministrationService service;
   private readonly IUiLocalization localization;
-  private IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> plans = new Dictionary<string, IReadOnlyList<MembershipSku>>();
+  private IReadOnlyList<MembershipCatalogProduct> products = [];
   private IReadOnlyList<UserSearchResult> results = [];
   private UserSearchResult? selectedUser;
   private string query = string.Empty;
   private MembershipGrantPlanSlug? selectedPlan;
   private MembershipSku? selectedSku;
+  private string durationDays = string.Empty;
   private UiText? planError;
   private UiText? searchError;
   private UiText? success;
@@ -34,9 +35,10 @@ public sealed class MembershipGrantViewModel : ObservableObject
   public string Query { get => query; set { value ??= string.Empty; if (!SetProperty(ref query, value)) return; generation++; IsSearching = false; SelectedUser = null; Results = []; } }
   public MembershipGrantPlanSlug? SelectedPlan { get => selectedPlan; set { if (!SetProperty(ref selectedPlan, value)) return; SelectedSku = null; OnPropertyChanged(nameof(AvailableSkus)); OnPropertyChanged(nameof(CanSubmit)); } }
   public MembershipSku? SelectedSku { get => selectedSku; set { if (SetProperty(ref selectedSku, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public string DurationDays { get => durationDays; set { value ??= string.Empty; if (SetProperty(ref durationDays, value)) OnPropertyChanged(nameof(CanSubmit)); } }
   public IReadOnlyList<MembershipSku> AvailableSkus => SelectedPlan is { } plan
-      ? plans.Where(pair => string.Equals(pair.Key, plan.ToString(), StringComparison.OrdinalIgnoreCase))
-          .SelectMany(pair => pair.Value)
+      ? products.Where(product => string.Equals(product.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase))
+          .SelectMany(product => product.StripeSkus)
           .Where(sku => string.Equals(sku.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase)).ToArray() : [];
   public bool IsPlansLoading { get => plansLoading; private set { if (SetProperty(ref plansLoading, value)) OnPropertyChanged(nameof(CanSubmit)); } }
   public bool IsSearching { get => searching; private set => SetProperty(ref searching, value); }
@@ -56,7 +58,7 @@ public sealed class MembershipGrantViewModel : ObservableObject
     IsPlansLoading = true; PlanError = null;
     try
     {
-      plans = (await service.FetchPlansAsync(cancellationToken).ConfigureAwait(true)).Plans;
+      products = (await service.FetchPlansAsync(cancellationToken).ConfigureAwait(true)).Products;
       plansLoaded = true;
       if (SelectedSku is { } selected)
       {
@@ -127,7 +129,7 @@ public sealed class MembershipGrantViewModel : ObservableObject
     if (IsSubmitting) return false;
     Success = null;
     if (!CanSubmit) { SearchError = UiText.Localized(UiMessageKey.NativeSwiftMembershipMembershipGrantValidation); return false; }
-    var submission = new GrantMembershipBody(SelectedUser!.Id, SelectedPlan!.Value, SelectedSku!.Id);
+    var submission = new GrantMembershipBody(SelectedUser!.Id, SelectedPlan!.Value, SelectedSku!.Id, ValidDurationDays!.Value);
     IsSubmitting = true; SearchError = null;
     try
     {
@@ -139,7 +141,7 @@ public sealed class MembershipGrantViewModel : ObservableObject
         return false;
       }
       await service.GrantAsync(submission, cancellationToken).ConfigureAwait(true);
-      generation++; Query = string.Empty; SelectedUser = null; SelectedPlan = null; SelectedSku = null; Results = [];
+      generation++; Query = string.Empty; SelectedUser = null; SelectedPlan = null; SelectedSku = null; DurationDays = string.Empty; Results = [];
       Success = UiText.Localized(UiMessageKey.NativeSwiftMembershipMembershipGrantSuccess);
       return true;
     }
@@ -164,13 +166,17 @@ public sealed class MembershipGrantViewModel : ObservableObject
       SelectedUser is not null
       && SelectedPlan is not null
       && SelectedSku is not null
+      && ValidDurationDays is not null
       && HasAvailableSku(SelectedPlan.Value, SelectedSku.Id);
 
   private bool HasAvailableSku(MembershipGrantPlanSlug plan, string skuId) =>
-      plans.Where(pair => string.Equals(pair.Key, plan.ToString(), StringComparison.OrdinalIgnoreCase))
-          .SelectMany(pair => pair.Value)
+      products.Where(product => string.Equals(product.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase))
+          .SelectMany(product => product.StripeSkus)
           .Any(sku => string.Equals(sku.Id, skuId, StringComparison.Ordinal) &&
                       string.Equals(sku.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase));
+
+  private int? ValidDurationDays => int.TryParse(DurationDays, out var duration)
+      && duration is >= 1 and <= 3660 ? duration : null;
 
   private void SetError(ref UiText? field, UiText? value, string propertyName)
   {
