@@ -23,11 +23,11 @@ Swift/.NET quality rules, changed-file test planning, and native test authoring 
 [`docs/development/native-quality.md`](docs/development/native-quality.md), including the explicit
 Filaments producer boundaries.
 
-`pnpm run lint` is the portable gate; the native harnesses under
-`swift-clients/tooling/` and `dotnet-clients/tooling/` own the rest. CI runner labels and the
-persistent-runner cleanup boundary are documented in
-[`docs/development/ci-runners.md`](docs/development/ci-runners.md), and the Linux-vs-macOS test
-placement rules in
+`pnpm run lint:portable` is the portable gate; `pnpm run lint` also runs gitleaks and the native
+harnesses under `swift-clients/tooling/` and `dotnet-clients/tooling/`. CI uses GitHub-hosted
+ephemeral runners; the closed label set and the prohibition on persistent-workspace cleanup are
+documented in [`docs/development/ci-runners.md`](docs/development/ci-runners.md), and the
+Linux-vs-macOS test placement rules in
 [`docs/development/native-ci-test-placement.md`](docs/development/native-ci-test-placement.md).
 
 ## Licensing of contributions

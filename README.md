@@ -58,7 +58,9 @@ Voucha is source-available under the
 [`vouchington/vouchington`](https://github.com/vouchington/vouchington). You may read, run, modify,
 and redistribute the source for any purpose other than a Competing Use — broadly, offering it to
 others as a commercial product or service that substitutes for Voucha. Internal use, non-commercial
-education, and non-commercial research are explicitly permitted.
+education, and non-commercial research are explicitly permitted. Vendor copies that carry their own
+notices, including `swift-clients/apps/android/Android/gradlew` and `gradlew.bat` (Apache-2.0), stay
+under those notices and are not converted by the FSL future MIT grant.
 
 Each version additionally becomes available under the MIT license two years after it is published.
 See [LICENSE](LICENSE) for the controlling terms, and [CONTRIBUTING.md](CONTRIBUTING.md) for the
