@@ -9,20 +9,6 @@ public sealed partial class AppShell
   private Page CreateChatPage(NativeRouteMatch? match)
   {
     var path = match?.Path;
-    if (path is not null && NativeChatRoutePaths.IsChatSupportRootPath(path))
-    {
-      var page = serviceProvider.GetRequiredService<SupportThreadsPage>();
-      page.SetInitialConversationId(match?.QueryValue("conversation_id"));
-      return page;
-    }
-
-    if (path is not null && NativeChatRoutePaths.TryGetSupportThreadId(path, out var threadId))
-    {
-      var page = serviceProvider.GetRequiredService<SupportThreadPage>();
-      page.SetContext(threadId);
-      return page;
-    }
-
     if (path is not null && NativeChatRoutePaths.TryGetChatConversationId(path, out var conversationId))
     {
       var page = serviceProvider.GetRequiredService<ChatConversationPage>();
@@ -52,30 +38,6 @@ public sealed partial class AppShell
     if (NativeChatRoutePaths.IsChatRootPath(path))
     {
       await ReplaceWithChatListPageAsync(page);
-      return true;
-    }
-
-    if (NativeChatRoutePaths.IsChatSupportRootPath(path))
-    {
-      var supportPage = page as SupportThreadsPage ?? serviceProvider.GetRequiredService<SupportThreadsPage>();
-      await supportPage.ApplyRouteAsync(match.QueryValue("conversation_id"));
-      if (page is SupportThreadsPage)
-      {
-        await supportPage.Navigation.PopToRootAsync(animated: false);
-      }
-      else if (!ReferenceEquals(page, supportPage))
-      {
-        await page.Navigation.PushAsync(supportPage);
-      }
-
-      return true;
-    }
-
-    if (NativeChatRoutePaths.TryGetSupportThreadId(path, out var threadId))
-    {
-      var detailPage = page as SupportThreadPage ?? serviceProvider.GetRequiredService<SupportThreadPage>();
-      await detailPage.ApplyRouteAsync(threadId);
-      if (!ReferenceEquals(page, detailPage)) await page.Navigation.PushAsync(detailPage);
       return true;
     }
 

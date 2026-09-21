@@ -5,14 +5,14 @@ import VouchaDesignSystem
 
 extension NativeRouteDestinationSurface {
     var isSignedOutChatOrSupportRoute: Bool {
-        !isSignedIn && (entry.destinationIdentifier == .chat || entry.destinationIdentifier == .support)
+        !isSignedIn && entry.destinationIdentifier == .chat
     }
 
     var signedOutChatSupportContent: some View {
         EmptyStateView(
             icon: "person.crop.circle.badge.exclamationmark",
             title: .message(.nativeSwiftEmptyStateSignInRequired),
-            message: .message(.nativeSwiftEmptyStateSignInChatSupportMessage)
+            message: .message(.nativeSwiftEmptyStateSignInRequired)
         )
         .padding(Spacing.md)
     }
@@ -89,7 +89,7 @@ extension NativeRouteDestinationSurface {
             return false
         }
         return switch entry.destinationIdentifier {
-        case .referrals, .communitiesBrowse, .communityDetail, .chat, .support, .growthDashboard, .membershipGrants,
+        case .referrals, .communitiesBrowse, .communityDetail, .chat, .growthDashboard, .membershipGrants,
              .userAdmin:
             false
         case .engineeringQueues, .engineeringPostgresql, .engineeringValkey, .engineeringAiCosts,
@@ -137,7 +137,6 @@ extension NativeRouteDestinationSurface {
             || entry.destinationIdentifier == .messages
             || entry.destinationIdentifier == .referrals
             || entry.destinationIdentifier == .chat
-            || entry.destinationIdentifier == .support
             || entry.destinationIdentifier == .engineeringQueues
             || entry.destinationIdentifier == .engineeringPostgresql
             || entry.destinationIdentifier == .engineeringValkey

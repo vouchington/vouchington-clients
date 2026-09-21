@@ -1,19 +1,6 @@
 extension NativeRouteDestinationIdentifier {
     var staffNativeRows: [NativeRouteDestinationRow] {
         switch self {
-        case .crmContacts:
-            [
-                row(
-                    "person.text.rectangle",
-                    .nativeSwiftRouteMetadataStaffCrmContactsCrmContactsTitle,
-                    .nativeSwiftRouteMetadataStaffCrmContactsCrmContactsDescription
-                ),
-                row(
-                    "envelope",
-                    .nativeSwiftRouteMetadataStaffCrmContactsEmailHistoryTitle,
-                    .nativeSwiftRouteMetadataStaffCrmContactsEmailHistoryDescription
-                )
-            ]
         case .membershipGrants:
             [
                 row(
@@ -33,32 +20,6 @@ extension NativeRouteDestinationIdentifier {
                     "person.badge.shield.checkmark",
                     .nativeSwiftRouteMetadataStaffUserAdminIdentityVerificationTitle,
                     .nativeSwiftRouteMetadataStaffUserAdminIdentityVerificationDescription
-                )
-            ]
-        case .supportStaffThreads:
-            [
-                row(
-                    "tray.full",
-                    .nativeSwiftRouteMetadataStaffSupportStaffThreadsSupportThreadsTitle,
-                    .nativeSwiftRouteMetadataStaffSupportStaffThreadsSupportThreadsDescription
-                ),
-                row(
-                    "bubble.left.and.bubble.right",
-                    .nativeSwiftRouteMetadataStaffSupportStaffThreadsThreadDetailTitle,
-                    .nativeSwiftRouteMetadataStaffSupportStaffThreadsThreadDetailDescription
-                )
-            ]
-        case .supportStaffContacts:
-            [
-                row(
-                    "person.crop.rectangle.stack",
-                    .nativeSwiftRouteMetadataStaffSupportStaffContactsSupportContactsTitle,
-                    .nativeSwiftRouteMetadataStaffSupportStaffContactsSupportContactsDescription
-                ),
-                row(
-                    "person.text.rectangle",
-                    .nativeSwiftRouteMetadataStaffSupportStaffContactsContactDetailTitle,
-                    .nativeSwiftRouteMetadataStaffSupportStaffContactsContactDetailDescription
                 )
             ]
         case .engineeringAgents:

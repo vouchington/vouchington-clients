@@ -20,7 +20,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedIntentsAdminAgents279b44d2 = new("extracted.intents.admin.agents_279b44d2");
     public static readonly UiMessageKey ExtractedIntentsAdminAiCosts75cce222 = new("extracted.intents.admin.aiCosts_75cce222");
     public static readonly UiMessageKey ExtractedIntentsAdminAppeals03e8c5a5 = new("extracted.intents.admin.appeals_03e8c5a5");
-    public static readonly UiMessageKey ExtractedIntentsAdminCrm130f70ae = new("extracted.intents.admin.crm_130f70ae");
     public static readonly UiMessageKey ExtractedIntentsAdminDynamicConfig59cf5829 = new("extracted.intents.admin.dynamicConfig_59cf5829");
     public static readonly UiMessageKey ExtractedIntentsAdminEngineering729bb48d = new("extracted.intents.admin.engineering_729bb48d");
     public static readonly UiMessageKey ExtractedIntentsAdminGrowth66b06e99 = new("extracted.intents.admin.growth_66b06e99");
@@ -37,8 +36,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedIntentsAdminReportsDacca3cb = new("extracted.intents.admin.reports_dacca3cb");
     public static readonly UiMessageKey ExtractedIntentsAdminReviewDisputes25c25858 = new("extracted.intents.admin.reviewDisputes_25c25858");
     public static readonly UiMessageKey ExtractedIntentsAdminReviewQueue83c3c922 = new("extracted.intents.admin.reviewQueue_83c3c922");
-    public static readonly UiMessageKey ExtractedIntentsAdminSupportContacts96f650a3 = new("extracted.intents.admin.supportContacts_96f650a3");
-    public static readonly UiMessageKey ExtractedIntentsAdminSupportBe91940b = new("extracted.intents.admin.support_be91940b");
     public static readonly UiMessageKey ExtractedIntentsAdminValkey2392ad6b = new("extracted.intents.admin.valkey_2392ad6b");
     public static readonly UiMessageKey ExtractedIntentsAdminVoteIntegrityC05b33b5 = new("extracted.intents.admin.voteIntegrity_c05b33b5");
     public static readonly UiMessageKey ExtractedIntentsProductCommunicationAllMessages020dc04d = new("extracted.intents.productCommunication.allMessages_020dc04d");
@@ -50,7 +47,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedIntentsProductCommunicationMyLandingPages68f82dad = new("extracted.intents.productCommunication.myLandingPages_68f82dad");
     public static readonly UiMessageKey ExtractedIntentsProductCommunicationNewChat0d332351 = new("extracted.intents.productCommunication.newChat_0d332351");
     public static readonly UiMessageKey ExtractedIntentsProductCommunicationNotifications78801183 = new("extracted.intents.productCommunication.notifications_78801183");
-    public static readonly UiMessageKey ExtractedIntentsProductCommunicationSupportBe91940b = new("extracted.intents.productCommunication.support_be91940b");
     public static readonly UiMessageKey ExtractedIntentsProductFediverseBrowse3227aa96 = new("extracted.intents.productFediverse.browse_3227aa96");
     public static readonly UiMessageKey ExtractedIntentsProductFediverseFediverseSearchA4896269 = new("extracted.intents.productFediverse.fediverseSearch_a4896269");
     public static readonly UiMessageKey ExtractedIntentsProductFediverseFediverse5b02ab9d = new("extracted.intents.productFediverse.fediverse_5b02ab9d");
@@ -359,38 +355,22 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCommunityCommunityNameLength = new("native.dotnet.community.communityNameLength");
     public static readonly UiMessageKey NativeDotnetCommunityCommunityNameWords = new("native.dotnet.community.communityNameWords");
     public static readonly UiMessageKey NativeDotnetCommunityCommunitySlugInvalid = new("native.dotnet.community.communitySlugInvalid");
-    public static readonly UiMessageKey NativeDotnetCrmCrmArchived = new("native.dotnet.crm.crmArchived");
-    public static readonly UiMessageKey NativeDotnetCrmCrmAwaitingResponse = new("native.dotnet.crm.crmAwaitingResponse");
-    public static readonly UiMessageKey NativeDotnetCrmCrmConverted = new("native.dotnet.crm.crmConverted");
-    public static readonly UiMessageKey NativeDotnetCrmCrmInConversation = new("native.dotnet.crm.crmInConversation");
-    public static readonly UiMessageKey NativeDotnetCrmCrmInbound = new("native.dotnet.crm.crmInbound");
-    public static readonly UiMessageKey NativeDotnetCrmCrmNew = new("native.dotnet.crm.crmNew");
-    public static readonly UiMessageKey NativeDotnetCrmCrmNoSubject = new("native.dotnet.crm.crmNoSubject");
-    public static readonly UiMessageKey NativeDotnetCrmCrmOptedOut = new("native.dotnet.crm.crmOptedOut");
-    public static readonly UiMessageKey NativeDotnetCrmCrmOutbound = new("native.dotnet.crm.crmOutbound");
-    public static readonly UiMessageKey NativeDotnetCrmCrmUnknownDirection = new("native.dotnet.crm.crmUnknownDirection");
-    public static readonly UiMessageKey NativeDotnetCrmRowError = new("native.dotnet.crm.rowError");
     public static readonly UiMessageKey NativeDotnetCsharpAccountDeleted = new("native.dotnet.csharp.accountDeleted");
     public static readonly UiMessageKey NativeDotnetCsharpActionFailed = new("native.dotnet.csharp.actionFailed");
     public static readonly UiMessageKey NativeDotnetCsharpAdd = new("native.dotnet.csharp.add");
-    public static readonly UiMessageKey NativeDotnetCsharpArchive = new("native.dotnet.csharp.archive");
     public static readonly UiMessageKey NativeDotnetCsharpAvatarUploadFailed = new("native.dotnet.csharp.avatarUploadFailed");
     public static readonly UiMessageKey NativeDotnetCsharpAvatarUploadTimedOut = new("native.dotnet.csharp.avatarUploadTimedOut");
-    public static readonly UiMessageKey NativeDotnetCsharpBodyRequired = new("native.dotnet.csharp.bodyRequired");
     public static readonly UiMessageKey NativeDotnetCsharpBookmarks = new("native.dotnet.csharp.bookmarks");
     public static readonly UiMessageKey NativeDotnetCsharpCancel = new("native.dotnet.csharp.cancel");
     public static readonly UiMessageKey NativeDotnetCsharpChooseImageUpTo50Mb = new("native.dotnet.csharp.chooseImageUpTo50Mb");
     public static readonly UiMessageKey NativeDotnetCsharpClear = new("native.dotnet.csharp.clear");
     public static readonly UiMessageKey NativeDotnetCsharpClose = new("native.dotnet.csharp.close");
     public static readonly UiMessageKey NativeDotnetCsharpConversationIdRequired = new("native.dotnet.csharp.conversationIdRequired");
-    public static readonly UiMessageKey NativeDotnetCsharpCsvImportFailed = new("native.dotnet.csharp.csvImportFailed");
-    public static readonly UiMessageKey NativeDotnetCsharpCsvRequired = new("native.dotnet.csharp.csvRequired");
     public static readonly UiMessageKey NativeDotnetCsharpCustomize = new("native.dotnet.csharp.customize");
     public static readonly UiMessageKey NativeDotnetCsharpCustomizeNavigation = new("native.dotnet.csharp.customizeNavigation");
     public static readonly UiMessageKey NativeDotnetCsharpDelete = new("native.dotnet.csharp.delete");
     public static readonly UiMessageKey NativeDotnetCsharpDevelopmentSession = new("native.dotnet.csharp.developmentSession");
     public static readonly UiMessageKey NativeDotnetCsharpDown = new("native.dotnet.csharp.down");
-    public static readonly UiMessageKey NativeDotnetCsharpEmailRequired = new("native.dotnet.csharp.emailRequired");
     public static readonly UiMessageKey NativeDotnetCsharpEmailVerified = new("native.dotnet.csharp.emailVerified");
     public static readonly UiMessageKey NativeDotnetCsharpEnterEmail = new("native.dotnet.csharp.enterEmail");
     public static readonly UiMessageKey NativeDotnetCsharpEnterVerificationCode = new("native.dotnet.csharp.enterVerificationCode");
@@ -408,10 +388,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpLocalModelEndpointDisabled = new("native.dotnet.csharp.localModelEndpointDisabled");
     public static readonly UiMessageKey NativeDotnetCsharpLocalModelEndpointMissing = new("native.dotnet.csharp.localModelEndpointMissing");
     public static readonly UiMessageKey NativeDotnetCsharpLocalModelSaved = new("native.dotnet.csharp.localModelSaved");
-    public static readonly UiMessageKey NativeDotnetCsharpNameRequired = new("native.dotnet.csharp.nameRequired");
     public static readonly UiMessageKey NativeDotnetCsharpNoEmailAddresses = new("native.dotnet.csharp.noEmailAddresses");
     public static readonly UiMessageKey NativeDotnetCsharpOk = new("native.dotnet.csharp.ok");
-    public static readonly UiMessageKey NativeDotnetCsharpOpen = new("native.dotnet.csharp.open");
     public static readonly UiMessageKey NativeDotnetCsharpRefresh = new("native.dotnet.csharp.refresh");
     public static readonly UiMessageKey NativeDotnetCsharpRun = new("native.dotnet.csharp.run");
     public static readonly UiMessageKey NativeDotnetCsharpSaved = new("native.dotnet.csharp.saved");
@@ -544,46 +522,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUserId = new("native.dotnet.csharpCommunities.userId");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesUsername = new("native.dotnet.csharpCommunities.username");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesWarn = new("native.dotnet.csharpCommunities.warn");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmAddNote = new("native.dotnet.csharpCrm.addNote");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmAiDraft = new("native.dotnet.csharpCrm.aiDraft");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmAny = new("native.dotnet.csharpCrm.any");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmAnyStatus = new("native.dotnet.csharpCrm.anyStatus");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmAnyVertical = new("native.dotnet.csharpCrm.anyVertical");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCreate = new("native.dotnet.csharpCrm.create");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCreateContact = new("native.dotnet.csharpCrm.createContact");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCreateNotes = new("native.dotnet.csharpCrm.createNotes");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCrm = new("native.dotnet.csharpCrm.crm");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCrmContact = new("native.dotnet.csharpCrm.crmContact");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmCsvImport = new("native.dotnet.csharpCrm.csvImport");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmDraft = new("native.dotnet.csharpCrm.draft");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmDraftPrompt = new("native.dotnet.csharpCrm.draftPrompt");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmDraftTone = new("native.dotnet.csharpCrm.draftTone");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmail = new("native.dotnet.csharpCrm.email");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmailHtml = new("native.dotnet.csharpCrm.emailHtml");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmailProvider = new("native.dotnet.csharpCrm.emailProvider");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmailSubject = new("native.dotnet.csharpCrm.emailSubject");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmailText = new("native.dotnet.csharpCrm.emailText");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmEmails = new("native.dotnet.csharpCrm.emails");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmFollowerCount = new("native.dotnet.csharpCrm.followerCount");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmImport = new("native.dotnet.csharpCrm.import");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmImportCsv = new("native.dotnet.csharpCrm.importCsv");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmLink = new("native.dotnet.csharpCrm.link");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmLinked = new("native.dotnet.csharpCrm.linked");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmName = new("native.dotnet.csharpCrm.name");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmNewNote = new("native.dotnet.csharpCrm.newNote");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmNoType = new("native.dotnet.csharpCrm.noType");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmNoVertical = new("native.dotnet.csharpCrm.noVertical");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmNotes = new("native.dotnet.csharpCrm.notes");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmNotesHistory = new("native.dotnet.csharpCrm.notesHistory");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmPhone = new("native.dotnet.csharpCrm.phone");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmSearch = new("native.dotnet.csharpCrm.search");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmSendEmail = new("native.dotnet.csharpCrm.sendEmail");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmSocialAccounts = new("native.dotnet.csharpCrm.socialAccounts");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmType = new("native.dotnet.csharpCrm.type");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmUnlink = new("native.dotnet.csharpCrm.unlink");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmUnlinked = new("native.dotnet.csharpCrm.unlinked");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmUserId = new("native.dotnet.csharpCrm.userId");
-    public static readonly UiMessageKey NativeDotnetCsharpCrmVertical = new("native.dotnet.csharpCrm.vertical");
     public static readonly UiMessageKey NativeDotnetCsharpDialogsAddContext = new("native.dotnet.csharpDialogs.addContext");
     public static readonly UiMessageKey NativeDotnetCsharpDialogsChooseProgram = new("native.dotnet.csharpDialogs.chooseProgram");
     public static readonly UiMessageKey NativeDotnetCsharpDialogsCleanUp = new("native.dotnet.csharpDialogs.cleanUp");
@@ -685,7 +623,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetDynamicSignOutDeviceQuestion = new("native.dotnet.dynamic.signOutDeviceQuestion");
     public static readonly UiMessageKey NativeDotnetDynamicSignOutSessionQuestion = new("native.dotnet.dynamic.signOutSessionQuestion");
     public static readonly UiMessageKey NativeDotnetDynamicSignedOut = new("native.dotnet.dynamic.signedOut");
-    public static readonly UiMessageKey NativeDotnetDynamicSupportThread = new("native.dotnet.dynamic.supportThread");
     public static readonly UiMessageKey NativeDotnetDynamicUnfollow = new("native.dotnet.dynamic.unfollow");
     public static readonly UiMessageKey NativeDotnetDynamicUnfollowSource = new("native.dotnet.dynamic.unfollowSource");
     public static readonly UiMessageKey NativeDotnetDynamicUnfollowTopic = new("native.dotnet.dynamic.unfollowTopic");
@@ -1223,16 +1160,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetSettingsUiLocale = new("native.dotnet.settings.uiLocale");
     public static readonly UiMessageKey NativeDotnetSettingsVerifyEmail = new("native.dotnet.settings.verifyEmail");
     public static readonly UiMessageKey NativeDotnetSettingsVouchesDisavows = new("native.dotnet.settings.vouchesDisavows");
-    public static readonly UiMessageKey NativeDotnetSupportClose = new("native.dotnet.support.close");
-    public static readonly UiMessageKey NativeDotnetSupportCreateDescription = new("native.dotnet.support.createDescription");
-    public static readonly UiMessageKey NativeDotnetSupportListDescription = new("native.dotnet.support.listDescription");
-    public static readonly UiMessageKey NativeDotnetSupportListEmpty = new("native.dotnet.support.listEmpty");
-    public static readonly UiMessageKey NativeDotnetSupportNewThread = new("native.dotnet.support.newThread");
-    public static readonly UiMessageKey NativeDotnetSupportOptionalConversationId = new("native.dotnet.support.optionalConversationId");
-    public static readonly UiMessageKey NativeDotnetSupportOptionalMessage = new("native.dotnet.support.optionalMessage");
-    public static readonly UiMessageKey NativeDotnetSupportThread = new("native.dotnet.support.thread");
-    public static readonly UiMessageKey NativeDotnetSupportThreadEmpty = new("native.dotnet.support.threadEmpty");
-    public static readonly UiMessageKey NativeDotnetSupportTitle = new("native.dotnet.support.title");
     public static readonly UiMessageKey NativeDotnetTagManagementCategories = new("native.dotnet.tagManagement.categories");
     public static readonly UiMessageKey NativeDotnetTagManagementCategoryTopics = new("native.dotnet.tagManagement.categoryTopics");
     public static readonly UiMessageKey NativeDotnetTagManagementFaqPosts = new("native.dotnet.tagManagement.faqPosts");
@@ -1371,9 +1298,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyLatestReleasedDay = new("native.swift.communityRows.transparencyLatestReleasedDay");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyLocked = new("native.swift.communityRows.transparencyLocked");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyReleasedOn = new("native.swift.communityRows.transparencyReleasedOn");
-    public static readonly UiMessageKey NativeSwiftCrmContactsPhone = new("native.swift.crmContacts.phone");
-    public static readonly UiMessageKey NativeSwiftCrmContactsProvider = new("native.swift.crmContacts.provider");
-    public static readonly UiMessageKey NativeSwiftCrmContactsSubject = new("native.swift.crmContacts.subject");
     public static readonly UiMessageKey NativeSwiftDetailUserTags = new("native.swift.detail.userTags");
     public static readonly UiMessageKey NativeSwiftDirectMessagesLoadOlderMessages = new("native.swift.directMessages.loadOlderMessages");
     public static readonly UiMessageKey NativeSwiftDirectMessagesNewMessage = new("native.swift.directMessages.newMessage");
@@ -1758,7 +1682,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftPostComposeImages = new("native.swift.postCompose.images");
     public static readonly UiMessageKey NativeSwiftPostComposePublish = new("native.swift.postCompose.publish");
     public static readonly UiMessageKey NativeSwiftPostsListPosts = new("native.swift.postsList.posts");
-    public static readonly UiMessageKey NativeSwiftPresentationValuesAssigned = new("native.swift.presentationValues.assigned");
+    public static readonly UiMessageKey NativeSwiftPresentationPhone = new("native.swift.presentation.phone");
+    public static readonly UiMessageKey NativeSwiftPresentationProvider = new("native.swift.presentation.provider");
     public static readonly UiMessageKey NativeSwiftPresentationValuesDeleted = new("native.swift.presentationValues.deleted");
     public static readonly UiMessageKey NativeSwiftPresentationValuesFacebook = new("native.swift.presentationValues.facebook");
     public static readonly UiMessageKey NativeSwiftPresentationValuesGithub = new("native.swift.presentationValues.github");
@@ -1902,23 +1827,13 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftSettingsSelectedModel = new("native.swift.settings.selectedModel");
     public static readonly UiMessageKey NativeSwiftSettingsSendVerificationCode = new("native.swift.settings.sendVerificationCode");
     public static readonly UiMessageKey NativeSwiftSettingsSessions = new("native.swift.settings.sessions");
+    public static readonly UiMessageKey NativeSwiftSettingsSupport = new("native.swift.settings.support");
     public static readonly UiMessageKey NativeSwiftSettingsUnnamedLocalModel = new("native.swift.settings.unnamedLocalModel");
     public static readonly UiMessageKey NativeSwiftSettingsUrl = new("native.swift.settings.url");
     public static readonly UiMessageKey NativeSwiftSettingsUseLocalModel = new("native.swift.settings.useLocalModel");
     public static readonly UiMessageKey NativeSwiftSettingsUsername = new("native.swift.settings.username");
     public static readonly UiMessageKey NativeSwiftSettingsUsers = new("native.swift.settings.users");
     public static readonly UiMessageKey NativeSwiftSettingsWeekly = new("native.swift.settings.weekly");
-    public static readonly UiMessageKey NativeSwiftSupportApproveDraftConfirmationTitle = new("native.swift.support.approveDraftConfirmationTitle");
-    public static readonly UiMessageKey NativeSwiftSupportAssignToMe = new("native.swift.support.assignToMe");
-    public static readonly UiMessageKey NativeSwiftSupportGenerateAiDraft = new("native.swift.support.generateAiDraft");
-    public static readonly UiMessageKey NativeSwiftSupportReopenThreadConfirmationTitle = new("native.swift.support.reopenThreadConfirmationTitle");
-    public static readonly UiMessageKey NativeSwiftSupportResolveThreadConfirmationTitle = new("native.swift.support.resolveThreadConfirmationTitle");
-    public static readonly UiMessageKey NativeSwiftSupportSaveOutboundReply = new("native.swift.support.saveOutboundReply");
-    public static readonly UiMessageKey NativeSwiftSupportSavedReplyNotEmailed = new("native.swift.support.savedReplyNotEmailed");
-    public static readonly UiMessageKey NativeSwiftSupportSendDraftConfirmationTitle = new("native.swift.support.sendDraftConfirmationTitle");
-    public static readonly UiMessageKey NativeSwiftSupportStatus = new("native.swift.support.status");
-    public static readonly UiMessageKey NativeSwiftSupportSupport = new("native.swift.support.support");
-    public static readonly UiMessageKey NativeSwiftSupportWaitingForAiDraft = new("native.swift.support.waitingForAiDraft");
     public static readonly UiMessageKey NativeSwiftTopicManagementFieldsAddAlias = new("native.swift.topicManagementFields.addAlias");
     public static readonly UiMessageKey NativeSwiftTopicManagementFieldsAddHostname = new("native.swift.topicManagementFields.addHostname");
     public static readonly UiMessageKey NativeSwiftTopicManagementFieldsAdditionalHostname = new("native.swift.topicManagementFields.additionalHostname");
@@ -1931,17 +1846,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeTaxonomyContributionAdmissionCapacityUnavailable = new("native.taxonomy.contributionAdmission.capacityUnavailable");
     public static readonly UiMessageKey NativeTaxonomyContributionAdmissionIdempotencyMismatch = new("native.taxonomy.contributionAdmission.idempotencyMismatch");
     public static readonly UiMessageKey NativeTaxonomyContributionAdmissionInProgress = new("native.taxonomy.contributionAdmission.inProgress");
-    public static readonly UiMessageKey NativeTaxonomyCrmAi = new("native.taxonomy.crm.ai");
-    public static readonly UiMessageKey NativeTaxonomyCrmCars = new("native.taxonomy.crm.cars");
-    public static readonly UiMessageKey NativeTaxonomyCrmCreditCards = new("native.taxonomy.crm.creditCards");
-    public static readonly UiMessageKey NativeTaxonomyCrmCustomer = new("native.taxonomy.crm.customer");
-    public static readonly UiMessageKey NativeTaxonomyCrmFinance = new("native.taxonomy.crm.finance");
-    public static readonly UiMessageKey NativeTaxonomyCrmInfluencer = new("native.taxonomy.crm.influencer");
-    public static readonly UiMessageKey NativeTaxonomyCrmLifestyle = new("native.taxonomy.crm.lifestyle");
-    public static readonly UiMessageKey NativeTaxonomyCrmOther = new("native.taxonomy.crm.other");
-    public static readonly UiMessageKey NativeTaxonomyCrmPartner = new("native.taxonomy.crm.partner");
-    public static readonly UiMessageKey NativeTaxonomyCrmTechnology = new("native.taxonomy.crm.technology");
-    public static readonly UiMessageKey NativeTaxonomyCrmTravel = new("native.taxonomy.crm.travel");
     public static readonly UiMessageKey NativeTaxonomyDataRequestExpired = new("native.taxonomy.dataRequest.expired");
     public static readonly UiMessageKey NativeTaxonomyDataRequestFailed = new("native.taxonomy.dataRequest.failed");
     public static readonly UiMessageKey NativeTaxonomyDataRequestProcessing = new("native.taxonomy.dataRequest.processing");
@@ -1978,8 +1882,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeTaxonomySettingsUsername = new("native.taxonomy.settings.username");
     public static readonly UiMessageKey NativeTaxonomySettingsX = new("native.taxonomy.settings.x");
     public static readonly UiMessageKey NativeTaxonomySettingsYoutube = new("native.taxonomy.settings.youtube");
-    public static readonly UiMessageKey NativeTaxonomySupportClosed = new("native.taxonomy.support.closed");
-    public static readonly UiMessageKey NativeTaxonomySupportOpen = new("native.taxonomy.support.open");
     public static readonly UiMessageKey NativeTaxonomyTopicsRssFeed = new("native.taxonomy.topics.rssFeed");
     public static readonly UiMessageKey NativeTaxonomyTopicsTopic = new("native.taxonomy.topics.topic");
     public static readonly UiMessageKey NavMessages = new("nav.messages");
@@ -2009,7 +1911,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedIntentsAdminAgents279b44d2,
         ExtractedIntentsAdminAiCosts75cce222,
         ExtractedIntentsAdminAppeals03e8c5a5,
-        ExtractedIntentsAdminCrm130f70ae,
         ExtractedIntentsAdminDynamicConfig59cf5829,
         ExtractedIntentsAdminEngineering729bb48d,
         ExtractedIntentsAdminGrowth66b06e99,
@@ -2026,8 +1927,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedIntentsAdminReportsDacca3cb,
         ExtractedIntentsAdminReviewDisputes25c25858,
         ExtractedIntentsAdminReviewQueue83c3c922,
-        ExtractedIntentsAdminSupportContacts96f650a3,
-        ExtractedIntentsAdminSupportBe91940b,
         ExtractedIntentsAdminValkey2392ad6b,
         ExtractedIntentsAdminVoteIntegrityC05b33b5,
         ExtractedIntentsProductCommunicationAllMessages020dc04d,
@@ -2039,7 +1938,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedIntentsProductCommunicationMyLandingPages68f82dad,
         ExtractedIntentsProductCommunicationNewChat0d332351,
         ExtractedIntentsProductCommunicationNotifications78801183,
-        ExtractedIntentsProductCommunicationSupportBe91940b,
         ExtractedIntentsProductFediverseBrowse3227aa96,
         ExtractedIntentsProductFediverseFediverseSearchA4896269,
         ExtractedIntentsProductFediverseFediverse5b02ab9d,
@@ -2348,38 +2246,22 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCommunityCommunityNameLength,
         NativeDotnetCommunityCommunityNameWords,
         NativeDotnetCommunityCommunitySlugInvalid,
-        NativeDotnetCrmCrmArchived,
-        NativeDotnetCrmCrmAwaitingResponse,
-        NativeDotnetCrmCrmConverted,
-        NativeDotnetCrmCrmInConversation,
-        NativeDotnetCrmCrmInbound,
-        NativeDotnetCrmCrmNew,
-        NativeDotnetCrmCrmNoSubject,
-        NativeDotnetCrmCrmOptedOut,
-        NativeDotnetCrmCrmOutbound,
-        NativeDotnetCrmCrmUnknownDirection,
-        NativeDotnetCrmRowError,
         NativeDotnetCsharpAccountDeleted,
         NativeDotnetCsharpActionFailed,
         NativeDotnetCsharpAdd,
-        NativeDotnetCsharpArchive,
         NativeDotnetCsharpAvatarUploadFailed,
         NativeDotnetCsharpAvatarUploadTimedOut,
-        NativeDotnetCsharpBodyRequired,
         NativeDotnetCsharpBookmarks,
         NativeDotnetCsharpCancel,
         NativeDotnetCsharpChooseImageUpTo50Mb,
         NativeDotnetCsharpClear,
         NativeDotnetCsharpClose,
         NativeDotnetCsharpConversationIdRequired,
-        NativeDotnetCsharpCsvImportFailed,
-        NativeDotnetCsharpCsvRequired,
         NativeDotnetCsharpCustomize,
         NativeDotnetCsharpCustomizeNavigation,
         NativeDotnetCsharpDelete,
         NativeDotnetCsharpDevelopmentSession,
         NativeDotnetCsharpDown,
-        NativeDotnetCsharpEmailRequired,
         NativeDotnetCsharpEmailVerified,
         NativeDotnetCsharpEnterEmail,
         NativeDotnetCsharpEnterVerificationCode,
@@ -2397,10 +2279,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpLocalModelEndpointDisabled,
         NativeDotnetCsharpLocalModelEndpointMissing,
         NativeDotnetCsharpLocalModelSaved,
-        NativeDotnetCsharpNameRequired,
         NativeDotnetCsharpNoEmailAddresses,
         NativeDotnetCsharpOk,
-        NativeDotnetCsharpOpen,
         NativeDotnetCsharpRefresh,
         NativeDotnetCsharpRun,
         NativeDotnetCsharpSaved,
@@ -2533,46 +2413,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesUserId,
         NativeDotnetCsharpCommunitiesUsername,
         NativeDotnetCsharpCommunitiesWarn,
-        NativeDotnetCsharpCrmAddNote,
-        NativeDotnetCsharpCrmAiDraft,
-        NativeDotnetCsharpCrmAny,
-        NativeDotnetCsharpCrmAnyStatus,
-        NativeDotnetCsharpCrmAnyVertical,
-        NativeDotnetCsharpCrmCreate,
-        NativeDotnetCsharpCrmCreateContact,
-        NativeDotnetCsharpCrmCreateNotes,
-        NativeDotnetCsharpCrmCrm,
-        NativeDotnetCsharpCrmCrmContact,
-        NativeDotnetCsharpCrmCsvImport,
-        NativeDotnetCsharpCrmDraft,
-        NativeDotnetCsharpCrmDraftPrompt,
-        NativeDotnetCsharpCrmDraftTone,
-        NativeDotnetCsharpCrmEmail,
-        NativeDotnetCsharpCrmEmailHtml,
-        NativeDotnetCsharpCrmEmailProvider,
-        NativeDotnetCsharpCrmEmailSubject,
-        NativeDotnetCsharpCrmEmailText,
-        NativeDotnetCsharpCrmEmails,
-        NativeDotnetCsharpCrmFollowerCount,
-        NativeDotnetCsharpCrmImport,
-        NativeDotnetCsharpCrmImportCsv,
-        NativeDotnetCsharpCrmLink,
-        NativeDotnetCsharpCrmLinked,
-        NativeDotnetCsharpCrmName,
-        NativeDotnetCsharpCrmNewNote,
-        NativeDotnetCsharpCrmNoType,
-        NativeDotnetCsharpCrmNoVertical,
-        NativeDotnetCsharpCrmNotes,
-        NativeDotnetCsharpCrmNotesHistory,
-        NativeDotnetCsharpCrmPhone,
-        NativeDotnetCsharpCrmSearch,
-        NativeDotnetCsharpCrmSendEmail,
-        NativeDotnetCsharpCrmSocialAccounts,
-        NativeDotnetCsharpCrmType,
-        NativeDotnetCsharpCrmUnlink,
-        NativeDotnetCsharpCrmUnlinked,
-        NativeDotnetCsharpCrmUserId,
-        NativeDotnetCsharpCrmVertical,
         NativeDotnetCsharpDialogsAddContext,
         NativeDotnetCsharpDialogsChooseProgram,
         NativeDotnetCsharpDialogsCleanUp,
@@ -2674,7 +2514,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetDynamicSignOutDeviceQuestion,
         NativeDotnetDynamicSignOutSessionQuestion,
         NativeDotnetDynamicSignedOut,
-        NativeDotnetDynamicSupportThread,
         NativeDotnetDynamicUnfollow,
         NativeDotnetDynamicUnfollowSource,
         NativeDotnetDynamicUnfollowTopic,
@@ -3212,16 +3051,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetSettingsUiLocale,
         NativeDotnetSettingsVerifyEmail,
         NativeDotnetSettingsVouchesDisavows,
-        NativeDotnetSupportClose,
-        NativeDotnetSupportCreateDescription,
-        NativeDotnetSupportListDescription,
-        NativeDotnetSupportListEmpty,
-        NativeDotnetSupportNewThread,
-        NativeDotnetSupportOptionalConversationId,
-        NativeDotnetSupportOptionalMessage,
-        NativeDotnetSupportThread,
-        NativeDotnetSupportThreadEmpty,
-        NativeDotnetSupportTitle,
         NativeDotnetTagManagementCategories,
         NativeDotnetTagManagementCategoryTopics,
         NativeDotnetTagManagementFaqPosts,
@@ -3360,9 +3189,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftCommunityRowsTransparencyLatestReleasedDay,
         NativeSwiftCommunityRowsTransparencyLocked,
         NativeSwiftCommunityRowsTransparencyReleasedOn,
-        NativeSwiftCrmContactsPhone,
-        NativeSwiftCrmContactsProvider,
-        NativeSwiftCrmContactsSubject,
         NativeSwiftDetailUserTags,
         NativeSwiftDirectMessagesLoadOlderMessages,
         NativeSwiftDirectMessagesNewMessage,
@@ -3747,7 +3573,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftPostComposeImages,
         NativeSwiftPostComposePublish,
         NativeSwiftPostsListPosts,
-        NativeSwiftPresentationValuesAssigned,
+        NativeSwiftPresentationPhone,
+        NativeSwiftPresentationProvider,
         NativeSwiftPresentationValuesDeleted,
         NativeSwiftPresentationValuesFacebook,
         NativeSwiftPresentationValuesGithub,
@@ -3891,23 +3718,13 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftSettingsSelectedModel,
         NativeSwiftSettingsSendVerificationCode,
         NativeSwiftSettingsSessions,
+        NativeSwiftSettingsSupport,
         NativeSwiftSettingsUnnamedLocalModel,
         NativeSwiftSettingsUrl,
         NativeSwiftSettingsUseLocalModel,
         NativeSwiftSettingsUsername,
         NativeSwiftSettingsUsers,
         NativeSwiftSettingsWeekly,
-        NativeSwiftSupportApproveDraftConfirmationTitle,
-        NativeSwiftSupportAssignToMe,
-        NativeSwiftSupportGenerateAiDraft,
-        NativeSwiftSupportReopenThreadConfirmationTitle,
-        NativeSwiftSupportResolveThreadConfirmationTitle,
-        NativeSwiftSupportSaveOutboundReply,
-        NativeSwiftSupportSavedReplyNotEmailed,
-        NativeSwiftSupportSendDraftConfirmationTitle,
-        NativeSwiftSupportStatus,
-        NativeSwiftSupportSupport,
-        NativeSwiftSupportWaitingForAiDraft,
         NativeSwiftTopicManagementFieldsAddAlias,
         NativeSwiftTopicManagementFieldsAddHostname,
         NativeSwiftTopicManagementFieldsAdditionalHostname,
@@ -3920,17 +3737,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeTaxonomyContributionAdmissionCapacityUnavailable,
         NativeTaxonomyContributionAdmissionIdempotencyMismatch,
         NativeTaxonomyContributionAdmissionInProgress,
-        NativeTaxonomyCrmAi,
-        NativeTaxonomyCrmCars,
-        NativeTaxonomyCrmCreditCards,
-        NativeTaxonomyCrmCustomer,
-        NativeTaxonomyCrmFinance,
-        NativeTaxonomyCrmInfluencer,
-        NativeTaxonomyCrmLifestyle,
-        NativeTaxonomyCrmOther,
-        NativeTaxonomyCrmPartner,
-        NativeTaxonomyCrmTechnology,
-        NativeTaxonomyCrmTravel,
         NativeTaxonomyDataRequestExpired,
         NativeTaxonomyDataRequestFailed,
         NativeTaxonomyDataRequestProcessing,
@@ -3967,8 +3773,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeTaxonomySettingsUsername,
         NativeTaxonomySettingsX,
         NativeTaxonomySettingsYoutube,
-        NativeTaxonomySupportClosed,
-        NativeTaxonomySupportOpen,
         NativeTaxonomyTopicsRssFeed,
         NativeTaxonomyTopicsTopic,
         NavMessages,

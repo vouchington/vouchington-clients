@@ -7,10 +7,7 @@ struct NativePaginationState {
 }
 
 struct NativeChatTimelineMessage: Identifiable {
-    enum Role: String {
-        case user
-        case assistant
-    }
+    enum Role: String { case user, assistant }
 
     var id: String
     var role: Role
@@ -27,24 +24,16 @@ struct NativeChatToolResult: Identifiable {
     let toolCallId: String
     let result: DecodedJSONValue
 
-    var id: String {
-        toolCallId
-    }
+    var id: String { toolCallId }
 
     var displayText: UiVerbatimText {
         switch result {
-        case .null:
-            .protocolValue("null")
-        case let .bool(value):
-            .verbatim(String(value))
-        case let .number(value):
-            .verbatim(String(value))
-        case let .string(value):
-            .verbatim(value)
-        case let .array(value):
-            .count(value.count, item: "item")
-        case let .object(value):
-            .count(value.count, item: "field")
+        case .null: .protocolValue("null")
+        case let .bool(value): .verbatim(String(value))
+        case let .number(value): .verbatim(String(value))
+        case let .string(value): .verbatim(value)
+        case let .array(value): .count(value.count, item: "item")
+        case let .object(value): .count(value.count, item: "field")
         }
     }
 }

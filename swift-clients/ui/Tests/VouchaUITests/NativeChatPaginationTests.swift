@@ -110,7 +110,7 @@ final class NativeChatPaginationTests: NativeRouteSurfaceViewModelTestCase {
 
     private func makeViewModel() throws -> NativeChatViewModel {
         let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil)
-        viewModel.conversations = try [NativeChatSupportSurfaceTests.decode(
+        viewModel.conversations = try [NativeChatTestFixtures.decode(
             ChatConversation.self,
             #"{"id":"conversation-1","title":"Paged chat","created_at":"2026-01-01T00:00:00Z","created_by_id":"user-1","updated_at":"2026-01-01T00:03:00Z","updated_by_id":null,"deleted_at":null,"deleted_by_id":null}"#
         )]

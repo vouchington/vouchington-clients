@@ -1,11 +1,6 @@
 enum NativeRouteCatalogStaff {
     static let entries: [NativeRouteCatalogEntry] = [
         .included(
-            destinationIdentifier: .crmContacts,
-            representativePath: "/crm",
-            patterns: ["/crm", "/crm/:contactId"]
-        ),
-        .included(
             destinationIdentifier: .membershipGrants,
             representativePath: "/memberships/grants",
             patterns: ["/memberships/grants"]
@@ -14,16 +9,6 @@ enum NativeRouteCatalogStaff {
             destinationIdentifier: .userAdmin,
             representativePath: "/user/alice/admin",
             patterns: ["/user/:idOrUsername/admin"]
-        ),
-        .included(
-            destinationIdentifier: .supportStaffContacts,
-            representativePath: "/support/contacts",
-            patterns: ["/support/contacts", "/support/contacts/:contactId"]
-        ),
-        .included(
-            destinationIdentifier: .supportStaffThreads,
-            representativePath: "/support",
-            patterns: ["/support", "/support/threads/:threadId"]
         ),
         .included(
             destinationIdentifier: .engineeringAgents,

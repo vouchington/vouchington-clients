@@ -22,8 +22,8 @@ extension NativeRouteDestinationIdentifier {
         case .webSearch, .fediverseSearch, .fediverseInstances, .feedReferralLinks, .usersBrowse, .userProfile,
              .userAdmin:
             .discover
-        case .crmContacts, .membershipGrants, .supportStaffThreads, .supportStaffContacts:
-            .crm
+        case .membershipGrants:
+            .settings
         case .engineeringAgents, .engineeringQueues, .engineeringPostgresql, .engineeringValkey,
              .engineeringAiCosts, .engineeringDynamicConfig:
             .engineering
@@ -38,7 +38,7 @@ extension NativeRouteDestinationIdentifier {
             .topics
         case .communitiesBrowse, .communityDetail:
             .communities
-        case .messages, .chat, .support:
+        case .messages, .chat:
             .messages
         case .notifications:
             .notifications

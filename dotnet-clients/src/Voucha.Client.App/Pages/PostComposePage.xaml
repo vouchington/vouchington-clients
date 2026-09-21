@@ -170,7 +170,7 @@
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                 <Entry Placeholder="{DynamicResource native.dotnet.newsFeeds.website}" Text="{Binding HpWebsite}" IsVisible="False" />
-                <Entry Grid.Column="1" Placeholder="{DynamicResource native.swift.crmContacts.phone}" Text="{Binding HpPhone}" IsVisible="False" />
+                <Entry Grid.Column="1" Placeholder="{DynamicResource native.swift.presentation.phone}" Text="{Binding HpPhone}" IsVisible="False" />
             </Grid>
 
             <Label

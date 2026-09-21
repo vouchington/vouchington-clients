@@ -17,11 +17,14 @@ extension SettingsSurface {
                     systemImage: "person.3",
                     targetPath: "/article/community-guidelines"
                 )
-                navigationButton(
-                    .nativeSwiftSettingsSupport,
-                    systemImage: "questionmark.circle",
-                    targetPath: "/chat/support"
-                )
+                Link(destination: URL(string: "mailto:support@voucha.ai")!) {
+                    Label(
+                        UiMessages.string(.nativeSwiftSettingsSupport, locale: nativeUiLocale),
+                        systemImage: "questionmark.circle"
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

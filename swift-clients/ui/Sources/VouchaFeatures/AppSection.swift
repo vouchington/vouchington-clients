@@ -3,7 +3,7 @@ import VouchaLocalization
 public enum AppSection: String, CaseIterable, Identifiable, Sendable {
     case news, videos, podcasts, posts
     case discover, topics, communities, messages, settings, library, actions
-    case moderation, crm, engineering, growth
+    case moderation, engineering, growth
     case notifications, friends, profile
 
     public var id: String {
@@ -24,7 +24,6 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
         case .library: .nativeSwiftNavigationTitlesLibrary
         case .actions: .nativeSwiftNavigationTitlesActions
         case .moderation: .nativeSwiftNavigationTitlesModeration
-        case .crm: .nativeSwiftNavigationTitlesCrm
         case .engineering: .nativeSwiftNavigationTitlesEngineering
         case .growth: .nativeSwiftNavigationTitlesGrowth
         case .notifications: .nativeSwiftNavigationTitlesNotifications
@@ -52,7 +51,6 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
         case .library: "bookmark"
         case .actions: "slider.horizontal.3"
         case .moderation: "shield.lefthalf.filled"
-        case .crm: "person.text.rectangle"
         case .engineering: "wrench.and.screwdriver"
         case .growth: "chart.line.uptrend.xyaxis"
         case .notifications: "bell"
@@ -63,7 +61,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
 
     public var requiresAuth: Bool {
         switch self {
-        case .messages, .settings, .library, .actions, .moderation, .crm, .engineering, .growth, .notifications,
+        case .messages, .settings, .library, .actions, .moderation, .engineering, .growth, .notifications,
              .friends, .profile: true
         default: false
         }
@@ -71,8 +69,6 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
 
     public var requiredRoles: [String] {
         switch self {
-        case .crm:
-            ["administrator"]
         case .engineering:
             ["administrator", "moderator", "developer", "customer_support", "investor"]
         case .growth:

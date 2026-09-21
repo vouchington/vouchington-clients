@@ -36,12 +36,13 @@ extension NativeParityCatalog {
         )
     ]
 
-    static let crmGroups: [NativeRouteFamilyGroup] = [
+    static let administrationGroups: [NativeRouteFamilyGroup] = [
         .init(
-            title: UiMessage(.nativeSwiftRouteFamilyDirectoryCrmTitle),
-            summary: UiMessage(.nativeSwiftRouteFamilyDirectoryCrmSummary),
-            icon: "person.text.rectangle",
-            entries: entries(for: .crmContacts, .membershipGrants, .supportStaffThreads, .supportStaffContacts)
+            title: UiMessage(.nativeSwiftMembershipMembershipGrants),
+            summary: UiMessage(.nativeSwiftMembershipMembershipGrantDescription),
+            icon: "checkmark.seal",
+            entries: entries(for: .membershipGrants),
+            requiredRoles: ["administrator"]
         )
     ]
 

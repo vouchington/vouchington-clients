@@ -19,7 +19,7 @@ final class NativeParityCatalogTests: XCTestCase {
         )
         XCTAssertEqual(
             AppSection.settings.nativeParityGroups.map { uiEnglish($0.title) },
-            ["Account", "Profile", "Advanced"]
+            ["Account", "Profile", "Advanced", "Membership grants"]
         )
         XCTAssertEqual(
             AppSection.library.nativeParityGroups.map { uiEnglish($0.title) },
@@ -33,7 +33,6 @@ final class NativeParityCatalogTests: XCTestCase {
             AppSection.moderation.nativeParityGroups.map { uiEnglish($0.title) },
             ["Moderation", "Appeals", "Operations", "My Cases"]
         )
-        XCTAssertEqual(AppSection.crm.nativeParityGroups.map { uiEnglish($0.title) }, ["CRM"])
         XCTAssertEqual(
             AppSection.engineering.nativeParityGroups.map { uiEnglish($0.title) },
             ["Operations", "Dynamic config"]
@@ -48,7 +47,7 @@ final class NativeParityCatalogTests: XCTestCase {
         XCTAssertEqual(AppSection.topics.nativeParityGroups[1].entries.count, 1)
         XCTAssertEqual(AppSection.topics.nativeParityGroups[2].entries.count, 3)
         XCTAssertEqual(AppSection.topics.nativeParityGroups[3].entries.count, 4)
-        XCTAssertEqual(AppSection.messages.nativeParityGroups[1].entries.count, 2)
+        XCTAssertEqual(AppSection.messages.nativeParityGroups[1].entries.count, 1)
         XCTAssertEqual(AppSection.settings.nativeParityGroups[2].entries.count, 3)
         XCTAssertEqual(AppSection.actions.nativeParityGroups[3].entries.count, 2)
         XCTAssertEqual(AppSection.moderation.nativeParityGroups[0].entries.count, 1)
@@ -79,13 +78,13 @@ final class NativeParityCatalogTests: XCTestCase {
             ]
         )
         XCTAssertEqual(destinations(in: AppSection.communities), [.communitiesBrowse, .communityDetail])
-        XCTAssertEqual(destinations(in: AppSection.messages), [.messages, .chat, .support, .notifications])
+        XCTAssertEqual(destinations(in: AppSection.messages), [.messages, .chat, .notifications])
         XCTAssertEqual(
             destinations(in: AppSection.settings),
             [
                 .accountSettings, .profileSettings, .household, .paymentCards, .pointValuations,
                 .spendingCategories, .rewardsProgramStatuses,
-                .notificationSettings, .advancedSettings, .landingPages
+                .notificationSettings, .advancedSettings, .landingPages, .membershipGrants
             ]
         )
         XCTAssertEqual(destinations(in: AppSection.library), [.referrals, .landingPages, .lists, .bookmarks, .plans])
@@ -104,10 +103,6 @@ final class NativeParityCatalogTests: XCTestCase {
                 .moderationIntegrity,
                 .moderationCases
             ]
-        )
-        XCTAssertEqual(
-            destinations(in: AppSection.crm),
-            [.crmContacts, .membershipGrants, .supportStaffThreads, .supportStaffContacts]
         )
         XCTAssertEqual(
             destinations(in: AppSection.engineering),
@@ -136,7 +131,6 @@ final class NativeParityCatalogTests: XCTestCase {
                 .library,
                 .actions,
                 .moderation,
-                .crm,
                 .engineering,
                 .growth
             ]
@@ -148,12 +142,11 @@ final class NativeParityCatalogTests: XCTestCase {
             (.discover, [4, 2]),
             (.topics, [3, 1, 3, 4]),
             (.communities, [2]),
-            (.messages, [1, 2, 1]),
-            (.settings, [1, 6, 3]),
+            (.messages, [1, 1, 1]),
+            (.settings, [1, 6, 3, 1]),
             (.library, [1, 1, 1, 1, 1]),
             (.actions, [2, 1, 1, 2]),
             (.moderation, [1, 2, 3, 1]),
-            (.crm, [4]),
             (.engineering, [5, 1]),
             (.growth, [1])
         ]

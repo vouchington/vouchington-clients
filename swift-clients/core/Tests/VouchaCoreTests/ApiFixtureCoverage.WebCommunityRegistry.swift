@@ -289,31 +289,6 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
             ]
         )
     },
-    RegisteredFixture(id: "web.my.support-threads.create.default") {
-        try assertFixtureCoversDTO(
-            $0,
-            as: CreateSupportThreadResponse.self,
-            ignoring: [
-                "message",
-                "message.approved_at",
-                "message.approved_by_id",
-                "message.created_by_id",
-                "message.drafted_at",
-                "message.edited_at",
-                "message.edited_by_id",
-                "message.email_from",
-                "message.email_message_id",
-                "message.email_subject",
-                "message.email_to",
-                "message.sent_at",
-                "thread.assigned_at",
-                "thread.assigned_to_id",
-                "thread.conversation_id",
-                "thread.resolved_at",
-                "thread.resolved_by_id"
-            ]
-        )
-    },
     RegisteredFixture(id: "web.topics.publisher-types.default") {
         try assertFixtureCoversDTO($0, as: PublisherTypesResponse.self)
     },

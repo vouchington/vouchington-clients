@@ -12,7 +12,7 @@
             <Label Text="{Binding DisplayTitle}" Style="{StaticResource Headline}" />
             <Label Text="{Binding ConversationId}" Style="{StaticResource Metadata}" />
             <HorizontalStackLayout Spacing="8">
-                <Label Text="{DynamicResource native.swift.crmContacts.provider}" Style="{StaticResource Metadata}" VerticalOptions="Center" />
+                <Label Text="{DynamicResource native.swift.presentation.provider}" Style="{StaticResource Metadata}" VerticalOptions="Center" />
                 <Picker
                     Title="{DynamicResource native.dotnet.settings.selectProvider}"
                     ItemsSource="{Binding ProviderStatuses}"

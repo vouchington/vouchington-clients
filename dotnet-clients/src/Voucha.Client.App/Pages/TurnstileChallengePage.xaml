@@ -9,7 +9,7 @@
             <Label Text="{DynamicResource native.dotnet.turnstile.title}" Style="{StaticResource Headline}" />
             <Button
                 Grid.Column="1"
-                Text="{DynamicResource native.dotnet.support.close}"
+                Text="{DynamicResource native.dotnet.csharp.close}"
                 Clicked="OnCloseClicked" />
         </Grid>
 

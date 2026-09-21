@@ -306,24 +306,6 @@ final class NativeRouteDestinationViewRoutingTests: NativeRouteSurfaceViewModelT
         XCTAssertThrowsError(try sut.inspect().find(button: "Stop"))
     }
 
-    func testSupportRouteUsesNativeSupportSurface() throws {
-        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/chat/support/new"))
-        let sut = NativeRouteDestinationView(entry: route.entry, routeMatch: route.match)
-
-        XCTAssertNoThrow(try sut.inspect().find(text: "Support"))
-        XCTAssertNoThrow(try sut.inspect().find(button: "Create request"))
-        XCTAssertNoThrow(try sut.inspect().find(text: "Conversation ID"))
-    }
-
-    func testSupportRouteRequiresSignIn() throws {
-        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/chat/support"))
-        let sut = NativeRouteDestinationView(entry: route.entry, routeMatch: route.match, isSignedIn: false)
-
-        XCTAssertNoThrow(try sut.inspect().find(text: "Sign in required"))
-        XCTAssertThrowsError(try sut.inspect().find(button: "Create request"))
-        XCTAssertThrowsError(try sut.inspect().find(text: "Conversation ID"))
-    }
-
     func testDedicatedStaffAppealsRouteNeverRunsTheGenericLoader() async throws {
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/appeals"))
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (

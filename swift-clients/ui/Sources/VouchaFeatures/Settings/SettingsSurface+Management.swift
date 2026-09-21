@@ -12,7 +12,7 @@ extension SettingsSurface {
             )
             .textFieldStyle(.roundedBorder)
             Picker(
-                UiMessages.string(.nativeSwiftCrmContactsType, locale: nativeUiLocale),
+                UiMessages.string(.nativeSwiftPresentationType, locale: nativeUiLocale),
                 selection: $viewModel.apiKeyType
             ) {
                 Text(UiMessages.string(.nativeSwiftSettingsRss, locale: nativeUiLocale)).tag(ApiKeyType.rss)

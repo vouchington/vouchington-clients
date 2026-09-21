@@ -46,18 +46,4 @@ public interface IChatService
       CreateClientGeneratedChatBody body,
       CancellationToken cancellationToken = default);
 
-  Task<SupportThreadListResponse> FetchSupportThreadsAsync(
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default);
-
-  Task<CreateSupportThreadResponse> CreateSupportThreadAsync(
-      CreateSupportThreadBody body,
-      CancellationToken cancellationToken = default);
-
-  Task<SupportThreadDetailResponse> FetchSupportThreadAsync(
-      string threadId,
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default);
 }

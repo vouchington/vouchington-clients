@@ -52,7 +52,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try sut.inspect().find(button: "Privacy Policy"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Terms of Service"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Community Guidelines"))
-        XCTAssertNoThrow(try sut.inspect().find(button: "Support"))
+        XCTAssertNoThrow(try sut.inspect().find(text: "Support"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Current plan"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Native billing pending"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Included"))
@@ -103,15 +103,13 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         try sut.inspect().find(button: "Privacy Policy").tap()
         try sut.inspect().find(button: "Terms of Service").tap()
         try sut.inspect().find(button: "Community Guidelines").tap()
-        try sut.inspect().find(button: "Support").tap()
 
         XCTAssertEqual(
             navigatedPaths,
             [
                 "/article/privacy-policy",
                 "/article/terms-of-service",
-                "/article/community-guidelines",
-                "/chat/support"
+                "/article/community-guidelines"
             ]
         )
     }
@@ -192,7 +190,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         let sut = SettingsSurface(viewModel: viewModel)
 
         XCTAssertNoThrow(try sut.inspect().find(text: "Download Data Export"))
-        XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 1)
+        XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 2)
         XCTAssertTrue(try sut.inspect().find(button: "Delete Account").isDisabled())
 
         viewModel.deleteConfirmation = "  DELETE my account  "

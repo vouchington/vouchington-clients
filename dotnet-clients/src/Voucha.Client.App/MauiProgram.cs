@@ -8,7 +8,6 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Communities;
-using Voucha.Client.Core.Crm;
 using Voucha.Client.Core.Growth;
 using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Images;
@@ -92,8 +91,6 @@ public static partial class MauiProgram
     builder.Services.AddSingleton<IMembershipAdministrationService, ApiMembershipAdministrationService>();
     AddIdentityVerificationServices(builder.Services);
     builder.Services.AddSingleton<INotificationsService, ApiNotificationsService>();
-    builder.Services.AddSingleton<ICrmService, ApiCrmService>();
-    AddStaffSupportServices(builder.Services);
     AddChatServices(builder.Services);
     AddHouseholdServices(builder.Services);
     AddPaymentCardServices(builder.Services);
@@ -187,8 +184,6 @@ public static partial class MauiProgram
         sp.GetRequiredService<IUiLocalization>(),
         sp.GetRequiredService<IUiLocaleController>()));
     builder.Services.AddTransient<CommunityDetailViewModel>();
-    builder.Services.AddTransient<CrmContactsViewModel>();
-    builder.Services.AddTransient<CrmContactDetailViewModel>();
     AddPageServices(builder.Services);
 #if DEBUG
     builder.Logging.AddDebug();

@@ -7,11 +7,10 @@ enum NativeParityCatalog {
             .topics: topicGroups,
             .communities: communityGroups,
             .messages: messageGroups,
-            .settings: settingsGroups,
+            .settings: settingsGroups + administrationGroups,
             .library: libraryGroups,
             .actions: actionGroups,
             .moderation: moderationGroups,
-            .crm: crmGroups,
             .engineering: engineeringGroups,
             .growth: growthGroups
         ]

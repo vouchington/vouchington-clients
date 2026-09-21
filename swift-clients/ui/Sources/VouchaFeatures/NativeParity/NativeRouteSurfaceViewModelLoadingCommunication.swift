@@ -15,11 +15,6 @@ extension NativeRouteSurfaceViewModel {
                 return try await loadAgentRows(client: client)
             }
             return []
-        case .support:
-            let page: SupportThreadListResponse = try await client.send(.mySupportThreads(limit: 50))
-            return page.results.map {
-                row("questionmark.circle", .verbatim($0.subject), supportThreadStatusText($0.status))
-            }
         default:
             return []
         }

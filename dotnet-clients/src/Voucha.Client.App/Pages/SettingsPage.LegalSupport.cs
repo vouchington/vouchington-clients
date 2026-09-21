@@ -12,7 +12,7 @@ public partial class SettingsPage
       await OpenNativePathAsync("/article/community-guidelines");
 
   private async void OnContactSupportClicked(object? sender, EventArgs e) =>
-      await OpenNativePathAsync("/chat/support");
+      await Launcher.Default.OpenAsync(new Uri("mailto:support@voucha.ai"));
 
   private static Task OpenNativePathAsync(string targetPath) =>
       Shell.Current is AppShell appShell

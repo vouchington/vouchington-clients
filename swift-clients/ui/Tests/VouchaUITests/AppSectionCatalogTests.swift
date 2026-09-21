@@ -45,7 +45,6 @@ final class AppSectionTests: XCTestCase {
         XCTAssertTrue(AppSection.library.requiresAuth)
         XCTAssertTrue(AppSection.actions.requiresAuth)
         XCTAssertTrue(AppSection.moderation.requiresAuth)
-        XCTAssertTrue(AppSection.crm.requiresAuth)
         XCTAssertTrue(AppSection.engineering.requiresAuth)
         XCTAssertTrue(AppSection.growth.requiresAuth)
         XCTAssertFalse(AppSection.news.requiresAuth)
@@ -58,7 +57,7 @@ final class AppSectionTests: XCTestCase {
     }
 
     func testAllCasesCount() {
-        XCTAssertEqual(AppSection.allCases.count, 18)
+        XCTAssertEqual(AppSection.allCases.count, 17)
     }
 
     func testIdEqualsRawValue() {
@@ -72,7 +71,7 @@ final class AppSectionTests: XCTestCase {
             AppSection.allCases.map { UiMessages.string($0.titleKey, locale: .english) },
             [
                 "News", "Videos", "Podcasts", "Posts", "Discover", "Topics", "Communities",
-                "Messages", "Settings", "Library", "Actions", "Moderation", "CRM", "Engineering",
+                "Messages", "Settings", "Library", "Actions", "Moderation", "Engineering",
                 "Growth", "Notifications", "Friends", "Profile"
             ]
         )
@@ -102,7 +101,6 @@ final class AppSectionTests: XCTestCase {
         XCTAssertEqual(AppSection.library.systemImage, "bookmark")
         XCTAssertEqual(AppSection.actions.systemImage, "slider.horizontal.3")
         XCTAssertEqual(AppSection.moderation.systemImage, "shield.lefthalf.filled")
-        XCTAssertEqual(AppSection.crm.systemImage, "person.text.rectangle")
         XCTAssertEqual(AppSection.engineering.systemImage, "wrench.and.screwdriver")
         XCTAssertEqual(AppSection.growth.systemImage, "chart.line.uptrend.xyaxis")
         XCTAssertEqual(AppSection.notifications.systemImage, "bell")
@@ -112,7 +110,6 @@ final class AppSectionTests: XCTestCase {
 
     func testStaffSectionsRequireRoles() {
         XCTAssertEqual(AppSection.moderation.requiredRoles, [])
-        XCTAssertEqual(AppSection.crm.requiredRoles, ["administrator"])
         XCTAssertEqual(
             AppSection.engineering.requiredRoles,
             ["administrator", "moderator", "developer", "customer_support", "investor"]
@@ -121,15 +118,9 @@ final class AppSectionTests: XCTestCase {
         XCTAssertTrue(AppSection.moderation.isVisible(isSignedIn: true, userRoles: []))
         XCTAssertFalse(AppSection.moderation.isVisible(isSignedIn: false, userRoles: []))
         XCTAssertTrue(AppSection.growth.isVisible(isSignedIn: true, userRoles: ["investor"]))
-        XCTAssertFalse(AppSection.crm.isVisible(isSignedIn: true, userRoles: ["investor"]))
         XCTAssertFalse(AppSection.moderation.isVisible(isSignedIn: false, userRoles: ["administrator"]))
     }
 
-    func testMembershipGrantOwnerSectionIsAdministratorOnly() {
-        XCTAssertTrue(AppSection.crm.isVisible(isSignedIn: true, userRoles: ["administrator"]))
-        XCTAssertFalse(AppSection.crm.isVisible(isSignedIn: true, userRoles: ["moderator"]))
-        XCTAssertFalse(AppSection.crm.isVisible(isSignedIn: false, userRoles: ["administrator"]))
-    }
 }
 
 // MARK: - ApiFixtureLoader

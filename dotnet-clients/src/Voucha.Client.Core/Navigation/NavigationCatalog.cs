@@ -148,7 +148,7 @@ public static partial class NavigationCatalog
       ListsIntent,
       SettingsIntent,
       ModerationIntent,
-      CrmIntent,
+      AdministrationIntent,
       EngineeringIntent,
       GrowthIntent,
     ];

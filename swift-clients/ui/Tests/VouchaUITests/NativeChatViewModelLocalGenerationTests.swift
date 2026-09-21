@@ -8,7 +8,7 @@ import XCTest
 final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModelTestCase {
     func testChatViewModelKeepsLocalAssistantContentHiddenUntilPersistenceSucceeds() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/client-generated-chat"] = (
-            NativeChatSupportSurfaceTests.errorData,
+            NativeChatTestFixtures.errorData,
             400
         )
 

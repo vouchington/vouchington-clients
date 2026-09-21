@@ -294,7 +294,7 @@
                 <Button Text="{DynamicResource native.legal.privacyPolicy}" Clicked="OnPrivacyPolicyClicked" />
                 <Button Text="{DynamicResource native.legal.termsOfService}" Clicked="OnTermsOfServiceClicked" />
                 <Button Text="{DynamicResource native.legal.communityGuidelines}" Clicked="OnCommunityGuidelinesClicked" />
-                <Button Text="{DynamicResource native.dotnet.support.title}" Clicked="OnContactSupportClicked" />
+                <Button Text="{DynamicResource native.swift.settings.support}" Clicked="OnContactSupportClicked" />
             </VerticalStackLayout>
 
             <VerticalStackLayout x:Name="MembershipSection" Spacing="12">

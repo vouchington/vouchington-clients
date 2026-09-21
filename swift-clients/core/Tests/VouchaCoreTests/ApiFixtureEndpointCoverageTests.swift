@@ -150,10 +150,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             ),
             "native.admin-ai-costs.empty": Endpoint.adminAiCosts(),
             "shared.currencies.list.default": Endpoint.currencies(),
-            "web.my.support-threads.create.default": Endpoint.createSupportThread(
-                subject: "Account access issue",
-                message: "I need help with my account."
-            ),
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
             "native.topics.user-tags.default": Endpoint.userTags(),
             "web.topics.search.referral-programs.default": Endpoint.topics(
@@ -402,77 +398,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 skuId: "00000000-0000-7000-8000-000000000701",
                 durationDays: 30
             ),
-            "native.crm.contacts.default": Endpoint.crmContacts(
-                query: "alice",
-                status: .new,
-                vertical: .creditCards,
-                limit: 25
-            ),
-            "native.crm.contact-detail.default": Endpoint.crmContact(
-                contactId: "00000000-0000-7000-8000-000000000584"
-            ),
-            "native.crm.contact-create.default": Endpoint.createCrmContact(
-                name: "Alice Creator",
-                email: "alice@example.test",
-                vertical: .creditCards,
-                contactType: .influencer,
-                followerCount: 250_000,
-                notes: "Creator outreach contact"
-            ),
-            "native.crm.contact-update.default": Endpoint.updateCrmContact(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                name: "Alice Creator",
-                email: "alice@example.test",
-                phone: "+1-415-555-0100",
-                vertical: .creditCards,
-                followerCount: 255_000,
-                notes: "Updated outreach notes"
-            ),
-            "native.crm.contact-archive.default": Endpoint.archiveCrmContact(
-                contactId: "00000000-0000-7000-8000-000000000584"
-            ),
-            "native.crm.contact-emails.default": Endpoint.crmContactEmails(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                limit: 25
-            ),
-            "native.crm.contact-email-send.default": Endpoint.sendCrmEmail(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                subject: "Warm intro",
-                bodyText: "Hi Alice, great to connect.",
-                emailProvider: .ses,
-                aiPrompt: "Write a warm intro",
-                aiGeneratedAt: Date(timeIntervalSince1970: 1_782_908_970)
-            ),
-            "native.crm.contact-notes.default": Endpoint.crmContactNotes(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                limit: 25
-            ),
-            "native.crm.contact-note-create.default": Endpoint.createCrmNote(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                body: "Met at the conference"
-            ),
-            "native.crm.contact-note-delete.default": Endpoint.deleteCrmNote(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                noteId: "00000000-0000-7000-8000-000000000901"
-            ),
-            "native.crm.contact-link-user.default": Endpoint.linkCrmContactToUser(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                userId: "00000000-0000-7000-8000-000000000001"
-            ),
-            "native.crm.contact-unlink-user.default": Endpoint.unlinkCrmContactFromUser(
-                contactId: "00000000-0000-7000-8000-000000000584"
-            ),
-            "native.crm.contact-email-draft.default": Endpoint.crmContactEmailDraft(
-                contactId: "00000000-0000-7000-8000-000000000584",
-                prompt: "Focus on travel content",
-                tone: "friendly"
-            ),
-            "native.crm.import.success.default": Endpoint.importCrmContacts(
-                csv: "name,email\nAlice Creator,alice@example.test"
-            ),
-            "native.crm.import.validation.default": Endpoint.importCrmContacts(
-                csv: "name,email,follower_count\nAlice Creator,alice@example.test,-1"
-            ),
             "swift.podcast-episode-chapters.default": Endpoint.podcastEpisodeChapters(
                 rssFeedItemId: "episode-1"
             ),
@@ -492,7 +417,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(moderationAppealEndpointRegistry) { _, replacement in replacement }
         .merging(nativeOAuthAndFriendRecommendationFixtureEndpoints) { _, replacement in replacement }
         .merging(followerDistributionFixtureEndpoints) { _, replacement in replacement }
-        .merging(staffSupportFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipGrantAndAncestorFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }
 }

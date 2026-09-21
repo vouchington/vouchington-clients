@@ -188,13 +188,4 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest CreateClientGeneratedChat(string conversationId, CreateClientGeneratedChatBody body) =>
       new(HttpMethod.Post, $"/api/v1/conversations/{Path(conversationId)}/client-generated-chat") { Body = body };
 
-  public static ApiRequest MySupportThreads(string? after = null, int limit = 25) =>
-      Get("/api/v1/my/support-threads", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest MySupportThread(string threadId, string? after = null, int limit = 25) =>
-      Get($"/api/v1/my/support-threads/{Path(threadId)}", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest CreateMySupportThread(CreateSupportThreadBody body) =>
-      new(HttpMethod.Post, "/api/v1/my/support-threads") { Body = body };
-
 }

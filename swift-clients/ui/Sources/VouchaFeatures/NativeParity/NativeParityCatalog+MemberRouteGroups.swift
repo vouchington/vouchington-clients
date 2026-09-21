@@ -49,7 +49,7 @@ extension NativeParityCatalog {
             title: UiMessage(.nativeSwiftRouteFamilyDirectoryChatTitle),
             summary: UiMessage(.nativeSwiftRouteFamilyDirectoryChatSummary),
             icon: "bubble.left.and.bubble.right",
-            entries: entries(for: .chat, .support)
+            entries: entries(for: .chat)
         ),
         .init(
             title: UiMessage(.nativeSwiftRouteFamilyDirectoryNotificationsTitle),

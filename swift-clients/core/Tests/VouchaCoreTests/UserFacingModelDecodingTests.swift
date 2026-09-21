@@ -186,39 +186,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         let chatMessages = try decoder.decode(ChatMessagesResponse.self, from: chatMessagesJSON)
         XCTAssertEqual(chatMessages.results.first?.content.role, "assistant")
 
-        let supportThreadsJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        let supportThreads = try decoder.decode(SupportThreadListResponse.self, from: supportThreadsJSON)
-        XCTAssertEqual(supportThreads.results.first?.conversationId, "conversation-1")
-
-        let closedSupportThreadsJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":null,"created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"closed"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        let closedSupportThreads = try decoder.decode(SupportThreadListResponse.self, from: closedSupportThreadsJSON)
-        XCTAssertEqual(closedSupportThreads.results.first?.status, .closed)
-
-        let supportThreadsWithNullStatusJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":null,"contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        XCTAssertThrowsError(try decoder.decode(SupportThreadListResponse.self, from: supportThreadsWithNullStatusJSON))
-
-        let supportThreadDetailJSON = Data(
-            #"{"thread":{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"},"messages":[{"id":"support-message-1","support_thread_id":"thread-1","direction":"inbound","body_text":"Help","body_html":"<p>Help</p>","created_at":"2026-03-01T11:55:00Z","created_by_id":"user-1","updated_at":"2026-03-01T11:55:00Z","email_message_id":null,"email_subject":null,"email_from":null,"email_to":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null}],"page_info":{"has_next_page":false,"start_cursor":"support-message-1","end_cursor":null}}"#
-                .utf8
-        )
-        let supportThreadDetail = try decoder.decode(SupportThreadDetailResponse.self, from: supportThreadDetailJSON)
-        XCTAssertEqual(supportThreadDetail.messages.first?.direction, .inbound)
-
-        let supportThreadCreateJSON = Data(
-            #"{"thread":{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":null,"created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":null},"message":null}"#
-                .utf8
-        )
-        XCTAssertThrowsError(try decoder.decode(CreateSupportThreadResponse.self, from: supportThreadCreateJSON))
-
         let participantsJSON = Data(
             #"{"results":[{"id":"participant-1","conversation_id":"conversation-1","user_id":"user-1","role":"owner","created_at":"2026-03-01T11:55:00Z","removed_at":null}],"page_info":{"has_next_page":false,"start_cursor":"participant-1","end_cursor":null}}"#
                 .utf8

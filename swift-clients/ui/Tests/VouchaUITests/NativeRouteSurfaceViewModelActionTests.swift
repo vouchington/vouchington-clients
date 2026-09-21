@@ -148,19 +148,6 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
         XCTAssertEqual(viewModel.rows.first?.icon, "bubble.left.and.bubble.right")
     }
 
-    func testSupportLoadsNativeSupportThreadEndpoint() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/my/support-threads"] = (supportThreadsData, 200)
-        let viewModel = try NativeRouteSurfaceViewModel(entry: entry(for: .support), client: makeClient())
-
-        await viewModel.load()
-
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/my/support-threads")
-        XCTAssertEqual(viewModel.rows.first?.title, "Support request")
-        let row = try XCTUnwrap(viewModel.rows.first)
-        XCTAssertEqual(row.localizedDetail(locale: Locale(identifier: "en")), "Open")
-        XCTAssertEqual(row.localizedDetail(locale: Locale(identifier: "fr")), "Ouvert")
-    }
-
     func testMessageDetailLoadsMatchedConversation() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/messages"] = (conversationMessagesData, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (conversationUsersData, 200)
@@ -308,13 +295,6 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
     private var modmailMessagesData: Data {
         Data(
             #"{"results":[{"id":"message-1","conversation_id":"thread-1","body_text":"Please review.","created_by_id":"mod-1","sender_username":"moderator","created_at":"2026-01-01T00:00:00Z","updated_at":null,"deleted_at":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
-                .utf8
-        )
-    }
-
-    private var supportThreadsData: Data {
-        Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Support request","conversation_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                 .utf8
         )
     }

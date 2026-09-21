@@ -14,7 +14,6 @@ public static partial class NavigationCatalog
             "sidebar-group-chat",
             [
               new NavItem(UiMessageKey.ExtractedIntentsProductCommunicationNewChat0d332351, "/chat", "sidebar-nav-new-chat", RequiresAuth: true, Exact: true),
-              new NavItem(UiMessageKey.ExtractedIntentsProductCommunicationSupportBe91940b, "/chat/support", "sidebar-nav-chat-support", RequiresAuth: true),
             ],
             RequiresAuth: true),
       ],

@@ -148,7 +148,7 @@ extension SectionDetailView {
     var nonVerticalContent: some View {
         let userRoles = factory.sessionManager.currentUserRoles
         switch section {
-        case .discover, .topics, .communities, .messages, .settings, .library, .actions, .moderation, .crm,
+        case .discover, .topics, .communities, .messages, .settings, .library, .actions, .moderation,
              .engineering,
              .growth:
             NativeFeatureFlagAwareDirectoryView(

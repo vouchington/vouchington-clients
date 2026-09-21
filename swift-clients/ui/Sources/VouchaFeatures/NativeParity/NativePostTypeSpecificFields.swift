@@ -84,7 +84,7 @@ struct NativePostTypeSpecificFields: View {
 
     private var dataPointFields: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Picker(UiMessages.string(.nativeSwiftCrmContactsVertical, locale: nativeUiLocale), selection: Binding(
+            Picker(UiMessages.string(.nativeSwiftPresentationVertical, locale: nativeUiLocale), selection: Binding(
                 get: { viewModel.dataPointVertical },
                 set: { viewModel.dataPointVertical = $0 }
             )) {
