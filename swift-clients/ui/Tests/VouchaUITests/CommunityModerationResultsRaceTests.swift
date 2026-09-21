@@ -111,6 +111,28 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
         XCTAssertNil(viewModel.moderationResultsError)
     }
 
+    func testCommunityReloadDiscardsModerationRowsAndError() async {
+        let viewModel = CommunityDetailViewModel(
+            client: nil,
+            slug: "builders",
+            initialTab: .moderation
+        )
+        viewModel.moderationResults = [
+            NativeRouteDestinationRow(
+                id: "platform-moderation",
+                icon: "checkmark.shield",
+                title: .verbatim("stale title"),
+                detail: .verbatim("stale detail")
+            )
+        ]
+        viewModel.moderationResultsError = UiMessage(.nativeSwiftEmptyStateUnableToLoad)
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.moderationResults, [])
+        XCTAssertNil(viewModel.moderationResultsError)
+    }
+
     func testBlankLookupDiscardsPreviousRows() async {
         let viewModel = CommunityDetailViewModel(
             client: nil,
