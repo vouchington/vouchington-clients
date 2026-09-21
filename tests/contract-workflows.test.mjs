@@ -393,12 +393,15 @@ describe('native contract workflow boundary', () => {
     assert.match(androidCore, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
     assert.match(
       skip,
-      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh'\)/u,
+      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh', '\.github\/workflows\/native-contract-tests\.yml'\)/u,
     )
     assert.match(
       androidCore,
       /hashFiles\('candidate-clients\/swift-clients\/tooling\/build-android-core\.sh'\)/u,
     )
+    assert.match(skip, /Sources\/VouchaAndroid\/Skip\/skip\.yml/u)
+    assert.doesNotMatch(skip, /restore-keys:/u)
+    assert.doesNotMatch(androidCore, /restore-keys:/u)
     assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
     assert.match(
       skip,
