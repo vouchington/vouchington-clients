@@ -19,6 +19,11 @@ Hosted VMs are single-job and discarded after the run. Jobs check out the revisi
 must not run persistent-workspace cleanup, restore a trusted base only to wipe the disk, or isolate
 `$HOME` against a shared persistent host.
 
+Jobs may restore hash-keyed GitHub Actions caches for package stores and checksum-verified download
+archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
+`--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
+are not cached.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do
