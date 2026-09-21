@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Text.Json;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
@@ -104,7 +103,7 @@ public sealed class ReviewQueuePageTests
         AdminReviewQueueClearanceStatus.Rejected,
         "post-1",
         "Sensitive review",
-        new AdminReviewQueueMediaContext(true, [
+        new AdminReviewQueueMediaReveal(true, [
           new AdminReviewQueueImage("image-1", 0, "First image"),
           new AdminReviewQueueImage("image-2", 1, "Second image"),
         ]));
@@ -149,7 +148,7 @@ public sealed class ReviewQueuePageTests
     var row = CreateRow(
         Find<CollectionView>(page, "review-queue-items"),
         Assert.Single(viewModel.Items));
-    Assert.True(Find<VerticalStackLayout>(row, "review-queue-media").IsVisible);
+    Assert.False(Find<VerticalStackLayout>(row, "review-queue-media").IsVisible);
     Assert.True(Find<Button>(row, "review-queue-check-exposure").IsVisible);
     Assert.True(Find<HorizontalStackLayout>(
         row,
@@ -157,7 +156,7 @@ public sealed class ReviewQueuePageTests
   }
 
   [Fact]
-  public async Task RendersRevealProgressAfterOptimisticMediaDisplay()
+  public async Task RendersRevealProgressWhileMediaRemainsGated()
   {
     var exposure = new ExposureService { HoldReveal = true };
     var viewModel = await LoadedMediaAsync(exposure);
@@ -171,7 +170,7 @@ public sealed class ReviewQueuePageTests
     var row = CreateRow(
         Find<CollectionView>(page, "review-queue-items"),
         Assert.Single(viewModel.Items));
-    Assert.True(Find<VerticalStackLayout>(row, "review-queue-media").IsVisible);
+    Assert.False(Find<VerticalStackLayout>(row, "review-queue-media").IsVisible);
     Assert.True(Find<ActivityIndicator>(
         row,
         "review-queue-reveal-loading").IsVisible);
@@ -214,7 +213,7 @@ public sealed class ReviewQueuePageTests
         AdminReviewQueueClearanceStatus.Rejected,
         "post-1",
         "Sensitive review",
-        new AdminReviewQueueMediaContext(true, [
+        new AdminReviewQueueMediaReveal(true, [
           new AdminReviewQueueImage("image-1", 0, "Sensitive image"),
         ]));
     var viewModel = new ReviewQueueViewModel(
@@ -275,7 +274,7 @@ public sealed class ReviewQueuePageTests
       AdminReviewQueueClearanceStatus status,
       string id,
       string title,
-      AdminReviewQueueMediaContext? media = null) => new(
+      AdminReviewQueueMediaReveal? media = null) => new(
       id,
       title,
       "rendered-review",
@@ -288,14 +287,11 @@ public sealed class ReviewQueuePageTests
       "root-slug",
       status,
       DateTimeOffset.UnixEpoch,
-      true,
-      0.92,
-      EmptyJson(),
-      false,
-      EmptyJson(),
-      media);
-
-  private static JsonElement EmptyJson() => JsonDocument.Parse("{}").RootElement.Clone();
+      new AdminModerationSummary(
+          AdminModerationDisposition.Review,
+          new AdminModerationEvidenceSummary(1, 2),
+          ["provider_flagged"]),
+      media ?? new(false, []));
 
   private sealed class BlockingLoadService : ReviewQueueModerationServiceStub
   {

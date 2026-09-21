@@ -75,6 +75,7 @@ extension NativeReviewQueueViewModel {
 
     func cancelListOperations() {
         listGeneration += 1
+        revealContextRevision += 1
         exposureRequestRevision += 1
         isListLoading = false
         exposureIsStale = true
@@ -105,6 +106,7 @@ extension NativeReviewQueueViewModel {
                 pagination = existingPagination
                 return
             }
+            revealContextRevision += 1
             pagination.complete(
                 request,
                 items: supportedItems(response.results),

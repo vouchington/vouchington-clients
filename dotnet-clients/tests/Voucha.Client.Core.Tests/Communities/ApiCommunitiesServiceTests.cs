@@ -119,8 +119,7 @@ public sealed class ApiCommunitiesServiceTests
     Assert.Equal("00000000-0000-7000-8000-000000000700", createdReply.Id);
     Assert.NotEmpty(recentActions.AutomodActions);
     Assert.True(feedback.AppliedAction);
-    Assert.NotNull(moderationResults.OpenAIModeration);
-    Assert.Equal(JsonValueKind.Array, moderationResults.OpenAIModeration.Results?.ValueKind);
+    Assert.Equal(AdminReviewQueueClearanceStatus.InReview, moderationResults.PlatformModeration.Status);
     Assert.Equal("warning-1", warning.Warning.Id);
     Assert.NotNull(postTypeSettings.Community);
     Assert.Collection(

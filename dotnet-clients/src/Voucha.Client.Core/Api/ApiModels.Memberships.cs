@@ -37,8 +37,42 @@ public sealed record Membership(
 public sealed record MembershipResponse([property: JsonPropertyName("membership")] Membership? Membership);
 
 public sealed record MembershipPlansResponse(
-    [property: JsonPropertyName("plans")] IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> Plans,
-    [property: JsonPropertyName("benefit_catalog")] MembershipBenefitCatalog? BenefitCatalog = null);
+    [property: JsonPropertyName("products")] IReadOnlyList<MembershipCatalogProduct> Products,
+    [property: JsonPropertyName("benefit_catalog")] MembershipBenefitCatalog? BenefitCatalog = null)
+{
+  [JsonIgnore]
+  public IReadOnlyDictionary<string, IReadOnlyList<MembershipSku>> Plans => Products
+      .SelectMany(product => product.StripeSkus)
+      .GroupBy(sku => sku.Plan, StringComparer.Ordinal)
+      .ToDictionary(group => group.Key, group => (IReadOnlyList<MembershipSku>)group.ToArray(), StringComparer.Ordinal);
+}
+
+public sealed record MembershipCatalogProduct(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("plan")] string Plan,
+    [property: JsonPropertyName("interval")] string Interval,
+    [property: JsonPropertyName("providers")] IReadOnlyList<MembershipCatalogProvider> Providers)
+{
+  [JsonIgnore]
+  public IEnumerable<MembershipSku> StripeSkus
+  {
+    get
+    {
+      var stripe = Providers.FirstOrDefault(provider => string.Equals(provider.Provider, "stripe", StringComparison.Ordinal));
+      return stripe?.Price is { } price ? [new MembershipSku(Id, Plan, price, Interval, stripe.ProductId)] : [];
+    }
+  }
+}
+
+public sealed record MembershipCatalogProvider(
+    [property: JsonPropertyName("provider")] string Provider,
+    [property: JsonPropertyName("environment")] string Environment,
+    [property: JsonPropertyName("application_id")] string ApplicationId,
+    [property: JsonPropertyName("product_id")] string ProductId,
+    [property: JsonPropertyName("base_plan_id")] string? BasePlanId,
+    [property: JsonPropertyName("offer_id")] string? OfferId,
+    [property: JsonPropertyName("sku_id")] string? SkuId,
+    [property: JsonPropertyName("price")] Money? Price);
 
 public sealed record MembershipBenefitCatalog(
     [property: JsonPropertyName("version")] int Version,

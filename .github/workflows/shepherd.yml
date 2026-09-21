@@ -19,9 +19,9 @@ jobs:
       vars.HARNESS_SHEPHERD_ENABLED == 'true' &&
       github.event.issue.pull_request != null &&
       contains(github.event.comment.body, '/shepherd') &&
-      contains(fromJSON('["OWNER","COLLABORATOR"]'),
+      contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'),
                github.event.comment.author_association)
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 8
     permissions:
       actions: read
@@ -47,15 +47,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
-          clean: false
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install pinned dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
 
@@ -98,7 +93,7 @@ jobs:
             echo "pr_head_sha=$PR_HEAD_SHA"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
-          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
+          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.18.1 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare durable shepherd checkpoint
@@ -182,17 +177,11 @@ jobs:
             echo "::warning::Could not add eyes reaction to /shepherd comment. comment_id=${COMMENT_ID}."
           fi
 
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
-
   render-prompt:
     name: Render automation prompt
     needs: [gate]
     if: needs.gate.outputs.should_dispatch == 'true'
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: read
@@ -206,15 +195,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          clean: false
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install pinned dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
 
@@ -248,12 +232,6 @@ jobs:
             REPOSITORY=${{ github.repository }}
           var-files: PR_TITLE=pr-title.txt
 
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
-
   dispatch:
     name: Harness dispatch
     needs: [gate, render-prompt]
@@ -286,7 +264,7 @@ jobs:
       always() && needs.gate.result == 'success' &&
       needs.gate.outputs.should_dispatch == 'true' &&
       (needs.dispatch.result == 'success' || needs.dispatch.result == 'failure')
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 8
     permissions:
       contents: read
@@ -302,15 +280,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.workflow_sha }}
-          clean: false
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
       - name: Install pinned dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
 
@@ -335,12 +308,6 @@ jobs:
           BODY="$(node scripts/harness-shepherd-checkpoint-cli.mjs update "$RUNNER_TEMP/checkpoint-comment.json")"
           gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$CHECKPOINT_COMMENT_ID" -f body="$BODY" > /dev/null
 
-      - name: Clean persistent runner workspace
-        if: always()
-        env:
-          PRESERVE_NODE_MODULES: 'false'
-        run: npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.1.5 clean-workspace
-
   escalate:
     name: Comment failure on PR
     needs: [gate, render-prompt, dispatch, checkpoint-dispatch]
@@ -354,7 +321,7 @@ jobs:
         (needs.dispatch.result == 'failure' || needs.dispatch.result == 'cancelled') ||
         (needs.checkpoint-dispatch.result == 'failure' || needs.checkpoint-dispatch.result == 'cancelled')
       )
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:
       issues: write
@@ -385,7 +352,7 @@ jobs:
           jq -e \
             'select((.id | tostring) == env.TRIGGER_COMMENT_ID and
               (.issue_url | endswith("/issues/" + env.PR_NUMBER)) and
-              (.author_association == "OWNER" or .author_association == "COLLABORATOR"))' \
+              (.author_association == "OWNER" or .author_association == "COLLABORATOR" or .author_association == "MEMBER"))' \
             <<< "$COMMENT_JSON" > /dev/null
           COMMAND="$(jq -r '.body' <<< "$COMMENT_JSON" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$COMMAND" != "/shepherd" ]]; then

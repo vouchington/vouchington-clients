@@ -19,8 +19,13 @@ public static partial class VouchaApiEndpoints
           $"/api/v1/posts/{Path(postIdOrSlug)}/descendants",
           Query(("limit", limit), ("after", after)));
 
-  public static ApiRequest PostAncestors(string postIdOrSlug) =>
-      Get($"/api/v1/posts/{Path(postIdOrSlug)}/ancestors");
+  public static ApiRequest PostAncestors(
+      string postIdOrSlug,
+      string? after = null,
+      int? limit = null) =>
+      Get(
+          $"/api/v1/posts/{Path(postIdOrSlug)}/ancestors",
+          Query(("after", after), ("limit", limit)));
 
   public static ApiRequest LockPost(string postId) =>
       new(HttpMethod.Post, $"/api/v1/posts/{Path(postId)}/lock");

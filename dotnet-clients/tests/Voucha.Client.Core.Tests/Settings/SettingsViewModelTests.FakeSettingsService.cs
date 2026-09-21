@@ -24,15 +24,15 @@ public sealed partial class SettingsViewModelTests
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
 
     public MembershipPlansResponse MembershipPlansResponse { get; set; } =
-        new(new Dictionary<string, IReadOnlyList<MembershipSku>>
-        {
-          ["plus"] = [new MembershipSku("sku-1", "plus", new Money(500, "usd"), "month", "price-1")],
-          ["pro"] =
-          [
-            new MembershipSku("sku-2", "pro", new Money(1500, "usd"), "month", "price-2"),
-            new MembershipSku("sku-3", "pro", new Money(15000, "usd"), "year", "price-3"),
-          ],
-        }, CreateBenefitCatalog());
+        new(
+        [
+          Product("sku-1", "plus", "month", new Money(500, "usd"), "price-1"),
+          Product("sku-2", "pro", "month", new Money(1500, "usd"), "price-2"),
+          Product("sku-3", "pro", "year", new Money(15000, "usd"), "price-3"),
+        ], CreateBenefitCatalog());
+
+    private static MembershipCatalogProduct Product(string id, string plan, string interval, Money price, string priceId) =>
+        new(id, plan, interval, [new MembershipCatalogProvider("stripe", "test", "voucha-web", priceId, null, null, null, price)]);
 
     private static MembershipBenefitCatalog CreateBenefitCatalog() => new(1,
     [

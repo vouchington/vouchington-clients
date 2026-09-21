@@ -26,24 +26,45 @@ public sealed record ReviewQueueRow(
   public string Author => Normalize(Post.CreatedById) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous);
   public string PostType => Post.PostType;
   public DateTimeOffset CreatedAt => Post.CreatedAt;
-  public string StatusLabel => Localization.Localize(ClearanceStatus == AdminReviewQueueClearanceStatus.InReview
-      ? UiMessageKey.NativeSwiftModerationReportsReviewQueueInReview
-      : UiMessageKey.NativeSwiftModerationReportsReviewQueueRejected);
-  public string SpamLabel
+  public UiMessageKey DispositionKey => Post.ModerationSummary.Disposition switch
+  {
+    AdminModerationDisposition.Pass => UiMessageKey.NativeModerationSummaryDispositionPass,
+    AdminModerationDisposition.Review => UiMessageKey.NativeModerationSummaryDispositionReview,
+    AdminModerationDisposition.Reject => UiMessageKey.NativeModerationSummaryDispositionReject,
+    AdminModerationDisposition.Incomplete => UiMessageKey.NativeModerationSummaryDispositionIncomplete,
+    _ => UiMessageKey.NativeModerationSummaryDispositionNone,
+  };
+  public string ModerationTitlePresentation => Localization.Localize(UiMessageKey.NativeModerationSummaryTitle);
+  public string ClearanceStatusPresentation => ClearanceStatus switch
+  {
+    AdminReviewQueueClearanceStatus.Rejected => Localization.Localize(UiMessageKey.NativeDotnetModerationRejected),
+    AdminReviewQueueClearanceStatus.InReview => Localization.Localize(UiMessageKey.NativeDotnetModerationInReview),
+    AdminReviewQueueClearanceStatus.Approved => Localization.Localize(UiMessageKey.NativeDotnetModerationApproved),
+    AdminReviewQueueClearanceStatus.Pending => Localization.Localize(UiMessageKey.NativeDotnetModerationPending),
+    _ => ClearanceStatus.ToString(),
+  };
+  public string DispositionPresentation => Localization.Localize(DispositionKey);
+  public string? ReasonCodesPresentation
   {
     get
     {
-      var flag = FlaggedLabel(Post.SpamDetectionFlagged == true);
-      return Post.SpamDetectionScore is { } score
-          ? Localization.Format(
-              UiMessageKey.NativeSwiftModerationReportsReviewQueueFlaggedScore,
-              ("flag", flag),
-              ("score", Localization.FormatNumber((decimal)score)))
-          : flag;
+      var reasons = Post.ModerationSummary.ReasonCodes
+          .Where(reason => !string.IsNullOrWhiteSpace(reason))
+          .Select(reason => reason.Trim())
+          .ToArray();
+      return reasons.Length == 0
+          ? null
+          : Localization.Format(
+              UiMessageKey.NativeSwiftModerationReportsReason,
+              ("reason", string.Join(", ", reasons)));
     }
   }
-
-  public string OpenAIModerationLabel => FlaggedLabel(Post.OpenAIOmniModerationFlagged == true);
+  public string FlaggedCategoriesPresentation => Localization.Format(
+      UiMessageKey.NativeModerationSummaryEvidenceFlaggedCategories,
+      ("count", Post.ModerationSummary.EvidenceSummary.FlaggedCategoryCount));
+  public string SignalsPresentation => Localization.Format(
+      UiMessageKey.NativeModerationSummaryEvidenceSignals,
+      ("count", Post.ModerationSummary.EvidenceSummary.SignalCount));
   public string? RootContext => Post.RootId is null
       ? null
       : string.Join(" · ", new[] { Post.RootPostType, Post.RootSlug, Post.RootId }.Where(value => !string.IsNullOrWhiteSpace(value)));
@@ -51,7 +72,7 @@ public sealed record ReviewQueueRow(
       ClearanceStatus == AdminReviewQueueClearanceStatus.Rejected && CanAct;
   public bool CanAct => !IsMutating && !RequiresReconciliation;
   public bool HasMedia => Media.Count > 0;
-  public bool RequiresMediaReveal => HasMedia && Post.MediaContext?.RequiresReveal == true;
+  public bool RequiresMediaReveal => HasMedia && Post.MediaReveal.RequiresReveal;
   public bool ShowMedia => HasMedia && (!RequiresMediaReveal || IsMediaRevealed);
   public bool ShowRevealGate => RequiresMediaReveal && !IsMediaRevealed;
   public bool ShowExposureStale => RequiresMediaReveal && IsExposureStale;
@@ -72,19 +93,5 @@ public sealed record ReviewQueueRow(
   public string CreatedPresentation => Localization.Format(
       UiMessageKey.NativeSwiftModerationReportsReviewQueueCreated,
       ("date", Localization.FormatDateTime(CreatedAt, TimeZoneInfo.Local)));
-  public string StatusPresentation => Localization.Format(
-      UiMessageKey.NativeSwiftModerationReportsReviewQueueStatus,
-      ("status", StatusLabel));
-  public string SpamPresentation => Localization.Format(
-      UiMessageKey.NativeSwiftModerationReportsReviewQueueSpam,
-      ("spam", SpamLabel));
-  public string OpenAIModerationPresentation => Localization.Format(
-      UiMessageKey.NativeSwiftModerationReportsReviewQueueOpenAiModeration,
-      ("status", OpenAIModerationLabel));
-
-  private string FlaggedLabel(bool flagged) => Localization.Localize(flagged
-      ? UiMessageKey.NativeSwiftModerationReportsReviewQueueFlagged
-      : UiMessageKey.NativeSwiftModerationReportsReviewQueueNotFlagged);
-
   private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

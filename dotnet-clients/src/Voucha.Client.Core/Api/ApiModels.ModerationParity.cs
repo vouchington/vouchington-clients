@@ -103,7 +103,7 @@ public sealed record AdminReviewQueueImage(
     [property: JsonPropertyName("order_index")] int OrderIndex,
     [property: JsonPropertyName("caption")] string Caption);
 
-public sealed record AdminReviewQueueMediaContext(
+public sealed record AdminReviewQueueMediaReveal(
     [property: JsonPropertyName("requires_reveal")] bool RequiresReveal,
     [property: JsonPropertyName("images")] IReadOnlyList<AdminReviewQueueImage> Images);
 

@@ -363,18 +363,14 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/memberships/plans"] = (
             Data("""
             {
-              "plans": {
-                "pro": [
+              "products": [
                   {
                     "id": "sku-1",
                     "plan": "pro",
-                    "price": { "amount": 1299, "currency": "usd" },
                     "interval": "monthly",
-                    "stripe_price_id": "price-pro",
-                    "retired_at": null
+                    "providers": [{ "provider": "stripe", "environment": "test", "application_id": "voucha-web", "product_id": "price-pro", "base_plan_id": null, "offer_id": null, "sku_id": null, "price": { "amount": 1299, "currency": "usd" } }]
                   }
-                ]
-              }
+              ]
             }
             """.utf8),
             200

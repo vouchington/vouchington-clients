@@ -16,35 +16,13 @@ concurrency:
 jobs:
   contract-tests:
     name: Contract assertions
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -53,70 +31,20 @@ jobs:
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Test contract boundary
         run: npx --yes pnpm@11.13.1 run test:coverage
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   dotnet-core:
     name: .NET core build
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       MSBuildEnableWorkloadResolver: 'false'
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           fetch-depth: 0
           persist-credentials: false
-      - name: Configure isolated .NET SDK root
-        run: |
-          set -euo pipefail
-          dotnet_root="$RUNNER_TEMP/voucha-dotnet-sdk"
-          rm -rf -- "$dotnet_root"
-          mkdir -p -- "$dotnet_root"
-          printf 'DOTNET_INSTALL_DIR=%s\n' "$dotnet_root" >> "$GITHUB_ENV"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -136,202 +64,57 @@ jobs:
       - name: Build core client
         working-directory: dotnet-clients
         run: dotnet build tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj --configuration Release --no-restore
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   tooling-lint:
     name: Portable tooling lint
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-      - name: Configure isolated mise root
-        run: |
-          set -euo pipefail
-          mise_root="$RUNNER_TEMP/mise"
-          rm -rf -- "$mise_root"
-          mkdir -p -- "$mise_root"
-          printf 'MISE_DATA_DIR=%s\n' "$mise_root" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
+          cache: false
           install: true
-          mise_dir: ${{ runner.temp }}/mise
       - name: Install pinned tooling dependencies
         run: npx --yes pnpm@11.13.1 install --frozen-lockfile
       - name: Run portable tooling checks
         run: npx --yes pnpm@11.13.1 run lint:portable
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   gitleaks:
     name: Gitleaks history scan
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           fetch-depth: 0
           persist-credentials: false
-      - name: Configure isolated mise root
-        run: |
-          set -euo pipefail
-          mise_root="$RUNNER_TEMP/mise"
-          rm -rf -- "$mise_root"
-          mkdir -p -- "$mise_root"
-          printf 'MISE_DATA_DIR=%s\n' "$mise_root" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
+          cache: false
           install: true
-          mise_dir: ${{ runner.temp }}/mise
       - name: Scan repository history
         run: mise exec -- gitleaks git --redact=100 --config .gitleaks.toml
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   swift-lint:
     name: Swift format and lint
-    runs-on: [self-hosted, Linux, Docker, Tests]
+    runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           persist-credentials: false
       - name: Check Swift formatting and lint
         env:
@@ -351,58 +134,16 @@ jobs:
           docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint --quiet --verbose
           docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --cache-path /tmp/swiftlint
           docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --config .swiftlint-tests.yml --cache-path /tmp/swiftlint-tests
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   swift-core:
     name: Swift manifest
-    runs-on: [self-hosted, Linux, Docker, Tests]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out trusted base for workspace cleanup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Clean persistent runner workspace
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          clean: false
           persist-credentials: false
       - name: Validate core package manifest
         run: >-
@@ -413,32 +154,12 @@ jobs:
           --env HOME=/tmp
           swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
           swift package --package-path swift-clients/core dump-package >/dev/null
-      - name: Check out trusted base for final workspace cleanup
-        if: always()
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
-          clean: false
-          persist-credentials: false
-      - name: Clean persistent runner workspace
-        if: always()
-        working-directory: ${{ runner.temp }}
-        env:
-          CLEANUP_WORKSPACE: ${{ github.workspace }}
-          NPM_CONFIG_GLOBALCONFIG: ${{ runner.temp }}/npm-global-config-absent
-          NPM_CONFIG_IGNORE_SCRIPTS: 'true'
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
-          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npm-user-config-absent
-          PRESERVE_NODE_MODULES: 'false'
-        run: >-
-          npx --yes pnpm@11.13.1 dlx --package vouchington-tooling@0.1.5 bash -c
-          "cd -- \"\$CLEANUP_WORKSPACE\"; exec vouchington clean-workspace"
 
   validate:
     name: validate
     if: always()
     needs: [contract-tests, dotnet-core, swift-core, tooling-lint, gitleaks, swift-lint]
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-slim
     timeout-minutes: 2
     steps:
       - name: Require client validation

@@ -4,23 +4,20 @@ import VouchaModels
 import XCTest
 
 final class ModerationExposureContractTests: XCTestCase {
-    func testReviewMediaContextDecodesAndRemainsOptionalForOldResponses() throws {
+    func testReviewModerationSummaryAndMediaRevealDecode() throws {
         let data = ApiFixtureLoader.data("native.moderation.review-queue.default")
         let response = try makeVouchaDecoder().decode(AdminReviewQueueResponse.self, from: data)
-        XCTAssertEqual(response.results.first?.mediaContext?.requiresReveal, false)
-        XCTAssertEqual(response.results.last?.mediaContext?.requiresReveal, true)
+        XCTAssertEqual(response.results.first?.mediaReveal.requiresReveal, false)
+        XCTAssertEqual(response.results.last?.mediaReveal.requiresReveal, true)
         XCTAssertEqual(
-            response.results.last?.mediaContext?.images.first?.imageId,
+            response.results.last?.mediaReveal.images.first?.imageId,
             "019e82f2-a2c0-7000-8000-000000000001"
         )
 
-        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        var results = try XCTUnwrap(object["results"] as? [[String: Any]])
-        results[0].removeValue(forKey: "media_context")
-        object["results"] = results
-        let oldData = try JSONSerialization.data(withJSONObject: object)
-        let oldResponse = try makeVouchaDecoder().decode(AdminReviewQueueResponse.self, from: oldData)
-        XCTAssertNil(oldResponse.results.first?.mediaContext)
+        XCTAssertEqual(response.results.first?.moderationSummary.disposition, .review)
+        XCTAssertEqual(response.results.last?.moderationSummary.evidenceSummary.flaggedCategoryCount, 1)
+        XCTAssertEqual(response.results.last?.moderationSummary.evidenceSummary.signalCount, 0)
+        XCTAssertFalse(response.results.last?.moderationSummary.reasonCodes.isEmpty ?? true)
     }
 
     func testExposureFixturesDecodeUsingServerDateConventions() throws {

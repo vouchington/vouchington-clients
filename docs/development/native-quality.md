@@ -19,14 +19,14 @@ Pass one or more `--changed-file <path>` arguments instead of `--base`/`--head` 
 uncommitted edit. The planner emits the canonical client harness commands; run those commands from
 this checkout so its host-lock and coverage policies apply.
 
-Filaments remains the producer of the shared API fixture and localization inputs. Its durable
+Vouchington remains the producer of the shared API fixture and localization inputs. Its durable
 references are the
-[API fixture contract](https://github.com/jonathanong/filaments/blob/main/backend/test-helpers/api-fixtures/README.md)
+[API fixture contract](https://github.com/vouchington/vouchington/blob/main/backend/test-helpers/api-fixtures/README.md)
 and
-[native localization exporter](https://github.com/jonathanong/filaments/blob/main/dev/native-localization.mts).
+[native localization exporter](https://github.com/vouchington/vouchington/blob/main/dev/native-localization.mts).
 Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
 `VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
-`contracts:check`. Native quality and test planning never read product source from Filaments.
+`contracts:check`. Native quality and test planning never read product source from Vouchington.
 
 CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
 Linux and macOS only because those jobs compile different networking and Security slices. See

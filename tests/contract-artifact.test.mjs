@@ -82,7 +82,7 @@ test('creates a narrow, deterministic manifest and verifies it', async t => {
 test('records an explicitly trusted producer without changing the trusted path allowlist', async t => {
   const identity = {
     ...(await fixture(t)),
-    contractRepository: 'vouchington/vouchington',
+    contractRepository: 'example/contracts',
   }
   const manifest = await createContractArtifact(identity)
 
@@ -95,7 +95,7 @@ test('records an explicitly trusted producer without changing the trusted path a
   await assert.rejects(
     verifyContractArtifact({
       ...expected(identity),
-      expectedContractRepository: 'jonathanong/filaments',
+      expectedContractRepository: 'vouchington/vouchington',
     }),
     /invalid manifest Filaments repository/,
   )

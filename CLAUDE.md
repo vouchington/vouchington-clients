@@ -5,21 +5,21 @@ Work from this repository root. Native client source has its own scoped instruct
 
 ## Cross-repository contracts
 
-Only `contracts/filaments.json` may describe inputs from the private Filaments repository. Keep
+Only `contracts/filaments.json` may describe inputs from `vouchington/vouchington`. Keep
 the allowlist narrow, use `pnpm run contracts:sync` to update tracked native-localization outputs,
 and use `pnpm run contracts:check` as the non-mutating parity gate.
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` is required and must explicitly name a complete Filaments
+`VOUCHA_FILAMENTS_CONTRACT_ROOT` is required and must explicitly name a complete Vouchington
 checkout; do not discover a sibling checkout, fetch independently, or add a fallback source.
 
 Changes that affect shared API fixtures or native-localization must land with the corresponding
-Filaments contract change, or remain draft and explicitly dependency-blocked until it does.
+Vouchington contract change, or remain draft and explicitly dependency-blocked until it does.
 
 ## Quality and changed-file tests
 
 Run `pnpm run quality:check` for repository rules. Plan native tests with
 `pnpm run test:plan:swift --base origin/main --head HEAD` and
 `pnpm run test:plan:dotnet --base origin/main --head HEAD`; do not plan native tests from the
-Filaments checkout. See [native quality and test planning](docs/development/native-quality.md).
+Vouchington checkout. See [native quality and test planning](docs/development/native-quality.md).
 
 CI runs each test on the cheapest capable runner. Portable .NET is Linux-only. Swift core runs on
 Linux and macOS because Darwin `URLSession` and Linux `FoundationNetworking` are different

@@ -24,6 +24,7 @@ public sealed partial class CommunityDetailViewModel :
   private bool hasPendingApplication;
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
+  private long communityContextRevision;
   private readonly IDisposable? localeSubscription;
 
   public Community? Community
@@ -145,6 +146,7 @@ public sealed partial class CommunityDetailViewModel :
       throw new ArgumentException("Value cannot be empty.", nameof(idOrSlug));
     }
 
+    Interlocked.Increment(ref communityContextRevision);
     communityIdOrSlug = idOrSlug;
     BeginLoad();
     try

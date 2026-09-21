@@ -71,6 +71,7 @@ struct MembershipGrantSurface: View {
                     Text(verbatim: UiMessages.string(error, locale: locale))
                     Button(localized(.nativeSwiftMembershipRetry)) { Task { await viewModel.loadPlans() } }
                 }
+                TextField(localized(.nativeSwiftSettingsSelectedDays), text: $viewModel.durationDays)
             } header: { Text(verbatim: localized(.nativeSwiftMembershipSku)) }
             Section {
                 Button(localized(viewModel

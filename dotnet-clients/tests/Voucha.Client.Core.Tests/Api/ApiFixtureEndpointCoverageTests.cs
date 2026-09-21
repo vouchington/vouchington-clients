@@ -9,19 +9,20 @@ public sealed partial class ApiFixtureEndpointCoverageTests
   private const string SupportThreadId = "00000000-0000-7000-8000-000000000712";
   private const string SupportMessageId = "00000000-0000-7000-8000-000000000713";
   private static readonly IReadOnlyDictionary<string, ApiRequest> Registry =
+      WithMembershipStoreEndpoints(
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
                   CreateCoreRegistry()
                       .Concat(CreateCrmAndAccountRegistry())
                       .Concat(CreateModerationParityRegistry())
-                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))));
+                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal)))));
 
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
-        ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701")),
+        ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(
             "00000000-0000-7000-8000-000000000003",
             new GrantIdentityVerificationAttemptBody("Provider terminal error reviewed by support.")),
@@ -281,6 +282,13 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             "fixture-root-and-subtree-scoped-cursor",
             2),
         ["native.comments.ancestors.permalink"] = VouchaApiEndpoints.PostAncestors("comment-b"),
+        ["native.comments.ancestors.bounded.shallow"] = VouchaApiEndpoints.PostAncestors("comment-b", limit: 5),
+        ["native.comments.ancestors.bounded.deep-initial"] =
+            VouchaApiEndpoints.PostAncestors("bounded-ancestor-comment-7", limit: 5),
+        ["native.comments.ancestors.bounded.deep-continuation"] = VouchaApiEndpoints.PostAncestors(
+            "bounded-ancestor-comment-7",
+            "fixture-ancestor-deep-initial-end",
+            5),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.landing-pages.default"] = VouchaApiEndpoints.MyLandingPages(),

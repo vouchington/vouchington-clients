@@ -57,7 +57,7 @@ describe('native quality ownership', () => {
       new URL('../docs/development/native-quality.md', import.meta.url),
       'utf8',
     )
-    assert.match(qualityDocs, /https:\/\/github\.com\/jonathanong\/filaments\/blob\/main\//)
+    assert.match(qualityDocs, /https:\/\/github\.com\/vouchington\/vouchington\/blob\/main\//)
     assert.match(qualityDocs, /native-ci-test-placement\.md/)
     const placement = await readFile(
       new URL('../docs/development/native-ci-test-placement.md', import.meta.url),

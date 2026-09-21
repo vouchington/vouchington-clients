@@ -19,6 +19,7 @@ public sealed partial class ReviewQueueViewModel : ObservableObject, IDisposable
   private bool isListLoading;
   private int reconciliationRequired;
   private int listGeneration;
+  private long revealContextVersion;
   private TaskCompletionSource? mutationSettlement;
 
   public IReadOnlyList<ReviewQueueRow> Items
@@ -98,6 +99,7 @@ public sealed partial class ReviewQueueViewModel : ObservableObject, IDisposable
   public void CancelListOperations()
   {
     listGeneration = unchecked(listGeneration + 1);
+    Interlocked.Increment(ref revealContextVersion);
     SetListLoading(false);
     if (State == LoadState.Loading) State = HasItems ? LoadState.Loaded : LoadState.Idle;
   }

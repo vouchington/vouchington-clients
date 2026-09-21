@@ -49,5 +49,5 @@ OS share sheet stay in the MAUI layer.
 ## Related guidance
 
 - [Native client current footprint](reference-native-clients-current-footprint.md)
-- [Filaments native client strategy](https://github.com/jonathanong/filaments/blob/main/docs/overview/architecture/native-clients.md)
-- [Filaments client parity matrix](https://github.com/jonathanong/filaments/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)
+- [Vouchington native client strategy](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/native-clients.md)
+- [Vouchington client parity matrix](https://github.com/vouchington/vouchington/blob/main/docs/requirements/CLIENT-PARITY-MATRIX.md)

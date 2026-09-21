@@ -39,10 +39,10 @@ wrong diagnosis.
 
 ## Contract ownership boundary
 
-`api-fixtures/v1` is owned by `jonathanong/filaments` and vendored into this repository as a
+`api-fixtures/v1` is owned by `vouchington/vouchington` and vendored into this repository as a
 read-only declared contract (see `scripts/contracts.mjs`). Never edit anything under
 `api-fixtures/v1` from this repository. If the fixtures themselves look wrong or incomplete rather
-than the native decoding, stop without mutation and report that as a Filaments-side follow-up
+than the native decoding, stop without mutation and report that as a Vouchington-side follow-up
 instead of guessing at a client-side workaround.
 
 ## Related work audit

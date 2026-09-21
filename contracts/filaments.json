@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "repository": "jonathanong/filaments",
+  "repository": "vouchington/vouchington",
   "ref": "main",
   "paths": [
     "api-fixtures/v1",
