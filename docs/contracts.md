@@ -19,9 +19,9 @@ repository-local `swift-clients/test-support` package.
 
 `contracts:check` is fail-closed: a missing root or source tree, a symlink, or output mismatch
 fails the command. In CI this is the byte-for-byte assertion that the clients remain synchronized
-with Vouchington. The privileged producer executes only assertion and artifact code from the trusted
-base revision; the pull request checkout is treated as data and is never executed by producer
-tooling. The candidate destination must be an absolute checkout path, and every path
+with Vouchington. The privileged producer executes assertion and artifact code from the running
+workflow revision (the pull-request merge commit, or `main` on a default-branch push). The candidate
+destination must be an absolute checkout path, and every path
 component is verified as a real directory rather than a symlink. It never fetches or writes. Only
 `contracts:sync` replaces generated outputs in this repository.
 
@@ -30,10 +30,11 @@ allowlisted contract trees into a one-day, run-scoped GitHub Actions artifact. I
 every file's path, byte length, and SHA-256 digest to the immutable Vouchington revision, candidate
 event and revisions, repository, and workflow run identity. Pull-request manifests also bind the
 exact pull-request number and merge revision; main manifests bind the push's before and after
-revisions. The privileged producer job uses trusted base-branch or main-push tooling. Secretless
-downstream jobs download that exact run's
-artifact, verify the complete manifest before reading it, revalidate the event identity, and only
-then execute the candidate checkout against the verified inputs. All detailed native jobs converge
+revisions. On pull requests the producer checks out the merge revision GitHub already loaded so
+`--contract-repository` binds; main pushes use the event SHA. Secretless downstream jobs check out
+that same workflow revision so local composite actions match, download that exact run's artifact,
+verify the complete manifest before reading it, revalidate the event identity, and only then
+execute the candidate checkout against the verified inputs. All detailed native jobs converge
 on the required `Tests` gate. Superseded pull-request runs are cancelled, while main runs are never
 cancelled; no runner polls another workflow's state.
 
