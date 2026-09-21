@@ -332,7 +332,7 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+run: npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+env:\n\s+npm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: npx --yes pnpm@11\.13\.1 install --frozen-lockfile/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
@@ -360,6 +360,25 @@ describe('native contract workflow boundary', () => {
         producer.indexOf('name: Assert candidate generated localization parity'),
       true,
     )
+  })
+
+  it('restores a hash-keyed pnpm store for Vouchington and candidate installs', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+    const cachePin = /actions\/cache@caa296126883cff596d87d8935842f9db880ef25 # v5\.1\.0/u
+    assert.match(workflow, cachePin)
+    assert.match(action, cachePin)
+    assert.match(
+      jobBlock(workflow, 'produce'),
+      /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('filaments\/pnpm-lock\.yaml'\) \}\}/u,
+    )
+    assert.match(action, /hashFiles\('candidate-clients\/pnpm-lock\.yaml'\)/u)
+    assert.match(action, /key: \$\{\{ runner\.os \}\}-pnpm-clients-/u)
+    assert.match(action, /npm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store/u)
+    assert.doesNotMatch(workflow, /path:.*skip-swift-home/u)
+    assert.doesNotMatch(action, /path:.*skip-swift-home/u)
   })
 
   it('preserves exact run identities and exposes one aggregate Tests gate', async () => {
