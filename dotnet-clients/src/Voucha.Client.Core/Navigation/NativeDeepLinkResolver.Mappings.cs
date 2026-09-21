@@ -130,7 +130,7 @@ public static partial class NativeDeepLinkResolver
   {
     if (destinationId is NativeRouteDestinationId.UserAdmin)
     {
-      return ["administrator", "customer_support"];
+      return ["administrator"];
     }
 
     if (destinationId is NativeRouteDestinationId.MembershipGrants or NativeRouteDestinationId.EngineeringAgents or
@@ -143,7 +143,7 @@ public static partial class NativeDeepLinkResolver
 
     if (destinationId == NativeRouteDestinationId.EngineeringDynamicConfig)
     {
-      return ["administrator", "moderator", "developer", "customer_support", "investor"];
+      return ["administrator", "moderator", "developer", "investor"];
     }
 
     if (destinationId is NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes)

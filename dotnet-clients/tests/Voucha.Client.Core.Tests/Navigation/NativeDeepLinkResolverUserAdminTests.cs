@@ -7,7 +7,6 @@ public sealed class NativeDeepLinkResolverUserAdminTests
 {
   [Theory]
   [InlineData(true, "administrator", true)]
-  [InlineData(true, "customer_support", true)]
   [InlineData(true, "moderator", false)]
   [InlineData(false, "", false)]
   public void ResolveUserAdminMatchesWebPageRoles(bool authenticated, string role, bool canNavigate)

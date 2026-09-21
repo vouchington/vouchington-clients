@@ -129,7 +129,7 @@ public sealed class UsersBrowsePageTests
             EmailAddress: "alice@example.com",
             SuspendedAt: DateTimeOffset.UnixEpoch));
 
-    viewerProvider.SetViewer(new NavigationViewer(true, ["customer_support"]));
+    viewerProvider.SetViewer(new NavigationViewer(true, ["member"]));
 
     Assert.False(Find<Button>(row, "user-card-manage-link").IsVisible);
     Assert.False(Find<Label>(row, "user-card-status").IsVisible);
@@ -168,7 +168,7 @@ public sealed class UsersBrowsePageTests
     var localization = new UiLocalization(controller);
     viewerProvider.SetViewer(administrator
         ? new NavigationViewer(true, ["administrator"])
-        : new NavigationViewer(true, ["customer_support"]));
+        : new NavigationViewer(true, ["member"]));
     var model = new UsersBrowseViewModel(new Service(), viewerProvider, localization);
     var page = new UsersBrowsePage(model, localization);
 

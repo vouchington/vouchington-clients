@@ -102,6 +102,5 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPenaltiesPageBase.cs" Link="Pages/IntegrityPenaltiesPageBase.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPenaltiesPage.cs" Link="Pages/ReportIntegrityPenaltiesPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPenaltiesPage.cs" Link="Pages/VoteIntegrityPenaltiesPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/StaffSupportPageOperation.cs" Link="Pages/StaffSupportPageOperation.cs" />
   </ItemGroup>
 </Project>

@@ -105,7 +105,6 @@ public sealed class NavigationCatalogTests
   [Theory]
   [InlineData("moderator")]
   [InlineData("developer")]
-  [InlineData("customer_support")]
   [InlineData("investor")]
   public void EngineeringViewerRolesSeeOnlyDynamicConfig(string role)
   {
@@ -159,7 +158,6 @@ public sealed class NavigationCatalogTests
     var visibleIntentIds = NavigationCatalog.GetVisibleIntents(viewer).Select(intent => intent.Id);
 
     Assert.Contains("moderation", visibleIntentIds);
-    Assert.Contains("crm", visibleIntentIds);
     Assert.Contains("engineering", visibleIntentIds);
     Assert.Contains("growth", visibleIntentIds);
   }
@@ -171,7 +169,6 @@ public sealed class NavigationCatalogTests
     var nonBottomIntentIds = NavigationCatalog.GetVisibleNonBottomIntents(viewer).Select(intent => intent.Id);
 
     Assert.Contains("moderation", nonBottomIntentIds);
-    Assert.Contains("crm", nonBottomIntentIds);
     Assert.Contains("engineering", nonBottomIntentIds);
     Assert.Contains("growth", nonBottomIntentIds);
     Assert.DoesNotContain("news", nonBottomIntentIds);

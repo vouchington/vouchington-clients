@@ -70,7 +70,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
     public var requiredRoles: [String] {
         switch self {
         case .engineering:
-            ["administrator", "moderator", "developer", "customer_support", "investor"]
+            ["administrator", "moderator", "developer", "investor"]
         case .growth:
             ["administrator", "investor"]
         default:

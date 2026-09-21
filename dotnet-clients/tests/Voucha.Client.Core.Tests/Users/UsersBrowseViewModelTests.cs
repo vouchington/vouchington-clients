@@ -143,7 +143,6 @@ public sealed class UsersBrowseViewModelTests
 
   [Theory]
   [InlineData(new[] { "administrator" }, true)]
-  [InlineData(new[] { "customer_support" }, false)]
   public void IsAdministratorReflectsAdministratorRoleOnly(string[] roles, bool expected)
   {
     var viewerProvider = new MutableNavigationViewerProvider();

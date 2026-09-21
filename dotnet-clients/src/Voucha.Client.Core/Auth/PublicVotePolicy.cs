@@ -4,7 +4,7 @@ namespace Voucha.Client.Core.Auth;
 
 public static class PublicVotePolicy
 {
-  private static readonly string[] OfficialRoles = ["administrator", "investor", "customer_support"];
+  private static readonly string[] OfficialRoles = ["administrator", "investor"];
 
   public static bool CanCastPublicVotes(this SessionSnapshot session)
   {

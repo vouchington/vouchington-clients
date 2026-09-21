@@ -297,8 +297,6 @@ internal static partial class ApiFixtureCoverage
         ["swift.integration.rss-feed-items.audio"] = VouchaApiEndpoints.RssFeedItems(mediaType: "audio"),
         ["swift.podcast-playback-position.default"] = VouchaApiEndpoints.PodcastPlaybackPosition("episode-1"),
         ["swift.podcast-episode-chapters.default"] = VouchaApiEndpoints.PodcastEpisodeChapters("episode-1"),
-        ["web.my.support-threads.create.default"] = VouchaApiEndpoints.CreateMySupportThread(
-            new CreateSupportThreadBody("Account access issue", "I need help with my account.", null)),
         ["native.comments.post-detail.default"] = VouchaApiEndpoints.Post("comment-root"),
         ["native.comments.descendants.default"] = VouchaApiEndpoints.PostDescendants(
             "comment-root-post",
@@ -432,57 +430,6 @@ internal static partial class ApiFixtureCoverage
             "00000000-0000-7000-8000-000000000101",
             new UpdateDirectConversationParticipantPolicyBody("owner_only")),
         ["native.messages.user-search.default"] = VouchaApiEndpoints.SearchUsers("bo", limit: 10),
-        ["native.crm.contacts.default"] = VouchaApiEndpoints.CrmContacts(new CrmContactsRequest("alice", "new", "credit_cards", null, null, 25)),
-        ["native.crm.contact-detail.default"] = VouchaApiEndpoints.CrmContact("00000000-0000-7000-8000-000000000584"),
-        ["native.crm.contact-create.default"] = VouchaApiEndpoints.CreateCrmContact(
-            new CreateCrmContactBody(
-                "Alice Creator",
-                "alice@example.test",
-                null,
-                CrmContactVertical.CreditCards,
-                CrmContactType.Influencer,
-                250000,
-                "Creator outreach contact")),
-        ["native.crm.contact-update.default"] = VouchaApiEndpoints.UpdateCrmContact(
-            "00000000-0000-7000-8000-000000000584",
-            new UpdateCrmContactBody(
-                "Alice Creator",
-                "alice@example.test",
-                JsonNullableString.FromString("+1-415-555-0100"),
-                JsonNullableCrmContactVertical.FromVertical(CrmContactVertical.CreditCards),
-                null,
-                JsonNullableInt.FromInt(255000),
-                JsonNullableString.FromString("Updated outreach notes"))),
-        ["native.crm.contact-archive.default"] = VouchaApiEndpoints.ArchiveCrmContact("00000000-0000-7000-8000-000000000584"),
-        ["native.crm.contact-emails.default"] = VouchaApiEndpoints.CrmContactEmails("00000000-0000-7000-8000-000000000584", limit: 25),
-        ["native.crm.contact-email-send.default"] = VouchaApiEndpoints.SendCrmEmail(
-            "00000000-0000-7000-8000-000000000584",
-            new SendCrmEmailBody(
-                "Warm intro",
-                null,
-                "Hi Alice, great to connect.",
-                CrmEmailProvider.Ses,
-                null,
-                "Write a warm intro",
-                new DateTimeOffset(2026, 7, 1, 12, 29, 30, TimeSpan.Zero))),
-        ["native.crm.contact-notes.default"] = VouchaApiEndpoints.CrmContactNotes("00000000-0000-7000-8000-000000000584", limit: 25),
-        ["native.crm.contact-note-create.default"] = VouchaApiEndpoints.CreateCrmNote(
-            "00000000-0000-7000-8000-000000000584",
-            new CreateCrmNoteBody("Met at the conference")),
-        ["native.crm.contact-note-delete.default"] = VouchaApiEndpoints.DeleteCrmNote(
-            "00000000-0000-7000-8000-000000000584",
-            "00000000-0000-7000-8000-000000000901"),
-        ["native.crm.contact-link-user.default"] = VouchaApiEndpoints.LinkCrmContactToUser(
-            "00000000-0000-7000-8000-000000000584",
-            new LinkCrmContactToUserBody("00000000-0000-7000-8000-000000000001")),
-        ["native.crm.contact-unlink-user.default"] = VouchaApiEndpoints.UnlinkCrmContactFromUser("00000000-0000-7000-8000-000000000584"),
-        ["native.crm.contact-email-draft.default"] = VouchaApiEndpoints.GenerateCrmEmailDraft(
-            "00000000-0000-7000-8000-000000000584",
-            new GenerateCrmEmailDraftBody("Focus on travel content", "friendly")),
-        ["native.crm.import.success.default"] = VouchaApiEndpoints.ImportCrmContacts(
-            new ImportCrmContactsBody("name,email\nAlice Creator,alice@example.test")),
-        ["native.crm.import.validation.default"] = VouchaApiEndpoints.ImportCrmContacts(
-            new ImportCrmContactsBody("name,email,follower_count\nAlice Creator,alice@example.test,-1")),
         ["native.hostname.default"] = VouchaApiEndpoints.Hostname("hostname-1"),
         ["native.hostnames.default"] = VouchaApiEndpoints.Hostnames("example"),
         ["native.url.default"] = VouchaApiEndpoints.Url("url-1"),
@@ -495,5 +442,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStaffSupportEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints()))));
+      }.WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints()))));
 }

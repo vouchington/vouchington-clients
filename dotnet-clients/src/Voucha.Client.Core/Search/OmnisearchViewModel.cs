@@ -10,7 +10,7 @@ namespace Voucha.Client.Core.Search;
 
 public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
 {
-  private static readonly string[] OfficialPublicVoteRoles = ["administrator", "investor", "customer_support"];
+  private static readonly string[] OfficialPublicVoteRoles = ["administrator", "investor"];
 
   private readonly VouchaApiClient client;
   private readonly OmnisearchMode mode;

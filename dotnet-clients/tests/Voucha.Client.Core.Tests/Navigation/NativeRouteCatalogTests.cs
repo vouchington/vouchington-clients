@@ -105,7 +105,6 @@ public sealed class NativeRouteCatalogTests
   [InlineData("/notification-redirect?notification_id=notification-1", NativeRouteDestinationId.Notifications)]
   [InlineData("/messages/new", NativeRouteDestinationId.Messages)]
   [InlineData("/messages/modmail/community-slug/thread-1", NativeRouteDestinationId.Messages)]
-  [InlineData("/crm/contact-1", NativeRouteDestinationId.CrmContacts)]
   [InlineData("/agent/helper/conversation/conversation-1", NativeRouteDestinationId.EngineeringAgents)]
   [InlineData("/admin/modlog", NativeRouteDestinationId.ModerationAdmin)]
   [InlineData("/admin/queues", NativeRouteDestinationId.EngineeringQueues)]

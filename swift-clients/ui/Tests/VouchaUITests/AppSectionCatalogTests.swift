@@ -8,7 +8,7 @@ import XCTest
 
 final class AppSectionTests: XCTestCase {
     func testEngineeringIsVisibleToEveryDynamicConfigViewerRole() {
-        for role in ["administrator", "moderator", "developer", "customer_support", "investor"] {
+        for role in ["administrator", "moderator", "developer", "investor"] {
             XCTAssertTrue(AppSection.engineering.isVisible(isSignedIn: true, userRoles: [role]))
         }
         XCTAssertFalse(AppSection.engineering.isVisible(isSignedIn: true, userRoles: []))
@@ -112,7 +112,7 @@ final class AppSectionTests: XCTestCase {
         XCTAssertEqual(AppSection.moderation.requiredRoles, [])
         XCTAssertEqual(
             AppSection.engineering.requiredRoles,
-            ["administrator", "moderator", "developer", "customer_support", "investor"]
+            ["administrator", "moderator", "developer", "investor"]
         )
         XCTAssertEqual(AppSection.growth.requiredRoles, ["administrator", "investor"])
         XCTAssertTrue(AppSection.moderation.isVisible(isSignedIn: true, userRoles: []))

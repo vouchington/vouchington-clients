@@ -41,7 +41,6 @@ public sealed class FeatureFlagOverridesViewModelTests
   [InlineData("administrator", true)]
   [InlineData("developer", true)]
   [InlineData("moderator", false)]
-  [InlineData("customer_support", false)]
   [InlineData("investor", false)]
   public async Task AuthorizationMatchesGlobalFeatureFlagOperators(string role, bool authorized)
   {

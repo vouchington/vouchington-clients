@@ -11,7 +11,6 @@ public sealed class PublicVotePolicyTests
   [InlineData("user", true)]
   [InlineData("administrator", false)]
   [InlineData("investor", false)]
-  [InlineData("customer_support", false)]
   public void PublicVotePolicyExcludesOfficialRoles(string? role, bool expected)
   {
     var session = role is null

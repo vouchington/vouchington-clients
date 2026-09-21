@@ -9,7 +9,6 @@ public sealed class EngineeringAgentsAccessTests
   [InlineData(false, "")]
   [InlineData(true, "moderator")]
   [InlineData(true, "developer")]
-  [InlineData(true, "customer_support")]
   [InlineData(true, "investor")]
   public void AgentRoutesDenyEveryoneExceptAdministrators(bool signedIn, string role)
   {

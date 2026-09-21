@@ -21,7 +21,7 @@ extension SectionDetailView {
                             userRoles: factory.sessionManager.currentUserRoles
                         ),
                         isSiteModerator: factory.sessionManager.currentUserRoles.contains("moderator"),
-                        isCustomerSupport: factory.sessionManager.currentUserRoles.contains("customer_support"),
+                        isCustomerSupport: false,
                         featureFlags: factory.featureFlagState,
                         nativeOAuthAuthorizationCoordinator: factory.nativeOAuthAuthorizationCoordinator,
                         a11yActivator: notificationA11yActivator,
@@ -90,7 +90,7 @@ extension SectionDetailView {
                     userRoles: factory.sessionManager.currentUserRoles
                 ),
                 isSiteModerator: factory.sessionManager.currentUserRoles.contains("moderator"),
-                isCustomerSupport: factory.sessionManager.currentUserRoles.contains("customer_support"),
+                isCustomerSupport: false,
                 featureFlags: factory.featureFlagState,
                 a11yActivator: notificationA11yActivator,
                 notificationActivationToken: nativeRouteDispatchGeneration,

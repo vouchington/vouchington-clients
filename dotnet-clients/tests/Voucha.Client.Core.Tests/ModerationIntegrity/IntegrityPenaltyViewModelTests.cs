@@ -123,7 +123,6 @@ public sealed class IntegrityPenaltyViewModelTests
   [Theory]
   [InlineData(false, null)]
   [InlineData(true, "moderator")]
-  [InlineData(true, "customer_support")]
   [InlineData(true, "member")]
   public async Task NonAdministratorsCannotLoadOrRevoke(bool authenticated, string? role)
   {

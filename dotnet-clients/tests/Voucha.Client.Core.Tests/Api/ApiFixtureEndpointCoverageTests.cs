@@ -4,17 +4,12 @@ namespace Voucha.Client.Core.Tests.Api;
 
 public sealed partial class ApiFixtureEndpointCoverageTests
 {
-  private const string SupportAdministratorId = "00000000-0000-7000-8000-000000000001";
-  private const string SupportContactId = "00000000-0000-7000-8000-000000000711";
-  private const string SupportThreadId = "00000000-0000-7000-8000-000000000712";
-  private const string SupportMessageId = "00000000-0000-7000-8000-000000000713";
   private static readonly IReadOnlyDictionary<string, ApiRequest> Registry =
       WithMembershipStoreEndpoints(
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
                   CreateCoreRegistry()
-                      .Concat(CreateCrmAndAccountRegistry())
                       .Concat(CreateModerationParityRegistry())
                       .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal)))));
 
@@ -55,22 +50,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
         ["web.trending-referral-programs.default"] = VouchaApiEndpoints.TrendingReferralPrograms(),
         ["web.referral-links.prioritized.default"] = VouchaApiEndpoints.PrioritizedReferralLinks("referral-program-1", true),
-        ["web.my.support-threads.create.default"] = VouchaApiEndpoints.CreateMySupportThread(
-            new CreateSupportThreadBody("Account access issue", "I need help with my account.", null)),
-        ["native.staff-support.threads.default"] = VouchaApiEndpoints.StaffSupportThreads("account", StaffSupportThreadStatusFilter.Open, limit: 25),
-        ["native.staff-support.thread-detail.default"] = VouchaApiEndpoints.StaffSupportThread(SupportThreadId),
-        ["native.staff-support.thread-assign.default"] = VouchaApiEndpoints.AssignStaffSupportThread(SupportThreadId, SupportAdministratorId),
-        ["native.staff-support.thread-resolve.default"] = VouchaApiEndpoints.ResolveStaffSupportThread(SupportThreadId, true),
-        ["native.staff-support.thread-reopen.default"] = VouchaApiEndpoints.ResolveStaffSupportThread(SupportThreadId, false),
-        ["native.staff-support.messages.default"] = VouchaApiEndpoints.StaffSupportMessages(SupportThreadId),
-        ["native.staff-support.message-create.default"] = VouchaApiEndpoints.CreateStaffSupportMessage(SupportThreadId, "Saved outbound reply."),
-        ["native.staff-support.draft-create.default"] = VouchaApiEndpoints.QueueStaffSupportDraft(SupportThreadId),
-        ["native.staff-support.message-edit.default"] = VouchaApiEndpoints.UpdateStaffSupportDraft(SupportThreadId, SupportMessageId, "Edited support draft."),
-        ["native.staff-support.message-approve.default"] = VouchaApiEndpoints.ApproveStaffSupportMessage(SupportThreadId, SupportMessageId),
-        ["native.staff-support.message-send.default"] = VouchaApiEndpoints.SendStaffSupportMessage(SupportThreadId, SupportMessageId),
-        ["native.staff-support.contacts.default"] = VouchaApiEndpoints.StaffSupportContacts("traveler", limit: 25),
-        ["native.staff-support.contact-detail.default"] = VouchaApiEndpoints.StaffSupportContact(SupportContactId, limit: 25),
-        ["native.staff-support.contact-update.default"] = VouchaApiEndpoints.UpdateStaffSupportContact(SupportContactId, new("Traveler Support", "Updated support notes.")),
         ["web.admin.article-syncs.trigger.default"] = VouchaApiEndpoints.TriggerArticleSync(),
         ["web.admin.article-syncs.status.active"] = VouchaApiEndpoints.FetchArticleSyncStatus("job-1"),
         ["web.admin.mq.stats.default"] = VouchaApiEndpoints.FetchQueueStats(),

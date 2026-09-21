@@ -80,7 +80,7 @@ public static partial class NavigationCatalog
             "sidebar-group-dynamic-config",
             [new NavItem(UiMessageKey.ExtractedIntentsAdminDynamicConfig59cf5829, "/admin/dynamic-config", "sidebar-link-admin-dynamic-config")]),
       ],
-      Roles: ["administrator", "moderator", "developer", "customer_support", "investor"]);
+      Roles: ["administrator", "moderator", "developer", "investor"]);
 
   private static NavIntent GrowthIntent { get; } = new(
       "growth",
