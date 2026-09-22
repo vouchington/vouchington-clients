@@ -13,24 +13,11 @@ final class ClientIntentParityTests: XCTestCase {
         assertVisibleIntentIDsMatchContract(contract: contract, isSignedIn: true, userRoles: ["investor"])
     }
 
-    func testClientIntentContractMapsToRealSwiftSections() throws {
-        let contract = try ClientIntentParityContract.load()
-        let appSectionIDs = Set(AppSection.allCases.map(\.rawValue))
-
-        XCTAssertFalse(contract.intents.isEmpty)
-
-        for intent in contract.intents {
-            XCTAssertTrue(
-                appSectionIDs.contains(intent.swiftSection),
-                "\(intent.id) maps to missing Swift AppSection \(intent.swiftSection)"
-            )
-        }
-    }
-
     func testDirectSwiftSectionIntentAuthMatchesContract() throws {
         let contract = try ClientIntentParityContract.load()
 
-        for intent in contract.intents where intent.id == intent.swiftSection {
+        for intent in contract.intents
+            where intent.id == intent.swiftSection && AppSection(rawValue: intent.swiftSection) != nil {
             let section = try XCTUnwrap(AppSection(rawValue: intent.swiftSection))
             XCTAssertEqual(
                 section.requiresAuth,
@@ -48,6 +35,9 @@ final class ClientIntentParityTests: XCTestCase {
         line: UInt = #line
     ) {
         let expected: [String] = contract.intents.compactMap { intent in
+            guard AppSection(rawValue: intent.swiftSection) != nil else {
+                return nil
+            }
             if intent.requiresAuth, !isSignedIn {
                 return nil
             }

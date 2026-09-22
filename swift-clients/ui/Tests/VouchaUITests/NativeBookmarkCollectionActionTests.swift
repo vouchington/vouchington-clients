@@ -85,14 +85,12 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
                 { "id": "topic-1" },
                 { "id": "community-1" },
                 { "id": "user-1" },
-                { "id": "hostname-1" },
-                { "id": "support-thread-1" }
+                { "id": "hostname-1" }
               ],
               "topics": { "topic-1": { "id": "topic-1" } },
               "communities": { "community-1": { "id": "community-1" } },
               "users": { "user-1": { "id": "user-1" } },
-              "hostnames": { "hostname-1": { "id": "hostname-1" } },
-              "support_threads": { "support-thread-1": { "id": "support-thread-1" } }
+              "hostnames": { "hostname-1": { "id": "hostname-1" } }
             }
             """#.utf8)
         )
@@ -101,8 +99,7 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
             (id: "topic-1", icon: "tag"),
             (id: "community-1", icon: "person.3"),
             (id: "user-1", icon: "person"),
-            (id: "hostname-1", icon: "globe"),
-            (id: "support-thread-1", icon: "questionmark.bubble")
+            (id: "hostname-1", icon: "globe")
         ]
 
         for expected in expectedIcons {

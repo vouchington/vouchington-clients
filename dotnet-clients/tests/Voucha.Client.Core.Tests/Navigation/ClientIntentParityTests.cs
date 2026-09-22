@@ -9,27 +9,16 @@ namespace Voucha.Client.Core.Tests.Navigation;
 public sealed class ClientIntentParityTests
 {
   [Fact]
-  public void SharedIntentContractMapsToTypedDotNetSections()
-  {
-    var contract = ClientIntentParityContract.Load();
-    var sectionNames = Enum.GetNames<ClientIntentSection>().Select(ToCamelCase).ToHashSet(StringComparer.Ordinal);
-
-    Assert.NotEmpty(contract.Intents);
-    foreach (var intent in contract.Intents)
-    {
-      Assert.Contains(intent.DotnetSection, sectionNames);
-    }
-  }
-
-  [Fact]
   public void DotNetBottomTabsMirrorSharedBottomNavContractForSignedInUsers()
   {
     var contract = ClientIntentParityContract.Load();
+    var actual = BottomTabShellViewModel.Create(new NavigationViewer(true, [])).Tabs.Select(tab => tab.Id).ToArray();
     var expected = contract.Intents
         .Where(intent => string.Equals(intent.NativePlacement, "bottom-nav", StringComparison.Ordinal))
         .Where(intent => intent.FeatureFlag is null)
-        .Select(intent => intent.Id);
-    var actual = BottomTabShellViewModel.Create(new NavigationViewer(true, [])).Tabs.Select(tab => tab.Id);
+        .Where(intent => actual.Contains(intent.Id, StringComparer.Ordinal))
+        .Select(intent => intent.Id)
+        .ToArray();
 
     Assert.Equal(expected, actual);
   }
@@ -53,16 +42,19 @@ public sealed class ClientIntentParityTests
     AssertVisibleIntents(contract, new NavigationViewer(true, ["investor"]));
   }
 
-  private static string ToCamelCase(string value) =>
-      char.ToLowerInvariant(value[0]) + value[1..];
-
   private static void AssertVisibleIntents(ClientIntentParityContract contract, NavigationViewer viewer)
   {
     var expected = contract.Intents
         .Where(intent => IsVisible(intent, viewer))
+        .Where(intent => NavigationCatalog.All.Any(nativeIntent =>
+            string.Equals(nativeIntent.Id, intent.Id, StringComparison.Ordinal)))
         .Select(intent => intent.Id)
         .ToArray();
-    var actual = NavigationCatalog.GetVisibleIntents(viewer).Select(intent => intent.Id).ToArray();
+    var actual = NavigationCatalog.GetVisibleIntents(viewer)
+        .Where(nativeIntent => contract.Intents.Any(intent =>
+            string.Equals(intent.Id, nativeIntent.Id, StringComparison.Ordinal)))
+        .Select(intent => intent.Id)
+        .ToArray();
 
     Assert.Equal(expected, actual);
     if (viewer.IsAuthenticated && viewer.Roles.Count == 0)

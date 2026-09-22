@@ -7,7 +7,6 @@ public sealed class ForwardPaginationPageSourceTests
 {
   [Theory]
   [InlineData("ChatListPage.xaml", "ChatListPage.xaml.cs")]
-  [InlineData("SupportThreadsPage.xaml", "SupportThreadsPage.xaml.cs")]
   [InlineData("FriendsPage.xaml", "FriendsPage.xaml.cs")]
   [InlineData("NotificationsPage.xaml", "NotificationsPage.xaml.cs")]
   [InlineData("DirectMessagesPage.xaml", "DirectMessagesPage.xaml.cs")]
