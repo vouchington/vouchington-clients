@@ -112,7 +112,6 @@ final class NativeParityCatalogTests: XCTestCase {
         XCTAssertEqual(
             destinations(in: AppSection.engineering),
             [
-                .engineeringAgents,
                 .engineeringQueues,
                 .engineeringPostgresql,
                 .engineeringValkey,
@@ -154,7 +153,7 @@ final class NativeParityCatalogTests: XCTestCase {
             (.actions, [2, 1, 1, 2]),
             (.moderation, [1, 2, 3, 1]),
             (.crm, [4]),
-            (.engineering, [5, 1]),
+            (.engineering, [4, 1]),
             (.growth, [1])
         ]
 

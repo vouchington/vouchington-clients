@@ -84,8 +84,7 @@ extension NativeRouteDestinationSurface {
 
     var shouldLoadRouteSurfaceContent: Bool {
         if isDedicatedMemberAppealsRoute || isDedicatedStaffAppealsRoute
-            || isDedicatedStaffDisputesRoute || isDedicatedIntegrityRoute
-            || entry.destinationIdentifier == .engineeringAgents {
+            || isDedicatedStaffDisputesRoute || isDedicatedIntegrityRoute {
             return false
         }
         return switch entry.destinationIdentifier {
@@ -142,7 +141,6 @@ extension NativeRouteDestinationSurface {
             || entry.destinationIdentifier == .engineeringPostgresql
             || entry.destinationIdentifier == .engineeringValkey
             || entry.destinationIdentifier == .engineeringAiCosts
-            || entry.destinationIdentifier == .engineeringAgents
             || entry.destinationIdentifier == .moderationReports
             || entry.destinationIdentifier == .moderationDisputes
             || entry.destinationIdentifier == .moderationIntegrity

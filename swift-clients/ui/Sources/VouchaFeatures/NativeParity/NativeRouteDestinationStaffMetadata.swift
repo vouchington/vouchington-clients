@@ -61,19 +61,6 @@ extension NativeRouteDestinationIdentifier {
                     .nativeSwiftRouteMetadataStaffSupportStaffContactsContactDetailDescription
                 )
             ]
-        case .engineeringAgents:
-            [
-                row(
-                    "cpu",
-                    .nativeSwiftRouteMetadataStaffEngineeringAgentsAgentsTitle,
-                    .nativeSwiftRouteMetadataStaffEngineeringAgentsAgentsDescription
-                ),
-                row(
-                    "bubble.left.and.bubble.right",
-                    .nativeSwiftRouteMetadataStaffEngineeringAgentsConversationTitle,
-                    .nativeSwiftRouteMetadataStaffEngineeringAgentsConversationDescription
-                )
-            ]
         case .engineeringQueues:
             [
                 row(

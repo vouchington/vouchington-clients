@@ -33,7 +33,6 @@ extension NativeRouteDestinationIdentifier {
         case .membershipGrants: "checkmark.seal"
         case .supportStaffThreads: "tray.full"
         case .supportStaffContacts: "person.crop.rectangle.stack"
-        case .engineeringAgents: "cpu"
         case .engineeringQueues: "tray.full"
         case .engineeringPostgresql: "cylinder.split.1x2"
         case .engineeringValkey: "externaldrive.connected.to.line.below"

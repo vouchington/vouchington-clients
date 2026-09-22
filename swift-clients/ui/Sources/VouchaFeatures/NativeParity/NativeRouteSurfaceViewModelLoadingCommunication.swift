@@ -10,11 +10,6 @@ extension NativeRouteSurfaceViewModel {
             return try await loadChatRows(client: client)
         case .messages:
             return try await loadDirectMessageRows(client: client)
-        case .engineeringAgents:
-            if isAgentRoute {
-                return try await loadAgentRows(client: client)
-            }
-            return []
         case .support:
             let page: SupportThreadListResponse = try await client.send(.mySupportThreads(limit: 50))
             return page.results.map {

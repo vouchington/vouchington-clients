@@ -58,10 +58,6 @@ extension NativeRouteSurfaceViewModel {
         return routeMatch?.param("category")
     }
 
-    var isAgentRoute: Bool {
-        routeMatch?.path == "/agents" || routeMatch?.path.hasPrefix("/agent/") == true
-    }
-
     func postTypesFilter(for destination: NativeRouteDestinationIdentifier) -> String? {
         if destination == .storiesBrowse {
             return PostType.story.rawValue

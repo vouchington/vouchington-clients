@@ -85,19 +85,6 @@ struct NativeListSurface: View {
                 ) {
                     await viewModel.loadMoreCrawlHistory()
                 }
-                if viewModel.agentConversation != nil,
-                   viewModel.agentConversationPageInfo?.hasNextPage == true {
-                    Button(UiMessages.string(
-                        viewModel.agentConversationPaginationErrorMessage == nil
-                            ? .nativeSwiftDirectMessagesLoadOlderMessages
-                            : .nativeCommonRetry,
-                        locale: nativeUiLocale
-                    )) {
-                        Task { await viewModel.loadOlderAgentConversationMessages() }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(!viewModel.canLoadOlderAgentConversationMessages)
-                }
             }
 
             if !viewModel.actions.isEmpty {

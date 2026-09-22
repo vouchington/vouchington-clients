@@ -51,8 +51,7 @@ extension NativeParityCatalog {
             summary: UiMessage(.nativeSwiftRouteFamilyDirectoryOperationsSummary),
             icon: "wrench.and.screwdriver",
             entries: entries(
-                for: .engineeringAgents,
-                .engineeringQueues,
+                for: .engineeringQueues,
                 .engineeringPostgresql,
                 .engineeringValkey,
                 .engineeringAiCosts

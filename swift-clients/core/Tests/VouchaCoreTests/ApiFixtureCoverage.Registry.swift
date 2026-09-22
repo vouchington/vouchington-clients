@@ -51,7 +51,6 @@ enum ApiFixtureCoverage {
         fediverseFixtureCoverage +
         firstPagePaginationFixtureCoverage +
         relationApiFixtureCoverage +
-        nativeAgentConversationCoverage +
         bookmarkReferralSwiftCoverage +
         bookmarkPostPaginationFixtureCoverage +
         nativeImportExportCoverage +

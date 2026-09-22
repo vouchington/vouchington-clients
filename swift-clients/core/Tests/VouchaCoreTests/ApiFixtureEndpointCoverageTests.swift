@@ -481,7 +481,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             )
         ], uniquingKeysWith: { _, endpoint in endpoint })
         .merging(accountPaginationFixtureEndpointRegistry) { _, replacement in replacement }
-        .merging(agentConversationFixtureEndpoints) { _, replacement in replacement }
         .merging(moderationIntegrityEndpointFixtureCoverage) { _, replacement in replacement }
         .merging(householdFixtureEndpoints) { _, replacement in replacement }
         .merging(paymentCardFixtureEndpoints) { _, replacement in replacement }
