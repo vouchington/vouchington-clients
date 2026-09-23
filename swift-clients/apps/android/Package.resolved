@@ -1,5 +1,5 @@
 {
-  "originHash" : "454e7f2d6eb5b002fa4ee491a84f2079a353e0b5ed14a35e61c516ca8c1f102e",
+  "originHash" : "8aad14e7681b870858a5d28d19304b0bf6c1dc126942eaea11f61abb7fd7179f",
   "pins" : [
     {
       "identity" : "opencombine",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://source.skip.tools/skip.git",
       "state" : {
-        "revision" : "c9cf31ac886248b3733963f89f289c18ebce8ca1",
-        "version" : "1.9.8"
+        "revision" : "ec705c2b5edb1ab4de4554b1a35663bc238cabc7",
+        "version" : "1.9.10"
       }
     },
     {
