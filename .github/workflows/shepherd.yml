@@ -51,8 +51,11 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12
       - name: Install pinned dependencies
-        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Resolve PR and validate command
         id: gate
@@ -93,7 +96,7 @@ jobs:
             echo "pr_head_sha=$PR_HEAD_SHA"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
-          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.18.1 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
+          pnpm dlx vouchington-tooling@0.18.1 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare durable shepherd checkpoint
@@ -199,14 +202,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12
       - name: Install pinned dependencies
-        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Resolve trusted pr-shepherd version
         id: pr-shepherd-version
         run: |
           set -euo pipefail
-          VERSION="$(npx --yes pnpm@11.13.1 exec pr-shepherd --version)"
+          VERSION="$(pnpm exec pr-shepherd --version)"
           echo "Trusted pr-shepherd version (from main): $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -284,8 +290,11 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12
       - name: Install pinned dependencies
-        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Revalidate and patch the exact checkpoint comment
         env:

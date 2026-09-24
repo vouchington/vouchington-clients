@@ -24,6 +24,10 @@ fail-closed and the command has no wrapper timeout.
 
 Keep one logical compiler command under one lock owner.
 
+The wrappers and the .NET harness `restore` check run `pnpm exec vouchington with-host-lock` with
+the `pnpm` on `PATH`. Install pnpm 12 and run `pnpm install` before using them. See
+[pnpm](ci-runners.md#pnpm).
+
 ## Host package-manager lock
 
 Use `host-package-manager` locally for mutations of machine-level tooling, such as installing the

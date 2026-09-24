@@ -24,6 +24,28 @@ archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
 
+## pnpm
+
+pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
+`engines.pnpm`. Under such a pin, pnpm 12 writes `pnpm-lock.yaml` as two YAML documents, and
+single-document readers such as Dependabot
+([dependabot/dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904))
+misread it. Unpinned, the lockfile stays one document.
+
+- Locally, install any pnpm 12 release and run `pnpm` from `PATH`.
+- In CI, every job or composite action that runs pnpm adds `pnpm/action-setup` directly after
+  `actions/setup-node`. Its only input is `version: 12`, a bare major. The action installs the pnpm
+  12 release it bundles, so CI changes pnpm only through a reviewed `pnpm/action-setup` bump. The
+  `/plan` and `/fix` gate jobs stay checkout-free: the action needs no `package.json`, and those
+  jobs only run `pnpm dlx`.
+- Workflows, scripts, and the native lock wrappers run `pnpm` from `PATH`. Nothing bootstraps pnpm
+  through Corepack or a versioned `npx pnpm@<version>` call.
+- Dependabot runs the pnpm bundled with its updater image.
+
+[`tests/pnpm-setup.test.mjs`](../../tests/pnpm-setup.test.mjs) enforces these rules, including one
+action release and one pnpm major across every call site. To change the major, update every
+`pnpm/action-setup` call in the same change.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do

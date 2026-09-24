@@ -76,6 +76,10 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12
       - name: Check out candidate clients as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -115,7 +119,7 @@ jobs:
         working-directory: filaments
         env:
           npm_config_store_dir: ${{ runner.temp }}/pnpm-store
-        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
@@ -360,7 +364,7 @@ jobs:
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
           COVERAGE_HEAD: ${{ needs.verify.outputs.revision-sha }}
-        run: npx --yes pnpm@11.13.1 run coverage:dotnet-core
+        run: pnpm run coverage:dotnet-core
   periphery-swift-core:
     name: Swift Periphery (core)
     needs: verify
@@ -711,7 +715,7 @@ jobs:
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
         env: { BASE_SHA: '${{ needs.verify.outputs.base-sha }}' }
-        run: npx --yes pnpm@11.13.1 run coverage:swift
+        run: pnpm run coverage:swift
   build-android-core:
     name: Swift Android core build
     needs: verify

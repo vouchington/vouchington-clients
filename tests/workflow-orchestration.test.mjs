@@ -20,10 +20,7 @@ describe('event-driven CI orchestration', () => {
 
       assert.match(
         workflow,
-        new RegExp(
-          `npx --yes pnpm@11\\.13\\.1 dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`,
-          'u',
-        ),
+        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`, 'u'),
       )
     }
   })
