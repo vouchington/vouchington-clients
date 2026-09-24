@@ -8,6 +8,7 @@ const repositoryRoot = resolve(import.meta.dirname, '..')
 const actionSetupStep = /^\s*(?:- )?uses: pnpm\/action-setup@/mu
 const setupNodeStep = /^\s*(?:- )?uses: actions\/setup-node@/mu
 const pnpmCommand = /\bpnpm (?:install|run|exec|dlx)\b/u
+const latestOfMajor = /^latest-(\d+)$/u
 
 function trackedFiles() {
   return execFileSync('git', ['ls-files', '-z'], { cwd: repositoryRoot, encoding: 'utf8' })
@@ -88,7 +89,7 @@ async function compositesWithPnpmSetup() {
 }
 
 describe('pnpm 12 without a pinned version', () => {
-  it('passes pnpm/action-setup only a bare major version', async () => {
+  it('passes pnpm/action-setup only the latest release of one major', async () => {
     for (const [path, step] of await pnpmSetupSteps()) {
       assert.match(
         step,
@@ -97,14 +98,17 @@ describe('pnpm 12 without a pinned version', () => {
       )
       const inputs = withInputs(step)
       assert.deepEqual(Object.keys(inputs), ['version'], `${path} passes extra action inputs`)
-      assert.match(inputs.version, /^\d+$/u, `${path} must pass a bare pnpm major`)
+      // A bare major would keep the action's bundled pnpm; `latest-<major>` self-updates.
+      assert.match(inputs.version, latestOfMajor, `${path} must pass \`latest-<major>\``)
     }
   })
 
   it('uses the same action release and pnpm major at every call site', async () => {
     const steps = await pnpmSetupSteps()
     const refs = new Set(steps.map(([, step]) => step.match(/pnpm\/action-setup@[0-9a-f]{40}/u)[0]))
-    const majors = new Set(steps.map(([, step]) => withInputs(step).version))
+    const majors = new Set(
+      steps.map(([, step]) => withInputs(step).version.match(latestOfMajor)?.[1]),
+    )
     assert.equal(refs.size, 1, `pnpm/action-setup refs diverge: ${[...refs].join(', ')}`)
     assert.equal(majors.size, 1, `pnpm majors diverge: ${[...majors].join(', ')}`)
   })
