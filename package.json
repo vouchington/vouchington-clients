@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
-    "auto-harness-client": "0.6.0",
+    "auto-harness-client": "0.8.0",
     "coverage-check": "0.15.2",
     "dependency-cruiser": "18.2.0",
     "husky": "9.1.7",

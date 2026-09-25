@@ -122,8 +122,8 @@ test('fresh dispatch: resolves name-based targets through catalog fetches and fo
     fetchImplementation,
   )
 
-  assert.equal(fetchImplementation.calls[0][0], 'https://harness.example.com/api/v1/providers')
-  assert.equal(fetchImplementation.calls[1][0], 'https://harness.example.com/api/v1/commands')
+  assert.equal(fetchImplementation.calls[0][0], 'https://harness.example.com/api/v1/providers?limit=100')
+  assert.equal(fetchImplementation.calls[1][0], 'https://harness.example.com/api/v1/commands?limit=100')
   const body = JSON.parse(String(fetchImplementation.calls[2][1].body))
   assert.deepEqual(body.target, { providerId: 'prov-claude-1' })
   assert.deepEqual(body.fallbacks, [
