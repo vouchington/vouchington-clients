@@ -115,6 +115,16 @@ public sealed partial class NewsFeedsViewModel
       CancellationToken cancellationToken)
   {
     ArgumentNullException.ThrowIfNull(item);
+    if (FindStoryPeer(item.Id) is { } related)
+    {
+      var enabled = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
+      await MutateStoryPeerAsync(related, item,
+          peer => peer with { IsSaved = predicate == BookmarkPredicate.Save ? enabled : peer.IsSaved,
+            IsHidden = predicate == BookmarkPredicate.Hide ? enabled : peer.IsHidden },
+          predicate == BookmarkPredicate.Hide && enabled && removeOnActivate,
+          () => bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, enabled, cancellationToken)).ConfigureAwait(true);
+      return;
+    }
     if (!togglingArticleIds.Add(item.Id)) return;
 
     var previousItems = Items;
@@ -142,29 +152,6 @@ public sealed partial class NewsFeedsViewModel
     {
       togglingArticleIds.Remove(item.Id);
     }
-  }
-
-  private static NewsFeedItem[] ToggleArticleBookmark(
-      IReadOnlyList<NewsFeedItem> sourceItems,
-      string itemId,
-      BookmarkPredicate predicate,
-      bool active,
-      bool removeOnActivate)
-  {
-    if (predicate == BookmarkPredicate.Hide && active && removeOnActivate)
-    {
-      return sourceItems.Where(item => !string.Equals(item.Id, itemId, StringComparison.Ordinal)).ToArray();
-    }
-
-    return sourceItems
-        .Select(item => string.Equals(item.Id, itemId, StringComparison.Ordinal)
-            ? item with
-            {
-              IsSaved = predicate == BookmarkPredicate.Save ? active : item.IsSaved,
-              IsHidden = predicate == BookmarkPredicate.Hide ? active : item.IsHidden,
-            }
-            : item)
-        .ToArray();
   }
 
   private static NewsFeedItem[] ToggleSourceBookmark(

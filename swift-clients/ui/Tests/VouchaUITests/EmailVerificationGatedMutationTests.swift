@@ -2,6 +2,7 @@ import Foundation
 import VouchaAPI
 import VouchaCore
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 @MainActor
@@ -94,7 +95,22 @@ final class EmailVerificationGatedMutationTests: NativeRouteSurfaceViewModelTest
         CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (verificationError, 403)
         let viewModel = try RSSFeedListViewModel(client: makeClient(), contentType: .news)
         viewModel.storyIdsByItemId["item-1"] = "story-1"
-        viewModel.storyMemberIdsByStoryId["story-1"] = ["item-1", "item-2"]
+        viewModel.storyRelatedArticlesByStoryId["story-1"] = StoryRelatedArticles(
+            primaryItemId: "item-1",
+            items: [RssFeedItem(
+                id: "item-2",
+                rssFeedId: "feed1",
+                title: nil,
+                description: nil,
+                content: nil,
+                link: nil,
+                publishedAt: nil,
+                creator: nil,
+                categories: nil,
+                mediaContent: nil
+            )],
+            pageInfo: .init(hasNextPage: false)
+        )
 
         let destination = await viewModel.startStoryDiscussion(rssFeedItemId: "item-1")
 

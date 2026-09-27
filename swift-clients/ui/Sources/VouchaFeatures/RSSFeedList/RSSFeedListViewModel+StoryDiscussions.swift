@@ -26,8 +26,7 @@ extension RSSFeedListViewModel {
         guard storyPostIdsByStoryId[storyId] == nil else { return false }
         guard fallbackStoryDestinationsByStoryId[storyId] == nil else { return false }
         guard !startedDiscussionStoryIds.contains(storyId) else { return false }
-        let memberIds = storyMemberIdsByStoryId[storyId] ?? []
-        return memberIds.contains { $0 != rssFeedItemId }
+        return storyRelatedArticlesByStoryId[storyId]?.pagination.items.isEmpty == false
     }
 
     func isStartingStoryDiscussion(rssFeedItemId: String) -> Bool {

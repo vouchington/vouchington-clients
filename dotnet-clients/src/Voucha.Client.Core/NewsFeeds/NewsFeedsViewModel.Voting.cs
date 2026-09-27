@@ -14,6 +14,12 @@ public sealed partial class NewsFeedsViewModel
   {
     ArgumentNullException.ThrowIfNull(item);
     if (!item.HasVoteCounts) return;
+    if (FindStoryPeer(item.Id) is { } related)
+    {
+      await MutateStoryPeerAsync(related, item, peer => ApplyVote(peer, choice), false,
+          () => SubmitVoteAsync(item, choice, cancellationToken), verifyEmail: true).ConfigureAwait(true);
+      return;
+    }
     var voteKey = VoteKey(item);
     if (!votingArticleIds.Add(voteKey)) return;
 

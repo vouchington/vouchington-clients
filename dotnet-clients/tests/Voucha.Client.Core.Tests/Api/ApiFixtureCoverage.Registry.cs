@@ -13,6 +13,8 @@ internal static partial class ApiFixtureCoverage
   /// <summary>Fixture id -> response DTO type used to decode + re-encode it.</summary>
   public static readonly IReadOnlyDictionary<string, Type> Registry = new Dictionary<string, Type>(StringComparer.Ordinal)
   {
+    ["native.stories.get.default"] = typeof(StoryPageResponse),
+    ["native.stories.get.after"] = typeof(StoryPageResponse),
     ["native.users.followers.search"] = typeof(UserFollowersResponse),
     ["native.posts.followers.share"] = typeof(FollowerDistributionAcceptedResponse),
     ["native.posts.followers.send-selected"] = typeof(FollowerDistributionAcceptedResponse),

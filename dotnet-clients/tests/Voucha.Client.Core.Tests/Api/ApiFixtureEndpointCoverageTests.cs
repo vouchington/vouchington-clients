@@ -13,7 +13,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
-                  CreateCoreRegistry()
+                  StoryFixtureRequests.AddTo(new Dictionary<string, ApiRequest>(CreateCoreRegistry(), StringComparer.Ordinal))
                       .Concat(CreateCrmAndAccountRegistry())
                       .Concat(CreateModerationParityRegistry())
                       .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal)))));

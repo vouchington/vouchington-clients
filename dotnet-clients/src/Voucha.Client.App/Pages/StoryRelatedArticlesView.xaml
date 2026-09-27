@@ -1,0 +1,85 @@
+<?xml version="1.0" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:app="clr-namespace:Voucha.Client.App" xmlns:pages="clr-namespace:Voucha.Client.App.Pages" xmlns:newsFeeds="clr-namespace:Voucha.Client.Core.NewsFeeds;assembly=Voucha.Client.Core" x:Class="Voucha.Client.App.Pages.StoryRelatedArticlesView" x:Name="StoryRoot" x:DataType="newsFeeds:NewsFeedItem">
+    <ContentView.Resources>
+        <ResourceDictionary>
+            <pages:StoryDiscussionVisibilityConverter x:Key="StoryDiscussionVisibilityConverter"/>
+            <pages:VoteClearEligibilityConverter x:Key="VoteClearEligibilityConverter"/>
+            <pages:FollowerDistributionVisibilityConverter x:Key="FollowerDistributionVisibilityConverter"/>
+        </ResourceDictionary>
+    </ContentView.Resources>
+    <VerticalStackLayout Spacing="8" x:DataType="newsFeeds:StoryRelatedArticles" BindingContext="{Binding PrimaryItem.StoryArticles, Source={x:Reference StoryRoot}, x:DataType=pages:StoryRelatedArticlesView}">
+        <Button Text="{Binding CountLabel}" AutomationId="story-related-articles" Clicked="OnToggleClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanExpand}"/>
+        <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="12">
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="newsFeeds:NewsFeedItem">
+                        <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}"/>
+                                <Label Text="{Binding Title}" Style="{StaticResource Headline}"/>
+                                <Label Text="{Binding Summary}" Style="{StaticResource Body}"/>
+                                <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
+                                    <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}"/>
+                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}"/>
+                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}"/>
+                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}"/>
+                                </VerticalStackLayout>
+                                <Label Text="{Binding Link}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation"/>
+                                <Label Text="{Binding LocalizedMediaType}" Style="{StaticResource Metadata}" IsVisible="{Binding IsMedia}"/>
+                                <Label Text="{app:UiLocalizedValue Path=VideoPlatform, Format=message:native.dotnet.newsFeeds.platform}" Style="{StaticResource Metadata}" IsVisible="{Binding IsMedia}"/>
+                                <Label Text="{app:UiLocalizedValue Path=PublishedAt, Format=dateTime}" Style="{StaticResource Metadata}"/>
+                                <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasVoteCounts}">
+                                    <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding .}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanVote}" WidthRequest="42"/>
+                                    <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center"/>
+                                    <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center"/>
+                                    <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVoteClicked" CommandParameter="{Binding .}" WidthRequest="42">
+                                        <Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource VoteClearEligibilityConverter}">
+                                                <Binding Path="CurrentVoteChoice"/>
+                                                <Binding Source="{x:Reference StoryRoot}" Path="CanClearVote"/>
+                                            </MultiBinding>
+                                        </Button.IsEnabled>
+                                    </Button>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{DynamicResource native.swift.followerDistribution.actions}" Clicked="OnFollowerSendClicked" CommandParameter="{Binding .}">
+                                        <Button.IsVisible>
+                                            <MultiBinding Converter="{StaticResource FollowerDistributionVisibilityConverter}">
+                                                <Binding Path="HasItemActions"/>
+                                                <Binding Source="{x:Reference StoryRoot}" Path="CanRelate"/>
+                                            </MultiBinding>
+                                        </Button.IsVisible>
+                                    </Button>
+                                    <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasMediaPlayback}"/>
+                                    <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.CanPlay}"/>
+                                    <Label Text="{DynamicResource native.dotnet.mediaPlayback.videoUnavailable}" Style="{StaticResource Metadata}" IsVisible="{Binding IsEmbedOnlyVideoUnavailable}"/>
+                                    <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanOpenExternally}"/>
+                                    <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding EmbedPreview.HasSource}"/>
+                                    <Button Text="{Binding SourceFollowActionLabel}" Clicked="OnToggleSourceClicked" CommandParameter="{Binding .}" IsVisible="{Binding IsSource}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding SourceMuteActionLabel}" Clicked="OnToggleSourceMuteClicked" CommandParameter="{Binding .}" IsVisible="{Binding IsSource}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding TopicFollowActionLabel}" Clicked="OnToggleTopicClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasTopic}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding TopicMuteActionLabel}" Clicked="OnToggleTopicMuteClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasTopic}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding ReadActionLabel}" Clicked="OnToggleReadClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasItemActions}"/>
+                                    <Button Text="{Binding SaveActionLabel}" Clicked="OnSaveClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasItemActions}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding HideActionLabel}" Clicked="OnHideClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasItemActions}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}"/>
+                                    <Button Text="{Binding StoryDiscussionActionLabel}" Clicked="OnStartStoryDiscussionClicked" CommandParameter="{Binding .}" IsEnabled="{Binding Source={x:Reference StoryRoot}, Path=CanRelate}">
+                                        <Button.IsVisible>
+                                            <MultiBinding Converter="{StaticResource StoryDiscussionVisibilityConverter}">
+                                                <Binding Path="CanStartStoryDiscussion"/>
+                                                <Binding Path="StoryArticles.HasItems"/>
+                                            </MultiBinding>
+                                        </Button.IsVisible>
+                                    </Button>
+                                    <Button Text="{DynamicResource native.swift.rssFeedList.openDiscussion}" Clicked="OnOpenStoryDiscussionClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanOpenStoryDiscussion}"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Style="{StaticResource Body}"/>
+            <Button Text="{Binding LoadMoreLabel}" AutomationId="story-load-more" Clicked="OnLoadMoreClicked" CommandParameter="{Binding Source={x:Reference StoryRoot}, Path=PrimaryItem}" IsVisible="{Binding HasMore}" IsEnabled="{Binding CanLoadMore}"/>
+        </VerticalStackLayout>
+    </VerticalStackLayout>
+</ContentView>

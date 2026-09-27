@@ -19,7 +19,7 @@ final class RSSFeedListViewModelTests: XCTestCase {
         CannedFeedURLProtocol.capturedMethods = []
     }
 
-    private func makeViewModel(contentType: ContentType = .news) -> RSSFeedListViewModel {
+    func makeViewModel(contentType: ContentType = .news) -> RSSFeedListViewModel {
         let config = AppConfig(baseURL: apiBaseURL, turnstileSiteKey: "test-site-key")
         let apiClient = APIClient(
             config: config,
@@ -29,7 +29,7 @@ final class RSSFeedListViewModelTests: XCTestCase {
         return RSSFeedListViewModel(client: apiClient, contentType: contentType)
     }
 
-    private func makeFeedPage(
+    func makeFeedPage(
         ids: [String],
         hasMore: Bool,
         endCursor: String? = nil,
@@ -40,11 +40,15 @@ final class RSSFeedListViewModelTests: XCTestCase {
         bookmarks: [String: [String: Bool]]? = nil,
         thumbnailURLs: [String: String] = [:],
         storyIds: [String: String] = [:],
-        storyMemberIds: [String: [String]] = [:],
+        storyRelatedIds: [String: [String]] = [:],
+        storyHasMore: Bool = false,
+        storyEndCursor: String? = nil,
+        deliveryTypes: [String: String] = [:],
         storyPostIds: [String: String] = [:]
     ) -> Data {
         let resolvedResultEntityIds = resultEntityIds ?? ids
-        let resolvedRssFeedItemIds = rssFeedItemIds ?? resolvedResultEntityIds
+        let resolvedRssFeedItemIds =
+            Array(Set((rssFeedItemIds ?? resolvedResultEntityIds) + storyRelatedIds.values.flatMap { $0 })).sorted()
 
         let items = resolvedRssFeedItemIds.map { id in
             "\"\(id)\":{\"id\":\"\(id)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item \(id)\",\"description\":null,\"content\":null,\"link\":null,\"published_at\":null,\"creator\":null,\"categories\":[],\"media_content\":null}"
@@ -55,7 +59,8 @@ final class RSSFeedListViewModelTests: XCTestCase {
             }
             let itemId = resolvedResultEntityIds[index]
             let storyJSON = storyIds[itemId].map { ",\"story_id\":\"\($0)\"" } ?? ""
-            return "{\"id\":\"\(id)\",\"entity_id\":\"\(itemId)\"\(storyJSON)}"
+            let delivery = deliveryTypes[id].map { ",\"delivery_type\":\"\($0)\"" } ?? ""
+            return "{\"id\":\"\(id)\",\"entity_id\":\"\(itemId)\"\(storyJSON)\(delivery)}"
         }.joined(separator: ",")
         let cursor = endCursor.map { "\"\($0)\"" } ?? "null"
         let elections = itemElections.map { itemId, election in
@@ -81,9 +86,11 @@ final class RSSFeedListViewModelTests: XCTestCase {
         let thumbnails = thumbnailURLs.map { itemId, url in
             "\"\(itemId)\":\"\(url)\""
         }.joined(separator: ",")
-        let storyMembers = storyMemberIds.map { storyId, memberIds in
-            let members = memberIds.map { "\"\($0)\"" }.joined(separator: ",")
-            return "\"\(storyId)\":[\(members)]"
+        let storyMembers = storyRelatedIds.map { storyId, memberIds in
+            let primary = ids.first { storyIds[$0] == storyId }
+            let storyCursor = storyEndCursor.map { "\"\($0)\"" } ?? "null"
+            let members = memberIds.filter { $0 != primary }.map { "\"\($0)\"" }.joined(separator: ",")
+            return "\"\(storyId)\":{\"item_ids\":[\(members)],\"page_info\":{\"has_next_page\":\(storyHasMore),\"end_cursor\":\(storyCursor)}}"
         }.joined(separator: ",")
         let storyPosts = storyPostIds.map { storyId, postId in
             "\"\(storyId)\":\"\(postId)\""
@@ -96,7 +103,7 @@ final class RSSFeedListViewModelTests: XCTestCase {
           "rss_feed_item_thumbnail_url":{\(thumbnails)},
           "rss_feed_item_elections":{\(elections)},
           "election_votes":{\(votes)},
-          "story_member_ids":{\(storyMembers)},
+          "story_member_pages":{\(storyMembers)},
           "story_post_ids":{\(storyPosts)}\(bookmarksJSON)
         }
         """.utf8)
@@ -331,7 +338,7 @@ final class RSSFeedListViewModelAllFeedTests: XCTestCase {
         CannedFeedURLProtocol.capturedURLs = []
     }
 
-    private func makeViewModel(feedSource: FeedSource) -> RSSFeedListViewModel {
+    func makeViewModel(feedSource: FeedSource) -> RSSFeedListViewModel {
         let config = AppConfig(baseURL: apiBaseURL, turnstileSiteKey: "test-site-key")
         let apiClient = APIClient(
             config: config,
@@ -341,7 +348,7 @@ final class RSSFeedListViewModelAllFeedTests: XCTestCase {
         return RSSFeedListViewModel(client: apiClient, contentType: .news, feedSource: feedSource)
     }
 
-    private func makeFeedPage(ids: [String], hasMore: Bool) -> Data {
+    func makeFeedPage(ids: [String], hasMore: Bool) -> Data {
         let items = ids.map { id in
             "\"\(id)\":{\"id\":\"\(id)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item \(id)\",\"description\":null,\"content\":null,\"link\":null,\"published_at\":null,\"creator\":null,\"categories\":[],\"media_content\":null}"
         }.joined(separator: ",")

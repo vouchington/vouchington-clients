@@ -44,7 +44,7 @@ public sealed partial class NewsFeedsViewModel
           request.Cursor,
           cancellationToken).ConfigureAwait(true);
       if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
-          !feedPages.Complete(request, page.Items.Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
+          !feedPages.Complete(request, (replace ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
       Items = feedPages.Items;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -33,6 +33,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 - Both clients forward opaque `after` cursors, append pages by stable entity id, preserve rows on
   continuation failure, and reset traversal when filters change. The API and parity requirements
   are defined by Vouchington's [pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
+- Story rows retain their first displayed primary and prefetched related articles from
+  `story_member_pages`. Expanding uses the existing preview without a request; explicit load more
+  appends up to 25 members through the scoped story endpoint while preserving rows on delay,
+  failure, and retry. The localized count shows the number loaded with `+` until traversal is
+  exhausted, then uses the exact singular or plural. Repeated stories on later feed pages retain
+  the displayed preview and cursor. Shared deliveries remain standalone and use the existing
+  item-id deduplication. This contract is coordinated through
+  [Vouchington #990](https://github.com/vouchington/vouchington/issues/990).
 - Native chat supports OS-managed language models and local OpenAI-compatible Responses API
   endpoints. Endpoint profiles, bearer credentials, and selected provider ids remain device-local;
   local generation is text-only and never silently falls back to another provider.

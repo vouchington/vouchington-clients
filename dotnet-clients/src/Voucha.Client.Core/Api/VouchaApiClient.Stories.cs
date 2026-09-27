@@ -2,6 +2,14 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
+  public Task<StoryPageResponse> FetchStoryPageAsync(
+      string storyId,
+      string? after = null,
+      string? excludeItemId = null,
+      int limit = 25,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<StoryPageResponse>(VouchaApiEndpoints.Story(storyId, after, excludeItemId, limit), cancellationToken);
+
   public Task<StoryPostFromStoryResponse> CreateStoryPostFromStoryAsync(
       string storyId,
       string idempotencyKey,

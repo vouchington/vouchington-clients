@@ -106,7 +106,7 @@ public sealed record RssFeedItemsFeedResponse(
     [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null,
     [property: JsonPropertyName("related_posts_by_url_id")] IReadOnlyDictionary<string, IReadOnlyList<string>>? RelatedPostsByUrlId = null,
     [property: JsonPropertyName("stories")] IReadOnlyDictionary<string, Story>? Stories = null,
-    [property: JsonPropertyName("story_member_ids")] IReadOnlyDictionary<string, IReadOnlyList<string>>? StoryMemberIds = null,
+    [property: JsonPropertyName("story_member_pages")] IReadOnlyDictionary<string, StoryMemberPage>? StoryMemberPages = null,
     [property: JsonPropertyName("story_post_ids")] IReadOnlyDictionary<string, string>? StoryPostIds = null,
     [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser>? Users = null);
 

@@ -23,7 +23,7 @@ public extension RSSFeedListViewModel {
 
     func toggleHide(rssFeedItemId: String) async {
         let wasHidden = hiddenItemIds.contains(rssFeedItemId)
-        var removedItem: (offset: Int, item: RssFeedItem)?
+        var removedItem: RemovedArticle?
         await toggleBookmark(
             rssFeedItemId: rssFeedItemId,
             predicate: "hide",
@@ -73,16 +73,39 @@ public extension RSSFeedListViewModel {
         }
     }
 
-    private func removeItem(id: String) -> (offset: Int, item: RssFeedItem)? {
+    private struct RemovedArticle {
+        let group: StoryRelatedArticles?
+        let offset: Int
+        let item: RssFeedItem
+    }
+
+    private func removeItem(id: String) -> RemovedArticle? {
+        if let group = storyRelatedArticlesByStoryId.values
+            .first(where: { $0.pagination.items.contains { $0.id == id } }),
+            let index = group.pagination.items.firstIndex(where: { $0.id == id }) {
+            var peers = group.pagination.items
+            let peer = peers.remove(at: index)
+            group.pagination.replaceItems(peers)
+            return RemovedArticle(group: group, offset: index, item: peer)
+        }
         guard let index = items.firstIndex(where: { $0.id == id }) else { return nil }
         var updatedItems = items
         let item = updatedItems.remove(at: index)
         pagination.replaceItems(updatedItems)
-        return (index, item)
+        return RemovedArticle(group: nil, offset: index, item: item)
     }
 
-    private func restoreItem(_ snapshot: (offset: Int, item: RssFeedItem)?) {
-        guard let snapshot, !items.contains(where: { $0.id == snapshot.item.id }) else { return }
+    private func restoreItem(_ snapshot: RemovedArticle?) {
+        guard let snapshot else { return }
+        if let group = snapshot.group {
+            guard storyRelatedArticlesByStoryId.values.contains(where: { $0 === group }),
+                  !group.pagination.items.contains(where: { $0.id == snapshot.item.id }) else { return }
+            var peers = group.pagination.items
+            peers.insert(snapshot.item, at: min(snapshot.offset, peers.count))
+            group.pagination.replaceItems(peers)
+            return
+        }
+        guard !items.contains(where: { $0.id == snapshot.item.id }) else { return }
         var updatedItems = items
         updatedItems.insert(snapshot.item, at: min(snapshot.offset, items.count))
         pagination.replaceItems(updatedItems)
