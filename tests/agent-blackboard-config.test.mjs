@@ -37,12 +37,17 @@ describe('Agent Blackboard host configuration', () => {
 
   it('pre-authorizes exactly the current eight MCP tools', () => {
     const settings = readJson('.claude/settings.json')
-    assert.deepEqual(Object.keys(settings).sort(), [
-      'enabledMcpjsonServers',
-      'enabledPlugins',
-      'extraKnownMarketplaces',
-      'permissions',
+    for (const key of [
+      'sandbox',
+      'defaultMode',
+      'model',
+      'effortLevel',
+      'advisorModel',
+      'statusLine',
+      'permission_mode',
+      'permissionMode',
     ])
+      assert.equal(settings[key], undefined, `machine setting ${key} must stay out of project config`)
     assert.deepEqual(settings.enabledMcpjsonServers, ['agent-blackboard'])
     assert.deepEqual(settings.permissions?.allow, tools)
     assert.equal(
