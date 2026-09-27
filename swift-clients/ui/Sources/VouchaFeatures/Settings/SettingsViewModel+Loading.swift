@@ -57,6 +57,7 @@ public extension SettingsViewModel {
             membershipBenefitCatalog = loadedPlans?.benefitCatalog
             dataRequest = loadedDataRequest
             state = .loaded
+            await loadCredentialSettings()
         } catch {
             guard isCurrentSettingsLoad(generation) else { return }
             if error is CancellationError || Task.isCancelled {

@@ -31,17 +31,17 @@ public sealed class ApiSettingsServiceTests
   }
 
   [Fact]
-  public async Task CreateApiKeyAsyncTrimsTheLabelAndUsesRssReadPermission()
+  public async Task CreateApiKeyAsyncTrimsTheLabelAndForwardsExplicitPermissions()
   {
     var (service, handler) = CreateService(new RecordedResponse(CreateApiKeyResponseJson()));
 
-    await service.CreateApiKeyAsync("  Reader  ", "rss", TestContext.Current.CancellationToken);
+    await service.CreateApiKeyAsync("  Reader  ", "rss", ["rss:read"], TestContext.Current.CancellationToken);
 
     Assert.Equal(HttpMethod.Post, handler.Method);
     Assert.Equal("/api/v1/my/api-keys", handler.PathAndQuery);
     Assert.Contains("\"label\":\"Reader\"", handler.RequestBody, StringComparison.Ordinal);
     Assert.Contains("\"type\":\"rss\"", handler.RequestBody, StringComparison.Ordinal);
-    Assert.Contains("\"permissions\":[\"rss-feeds:read\"]", handler.RequestBody, StringComparison.Ordinal);
+    Assert.Contains("\"permissions\":[\"rss:read\"]", handler.RequestBody, StringComparison.Ordinal);
   }
 
   [Fact]
@@ -131,16 +131,16 @@ public sealed class ApiSettingsServiceTests
   }
 
   [Fact]
-  public async Task CreateApiKeyAsyncUsesMcpPermissionsForMcpType()
+  public async Task CreateApiKeyAsyncDoesNotExpandExplicitMcpPermissions()
   {
     var (service, handler) = CreateService(new RecordedResponse(CreateApiKeyResponseJson()));
 
-    await service.CreateApiKeyAsync("Tools", "mcp", TestContext.Current.CancellationToken);
+    await service.CreateApiKeyAsync("Tools", "mcp", ["mcp.user:read"], TestContext.Current.CancellationToken);
 
     Assert.Equal(HttpMethod.Post, handler.Method);
     Assert.Equal("/api/v1/my/api-keys", handler.PathAndQuery);
     Assert.Contains("\"type\":\"mcp\"", handler.RequestBody, StringComparison.Ordinal);
-    Assert.Contains("\"permissions\":[\"mcp-tools:read\",\"mcp-tools:write\"]", handler.RequestBody, StringComparison.Ordinal);
+    Assert.Contains("\"permissions\":[\"mcp.user:read\"]", handler.RequestBody, StringComparison.Ordinal);
   }
 
   private static (ApiSettingsService Service, RecordingHandler Handler) CreateService(
@@ -160,7 +160,7 @@ public sealed class ApiSettingsServiceTests
           "prefix": "rk_abc123",
           "type": "rss",
           "label": "Reader",
-          "permissions": ["rss-feeds:read"],
+          "permissions": ["rss:read"],
           "created_at": "2026-07-01T12:00:00Z",
           "last_used_at": null,
           "revoked_at": null,

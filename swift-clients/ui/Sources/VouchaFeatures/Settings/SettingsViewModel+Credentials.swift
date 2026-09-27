@@ -1,0 +1,110 @@
+import Foundation
+import VouchaAPI
+import VouchaCore
+import VouchaLocalization
+import VouchaModels
+
+public extension SettingsViewModel {
+    var oauthGrants: [OAuthGrant] {
+        oauthGrantPagination.items
+    }
+
+    var apiKeyScopes: [CredentialScope] {
+        apiKeyScopeSelection.availableScopes
+    }
+
+    var hasNoOAuthGrants: Bool {
+        guard case .loaded = credentialState else { return false }
+        return oauthGrants.isEmpty && !oauthGrantPagination.hasMore
+    }
+
+    var canCreateApiKey: Bool {
+        guard case .loaded = credentialState else { return false }
+        return apiKeyScopeSelection.isValid && !apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !isLoading
+    }
+
+    func setApiKeyScope(_ scope: String, selected: Bool) {
+        apiKeyScopeSelection.setSelected(scope, selected: selected)
+    }
+
+    func loadCredentialSettings() async {
+        guard let client else { return }
+        credentialLoadGeneration += 1
+        let generation = credentialLoadGeneration
+        oauthGrantPagination.invalidateRequestsPreservingPage()
+        credentialState = .loading
+        do {
+            async let catalogResponse: ScopeCatalogResponse = client.send(.scopeCatalog)
+            async let grantResponse: Page<OAuthGrant> = client.send(.myOAuthGrants())
+            let (catalog, grants) = try await (catalogResponse, grantResponse)
+            guard generation == credentialLoadGeneration else { return }
+            apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator)
+            apiKeyScopeSelection.replaceCatalog(catalog.scopes)
+            guard !apiKeyScopeSelection.availableScopes.isEmpty else {
+                throw VouchaError.unexpected(localized(.nativeCredentialsCatalogLoadFailed))
+            }
+            replaceOAuthGrantPage(grants)
+            credentialState = .loaded
+        } catch {
+            guard generation == credentialLoadGeneration else { return }
+            if error is CancellationError || Task.isCancelled {
+                credentialState = .idle
+                return
+            }
+            credentialState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
+        }
+    }
+
+    func loadMoreOAuthGrants() async {
+        guard let client, let request = oauthGrantPagination.beginNextPage() else { return }
+        do {
+            let page: Page<OAuthGrant> = try await client.send(.myOAuthGrants(after: request.cursor))
+            oauthGrantPagination.complete(
+                request,
+                items: page.results.filter { !revokedOAuthGrantIds.contains($0.id) },
+                endCursor: page.pageInfo.endCursor,
+                hasNextPage: page.pageInfo.hasNextPage
+            )
+        } catch {
+            if error is CancellationError || Task.isCancelled {
+                oauthGrantPagination.cancel(request)
+            } else {
+                oauthGrantPagination.fail(
+                    request,
+                    error: error as? VouchaError ?? .unexpected(error.localizedDescription)
+                )
+            }
+        }
+    }
+
+    func revokeOAuthGrant(id: String) async {
+        guard let client, oauthGrants.contains(where: { $0.id == id }), !isLoading else { return }
+        await mutate {
+            do {
+                let _: EmptyResponse = try await client.send(.revokeMyOAuthGrant(id: id))
+            } catch VouchaError.notFound {}
+            reconcileRevokedOAuthGrant(id: id)
+            statusMessage = .message(.nativeCredentialsGrantRevoked)
+        }
+    }
+}
+
+extension SettingsViewModel {
+    var isScopeAdministrator: Bool {
+        identity?.roles.contains("administrator") == true
+    }
+
+    func replaceOAuthGrantPage(_ page: Page<OAuthGrant>) {
+        oauthGrantPagination.reset(items: page.results.filter { !revokedOAuthGrantIds.contains($0.id) })
+        oauthGrantPagination.restoreContinuation(endCursor: page.pageInfo.endCursor, hasMore: page.pageInfo.hasNextPage)
+    }
+
+    func reconcileRevokedOAuthGrant(id: String) {
+        credentialLoadGeneration += 1
+        revokedOAuthGrantIds.insert(id)
+        oauthGrantPagination.invalidateRequestsPreservingPage()
+        oauthGrantPagination.remove { $0.id == id }
+        if case .loading = credentialState { credentialState = .loaded }
+    }
+}

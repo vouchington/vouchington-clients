@@ -445,7 +445,10 @@ public sealed class ProfileViewModelTests
     public Task<UserDataRequestCreationResponse> CreateUserDataRequestAsync(string idOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<DeleteUserResponse> DeleteUserAsync(string idOrSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<ApiKeyCreationResponse> CreateApiKeyAsync(string label, string type, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<ApiKeyCreationResponse> CreateApiKeyAsync(string label, string type, IReadOnlyList<string> permissions, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<ScopeCatalogResponse> FetchScopeCatalogAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<OAuthGrantListResponse> FetchOAuthGrantsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task RevokeOAuthGrantAsync(string id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ProfileLinkListResponse> FetchProfileLinksAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ProfileLinkResponse> CreateProfileLinkAsync(CreateProfileLinkBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

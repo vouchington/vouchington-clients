@@ -138,7 +138,8 @@ public sealed partial class SettingsViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastFetchedUserIdOrSlug = idOrSlug;
-      return Task.FromResult(CreateUser());
+      var response = CreateUser();
+      return Task.FromResult(response with { User = response.User with { Roles = Roles } });
     }
 
     public Task<UserResponse> UpdateUserAsync(
@@ -203,6 +204,7 @@ public sealed partial class SettingsViewModelTests
     public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
         string label,
         string type,
+        IReadOnlyList<string> permissions,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
 
@@ -305,7 +307,7 @@ public sealed partial class SettingsViewModelTests
             "rk_abc123",
             "rss",
             "Reader",
-            ["rss-feeds:read"],
+            ["rss:read"],
             DateTimeOffset.Parse("2026-07-01T12:00:00Z"),
             null,
             null,

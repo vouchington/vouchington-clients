@@ -19,12 +19,13 @@ extension SettingsSurface {
                 Text(UiMessages.string(.nativeSwiftSettingsMcp, locale: nativeUiLocale)).tag(ApiKeyType.mcp)
             }
             .pickerStyle(.segmented)
+            .disabled(viewModel.isLoading)
+            apiKeyScopePicker
             Button(UiMessages.string(.nativeSwiftSettingsCreateApiKey, locale: nativeUiLocale)) {
                 Task { await viewModel.createApiKey() }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(viewModel.apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel
-                .isLoading)
+            .disabled(!viewModel.canCreateApiKey)
 
             LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                 ForEach(viewModel.apiKeys) { key in

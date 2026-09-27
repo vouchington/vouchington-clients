@@ -7,7 +7,10 @@ public sealed partial class SettingsViewModel
   public string ApiKeyLabel
   {
     get => apiKeyLabel;
-    set => SetProperty(ref apiKeyLabel, value ?? string.Empty);
+    set
+    {
+      if (SetProperty(ref apiKeyLabel, value ?? string.Empty)) OnPropertyChanged(nameof(CanCreateApiKey));
+    }
   }
 
   public string ApiKeyType
@@ -18,6 +21,7 @@ public sealed partial class SettingsViewModel
       if (SetProperty(ref apiKeyType, value ?? "rss"))
       {
         OnPropertyChanged(nameof(SelectedApiKeyTypeOption));
+        RebuildScopeSelection();
       }
     }
   }

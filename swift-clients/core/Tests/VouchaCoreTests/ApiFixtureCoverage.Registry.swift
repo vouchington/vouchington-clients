@@ -47,6 +47,7 @@ enum ApiFixtureCoverage {
         spendingCategoryFixtureCoverage +
         rewardsProgramStatusFixtureCoverage +
         currencyFixtureCoverage +
+        credentialFixtureCoverage +
         emailAddressFixtureCoverage +
         fediverseFixtureCoverage +
         firstPagePaginationFixtureCoverage +

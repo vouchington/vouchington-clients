@@ -157,12 +157,17 @@ public sealed class SettingsViewModelProfileLinksTests
         CancellationToken cancellationToken = default) =>
         Task.FromResult(new DeleteUserResponse(false));
 
+    public Task<ScopeCatalogResponse> FetchScopeCatalogAsync(CancellationToken cancellationToken = default) => Task.FromResult(SettingsCredentialTestFixtures.Catalog);
+    public Task<OAuthGrantListResponse> FetchOAuthGrantsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) => Task.FromResult(SettingsCredentialTestFixtures.EmptyGrants);
+    public Task RevokeOAuthGrantAsync(string id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
     public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new ApiKeyListResponse([], new PageInfo(null, false, null)));
 
     public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
         string label,
         string type,
+        IReadOnlyList<string> permissions,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
 

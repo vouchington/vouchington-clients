@@ -451,7 +451,10 @@ public sealed partial class NotificationPreferencesViewTests
         Task.FromResult(new ApiKeyListResponse([], new PageInfo(null, false, null)));
 
     public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
-        string label, string type, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        string label, string type, IReadOnlyList<string> permissions, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<ScopeCatalogResponse> FetchScopeCatalogAsync(CancellationToken cancellationToken = default) => Task.FromResult(new ScopeCatalogResponse([]));
+    public Task<OAuthGrantListResponse> FetchOAuthGrantsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) => Task.FromResult(new OAuthGrantListResponse([], new PageInfo(null, false, null)));
+    public Task RevokeOAuthGrantAsync(string id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) => Task.CompletedTask;
 

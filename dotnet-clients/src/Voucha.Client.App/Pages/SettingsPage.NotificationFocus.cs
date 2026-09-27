@@ -41,6 +41,7 @@ public partial class SettingsPage
     ProfileLinksSection.IsVisible = !notificationSettingsFocused;
     PrivacySection.IsVisible = !notificationSettingsFocused;
     ApiKeysSection.IsVisible = !notificationSettingsFocused;
+    ConnectedAppsSection.IsVisible = !notificationSettingsFocused;
     LegalSupportSection.IsVisible = !notificationSettingsFocused;
     MembershipSection.IsVisible = !notificationSettingsFocused;
     SessionsSection.IsVisible = !notificationSettingsFocused;

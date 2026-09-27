@@ -15,6 +15,13 @@ public final class SettingsViewModel {
     public internal(set) var identity: PrivateUser?
     public internal(set) var profileLinks: [VouchaModels.ProfileLink] = []
     var apiKeyPagination = CursorPaginationState<ApiKey>()
+    var oauthGrantPagination = CursorPaginationState<OAuthGrant>()
+    public internal(set) var apiKeyScopeSelection = ApiKeyScopeSelection()
+    public internal(set) var credentialState: LoadState = .idle
+    @ObservationIgnored
+    var credentialLoadGeneration = 0
+    @ObservationIgnored
+    var revokedOAuthGrantIds: Set<String> = []
     var pushSubscriptionPagination = CursorPaginationState<WebPushSubscription>()
     var sessionPagination = CursorPaginationState<AuthSession>()
     @ObservationIgnored
@@ -83,7 +90,10 @@ public final class SettingsViewModel {
     public var profileLinkImageId = ""
 
     public var apiKeyLabel = ""
-    public var apiKeyType: ApiKeyType = .rss
+    public var apiKeyType: ApiKeyType = .rss {
+        didSet { apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator) }
+    }
+
     public var deleteConfirmation = ""
     public var localLLMEnabled = false
     public internal(set) var localLLMConfiguration: LocalLLMConfiguration = .disabled

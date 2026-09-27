@@ -34,7 +34,7 @@ public sealed class ApiSettingsServiceSettingsCoverageTests
     await service.DeleteAuthSessionAsync("session-1", TestContext.Current.CancellationToken);
     await service.RevokeAuthSessionsAsync(TestContext.Current.CancellationToken);
     await service.FetchApiKeysAsync(TestContext.Current.CancellationToken);
-    await service.CreateApiKeyAsync("  Reader  ", "mcp", TestContext.Current.CancellationToken);
+    await service.CreateApiKeyAsync("  Reader  ", "mcp", ["mcp.user:read"], TestContext.Current.CancellationToken);
     await service.DeleteApiKeyAsync("api-key-1", TestContext.Current.CancellationToken);
 
     Assert.Equal(9, handler.Requests.Count);
@@ -65,7 +65,7 @@ public sealed class ApiSettingsServiceSettingsCoverageTests
     Assert.Equal("/api/v1/my/api-keys", handler.Requests[7].PathAndQuery);
     Assert.Contains("\"label\":\"Reader\"", handler.Requests[7].Body, StringComparison.Ordinal);
     Assert.Contains("\"type\":\"mcp\"", handler.Requests[7].Body, StringComparison.Ordinal);
-    Assert.Contains("\"permissions\":[\"mcp-tools:read\",\"mcp-tools:write\"]", handler.Requests[7].Body, StringComparison.Ordinal);
+    Assert.Contains("\"permissions\":[\"mcp.user:read\"]", handler.Requests[7].Body, StringComparison.Ordinal);
 
     Assert.Equal(HttpMethod.Delete, handler.Requests[8].Method);
     Assert.Equal("/api/v1/my/api-keys/api-key-1", handler.Requests[8].PathAndQuery);
@@ -243,7 +243,7 @@ public sealed class ApiSettingsServiceSettingsCoverageTests
           "rk_abc123",
           "mcp",
           "Reader",
-          ["mcp-tools:read", "mcp-tools:write"],
+          ["mcp.user:read", "mcp.user:write"],
           DateTimeOffset.Parse("2026-07-01T12:00:00Z"),
           null,
           null,

@@ -30,6 +30,12 @@ public sealed partial class SettingsViewModel
     OnPropertyChanged(nameof(SupportedUiLocaleCount));
     OnPropertyChanged(nameof(ApiKeyTypeOptions));
     OnPropertyChanged(nameof(SelectedApiKeyTypeOption));
+    NotifyScopeSelection();
+    OnPropertyChanged(nameof(ApiKeyAudienceOptions));
+    OnPropertyChanged(nameof(SelectedApiKeyAudienceOption));
+    OnPropertyChanged(nameof(LocalizedOAuthGrants));
+    OnPropertyChanged(nameof(CredentialNotice));
+    OnPropertyChanged(nameof(OAuthGrantNotice));
     OnPropertyChanged(nameof(DisplayNameSourceOptions));
     OnPropertyChanged(nameof(SelectedDisplayNameSourceOption));
     OnPropertyChanged(nameof(ProfileLinkTypeOptions));

@@ -453,7 +453,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("userDataRequest", VouchaApiEndpoints.UserDataRequest("user-1"), HttpMethod.Get, "/api/v1/users/user-1/data-request", Query());
     yield return Case("deleteUser", VouchaApiEndpoints.DeleteUser("user-1"), HttpMethod.Delete, "/api/v1/users/user-1", Query());
     yield return Case("apiKeys", VouchaApiEndpoints.ApiKeys(), HttpMethod.Get, "/api/v1/my/api-keys", Query());
-    yield return Case("createApiKey", VouchaApiEndpoints.CreateApiKey(new CreateApiKeyBody("RSS", ["rss-feeds:read"])), HttpMethod.Post, "/api/v1/my/api-keys", Query(), true);
+    yield return Case("createApiKey", VouchaApiEndpoints.CreateApiKey(new CreateApiKeyBody("RSS", ["rss:read"])), HttpMethod.Post, "/api/v1/my/api-keys", Query(), true);
     yield return Case("deleteApiKey", VouchaApiEndpoints.DeleteApiKey("key-1"), HttpMethod.Delete, "/api/v1/my/api-keys/key-1", Query());
     yield return Case("profileLinks", VouchaApiEndpoints.ProfileLinks(), HttpMethod.Get, "/api/v1/my/profile/links", Query());
     yield return Case("createProfileLink", VouchaApiEndpoints.CreateProfileLink(new CreateProfileLinkBody("github", Handle: "alice")), HttpMethod.Post, "/api/v1/my/profile/links", Query(), true);
