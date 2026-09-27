@@ -54,7 +54,14 @@ describe('event-driven CI orchestration', () => {
 
     const workflow = await readWorkflow('native-contract-tests.yml')
 
-    assert.match(workflow, /pull_request:\n\s+types:/u)
+    assert.equal(
+      workflow.includes('pull_request:\n    types: [opened, synchronize, reopened]\n'),
+      true,
+    )
+    assert.equal(
+      workflow.includes('ready_for_review') || workflow.includes('converted_to_draft'),
+      false,
+    )
     assert.doesNotMatch(workflow, /pull_request_target:/u)
     assert.match(workflow, /push:\n\s+branches: \[main\]/u)
     assert.match(
@@ -83,5 +90,18 @@ describe('event-driven CI orchestration', () => {
     assert.doesNotMatch(workflow, /dto-fixture-parity-(?:dotnet|swift)-\$\{\{/u)
     assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u)
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
+  })
+
+  it('does not restart validate when a draft pull request is marked ready', async () => {
+    const workflow = await readWorkflow('validate.yml')
+
+    assert.equal(
+      workflow.includes('pull_request:\n    types: [opened, synchronize, reopened]\n'),
+      true,
+    )
+    assert.equal(
+      workflow.includes('ready_for_review') || workflow.includes('converted_to_draft'),
+      false,
+    )
   })
 })
