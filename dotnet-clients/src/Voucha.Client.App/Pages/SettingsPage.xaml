@@ -227,9 +227,18 @@
                                 <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}" CheckedChanged="OnApiKeyScopeChanged" />
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="{Binding Scope}" Style="{StaticResource Body}" />
-                                    <Label Text="{Binding Resource}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Action}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Audience}" Style="{StaticResource Metadata}" />
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{DynamicResource native.credentials.resource}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding Resource}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{DynamicResource native.credentials.action}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding Action}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{DynamicResource native.credentials.audience}" Style="{StaticResource Metadata}" />
+                                        <Label Text="{Binding Audience}" Style="{StaticResource Metadata}" />
+                                    </HorizontalStackLayout>
                                     <Label Text="{Binding Requires}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding Description}" Style="{StaticResource Metadata}" />
                                 </VerticalStackLayout>

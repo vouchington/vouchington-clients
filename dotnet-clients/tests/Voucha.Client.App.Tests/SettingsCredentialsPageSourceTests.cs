@@ -10,7 +10,7 @@ public sealed class SettingsCredentialsPageSourceTests
   public void ApiKeyControlsBindCatalogueRowsAndValidatedCreationState()
   {
     var document = SettingsDocument();
-    var scopeList = ElementWithBinding(document, "ItemsSource", "{Binding ApiKeyScopes}");
+    var scopeList = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding ApiKeyScopes}");
     var scopeTemplate = Assert.Single(scopeList.Descendants().Where(element => element.Name.LocalName == "DataTemplate"));
     var checkBox = Assert.Single(scopeTemplate.Descendants().Where(element => element.Name.LocalName == "CheckBox"));
     Assert.Equal("{Binding IsSelected, Mode=OneWay}", Attribute(checkBox, "IsChecked"));
@@ -18,6 +18,9 @@ public sealed class SettingsCredentialsPageSourceTests
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Audience}");
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Requires}");
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Description}");
+    foreach (var key in new[] { "resource", "action", "audience" })
+      Assert.Contains(scopeTemplate.Descendants(), element =>
+          Attribute(element, "Text") == $"{{DynamicResource native.credentials.{key}}}");
     var create = document.Descendants().Single(element =>
         Attribute(element, "Clicked") == "OnCreateApiKeyClicked");
     Assert.Equal("{Binding CanCreateApiKey}", Attribute(create, "IsEnabled"));
@@ -27,7 +30,7 @@ public sealed class SettingsCredentialsPageSourceTests
   public void ConnectedAppsRenderGrantIdentityMetadataRevocationAndPagination()
   {
     var document = SettingsDocument();
-    var list = ElementWithBinding(document, "ItemsSource", "{Binding LocalizedOAuthGrants}");
+    var list = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding LocalizedOAuthGrants}");
     var template = Assert.Single(list.Descendants().Where(element => element.Name.LocalName == "DataTemplate"));
     foreach (var binding in new[] { "ClientName", "Verification", "Resource", "Scopes", "Activity" })
       Assert.Contains(template.Descendants(), element => Attribute(element, "Text") == $"{{Binding {binding}}}");
