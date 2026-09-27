@@ -23,4 +23,6 @@ the local overlay alone. Use the local Swift or .NET test-authoring overlay only
 Set `AGENT_BLACKBOARD_URL` and `AGENT_BLACKBOARD_TOKEN` before starting Codex. The tracked
 `.codex/config.toml` enables the upstream Agent Blackboard plugin and auto-approves only the eight
 current tools. The project-scoped Claude and native Cursor/Grok registrations remain separately
-pinned to `agent-blackboard@0.5.0`.
+pinned to `agent-blackboard@0.5.0`. Machine sandbox, model, approval-mode, and startup defaults
+belong in the host setup described by the [agent configuration ownership
+contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).

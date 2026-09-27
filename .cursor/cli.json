@@ -1,19 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Shell(pnpm)",
-      "Shell(node)",
-      "Shell(npx)",
-      "Shell(git)",
-      "Shell(gh)",
-      "Shell(pr-shepherd)",
       "Shell(no-mistakes)",
       "Shell(swift)",
       "Shell(xcodebuild)",
       "Shell(dotnet)",
-      "Shell(cargo)",
-      "Shell(rustfmt)",
-      "Shell(jq)",
       "Mcp(agent-blackboard:entry_append)",
       "Mcp(agent-blackboard:entry_get)",
       "Mcp(agent-blackboard:session_archive)",
@@ -24,15 +15,7 @@
       "Mcp(agent-blackboard:snapshot_export)"
     ],
     "deny": [
-      "Shell(sudo)",
-      "Read(~/.ssh/**)",
-      "Write(~/.ssh/**)",
-      "Write(~/.gitconfig)",
-      "Read(~/.git-credentials)",
-      "Write(~/.git-credentials)",
-      "Read(~/.aws/**)",
-      "Write(~/.aws/**)",
-      "Read(~/.config/gh/**)"
+      "Shell(sudo)"
     ]
   }
 }

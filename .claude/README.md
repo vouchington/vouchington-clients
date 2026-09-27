@@ -42,4 +42,7 @@ workflow. Its repository guidance is portable; it does not install Filaments web
 or post-edit hooks in this client checkout.
 
 The project settings pre-authorize only the eight current Agent Blackboard tools. Session ids,
-agent names, and parent-session ids remain explicit inputs; the server must not infer them.
+agent names, and parent-session ids remain explicit inputs; the server must not infer them. Keep
+project plugins, MCP integrations, and project-specific hooks here. Machine sandbox, model,
+permission-mode, and startup defaults belong in the host setup described by the [agent
+configuration ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).

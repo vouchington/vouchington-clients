@@ -4,10 +4,11 @@ Grok is a supported local assistant for this repository. It reads checked-in `AG
 and shared skills from [`.agents/skills/`](../.agents/skills); it does not receive copied
 `AGENTS.md`, hooks, skills, or provider-specific permission files.
 
-- The native MCP registration and exact eight-tool allowlist live in [`config.toml`](config.toml).
-  Credentials are read only from `AGENT_BLACKBOARD_URL` and `AGENT_BLACKBOARD_TOKEN`.
-- Launch with `grok --sandbox workspace-write` (or set `GROK_SANDBOX=workspace-write`) to use the
-  portable profile in [`sandbox.toml`](sandbox.toml).
+- Grok reads the project MCP registration from [`.mcp.json`](../.mcp.json); the exact eight-tool
+  Agent Blackboard permission allowlist remains in [`config.toml`](config.toml). Credentials are
+  read only from `AGENT_BLACKBOARD_URL` and `AGENT_BLACKBOARD_TOKEN`.
+- Sandbox profiles, host-specific cache paths, and machine defaults belong in the host setup
+  described by the [agent configuration ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).
 - Follow the Swift and .NET `AGENTS.md` files for native commands and boundaries. Use the
   [pr-shepherd plugin guidance](../.claude/README.md#review-workflow) when PR iteration is in
   scope.
