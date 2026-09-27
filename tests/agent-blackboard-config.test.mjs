@@ -127,7 +127,7 @@ describe('Agent Blackboard host configuration', () => {
     assert.equal(existsSync(resolve(root, '.grok/hooks')), false)
   })
 
-  it('documents focused plugin provisioning and the Codex CLAUDE fallback', () => {
+  it('documents focused plugin provisioning and reads AGENTS.md without a CLAUDE fallback', () => {
     const claude = readFileSync(resolve(root, '.claude/README.md'), 'utf8')
     assert.match(claude, /vouchington-workflow@vouchington/u)
     assert.match(claude, /vouchington-testing@vouchington/u)
@@ -136,7 +136,8 @@ describe('Agent Blackboard host configuration', () => {
     const codex = readFileSync(resolve(root, '.codex/README.md'), 'utf8')
     assert.match(codex, /vouchington-testing@vouchington/u)
     const codexConfig = readFileSync(resolve(root, '.codex/config.toml'), 'utf8')
-    assert.match(codexConfig, /project_doc_fallback_filenames\s*=\s*\["CLAUDE\.md"\]/u)
+    assert.equal(codexConfig.includes('project_doc_fallback_filenames'), false)
+    assert.match(codexConfig, /Do not add a CLAUDE\.md fallback/u)
     const settings = readJson('.claude/settings.json')
     assert.equal(settings.enabledPlugins['vouchington-workflow@vouchington'], true)
     assert.equal(settings.enabledPlugins['vouchington-testing@vouchington'], true)
