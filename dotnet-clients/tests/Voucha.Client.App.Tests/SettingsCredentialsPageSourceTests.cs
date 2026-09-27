@@ -11,8 +11,8 @@ public sealed class SettingsCredentialsPageSourceTests
   {
     var document = SettingsDocument();
     var scopeList = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding ApiKeyScopes}");
-    var scopeTemplate = Assert.Single(scopeList.Descendants().Where(element => element.Name.LocalName == "DataTemplate"));
-    var checkBox = Assert.Single(scopeTemplate.Descendants().Where(element => element.Name.LocalName == "CheckBox"));
+    var scopeTemplate = Assert.Single(scopeList.Descendants(), element => element.Name.LocalName == "DataTemplate");
+    var checkBox = Assert.Single(scopeTemplate.Descendants(), element => element.Name.LocalName == "CheckBox");
     Assert.Equal("{Binding IsSelected, Mode=OneWay}", Attribute(checkBox, "IsChecked"));
     Assert.Equal("OnApiKeyScopeChanged", Attribute(checkBox, "CheckedChanged"));
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Audience}");
@@ -31,7 +31,7 @@ public sealed class SettingsCredentialsPageSourceTests
   {
     var document = SettingsDocument();
     var list = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding LocalizedOAuthGrants}");
-    var template = Assert.Single(list.Descendants().Where(element => element.Name.LocalName == "DataTemplate"));
+    var template = Assert.Single(list.Descendants(), element => element.Name.LocalName == "DataTemplate");
     foreach (var binding in new[] { "ClientName", "Verification", "Resource", "Scopes", "Activity" })
       Assert.Contains(template.Descendants(), element => Attribute(element, "Text") == $"{{Binding {binding}}}");
     var revoke = template.Descendants().Single(element =>
