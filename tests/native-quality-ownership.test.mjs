@@ -50,7 +50,7 @@ describe('native quality ownership', () => {
     assert.match(workspace, /no-mistakes: true/)
     assert.doesNotMatch(workspace, /set this to true or false/)
 
-    const instructions = await readFile(new URL('../CLAUDE.md', import.meta.url), 'utf8')
+    const instructions = await readFile(new URL('../AGENTS.md', import.meta.url), 'utf8')
     assert.match(instructions, /pnpm run test:plan:swift/)
     assert.match(instructions, /pnpm run test:plan:dotnet/)
     const qualityDocs = await readFile(

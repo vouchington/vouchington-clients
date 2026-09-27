@@ -1,7 +1,7 @@
 # Voucha native clients
 
 Work from this repository root. Native client source has its own scoped instructions in
-`swift-clients/CLAUDE.md` and `dotnet-clients/CLAUDE.md`; read them before changing either tree.
+`swift-clients/AGENTS.md` and `dotnet-clients/AGENTS.md`; read them before changing either tree.
 
 ## Cross-repository contracts
 

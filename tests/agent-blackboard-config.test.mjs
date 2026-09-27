@@ -70,7 +70,7 @@ describe('Agent Blackboard host configuration', () => {
   })
 
   it('requires fail-closed, explicit session journaling in root instructions', () => {
-    const instructions = readFileSync(resolve(root, 'CLAUDE.md'), 'utf8')
+    const instructions = readFileSync(resolve(root, 'AGENTS.md'), 'utf8')
     assert.match(instructions, /upstream `agent-blackboard` plugin/u)
     assert.match(instructions, /`vouchington-workflow:blackboard`/u)
     assert.match(instructions, /Session ids.*must\s+be\s+explicit/isu)
@@ -148,12 +148,12 @@ describe('Agent Blackboard host configuration', () => {
       [
         'swift-test-authoring',
         'vouchington-testing:swift-test-authoring',
-        'swift-clients/CLAUDE.md',
+        'swift-clients/AGENTS.md',
       ],
       [
         'dotnet-test-authoring',
         'vouchington-testing:dotnet-test-authoring',
-        'dotnet-clients/CLAUDE.md',
+        'dotnet-clients/AGENTS.md',
       ],
     ]) {
       const skill = readFileSync(resolve(root, `.agents/skills/${name}/SKILL.md`), 'utf8')
@@ -165,8 +165,8 @@ describe('Agent Blackboard host configuration', () => {
   })
 
   it('keeps client-owned architecture links local and Vouchington-owned links explicit', () => {
-    const swift = readFileSync(resolve(root, 'swift-clients/CLAUDE.md'), 'utf8')
-    const dotnet = readFileSync(resolve(root, 'dotnet-clients/CLAUDE.md'), 'utf8')
+    const swift = readFileSync(resolve(root, 'swift-clients/AGENTS.md'), 'utf8')
+    const dotnet = readFileSync(resolve(root, 'dotnet-clients/AGENTS.md'), 'utf8')
     for (const instructions of [swift, dotnet]) {
       assert.match(
         instructions,

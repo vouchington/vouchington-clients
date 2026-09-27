@@ -1,6 +1,6 @@
 # Codex configuration
 
-Codex reads the checked-in `CLAUDE.md` files through the fallback configured in
+Codex reads the checked-in `AGENTS.md` files through the fallback configured in
 [`config.toml`](config.toml), and discovers local overlays under [`.agents/skills/`](../.agents/skills).
 Install the focused public plugins once in the Codex environment:
 

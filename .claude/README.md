@@ -21,7 +21,7 @@ claude plugin install pr-shepherd@jonathanong --scope project
 Confirm with `claude plugin marketplace list`, `claude plugin list`, and
 `claude plugin details <plugin>@<marketplace>`. The local Swift and .NET test-authoring files are
 thin overlays: they must load the matching `vouchington-testing` skill first and then apply the
-client's `CLAUDE.md` and README guidance. If the canonical plugin is unavailable, stop and report
+client's `AGENTS.md` and README guidance. If the canonical plugin is unavailable, stop and report
 the prerequisite instead of using the overlay alone.
 
 ### Review workflow

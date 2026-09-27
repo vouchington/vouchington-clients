@@ -155,5 +155,5 @@ must remain safe when the key is absent.
 
 ## Agent rules
 
-Read [CLAUDE.md](CLAUDE.md) before implementation for native parity, portable-core boundaries,
+Read [AGENTS.md](AGENTS.md) before implementation for native parity, portable-core boundaries,
 session storage, TLS pinning, and file-size invariants.

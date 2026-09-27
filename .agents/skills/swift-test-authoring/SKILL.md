@@ -14,7 +14,7 @@ cannot be read, stop and report the missing prerequisite; never apply this overl
 ## Client additions
 
 This `vouchington-clients` overlay is intentionally limited to Swift-native policy.
-Read [`swift-clients/CLAUDE.md`](../../../swift-clients/CLAUDE.md) and
+Read [`swift-clients/AGENTS.md`](../../../swift-clients/AGENTS.md) and
 [`swift-clients/README.md`](../../../swift-clients/README.md) before changing a Swift test. The
 canonical skill owns portable testing policy; this overlay supplies the client-specific harness,
 coverage, ViewInspector, `URLProtocol`, file-length, and native-selection guidance from those

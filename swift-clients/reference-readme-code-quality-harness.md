@@ -117,5 +117,5 @@ the exact `expensive-build` wrapper marker and matching exit status; every other
 
 ## Development
 
-Read [CLAUDE.md](CLAUDE.md) before implementation for native parity, coverage thresholds, portable
+Read [AGENTS.md](AGENTS.md) before implementation for native parity, coverage thresholds, portable
 core boundaries, dependency, auth, API parity, and entitlement invariants.

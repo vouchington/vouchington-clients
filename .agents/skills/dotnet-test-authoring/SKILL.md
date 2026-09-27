@@ -14,7 +14,7 @@ cannot be read, stop and report the missing prerequisite; never apply this overl
 ## Client additions
 
 This `vouchington-clients` overlay is intentionally limited to .NET-native policy.
-Read [`dotnet-clients/CLAUDE.md`](../../../dotnet-clients/CLAUDE.md) and
+Read [`dotnet-clients/AGENTS.md`](../../../dotnet-clients/AGENTS.md) and
 [`dotnet-clients/README.md`](../../../dotnet-clients/README.md) before changing a .NET test. The
 canonical skill owns portable test-authoring policy; this overlay supplies the client-specific
 Core/App split, harness, coverage, native-selection, file-length, and Mac Catalyst guidance from
