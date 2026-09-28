@@ -93,5 +93,29 @@ public sealed class CursorPaginationStateTests
     Assert.Equal(["newest"], state.Items.Select(item => item.Id));
   }
 
+  [Fact]
+  public void DeliveryIdentityRetainsSharedItemHydrationAcrossPages()
+  {
+    var state = new CursorPaginationState<DeliveryRow, string>(row => row.DeliveryId);
+    var first = Assert.IsType<CursorPageRequest>(state.BeginInitialPageIfNeeded());
+    Assert.True(state.Complete(first, [
+      new("item-X", "share-A"),
+      new("item-X", "share-B"),
+      new("item-X", "direct"),
+    ], "cursor-1", hasNextPage: true));
+
+    var second = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+    Assert.Equal("cursor-1", second.Cursor);
+    Assert.True(state.Complete(second, [
+      new("item-X", "share-A"),
+      new("item-X", "share-C"),
+    ], null, hasNextPage: false));
+
+    Assert.Equal(["share-A", "share-B", "direct", "share-C"], state.Items.Select(row => row.DeliveryId));
+    Assert.All(state.Items, row => Assert.Equal("item-X", row.ItemId));
+  }
+
   private sealed record Item(string Id);
+
+  private sealed record DeliveryRow(string ItemId, string DeliveryId);
 }

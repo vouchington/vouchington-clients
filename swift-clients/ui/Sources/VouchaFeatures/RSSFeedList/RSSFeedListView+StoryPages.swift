@@ -5,8 +5,9 @@ import VouchaModels
 
 extension RSSFeedListView {
     @ViewBuilder
-    func storyRelatedArticlesView(for item: RssFeedItem) -> some View {
-        if let related = viewModel.relatedArticles(rssFeedItemId: item.id),
+    func storyRelatedArticlesView(for row: RssFeedListRow) -> some View {
+        let item = row.item
+        if row.showsStory, let related = viewModel.relatedArticles(rssFeedItemId: item.id),
            related.pagination.hasMore || related.pagination.items.contains(where: {
                !viewModel.hiddenItemIds.contains($0.id)
            }) {

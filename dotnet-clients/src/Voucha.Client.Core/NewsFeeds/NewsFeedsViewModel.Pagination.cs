@@ -5,7 +5,7 @@ namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed partial class NewsFeedsViewModel
 {
-  private readonly CursorPaginationState<NewsFeedItem, string> feedPages = new(item => item.Id);
+  private readonly CursorPaginationState<NewsFeedItem, string> feedPages = new(item => item.FeedRowId);
 
   public bool HasMore => feedPages.HasLoadedPage && feedPages.HasMore;
   public bool IsLoadingMore => feedPages.IsLoading && !IsLoading;

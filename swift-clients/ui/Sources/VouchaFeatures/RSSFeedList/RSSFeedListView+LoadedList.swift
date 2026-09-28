@@ -12,11 +12,11 @@ extension RSSFeedListView {
                     .foregroundStyle(Colors.secondaryLabel)
                     .accessibilityAddTraits(.isStaticText)
             }
-            ForEach(viewModel.items) { item in
+            ForEach(viewModel.feedRows) { row in
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    rssFeedArticleCard(item)
-                    storyRelatedArticlesView(for: item)
-                    if let embed = viewModel.embedsByItemId[item.id] {
+                    rssFeedArticleCard(row.item)
+                    storyRelatedArticlesView(for: row)
+                    if let embed = viewModel.embedsByItemId[row.item.id] {
                         ProviderEmbedPreview(embed: embed)
                     }
                     if isSignedIn, let currentUserId {
@@ -25,29 +25,29 @@ extension RSSFeedListView {
                             FollowerDistributionActions(
                                 client: viewModel.client,
                                 currentUserId: currentUserId,
-                                target: .rssFeedItem(item.id)
+                                target: .rssFeedItem(row.item.id)
                             )
                         }
                     }
-                    if showsPlaybackAccessory, shouldShowPlaybackAccessory(for: item) {
+                    if showsPlaybackAccessory, shouldShowPlaybackAccessory(for: row.item) {
                         RSSFeedPlaybackAccessoryView(
-                            item: item,
-                            isCurrentItem: playbackController.isCurrentItem(item),
-                            isPlaying: playbackController.isCurrentItem(item) && playbackController.isPlaying,
+                            item: row.item,
+                            isCurrentItem: playbackController.isCurrentItem(row.item),
+                            isPlaying: playbackController.isCurrentItem(row.item) && playbackController.isPlaying,
                             onPlayPauseTap: {
-                                _ = Task<Void, Never> { await playbackController.togglePlayback(for: item) }
+                                _ = Task<Void, Never> { await playbackController.togglePlayback(for: row.item) }
                             }
                         )
                     }
-                    if isSignedIn, viewModel.canStartStoryDiscussion(rssFeedItemId: item.id) {
+                    if row.showsStory, isSignedIn, viewModel.canStartStoryDiscussion(rssFeedItemId: row.item.id) {
                         Button {
                             _ = Task<Void, Never> {
-                                if let destination = await viewModel.startStoryDiscussion(rssFeedItemId: item.id) {
+                                if let destination = await viewModel.startStoryDiscussion(rssFeedItemId: row.item.id) {
                                     storyDiscussionDestination = destination
                                 }
                             }
                         } label: {
-                            if viewModel.isStartingStoryDiscussion(rssFeedItemId: item.id) {
+                            if viewModel.isStartingStoryDiscussion(rssFeedItemId: row.item.id) {
                                 ProgressView()
                             } else {
                                 Label(
@@ -58,9 +58,10 @@ extension RSSFeedListView {
                             }
                         }
                         .buttonStyle(.bordered)
-                        .disabled(viewModel.isStartingStoryDiscussion(rssFeedItemId: item.id))
+                        .disabled(viewModel.isStartingStoryDiscussion(rssFeedItemId: row.item.id))
                     }
-                    if let destination = viewModel.storyDiscussionDestination(rssFeedItemId: item.id) {
+                    if row.showsStory,
+                       let destination = viewModel.storyDiscussionDestination(rssFeedItemId: row.item.id) {
                         openStoryDiscussionButton(destination)
                     }
                 }

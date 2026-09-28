@@ -6,11 +6,13 @@ import VouchaModels
 @Observable
 @MainActor
 public final class RSSFeedListViewModel {
-    var pagination = CursorPaginationState<RssFeedItem>()
+    var pagination = CursorPaginationState<RssFeedListRow>()
     private var actionState: LoadState?
     public var items: [RssFeedItem] {
-        pagination.items
+        pagination.items.map(\.item)
     }
+
+    var feedRows: [RssFeedListRow] { pagination.items }
 
     public internal(set) var state: LoadState {
         get { actionState ?? pagination.state }

@@ -55,8 +55,8 @@ extension RSSFeedListViewModel {
         }
     }
 
-    private func mergeSidecarsAndBuildItems(page: RssFeedPage) -> [RssFeedItem] {
-        var newItems: [RssFeedItem] = []
+    private func mergeSidecarsAndBuildItems(page: RssFeedPage) -> [RssFeedListRow] {
+        var newItems: [RssFeedListRow] = []
         for result in page.results {
             let itemId = result.entityId ?? result.id
             guard let item = page.rssFeedItems[itemId], !hiddenItemIds.contains(itemId) else { continue }
@@ -65,7 +65,8 @@ extension RSSFeedListViewModel {
                 relativeTo: apiBaseURL
             )
             let feedItem = item.replacingThumbnailURL(thumbnailURL)
-            if let storyId = result.storyId, result.deliveryType != "share" {
+            let showsStory = result.storyId != nil && result.deliveryType != "share"
+            if let storyId = result.storyId, showsStory {
                 storyIdsByItemId[itemId] = storyId
                 if let existing = storyRelatedArticlesByStoryId[storyId], existing.primaryItemId != itemId {
                     mergeStoryPeer(feedItem, into: existing)
@@ -82,7 +83,11 @@ extension RSSFeedListViewModel {
                     continue
                 }
             }
-            newItems.append(feedItem)
+            newItems.append(RssFeedListRow(
+                deliveryId: result.id,
+                item: feedItem,
+                showsStory: showsStory
+            ))
         }
         applyPageSidecars(page)
         return newItems
@@ -93,7 +98,7 @@ extension RSSFeedListViewModel {
         itemId: String,
         feedItem: RssFeedItem,
         page: RssFeedPage,
-        newItems: inout [RssFeedItem]
+        newItems: inout [RssFeedListRow]
     ) {
         guard storyRelatedArticlesByStoryId[storyId] == nil,
               let preview = page.storyMemberPages?[storyId] else { return }
@@ -103,22 +108,22 @@ extension RSSFeedListViewModel {
             thumbnails: page.rssFeedItemThumbnailUrl
         )
         guard preview.pageInfo.hasNextPage || peers.contains(where: { $0.id != itemId }) else { return }
-        let displayedMembers = (items + newItems).filter {
-            storyIdsByItemId[$0.id] == storyId
+        let displayedMembers = (pagination.items + newItems).filter {
+            $0.showsStory && storyIdsByItemId[$0.item.id] == storyId
         }
         let primaryItemId = displayedMembers.first {
-            !hiddenItemIds.contains($0.id) && page.bookmarks?[$0.id]?["hide"] != true
-        }?.id ?? itemId
+            !hiddenItemIds.contains($0.item.id) && page.bookmarks?[$0.item.id]?["hide"] != true
+        }?.item.id ?? itemId
         storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
             primaryItemId: primaryItemId,
-            items: displayedMembers.filter { $0.id != primaryItemId } + peers + [feedItem],
+            items: displayedMembers.filter { $0.item.id != primaryItemId }.map(\.item) + peers + [feedItem],
             pageInfo: preview.pageInfo
         )
         pagination.remove {
-            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
+            $0.showsStory && $0.item.id != primaryItemId && storyIdsByItemId[$0.item.id] == storyId
         }
         newItems.removeAll {
-            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
+            $0.showsStory && $0.item.id != primaryItemId && storyIdsByItemId[$0.item.id] == storyId
         }
     }
 

@@ -122,6 +122,7 @@ public extension RSSFeedListViewModel {
         let group: StoryRelatedArticles?
         let offset: Int
         let item: RssFeedItem
+        let feedRows: [RssFeedListRow]
     }
 
     private func removeItem(id: String) -> RemovedArticle? {
@@ -131,13 +132,17 @@ public extension RSSFeedListViewModel {
             var peers = group.pagination.items
             let peer = peers.remove(at: index)
             group.pagination.replaceItems(peers)
-            return RemovedArticle(group: group, offset: index, item: peer)
+            return RemovedArticle(group: group, offset: index, item: peer, feedRows: [])
         }
-        guard let index = items.firstIndex(where: { $0.id == id }) else { return nil }
-        var updatedItems = items
-        let item = updatedItems.remove(at: index)
-        pagination.replaceItems(updatedItems)
-        return RemovedArticle(group: nil, offset: index, item: item)
+        let matches = pagination.items.enumerated().filter { $0.element.item.id == id }
+        guard let first = matches.first else { return nil }
+        pagination.replaceItems(pagination.items.filter { $0.item.id != id })
+        return RemovedArticle(
+            group: nil,
+            offset: first.offset,
+            item: first.element.item,
+            feedRows: matches.map(\.element)
+        )
     }
 
     private func restoreItem(_ snapshot: RemovedArticle?) {
@@ -153,9 +158,13 @@ public extension RSSFeedListViewModel {
             group.pagination.replaceItems(peers)
             return
         }
-        guard !items.contains(where: { $0.id == snapshot.item.id }) else { return }
-        var updatedItems = items
-        updatedItems.insert(snapshot.item, at: min(snapshot.offset, items.count))
-        pagination.replaceItems(updatedItems)
+        let present = Set(pagination.items.map(\.deliveryId))
+        let missing = snapshot.feedRows.filter { !present.contains($0.deliveryId) }
+        guard !missing.isEmpty else { return }
+        var updated = pagination.items
+        for (index, row) in missing.enumerated() {
+            updated.insert(row, at: min(snapshot.offset + index, updated.count))
+        }
+        pagination.replaceItems(updated)
     }
 }
