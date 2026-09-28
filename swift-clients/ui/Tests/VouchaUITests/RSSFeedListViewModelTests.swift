@@ -324,69 +324,6 @@ final class RSSFeedListViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isHidden(rssFeedItemId: "i1"))
         XCTAssertEqual(vm.items.map(\.id), ["i1", "i2"])
     }
-}
-
-// MARK: - RSSFeedListViewModel (All Feed path)
-
-@MainActor
-final class RSSFeedListViewModelAllFeedTests: XCTestCase {
-    private let apiBaseURL = URL(string: "http://localhost:2999")!
-
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-    }
-
-    func makeViewModel(feedSource: FeedSource) -> RSSFeedListViewModel {
-        let config = AppConfig(baseURL: apiBaseURL, turnstileSiteKey: "test-site-key")
-        let apiClient = APIClient(
-            config: config,
-            cookieStorage: HTTPCookieStorage(),
-            protocolClasses: [CannedFeedURLProtocol.self]
-        )
-        return RSSFeedListViewModel(client: apiClient, contentType: .news, feedSource: feedSource)
-    }
-
-    func makeFeedPage(ids: [String], hasMore: Bool) -> Data {
-        let items = ids.map { id in
-            "\"\(id)\":{\"id\":\"\(id)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item \(id)\",\"description\":null,\"content\":null,\"link\":null,\"published_at\":null,\"creator\":null,\"categories\":[],\"media_content\":null}"
-        }.joined(separator: ",")
-        let results = ids.map { "{\"id\":\"\($0)\"}" }.joined(separator: ",")
-        return Data("""
-        {"results":[\(results)],"page_info":{"has_next_page":\(hasMore),"end_cursor":null},"rss_feed_items":{\(items)}}
-        """.utf8)
-    }
-
-    func testAllFeedHitsGlobalEndpoint() async {
-        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items"] = (
-            makeFeedPage(ids: ["a1", "a2"], hasMore: false),
-            200
-        )
-        let vm = makeViewModel(feedSource: .all)
-        await vm.load()
-        if case .loaded = vm.state {} else {
-            XCTFail("Expected .loaded")
-        }
-        XCTAssertEqual(vm.items.count, 2)
-        let path = CannedFeedURLProtocol.capturedURLs.first?.path
-        XCTAssertEqual(path, "/api/v1/rss-feed-items")
-    }
-
-    func testYourFeedHitsPersonalizedEndpoint() async {
-        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
-            makeFeedPage(ids: ["y1"], hasMore: false),
-            200
-        )
-        let vm = makeViewModel(feedSource: .your)
-        await vm.load()
-        if case .loaded = vm.state {} else {
-            XCTFail("Expected .loaded")
-        }
-        XCTAssertEqual(vm.items.count, 1)
-        let path = CannedFeedURLProtocol.capturedURLs.first?.path
-        XCTAssertEqual(path, "/api/v1/feeds/rss_feed_items/any")
-    }
 
     func testDistinctShareDeliveriesKeepSharedItemHydration() async {
         CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
@@ -449,5 +386,68 @@ final class RSSFeedListViewModelAllFeedTests: XCTestCase {
         XCTAssertEqual(vm.feedRows.map(\.showsStory), [true, false])
         XCTAssertEqual(vm.items.map(\.id), ["item-X", "item-X"])
         XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "item-X")?.primaryItemId, "item-X")
+    }
+}
+
+// MARK: - RSSFeedListViewModel (All Feed path)
+
+@MainActor
+final class RSSFeedListViewModelAllFeedTests: XCTestCase {
+    private let apiBaseURL = URL(string: "http://localhost:2999")!
+
+    override func setUp() {
+        super.setUp()
+        CannedFeedURLProtocol.handlers = [:]
+        CannedFeedURLProtocol.capturedURLs = []
+    }
+
+    func makeViewModel(feedSource: FeedSource) -> RSSFeedListViewModel {
+        let config = AppConfig(baseURL: apiBaseURL, turnstileSiteKey: "test-site-key")
+        let apiClient = APIClient(
+            config: config,
+            cookieStorage: HTTPCookieStorage(),
+            protocolClasses: [CannedFeedURLProtocol.self]
+        )
+        return RSSFeedListViewModel(client: apiClient, contentType: .news, feedSource: feedSource)
+    }
+
+    func makeFeedPage(ids: [String], hasMore: Bool) -> Data {
+        let items = ids.map { id in
+            "\"\(id)\":{\"id\":\"\(id)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item \(id)\",\"description\":null,\"content\":null,\"link\":null,\"published_at\":null,\"creator\":null,\"categories\":[],\"media_content\":null}"
+        }.joined(separator: ",")
+        let results = ids.map { "{\"id\":\"\($0)\"}" }.joined(separator: ",")
+        return Data("""
+        {"results":[\(results)],"page_info":{"has_next_page":\(hasMore),"end_cursor":null},"rss_feed_items":{\(items)}}
+        """.utf8)
+    }
+
+    func testAllFeedHitsGlobalEndpoint() async {
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items"] = (
+            makeFeedPage(ids: ["a1", "a2"], hasMore: false),
+            200
+        )
+        let vm = makeViewModel(feedSource: .all)
+        await vm.load()
+        if case .loaded = vm.state {} else {
+            XCTFail("Expected .loaded")
+        }
+        XCTAssertEqual(vm.items.count, 2)
+        let path = CannedFeedURLProtocol.capturedURLs.first?.path
+        XCTAssertEqual(path, "/api/v1/rss-feed-items")
+    }
+
+    func testYourFeedHitsPersonalizedEndpoint() async {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(ids: ["y1"], hasMore: false),
+            200
+        )
+        let vm = makeViewModel(feedSource: .your)
+        await vm.load()
+        if case .loaded = vm.state {} else {
+            XCTFail("Expected .loaded")
+        }
+        XCTAssertEqual(vm.items.count, 1)
+        let path = CannedFeedURLProtocol.capturedURLs.first?.path
+        XCTAssertEqual(path, "/api/v1/feeds/rss_feed_items/any")
     }
 }
