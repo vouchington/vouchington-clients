@@ -13,9 +13,9 @@ public struct UserRow: View {
 
     public var body: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
-            Avatar(imageURL: avatarURL, username: user.username)
+            Avatar(imageURL: avatarURL, username: user.username ?? "")
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(user.username)
+                Text(user.username ?? "")
                     .font(Typography.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)

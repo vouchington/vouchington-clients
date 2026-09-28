@@ -3,7 +3,7 @@ import Foundation
 public struct PublicUser: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String?
-    public let username: String
+    public let username: String?
     public let entityType: String?
     public let displayAccount: UserDisplayAccount?
     public let isOfficialAccount: Bool?
@@ -47,7 +47,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         let raw = try decoder.singleValueContainer().decode([String: DecodedJSONValue].self)
         id = try container.decode(String.self, forKey: .id)
         name = try container.decodeIfPresent(String.self, forKey: .name)
-        username = try container.decode(String.self, forKey: .username)
+        username = try container.decodeIfPresent(String.self, forKey: .username)
         if case let .string(value) = raw["__entity_type"] {
             entityType = value
         } else {
@@ -71,9 +71,9 @@ public struct PublicUser: Codable, Identifiable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var object: [String: DecodedJSONValue] = [
-            "id": .string(id),
-            "username": .string(username)
+            "id": .string(id)
         ]
+        object["username"] = username.map { .string($0) }
         object["__entity_type"] = entityType.map { .string($0) }
         object["name"] = name.map { .string($0) }
         object["display_account"] = displayAccount.map {

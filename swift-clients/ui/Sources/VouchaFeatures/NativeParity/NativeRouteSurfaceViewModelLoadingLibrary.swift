@@ -55,7 +55,7 @@ extension NativeRouteSurfaceViewModel {
         return [
             row(
                 "person.crop.circle",
-                rawText(response.identity.username),
+                rawText(response.identity.username ?? response.identity.id),
                 appText(.nativeSwiftRouteSurfaceIdentity)
             ),
             row(

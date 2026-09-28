@@ -16,7 +16,7 @@ enum NativeUserProfileNavigationTarget {
     }
 
     static func user(_ user: PublicUser) -> String {
-        "/user/\(user.username)"
+        "/user/\(user.username?.ifNotEmpty ?? user.id)"
     }
 
     static func userAdmin(_ idOrUsername: String) -> String {
