@@ -92,7 +92,7 @@ final class CursorPaginationStateTests: XCTestCase {
             items: [
                 Delivery(id: "share-A", itemId: "item-X"),
                 Delivery(id: "share-B", itemId: "item-X"),
-                Delivery(id: "direct", itemId: "item-X"),
+                Delivery(id: "direct", itemId: "item-X")
             ],
             endCursor: "cursor-2",
             hasNextPage: true
@@ -102,7 +102,7 @@ final class CursorPaginationStateTests: XCTestCase {
             second,
             items: [
                 Delivery(id: "share-A", itemId: "item-X"),
-                Delivery(id: "share-C", itemId: "item-X"),
+                Delivery(id: "share-C", itemId: "item-X")
             ],
             endCursor: nil,
             hasNextPage: false

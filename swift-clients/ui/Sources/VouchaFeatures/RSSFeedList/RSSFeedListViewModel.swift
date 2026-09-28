@@ -12,7 +12,9 @@ public final class RSSFeedListViewModel {
         pagination.items.map(\.item)
     }
 
-    var feedRows: [RssFeedListRow] { pagination.items }
+    var feedRows: [RssFeedListRow] {
+        pagination.items
+    }
 
     public internal(set) var state: LoadState {
         get { actionState ?? pagination.state }
