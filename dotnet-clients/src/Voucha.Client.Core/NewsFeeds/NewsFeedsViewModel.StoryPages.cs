@@ -26,7 +26,7 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       var page = await service.GetStoryRelatedArticlesPageAsync(related.StoryId, related.PrimaryItemId, request.Cursor, cancellationToken).ConfigureAwait(true);
-      if (generation != Volatile.Read(ref loadRequestId) || !Items.Any(row => ReferenceEquals(row.StoryArticles, related)))
+      if (!IsCurrentStoryContinuation(generation, related))
       {
         related.Cancel(request);
         return;
@@ -38,13 +38,19 @@ public sealed partial class NewsFeedsViewModel
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
+      if (!IsCurrentStoryContinuation(generation, related)) return;
       related.Cancel(request);
     }
     catch (Exception ex)
     {
+      if (!IsCurrentStoryContinuation(generation, related)) return;
       related.Fail(request, ex.Message);
     }
   }
+
+  private bool IsCurrentStoryContinuation(int generation, StoryRelatedArticles related) =>
+      generation == Volatile.Read(ref loadRequestId) &&
+      Items.Any(row => ReferenceEquals(row.StoryArticles, related));
 
   private NewsFeedItem[] KeepDisplayedStoryPrimaries(IReadOnlyList<NewsFeedItem> incoming)
   {

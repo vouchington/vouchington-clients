@@ -227,6 +227,50 @@ public sealed class StoryRelatedArticlesTests
     Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ReplacementIgnoresStaleContinuationFailureOrCancellation(bool cancel)
+  {
+    var group = Group(1);
+    var story = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var replacementPage = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = story.Task };
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    using var storyCancellation = new CancellationTokenSource();
+    var continuation = model.LoadMoreStoryArticlesAsync(model.Items[0], storyCancellation.Token);
+    Assert.True(group.IsLoading);
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    service.HeldPage = replacementPage.Task;
+    var replacement = model.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    if (cancel)
+    {
+      storyCancellation.Cancel();
+      Assert.True(story.TrySetCanceled(storyCancellation.Token));
+    }
+    else
+    {
+      Assert.True(story.TrySetException(new HttpRequestException("Offline")));
+    }
+
+    await continuation;
+    Assert.False(group.HasError);
+    Assert.True(group.IsLoading);
+    Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    replacementPage.SetResult(new([Item("fresh")], new(null, false, null)));
+    await replacement;
+    Assert.Equal(["fresh"], model.Items.Select(item => item.Id));
+    Assert.False(group.HasError);
+    Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+  }
+
   [Fact]
   public async Task HidingPeerInvalidatesDelayedContinuationAndPreservesCursorForRetry()
   {
@@ -444,6 +488,7 @@ public sealed class StoryRelatedArticlesTests
     public Task<NewsFeedPage>? FeedResponse { get; set; }
     public List<string?> StoryCursors { get; } = [];
     public Task<NewsFeedPage> StoryResponse { get; set; } = Task.FromResult(new NewsFeedPage([], new(null, false, null)));
+    public Task<NewsFeedPage>? HeldPage { get; set; }
     public Task<NewsFeedPage> GetStoryRelatedArticlesPageAsync(string storyId, string primaryItemId, string? after, CancellationToken cancellationToken = default)
     {
       Assert.Equal("story-1", storyId);
@@ -452,7 +497,12 @@ public sealed class StoryRelatedArticlesTests
       return StoryResponse;
     }
     public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => FeedResponse ?? Task.FromResult(Feed);
-    public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => FeedResponse ?? Task.FromResult(Feed);
+    public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, string? after = null, int limit = 20, CancellationToken cancellationToken = default)
+    {
+      if (HeldPage is not { } held) return FeedResponse ?? Task.FromResult(Feed);
+      HeldPage = null;
+      return held;
+    }
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task SetSourceFollowAsync(string sourceId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
