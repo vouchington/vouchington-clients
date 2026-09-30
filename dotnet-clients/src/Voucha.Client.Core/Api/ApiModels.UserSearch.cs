@@ -17,7 +17,7 @@ public sealed record UserSearchResult(
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,
     [property: JsonPropertyName("public_verified_name_display")] string? PublicVerifiedNameDisplay = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,
-    [property: JsonPropertyName("display_account")] UserDisplayAccount? DisplayAccount = null,
+    [property: JsonPropertyName("display_account")] PublicDisplayAccount? DisplayAccount = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
     [property: JsonPropertyName("email_address")] string? EmailAddress = null,

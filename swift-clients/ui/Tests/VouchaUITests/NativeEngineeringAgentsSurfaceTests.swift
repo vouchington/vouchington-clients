@@ -39,7 +39,7 @@ final class NativeEngineeringAgentsSurfaceTests: NativeRouteSurfaceViewModelTest
         ]
         viewModel.agentDirectoryUsers = try decode(
             [String: PublicUser].self,
-            #"{"user-first":{"id":"user-first","username":"first-user","display_account":{"id":"account","name":"First account"}}}"#
+            #"{"user-first":{"id":"user-first","username":"first-user","display_account":{"name":"First account"}}}"#
         )
         viewModel.agentConversationListResults = try [decode(
             AgentConversationSummary.self,
@@ -120,7 +120,7 @@ final class NativeEngineeringAgentsSurfaceTests: NativeRouteSurfaceViewModelTest
         )]
         viewModel.agentDirectoryUsers = try decode(
             [String: PublicUser].self,
-            #"{"system":{"id":"system","username":"system-user","display_account":{"id":"account","name":"System account"}}}"#
+            #"{"system":{"id":"system","username":"system-user","display_account":{"name":"System account"}}}"#
         )
         surface = NativeEngineeringAgentsSurface(
             viewModel: viewModel,
@@ -256,7 +256,7 @@ final class NativeEngineeringAgentsSurfaceTests: NativeRouteSurfaceViewModelTest
         ]
         viewModel.agentConversationListUsers = try decode(
             [String: PublicUser].self,
-            #"{"support-one":{"id":"support-one","username":"support-one","display_account":{"id":"account","name":"Support One"}}}"#
+            #"{"support-one":{"id":"support-one","username":"support-one","display_account":{"name":"Support One"}}}"#
         )
         viewModel.agentConversation = try decode(AgentConversation.self, conversationData)
         viewModel.agentConversationMessages = try decode(

@@ -217,7 +217,7 @@ public sealed class ApiModelsMessagesTests
           "verified_display_name": "Alice A",
           "public_verified_name_display": "full_name",
           "roles": ["member"],
-          "display_account": { "id": "acct-1", "name": "Alice" },
+          "display_account": { "name": "Alice" },
           "lingua_rs_detected_language": "en",
           "__entity_type": "user"
         }
@@ -236,7 +236,6 @@ public sealed class ApiModelsMessagesTests
     Assert.Equal(publicUser.VerifiedDisplayName, searchResult.VerifiedDisplayName);
     Assert.Equal(publicUser.PublicVerifiedNameDisplay, searchResult.PublicVerifiedNameDisplay);
     Assert.Equal(publicUser.Roles, searchResult.Roles);
-    Assert.Equal(publicUser.DisplayAccount?.Id, searchResult.DisplayAccount?.Id);
     Assert.Equal(publicUser.DisplayAccount?.Name, searchResult.DisplayAccount?.Name);
     Assert.Equal(publicUser.LinguaRsDetectedLanguage, searchResult.LinguaRsDetectedLanguage);
     Assert.Equal(publicUser.EntityType, searchResult.EntityType);

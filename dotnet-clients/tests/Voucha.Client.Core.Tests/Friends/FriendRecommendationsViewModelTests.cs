@@ -137,7 +137,7 @@ public sealed class FriendRecommendationsViewModelTests
   {
     var hydrated = new FriendRecommendationRow(
         Recommendation("opaque-user-id", "Provider Friend"),
-        new User("opaque-user-id", "hydrated", DisplayAccount: new("account-1", "Hydrated Friend")));
+        new User("opaque-user-id", "hydrated", DisplayAccount: new PublicDisplayAccount("Hydrated Friend")));
     var providerOnly = new FriendRecommendationRow(
         Recommendation("second-opaque-id", "Provider Friend"),
         null);

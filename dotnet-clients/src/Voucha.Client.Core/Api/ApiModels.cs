@@ -64,7 +64,7 @@ public sealed record User(
     [property: JsonPropertyName("created_at")] DateTimeOffset? CreatedAt = null,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,
-    [property: JsonPropertyName("display_account")] UserDisplayAccount? DisplayAccount = null,
+    [property: JsonPropertyName("display_account")] PublicDisplayAccount? DisplayAccount = null,
     [property: JsonPropertyName("facebook_account")] UserDisplayAccount? FacebookAccount = null,
     [property: JsonPropertyName("apple_account")] UserDisplayAccount? AppleAccount = null,
     [property: JsonPropertyName("google_account")] UserDisplayAccount? GoogleAccount = null,
@@ -77,6 +77,9 @@ public sealed record User(
     [property: JsonPropertyName("membership_plan")] string? MembershipPlan = null,
     [property: JsonPropertyName("suspended_at")] DateTimeOffset? SuspendedAt = null,
     [property: JsonPropertyName("verification_status")] string? VerificationStatus = null);
+
+public sealed record PublicDisplayAccount(
+    [property: JsonPropertyName("name")] string? Name);
 
 public sealed record UserDisplayAccount(
     [property: JsonPropertyName("id")] string? Id,
@@ -165,7 +168,7 @@ public sealed record PublicUser(
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,
     [property: JsonPropertyName("public_verified_name_display")] string? PublicVerifiedNameDisplay = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,
-    [property: JsonPropertyName("display_account")] UserDisplayAccount? DisplayAccount = null,
+    [property: JsonPropertyName("display_account")] PublicDisplayAccount? DisplayAccount = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null);
 

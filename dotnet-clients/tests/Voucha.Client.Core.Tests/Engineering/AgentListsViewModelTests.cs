@@ -116,7 +116,7 @@ public sealed class AgentListsViewModelTests
       AgentPages = new([
         Task.FromResult(Agents([Agent("first")], true, "next", new Dictionary<string, PublicUser>
         {
-          ["user-first"] = new("user-first", "first-user", DisplayAccount: new UserDisplayAccount("account", "First account")),
+          ["user-first"] = new("user-first", "first-user", DisplayAccount: new PublicDisplayAccount("First account")),
         })),
         Task.FromResult(Agents([Agent("second"), Agent("missing")], false, null, new Dictionary<string, PublicUser>
         {
@@ -227,7 +227,7 @@ public sealed class AgentListsViewModelTests
           null,
           new Dictionary<string, PublicUser>
           {
-            ["support-one"] = new("support-one", "support-one", DisplayAccount: new UserDisplayAccount("account", "Support One")),
+            ["support-one"] = new("support-one", "support-one", DisplayAccount: new PublicDisplayAccount("Support One")),
           }))]),
     };
     using var controller = new UiLocaleController(new StubLanguageProvider("en"));

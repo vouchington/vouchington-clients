@@ -78,7 +78,6 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         object["name"] = name.map { .string($0) }
         object["display_account"] = displayAccount.map {
             .object([
-                "id": $0.id.map { .string($0) } ?? .null,
                 "name": $0.name.map { .string($0) } ?? .null
             ])
         }
@@ -101,7 +100,6 @@ public struct PublicUser: Codable, Identifiable, Sendable {
 }
 
 public struct UserDisplayAccount: Codable, Sendable {
-    public let id: String?
     public let name: String?
 }
 

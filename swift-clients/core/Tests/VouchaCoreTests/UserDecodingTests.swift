@@ -17,16 +17,16 @@ final class UserDecodingTests: XCTestCase {
             """
         )
 
-        XCTAssertEqual(user.displayAccount?.id, "account-1")
         XCTAssertNil(user.displayAccount?.name)
 
         let encoded = try JSONEncoder().encode(user)
         let root = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         let displayAccount = try XCTUnwrap(root["display_account"] as? [String: Any])
+        XCTAssertNil(displayAccount["id"])
         XCTAssertTrue(displayAccount["name"] is NSNull)
     }
 
-    func testPublicUserDisplayAccountCanOmitProviderId() throws {
+    func testPublicUserDisplayAccountIsTheName() throws {
         let user: PublicUser = try decodeJSON(
             """
             {
@@ -39,8 +39,13 @@ final class UserDecodingTests: XCTestCase {
             """
         )
 
-        XCTAssertNil(user.displayAccount?.id)
         XCTAssertEqual(user.displayAccount?.name, "Alice")
+
+        let encoded = try JSONEncoder().encode(user)
+        let root = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let displayAccount = try XCTUnwrap(root["display_account"] as? [String: Any])
+        XCTAssertNil(displayAccount["id"])
+        XCTAssertEqual(displayAccount["name"] as? String, "Alice")
     }
 
     private func decodeJSON<T: Decodable>(_ json: String) throws -> T {

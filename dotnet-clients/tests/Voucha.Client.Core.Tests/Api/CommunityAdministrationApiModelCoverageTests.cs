@@ -265,7 +265,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
         createdAt,
         new CommunityModerationAnalyticsQueueVolume(5, 2, ["reports"], ["clearance"], ["moderator"]),
         new Dictionary<string, object> { ["spam"] = 3 },
-        new CommunityModerationAnalyticsAppeals(4, 1, 1, 1, 1, 0.5m),
+        new CommunityModerationAnalyticsAppeals(4, 1, 1, 1, 0.5m),
         new CommunityModerationAnalyticsModeratorWorkload(
             ["moderator"],
             new Dictionary<string, User> { ["moderator-1"] = new User("moderator-1", "mod", null) }),
@@ -384,7 +384,6 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(1, analytics.Appeals.Accepted);
     Assert.Equal(1, analytics.Appeals.Reduced);
     Assert.Equal(1, analytics.Appeals.Denied);
-    Assert.Equal(1, analytics.Appeals.Dismissed);
     Assert.Equal(0.5m, analytics.Appeals.SuccessRate);
     Assert.Equal("moderator", analytics.ModeratorWorkload.Moderators[0]);
     Assert.Equal("mod", analytics.ModeratorWorkload.Users["moderator-1"].Username);

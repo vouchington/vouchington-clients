@@ -136,7 +136,6 @@ public sealed record CommunityModerationAnalyticsAppeals(
     [property: JsonPropertyName("accepted")] int Accepted,
     [property: JsonPropertyName("reduced")] int Reduced,
     [property: JsonPropertyName("denied")] int Denied,
-    [property: JsonPropertyName("dismissed")] int Dismissed,
     [property: JsonPropertyName("success_rate")] decimal? SuccessRate);
 
 public sealed record CommunityModerationAnalyticsModeratorWorkload(
