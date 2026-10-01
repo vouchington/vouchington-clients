@@ -142,7 +142,8 @@ jobs:
           echo "accepted=false" >> "$GITHUB_OUTPUT"
           untrusted() {
             jq -c '[.]' <<< "$1" |
-              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
+              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+                --allow-bot 'github-actions[bot]' |
               jq -r '.untrusted | join(", ")'
           }
 

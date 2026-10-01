@@ -91,7 +91,8 @@ jobs:
           fi
 
           # pr-shepherd reads every thread on the PR, so the commenter, the PR author, and every
-          # human who commented or reviewed must hold write access. API errors fail closed.
+          # commenter or reviewer must hold write access or be one of the review apps installed on
+          # this repository. API errors fail closed.
           UNTRUSTED_COMMENTER="$(jq -c '[.]' <<< "$COMMENT_USER" |
             pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
             jq -r '.untrusted | join(", ")')"
@@ -109,6 +110,12 @@ jobs:
               --jq '[.[] | select(.user != null) | {login: .user.login, type: .user.type}]'
           } | jq -s 'add' > "$RUNNER_TEMP/pr-authors.json"
           UNTRUSTED="$(pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+            --allow-bot 'github-actions[bot]' \
+            --allow-bot 'dependabot[bot]' \
+            --allow-bot 'chatgpt-codex-connector[bot]' \
+            --allow-bot 'coderabbitai[bot]' \
+            --allow-bot 'sourcery-ai[bot]' \
+            --allow-bot 'copilot-pull-request-reviewer[bot]' \
             < "$RUNNER_TEMP/pr-authors.json" | jq -r '.untrusted | join(", ")')"
           if [[ -n "$UNTRUSTED" ]]; then
             gh issue comment "$PR_NUMBER" \

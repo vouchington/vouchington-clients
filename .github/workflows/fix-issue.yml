@@ -143,7 +143,8 @@ jobs:
           echo "accepted=false" >> "$GITHUB_OUTPUT"
           untrusted() {
             jq -c '[.]' <<< "$1" |
-              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
+              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+                --allow-bot 'github-actions[bot]' |
               jq -r '.untrusted | join(", ")'
           }
 
@@ -244,10 +245,11 @@ jobs:
             done
           fi
           jq -s 'sort_by(.created_at) | .[-100:]' issue-comments.ndjson > issue-comments.json
-          # Only collaborators with write access (and installed GitHub Apps) may shape the prompt.
+          # Only collaborators with write access (and this repository's own Actions bot) may shape
+          # the prompt.
           jq '[.[] | {login: .author, type: .authorType}]' issue-comments.json > comment-authors.json
           pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
-            < comment-authors.json > comment-author-trust.json
+            --allow-bot 'github-actions[bot]' < comment-authors.json > comment-author-trust.json
           jq --slurpfile trust comment-author-trust.json \
             '[.[] | select(.author as $author | $trust[0].trusted | index($author))]' \
             issue-comments.json > trusted-issue-comments.json
