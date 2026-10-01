@@ -36,7 +36,7 @@ jobs:
       queue: max
       cancel-in-progress: false
     outputs:
-      accepted: ${{ steps.extract-plan.outputs.accepted }}
+      accepted: ${{ steps.authorize.outputs.accepted }}
       plan_request: ${{ steps.extract-plan.outputs.plan_request }}
     steps:
       # This job deliberately has no checkout -- it validates an untrusted comment
@@ -127,8 +127,45 @@ jobs:
           pnpm dlx vouchington-tooling@0.18.1 gha-output plan_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
-      - name: Acknowledge with eyes reaction and run link
+      # The agent reads the issue title and body, so both the commenter and the issue author
+      # must hold write access. API errors fail the job closed.
+      - name: Require collaborator commenter and issue author
+        id: authorize
         if: steps.extract-plan.outputs.accepted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          ISSUE_AUTHOR_TYPE: ${{ github.event.issue.user.type }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          echo "accepted=false" >> "$GITHUB_OUTPUT"
+          permission_of() {
+            gh api "repos/$GITHUB_REPOSITORY/collaborators/$1/permission" --jq '.permission'
+          }
+
+          COMMENT_PERMISSION="$(permission_of "$COMMENT_AUTHOR")"
+          if [[ "$COMMENT_PERMISSION" != "admin" && "$COMMENT_PERMISSION" != "write" ]]; then
+            echo "Ignoring /plan from $COMMENT_AUTHOR (permission: $COMMENT_PERMISSION)."
+            exit 0
+          fi
+
+          if [[ "$ISSUE_AUTHOR_TYPE" != "Bot" ]]; then
+            ISSUE_PERMISSION="$(permission_of "$ISSUE_AUTHOR")"
+            if [[ "$ISSUE_PERMISSION" != "admin" && "$ISSUE_PERMISSION" != "write" ]]; then
+              gh issue comment "$ISSUE_NUMBER" \
+                --repo "$GITHUB_REPOSITORY" \
+                --body "\`/plan\` only runs on issues opened by collaborators with write access. Open a new issue that restates this request, then comment \`/plan\` there."
+              echo "Refusing /plan on issue opened by $ISSUE_AUTHOR (permission: $ISSUE_PERMISSION)."
+              exit 0
+            fi
+          fi
+
+          echo "accepted=true" >> "$GITHUB_OUTPUT"
+
+      - name: Acknowledge with eyes reaction and run link
+        if: steps.authorize.outputs.accepted == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMENT_ID: ${{ github.event.comment.id }}
@@ -256,9 +293,11 @@ jobs:
           COMMENT_JSON="$(gh api "repos/$GITHUB_REPOSITORY/issues/comments/$TRIGGER_COMMENT_ID")"
           jq -e \
             'select((.id | tostring) == env.TRIGGER_COMMENT_ID and
-              (.issue_url | endswith("/issues/" + env.ISSUE_NUMBER)) and
-              (.author_association == "OWNER" or .author_association == "COLLABORATOR" or .author_association == "MEMBER"))' \
+              (.issue_url | endswith("/issues/" + env.ISSUE_NUMBER)))' \
             <<< "$COMMENT_JSON" > /dev/null
+          COMMENT_AUTHOR="$(jq -er '.user.login' <<< "$COMMENT_JSON")"
+          gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENT_AUTHOR/permission" --jq '.permission' |
+            grep -qxE 'admin|write'
           COMMAND="$(jq -r '.body | split("\n")[0]' <<< "$COMMENT_JSON" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$COMMAND" != "/plan" ]]; then
             echo "Suppressing failure comment because the triggering /plan command is no longer valid."

@@ -60,6 +60,7 @@ jobs:
       - name: Resolve PR and validate command
         id: gate
         env:
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.issue.number }}
@@ -86,6 +87,32 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --body "Cannot run \`/shepherd\` on fork PRs because automation may update the pull request branch."
             echo "Skipping fork PR #$PR_NUMBER from $HEAD_REPO."
+            exit 0
+          fi
+
+          # pr-shepherd reads every thread on the PR, so the commenter, the PR author, and every
+          # human who commented or reviewed must hold write access. API errors fail closed.
+          COMMENT_PERMISSION="$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENT_AUTHOR/permission" --jq '.permission')"
+          if [[ "$COMMENT_PERMISSION" != "admin" && "$COMMENT_PERMISSION" != "write" ]]; then
+            echo "Ignoring /shepherd from $COMMENT_AUTHOR (permission: $COMMENT_PERMISSION)."
+            exit 0
+          fi
+          {
+            echo "$PR_JSON" | jq -c '[{login: .user.login, type: .user.type}]'
+            gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
+              --jq '[.[] | {login: .user.login, type: .user.type}]'
+            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/comments?per_page=100" \
+              --jq '[.[] | {login: .user.login, type: .user.type}]'
+            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews?per_page=100" \
+              --jq '[.[] | select(.user != null) | {login: .user.login, type: .user.type}]'
+          } | jq -s 'add' > "$RUNNER_TEMP/pr-authors.json"
+          UNTRUSTED="$(node scripts/github-collaborators.mjs "$GITHUB_REPOSITORY" "$RUNNER_TEMP/pr-authors.json" --allow-bots |
+            jq -r '.untrusted | join(", ")')"
+          if [[ -n "$UNTRUSTED" ]]; then
+            gh issue comment "$PR_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "Cannot run \`/shepherd\` because this PR has comments or reviews from accounts without write access. Automation only acts on collaborator-authored feedback; address this PR manually."
+            echo "Refusing /shepherd: non-collaborator authors: $UNTRUSTED"
             exit 0
           fi
 
@@ -360,9 +387,11 @@ jobs:
           COMMENT_JSON="$(gh api "repos/$GITHUB_REPOSITORY/issues/comments/$TRIGGER_COMMENT_ID")"
           jq -e \
             'select((.id | tostring) == env.TRIGGER_COMMENT_ID and
-              (.issue_url | endswith("/issues/" + env.PR_NUMBER)) and
-              (.author_association == "OWNER" or .author_association == "COLLABORATOR" or .author_association == "MEMBER"))' \
+              (.issue_url | endswith("/issues/" + env.PR_NUMBER)))' \
             <<< "$COMMENT_JSON" > /dev/null
+          COMMENT_AUTHOR="$(jq -er '.user.login' <<< "$COMMENT_JSON")"
+          gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENT_AUTHOR/permission" --jq '.permission' |
+            grep -qxE 'admin|write'
           COMMAND="$(jq -r '.body' <<< "$COMMENT_JSON" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$COMMAND" != "/shepherd" ]]; then
             echo "Suppressing failure comment because the triggering /shepherd command is no longer valid."
