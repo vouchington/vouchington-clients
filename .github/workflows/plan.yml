@@ -124,42 +124,41 @@ jobs:
             exit 1
           fi
 
-          pnpm dlx vouchington-tooling@0.18.1 gha-output plan_request < "$REQUEST_FILE"
+          pnpm dlx vouchington-tooling@0.28.0 gha-output plan_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       # The agent reads the issue title and body, so both the commenter and the issue author
-      # must hold write access. API errors fail the job closed.
+      # must hold write access. Lookup errors fail the job closed.
       - name: Require collaborator commenter and issue author
         id: authorize
         if: steps.extract-plan.outputs.accepted == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
-          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
-          ISSUE_AUTHOR_TYPE: ${{ github.event.issue.user.type }}
+          COMMENT_USER: ${{ toJSON(github.event.comment.user) }}
+          ISSUE_USER: ${{ toJSON(github.event.issue.user) }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
           echo "accepted=false" >> "$GITHUB_OUTPUT"
-          permission_of() {
-            gh api "repos/$GITHUB_REPOSITORY/collaborators/$1/permission" --jq '.permission'
+          untrusted() {
+            jq -c '[.]' <<< "$1" |
+              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
+              jq -r '.untrusted | join(", ")'
           }
 
-          COMMENT_PERMISSION="$(permission_of "$COMMENT_AUTHOR")"
-          if [[ "$COMMENT_PERMISSION" != "admin" && "$COMMENT_PERMISSION" != "write" ]]; then
-            echo "Ignoring /plan from $COMMENT_AUTHOR (permission: $COMMENT_PERMISSION)."
+          UNTRUSTED_COMMENTER="$(untrusted "$COMMENT_USER")"
+          if [[ -n "$UNTRUSTED_COMMENTER" ]]; then
+            echo "Ignoring /plan from $UNTRUSTED_COMMENTER, who lacks write access."
             exit 0
           fi
 
-          if [[ "$ISSUE_AUTHOR_TYPE" != "Bot" ]]; then
-            ISSUE_PERMISSION="$(permission_of "$ISSUE_AUTHOR")"
-            if [[ "$ISSUE_PERMISSION" != "admin" && "$ISSUE_PERMISSION" != "write" ]]; then
-              gh issue comment "$ISSUE_NUMBER" \
-                --repo "$GITHUB_REPOSITORY" \
-                --body "\`/plan\` only runs on issues opened by collaborators with write access. Open a new issue that restates this request, then comment \`/plan\` there."
-              echo "Refusing /plan on issue opened by $ISSUE_AUTHOR (permission: $ISSUE_PERMISSION)."
-              exit 0
-            fi
+          UNTRUSTED_ISSUE_AUTHOR="$(untrusted "$ISSUE_USER")"
+          if [[ -n "$UNTRUSTED_ISSUE_AUTHOR" ]]; then
+            gh issue comment "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "\`/plan\` only runs on issues opened by collaborators with write access. Open a new issue that restates this request, then comment \`/plan\` there."
+            echo "Refusing /plan on issue opened by $UNTRUSTED_ISSUE_AUTHOR."
+            exit 0
           fi
 
           echo "accepted=true" >> "$GITHUB_OUTPUT"

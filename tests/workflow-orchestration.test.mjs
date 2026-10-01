@@ -20,7 +20,7 @@ describe('event-driven CI orchestration', () => {
 
       assert.match(
         workflow,
-        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`, 'u'),
+        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.28\\.0 gha-output ${outputName}\\b`, 'u'),
       )
     }
   })
@@ -38,7 +38,7 @@ describe('event-driven CI orchestration', () => {
       // author_association is only a cheap pre-filter; the live permission check decides.
       assert.match(workflow, /fromJSON\('\["OWNER","COLLABORATOR","MEMBER"\]'\)/u)
       assert.doesNotMatch(workflow, /\.author_association ==/u)
-      assert.match(workflow, /COMMENT_PERMISSION" != "admin" && "\$COMMENT_PERMISSION" != "write"/u)
+      assert.match(workflow, /UNTRUSTED_COMMENTER/u)
       assert.match(
         workflow,
         /collaborators\/\$COMMENT_AUTHOR\/permission" --jq '\.permission' \|\n\s+grep -qxE 'admin\|write'/u,
@@ -70,23 +70,21 @@ describe('event-driven CI orchestration', () => {
   })
 
   it('keeps non-collaborator text out of agent input', async () => {
+    const trust =
+      /pnpm dlx vouchington-tooling@0\.28\.0 gha-collaborator-trust "\$GITHUB_REPOSITORY"/gu
     for (const workflowName of ['plan.yml', 'fix-issue.yml']) {
       const workflow = await readWorkflow(workflowName)
-      assert.match(workflow, /ISSUE_PERMISSION" != "admin" && "\$ISSUE_PERMISSION" != "write"/u)
+      assert.match(workflow, /UNTRUSTED_ISSUE_AUTHOR="\$\(untrusted "\$ISSUE_USER"\)"/u)
       assert.match(workflow, /accepted: \$\{\{ steps\.authorize\.outputs\.accepted \}\}/u)
+      assert.match(workflow, trust)
     }
     const fixIssue = await readWorkflow('fix-issue.yml')
-    assert.match(
-      fixIssue,
-      /node scripts\/github-collaborators\.mjs "\$GITHUB_REPOSITORY" comment-authors\.json/u,
-    )
-    assert.match(fixIssue, /comments: \$comments\[0\]/u)
+    assert.equal(fixIssue.match(trust)?.length, 2)
+    assert.match(fixIssue, /< comment-authors\.json > comment-author-trust\.json/u)
     assert.match(fixIssue, /--slurpfile comments trusted-issue-comments\.json/u)
     const shepherd = await readWorkflow('shepherd.yml')
-    assert.match(
-      shepherd,
-      /node scripts\/github-collaborators\.mjs "\$GITHUB_REPOSITORY" "\$RUNNER_TEMP\/pr-authors\.json"/u,
-    )
+    assert.equal(shepherd.match(trust)?.length, 2)
+    assert.match(shepherd, /< "\$RUNNER_TEMP\/pr-authors\.json"/u)
     assert.match(shepherd, /pulls\/\$PR_NUMBER\/reviews/u)
     assert.match(shepherd, /pulls\/\$PR_NUMBER\/comments/u)
   })

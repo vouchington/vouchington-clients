@@ -60,7 +60,7 @@ jobs:
       - name: Resolve PR and validate command
         id: gate
         env:
-          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          COMMENT_USER: ${{ toJSON(github.event.comment.user) }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.issue.number }}
@@ -92,9 +92,11 @@ jobs:
 
           # pr-shepherd reads every thread on the PR, so the commenter, the PR author, and every
           # human who commented or reviewed must hold write access. API errors fail closed.
-          COMMENT_PERMISSION="$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENT_AUTHOR/permission" --jq '.permission')"
-          if [[ "$COMMENT_PERMISSION" != "admin" && "$COMMENT_PERMISSION" != "write" ]]; then
-            echo "Ignoring /shepherd from $COMMENT_AUTHOR (permission: $COMMENT_PERMISSION)."
+          UNTRUSTED_COMMENTER="$(jq -c '[.]' <<< "$COMMENT_USER" |
+            pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
+            jq -r '.untrusted | join(", ")')"
+          if [[ -n "$UNTRUSTED_COMMENTER" ]]; then
+            echo "Ignoring /shepherd from $UNTRUSTED_COMMENTER, who lacks write access."
             exit 0
           fi
           {
@@ -106,8 +108,8 @@ jobs:
             gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews?per_page=100" \
               --jq '[.[] | select(.user != null) | {login: .user.login, type: .user.type}]'
           } | jq -s 'add' > "$RUNNER_TEMP/pr-authors.json"
-          UNTRUSTED="$(node scripts/github-collaborators.mjs "$GITHUB_REPOSITORY" "$RUNNER_TEMP/pr-authors.json" --allow-bots |
-            jq -r '.untrusted | join(", ")')"
+          UNTRUSTED="$(pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+            < "$RUNNER_TEMP/pr-authors.json" | jq -r '.untrusted | join(", ")')"
           if [[ -n "$UNTRUSTED" ]]; then
             gh issue comment "$PR_NUMBER" \
               --repo "$GITHUB_REPOSITORY" \
@@ -123,7 +125,7 @@ jobs:
             echo "pr_head_sha=$PR_HEAD_SHA"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
-          pnpm dlx vouchington-tooling@0.18.1 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
+          pnpm dlx vouchington-tooling@0.28.0 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare durable shepherd checkpoint
