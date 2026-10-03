@@ -7,11 +7,11 @@ extension NativeRouteSurfaceViewModel {
         -> [NativeRouteDestinationRow] {
         switch destination {
         case .chat:
-            return try await loadChatRows(client: client)
+            try await loadChatRows(client: client)
         case .messages:
-            return try await loadDirectMessageRows(client: client)
+            try await loadDirectMessageRows(client: client)
         default:
-            return []
+            []
         }
     }
 
