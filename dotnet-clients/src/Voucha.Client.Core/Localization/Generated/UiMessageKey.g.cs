@@ -17,7 +17,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideCommentsComments29834540 = new("extracted.asides.hnDiscussionsAside.commentsComments_29834540");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideHackerNews619f304a = new("extracted.asides.hnDiscussionsAside.hackerNews_619f304a");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = new("extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8");
-    public static readonly UiMessageKey ExtractedIntentsAdminAgents279b44d2 = new("extracted.intents.admin.agents_279b44d2");
     public static readonly UiMessageKey ExtractedIntentsAdminAiCosts75cce222 = new("extracted.intents.admin.aiCosts_75cce222");
     public static readonly UiMessageKey ExtractedIntentsAdminAppeals03e8c5a5 = new("extracted.intents.admin.appeals_03e8c5a5");
     public static readonly UiMessageKey ExtractedIntentsAdminDynamicConfig59cf5829 = new("extracted.intents.admin.dynamicConfig_59cf5829");
@@ -1707,7 +1706,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftPostsListPosts = new("native.swift.postsList.posts");
     public static readonly UiMessageKey NativeSwiftPresentationPhone = new("native.swift.presentation.phone");
     public static readonly UiMessageKey NativeSwiftPresentationProvider = new("native.swift.presentation.provider");
-    public static readonly UiMessageKey NativeSwiftPresentationValuesDeleted = new("native.swift.presentationValues.deleted");
     public static readonly UiMessageKey NativeSwiftPresentationValuesFacebook = new("native.swift.presentationValues.facebook");
     public static readonly UiMessageKey NativeSwiftPresentationValuesGithub = new("native.swift.presentationValues.github");
     public static readonly UiMessageKey NativeSwiftPresentationValuesMember = new("native.swift.presentationValues.member");
@@ -1776,18 +1774,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftRouteMetadataStaffEngineeringPostgresqlPostgresqlTitle = new("native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle");
     public static readonly UiMessageKey NativeSwiftRouteMetadataStaffEngineeringQueuesQueuesTitle = new("native.swift.routeMetadata.staffEngineeringQueuesQueuesTitle");
     public static readonly UiMessageKey NativeSwiftRouteMetadataStaffEngineeringValkeyValkeyTitle = new("native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgent = new("native.swift.routeSurface.agent");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterKind = new("native.swift.routeSurface.agentFilterKind");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterPostId = new("native.swift.routeSurface.agentFilterPostId");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterPostSlug = new("native.swift.routeSurface.agentFilterPostSlug");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterRssFeedItemId = new("native.swift.routeSurface.agentFilterRssFeedItemId");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterUserId = new("native.swift.routeSurface.agentFilterUserId");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterUsername = new("native.swift.routeSurface.agentFilterUsername");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentFilterValue = new("native.swift.routeSurface.agentFilterValue");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentId = new("native.swift.routeSurface.agentId");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentStatusActive = new("native.swift.routeSurface.agentStatusActive");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentStatusInactive = new("native.swift.routeSurface.agentStatusInactive");
-    public static readonly UiMessageKey NativeSwiftRouteSurfaceAgentSystemUserId = new("native.swift.routeSurface.agentSystemUserId");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceAllProviders = new("native.swift.routeSurface.allProviders");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceClosed = new("native.swift.routeSurface.closed");
     public static readonly UiMessageKey NativeSwiftRouteSurfaceDistrusted = new("native.swift.routeSurface.distrusted");
@@ -1931,7 +1917,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedAsidesHnDiscussionsAsideCommentsComments29834540,
         ExtractedAsidesHnDiscussionsAsideHackerNews619f304a,
         ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8,
-        ExtractedIntentsAdminAgents279b44d2,
         ExtractedIntentsAdminAiCosts75cce222,
         ExtractedIntentsAdminAppeals03e8c5a5,
         ExtractedIntentsAdminDynamicConfig59cf5829,
@@ -3621,7 +3606,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftPostsListPosts,
         NativeSwiftPresentationPhone,
         NativeSwiftPresentationProvider,
-        NativeSwiftPresentationValuesDeleted,
         NativeSwiftPresentationValuesFacebook,
         NativeSwiftPresentationValuesGithub,
         NativeSwiftPresentationValuesMember,
@@ -3690,18 +3674,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftRouteMetadataStaffEngineeringPostgresqlPostgresqlTitle,
         NativeSwiftRouteMetadataStaffEngineeringQueuesQueuesTitle,
         NativeSwiftRouteMetadataStaffEngineeringValkeyValkeyTitle,
-        NativeSwiftRouteSurfaceAgent,
-        NativeSwiftRouteSurfaceAgentFilterKind,
-        NativeSwiftRouteSurfaceAgentFilterPostId,
-        NativeSwiftRouteSurfaceAgentFilterPostSlug,
-        NativeSwiftRouteSurfaceAgentFilterRssFeedItemId,
-        NativeSwiftRouteSurfaceAgentFilterUserId,
-        NativeSwiftRouteSurfaceAgentFilterUsername,
-        NativeSwiftRouteSurfaceAgentFilterValue,
-        NativeSwiftRouteSurfaceAgentId,
-        NativeSwiftRouteSurfaceAgentStatusActive,
-        NativeSwiftRouteSurfaceAgentStatusInactive,
-        NativeSwiftRouteSurfaceAgentSystemUserId,
         NativeSwiftRouteSurfaceAllProviders,
         NativeSwiftRouteSurfaceClosed,
         NativeSwiftRouteSurfaceDistrusted,

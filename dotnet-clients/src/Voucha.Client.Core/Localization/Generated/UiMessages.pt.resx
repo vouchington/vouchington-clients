@@ -14,7 +14,6 @@
   <data name="extracted.asides.hnDiscussionsAside.commentsComments_29834540" xml:space="preserve"><value>{comments} comentários</value></data>
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} pontos</value></data>
-  <data name="extracted.intents.admin.agents_279b44d2" xml:space="preserve"><value>Agentes</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>Custos de IA</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Apelações</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Configuração Dinâmica</value></data>
@@ -269,7 +268,7 @@
   <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Acesso revogado</value></data>
   <data name="native.credentials.invalidSelection" xml:space="preserve"><value>Escolha pelo menos uma permissão</value></data>
   <data name="native.credentials.mcpAdminFullAccess" xml:space="preserve"><value>Acesso MCP completo de administrador</value></data>
-  <data name="native.credentials.mcpUserFullAccess" xml:space="preserve"><value>Acesso MCP completo de usuário</value></data>
+  <data name="native.credentials.mcpUserFullAccess" xml:space="preserve"><value>Acesso MCP de usuário, exceto perfil financeiro e gastos; solicite-os separadamente.</value></data>
   <data name="native.credentials.noConnectedApps" xml:space="preserve"><value>Nenhum aplicativo tem acesso à sua conta.</value></data>
   <data name="native.credentials.readAction" xml:space="preserve"><value>Leitura</value></data>
   <data name="native.credentials.requires" xml:space="preserve"><value>Requer {scope}</value></data>
@@ -1711,7 +1710,6 @@
   <data name="native.swift.postsList.posts" xml:space="preserve"><value>Publicações</value></data>
   <data name="native.swift.presentation.phone" xml:space="preserve"><value>Telefone</value></data>
   <data name="native.swift.presentation.provider" xml:space="preserve"><value>Provedor</value></data>
-  <data name="native.swift.presentationValues.deleted" xml:space="preserve"><value>Eliminado</value></data>
   <data name="native.swift.presentationValues.facebook" xml:space="preserve"><value>Facebook</value></data>
   <data name="native.swift.presentationValues.github" xml:space="preserve"><value>GitHub</value></data>
   <data name="native.swift.presentationValues.member" xml:space="preserve"><value>Membro</value></data>
@@ -1782,18 +1780,6 @@
   <data name="native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle" xml:space="preserve"><value>PostgreSQL</value></data>
   <data name="native.swift.routeMetadata.staffEngineeringQueuesQueuesTitle" xml:space="preserve"><value>Filas</value></data>
   <data name="native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle" xml:space="preserve"><value>Valkey</value></data>
-  <data name="native.swift.routeSurface.agent" xml:space="preserve"><value>Agente</value></data>
-  <data name="native.swift.routeSurface.agentFilterKind" xml:space="preserve"><value>Filtro de conversa</value></data>
-  <data name="native.swift.routeSurface.agentFilterPostId" xml:space="preserve"><value>ID da publicação</value></data>
-  <data name="native.swift.routeSurface.agentFilterPostSlug" xml:space="preserve"><value>Slug da publicação</value></data>
-  <data name="native.swift.routeSurface.agentFilterRssFeedItemId" xml:space="preserve"><value>ID de item RSS</value></data>
-  <data name="native.swift.routeSurface.agentFilterUserId" xml:space="preserve"><value>ID de utilizador</value></data>
-  <data name="native.swift.routeSurface.agentFilterUsername" xml:space="preserve"><value>Nome de utilizador</value></data>
-  <data name="native.swift.routeSurface.agentFilterValue" xml:space="preserve"><value>Valor de {filter}</value></data>
-  <data name="native.swift.routeSurface.agentId" xml:space="preserve"><value>ID do agente</value></data>
-  <data name="native.swift.routeSurface.agentStatusActive" xml:space="preserve"><value>Ativo</value></data>
-  <data name="native.swift.routeSurface.agentStatusInactive" xml:space="preserve"><value>Inativo</value></data>
-  <data name="native.swift.routeSurface.agentSystemUserId" xml:space="preserve"><value>ID de utilizador do sistema</value></data>
   <data name="native.swift.routeSurface.allProviders" xml:space="preserve"><value>Todos</value></data>
   <data name="native.swift.routeSurface.closed" xml:space="preserve"><value>Fechados</value></data>
   <data name="native.swift.routeSurface.distrusted" xml:space="preserve"><value>Não confiável</value></data>
