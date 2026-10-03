@@ -47,18 +47,19 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
-    "auto-harness-client": "0.6.0",
-    "coverage-check": "0.16.0",
+    "auto-harness-client": "0.8.1",
+    "coverage-check": "0.17.0",
     "dependency-cruiser": "18.2.0",
     "husky": "9.1.7",
     "knip": "6.32.3",
     "no-mistakes": "0.53.2",
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
-    "pr-shepherd": "0.46.0",
-    "vouchington-tooling": "0.6.1"
+    "pr-shepherd": "0.56.1",
+    "vouchington-tooling": "0.28.0"
   },
   "engines": {
     "node": ">=26.0.0"
-  }
+  },
+  "packageManager": "pnpm@11.13.1"
 }
