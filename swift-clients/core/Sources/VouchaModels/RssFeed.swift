@@ -9,6 +9,7 @@ public struct RssFeed: Codable, Identifiable, Sendable {
     public let enabled: Bool
     public let discoverable: Bool
     public let publisherType: TopicReference?
+    public let contentProvenance: PublicContentProvenance?
 }
 
 struct EmbeddedRssFeedSidecar: Decodable {

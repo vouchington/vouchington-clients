@@ -18,8 +18,28 @@ public sealed class ApiModelsContentTests
 
     Assert.Equal(
         ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags",
-         "DeclaredLanguage", "LinguaRsDetectedLanguage"],
-        parameterNames[^7..]);
+         "DeclaredLanguage", "LinguaRsDetectedLanguage", "ContentProvenance"],
+        parameterNames[^8..]);
+  }
+
+  [Fact]
+  public void PostDecodesOptionalPublicContentProvenance()
+  {
+    const string withLabel = """
+        {"id":"post-1","post_type":"discussion","title":"Title","markdown":"Body",
+         "created_by_id":"user-1","content_provenance":{"via":"mcp","label":"via Example"}}
+        """;
+    const string withoutLabel = """
+        {"id":"post-2","post_type":"discussion","title":"Title","markdown":"Body",
+         "created_by_id":"user-1"}
+        """;
+
+    var labeled = JsonSerializer.Deserialize<Post>(withLabel);
+    var unlabeled = JsonSerializer.Deserialize<Post>(withoutLabel);
+
+    Assert.Equal("mcp", labeled?.ContentProvenance?.Via);
+    Assert.Equal("via Example", labeled?.ContentProvenance?.Label);
+    Assert.Null(unlabeled?.ContentProvenance);
   }
 
   [Fact]

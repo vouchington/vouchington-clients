@@ -7,6 +7,23 @@ namespace Voucha.Client.Core.Tests.Posts;
 public sealed class PostRowsTests
 {
   [Fact]
+  public void FromDisplaysOnlyServerProvidedProvenanceLabel()
+  {
+    var labeled = PostRows.From(
+        new Post("post-1", "discussion", "Title", null, "user-1",
+            ContentProvenance: new PublicContentProvenance("api", "via Example")),
+        null, null, null);
+    var unlabeled = PostRows.From(
+        new Post("post-2", "story", "Title", null, "user-1"),
+        null, null, null);
+
+    Assert.Equal("via Example", labeled.ContentProvenanceLabel);
+    Assert.True(labeled.HasContentProvenance);
+    Assert.Null(unlabeled.ContentProvenanceLabel);
+    Assert.False(unlabeled.HasContentProvenance);
+  }
+
+  [Fact]
   public void FromCarriesCommentRootId()
   {
     var row = PostRows.From(

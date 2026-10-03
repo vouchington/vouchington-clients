@@ -140,6 +140,11 @@ private extension PostCard {
 
     private var postFooter: some View {
         HStack(spacing: Spacing.md) {
+            if let label = post.contentProvenance?.label {
+                Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(label), locale: nativeUiLocale))
+                    .font(Typography.caption2)
+                    .foregroundStyle(Colors.secondaryLabel)
+            }
             voteControls
             relationControls
             commentCount

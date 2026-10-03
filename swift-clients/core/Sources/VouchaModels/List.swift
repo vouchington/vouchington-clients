@@ -20,6 +20,7 @@ public struct UserList: Codable, Identifiable, Sendable {
     public let createdAt: Date
     public let updatedAt: Date
     public let removedAt: Date?
+    public let contentProvenance: PublicContentProvenance?
 }
 
 public struct ListItem: Codable, Identifiable, Sendable {

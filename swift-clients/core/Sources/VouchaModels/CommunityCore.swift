@@ -41,6 +41,7 @@ public struct Community: Codable, Identifiable, Sendable {
     @RequiredNullable
     public var rulesMarkdown: String?
     public let owner: DecodedJSONValue?
+    public let contentProvenance: PublicContentProvenance?
 
     private enum CodingKeys: String, CodingKey {
         case entityType
@@ -70,6 +71,7 @@ public struct Community: Codable, Identifiable, Sendable {
         case linguaRsDetectedLanguage
         case rulesMarkdown
         case owner
+        case contentProvenance
     }
 
     public init(from decoder: any Decoder) throws {
@@ -112,6 +114,7 @@ public struct Community: Codable, Identifiable, Sendable {
         )
         _rulesMarkdown = try container.decode(RequiredNullable<String>.self, forKey: .rulesMarkdown)
         owner = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .owner)
+        contentProvenance = try container.decodeIfPresent(PublicContentProvenance.self, forKey: .contentProvenance)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -147,6 +150,12 @@ public struct Community: Codable, Identifiable, Sendable {
         object["rules_markdown"] = rulesMarkdown.map(DecodedJSONValue.string) ?? .null
         if let owner {
             object["owner"] = owner
+        }
+        if let contentProvenance {
+            object["content_provenance"] = .object([
+                "via": .string(contentProvenance.via),
+                "label": .string(contentProvenance.label)
+            ])
         }
         try raw.encode(object)
     }

@@ -2,6 +2,28 @@ import VouchaModels
 import XCTest
 
 final class PostConcreteContractTests: XCTestCase {
+    func testPostDecodesOptionalPublicContentProvenance() throws {
+        let original = ApiFixtureLoader.data("native.bookmarks.posts.saved.default")
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: original) as? [String: Any])
+        var results = try XCTUnwrap(object["results"] as? [[String: Any]])
+        results[0]["content_provenance"] = ["via": "mcp", "label": "via Example"]
+        object["results"] = results
+
+        let labeled = try makeVouchaDecoder().decode(
+            Page<Post>.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        results[0].removeValue(forKey: "content_provenance")
+        object["results"] = results
+        let unlabeled = try makeVouchaDecoder().decode(
+            Page<Post>.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertEqual(labeled.results.first?.contentProvenance, PublicContentProvenance(via: "mcp", label: "via Example"))
+        XCTAssertNil(unlabeled.results.first?.contentProvenance)
+    }
+
     func testConcretePostSidecarsDecodeFromSharedFixtures() throws {
         let bookmarks = try makeVouchaDecoder().decode(
             Page<Post>.self,

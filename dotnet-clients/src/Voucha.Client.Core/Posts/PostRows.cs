@@ -29,7 +29,8 @@ public sealed record PostRow(
     string? DeclaredLanguage = null,
     string? DetectedLanguage = null,
     bool HasAuthoredTitle = false,
-    AccountType? AuthorAccountType = null)
+    AccountType? AuthorAccountType = null,
+    string? ContentProvenanceLabel = null)
 {
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
@@ -46,6 +47,10 @@ public sealed record PostRow(
   public string? TitleFlowDirection => HasAuthoredTitle ? ContentLanguage.Direction?.ToString() : null;
 
   public bool HasVoteCounts => VoteCountUp is not null || VoteCountDown is not null;
+
+  public bool HasContentProvenance => ContentProvenanceLabel is not null;
+
+  public string? LocalizedContentProvenanceLabel => ContentProvenanceLabel is { } label ? L.Resolve(UiText.Verbatim(label)) : null;
 
   public bool IsEligibleForFollowerDistribution =>
       FollowerDistributionEligibility.IsPublicTopLevelPost(ProtocolPostType, ParentId, Privacy, Broadcast);
@@ -115,7 +120,8 @@ public static class PostRows
         DeclaredLanguage: post.DeclaredLanguage,
         DetectedLanguage: post.LinguaRsDetectedLanguage,
         HasAuthoredTitle: Normalize(post.Title) is not null,
-        AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType);
+        AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType,
+        ContentProvenanceLabel: post.ContentProvenance?.Label);
   }
 
   public static PostRow From(
