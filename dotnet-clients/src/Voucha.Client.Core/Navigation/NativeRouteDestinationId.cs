@@ -29,7 +29,6 @@ public enum NativeRouteDestinationId
   UserProfile,
   UserAdmin,
   MembershipGrants,
-  EngineeringAgents,
   EngineeringQueues,
   EngineeringPostgresql,
   EngineeringValkey,

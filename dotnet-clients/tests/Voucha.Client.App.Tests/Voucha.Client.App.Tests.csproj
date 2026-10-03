@@ -71,9 +71,6 @@
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.cs" Link="Controls/NativeHtmlContentView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Spans.cs" Link="Controls/NativeHtmlContentView.Spans.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Localization.cs" Link="Controls/NativeHtmlContentView.Localization.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentListsPage.cs" Link="Pages/AgentListsPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentDetailPage.cs" Link="Pages/AgentDetailPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentConversationPage.cs" Link="Pages/AgentConversationPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml" Link="Pages/HouseholdPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml.cs" Link="Pages/HouseholdPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MembershipGrantOptions.cs" Link="Pages/MembershipGrantOptions.cs" />

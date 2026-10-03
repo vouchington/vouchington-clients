@@ -6,7 +6,6 @@ public static partial class NativeRouteCatalog
   [
     Included("Membership grants", NativeRouteDestinationId.MembershipGrants, "/memberships/grants", ["/memberships/grants"]),
     Included("User administration", NativeRouteDestinationId.UserAdmin, "/user/alice/admin", ["/user/:idOrUsername/admin"]),
-    Included("Engineering agents", NativeRouteDestinationId.EngineeringAgents, "/agents", ["/agents", "/agent/:idOrSlug", "/agent/:idOrSlug/conversation/:conversationId"]),
     Included("Engineering queues", NativeRouteDestinationId.EngineeringQueues, "/admin/queues", ["/admin/queues"]),
     Included("Engineering PostgreSQL", NativeRouteDestinationId.EngineeringPostgresql, "/admin/postgresql", ["/admin/postgresql"]),
     Included("Engineering Valkey", NativeRouteDestinationId.EngineeringValkey, "/admin/valkey", ["/admin/valkey"]),

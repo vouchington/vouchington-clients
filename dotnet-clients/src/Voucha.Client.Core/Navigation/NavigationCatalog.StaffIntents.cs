@@ -68,7 +68,6 @@ public static partial class NavigationCatalog
             UiMessageKey.ExtractedIntentsAdminEngineering729bb48d,
             "sidebar-group-admin-engineering",
             [
-              new NavItem(UiMessageKey.ExtractedIntentsAdminAgents279b44d2, "/agents", "sidebar-link-agents"),
               new NavItem(UiMessageKey.ExtractedIntentsAdminQueuesBe77db11, "/admin/queues", "sidebar-link-queues", Exact: true),
               new NavItem(UiMessageKey.ExtractedIntentsAdminPostgresqlCc52d032, "/admin/postgresql", "sidebar-link-postgresql"),
               new NavItem(UiMessageKey.ExtractedIntentsAdminValkey2392ad6b, "/admin/valkey", "sidebar-link-valkey"),

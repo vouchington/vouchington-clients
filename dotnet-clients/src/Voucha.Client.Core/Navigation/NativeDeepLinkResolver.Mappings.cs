@@ -40,7 +40,7 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.UserProfile => "friends",
         NativeRouteDestinationId.UserAdmin => "friends",
         NativeRouteDestinationId.MembershipGrants => "administration",
-        NativeRouteDestinationId.EngineeringAgents or NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
+        NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
         NativeRouteDestinationId.EngineeringValkey or NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig => "engineering",
         NativeRouteDestinationId.GrowthDashboard => "growth",
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -112,7 +112,6 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.AdvancedSettings or NativeRouteDestinationId.Referrals or
         NativeRouteDestinationId.Bookmarks or NativeRouteDestinationId.TopicRecommendations or NativeRouteDestinationId.TagManagement or
         NativeRouteDestinationId.ModerationCases or NativeRouteDestinationId.UserAdmin or NativeRouteDestinationId.MembershipGrants or
-        NativeRouteDestinationId.EngineeringAgents or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig or NativeRouteDestinationId.GrowthDashboard or
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -133,7 +132,7 @@ public static partial class NativeDeepLinkResolver
       return ["administrator"];
     }
 
-    if (destinationId is NativeRouteDestinationId.MembershipGrants or NativeRouteDestinationId.EngineeringAgents or
+    if (destinationId is NativeRouteDestinationId.MembershipGrants or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.ModerationReviewQueue or
         NativeRouteDestinationId.ModerationAdmin or NativeRouteDestinationId.ModerationIntegrity)
