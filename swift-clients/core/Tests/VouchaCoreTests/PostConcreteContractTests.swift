@@ -20,7 +20,10 @@ final class PostConcreteContractTests: XCTestCase {
             from: JSONSerialization.data(withJSONObject: object)
         )
 
-        XCTAssertEqual(labeled.results.first?.contentProvenance, PublicContentProvenance(via: "mcp", label: "via Example"))
+        XCTAssertEqual(
+            labeled.results.first?.contentProvenance,
+            PublicContentProvenance(via: "mcp", label: "via Example")
+        )
         XCTAssertNil(unlabeled.results.first?.contentProvenance)
     }
 
