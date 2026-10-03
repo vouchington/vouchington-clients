@@ -6,8 +6,12 @@ import VouchaModels
 public extension SettingsViewModel {
     func createApiKey() async {
         guard let client else { return }
+        guard canCreateApiKey else {
+            statusMessage = .message(.nativeCredentialsInvalidSelection)
+            return
+        }
+        let permissions = apiKeyScopeSelection.permissions
         await mutate {
-            let permissions = apiKeyType == .mcp ? ["mcp-tools:read", "mcp-tools:write"] : ["rss-feeds:read"]
             let response: SettingsApiKeyResponse = try await client.send(
                 .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions)
             )
@@ -17,6 +21,7 @@ public extension SettingsViewModel {
             apiKeyPagination.replaceItems([response.apiKey] + apiKeyPagination.items)
             latestRawAPIKey = response.rawKey
             apiKeyLabel = ""
+            apiKeyScopeSelection.clear()
             statusMessage = .message(.nativeSwiftSettingsApiKeyCreated)
         }
     }

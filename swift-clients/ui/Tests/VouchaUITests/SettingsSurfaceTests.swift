@@ -285,6 +285,8 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func seedSettingsResponses() {
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants([]), 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             PrivateUserTestFixture.identityEnvelope(
                 profileImageId: "image-1",

@@ -7,9 +7,17 @@ public sealed partial class SettingsViewModel
 {
   public async Task CreateApiKeyAsync(CancellationToken cancellationToken = default)
   {
+    if (!CanCreateApiKey)
+    {
+      SetCredentialNotice(Localization.UiMessageKey.NativeCredentialsInvalidSelection);
+      return;
+    }
+    isCreatingApiKey = true;
+    OnPropertyChanged(nameof(CanCreateApiKey));
+    ApiKeySecret = null;
     try
     {
-      var response = await settingsService.CreateApiKeyAsync(ApiKeyLabel, ApiKeyType, cancellationToken)
+      var response = await settingsService.CreateApiKeyAsync(ApiKeyLabel, ApiKeyType, SelectedApiKeyScopes, cancellationToken)
           .ConfigureAwait(true);
       ApiKeyLabel = string.Empty;
       await LoadAsync(cancellationToken).ConfigureAwait(true);
@@ -18,6 +26,11 @@ public sealed partial class SettingsViewModel
     catch (Exception ex)
     {
       ErrorMessage = ex.Message;
+    }
+    finally
+    {
+      isCreatingApiKey = false;
+      OnPropertyChanged(nameof(CanCreateApiKey));
     }
   }
 

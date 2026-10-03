@@ -12,6 +12,8 @@ public sealed partial class SettingsViewModelActionsTests
   {
     var service = new RecordingSettingsService();
     var viewModel = new SettingsViewModel(service) { ApiKeyLabel = "Reader", ApiKeyType = "mcp" };
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    viewModel.SetApiKeyScopeSelected("mcp.user:write", true);
 
     await viewModel.CreateApiKeyAsync(TestContext.Current.CancellationToken);
 
@@ -19,9 +21,10 @@ public sealed partial class SettingsViewModelActionsTests
     Assert.Equal("Created key ****. Copy it now; it will not be shown again.", viewModel.ApiKeySecretDisplay);
     Assert.True(viewModel.HasApiKeySecret);
     Assert.Equal(string.Empty, viewModel.ApiKeyLabel);
-    Assert.Equal(1, service.FetchApiKeysCount);
+    Assert.Equal(2, service.FetchApiKeysCount);
     Assert.Equal("Reader", service.LastCreatedApiKeyLabel);
     Assert.Equal("mcp", service.LastCreatedApiKeyType);
+    Assert.Equal(["mcp.user:read", "mcp.user:write"], service.LastCreatedApiKeyPermissions);
   }
 
   [Fact]
@@ -31,7 +34,7 @@ public sealed partial class SettingsViewModelActionsTests
     var viewModel = new SettingsViewModel(service);
 
     await viewModel.RevokeApiKeyAsync(
-        new ApiKey("api-key-1", "user-1", "rk_abc123", "rss", "Reader", ["rss-feeds:read"],
+        new ApiKey("api-key-1", "user-1", "rk_abc123", "rss", "Reader", ["rss:read"],
             DateTimeOffset.Parse("2026-07-01T12:00:00Z"), null, null,
             DateTimeOffset.Parse("2026-07-01T12:00:00Z")),
         TestContext.Current.CancellationToken);
@@ -54,6 +57,8 @@ public sealed partial class SettingsViewModelActionsTests
       ApiKeyType = "mcp",
     };
 
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    viewModel.SetApiKeyScopeSelected("mcp.user:read", true);
     await viewModel.CreateApiKeyAsync(TestContext.Current.CancellationToken);
     controller.ApplySavedLocale("fr");
 

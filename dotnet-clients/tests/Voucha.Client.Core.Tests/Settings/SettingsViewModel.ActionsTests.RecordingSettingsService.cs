@@ -120,10 +120,12 @@ public sealed partial class SettingsViewModelActionsTests
     public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
         string label,
         string type,
+        IReadOnlyList<string> permissions,
         CancellationToken cancellationToken = default)
     {
       LastCreatedApiKeyLabel = label;
       LastCreatedApiKeyType = type;
+      LastCreatedApiKeyPermissions = permissions;
       return Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
     }
 

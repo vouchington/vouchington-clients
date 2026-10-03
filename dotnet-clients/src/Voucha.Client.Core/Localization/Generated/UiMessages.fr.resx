@@ -258,6 +258,29 @@
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Appuyer</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Adresse e-mail</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Réessayer</value></data>
+  <data name="native.credentials.action" xml:space="preserve"><value>Action</value></data>
+  <data name="native.credentials.adminAudience" xml:space="preserve"><value>Administrateur</value></data>
+  <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
+  <data name="native.credentials.audience" xml:space="preserve"><value>Audience</value></data>
+  <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Impossible de charger les paramètres des identifiants</value></data>
+  <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choisir les portées</value></data>
+  <data name="native.credentials.connectedApps" xml:space="preserve"><value>Applications connectées</value></data>
+  <data name="native.credentials.grantActivity" xml:space="preserve"><value>Autorisée le {consentedAt} · Dernière utilisation : {lastUsedAt}</value></data>
+  <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Accès révoqué</value></data>
+  <data name="native.credentials.invalidSelection" xml:space="preserve"><value>Choisissez au moins une autorisation</value></data>
+  <data name="native.credentials.mcpAdminFullAccess" xml:space="preserve"><value>Accès MCP complet pour les administrateurs</value></data>
+  <data name="native.credentials.mcpUserFullAccess" xml:space="preserve"><value>Accès MCP complet pour les utilisateurs</value></data>
+  <data name="native.credentials.noConnectedApps" xml:space="preserve"><value>Aucune application n&apos;a accès à votre compte.</value></data>
+  <data name="native.credentials.readAction" xml:space="preserve"><value>Lecture</value></data>
+  <data name="native.credentials.requires" xml:space="preserve"><value>Nécessite {scope}</value></data>
+  <data name="native.credentials.resource" xml:space="preserve"><value>Ressource</value></data>
+  <data name="native.credentials.revokeFailed" xml:space="preserve"><value>Impossible de révoquer l&apos;accès</value></data>
+  <data name="native.credentials.scopes" xml:space="preserve"><value>Portées</value></data>
+  <data name="native.credentials.unusedGrantActivity" xml:space="preserve"><value>Autorisée {consentedAt} · Pas encore utilisée</value></data>
+  <data name="native.credentials.unverified" xml:space="preserve"><value>Non vérifié</value></data>
+  <data name="native.credentials.userAudience" xml:space="preserve"><value>Utilisateur</value></data>
+  <data name="native.credentials.verified" xml:space="preserve"><value>Vérifié</value></data>
+  <data name="native.credentials.writeAction" xml:space="preserve"><value>Écriture</value></data>
   <data name="native.dotnet.auth.appleSignIn" xml:space="preserve"><value>Connexion avec Apple</value></data>
   <data name="native.dotnet.auth.developmentCookieLoadingUnavailable" xml:space="preserve"><value>Le chargement des cookies de développement n’est pas disponible.</value></data>
   <data name="native.dotnet.auth.developmentCookiesStoredWithoutIdentity" xml:space="preserve"><value>Les cookies ont été enregistrés, mais l’identité n’a pas été authentifiée.</value></data>

@@ -88,6 +88,8 @@ public sealed record SettingsApiKeyRow(
   public string Prefix => ProtocolValue.Prefix;
 
   public string LocalizedApiKeyType => Localization.Resolve(TypeText);
+
+  public string Permissions => Localization.Resolve(UiText.ProtocolValue(string.Join(", ", ProtocolValue.Permissions)));
 }
 
 public sealed partial class SettingsToggleRowViewModel : ObservableObject

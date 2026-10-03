@@ -261,6 +261,29 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
     public static readonly UiMessageKey NativeCommonRetry = new("native.common.retry");
+    public static readonly UiMessageKey NativeCredentialsAction = new("native.credentials.action");
+    public static readonly UiMessageKey NativeCredentialsAdminAudience = new("native.credentials.adminAudience");
+    public static readonly UiMessageKey NativeCredentialsApiAudience = new("native.credentials.apiAudience");
+    public static readonly UiMessageKey NativeCredentialsAudience = new("native.credentials.audience");
+    public static readonly UiMessageKey NativeCredentialsCatalogLoadFailed = new("native.credentials.catalogLoadFailed");
+    public static readonly UiMessageKey NativeCredentialsChooseScopes = new("native.credentials.chooseScopes");
+    public static readonly UiMessageKey NativeCredentialsConnectedApps = new("native.credentials.connectedApps");
+    public static readonly UiMessageKey NativeCredentialsGrantActivity = new("native.credentials.grantActivity");
+    public static readonly UiMessageKey NativeCredentialsGrantRevoked = new("native.credentials.grantRevoked");
+    public static readonly UiMessageKey NativeCredentialsInvalidSelection = new("native.credentials.invalidSelection");
+    public static readonly UiMessageKey NativeCredentialsMcpAdminFullAccess = new("native.credentials.mcpAdminFullAccess");
+    public static readonly UiMessageKey NativeCredentialsMcpUserFullAccess = new("native.credentials.mcpUserFullAccess");
+    public static readonly UiMessageKey NativeCredentialsNoConnectedApps = new("native.credentials.noConnectedApps");
+    public static readonly UiMessageKey NativeCredentialsReadAction = new("native.credentials.readAction");
+    public static readonly UiMessageKey NativeCredentialsRequires = new("native.credentials.requires");
+    public static readonly UiMessageKey NativeCredentialsResource = new("native.credentials.resource");
+    public static readonly UiMessageKey NativeCredentialsRevokeFailed = new("native.credentials.revokeFailed");
+    public static readonly UiMessageKey NativeCredentialsScopes = new("native.credentials.scopes");
+    public static readonly UiMessageKey NativeCredentialsUnusedGrantActivity = new("native.credentials.unusedGrantActivity");
+    public static readonly UiMessageKey NativeCredentialsUnverified = new("native.credentials.unverified");
+    public static readonly UiMessageKey NativeCredentialsUserAudience = new("native.credentials.userAudience");
+    public static readonly UiMessageKey NativeCredentialsVerified = new("native.credentials.verified");
+    public static readonly UiMessageKey NativeCredentialsWriteAction = new("native.credentials.writeAction");
     public static readonly UiMessageKey NativeDotnetAuthAppleSignIn = new("native.dotnet.auth.appleSignIn");
     public static readonly UiMessageKey NativeDotnetAuthDevelopmentCookieLoadingUnavailable = new("native.dotnet.auth.developmentCookieLoadingUnavailable");
     public static readonly UiMessageKey NativeDotnetAuthDevelopmentCookiesStoredWithoutIdentity = new("native.dotnet.auth.developmentCookiesStoredWithoutIdentity");
@@ -2152,6 +2175,29 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteVouch,
         NativeAuthEmailAddress,
         NativeCommonRetry,
+        NativeCredentialsAction,
+        NativeCredentialsAdminAudience,
+        NativeCredentialsApiAudience,
+        NativeCredentialsAudience,
+        NativeCredentialsCatalogLoadFailed,
+        NativeCredentialsChooseScopes,
+        NativeCredentialsConnectedApps,
+        NativeCredentialsGrantActivity,
+        NativeCredentialsGrantRevoked,
+        NativeCredentialsInvalidSelection,
+        NativeCredentialsMcpAdminFullAccess,
+        NativeCredentialsMcpUserFullAccess,
+        NativeCredentialsNoConnectedApps,
+        NativeCredentialsReadAction,
+        NativeCredentialsRequires,
+        NativeCredentialsResource,
+        NativeCredentialsRevokeFailed,
+        NativeCredentialsScopes,
+        NativeCredentialsUnusedGrantActivity,
+        NativeCredentialsUnverified,
+        NativeCredentialsUserAudience,
+        NativeCredentialsVerified,
+        NativeCredentialsWriteAction,
         NativeDotnetAuthAppleSignIn,
         NativeDotnetAuthDevelopmentCookieLoadingUnavailable,
         NativeDotnetAuthDevelopmentCookiesStoredWithoutIdentity,

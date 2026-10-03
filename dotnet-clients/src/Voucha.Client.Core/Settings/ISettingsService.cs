@@ -49,6 +49,7 @@ public partial interface ISettingsService
   Task<ApiKeyCreationResponse> CreateApiKeyAsync(
       string label,
       string type,
+      IReadOnlyList<string> permissions,
       CancellationToken cancellationToken = default);
 
   Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default);

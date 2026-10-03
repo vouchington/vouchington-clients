@@ -117,15 +117,6 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
             Data("""
             {
-              "results": [],
-              "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null }
-            }
-            """.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
-            Data("""
-            {
               "api_key": {
                 "id": "key-2",
                 "user_id": "user-1",
@@ -145,6 +136,9 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         )
         let viewModel = try SettingsViewModel(client: makeClient())
         viewModel.apiKeyLabel = "Reader"
+
+        await viewModel.loadCredentialSettings()
+        viewModel.setApiKeyScope("feed:read", selected: true)
 
         await viewModel.createApiKey()
 

@@ -50,6 +50,7 @@ public sealed partial class SettingsViewModel
 
       var user = (await userTask.ConfigureAwait(true)).User;
       loadedUser = user;
+      await LoadCredentialsAsync(cancellationToken).ConfigureAwait(true);
       PrivacySelections = BuildSelections(user);
       PrivacyToggles = BuildToggles(user);
 

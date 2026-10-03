@@ -78,6 +78,7 @@ extension SettingsSurface {
             membershipSection
             sessionsSection
             apiKeysSection
+            connectedAppsSection
             localLLMSection
             pushSubscriptionsSection
             dataSection

@@ -14,6 +14,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
 
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
+        .merging(credentialFixtureEndpoints) { _, replacement in replacement }
         .merging([
             "native.import-export.rss-feeds.submit.default": .importRssFeeds(
                 .urls(["https://example.test/feed.xml", "https://invalid.example.test/feed.xml"])
