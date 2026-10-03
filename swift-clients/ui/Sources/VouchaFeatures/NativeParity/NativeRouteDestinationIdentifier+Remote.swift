@@ -73,7 +73,7 @@ extension NativeRouteDestinationIdentifier {
             .entities
         case .referrals, .plans, .bookmarks, .landingPages, .lists:
             .library
-        case .messages, .chat, .engineeringAgents:
+        case .messages, .chat:
             .messages
         case .notifications:
             .notifications

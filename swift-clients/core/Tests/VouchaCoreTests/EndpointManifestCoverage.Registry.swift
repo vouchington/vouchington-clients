@@ -21,7 +21,6 @@ enum EndpointManifestCoverage {
             + engineeringEndpoints
             + swiftCoreEndpoints
             + nativeContentEndpoints
-            + nativeAgentConversationEndpoints
             + nativeMessageEndpoints
             + membershipStoreEndpoints
             + importExportEndpoints

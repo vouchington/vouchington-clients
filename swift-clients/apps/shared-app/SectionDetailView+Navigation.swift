@@ -63,14 +63,7 @@ extension SectionDetailView {
     }
 
     func navigateWithinNativeSection(_ targetPath: String) {
-        guard let target = NativeRouteCatalog.matchingRoute(for: targetPath),
-              target.entry.destinationIdentifier == .engineeringAgents,
-              target.entry.nativeSection == section
-        else {
-            onNavigateToTargetPath(targetPath)
-            return
-        }
-        nativeRouteHistory.append(targetPath)
+        onNavigateToTargetPath(targetPath)
     }
 
     @ViewBuilder

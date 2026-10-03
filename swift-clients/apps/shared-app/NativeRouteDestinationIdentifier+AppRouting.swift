@@ -24,7 +24,7 @@ extension NativeRouteDestinationIdentifier {
             .discover
         case .membershipGrants:
             .settings
-        case .engineeringAgents, .engineeringQueues, .engineeringPostgresql, .engineeringValkey,
+        case .engineeringQueues, .engineeringPostgresql, .engineeringValkey,
              .engineeringAiCosts, .engineeringDynamicConfig:
             .engineering
         case .growthDashboard:

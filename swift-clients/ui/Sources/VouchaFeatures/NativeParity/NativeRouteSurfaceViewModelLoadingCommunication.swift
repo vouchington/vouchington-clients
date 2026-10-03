@@ -10,11 +10,6 @@ extension NativeRouteSurfaceViewModel {
             return try await loadChatRows(client: client)
         case .messages:
             return try await loadDirectMessageRows(client: client)
-        case .engineeringAgents:
-            if isAgentRoute {
-                return try await loadAgentRows(client: client)
-            }
-            return []
         default:
             return []
         }

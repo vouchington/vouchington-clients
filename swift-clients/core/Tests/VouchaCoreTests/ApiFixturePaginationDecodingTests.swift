@@ -4,28 +4,6 @@ import XCTest
 final class ApiFixturePaginationDecodingTests: XCTestCase {
     private let decoder = makeVouchaDecoder()
 
-    func testDecodesOpaqueAgentConversationHistoryFixtures() throws {
-        let first = try decoder.decode(
-            AgentConversationDetailResponse.self,
-            from: ApiFixtureLoader.data("native.agents.conversation.default")
-        )
-        let older = try decoder.decode(
-            AgentConversationDetailResponse.self,
-            from: ApiFixtureLoader.data("native.agents.conversation.page-2")
-        )
-
-        XCTAssertEqual(first.results.map(\.id), [
-            "00000000-0000-7000-8000-000000000201",
-            "00000000-0000-7000-8000-000000000202"
-        ])
-        XCTAssertTrue(first.pageInfo.hasNextPage)
-        XCTAssertTrue(first.pageInfo.endCursor?.hasPrefix("eyJ") == true)
-        XCTAssertNil(first.results.first?.createdById)
-        XCTAssertEqual(older.results.first?.content?.content, "Earlier context")
-        XCTAssertFalse(older.pageInfo.hasNextPage)
-        XCTAssertNil(older.pageInfo.endCursor)
-    }
-
     func testDecodesOpaqueMessagingContinuationFixtures() throws {
         let firstConversations = try decoder.decode(
             Page<DirectConversation>.self,

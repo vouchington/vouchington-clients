@@ -64,32 +64,6 @@ public final class NativeRouteSurfaceViewModel {
     var pendingBookmarkDestinations: [BookmarkDestinationIdentity: PendingBookmarkDestination] = [:]
     var bookmarkContextId = UUID()
     var currentBookmarkCollection: NativeBookmarkCollection?
-    var agentConversation: AgentConversation?
-    var agentConversationMessages: [AgentConversationMessage] = []
-    var agentConversationAgentSystemUserId: String?
-    var agentConversationPageInfo: Page<AgentConversationMessage>.PageInfo?
-    var agentConversationLoadRevision = 0
-    var agentConversationPageRequestRevision = 0
-    var agentConversationContinuationToken = 0
-    var activeAgentConversationContinuationToken: Int?
-    public var isLoadingOlderAgentConversationMessages: Bool {
-        activeAgentConversationContinuationToken != nil
-    }
-
-    public internal(set) var agentConversationPaginationErrorMessage: UiVerbatimText?
-    var agentDirectoryPagination = CursorPaginationState<AgentSummary>()
-    var agentDirectoryUsers: [String: PublicUser] = [:]
-    var agentDirectoryLoadRevision = 0
-    var agentDirectoryPageRequestRevision = 0
-    public internal(set) var agentDirectoryPaginationErrorMessage: UiVerbatimText?
-    var agentConversationListPagination = CursorPaginationState<AgentConversationSummary>()
-    var agentConversationListUsers: [String: PublicUser] = [:]
-    var agentDetail: AgentDetailResponse?
-    var agentConversationFilter: AgentConversationFilter?
-    var agentConversationFilterRouteIdentity: String?
-    var agentConversationListLoadRevision = 0
-    var agentConversationListPageRequestRevision = 0
-    public internal(set) var agentConversationsPageErrorMessage: UiVerbatimText?
     public internal(set) var fediverseInstancePageInfo: Page<TopicSearchResult>.PageInfo?
     public internal(set) var isLoadingMoreFediverseInstances = false
     public internal(set) var fediverseInstancePaginationErrorMessage: UiVerbatimText?
@@ -101,8 +75,6 @@ public final class NativeRouteSurfaceViewModel {
     var moderationTransparencyPageRevision = 0
     var moderationTransparencyContinuationToken = 0
     var fediverseInstanceItems: [FediverseInstanceListItem] = []
-    var agentListPageSize = 25
-    var agentMessagePageSize = 50
     var searchGeneration = 0
     var forwardPagination = CursorPaginationState<NativeForwardRow>()
     var crawlHistoryPagination = CursorPaginationState<NativeForwardRow>()

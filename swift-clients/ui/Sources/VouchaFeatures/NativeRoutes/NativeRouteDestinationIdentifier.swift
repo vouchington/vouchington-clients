@@ -35,7 +35,6 @@ public enum NativeRouteDestinationIdentifier: String, CaseIterable, Identifiable
     case userProfile = "user-profile"
     case userAdmin = "user-admin"
     case membershipGrants = "membership-grants"
-    case engineeringAgents = "engineering-agents"
     case engineeringQueues = "engineering-queues"
     case engineeringPostgresql = "engineering-postgresql"
     case engineeringValkey = "engineering-valkey"

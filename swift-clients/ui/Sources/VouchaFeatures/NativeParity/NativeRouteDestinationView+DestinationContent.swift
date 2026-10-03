@@ -34,14 +34,6 @@ extension NativeRouteDestinationSurface {
             case .engineeringQueues, .engineeringPostgresql, .engineeringValkey, .engineeringAiCosts,
                  .engineeringDynamicConfig, .topicImportExport, .sourceImportExport:
                 EmptyView()
-            case .engineeringAgents:
-                NativeEngineeringAgentsSurface(
-                    viewModel: viewModel,
-                    isSignedIn: isSignedIn,
-                    isAdministrator: isAdministrator,
-                    onNavigate: onNavigateToTargetPath,
-                    showSignIn: showSignIn
-                )
             case .moderationReviewQueue:
                 NativeReviewQueueSurface(viewModel: reviewQueueViewModel)
             case .membershipGrants, .userAdmin:

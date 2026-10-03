@@ -148,11 +148,8 @@ final class NativeRouteCatalogTests: XCTestCase {
         XCTAssertEqual(checker.destinationIdentifier(for: "/my/podcasts/import-export"), .sourceImportExport)
         XCTAssertEqual(checker.destinationIdentifier(for: "/my/channels/import-export"), .sourceImportExport)
         XCTAssertEqual(checker.destinationIdentifier(for: "/my/sources/import-export"), .sourceImportExport)
-        XCTAssertEqual(checker.destinationIdentifier(for: "/agents"), .engineeringAgents)
-        XCTAssertEqual(
-            checker.destinationIdentifier(for: "/agent/helper/conversation/conversation-1"),
-            .engineeringAgents
-        )
+        XCTAssertNil(checker.destinationIdentifier(for: "/agents"))
+        XCTAssertNil(checker.destinationIdentifier(for: "/agent/helper/conversation/conversation-1"))
         XCTAssertEqual(checker.destinationIdentifier(for: "/admin/queues"), .engineeringQueues)
         XCTAssertEqual(checker.destinationIdentifier(for: "/admin/postgresql"), .engineeringPostgresql)
         XCTAssertEqual(checker.destinationIdentifier(for: "/admin/valkey"), .engineeringValkey)

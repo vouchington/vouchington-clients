@@ -30,7 +30,6 @@ extension NativeRouteDestinationIdentifier {
         case .userProfile: "person.circle"
         case .userAdmin: "person.badge.shield.checkmark"
         case .membershipGrants: "checkmark.seal"
-        case .engineeringAgents: "cpu"
         case .engineeringQueues: "tray.full"
         case .engineeringPostgresql: "cylinder.split.1x2"
         case .engineeringValkey: "externaldrive.connected.to.line.below"

@@ -11,11 +11,6 @@ enum NativeRouteCatalogStaff {
             patterns: ["/user/:idOrUsername/admin"]
         ),
         .included(
-            destinationIdentifier: .engineeringAgents,
-            representativePath: "/agents",
-            patterns: ["/agents", "/agent/:idOrSlug", "/agent/:idOrSlug/conversation/:conversationId"]
-        ),
-        .included(
             destinationIdentifier: .engineeringQueues,
             representativePath: "/admin/queues",
             patterns: ["/admin/queues"]
