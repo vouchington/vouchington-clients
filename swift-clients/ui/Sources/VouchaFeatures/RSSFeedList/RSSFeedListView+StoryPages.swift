@@ -7,14 +7,18 @@ extension RSSFeedListView {
     @ViewBuilder
     func storyRelatedArticlesView(for item: RssFeedItem) -> some View {
         if let related = viewModel.relatedArticles(rssFeedItemId: item.id),
-           !related.pagination.items.isEmpty || related.pagination.hasMore {
+           related.pagination.hasMore || related.pagination.items.contains(where: {
+               !viewModel.hiddenItemIds.contains($0.id)
+           }) {
+            let visiblePeers = related.pagination.items.filter { !viewModel.hiddenItemIds.contains($0.id) }
             Button {
                 related.isExpanded.toggle()
             } label: {
                 Label(
                     UiMessages.string(UiMessage(
-                        related.pagination.hasMore ? .nativeCommonRelatedArticlesMore : .nativeCommonRelatedArticles,
-                        numberParameters: ["count": Double(related.pagination.items.count)]
+                        related.pagination
+                            .hasMore ? .nativeCommonRelatedArticlesMore : .nativeCommonRelatedArticles,
+                        numberParameters: ["count": Double(visiblePeers.count)]
                     ), locale: nativeUiLocale),
                     systemImage: related.isExpanded ? "chevron.up" : "chevron.down"
                 )
@@ -22,7 +26,7 @@ extension RSSFeedListView {
             .buttonStyle(.bordered)
             .accessibilityIdentifier("story-related-\(item.id)")
             if related.isExpanded {
-                ForEach(related.pagination.items.filter { !viewModel.hiddenItemIds.contains($0.id) }) { peer in
+                ForEach(visiblePeers) { peer in
                     rssFeedArticleCard(peer)
                     if let embed = viewModel.embedsByItemId[peer.id] {
                         ProviderEmbedPreview(embed: embed)
@@ -36,7 +40,8 @@ extension RSSFeedListView {
                             ProgressView()
                         } else {
                             Text(UiMessages.string(
-                                related.pagination.lastError == nil ? .nativeSwiftCommonLoadMore : .nativeCommonRetry,
+                                related.pagination
+                                    .lastError == nil ? .nativeSwiftCommonLoadMore : .nativeCommonRetry,
                                 locale: nativeUiLocale
                             ))
                         }
