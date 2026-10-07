@@ -8,7 +8,7 @@ extension SettingsSurface {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(UiMessages.string(.nativeCredentialsChooseScopes, locale: nativeUiLocale))
             if case let .error(error) = viewModel.credentialState {
-                ErrorStateView(error: error) { await viewModel.loadCredentialSettings() }
+                ErrorStateView(error: error) { await viewModel.retryCredentialScopeCatalog() }
             } else if case .loading = viewModel.credentialState {
                 ProgressView()
             }
@@ -56,7 +56,7 @@ extension SettingsSurface {
     var connectedAppsSection: some View {
         section(.nativeCredentialsConnectedApps, systemImage: "app.connected.to.app.below.fill") {
             if case let .error(error) = viewModel.oauthGrantState {
-                ErrorStateView(error: error) { await viewModel.loadCredentialSettings() }
+                ErrorStateView(error: error) { await viewModel.retryOAuthGrants() }
             } else if case .loading = viewModel.oauthGrantState {
                 ProgressView()
             }

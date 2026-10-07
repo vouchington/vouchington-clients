@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import ViewInspector
+import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -98,6 +99,63 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertThrowsError(try surface.apiKeyScopePicker.inspect().find(text: "Sign in to continue."))
         model.setApiKeyScope("data:write", selected: true)
         XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
+    }
+
+    func testConnectedAppsRetryReloadsOnlyGrantsAndPreservesValidScopes() async throws {
+        seedCredentials()
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (Data(#"{"error":"unauthorized"}"#.utf8), 401)
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
+        await model.loadCredentialSettings()
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertTrue(model.canCreateApiKey)
+        let scopeRequests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == "/api/v1/scopes" }.count
+
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (Data(#"{"error":"offline"}"#.utf8), 503)
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants(["two"]), 200)
+        let surface = SettingsSurface(viewModel: model)
+        let retry = try surface.connectedAppsSection.inspect().find(ViewType.View<ErrorStateView>.self)
+            .actualView().retry
+        await retry()
+
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == "/api/v1/scopes" }.count,
+            scopeRequests
+        )
+        guard case .loaded = model.credentialState else { return XCTFail("Valid scope catalog must remain loaded") }
+        guard case .loaded = model.oauthGrantState else { return XCTFail("Grant retry must recover") }
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["two"])
+        XCTAssertEqual(model.apiKeyScopeSelection.permissions, ["data:read", "data:write"])
+        XCTAssertTrue(model.canCreateApiKey)
+    }
+
+    func testScopePickerRetryReloadsOnlyCatalogAndPreservesValidGrants() async throws {
+        seedCredentials()
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (Data(#"{"error":"offline"}"#.utf8), 503)
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        await model.loadCredentialSettings()
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+        let grantRequests = CannedFeedURLProtocol.capturedRequests
+            .filter { $0.url.path == "/api/v1/my/oauth-grants" }.count
+
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (Data(#"{"error":"offline"}"#.utf8), 503)
+        let surface = SettingsSurface(viewModel: model)
+        let retry = try surface.apiKeyScopePicker.inspect().find(ViewType.View<ErrorStateView>.self)
+            .actualView().retry
+        await retry()
+
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedRequests
+                .filter { $0.url.path == "/api/v1/my/oauth-grants" }.count,
+            grantRequests
+        )
+        guard case .loaded = model.credentialState else { return XCTFail("Scope retry must recover") }
+        guard case .loaded = model.oauthGrantState else { return XCTFail("Valid grants must remain loaded") }
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+        XCTAssertTrue(model.apiKeyScopes.contains { $0.scope == "data:write" })
     }
 
     func testConnectedGrantRevokeButtonCallsOwnedEndpointAndRemovesAfterCompletion() async throws {
