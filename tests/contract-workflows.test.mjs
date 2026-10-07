@@ -385,7 +385,7 @@ describe('native contract workflow boundary', () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
     const skip = jobBlock(workflow, 'test-swift-android')
     const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@caa296126883cff596d87d8935842f9db880ef25 # v5\.1\.0/u
+    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
 
     assert.match(skip, cachePin)
     assert.match(androidCore, cachePin)
@@ -427,7 +427,7 @@ describe('native contract workflow boundary', () => {
     ])
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
-    const cachePin = /actions\/cache@caa296126883cff596d87d8935842f9db880ef25 # v5\.1\.0/u
+    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
     const nugetKey =
       /key: \$\{\{ runner\.os \}\}-nuget-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u
 

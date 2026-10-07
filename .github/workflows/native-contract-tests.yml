@@ -312,7 +312,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/voucha-dotnet-cache
           key: ${{ runner.os }}-nuget-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
@@ -533,7 +533,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore checksummed Swift Android archives
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/swift-android/downloads
           key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', '.github/workflows/native-contract-tests.yml') }}
@@ -619,7 +619,7 @@ jobs:
           swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
@@ -753,7 +753,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore checksummed Swift Android archives
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/swift-android/downloads
           key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/tooling/build-android-core.sh') }}
@@ -843,7 +843,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
