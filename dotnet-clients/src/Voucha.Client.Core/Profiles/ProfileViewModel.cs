@@ -71,7 +71,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   }
 
   public string DisplayName =>
-      SelectedDisplayAccount()?.Name ??
+      SelectedDisplayAccountName() ??
       User?.VerifiedDisplayName ??
       User?.Name ??
       Identity?.Username ??
@@ -161,19 +161,19 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
     OnPropertyChanged(nameof(AvatarUrl));
   }
 
-  private UserDisplayAccount? SelectedDisplayAccount()
+  private string? SelectedDisplayAccountName()
   {
-    if (User?.DisplayAccount is { } displayAccount) return displayAccount;
+    if (User?.DisplayAccount is { } displayAccount) return displayAccount.Name;
 
     return User?.UseDisplayNameFrom switch
     {
-      "facebook" => User.FacebookAccount,
-      "apple" => User.AppleAccount,
-      "google" => User.GoogleAccount,
-      "x" => User.XAccount,
-      "linkedin" => User.LinkedinAccount,
-      "microsoft" => User.MicrosoftAccount,
-      "github" => User.GithubAccount,
+      "facebook" => User.FacebookAccount?.Name,
+      "apple" => User.AppleAccount?.Name,
+      "google" => User.GoogleAccount?.Name,
+      "x" => User.XAccount?.Name,
+      "linkedin" => User.LinkedinAccount?.Name,
+      "microsoft" => User.MicrosoftAccount?.Name,
+      "github" => User.GithubAccount?.Name,
       _ => null,
     };
   }

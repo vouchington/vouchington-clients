@@ -453,7 +453,7 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                 as? [String: Any]
         )
         var user = try XCTUnwrap(root["user"] as? [String: Any])
-        user["display_account"] = displayAccountName.map { ["id": "display-1", "name": $0] }
+        user["display_account"] = displayAccountName.map { ["name": $0] }
             ?? NSNull()
         user["verified_display_name"] = verifiedDisplayName ?? NSNull()
         root["user"] = user

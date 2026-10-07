@@ -62,7 +62,7 @@ public sealed class ProfileViewModelTests
           "Hello",
           Name: "Legacy Alice",
           VerifiedDisplayName: "Verified Alice",
-          DisplayAccount: new UserDisplayAccount("oauth-1", "Display Alice")),
+          DisplayAccount: new PublicDisplayAccount("Display Alice")),
     };
     var viewModel = NewViewModel(settings, new RecordingPostsService());
 

@@ -58,7 +58,6 @@ public struct ModerationAnalyticsAppeals: Codable, Sendable {
     public let accepted: Int
     public let reduced: Int
     public let denied: Int
-    public let dismissed: Int
     public let successRate: Double?
 }
 
