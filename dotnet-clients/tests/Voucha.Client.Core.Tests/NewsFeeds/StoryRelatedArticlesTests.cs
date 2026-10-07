@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.NewsFeeds;
 using Xunit;
@@ -147,6 +148,42 @@ public sealed class StoryRelatedArticlesTests
   }
 
   [Fact]
+  public async Task DiscardedPageAfterPrimaryHideAllowsRetryWhenHideRollsBack()
+  {
+    var group = Group(1);
+    var pageCompletion = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var bookmarkService = new PendingBookmarkService();
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = pageCompletion.Task };
+    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmarkService);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    var pageRequest = model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    var hideRequest = model.ToggleHideAsync(model.Items[0], TestContext.Current.CancellationToken);
+    try
+    {
+      Assert.True(group.IsLoading);
+      Assert.Empty(model.Items);
+      pageCompletion.TrySetResult(new([Item("peer-2")], new("next", true, null)));
+      await pageRequest;
+      bookmarkService.Completion.TrySetException(new InvalidOperationException("Hide failed."));
+      await hideRequest;
+    }
+    finally
+    {
+      pageCompletion.TrySetResult(new([], new(null, false, null)));
+      bookmarkService.Completion.TrySetException(new InvalidOperationException("Hide failed."));
+    }
+
+    Assert.Single(model.Items);
+    Assert.False(group.IsLoading);
+    Assert.True(group.HasMore);
+    service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("peer-3")], new(null, false, null)));
+    await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
+    Assert.Equal(["peer-1", "peer-3"], group.Items.Select(item => item.Id));
+  }
+
+  [Fact]
   public async Task CancellationRetainsPreviewAndAllowsExplicitRetry()
   {
     var group = Group(1);
@@ -170,6 +207,13 @@ public sealed class StoryRelatedArticlesTests
           new("opaque+/=", true, null), UiLocalization.English);
   private static NewsFeedItem Primary(StoryRelatedArticles group) => Item("primary") with { StoryId = "story-1", StoryArticles = group };
   private static NewsFeedItem Item(string id) => new(id, id, "Source", "Summary", null, DateTimeOffset.UnixEpoch);
+
+  private sealed class PendingBookmarkService : IBookmarkService
+  {
+    public TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Task SetAsync(string entityType, string entityId, BookmarkPredicate predicate, bool active,
+        CancellationToken cancellationToken = default) => Completion.Task;
+  }
 
   private sealed class Service(NewsFeedPage feed) : INewsFeedService, IStoryRelatedArticlesService
   {

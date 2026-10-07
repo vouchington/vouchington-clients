@@ -22,7 +22,11 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       var page = await service.GetStoryRelatedArticlesPageAsync(related.StoryId, related.PrimaryItemId, request.Cursor, cancellationToken).ConfigureAwait(true);
-      if (generation != Volatile.Read(ref loadRequestId) || !Items.Any(row => ReferenceEquals(row.StoryArticles, related))) return;
+      if (generation != Volatile.Read(ref loadRequestId) || !Items.Any(row => ReferenceEquals(row.StoryArticles, related)))
+      {
+        related.Cancel(request);
+        return;
+      }
       related.Complete(request, page);
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
