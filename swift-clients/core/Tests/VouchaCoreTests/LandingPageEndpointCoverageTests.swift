@@ -83,7 +83,7 @@ final class LandingPageEndpointCoverageTests: XCTestCase {
                     ],
                     [
                         "type": "review",
-                        "review_id": "review-1"
+                        "review_post_id": "review-1"
                     ],
                     [
                         "type": "referral_link",
@@ -95,7 +95,7 @@ final class LandingPageEndpointCoverageTests: XCTestCase {
                         "entries": [
                             [
                                 "type": "review",
-                                "review_id": "review-2"
+                                "review_post_id": "review-2"
                             ],
                             [
                                 "type": "referral_link",

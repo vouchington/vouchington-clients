@@ -16,6 +16,10 @@ public enum ScopeSurface: String, Codable, Sendable {
 public enum ScopeDescriptionKey: String, Codable, Sendable {
     case mcpUserFullAccess = "mcp_user_full_access"
     case mcpAdminFullAccess = "mcp_admin_full_access"
+    case financialProfileRead = "financial_profile_read"
+    case financialProfileWrite = "financial_profile_write"
+    case spendingRead = "spending_read"
+    case spendingWrite = "spending_write"
 }
 
 public struct CredentialScope: Codable, Identifiable, Sendable {

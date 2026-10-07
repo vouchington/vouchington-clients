@@ -11,11 +11,11 @@ public enum VoteIntegrityResolution: String, Codable, Sendable, CaseIterable {
 public struct VoteIntegrityFlag: Codable, Identifiable, Sendable {
     public let id: String
     public let postId: String?
-    public let topicId: String?
-    public let hostnameId: String?
-    public let rssFeedItemId: String?
-    public let entityRelationId: String?
-    public let agentModerationId: String?
+    @RequiredNullable public var topicId: String?
+    @RequiredNullable public var hostnameId: String?
+    @RequiredNullable public var rssFeedItemId: String?
+    @RequiredNullable public var entityRelationId: String?
+    @RequiredNullable public var agentModerationId: String?
     public let flagType: String
     public let details: [String: DecodedJSONValue]
     public let resolvedAt: Date?
@@ -35,6 +35,7 @@ public struct VoteIntegrityFlagEnvelope: Codable, Sendable {
 
 public struct VoteIntegrityPenaltyResponse: Codable, Sendable {
     public let penalizedUserCount: Int
+    public let flag: VoteIntegrityFlag
 }
 
 public struct ReportIntegrityFlag: Codable, Identifiable, Sendable {
@@ -51,6 +52,12 @@ public struct ReportIntegrityFlag: Codable, Identifiable, Sendable {
     public let resolvedById: String?
     public let resolution: ReportIntegrityResolution?
     public let createdAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id, postId, reportedUserId, hostnameId, rssFeedItemId, flagType, reporterCount
+        case newAccountReporterPct = "newAccountReporterPercent"
+        case details, resolvedAt, resolvedById, resolution, createdAt
+    }
 }
 
 public struct ReportIntegrityFlagsResponse: Codable, Sendable {

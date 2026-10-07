@@ -52,7 +52,7 @@ final class FediverseModelDecodingTests: XCTestCase {
         XCTAssertEqual(Set(object.keys), [
             "monthly_active_users",
             "nodeinfo_software_version",
-            "open_registrations",
+            "is_open_for_registrations",
             "protocol",
             "software",
             "total_users"

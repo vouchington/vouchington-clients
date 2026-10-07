@@ -67,7 +67,7 @@ extension NativeRouteSurfaceViewModel {
         let response: AdminModlogResponse = try await client.send(.adminModlog(limit: 25))
         return response.results.compactMap { result in
             guard let action = response.moderatorActions[result.id] else { return nil }
-            let actorName = action.actorId.flatMap { response.users[$0]?.username } ?? action.actorId
+            let actorName = action.actorUserId.flatMap { response.users[$0]?.username } ?? action.actorUserId
             return row(
                 "clock.arrow.circlepath",
                 rawText(action.actionType),

@@ -6,6 +6,7 @@ public struct EngineeringQueueStats: Codable, Sendable, Hashable {
     public let active: Int
     public let completed: Int
     public let failed: Int
+    public let delayed: Int
     public let paused: Bool
 }
 
@@ -19,6 +20,7 @@ public struct EngineeringAggregatedQueueStats: Codable, Sendable, Hashable {
     public let totalActive: Int
     public let totalCompleted: Int
     public let totalFailed: Int
+    public let totalDelayed: Int
     public let queueCount: Int
 
     public func encode(to encoder: Encoder) throws {
@@ -28,6 +30,7 @@ public struct EngineeringAggregatedQueueStats: Codable, Sendable, Hashable {
             "totalActive": totalActive,
             "totalCompleted": totalCompleted,
             "totalFailed": totalFailed,
+            "totalDelayed": totalDelayed,
             "totalWaiting": totalWaiting
         ])
     }

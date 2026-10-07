@@ -81,7 +81,7 @@ final class CommunityDetailActionPanelViewTests: NativeRouteSurfaceViewModelTest
     func testVacationDigestToggleSendsPreferenceUpdateWhenSignedIn() async throws {
         let updateCompleted = expectation(description: "Digest preference update completed")
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/moderator-vacation"] = (
-            Data(#"{"suppress_community_digests_while_on_vacation":true}"#.utf8),
+            Data(#"{"should_suppress_community_digests_while_on_vacation":true}"#.utf8),
             200
         )
         let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders")
@@ -96,7 +96,7 @@ final class CommunityDetailActionPanelViewTests: NativeRouteSurfaceViewModelTest
         await fulfillment(of: [updateCompleted], timeout: 1)
 
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.contains {
-            $0?.contains(#""suppress_community_digests_while_on_vacation":true"#) == true
+            $0?.contains(#""should_suppress_community_digests_while_on_vacation":true"#) == true
         })
     }
 }

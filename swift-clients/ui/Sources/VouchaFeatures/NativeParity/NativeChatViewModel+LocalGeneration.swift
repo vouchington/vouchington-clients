@@ -16,7 +16,8 @@ extension NativeChatViewModel {
         }
 
         let history = localGenerationHistory(excluding: context.userMessageId)
-        let assistantMessageId = "local-assistant-\(UUID().uuidString)"
+        let assistantMessageId = context.assistantMessageId ?? NativeChatMessageIDs.nextLocalTurn().assistant
+        pendingLocalAssistantMessageId = assistantMessageId
         ensureAssistantMessage(id: assistantMessageId)
 
         do {
@@ -70,9 +71,9 @@ extension NativeChatViewModel {
         let persistedResponse: ClientGeneratedChatResponse = try await client.send(.clientGeneratedChat(
             conversationId: context.conversationId,
             message: context.text,
+            messageIds: (user: context.userMessageId, assistant: assistantMessageId),
             assistantContent: response.content,
-            modelProvider: response.modelProvider,
-            modelName: response.modelName
+            model: (provider: response.modelProvider, name: response.modelName)
         ))
         guard isCurrentLocalGeneration(context) else {
             discardStaleLocalTurn(
@@ -105,10 +106,11 @@ extension NativeChatViewModel {
         if streamingAssistantMessageId == assistantMessageId {
             streamingAssistantMessageId = nil
         }
-        discardConversationMessage(id: userMessageId)
-        if let assistantMessageId {
-            discardConversationMessage(id: assistantMessageId)
+        if pendingLocalAssistantMessageId == assistantMessageId {
+            pendingLocalAssistantMessageId = nil
         }
+        discardConversationMessage(id: userMessageId)
+        if let assistantMessageId { discardConversationMessage(id: assistantMessageId) }
     }
 
     func localGenerationHistory(excluding userMessageId: String) -> [NativeChatTimelineMessage] {
@@ -143,9 +145,7 @@ extension NativeChatViewModel {
     ) {
         guard isCurrentLocalGeneration(context) else {
             discardConversationMessage(id: context.userMessageId)
-            if let assistantMessageId {
-                discardConversationMessage(id: assistantMessageId)
-            }
+            if let assistantMessageId { discardConversationMessage(id: assistantMessageId) }
             return
         }
         discardConversationMessage(id: context.userMessageId)
@@ -158,6 +158,9 @@ extension NativeChatViewModel {
         }
         if streamingAssistantMessageId == assistantMessageId {
             streamingAssistantMessageId = nil
+        }
+        if pendingLocalAssistantMessageId == assistantMessageId {
+            pendingLocalAssistantMessageId = nil
         }
         streamErrorMessage = message
         isStreaming = false
@@ -188,6 +191,7 @@ extension NativeChatViewModel {
         }
         streamingUserMessageId = response.userMessage.id
         streamingAssistantMessageId = response.assistantMessage.id
+        pendingLocalAssistantMessageId = nil
         streamedContent = response.assistantMessage.content.displayText
     }
 }

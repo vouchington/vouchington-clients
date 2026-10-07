@@ -119,7 +119,7 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
             "action-1": {
               "id": "action-1",
               "community_id": "community-1",
-              "actor_id": "actor-1",
+              "actor_user_id": "actor-1",
               "action_type": "ban",
               "post_id": null,
               "target_user_id": "target-1",

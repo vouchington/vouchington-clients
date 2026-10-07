@@ -6,6 +6,10 @@ private struct CommunityModeratorVacationBody: Encodable {
 
 private struct VacationDigestPreferenceBody: Encodable {
     let suppressCommunityDigestsWhileOnVacation: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case suppressCommunityDigestsWhileOnVacation = "shouldSuppressCommunityDigestsWhileOnVacation"
+    }
 }
 
 public extension Endpoint {

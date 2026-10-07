@@ -353,7 +353,7 @@ final class NativeReviewQueueViewModelTests: NativeRouteSurfaceViewModelTestCase
     ) -> String {
         let authorJSON = author.map { #""\#($0)""# } ?? "null"
         let rootJSON = rootId.map { #""\#($0)""# } ?? "null"
-        return #"{"id":"\#(id)","title":"Title \#(id)","declared_language":null,"lingua_rs_detected_language":null,"slug":"\#(id)","markdown_preview":"Preview \#(id)","post_type":"discussion","created_by_id":\#(authorJSON),"created_at":"2026-06-01T11:30:00.000Z","root_id":\#(rootJSON),"root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":0,"signal_count":1},"reason_codes":["spam_signal"]},"media_reveal":{"requires_reveal":false,"images":[]}}"#
+        return #"{"id":"\#(id)","title":"Title \#(id)","declared_language":null,"lingua_rs_detected_language":null,"slug":"\#(id)","markdown_preview":"Preview \#(id)","post_type":"discussion","created_by_id":\#(authorJSON),"created_at":"2026-06-01T11:30:00.000Z","root_post_id":\#(rootJSON),"root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":0,"signal_count":1},"reason_codes":["spam_signal"]},"media_reveal":{"requires_reveal":false,"images":[]}}"#
     }
 
     private func clearanceData(_ status: String) -> Data {

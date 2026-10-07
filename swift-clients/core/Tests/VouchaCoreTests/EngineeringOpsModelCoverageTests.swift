@@ -15,6 +15,7 @@ final class EngineeringOpsModelCoverageTests: XCTestCase {
               "active": 2,
               "completed": 3,
               "failed": 4,
+              "delayed": 0,
               "paused": false
             }
           ],
@@ -94,6 +95,7 @@ final class EngineeringOpsModelCoverageTests: XCTestCase {
                 totalActive: 2,
                 totalCompleted: 3,
                 totalFailed: 4,
+                totalDelayed: 0,
                 queueCount: 5
             ),
             equals: [
@@ -101,6 +103,7 @@ final class EngineeringOpsModelCoverageTests: XCTestCase {
                 "totalActive": 2,
                 "totalCompleted": 3,
                 "totalFailed": 4,
+                "totalDelayed": 0,
                 "totalWaiting": 1
             ]
         )

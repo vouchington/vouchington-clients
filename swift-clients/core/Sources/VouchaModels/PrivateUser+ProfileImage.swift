@@ -8,6 +8,7 @@ public extension PrivateUser {
             roles: roles,
             accountType: accountType,
             profileImageId: profileImageId,
+            profileImagePlacement: profileImageId == self.profileImageId ? profileImagePlacement : nil,
             markdown: markdown,
             emailAddress: emailAddress,
             membershipPlan: membershipPlan,

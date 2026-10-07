@@ -97,7 +97,7 @@ extension CommunityDetailViewModel {
     var hasRequiredApplicationAnswers: Bool {
         let payload = applicationAnswerPayload
         return applicationQuestions.allSatisfy { question in
-            !question.required || payload[question.id] != nil
+            !question.isRequired || payload[question.id] != nil
         }
     }
 

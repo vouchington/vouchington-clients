@@ -9,8 +9,8 @@ private struct CreateCommunityWarningBody: Encodable {
 }
 
 private struct CommunityPostTypeSettingsBody: Encodable {
-    let allowReviewPosts: Bool
-    let allowDataPointPosts: Bool
+    let shouldAllowReviewPosts: Bool
+    let shouldAllowDataPointPosts: Bool
 }
 
 public extension Endpoint {
@@ -46,15 +46,15 @@ public extension Endpoint {
 
     static func updateCommunityPostTypeSettings(
         idOrSlug: String,
-        allowReviewPosts: Bool,
-        allowDataPointPosts: Bool
+        shouldAllowReviewPosts: Bool,
+        shouldAllowDataPointPosts: Bool
     ) -> Endpoint {
         Endpoint(
             .PATCH,
             path: "/api/v1/communities/\(pathSegment(idOrSlug))/post-type-settings",
             body: CommunityPostTypeSettingsBody(
-                allowReviewPosts: allowReviewPosts,
-                allowDataPointPosts: allowDataPointPosts
+                shouldAllowReviewPosts: shouldAllowReviewPosts,
+                shouldAllowDataPointPosts: shouldAllowDataPointPosts
             )
         )
     }

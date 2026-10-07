@@ -8,6 +8,7 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
     public let roles: [String]
     public let accountType: AccountType?
     public let profileImageId: String?
+    public let profileImagePlacement: ImagePlacement?
     public let markdown: String?
     public let emailAddress: String?
     public let membershipPlan: String?
@@ -45,16 +46,20 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
     public let uiLocale: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, username, useDisplayNameFrom, roles, accountType, profileImageId, markdown, emailAddress
+        case id, username, useDisplayNameFrom, roles, accountType, profileImageId, profileImagePlacement, markdown,
+             emailAddress
         case membershipPlan, verificationStatus, suspendedAt, cardsVisibility
         case rewardsProgramStatusesVisibility, spendingCategoriesVisibility, followsVisibility
         case topicFollowsVisibility, rssFeedFollowsVisibility, communityMembershipsVisibility
         case followersVisibility, likesVisibility, directMessagesAudience, defaultPostBroadcast
-        case defaultPostPrivacy, engagementEmailsEnabled, newsDigestFrequency
-        case moderationEmailsEnabled, communityDigestFrequency, moderationEmailCadence
+        case defaultPostPrivacy, newsDigestFrequency
+        case communityDigestFrequency, moderationEmailCadence
         case moderationEmailDaysOfWeek, moderationEmailTimeOfDay, moderationEmailTimezone
-        case fediverseFederationEnabled, blueskyAccount, facebookAccount, xAccount, githubAccount
+        case blueskyAccount, facebookAccount, xAccount, githubAccount
         case processingRestrictedAt, thirdPartyMarketing, hnDiscussions, country, uiLocale
+        case engagementEmailsEnabled = "isEngagementEmailsEnabled"
+        case moderationEmailsEnabled = "isModerationEmailsEnabled"
+        case fediverseFederationEnabled = "isFediverseFederationEnabled"
     }
 
 }

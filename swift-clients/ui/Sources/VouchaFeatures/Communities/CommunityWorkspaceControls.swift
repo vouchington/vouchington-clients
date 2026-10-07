@@ -116,7 +116,7 @@ struct CommunityTabControls: View {
 
 private extension CommunityApplicationQuestion {
     var label: UiVerbatimText {
-        required
+        isRequired
             ? .message(
                 .nativeSwiftPresentationValuesRequiredQuestion,
                 textParameters: ["question": .verbatim(question)]

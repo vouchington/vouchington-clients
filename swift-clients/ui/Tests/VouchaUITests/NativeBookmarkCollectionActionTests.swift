@@ -440,7 +440,7 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
         return Data(#"""
         {"post":{
           "id":"\#(id)","slug":\#(slugValue),"post_type":"\#(type)","title":"Post","markdown":"","html":"",
-          "root_id":\#(root),"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z",
+          "root_post_id":\#(root),"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z",
           "broadcast":"everyone","privacy":"public","is_anonymous":false,"community_id":null,
           "clearance_status":"pending","deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,
           "archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,

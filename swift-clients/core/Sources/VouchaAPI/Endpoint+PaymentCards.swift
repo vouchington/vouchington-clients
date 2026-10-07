@@ -7,6 +7,10 @@ public struct CreatePaymentCardBody: Encodable, Sendable {
     public init(cardId: String) {
         self.cardId = cardId
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case cardId = "cardTopicId"
+    }
 }
 
 public struct UpdatePaymentCardBody: Encodable, Sendable {
@@ -34,6 +38,11 @@ public struct UpdatePaymentCardBody: Encodable, Sendable {
         self.isAuthorizedUser = isAuthorizedUser
         self.authorizedUserOfId = authorizedUserOfId
         self.note = note
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case openedOn, closedOn, receivedSignUpBonusOn, creditLimit, isAuthorizedUser, note
+        case authorizedUserOfId = "authorizedUserOfCardId"
     }
 }
 

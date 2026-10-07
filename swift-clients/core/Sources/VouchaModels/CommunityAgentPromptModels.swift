@@ -4,8 +4,7 @@ public struct CommunityAgentPrompt: Codable, Identifiable, Sendable {
     public let id: String
     public let communityId: String
     public let createdById: String
-    public let slotAllocated: Bool
-    public let onFlagAction: CommunityOnFlagAction
+    public let isSlotAllocated: Bool
     public let activatedAt: Date?
     public let deactivatedAt: Date?
     public let deletedAt: Date?
@@ -97,8 +96,7 @@ public struct CommunityAutomodAction: Codable, Sendable {
     public let createdAt: Date
     public let actionAt: Date
     public let confidenceScore: Double?
-    public let flagged: Bool
-    public let reason: String?
+    public let isFlagged: Bool
     public let categories: [String]
     public let modelOutput: DecodedJSONValue
     public let currentState: CommunityAutomodActionCurrentState
@@ -132,8 +130,6 @@ public struct CommunityAutomodSimulationResult: Codable, Sendable {
     public let approvedAt: Date
     public let contentExcerpt: String
     public let flagged: Bool
-    public let reason: String
-    public let wouldUnpublish: Bool
 }
 
 public struct CommunityAutomodFalsePositiveEstimate: Codable, Sendable {
@@ -148,7 +144,7 @@ public struct CommunityAutomodSimulation: Codable, Sendable {
         public let timeWindowHours: Int
         public let sampleCount: Int
         public let wouldFlagCount: Int
-        public let wouldUnpublishCount: Int
+        public let communityAutomodAction: CommunityAutomodActionSetting
         public let falsePositiveEstimate: CommunityAutomodFalsePositiveEstimate?
     }
 

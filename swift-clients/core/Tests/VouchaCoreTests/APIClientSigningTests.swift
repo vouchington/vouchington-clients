@@ -120,8 +120,8 @@ final class APIClientSigningTests: XCTestCase {
         let _: EmptyResponse = try await client.send(
             Endpoint.updateCommunityPostTypeSettings(
                 idOrSlug: "builders",
-                allowReviewPosts: true,
-                allowDataPointPosts: false
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: false
             )
         )
         let _: EmptyResponse = try await client.send(
@@ -137,8 +137,8 @@ final class APIClientSigningTests: XCTestCase {
 
         XCTAssertEqual(BodyCapturingURLProtocol.capturedBodies.count, 2)
         let snakeBody = try jsonBody(BodyCapturingURLProtocol.capturedBodies[0])
-        XCTAssertEqual(snakeBody["allow_review_posts"] as? Bool, true)
-        XCTAssertEqual(snakeBody["allow_data_point_posts"] as? Bool, false)
+        XCTAssertEqual(snakeBody["should_allow_review_posts"] as? Bool, true)
+        XCTAssertEqual(snakeBody["should_allow_data_point_posts"] as? Bool, false)
 
         let defaultKeyBody = try jsonBody(BodyCapturingURLProtocol.capturedBodies[1])
         XCTAssertEqual(defaultKeyBody["userId"] as? String, "user-1")

@@ -10,6 +10,7 @@ extension PrivateUser {
         roles = try container.decode([String].self, forKey: .roles)
         accountType = try container.decodeIfPresent(AccountType.self, forKey: .accountType)
         profileImageId = try container.decodeIfPresent(String.self, forKey: .profileImageId)
+        profileImagePlacement = try container.decodeIfPresent(ImagePlacement.self, forKey: .profileImagePlacement)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
         emailAddress = try container.decodeIfPresent(String.self, forKey: .emailAddress)
         membershipPlan = try container.decodeIfPresent(String.self, forKey: .membershipPlan)

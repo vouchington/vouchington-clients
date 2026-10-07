@@ -24,11 +24,28 @@ final class EngineeringOpsSurfaceCoverageTests: NativeRouteSurfaceViewModelTestC
             totalActive: 2,
             totalCompleted: 3,
             totalFailed: 4,
+            totalDelayed: 0,
             queueCount: 5
         )
         viewModel.queues = [
-            EngineeringQueueStats(name: "emails", waiting: 1, active: 0, completed: 12, failed: 0, paused: false),
-            EngineeringQueueStats(name: "imports", waiting: 0, active: 1, completed: 9, failed: 2, paused: true)
+            EngineeringQueueStats(
+                name: "emails",
+                waiting: 1,
+                active: 0,
+                completed: 12,
+                failed: 0,
+                delayed: 0,
+                paused: false
+            ),
+            EngineeringQueueStats(
+                name: "imports",
+                waiting: 0,
+                active: 1,
+                completed: 9,
+                failed: 2,
+                delayed: 0,
+                paused: true
+            )
         ]
         viewModel.scheduledJobs = [
             EngineeringScheduledJob(

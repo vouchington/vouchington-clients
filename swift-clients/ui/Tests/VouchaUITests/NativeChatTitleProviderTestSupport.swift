@@ -96,25 +96,7 @@ extension NativeChatTitleProviderTests {
               "content": "Local assistant answer"
             }
           },
-          "agentic_run": {
-            "id": "run-1",
-            "conversation_id": "conversation-1",
-            "conversation_message_id": "persisted-assistant-1",
-            "parent_agentic_run_id": null,
-            "model_name": "apple-foundation-system",
-            "model_provider": "apple_foundation",
-            "input": {"message": "How should I redeem points?"},
-            "output": {"response": "Local assistant answer"},
-            "error": null,
-            "status": "completed",
-            "termination_reason": "no_tool_calls",
-            "started_at": "2026-01-01T00:00:01Z",
-            "completed_at": "2026-01-01T00:00:01Z",
-            "failed_at": null,
-            "created_at": "2026-01-01T00:00:01Z",
-            "updated_at": "2026-01-01T00:00:01Z",
-            "deleted_at": null
-          }
+          "turn": {"user_message_id":"persisted-user-1","assistant_message_id":"persisted-assistant-1"}
         }
         """.utf8
     )

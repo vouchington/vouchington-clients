@@ -44,7 +44,7 @@ final class NotificationsListActivationTests: XCTestCase {
           "conversation_id":null,
           "moderation_report_id":null,
           "review_dispute_id":null,
-          "user_warning_id":null,
+          "user_warning_id":null,"copyright_notice_id":null,
           "actor_label":null,
           "event_key":null,
           "title":"Notification \(id)",
@@ -83,7 +83,7 @@ final class NotificationsListActivationTests: XCTestCase {
               "conversation_id":null,
               "moderation_report_id":null,
               "review_dispute_id":null,
-              "user_warning_id":null,
+              "user_warning_id":null,"copyright_notice_id":null,
               "actor_label":null,
               "event_key":null,
               "title":"\(notification.title)",
@@ -142,7 +142,7 @@ final class NotificationsListActivationTests: XCTestCase {
         {
           "id":"n-community","user_id":"u1","entity_type":"community_role_change",
           "community_id":null,"conversation_id":null,"moderation_report_id":null,
-          "review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,
+          "review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,
           "title":"Role changed","body":"Body","target_path":null,
           "target_entity":{"__entity_type":"community","id":"community-1"},
           "target_intent":null,"read_at":null,"created_at":"2024-01-01T00:00:00Z",
@@ -158,7 +158,7 @@ final class NotificationsListActivationTests: XCTestCase {
     func testCommunityTargetUsesHydratedCommunitySidecar() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/notifications"] = (
             Data(
-                #"{"results":[{"id":"n-community","read_at":"2024-01-01T00:00:00Z"}],"page_info":{"has_next_page":false,"end_cursor":null},"notifications":{"n-community":{"id":"n-community","user_id":"u1","entity_type":"community_role_change","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Role changed","body":"Body","target_path":null,"target_entity":{"__entity_type":"community","id":"community-1"},"target_intent":null,"read_at":"2024-01-01T00:00:00Z","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z","pushed_at":null}},"communities":{"community-1":{"id":"community-1","slug":"builders","name":"Builders"}}}"#
+                #"{"results":[{"id":"n-community","read_at":"2024-01-01T00:00:00Z"}],"page_info":{"has_next_page":false,"end_cursor":null},"notifications":{"n-community":{"id":"n-community","user_id":"u1","entity_type":"community_role_change","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Role changed","body":"Body","target_path":null,"target_entity":{"__entity_type":"community","id":"community-1"},"target_intent":null,"read_at":"2024-01-01T00:00:00Z","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z","pushed_at":null}},"communities":{"community-1":{"id":"community-1","slug":"builders","name":"Builders"}}}"#
                     .utf8
             ),
             200
@@ -174,7 +174,7 @@ final class NotificationsListActivationTests: XCTestCase {
     func testNotificationsInboxIntentRoutesToInbox() async throws {
         let notification =
             try decodeNotification(
-                #"{"id":"n-digest","user_id":"u1","entity_type":"community_activity_digest","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Digest","body":"Body","target_path":null,"target_entity":null,"target_intent":"notifications_inbox","read_at":"2024-01-01T00:00:00Z","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z","pushed_at":null}"#
+                #"{"id":"n-digest","user_id":"u1","entity_type":"community_activity_digest","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Digest","body":"Body","target_path":null,"target_entity":null,"target_intent":"notifications_inbox","read_at":"2024-01-01T00:00:00Z","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z","pushed_at":null}"#
             )
 
         let targetPath = await makeViewModel().activate(notification: notification)

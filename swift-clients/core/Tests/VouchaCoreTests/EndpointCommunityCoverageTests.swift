@@ -43,8 +43,8 @@ final class EndpointCommunityCoverageTests: XCTestCase {
                 memberRosterVisibility: .members,
                 memberInvitesAllowedAt: true,
                 postApprovalRequiredAt: false,
-                allowReviewPosts: true,
-                allowDataPointPosts: true,
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: true,
                 turnstileToken: "turnstile-token"
             ),
             method: .POST,
@@ -58,8 +58,8 @@ final class EndpointCommunityCoverageTests: XCTestCase {
                 "member_roster_visibility": "members",
                 "member_invites_allowed_at": true,
                 "post_approval_required_at": false,
-                "allow_review_posts": true,
-                "allow_data_point_posts": true,
+                "should_allow_review_posts": true,
+                "should_allow_data_point_posts": true,
                 "cf_turnstile_response": "turnstile-token"
             ]
         )

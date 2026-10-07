@@ -171,7 +171,7 @@ final class NativeReviewQueueSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
     private func decodedPost(status: String = "rejected") throws -> AdminReviewQueuePost {
         let data = Data(
-            #"{"id":"post-1","title":" ","declared_language":null,"lingua_rs_detected_language":null,"slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":0,"signal_count":1},"reason_codes":["spam_signal"]},"media_reveal":{"requires_reveal":false,"images":[]}}"#
+            #"{"id":"post-1","title":" ","declared_language":null,"lingua_rs_detected_language":null,"slug":null,"markdown_preview":" ","post_type":"comment","created_by_id":null,"created_at":"2026-06-01T11:30:00.000Z","root_post_id":"root-1","root_post_type":"discussion","root_slug":"root-slug","clearance_status":"\#(status)","clearance_updated_at":null,"moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":0,"signal_count":1},"reason_codes":["spam_signal"]},"media_reveal":{"requires_reveal":false,"images":[]}}"#
                 .utf8
         )
         return try JSONDecoder.vouchaFixtureDecoder.decode(AdminReviewQueuePost.self, from: data)

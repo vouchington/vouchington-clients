@@ -227,7 +227,7 @@ final class CommunityForwardPaginationCoverageTests: NativeRouteSurfaceViewModel
 
     private func modmailPage(ids: [String], cursor: String?, hasMore: Bool) -> Data {
         let results = ids.map { id in
-            #"{"id":"\#(id)","channel_type":"modmail","title":"\#(id)","community_id":"community-1","subject_user_id":null,"assigned_mod_id":null,"assigned_at":null,"resolved_at":null,"resolved_by_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}"#
+            #"{"id":"\#(id)","channel_type":"modmail","title":"\#(id)","community_id":"community-1","subject_user_id":null,"assigned_moderator_user_id":null,"assigned_at":null,"resolved_at":null,"resolved_by_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}"#
         }.joined(separator: ",")
         return Data(
             #"{"results":[\#(results)],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(json(cursor))}}"#

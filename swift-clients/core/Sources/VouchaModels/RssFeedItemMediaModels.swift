@@ -31,6 +31,7 @@ public struct RssFeedItemMediaContent: Codable, Sendable {
 }
 
 public struct RssFeedItemDataModel: Codable, Sendable {
+    public let content: String?
     public let title: String?
     public let link: String?
     public let mediaType: String?
@@ -64,10 +65,12 @@ public struct RssFeedItemDataModel: Codable, Sendable {
         self.videoID = videoID
         self.videoPlatform = videoPlatform
         contentSnippet = nil
+        content = nil
         guid = nil
     }
 
     private enum CodingKeys: String, CodingKey {
+        case content
         case title
         case link
         case mediaType
@@ -84,6 +87,7 @@ public struct RssFeedItemDataModel: Codable, Sendable {
     public func encode(to encoder: any Encoder) throws {
         var object: [String: DecodedJSONValue] = [:]
         object["title"] = title.map(DecodedJSONValue.string)
+        object["content"] = content.map(DecodedJSONValue.string)
         object["link"] = link.map(DecodedJSONValue.string)
         object["media_type"] = mediaType.map(DecodedJSONValue.string)
         object["enclosure_url"] = enclosureURL.map(DecodedJSONValue.string)

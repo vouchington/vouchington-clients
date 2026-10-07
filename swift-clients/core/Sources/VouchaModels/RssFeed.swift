@@ -63,6 +63,7 @@ public struct RssFeedItem: Codable, Identifiable, Sendable {
     public let creator: String?
     public let categories: [RssFeedItemCategory]?
     public let data: RssFeedItemData?
+    public let rssFeedSources: [RssFeedSource]?
     public let rssFeed: RssFeedSource?
     public let mediaContent: MediaContent?
     public let thumbnailURL: String?
@@ -115,6 +116,7 @@ public struct RssFeedItem: Codable, Identifiable, Sendable {
         self.creator = creator
         self.categories = categories
         self.data = data
+        rssFeedSources = nil
         self.rssFeed = rssFeed
         self.mediaContent = mediaContent
         self.thumbnailURL = thumbnailURL
@@ -141,6 +143,7 @@ public struct RssFeedItem: Codable, Identifiable, Sendable {
         case creator
         case categories
         case data
+        case rssFeedSources
         case rssFeed
         case mediaContent
         case thumbnailURL = "thumbnailUrl"

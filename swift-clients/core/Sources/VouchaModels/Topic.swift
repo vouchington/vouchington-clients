@@ -77,7 +77,9 @@ public struct Topic: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, name, slug, markdown, topicType, aliases, allowReviews, noindex, hostnameId, hostname
+        case id, name, slug, markdown, topicType, aliases, hostnameId, hostname
+        case allowReviews = "shouldAllowReviews"
+        case noindex = "isNoindexed"
         case logoImageId, heroImageId, homepageUrlId, linguaRsDetectedLanguage, referralProgramId
         case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy, election
     }

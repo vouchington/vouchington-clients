@@ -8,7 +8,22 @@ private struct CommunityAutomodFeedbackBody: Encodable {
     let note: String?
 }
 
+private struct CommunityAutomodSettingsBody: Encodable {
+    let automodAction: CommunityAutomodActionSetting
+}
+
 public extension Endpoint {
+    static func updateCommunityAutomodSettings(
+        idOrSlug: String,
+        automodAction: CommunityAutomodActionSetting
+    ) -> Endpoint {
+        Endpoint(
+            .PATCH,
+            path: "/api/v1/communities/\(pathSegment(idOrSlug))/automod-settings",
+            body: CommunityAutomodSettingsBody(automodAction: automodAction)
+        )
+    }
+
     static func communityAutomodRecentActions(
         idOrSlug: String,
         after: String? = nil,

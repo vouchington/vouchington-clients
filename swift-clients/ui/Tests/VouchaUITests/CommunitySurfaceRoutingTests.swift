@@ -142,8 +142,9 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
                     "list_type": "follow",
                     "member_invites_allowed_at": "2026-07-01T00:00:00Z",
                     "post_approval_required_at": null,
-                    "allow_review_posts": true,
-                    "allow_data_point_posts": true,
+                    "automod_action": "record_only",
+                    "should_allow_review_posts": true,
+                    "should_allow_data_point_posts": true,
                     "trusted_at": null,
                     "profile_image_id": null,
                     "banner_image_id": null,
@@ -198,8 +199,8 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
                       "slug": "post-title",
                       "markdown": "Body",
                       "html": null,
-                      "parent_id": null,
-                      "root_id": null,
+                      "parent_post_id": null,
+                      "root_post_id": null,
                       "created_by_id": "user-1",
                       "created_at": "2026-07-01T00:00:00.000Z",
                       "broadcast": null,
@@ -367,7 +368,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
                     "modlog-1": {
                       "id": "modlog-1",
                       "community_id": "community-1",
-                      "actor_id": "user-1",
+                      "actor_user_id": "user-1",
                       "action_type": "ban",
                       "post_id": null,
                       "target_user_id": "user-2",
@@ -399,7 +400,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
                       "title": "Modmail",
                       "community_id": "community-1",
                       "subject_user_id": null,
-                      "assigned_mod_id": null,
+                      "assigned_moderator_user_id": null,
                       "assigned_at": null,
                       "resolved_at": null,
                       "resolved_by_id": null,
@@ -505,7 +506,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/moderator-vacation"] = (
             Data(
-                #"{"vacation":{"community_id":"community-1","user_id":"user-1","starts_at":"2026-07-01T00:00:00Z","ends_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"},"suppress_community_digests_while_on_vacation":true}"#
+                #"{"vacation":{"community_id":"community-1","user_id":"user-1","starts_at":"2026-07-01T00:00:00Z","ends_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"},"should_suppress_community_digests_while_on_vacation":true}"#
                     .utf8
             ),
             200

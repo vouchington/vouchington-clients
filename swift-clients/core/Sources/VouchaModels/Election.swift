@@ -49,15 +49,24 @@ public struct TopicElection: Codable, Sendable {
 }
 
 public struct RssFeedItemElection: Codable, Sendable {
+    public let entityType: String?
+    public let id: String?
     public let votesScoreNet: Double
     public let votesCountUp: Int
     public let votesCountDown: Int
     public let myVote: ElectionVoteChoice?
 
     public init(votesScoreNet: Double, votesCountUp: Int, votesCountDown: Int, myVote: ElectionVoteChoice? = nil) {
+        entityType = nil
+        id = nil
         self.votesScoreNet = votesScoreNet
         self.votesCountUp = votesCountUp
         self.votesCountDown = votesCountDown
         self.myVote = myVote
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case entityType = "__entityType"
+        case id, votesScoreNet, votesCountUp, votesCountDown, myVote
     }
 }

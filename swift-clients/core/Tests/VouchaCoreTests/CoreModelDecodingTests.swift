@@ -227,7 +227,7 @@ final class VouchaNotificationDecodingTests: XCTestCase {
 
     func testDecodesFullNotification() throws {
         let json = Data("""
-        {"id":"n1","user_id":"u1","entity_type":"post","post_id":"p1","rss_feed_item_id":null,"actor_user_id":"u2","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Alice commented","body":"Nice post!","target_path":"/posts/p1","target_entity":null,"target_intent":null,"read_at":null,"created_at":"2024-01-15T10:00:00Z","updated_at":"2024-01-15T10:00:00Z","pushed_at":null}
+        {"id":"n1","user_id":"u1","entity_type":"post","post_id":"p1","rss_feed_item_id":null,"actor_user_id":"u2","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Alice commented","body":"Nice post!","target_path":"/posts/p1","target_entity":null,"target_intent":null,"read_at":null,"created_at":"2024-01-15T10:00:00Z","updated_at":"2024-01-15T10:00:00Z","pushed_at":null}
         """.utf8)
         let n = try decoder.decode(VouchaNotification.self, from: json)
         XCTAssertEqual(n.id, "n1")
@@ -244,7 +244,7 @@ final class VouchaNotificationDecodingTests: XCTestCase {
 
     func testDecodesReadNotification() throws {
         let json = Data("""
-        {"id":"n2","user_id":"u1","entity_type":"follow","post_id":null,"rss_feed_item_id":null,"actor_user_id":"u3","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Bob followed you","body":"Bob is now following you.","target_path":null,"target_entity":null,"target_intent":null,"read_at":"2024-01-16T08:00:00Z","created_at":"2024-01-16T07:00:00Z","updated_at":"2024-01-16T08:00:00Z","pushed_at":null}
+        {"id":"n2","user_id":"u1","entity_type":"follow","post_id":null,"rss_feed_item_id":null,"actor_user_id":"u3","community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Bob followed you","body":"Bob is now following you.","target_path":null,"target_entity":null,"target_intent":null,"read_at":"2024-01-16T08:00:00Z","created_at":"2024-01-16T07:00:00Z","updated_at":"2024-01-16T08:00:00Z","pushed_at":null}
         """.utf8)
         let n = try decoder.decode(VouchaNotification.self, from: json)
         XCTAssertEqual(n.id, "n2")
@@ -255,13 +255,13 @@ final class VouchaNotificationDecodingTests: XCTestCase {
 
     func testDecodesKnownExtendedTypes() throws {
         let banJSON = Data("""
-        {"id":"n4","user_id":"u1","entity_type":"community_ban","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Banned","body":"You were banned.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-03-01T00:00:00Z","updated_at":"2024-03-01T00:00:00Z"}
+        {"id":"n4","user_id":"u1","entity_type":"community_ban","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Banned","body":"You were banned.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-03-01T00:00:00Z","updated_at":"2024-03-01T00:00:00Z"}
         """.utf8)
         let ban = try decoder.decode(VouchaNotification.self, from: banJSON)
         XCTAssertEqual(ban.entityType, .communityBan)
 
         let appealJSON = Data("""
-        {"id":"n5","user_id":"u1","entity_type":"moderation_appeal","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Appeal resolved","body":"Your appeal was resolved.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-03-02T00:00:00Z","updated_at":"2024-03-02T00:00:00Z"}
+        {"id":"n5","user_id":"u1","entity_type":"moderation_appeal","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Appeal resolved","body":"Your appeal was resolved.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-03-02T00:00:00Z","updated_at":"2024-03-02T00:00:00Z"}
         """.utf8)
         let appeal = try decoder.decode(VouchaNotification.self, from: appealJSON)
         XCTAssertEqual(appeal.entityType, .moderationAppeal)
@@ -270,7 +270,7 @@ final class VouchaNotificationDecodingTests: XCTestCase {
     func testUnknownEntityTypeFallsBackToUnknown() throws {
         // Future server-side entity types must not crash the client.
         let json = Data("""
-        {"id":"n6","user_id":"u1","entity_type":"future_type_xyz","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Future","body":"Future notification.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-04-01T00:00:00Z","updated_at":"2024-04-01T00:00:00Z"}
+        {"id":"n6","user_id":"u1","entity_type":"future_type_xyz","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Future","body":"Future notification.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-04-01T00:00:00Z","updated_at":"2024-04-01T00:00:00Z"}
         """.utf8)
         let n = try decoder.decode(VouchaNotification.self, from: json)
         XCTAssertEqual(n.entityType, .unknown)
@@ -278,7 +278,7 @@ final class VouchaNotificationDecodingTests: XCTestCase {
 
     func testDecodesRssFeedItemEntityType() throws {
         let json = Data("""
-        {"id":"n3","user_id":"u1","entity_type":"rss_feed_item","post_id":null,"rss_feed_item_id":"rfi1","actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"New article","body":"A new article was published.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-02-01T00:00:00Z","updated_at":"2024-02-01T00:00:00Z"}
+        {"id":"n3","user_id":"u1","entity_type":"rss_feed_item","post_id":null,"rss_feed_item_id":"rfi1","actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"New article","body":"A new article was published.","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"pushed_at":null,"created_at":"2024-02-01T00:00:00Z","updated_at":"2024-02-01T00:00:00Z"}
         """.utf8)
         let n = try decoder.decode(VouchaNotification.self, from: json)
         XCTAssertEqual(n.entityType, .rssFeedItem)

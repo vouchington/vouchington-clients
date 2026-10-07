@@ -5,8 +5,8 @@ public struct CommunityAiAgentEntitlement: Codable, Sendable {
     public let reason: String?
 }
 
-public enum CommunityOnFlagAction: String, Codable, Sendable {
-    case none
+public enum CommunityAutomodActionSetting: String, Codable, Sendable {
+    case recordOnly = "record_only"
     case reviewQueue = "review_queue"
     case unpublish
 }
@@ -17,12 +17,11 @@ public struct CommunityAiAgent: Codable, Sendable {
     public let systemUserId: String
     public let systemUsername: String
     public let labelTopicSlugs: [String]
-    public let onFlagAction: CommunityOnFlagAction
     public let enabled: Bool
     public let alwaysOn: Bool
     public let enabledAt: Date?
     public let enabledById: String?
-    public let entitlement: CommunityAiAgentEntitlement?
+    public let entitlement: CommunityAiAgentEntitlement
 }
 
 public struct CommunityBan: Codable, Identifiable, Sendable {

@@ -51,7 +51,7 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(recommended.results.first?.reason, "from_viewed_posts")
 
         let referralClicksJSON = Data(
-            #"{"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":"https://voucha.ai/@alice","signed_up_at":null,"user_id":"user-1","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-1":{"id":"user-1","username":"alice","roles":[],"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-1","end_cursor":null}}"#
+            #"{"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":"https://voucha.ai/@alice","signed_up_at":null,"user_id":"user-1","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-1":{"id":"user-1","username":"alice","roles":[],"account_type":null,"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-1","end_cursor":null}}"#
                 .utf8
         )
         let referralClicks = try decoder.decode(ReferralClickLogResponse.self, from: referralClicksJSON)
@@ -59,7 +59,7 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(referralClicks.users["user-1"]?.username, "alice")
 
         let anonymousReferralClicksJSON = Data(
-            #"{"results":[{"id":"click-2"}],"clicks":{"click-2":{"id":"click-2","landing_url":"https://voucha.ai/signup","signed_up_at":"2026-03-01T11:56:00Z","user_id":"user-2","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-2":{"id":"user-2","roles":[],"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-2","end_cursor":null}}"#
+            #"{"results":[{"id":"click-2"}],"clicks":{"click-2":{"id":"click-2","landing_url":"https://voucha.ai/signup","signed_up_at":"2026-03-01T11:56:00Z","user_id":"user-2","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-2":{"id":"user-2","roles":[],"account_type":null,"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-2","end_cursor":null}}"#
                 .utf8
         )
         let anonymousReferralClicks = try decoder.decode(

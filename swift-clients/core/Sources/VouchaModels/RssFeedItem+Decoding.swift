@@ -27,6 +27,7 @@ extension RssFeedItem {
         creator = try container.decodeIfPresent(String.self, forKey: .creator)
         categories = try container.decodeIfPresent([RssFeedItemCategory].self, forKey: .categories)
         self.data = data
+        rssFeedSources = try container.decodeIfPresent([RssFeedSource].self, forKey: .rssFeedSources)
         rssFeed = rssFeedSidecar?.resolvedSource
         self.mediaContent = mediaContent
         thumbnailURL = try container.decodeIfPresent(String.self, forKey: .thumbnailURL) ?? data?.thumbnailURL

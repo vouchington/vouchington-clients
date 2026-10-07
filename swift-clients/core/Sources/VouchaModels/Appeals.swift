@@ -58,14 +58,14 @@ public struct ModerationAppealSubmissionRequest: Sendable {
 public struct ModerationAppeal: Codable, Identifiable, Sendable {
     public let id: String
     public let caseId: String?
-    public let appellantId: String?
-    public let userWarningId: String?
+    public let appellantUserId: String?
+    @RequiredNullable public var userWarningId: String?
     @RequiredNullable
     public var userSuspensionId: String?
-    public let communityBanId: String?
-    public let postId: String?
-    public let communityId: String?
-    public let postRemovalKind: ModerationAppealPostRemovalKind?
+    @RequiredNullable public var communityBanId: String?
+    @RequiredNullable public var postId: String?
+    @RequiredNullable public var communityId: String?
+    @RequiredNullable public var postRemovalKind: ModerationAppealPostRemovalKind?
     public let appealReason: String?
     public let status: ModerationAppealStatus
     public let recommendedAction: ModerationAppealAction?
@@ -73,18 +73,18 @@ public struct ModerationAppeal: Codable, Identifiable, Sendable {
     public let aiInternalResponse: String?
     public let model: String?
     public let aiDraftedAt: Date?
-    public let publicResponse: String?
-    public let internalNotes: String?
-    public let draftedAt: Date?
-    public let editedAt: Date?
-    public let editedById: String?
-    public let approvedAt: Date?
-    public let approvedById: String?
-    public let sentAt: Date?
-    public let resolvedAt: Date?
-    public let resolvedById: String?
-    public let resolutionAction: ModerationAppealAction?
-    public let latestLifecycleChangeId: String?
+    @RequiredNullable public var publicResponse: String?
+    @RequiredNullable public var internalNotes: String?
+    @RequiredNullable public var draftedAt: Date?
+    @RequiredNullable public var editedAt: Date?
+    @RequiredNullable public var editedById: String?
+    @RequiredNullable public var approvedAt: Date?
+    @RequiredNullable public var approvedById: String?
+    @RequiredNullable public var sentAt: Date?
+    @RequiredNullable public var resolvedAt: Date?
+    @RequiredNullable public var resolvedById: String?
+    @RequiredNullable public var resolutionAction: ModerationAppealAction?
+    @RequiredNullable public var latestLifecycleChangeId: String?
     public let createdAt: Date
     public let updatedAt: Date
     public let isOverdue: Bool?

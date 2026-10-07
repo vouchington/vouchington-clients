@@ -27,4 +27,7 @@ enum EndpointManifestCoverage {
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints
             + storyEndpoints
+            + currentContractFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
 }

@@ -177,8 +177,9 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
                     "list_type": null,
                     "member_invites_allowed_at": "2026-07-01T00:00:00Z",
                     "post_approval_required_at": "2026-07-01T00:00:00Z",
-                    "allow_review_posts": true,
-                    "allow_data_point_posts": true,
+                    "automod_action": "record_only",
+                    "should_allow_review_posts": true,
+                    "should_allow_data_point_posts": true,
                     "trusted_at": null,
                     "profile_image_id": null,
                     "banner_image_id": null,
@@ -300,7 +301,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/application-questions"] = (
             Data(
-                #"{"questions":[{"id":"question-1","community_id":"community-1","question":"Why?","field_type":"short_text","options":null,"order_index":0,"required":true,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z","deleted_at":null}]}"#
+                #"{"questions":[{"id":"question-1","community_id":"community-1","question":"Why?","field_type":"short_text","options":null,"order_index":0,"is_required":true,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z","deleted_at":null}]}"#
                     .utf8
             ),
             200
@@ -398,7 +399,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
                       "created_at": "2026-07-01T00:00:00Z",
                       "action_at": "2026-07-01T00:01:00Z",
                       "confidence_score": 0.94,
-                      "flagged": true,
+                      "is_flagged": true,
                       "reason": "Spam",
                       "categories": ["spam"],
                       "model_output": {},
@@ -438,7 +439,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/moderator-vacation"] = (
-            Data(#"{"vacation":null,"suppress_community_digests_while_on_vacation":false}"#.utf8),
+            Data(#"{"vacation":null,"should_suppress_community_digests_while_on_vacation":false}"#.utf8),
             200
         )
     }

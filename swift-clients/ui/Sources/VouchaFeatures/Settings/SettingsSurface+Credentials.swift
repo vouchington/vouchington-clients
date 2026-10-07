@@ -23,8 +23,9 @@ extension SettingsSurface {
                     .disabled(!viewModel.apiKeyScopeSelection.canSelect(scope.scope) || viewModel.isLoading)
                     .accessibilityIdentifier("api-key-scope-\(scope.scope)")
                     scopeMetadata(scope)
-                    if let descriptionKey = scope.descriptionKey {
-                        Text(UiMessages.string(descriptionKey.titleKey, locale: nativeUiLocale))
+                    if let descriptionKey = scope.descriptionKey,
+                       let titleKey = descriptionKey.titleKey {
+                        Text(UiMessages.string(titleKey, locale: nativeUiLocale))
                     }
                     if let prerequisite = scope.requires {
                         Text(UiMessages.string(
@@ -140,7 +141,11 @@ private extension ScopeAudience {
 }
 
 private extension ScopeDescriptionKey {
-    var titleKey: UiMessageKey {
-        self == .mcpUserFullAccess ? .nativeCredentialsMcpUserFullAccess : .nativeCredentialsMcpAdminFullAccess
+    var titleKey: UiMessageKey? {
+        switch self {
+        case .mcpUserFullAccess: .nativeCredentialsMcpUserFullAccess
+        case .mcpAdminFullAccess: .nativeCredentialsMcpAdminFullAccess
+        case .financialProfileRead, .financialProfileWrite, .spendingRead, .spendingWrite: nil
+        }
     }
 }

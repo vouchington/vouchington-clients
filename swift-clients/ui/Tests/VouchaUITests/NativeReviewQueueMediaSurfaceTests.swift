@@ -92,7 +92,7 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
                   id
               )","markdown_preview":"Preview",
               "post_type":"discussion","created_by_id":"author",
-              "created_at":"2026-06-01T11:30:00.000Z","root_id":null,"root_post_type":null,
+              "created_at":"2026-06-01T11:30:00.000Z","root_post_id":null,"root_post_type":null,
               "root_slug":null,"clearance_status":"rejected","clearance_updated_at":null,
               "moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":1,"signal_count":2},"reason_codes":["provider_flagged"]},
               "media_reveal":{

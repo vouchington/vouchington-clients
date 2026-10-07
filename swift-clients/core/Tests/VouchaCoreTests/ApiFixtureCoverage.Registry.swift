@@ -70,4 +70,37 @@ enum ApiFixtureCoverage {
         storyFixtureCoverage +
         nativeOAuthAndFriendRecommendationFixtureCoverage
         + copyrightMediaFixtureCoverage
+        + chatFixtureCoverage
 }
+
+let chatFixtureCoverage: [RegisteredFixture] = [
+    "native.chat.completed", "native.chat.duplicate", "native.chat.retry"
+].map { id in
+    RegisteredFixture(id: id) { try assertFixtureCoversDTO($0, as: ClientGeneratedChatResponse.self) }
+} + [
+    "native.chat.page-1", "native.chat.page-2", "native.chat.incomplete"
+].map { id in
+    RegisteredFixture(id: id) { try assertFixtureCoversDTO($0, as: ChatMessagesResponse.self) }
+} + [
+    RegisteredFixture(id: "native.chat.conversations") {
+        try assertFixtureCoversDTO($0, as: ChatConversationListResponse.self)
+    },
+    RegisteredFixture(id: "native.chat.unauthorized") {
+        try assertFixtureCoversDTO($0, as: ChatErrorResponse.self)
+    },
+    RegisteredFixture(id: "native.chat.forbidden") {
+        try assertFixtureCoversDTO($0, as: ChatErrorResponse.self)
+    },
+    RegisteredFixture(id: "native.chat.identity-conflict") {
+        try assertFixtureCoversDTO($0, as: ChatErrorResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.detail.default") {
+        try assertFixtureCoversDTO($0, as: ModerationAppealEnvelope.self)
+    },
+    RegisteredFixture(id: "native.my.api-keys.rotate") {
+        try assertFixtureCoversDTO($0, as: ApiKeyCreationResponse.self)
+    },
+    RegisteredFixture(id: "web.communities.automod-settings.update.default") {
+        try assertFixtureCoversDTO($0, as: CommunityResponse.self)
+    }
+]

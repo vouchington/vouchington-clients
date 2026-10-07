@@ -1,5 +1,19 @@
 import Foundation
 
+public struct ImagePlacement: Codable, Sendable {
+    public let imageId: String
+    public let placementId: String
+    public let placementRevision: Int
+
+    var encodedValue: DecodedJSONValue {
+        .object([
+            "image_id": .string(imageId),
+            "placement_id": .string(placementId),
+            "placement_revision": .number(Double(placementRevision))
+        ])
+    }
+}
+
 public struct PublicUser: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String?
@@ -11,6 +25,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
     public let displayNameSource: String?
     public let useDisplayNameFrom: DisplayNameSource?
     public let profileImageId: String?
+    public let profileImagePlacement: ImagePlacement?
     public let markdown: String?
     public let verificationStatus: String?
     public let verifiedBadgeVisible: Bool?
@@ -32,9 +47,10 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         case displayNameSource
         case useDisplayNameFrom
         case profileImageId
+        case profileImagePlacement
         case markdown
         case verificationStatus
-        case verifiedBadgeVisible
+        case verifiedBadgeVisible = "isVerifiedBadgeVisible"
         case verifiedDisplayName
         case publicVerifiedNameDisplay
         case linguaRsDetectedLanguage
@@ -59,6 +75,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         displayNameSource = try container.decodeIfPresent(String.self, forKey: .displayNameSource)
         useDisplayNameFrom = try container.decodeIfPresent(DisplayNameSource.self, forKey: .useDisplayNameFrom)
         profileImageId = try container.decodeIfPresent(String.self, forKey: .profileImageId)
+        profileImagePlacement = try container.decodeIfPresent(ImagePlacement.self, forKey: .profileImagePlacement)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
         verificationStatus = try container.decodeIfPresent(String.self, forKey: .verificationStatus)
         verifiedBadgeVisible = try container.decodeIfPresent(Bool.self, forKey: .verifiedBadgeVisible)
@@ -86,9 +103,10 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         object["display_name_source"] = displayNameSource.map { .string($0) }
         object["use_display_name_from"] = useDisplayNameFrom.map { .string($0.rawValue) }
         object["profile_image_id"] = profileImageId.map { .string($0) }
+        object["profile_image_placement"] = profileImagePlacement?.encodedValue
         object["markdown"] = markdown.map { .string($0) }
         object["verification_status"] = verificationStatus.map { .string($0) }
-        object["verified_badge_visible"] = verifiedBadgeVisible.map { .bool($0) }
+        object["is_verified_badge_visible"] = verifiedBadgeVisible.map { .bool($0) } ?? .null
         object["verified_display_name"] = verifiedDisplayName.map { .string($0) }
         object["public_verified_name_display"] = publicVerifiedNameDisplay.map { .string($0) }
         object["lingua_rs_detected_language"] = linguaRsDetectedLanguage.map { .string($0) }

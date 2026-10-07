@@ -39,7 +39,7 @@ final class PostConcreteContractTests: XCTestCase {
             results[index].removeValue(forKey: "__entity_type")
             results[index].removeValue(forKey: "approved_at")
             results[index].removeValue(forKey: "in_review_at")
-            results[index].removeValue(forKey: "parent_id")
+            results[index].removeValue(forKey: "parent_post_id")
             results[index].removeValue(forKey: "rejected_at")
         }
         object["results"] = results

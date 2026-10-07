@@ -1,10 +1,10 @@
 import Foundation
 
-public struct ChatConversation: Decodable, Identifiable, Sendable {
+public struct ChatConversation: Codable, Identifiable, Sendable {
     public var id: String
     public var title: String
     public var createdAt: Date
-    public var createdById: String
+    public var createdById: String?
     public var updatedAt: Date
     public var updatedById: String?
     public var deletedAt: Date?
@@ -12,16 +12,16 @@ public struct ChatConversation: Decodable, Identifiable, Sendable {
     public var lastResponseId: String?
 }
 
-public struct ChatConversationResponse: Decodable, Sendable {
+public struct ChatConversationResponse: Codable, Sendable {
     public let conversation: ChatConversation
 }
 
-public struct ChatConversationListResponse: Decodable, Sendable {
+public struct ChatConversationListResponse: Codable, Sendable {
     public let results: [ChatConversation]
     public let pageInfo: Page<ChatConversation>.PageInfo
 }
 
-public enum ChatMessageContent: Decodable, Sendable {
+public enum ChatMessageContent: Codable, Sendable {
     case string(String)
     case payload(role: String, content: String?, error: String?)
 
@@ -34,6 +34,16 @@ public enum ChatMessageContent: Decodable, Sendable {
 
         let payload = try container.decode(ChatMessageContentPayload.self)
         self = .payload(role: payload.role, content: payload.content, error: payload.error)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .string(value):
+            try container.encode(value)
+        case let .payload(role, content, error):
+            try container.encode(ChatMessageContentPayload(role: role, content: content, error: error))
+        }
     }
 
     public var role: String {
@@ -68,51 +78,56 @@ public enum ChatMessageContent: Decodable, Sendable {
     }
 }
 
-private struct ChatMessageContentPayload: Decodable {
+private struct ChatMessageContentPayload: Codable {
     let role: String
     let content: String?
     let error: String?
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(role, forKey: .role)
+        try container.encode(content, forKey: .content)
+        try container.encode(error, forKey: .error)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case role, content, error
+    }
 }
 
-public struct ChatMessage: Decodable, Identifiable, Sendable {
+public struct ChatMessageCompletion: Codable, Sendable {
+    public let status: String
+}
+
+public struct ChatMessage: Codable, Identifiable, Sendable {
     public let id: String
     public let conversationId: String
     public let createdAt: Date
-    public let createdById: String
+    public let createdById: String?
     public let updatedAt: Date
     public let updatedById: String?
     public let deletedAt: Date?
     public let deletedById: String?
     public let content: ChatMessageContent
+    public let completion: ChatMessageCompletion?
 }
 
-public struct ChatMessagesResponse: Decodable, Sendable {
+public struct ChatMessagesResponse: Codable, Sendable {
     public let results: [ChatMessage]
     public let pageInfo: Page<ChatMessage>.PageInfo
 }
 
-public struct ClientGeneratedChatResponse: Decodable, Sendable {
-    public let userMessage: ChatMessage
-    public let assistantMessage: ChatMessage
-    public let agenticRun: ClientGeneratedChatAgenticRun
+public struct ClientGeneratedChatTurn: Codable, Sendable {
+    public let userMessageId: String
+    public let assistantMessageId: String
 }
 
-public struct ClientGeneratedChatAgenticRun: Decodable, Sendable {
-    public let id: String
-    public let conversationId: String
-    public let conversationMessageId: String
-    public let parentAgenticRunId: String?
-    public let modelName: String
-    public let modelProvider: String
-    public let input: DecodedJSONValue
-    public let output: DecodedJSONValue?
-    public let error: DecodedJSONValue?
-    public let status: String
-    public let terminationReason: String?
-    public let startedAt: Date
-    public let completedAt: Date?
-    public let failedAt: Date?
-    public let createdAt: Date
-    public let updatedAt: Date
-    public let deletedAt: Date?
+public struct ChatErrorResponse: Codable, Sendable {
+    public let message: String
+}
+
+public struct ClientGeneratedChatResponse: Codable, Sendable {
+    public let userMessage: ChatMessage
+    public let assistantMessage: ChatMessage
+    public let turn: ClientGeneratedChatTurn
 }

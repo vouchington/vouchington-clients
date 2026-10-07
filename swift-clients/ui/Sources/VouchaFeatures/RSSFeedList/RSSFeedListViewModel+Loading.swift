@@ -60,10 +60,10 @@ extension RSSFeedListViewModel {
             let itemId = result.entityId ?? result.id
             guard let item = page.rssFeedItems[itemId] else { return nil }
             if let storyId = result.storyId, result.deliveryType != "share" {
+                storyIdsByItemId[itemId] = storyId
                 if let existing = storyRelatedArticlesByStoryId[storyId], existing.primaryItemId != itemId {
                     return nil
                 }
-                storyIdsByItemId[itemId] = storyId
                 if storyRelatedArticlesByStoryId[storyId] == nil, let preview = page.storyMemberPages?[storyId] {
                     let peers = hydrateStoryItems(
                         ids: preview.itemIds,

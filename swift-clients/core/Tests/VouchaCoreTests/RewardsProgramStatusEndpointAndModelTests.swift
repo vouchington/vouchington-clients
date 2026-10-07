@@ -22,7 +22,7 @@ final class RewardsProgramStatusEndpointAndModelTests: XCTestCase {
             .createRewardsProgramStatus(body: .init(rewardsProgramStatusId: "topic-1")),
             method: .POST,
             path: "/api/v1/my/rewards-program-statuses",
-            body: ["rewards_program_status_id": "topic-1"]
+            body: ["rewards_program_status_topic_id": "topic-1"]
         )
         try assertEndpoint(
             .updateRewardsProgramStatus(
@@ -31,7 +31,7 @@ final class RewardsProgramStatusEndpointAndModelTests: XCTestCase {
             ),
             method: .PATCH,
             path: "/api/v1/my/rewards-program-statuses/entry%2F1",
-            body: ["since": "2026-01-02", "until": NSNull()]
+            body: ["started_on": "2026-01-02", "expires_on": NSNull()]
         )
         XCTAssertEqual(Endpoint.rewardsProgramStatusTopics(query: "Gold").queryItems, [
             URLQueryItem(name: "q", value: "Gold"),
@@ -43,7 +43,7 @@ final class RewardsProgramStatusEndpointAndModelTests: XCTestCase {
     private func json(pageInfo: String) -> Data {
         Data(
             (
-                "{\"results\":[{\"id\":\"entry-1\",\"rewards_program_status_id\":\"topic-1\",\"since\":\"2026-01-02\",\"until\":null,\"rewards_program_status\":{\"id\":\"topic-1\",\"name\":\"Gold\",\"slug\":\"gold\"}}]" +
+                "{\"results\":[{\"id\":\"entry-1\",\"rewards_program_status_topic_id\":\"topic-1\",\"started_on\":\"2026-01-02\",\"expires_on\":null,\"rewards_program_status\":{\"id\":\"topic-1\",\"name\":\"Gold\",\"slug\":\"gold\"}}]" +
                     pageInfo + "}"
             ).utf8
         )

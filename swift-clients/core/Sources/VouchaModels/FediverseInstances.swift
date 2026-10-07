@@ -11,7 +11,8 @@ public struct FediverseInstanceAttributes: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case software, nodeinfoSoftwareVersion
         case protocolName = "protocol"
-        case totalUsers, monthlyActiveUsers, openRegistrations
+        case totalUsers, monthlyActiveUsers
+        case openRegistrations = "isOpenForRegistrations"
     }
 }
 

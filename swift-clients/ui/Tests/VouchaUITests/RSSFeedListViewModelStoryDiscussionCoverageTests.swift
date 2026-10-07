@@ -214,7 +214,7 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
         XCTAssertFalse(vm.canStartStoryDiscussion(rssFeedItemId: "story-primary"))
     }
 
-    func testStartingStateTracksQueuedRequest() async {
+    func testStartingStateTracksQueuedRequest() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
             makeFeedPage(
                 ids: ["story-primary", "story-peer"],
@@ -223,19 +223,24 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/stories/story-1/discussions"] = [
-            (makeStoryPostResult(postId: "post-story", storyId: "story-1"), 201, 0.05)
+        let path = "/api/v1/stories/story-1/discussions"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (makeStoryPostResult(postId: "post-story", storyId: "story-1"), 201, 0)
         ]
         let vm = makeViewModel()
         await vm.load()
 
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
         async let pendingDestination = vm.startStoryDiscussion(rssFeedItemId: "story-primary")
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        _ = try await request.wait()
         XCTAssertTrue(vm.isStartingStoryDiscussion(rssFeedItemId: "story-primary"))
         XCTAssertTrue(vm.isStartingStoryDiscussion(rssFeedItemId: "story-peer"))
         let duplicateDestination = await vm.startStoryDiscussion(rssFeedItemId: "story-peer")
         XCTAssertNil(duplicateDestination)
 
+        CannedFeedURLProtocol.releaseResponse(path: path)
         let destination = await pendingDestination
         XCTAssertEqual(destination?.postId, "post-story")
         XCTAssertFalse(vm.isStartingStoryDiscussion(rssFeedItemId: "story-primary"))
@@ -361,8 +366,8 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
         "title":"Created",
         "markdown":null,
         "html":null,
-        "parent_id":null,
-        "root_id":null,
+        "parent_post_id":null,
+        "root_post_id":null,
         "created_by_id":"user-1",
         "created_at":"2026-01-01T00:00:00Z",
         "broadcast":null,

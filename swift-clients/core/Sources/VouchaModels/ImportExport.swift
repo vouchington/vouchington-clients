@@ -21,7 +21,10 @@ public enum SourceImportInput: Encodable, Sendable, Equatable {
     case csv(String)
     case opml(String)
 
-    enum CodingKeys: String, CodingKey { case urls, csv, opml, follow }
+    enum CodingKeys: String, CodingKey {
+        case urls, csv, opml
+        case follow = "shouldFollowImportedFeeds"
+    }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)

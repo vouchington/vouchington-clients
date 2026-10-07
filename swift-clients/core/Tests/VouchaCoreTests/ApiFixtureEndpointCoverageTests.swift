@@ -15,6 +15,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
+        .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
         .merging([
             "native.import-export.rss-feeds.submit.default": .importRssFeeds(
                 .urls(["https://example.test/feed.xml", "https://invalid.example.test/feed.xml"])
@@ -141,8 +142,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             ),
             "web.communities.post-type-settings.update.default": Endpoint.updateCommunityPostTypeSettings(
                 idOrSlug: "test-community",
-                allowReviewPosts: true,
-                allowDataPointPosts: true
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: true
             ),
             "web.growth-metrics.default": Endpoint.growthMetrics(),
             "native.admin-ai-costs.default": Endpoint.adminAiCosts(),

@@ -8,7 +8,7 @@ final class SpendingCategoryEndpointAndModelTests: XCTestCase {
         let page = try makeVouchaDecoder().decode(
             SpendingCategoryPage.self,
             from: Data(
-                "{\"results\":[{\"id\":\"entry-1\",\"spending_category_id\":\"topic-1\",\"amount\":{\"amount\":1250,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"note\":null,\"owner_type\":\"household\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}],\"page_info\":{\"has_next_page\":true,\"end_cursor\":\"next\"}}"
+                "{\"results\":[{\"id\":\"entry-1\",\"spending_category_topic_id\":\"topic-1\",\"amount\":{\"amount\":1250,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"note\":null,\"owner_type\":\"household\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}],\"page_info\":{\"has_next_page\":true,\"end_cursor\":\"next\"}}"
                     .utf8
             )
         )
@@ -23,14 +23,14 @@ final class SpendingCategoryEndpointAndModelTests: XCTestCase {
         XCTAssertThrowsError(try makeVouchaDecoder().decode(
             SpendingCategory.self,
             from: Data(
-                "{\"id\":\"entry-1\",\"spending_category_id\":\"topic-1\",\"amount\":12.5,\"spending_frequency\":\"monthly\",\"owner_type\":\"individual\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}"
+                "{\"id\":\"entry-1\",\"spending_category_topic_id\":\"topic-1\",\"amount\":12.5,\"spending_frequency\":\"monthly\",\"owner_type\":\"individual\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}"
                     .utf8
             )
         ))
         XCTAssertThrowsError(try makeVouchaDecoder().decode(
             SpendingCategory.self,
             from: Data(
-                "{\"id\":\"entry-1\",\"spending_category_id\":\"topic-1\",\"amount\":{\"amount\":-1,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"owner_type\":\"individual\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}"
+                "{\"id\":\"entry-1\",\"spending_category_topic_id\":\"topic-1\",\"amount\":{\"amount\":-1,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"owner_type\":\"individual\",\"spending_category\":{\"id\":\"topic-1\",\"name\":\"Dining\",\"slug\":\"dining\"}}"
                     .utf8
             )
         ))
@@ -80,7 +80,7 @@ final class SpendingCategoryEndpointAndModelTests: XCTestCase {
             method: .POST,
             path: "/api/v1/my/spending-categories",
             body: [
-                "spending_category_id": "topic-1",
+                "spending_category_topic_id": "topic-1",
                 "amount": ["amount": 1_250, "currency": "usd"],
                 "spending_frequency": "annually",
                 "note": "Annual"

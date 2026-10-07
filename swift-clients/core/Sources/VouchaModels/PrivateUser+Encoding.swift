@@ -26,9 +26,9 @@ public extension PrivateUser {
             "direct_messages_audience": .string(directMessagesAudience.rawValue),
             "default_post_broadcast": .string(defaultPostBroadcast),
             "default_post_privacy": .string(defaultPostPrivacy),
-            "engagement_emails_enabled": .bool(engagementEmailsEnabled),
+            "is_engagement_emails_enabled": .bool(engagementEmailsEnabled),
             "news_digest_frequency": .string(newsDigestFrequency),
-            "moderation_emails_enabled": .bool(moderationEmailsEnabled),
+            "is_moderation_emails_enabled": .bool(moderationEmailsEnabled),
             "community_digest_frequency": .string(communityDigestFrequency),
             "moderation_email_cadence": .string(moderationEmailCadence),
             "moderation_email_days_of_week": .array(moderationEmailDaysOfWeek.map { .number(Double($0)) }),
@@ -40,13 +40,14 @@ public extension PrivateUser {
         object["username"] = username.map { .string($0) }
         object["use_display_name_from"] = useDisplayNameFrom.map { .string($0.rawValue) }
         object["profile_image_id"] = profileImageId.map { .string($0) }
+        object["profile_image_placement"] = profileImagePlacement?.encodedValue
         object["markdown"] = markdown.map { .string($0) }
         object["email_address"] = emailAddress.map { .string($0) }
         object["membership_plan"] = membershipPlan.map { .string($0) } ?? .null
         object["verification_status"] = verificationStatus.map { .string($0) }
         object["suspended_at"] = suspendedAt.map { .string(ISO8601DateFormatter().string(from: $0)) }
         object["moderation_email_timezone"] = moderationEmailTimezone.map { .string($0) }
-        object["fediverse_federation_enabled"] = fediverseFederationEnabled.map { .bool($0) }
+        object["is_fediverse_federation_enabled"] = fediverseFederationEnabled.map { .bool($0) }
         object["bluesky_account"] = blueskyAccount.map {
             .object([
                 "did": .string($0.did),

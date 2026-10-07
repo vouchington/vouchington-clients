@@ -77,7 +77,8 @@ public struct SpendingCategory: Codable, Equatable, Identifiable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, spendingCategoryId, amount, spendingFrequency, note, ownerType, canManage, spendingCategory
+        case id, amount, spendingFrequency, note, ownerType, canManage, spendingCategory
+        case spendingCategoryId = "spendingCategoryTopicId"
     }
 }
 

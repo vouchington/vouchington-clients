@@ -76,6 +76,7 @@ extension NativeChatViewModel {
     func beginStreaming(conversationId: String) {
         streamingConversationId = conversationId
         streamingAssistantMessageId = nil
+        pendingLocalAssistantMessageId = nil
         isStreaming = true
         streamedContent = ""
         toolCalls = []
@@ -97,6 +98,7 @@ extension NativeChatViewModel {
         streamingConversationId = nil
         streamingUserMessageId = nil
         streamingAssistantMessageId = nil
+        pendingLocalAssistantMessageId = nil
         streamedContent = ""
         toolCalls = []
         toolResults = []
@@ -117,6 +119,7 @@ extension NativeChatViewModel {
         streamingConversationId = nil
         streamingUserMessageId = nil
         streamingAssistantMessageId = nil
+        pendingLocalAssistantMessageId = nil
         streamTask = nil
     }
 

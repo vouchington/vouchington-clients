@@ -9,8 +9,8 @@ struct CommunityCreateBody: Encodable {
     let memberRosterVisibility: CommunityMemberRosterVisibility?
     let memberInvitesAllowedAt: Bool?
     let postApprovalRequiredAt: Bool?
-    let allowReviewPosts: Bool?
-    let allowDataPointPosts: Bool?
+    let shouldAllowReviewPosts: Bool?
+    let shouldAllowDataPointPosts: Bool?
     let profileImageId: String?
     let bannerImageId: String?
     let defaultLanguage: String?

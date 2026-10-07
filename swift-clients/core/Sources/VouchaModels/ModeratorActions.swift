@@ -3,7 +3,7 @@ import Foundation
 public struct ModeratorAction: Codable, Identifiable, Sendable {
     public let id: String
     public let communityId: String?
-    public let actorId: String?
+    public let actorUserId: String?
     public let actionType: String
     public let postId: String?
     public let targetUserId: String?

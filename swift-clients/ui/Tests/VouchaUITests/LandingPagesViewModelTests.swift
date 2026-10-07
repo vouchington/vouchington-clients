@@ -188,7 +188,7 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(body.contains(#""type":"profile_link""#))
         XCTAssertTrue(body.contains(#""profile_link_id":"profile-link-1""#))
         XCTAssertTrue(body.contains(#""type":"review""#))
-        XCTAssertTrue(body.contains(#""review_id":"review-1""#))
+        XCTAssertTrue(body.contains(#""review_post_id":"review-1""#))
         XCTAssertTrue(body.contains(#""type":"referral_link""#))
         XCTAssertTrue(body.contains(#""referral_link_id":"referral-link-1""#))
         XCTAssertTrue(body.contains(#""type":"topic_group""#))

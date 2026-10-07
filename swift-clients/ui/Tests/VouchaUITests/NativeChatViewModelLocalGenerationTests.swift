@@ -6,6 +6,46 @@ import XCTest
 
 @MainActor
 final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModelTestCase {
+    func testLocalTurnIdentifiersAreOrderedLowercaseUuidV7() {
+        let ids = NativeChatMessageIDs.nextLocalTurn()
+        let pattern = #"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"#
+        XCTAssertNotNil(ids.user.range(of: pattern, options: .regularExpression))
+        XCTAssertNotNil(ids.assistant.range(of: pattern, options: .regularExpression))
+        XCTAssertLessThan(ids.user, ids.assistant)
+    }
+
+    func testSendingLocalDraftForwardsOrderedOptimisticIdentifiers() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/client-generated-chat"] = (
+            Self.clientGeneratedChatData,
+            200
+        )
+        let client = try makeClient()
+        let provider = BlockingLocalPersistenceDraftProvider(firstResponse: "Fresh response", secondResponse: nil)
+        let resolver = UnavailableLocalDraftProviderResolver(provider: provider)
+        let viewModel = NativeChatViewModel(client: client, routeMatch: nil, titleProviderResolver: resolver)
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Second"
+
+        let send = Task { @MainActor in await viewModel.sendDraftMessage() }
+        await provider.waitUntilFirstAssistantResponseRequested()
+        let optimisticUserId = try XCTUnwrap(viewModel.messages.first?.id)
+        let optimisticAssistantId = try XCTUnwrap(viewModel.messages.last?.id)
+        let pattern = #"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"#
+        XCTAssertNotNil(optimisticUserId.range(of: pattern, options: .regularExpression))
+        XCTAssertNotNil(optimisticAssistantId.range(of: pattern, options: .regularExpression))
+        XCTAssertLessThan(optimisticUserId, optimisticAssistantId)
+
+        await provider.resumeFirstAssistantResponse()
+        await send.value
+        let request = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last {
+            $0.url.path == "/api/v1/conversations/conversation-1/client-generated-chat"
+        })
+        let body = try XCTUnwrap(request.body?.data(using: .utf8))
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(payload["user_message_id"] as? String, optimisticUserId)
+        XCTAssertEqual(payload["assistant_message_id"] as? String, optimisticAssistantId)
+    }
+
     func testChatViewModelKeepsLocalAssistantContentHiddenUntilPersistenceSucceeds() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/client-generated-chat"] = (
             NativeChatTestFixtures.errorData,
@@ -181,8 +221,9 @@ final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModel
         viewModel.abortStreaming()
         XCTAssertEqual(viewModel.messages.map(\.id), ["previous-user"])
 
-        viewModel.messages.append(.init(id: "second-user", role: .user, content: "Second", isStreaming: false))
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "second-user")
+        let secondTurnIds = NativeChatMessageIDs.nextLocalTurn()
+        viewModel.messages.append(.init(id: secondTurnIds.user, role: .user, content: "Second", isStreaming: false))
+        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: secondTurnIds.user)
 
         let secondTurn = Task { @MainActor in
             await viewModel.generateLocalDraftMessage(
@@ -191,7 +232,8 @@ final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModel
                 context: .init(
                     conversationId: "conversation-1",
                     text: "Second",
-                    userMessageId: "second-user",
+                    userMessageId: secondTurnIds.user,
+                    assistantMessageId: secondTurnIds.assistant,
                     createdConversation: false
                 )
             )
@@ -204,6 +246,14 @@ final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModel
         await provider.resumeFirstAssistantResponse()
         await firstTurn.value
         await secondTurn.value
+
+        let request = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last {
+            $0.url.path == "/api/v1/conversations/conversation-1/client-generated-chat"
+        })
+        let requestBody = try XCTUnwrap(request.body?.data(using: .utf8))
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: requestBody) as? [String: Any])
+        XCTAssertEqual(payload["user_message_id"] as? String, secondTurnIds.user)
+        XCTAssertEqual(payload["assistant_message_id"] as? String, secondTurnIds.assistant)
 
         XCTAssertEqual(viewModel.messages.map(\.id), [
             "previous-user",
@@ -247,25 +297,7 @@ private extension NativeChatViewModelLocalGenerationTests {
               "content": "Fresh response"
             }
           },
-          "agentic_run": {
-            "id": "run-2",
-            "conversation_id": "conversation-1",
-            "conversation_message_id": "persisted-assistant-2",
-            "parent_agentic_run_id": null,
-            "model_name": "apple-foundation-system",
-            "model_provider": "apple_foundation",
-            "input": {"message": "Second"},
-            "output": {"response": "Fresh response"},
-            "error": null,
-            "status": "completed",
-            "termination_reason": "no_tool_calls",
-            "started_at": "2026-01-01T00:00:01Z",
-            "completed_at": "2026-01-01T00:00:01Z",
-            "failed_at": null,
-            "created_at": "2026-01-01T00:00:01Z",
-            "updated_at": "2026-01-01T00:00:01Z",
-            "deleted_at": null
-          }
+          "turn": {"user_message_id":"persisted-user-2","assistant_message_id":"persisted-assistant-2"}
         }
         """.utf8
     )

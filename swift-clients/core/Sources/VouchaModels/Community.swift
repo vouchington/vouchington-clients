@@ -101,7 +101,7 @@ public struct CommunityApplicationQuestion: Codable, Identifiable, Sendable {
     public let fieldType: CommunityApplicationQuestionFieldType
     public let options: [String]?
     public let orderIndex: Int
-    public let required: Bool
+    public let isRequired: Bool
     public let createdAt: Date
     public let updatedAt: Date?
     @RequiredNullable
@@ -109,7 +109,7 @@ public struct CommunityApplicationQuestion: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, communityId, question, fieldType, options, orderIndex, required, createdAt, updatedAt, deletedAt
+        case id, communityId, question, fieldType, options, orderIndex, isRequired, createdAt, updatedAt, deletedAt
     }
 }
 

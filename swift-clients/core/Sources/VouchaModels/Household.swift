@@ -12,6 +12,11 @@ public struct Household: Codable, Identifiable, Hashable, Sendable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, createdAt, updatedAt
+        case ownerId = "ownerUserId"
+    }
 }
 
 public struct HouseholdMembership: Codable, Identifiable, Hashable, Sendable {

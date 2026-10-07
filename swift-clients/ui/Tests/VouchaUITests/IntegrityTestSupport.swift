@@ -21,7 +21,7 @@ enum IntegrityTestSupport {
           "rss_feed_item_id":\(json(rssFeedItemId)),
           "flag_type":"mass_report_suspected",
           "reporter_count":5,
-          "new_account_reporter_pct":0.6,
+          "new_account_reporter_percent":0.6,
           "details":{"window_minutes":30,"evidence":"captured"},
           "resolved_at":\(resolution == nil ? "null" : "\"2026-07-01T12:00:00.000Z\""),
           "resolved_by_id":\(resolution == nil ? "null" : "\"admin-1\""),
@@ -91,7 +91,9 @@ enum IntegrityTestSupport {
     }
 
     static func votePenalty(count: Int = 2) throws -> VoteIntegrityPenaltyResponse {
-        try decode(#"{"penalized_user_count":\#(count)}"#)
+        let flag = try voteFlag()
+        let flagObject = try jsonObject(flag)
+        return try decode(#"{"penalized_user_count":\#(count),"flag":\#(flagObject)}"#)
     }
 
     private static func page<Response: Decodable>(

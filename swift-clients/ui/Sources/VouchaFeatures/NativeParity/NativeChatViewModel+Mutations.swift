@@ -27,7 +27,8 @@ extension NativeChatViewModel {
         }
 
         streamTask?.cancel()
-        let userMessageId = "local-user-\(UUID().uuidString)"
+        let localTurnIds = providerSelection.isLocal ? NativeChatMessageIDs.nextLocalTurn() : nil
+        let userMessageId = localTurnIds?.user ?? "local-user-\(UUID().uuidString)"
         messages.append(.init(
             id: userMessageId,
             role: .user,
@@ -43,6 +44,7 @@ extension NativeChatViewModel {
                     conversationId: conversationId,
                     text: text,
                     userMessageId: userMessageId,
+                    assistantMessageId: localTurnIds?.assistant,
                     createdConversation: preparedConversation?.created == true,
                     providerSelection: providerSelection
                 )
@@ -55,7 +57,8 @@ extension NativeChatViewModel {
         let abortedUserMessageId = streamingUserMessageId
         let abortedAssistantMessageId = streamingAssistantMessageId
         streamTask?.cancel()
-        if abortedAssistantMessageId?.hasPrefix("local-assistant-") == true {
+        if abortedAssistantMessageId?.hasPrefix("local-assistant-") == true ||
+            abortedAssistantMessageId == pendingLocalAssistantMessageId && abortedAssistantMessageId != nil {
             if let abortedUserMessageId {
                 discardConversationMessage(id: abortedUserMessageId)
             }
@@ -70,6 +73,7 @@ extension NativeChatViewModel {
         streamingConversationId = nil
         streamingUserMessageId = nil
         streamingAssistantMessageId = nil
+        pendingLocalAssistantMessageId = nil
     }
 
     func renameSelectedConversation() async {

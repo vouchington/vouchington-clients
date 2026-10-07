@@ -46,9 +46,9 @@ public struct EmailPreferences: Codable, Sendable {
     public let moderationEmailTimezone: String?
 
     private enum CodingKeys: String, CodingKey {
-        case engagementEmailsEnabled
+        case engagementEmailsEnabled = "isEngagementEmailsEnabled"
         case newsDigestFrequency
-        case moderationEmailsEnabled
+        case moderationEmailsEnabled = "isModerationEmailsEnabled"
         case communityDigestFrequency
         case moderationEmailCadence
         case moderationEmailDaysOfWeek
@@ -88,6 +88,7 @@ public struct ProfileLink: Codable, Identifiable, Sendable {
     public let handle: String?
     public let name: String?
     public let imageId: String?
+    public let imagePlacement: ImagePlacement?
     public let createdAt: Date
     public let updatedAt: Date
 }
@@ -100,8 +101,11 @@ public struct ApiKey: Codable, Identifiable, Sendable {
     public let label: String
     public let permissions: [String]
     public let createdAt: Date
-    public let lastUsedAt: Date?
-    public let revokedAt: Date?
+    @RequiredNullable public var lastUsedAt: Date?
+    @RequiredNullable public var revokedAt: Date?
+    @RequiredNullable public var expiresAt: Date?
+    @RequiredNullable public var expiryReminderSentAt: Date?
+    @RequiredNullable public var replacedByApiKeyId: String?
     public let updatedAt: Date
 }
 

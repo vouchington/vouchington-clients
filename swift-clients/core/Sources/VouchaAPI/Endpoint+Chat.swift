@@ -15,6 +15,8 @@ private struct SendConversationMessageBody: Encodable {
 
 private struct ClientGeneratedChatBody: Encodable {
     let message: String
+    let userMessageId: String
+    let assistantMessageId: String
     let assistantContent: String
     let modelProvider: String
     let modelName: String?
@@ -53,18 +55,20 @@ public extension Endpoint {
     static func clientGeneratedChat(
         conversationId: String,
         message: String,
+        messageIds: (user: String, assistant: String),
         assistantContent: String,
-        modelProvider: String,
-        modelName: String? = nil
+        model: (provider: String, name: String?)
     ) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/conversations/\(pathSegment(conversationId))/client-generated-chat",
             body: ClientGeneratedChatBody(
                 message: message,
+                userMessageId: messageIds.user,
+                assistantMessageId: messageIds.assistant,
                 assistantContent: assistantContent,
-                modelProvider: modelProvider,
-                modelName: modelName
+                modelProvider: model.provider,
+                modelName: model.name
             )
         )
     }

@@ -152,6 +152,8 @@ final class PostCardTests: XCTestCase {
             }
             """.utf8
         )
-        return try JSONDecoder().decode(PublicUser.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(PublicUser.self, from: data)
     }
 }

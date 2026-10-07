@@ -31,19 +31,19 @@ final class ImportExportEndpointTests: XCTestCase {
             .importRssFeeds(.urls(["https://example.test/feed.xml"])),
             method: .POST,
             path: "/api/v1/my/import/rss-feeds",
-            body: ["urls": ["https://example.test/feed.xml"], "follow": true]
+            body: ["urls": ["https://example.test/feed.xml"], "should_follow_imported_feeds": true]
         )
         assertEndpoint(
             .importRssFeeds(.csv("url\nhttps://example.test/feed.xml")),
             method: .POST,
             path: "/api/v1/my/import/rss-feeds",
-            body: ["csv": "url\nhttps://example.test/feed.xml", "follow": true]
+            body: ["csv": "url\nhttps://example.test/feed.xml", "should_follow_imported_feeds": true]
         )
         assertEndpoint(
             .importRssFeeds(.opml("<opml/>")),
             method: .POST,
             path: "/api/v1/my/import/rss-feeds",
-            body: ["opml": "<opml/>", "follow": true]
+            body: ["opml": "<opml/>", "should_follow_imported_feeds": true]
         )
     }
 

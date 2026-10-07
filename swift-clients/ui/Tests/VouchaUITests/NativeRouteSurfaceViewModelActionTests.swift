@@ -21,7 +21,7 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
                   "conversation_id": null,
                   "moderation_report_id": null,
                   "review_dispute_id": null,
-                  "user_warning_id": null,
+                  "user_warning_id": null,"copyright_notice_id":null,
                   "actor_label": null,
                   "event_key": null,
                   "title": "Native notification",
@@ -301,7 +301,7 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
 
     private var appealData: Data {
         Data(
-            #"{"appeals":[{"id":"appeal-1","case_id":"case-1","appellant_id":"user-1","user_warning_id":null,"user_suspension_id":null,"community_ban_id":null,"post_id":"post-1","community_id":null,"post_removal_kind":"platform","appeal_reason":"Please review.","status":"pending","recommended_action":null,"ai_public_response":null,"ai_internal_response":null,"model":null,"ai_drafted_at":null,"public_response":null,"internal_notes":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,"resolution_action":null,"latest_lifecycle_change_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","is_overdue":false}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
+            #"{"appeals":[{"id":"appeal-1","case_id":"case-1","appellant_id":"user-1","user_warning_id":null,"copyright_notice_id":null,"user_suspension_id":null,"community_ban_id":null,"post_id":"post-1","community_id":null,"post_removal_kind":"platform","appeal_reason":"Please review.","status":"pending","recommended_action":null,"ai_public_response":null,"ai_internal_response":null,"model":null,"ai_drafted_at":null,"public_response":null,"internal_notes":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,"resolution_action":null,"latest_lifecycle_change_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","is_overdue":false}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                 .utf8
         )
     }

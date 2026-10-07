@@ -8,7 +8,7 @@ extension CommunityDetailActionTests {
         registerCommunityAdminFixtures()
         let path = "/api/v1/communities/builders/moderator-vacation"
         CannedFeedURLProtocol.handlers[path] = (
-            Data(#"{"vacation":null,"suppress_community_digests_while_on_vacation":true}"#.utf8),
+            Data(#"{"vacation":null,"should_suppress_community_digests_while_on_vacation":true}"#.utf8),
             200
         )
         let viewModel = try CommunityDetailViewModel(
@@ -21,8 +21,8 @@ extension CommunityDetailActionTests {
         XCTAssertTrue(viewModel.suppressCommunityDigestsWhileOnVacation)
 
         CannedFeedURLProtocol.queuedHandlers[path] = [
-            (Data(#"{"suppress_community_digests_while_on_vacation":false}"#.utf8), 200, 0),
-            (Data(#"{"vacation":null,"suppress_community_digests_while_on_vacation":false}"#.utf8), 200, 0)
+            (Data(#"{"should_suppress_community_digests_while_on_vacation":false}"#.utf8), 200, 0),
+            (Data(#"{"vacation":null,"should_suppress_community_digests_while_on_vacation":false}"#.utf8), 200, 0)
         ]
         await viewModel.setSuppressCommunityDigestsWhileOnVacation(false)
 
@@ -66,7 +66,7 @@ extension CommunityDetailActionTests {
         let automodRow = try XCTUnwrap(viewModel.summary.rows.first)
         XCTAssertEqual(automodRow.icon, "exclamationmark.triangle")
         XCTAssertEqual(automodRow.title, "Flagged post")
-        XCTAssertEqual(automodRow.detail, "Unpublished · Spam · 0.94")
+        XCTAssertEqual(automodRow.detail, "Unpublished · 0.94")
         XCTAssertNil(automodRow.declaredLanguage)
         XCTAssertNil(automodRow.detectedLanguage)
         await viewModel.simulateCommunityAutomod(
@@ -110,7 +110,7 @@ extension CommunityDetailActionTests {
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies
             .contains { $0?.contains(#""prompt_id":"prompt-1""#) == true })
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.contains {
-            $0?.contains(#""suppress_community_digests_while_on_vacation":true"#) == true
+            $0?.contains(#""should_suppress_community_digests_while_on_vacation":true"#) == true
         })
     }
 }
