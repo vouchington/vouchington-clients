@@ -10,6 +10,8 @@ public enum PostClearanceAction: String, Codable, Sendable {
 
 public struct AdminReviewQueueImage: Codable, Sendable {
     public let imageId: String
+    public let placementId: String
+    public let placementRevision: Int
     public let orderIndex: Int
     public let caption: String
 }

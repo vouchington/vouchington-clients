@@ -322,7 +322,8 @@ public sealed partial class ReviewQueueExposureViewModelTests
       DateTimeOffset? cooldownEndsAt = null) =>
       new(1, 10, inCooldown, cooldownEndsAt);
 
-  private static AdminReviewQueueImage Image(string id) => new(id, 0, $"Caption {id}");
+  private static AdminReviewQueueImage Image(string id) =>
+      new(id, $"placement-{id}", 0, 0, $"Caption {id}");
 
   private static AdminReviewQueuePost Post(
       string id,

@@ -24,8 +24,14 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
 
         let images = inspection.findAll(ViewType.View<AsyncImageView>.self)
         XCTAssertEqual(images.count, 2)
-        XCTAssertEqual(try images[0].actualView().resolvedURLString, "https://images.voucha.ai/images/image-1")
-        XCTAssertEqual(try images[1].actualView().resolvedURLString, "https://images.voucha.ai/images/image-2")
+        XCTAssertEqual(
+            try images[0].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-1/0/image-1?w=960"
+        )
+        XCTAssertEqual(
+            try images[1].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-2/0/image-2?w=960"
+        )
         XCTAssertNoThrow(try inspection.find(text: "First image"))
         XCTAssertNoThrow(try inspection.find(text: "Second image"))
     }
@@ -92,8 +98,8 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
               "media_reveal":{
                 "requires_reveal":\(requiresReveal),
                 "images":[
-                  {"image_id":"image-1","order_index":0,"caption":"First image"},
-                  {"image_id":"image-2","order_index":1,"caption":"Second image"}
+                  {"image_id":"image-1","placement_id":"placement-1","placement_revision":0,"order_index":0,"caption":"First image"},
+                  {"image_id":"image-2","placement_id":"placement-2","placement_revision":0,"order_index":1,"caption":"Second image"}
                 ]
               }
             }

@@ -63,6 +63,31 @@ public struct AppConfig: Sendable {
         components?.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
         return components?.url?.absoluteString
     }
+
+    /// Constructs a placement-bound image CDN URL for persisted media.
+    public func imageURL(
+        forPlacementId placementId: String?,
+        revision: Int,
+        imageId: String?,
+        width: Int = 96
+    ) -> String? {
+        guard let placementId, !placementId.isEmpty,
+              let imageId, !imageId.isEmpty
+        else { return nil }
+        var components = URLComponents(url: imageBaseURL, resolvingAgainstBaseURL: false)
+        let path = "/images/placements/\(placementId.placementPathSegment)/\(revision)/\(imageId.placementPathSegment)"
+        components?.percentEncodedPath += path
+        components?.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
+        return components?.url?.absoluteString
+    }
+}
+
+private extension String {
+    var placementPathSegment: String {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/:")
+        return addingPercentEncoding(withAllowedCharacters: allowed) ?? self
+    }
 }
 
 public enum VouchaURLResolver {
