@@ -30,7 +30,7 @@ extension NativeChatViewModel {
             role: role,
             content: message.content.displayText,
             isStreaming: false,
-            error: message.content.error.map(UiVerbatimText.verbatim)
+            error: message.presentationError
         )
     }
 }

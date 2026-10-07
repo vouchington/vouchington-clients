@@ -1,6 +1,13 @@
 import VouchaLocalization
 import VouchaModels
 
+extension ChatMessage {
+    var presentationError: UiVerbatimText? {
+        if let error = content.error, !error.isEmpty { return .verbatim(error) }
+        return completion?.status == "incomplete" ? .message(.nativeSwiftChatResponseInterrupted) : nil
+    }
+}
+
 struct NativePaginationState {
     let hasNextPage: Bool
     let endCursor: String?

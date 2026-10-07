@@ -23,13 +23,15 @@ struct NativeChatMessageBubbleView: View {
                 Spacer(minLength: 0)
             }
 
-            Text(message.content.isEmpty ? " " : message.content)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(message.role == .user ? Colors.primary.opacity(0.12) : Colors.background)
-                )
+            if !message.content.isEmpty || message.error == nil {
+                Text(message.content.isEmpty ? " " : message.content)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(message.role == .user ? Colors.primary.opacity(0.12) : Colors.background)
+                    )
+            }
 
             if !message.toolCalls.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {

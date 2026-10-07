@@ -134,11 +134,12 @@ extension NativeRouteSurfaceViewModel {
                 appText(.nativeSwiftDirectMessagesConversation, parameters: ["id": conversationId]),
                 countText(page.results.count, item: "message")
             )
-        ] + page.results.map {
-            row(
+        ] + page.results.map { message in
+            let detail = message.content.displayText
+            return row(
                 "bubble.left",
-                .verbatim($0.content.role),
-                .verbatim($0.content.displayText.isEmpty ? $0.id : $0.content.displayText)
+                .verbatim(message.content.role),
+                detail.isEmpty ? (message.presentationError ?? .verbatim(message.id)) : .verbatim(detail)
             )
         }
     }

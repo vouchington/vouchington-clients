@@ -107,6 +107,7 @@ extension RSSFeedListViewModelTests {
         let related = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
         XCTAssertTrue(related.pagination.hasMore)
         XCTAssertEqual(related.pagination.endCursor, "story-cursor")
+        XCTAssertTrue(vm.canStartStoryDiscussion(rssFeedItemId: "primary"))
     }
 
     func testPrefetchedStoryExpansionNeedsNoRequest() async throws {
