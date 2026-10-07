@@ -129,7 +129,7 @@ extension NativeCommentThreadViewModel {
         rssFeedItemElectionsById.merge(response.rssFeedItemElections ?? [:]) { _, new in new }
         rssFeedItemThumbnailUrlsById.merge(response.rssFeedItemThumbnailUrl ?? [:]) { _, new in new }
         relatedPostIdsByUrlId.merge(response.relatedPostsByUrlId ?? [:]) { _, new in new }
-        storyMemberIdsById.merge(response.storyMemberIds ?? [:]) { _, new in new }
+        storyMemberIdsById.merge(response.storyMemberPages?.mapValues(\.itemIds) ?? [:]) { _, new in new }
         storyPostIdsById.merge(response.storyPostIds ?? [:]) { _, new in new }
         var knownPinnedPostIds = Set(pinnedPostIds)
         pinnedPostIds.append(contentsOf: (response.pinnedPostIds ?? []).filter {

@@ -14,6 +14,7 @@
   <data name="extracted.asides.hnDiscussionsAside.commentsComments_29834540" xml:space="preserve"><value>{comments} comments</value></data>
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} points</value></data>
+  <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Show earlier replies</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>AI Costs</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Appeals</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Dynamic Config</value></data>
