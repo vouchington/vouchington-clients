@@ -10,7 +10,7 @@
     <VerticalStackLayout Spacing="8" x:DataType="newsFeeds:StoryRelatedArticles" BindingContext="{Binding PrimaryItem.StoryArticles, Source={x:Reference StoryRoot}, x:DataType=pages:StoryRelatedArticlesView}">
         <Button Text="{Binding CountLabel}" AutomationId="story-related-articles" Clicked="OnToggleClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanExpand}"/>
         <VerticalStackLayout IsVisible="{Binding IsExpanded}" Spacing="12">
-            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}">
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding VisibleItems}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="newsFeeds:NewsFeedItem">
                         <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">

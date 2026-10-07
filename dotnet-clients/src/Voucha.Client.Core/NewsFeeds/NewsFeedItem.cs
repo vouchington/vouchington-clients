@@ -72,7 +72,7 @@ public sealed record NewsFeedItem(
   public bool HasMediaPlayback => IsMedia && (HasDirectPlayback || HasExternalAudioFallback);
 
   public bool CanStartStoryDiscussion =>
-      IsArticle && StoryId is not null && StoryArticles?.HasItems == true && StoryPostId is null && !IsStartingStoryDiscussion;
+      IsArticle && StoryId is not null && StoryArticles is { } related && (related.HasItems || related.HasMore) && StoryPostId is null && !IsStartingStoryDiscussion;
 
   public bool HasRelatedArticles => StoryArticles?.HasItems == true;
 

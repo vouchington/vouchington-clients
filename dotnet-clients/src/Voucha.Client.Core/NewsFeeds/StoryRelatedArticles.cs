@@ -27,17 +27,18 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
   public string StoryId { get; }
   public string PrimaryItemId { get; }
   public ObservableCollection<NewsFeedItem> Items { get; }
+  public IReadOnlyList<NewsFeedItem> VisibleItems => Items.Where(item => !item.IsHidden).ToArray();
   public bool HasMore => pages.HasMore;
   public bool IsLoading => pages.IsLoading;
   public bool HasError => pages.LastError is not null;
   public string? ErrorMessage => pages.LastError;
-  public bool HasItems => Items.Count > 0;
+  public bool HasItems => Items.Any(item => !item.IsHidden);
   public bool CanExpand => HasItems || HasMore;
   public bool CanLoadMore => HasMore && !IsLoading;
   public string LoadMoreLabel => localization.Localize(HasError ? UiMessageKey.NativeCommonRetry : UiMessageKey.NativeSwiftCommonLoadMore);
   public string CountLabel => localization.Format(
       HasMore ? UiMessageKey.NativeCommonRelatedArticlesMore : UiMessageKey.NativeCommonRelatedArticles,
-      ("count", Items.Count));
+      ("count", VisibleItems.Count));
 
   public bool IsExpanded
   {
@@ -80,7 +81,7 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 
   internal void Notify()
   {
-    foreach (var name in new[] { nameof(IsExpanded), nameof(HasMore), nameof(IsLoading), nameof(HasError), nameof(ErrorMessage), nameof(HasItems), nameof(CanExpand), nameof(CanLoadMore), nameof(LoadMoreLabel), nameof(CountLabel) })
+    foreach (var name in new[] { nameof(IsExpanded), nameof(HasMore), nameof(IsLoading), nameof(HasError), nameof(ErrorMessage), nameof(HasItems), nameof(VisibleItems), nameof(CanExpand), nameof(CanLoadMore), nameof(LoadMoreLabel), nameof(CountLabel) })
       PropertyChanged?.Invoke(this, new(name));
   }
 }

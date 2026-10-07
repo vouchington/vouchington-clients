@@ -7,6 +7,30 @@ namespace Voucha.Client.Core.Tests.NewsFeeds;
 
 public sealed class StoryRelatedArticlesTests
 {
+  [Fact]
+  public void ContinuationOnlyPreviewStillAllowsStoryDiscussion()
+  {
+    var group = new StoryRelatedArticles("story-1", "primary", [], new("after", true, null), UiLocalization.English);
+    var primary = Primary(group);
+
+    Assert.Empty(group.Items);
+    Assert.True(group.HasMore);
+    Assert.True(primary.CanStartStoryDiscussion);
+  }
+
+  [Fact]
+  public void HiddenOnlyExhaustedPreviewHasNoVisibleExpansionOrCount()
+  {
+    var hidden = Item("hidden") with { IsHidden = true };
+    var group = new StoryRelatedArticles("story-1", "primary", [hidden], new(null, false, null), UiLocalization.English);
+
+    Assert.Single(group.Items);
+    Assert.Empty(group.VisibleItems);
+    Assert.False(group.HasItems);
+    Assert.False(group.CanExpand);
+    Assert.Equal("0 related articles", group.CountLabel);
+  }
+
   [Theory]
   [InlineData(1)]
   [InlineData(3)]

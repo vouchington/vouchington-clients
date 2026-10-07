@@ -13,6 +13,36 @@ namespace Voucha.Client.App.Tests;
 public sealed class StoryRelatedArticlesViewTests
 {
   [Fact]
+  public async Task HiddenStoryPeersStayInPaginationStateButNotInTheExpandedView()
+  {
+    ConfigureResources();
+    var hidden = Item("preview-hidden") with { IsHidden = true };
+    var related = new StoryRelatedArticles("story", "primary", [hidden, Item("preview-visible")], new("after", true, null), UiLocalization.English)
+    { IsExpanded = true };
+    var primary = Item("primary") with { StoryId = "story", StoryArticles = related };
+    var service = new Service(primary);
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var view = new StoryRelatedArticlesView { PrimaryItem = primary };
+    Task? pending = null;
+    view.LoadMoreRequested += (_, _) => pending = model.LoadMoreStoryArticlesAsync(primary, TestContext.Current.CancellationToken);
+
+    Assert.Equal(["preview-hidden", "preview-visible"], related.Items.Select(item => item.Id));
+    Assert.Equal("1+ related articles", related.CountLabel);
+    Assert.DoesNotContain(Descendants<Label>(view), label => label.Text == hidden.Title);
+    Assert.Contains(Descendants<Label>(view), label => label.Text == "preview-visible");
+
+    Find<Button>(view, "story-load-more").SendClicked();
+    service.Completion.SetResult(new([Item("page-hidden") with { IsHidden = true }, Item("page-visible")], new(null, false, null)));
+    await Assert.IsAssignableFrom<Task>(pending);
+
+    Assert.Equal(["preview-hidden", "preview-visible", "page-hidden", "page-visible"], related.Items.Select(item => item.Id));
+    Assert.Equal("2 related articles", related.CountLabel);
+    Assert.DoesNotContain(Descendants<Label>(view), label => label.Text is "preview-hidden" or "page-hidden");
+    Assert.Contains(Descendants<Label>(view), label => label.Text == "page-visible");
+  }
+
+  [Fact]
   public async Task RendersPreviewImmediatelyAndRetainsItThroughDelayFailureAndRetry()
   {
     ConfigureResources();
