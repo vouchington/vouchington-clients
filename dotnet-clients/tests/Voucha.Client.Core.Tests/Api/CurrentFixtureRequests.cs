@@ -36,6 +36,24 @@ internal static class CurrentFixtureRequests
     return registry;
   }
 
+  public static Dictionary<string, ApiRequest> WithPrimaryFixtureRequests(
+      this IReadOnlyDictionary<string, ApiRequest> existing)
+  {
+    var registry = new Dictionary<string, ApiRequest>(existing, StringComparer.Ordinal);
+    var consumed = ApiFixtureLoader.DotnetCoreRouteFixtures
+        .Select(fixture => fixture.Id)
+        .ToHashSet(StringComparer.Ordinal);
+    foreach (var (id, request) in ApiFixtureCoverage.EndpointRegistry)
+    {
+      if (consumed.Contains(id))
+      {
+        registry.TryAdd(id, request);
+      }
+    }
+
+    return registry;
+  }
+
   public static Dictionary<string, Type> WithCurrentFixtureTypes(this Dictionary<string, Type> registry)
   {
     foreach (var id in new[] { "native.chat.completed", "native.chat.duplicate", "native.chat.retry" })

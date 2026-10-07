@@ -33,7 +33,7 @@ public sealed class SpendingCategoriesCoverageTests
     Assert.Equal("created", created.Id);
     Assert.Equal("updated", updated.Id);
     Assert.Equal([new SpendingCategoryOption("topic", "Groceries", "groceries")], topics);
-    Assert.Equal("{\"spending_category_id\":\"topic\",\"amount\":{\"amount\":150,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"note\":\"note\"}", handler.Requests[1].Body);
+    Assert.Equal("{\"spending_category_topic_id\":\"topic\",\"amount\":{\"amount\":150,\"currency\":\"usd\"},\"spending_frequency\":\"monthly\",\"note\":\"note\"}", handler.Requests[1].Body);
     Assert.Equal(
     [
       (HttpMethod.Get, "/api/v1/my/spending-categories?after=after%20value&limit=2"),

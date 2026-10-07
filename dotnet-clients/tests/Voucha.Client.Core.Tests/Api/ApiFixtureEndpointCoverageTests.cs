@@ -11,7 +11,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
               WithAiCostEndpoints(
                   StoryFixtureRequests.AddTo(new Dictionary<string, ApiRequest>(CreateCoreRegistry(), StringComparer.Ordinal))
                       .Concat(CreateModerationParityRegistry())
-                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests();
+                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests();
 
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
