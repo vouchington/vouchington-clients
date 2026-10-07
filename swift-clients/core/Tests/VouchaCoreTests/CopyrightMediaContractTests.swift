@@ -39,14 +39,22 @@ final class CopyrightMediaContractTests: XCTestCase {
     }
 
     func testPlacementImageURLUsesTheRevisionBoundDeliveryPath() throws {
-        let config = try AppConfig(
-            baseURL: XCTUnwrap(URL(string: "https://api.example.test")),
-            imageBaseURL: XCTUnwrap(URL(string: "https://images.example.test/assets"))
-        )
-        XCTAssertEqual(
-            config.imageURL(forPlacementId: "placement / one", revision: 0, imageId: "image / two", width: 960),
-            "https://images.example.test/assets/images/placements/placement%20%2F%20one/0/image%20%2F%20two?w=960"
-        )
-        XCTAssertNil(config.imageURL(forPlacementId: "", revision: 1, imageId: "image"))
+        for (base, expectedBase) in [
+            ("https://images.example.test", "https://images.example.test"),
+            ("https://images.example.test/", "https://images.example.test"),
+            ("https://images.example.test/assets", "https://images.example.test/assets"),
+            ("https://images.example.test/assets///", "https://images.example.test/assets"),
+            ("https://images.example.test/assets%20one/", "https://images.example.test/assets%20one")
+        ] {
+            let config = try AppConfig(
+                baseURL: XCTUnwrap(URL(string: "https://api.example.test")),
+                imageBaseURL: XCTUnwrap(URL(string: base))
+            )
+            XCTAssertEqual(
+                config.imageURL(forPlacementId: "placement / one", revision: 0, imageId: "image / two", width: 960),
+                "\(expectedBase)/images/placements/placement%20%2F%20one/0/image%20%2F%20two?w=960"
+            )
+            XCTAssertNil(config.imageURL(forPlacementId: "", revision: 1, imageId: "image"))
+        }
     }
 }

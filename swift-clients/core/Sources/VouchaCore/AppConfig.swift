@@ -58,10 +58,11 @@ public struct AppConfig: Sendable {
     /// Uses URLComponents to ensure the image ID is properly percent-encoded.
     public func imageURL(forImageId imageId: String?, width: Int = 96) -> String? {
         guard let imageId, !imageId.isEmpty else { return nil }
-        var components = URLComponents(url: imageBaseURL, resolvingAgainstBaseURL: false)
-        components?.path += "/images/\(imageId)"
-        components?.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
-        return components?.url?.absoluteString
+        guard var components = imageComponents() else { return nil }
+        let imagePath = imageId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? imageId
+        components.percentEncodedPath += "/images/\(imagePath)"
+        components.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
+        return components.url?.absoluteString
     }
 
     /// Constructs a placement-bound image CDN URL for persisted media.
@@ -74,11 +75,19 @@ public struct AppConfig: Sendable {
         guard let placementId, !placementId.isEmpty,
               let imageId, !imageId.isEmpty
         else { return nil }
-        var components = URLComponents(url: imageBaseURL, resolvingAgainstBaseURL: false)
+        guard var components = imageComponents() else { return nil }
         let path = "/images/placements/\(placementId.placementPathSegment)/\(revision)/\(imageId.placementPathSegment)"
-        components?.percentEncodedPath += path
-        components?.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
-        return components?.url?.absoluteString
+        components.percentEncodedPath += path
+        components.queryItems = [URLQueryItem(name: "w", value: "\(width)")]
+        return components.url?.absoluteString
+    }
+
+    private func imageComponents() -> URLComponents? {
+        guard var components = URLComponents(url: imageBaseURL, resolvingAgainstBaseURL: false) else { return nil }
+        while components.percentEncodedPath.hasSuffix("/") {
+            components.percentEncodedPath.removeLast()
+        }
+        return components
     }
 }
 
