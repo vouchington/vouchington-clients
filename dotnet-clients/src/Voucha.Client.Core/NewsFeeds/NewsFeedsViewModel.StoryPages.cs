@@ -7,7 +7,7 @@ public sealed partial class NewsFeedsViewModel
   private readonly Dictionary<string, SuppressedStoryPrimary> suppressedStoryPrimaries = new(StringComparer.Ordinal);
   private int suppressionLoadRequestId = -1;
 
-  public static void ToggleStoryArticles(NewsFeedItem item)
+  public void ToggleStoryArticles(NewsFeedItem item)
   {
     ArgumentNullException.ThrowIfNull(item);
     if (!Items.Contains(item)) return;
