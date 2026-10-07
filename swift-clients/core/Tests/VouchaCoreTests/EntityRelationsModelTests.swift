@@ -64,6 +64,35 @@ final class EntityRelationsModelTests: XCTestCase {
         XCTAssertEqual(data.displayDetail, "/post")
     }
 
+    func testEntityRelationDecodesAMaskedCreator() throws {
+        let relation = try decoder.decode(
+            EntityRelation.self,
+            from: Data(
+                """
+                {
+                  "id": "relation-1",
+                  "subject_id": "post-1",
+                  "object_id": "post-2",
+                  "created_at": "2026-01-01T00:00:00Z",
+                  "created_by_id": null,
+                  "object_data": {
+                    "id": "post-2",
+                    "title": "Related Post",
+                    "post_type": "discussion",
+                    "declared_language": "fr",
+                    "lingua_rs_detected_language": "en"
+                  }
+                }
+                """.utf8
+            )
+        )
+
+        XCTAssertNil(relation.createdById)
+        XCTAssertEqual(relation.objectData.displayTitle, "Related Post")
+        XCTAssertEqual(relation.objectData.declaredLanguage, "fr")
+        XCTAssertEqual(relation.objectData.linguaRsDetectedLanguage, "en")
+    }
+
     func testEntityRelationsPageAndPublisherTypesDecode() throws {
         let response = try decoder.decode(
             EntityRelationsResponse.self,
