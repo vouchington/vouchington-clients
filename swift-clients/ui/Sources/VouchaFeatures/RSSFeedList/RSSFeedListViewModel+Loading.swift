@@ -59,8 +59,21 @@ extension RSSFeedListViewModel {
         let newItems = page.results.compactMap { result -> RssFeedItem? in
             let itemId = result.entityId ?? result.id
             guard let item = page.rssFeedItems[itemId] else { return nil }
-            if let storyId = result.storyId {
+            if let storyId = result.storyId, result.deliveryType != "share" {
+                if let existing = storyRelatedArticlesByStoryId[storyId], existing.primaryItemId != itemId {
+                    return nil
+                }
                 storyIdsByItemId[itemId] = storyId
+                if storyRelatedArticlesByStoryId[storyId] == nil, let preview = page.storyMemberPages?[storyId] {
+                    let peers = hydrateStoryItems(
+                        ids: preview.itemIds,
+                        items: page.rssFeedItems,
+                        thumbnails: page.rssFeedItemThumbnailUrl
+                    )
+                    storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
+                        primaryItemId: itemId, items: peers, pageInfo: preview.pageInfo
+                    )
+                }
             }
             let thumbnailURL = VouchaURLResolver.absoluteString(
                 for: page.rssFeedItemThumbnailUrl?[itemId],
@@ -70,14 +83,13 @@ extension RSSFeedListViewModel {
         }
         itemElectionsById.merge(page.rssFeedItemElections ?? [:], uniquingKeysWith: { _, new in new })
         embedsByItemId.merge(page.rssFeedItemEmbeds ?? [:], uniquingKeysWith: { _, new in new })
-        storyMemberIdsByStoryId.merge(page.storyMemberIds ?? [:], uniquingKeysWith: { _, new in new })
         storyPostIdsByStoryId.merge(page.storyPostIds ?? [:], uniquingKeysWith: { _, new in new })
         applyBookmarkState(from: page.bookmarks)
         mergeVotes(page.electionVotes)
         return newItems
     }
 
-    private func mergeVotes(_ electionVotes: [String: ElectionVote]?) {
+    func mergeVotes(_ electionVotes: [String: ElectionVote]?) {
         guard let electionVotes else { return }
         for (itemId, vote) in electionVotes {
             serverVotesByItemId[itemId] = vote.choice
@@ -87,7 +99,7 @@ extension RSSFeedListViewModel {
         }
     }
 
-    private func applyBookmarkState(from bookmarks: [String: [String: Bool]]?) {
+    func applyBookmarkState(from bookmarks: [String: [String: Bool]]?) {
         guard let bookmarks else { return }
         for (itemId, predicates) in bookmarks {
             if predicates["save"] == true {

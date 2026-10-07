@@ -16,6 +16,8 @@ internal static partial class ApiFixtureCoverage
     ["shared.scopes.catalog"] = typeof(ScopeCatalogResponse),
     ["native.my.api-keys.create"] = typeof(ApiKeyCreationResponse),
     ["native.my.oauth-grants.paginated"] = typeof(OAuthGrantListResponse),
+    ["native.stories.get.default"] = typeof(StoryPageResponse),
+    ["native.stories.get.after"] = typeof(StoryPageResponse),
     ["native.users.followers.search"] = typeof(UserFollowersResponse),
     ["native.posts.followers.share"] = typeof(FollowerDistributionAcceptedResponse),
     ["native.posts.followers.send-selected"] = typeof(FollowerDistributionAcceptedResponse),

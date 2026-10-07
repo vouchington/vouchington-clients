@@ -157,7 +157,7 @@ public struct RssFeedItemFeedResponse: Codable, Sendable {
     public let rssFeedItems: [String: RssFeedItem]
     public let rssFeedItemElections: [String: RssFeedItemElection]
     public let electionVotes: [String: ElectionVote]
-    public let storyMemberIds: [String: [String]]?
+    public let storyMemberPages: [String: StoryMemberPage]?
     public let storyPostIds: [String: String]?
     public let rssFeedItemEmbeds: [String: UrlEmbed]?
 }

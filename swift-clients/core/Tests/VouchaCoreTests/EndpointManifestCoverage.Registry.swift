@@ -26,4 +26,5 @@ enum EndpointManifestCoverage {
             + importExportEndpoints
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints
+            + storyEndpoints
 }

@@ -5,6 +5,7 @@ struct RssFeedPage: Decodable {
         let id: String
         let entityId: String?
         let storyId: String?
+        let deliveryType: String?
     }
 
     struct PageInfo: Decodable {
@@ -20,6 +21,6 @@ struct RssFeedPage: Decodable {
     let rssFeedItemElections: [String: RssFeedItemElection]?
     let electionVotes: [String: ElectionVote]?
     let bookmarks: [String: [String: Bool]]?
-    let storyMemberIds: [String: [String]]?
+    let storyMemberPages: [String: StoryMemberPage]?
     let storyPostIds: [String: String]?
 }

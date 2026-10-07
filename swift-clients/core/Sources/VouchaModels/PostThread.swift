@@ -31,7 +31,7 @@ public struct PostThreadEnvelope: Codable, Sendable {
     public let rssFeedItemElections: [String: RssFeedItemElection]?
     public let rssFeedItemThumbnailUrl: [String: String]?
     public let relatedPostsByUrlId: [String: [String]]?
-    public let storyMemberIds: [String: [String]]?
+    public let storyMemberPages: [String: StoryMemberPage]?
     public let storyPostIds: [String: [String]]?
     public let pinnedPostIds: [String]?
     public let postLinkEmbeds: [String: UrlEmbed]?

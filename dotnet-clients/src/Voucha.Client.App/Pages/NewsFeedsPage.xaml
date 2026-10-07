@@ -12,6 +12,7 @@
     Title="{Binding PageTitle}">
     <ContentPage.Resources>
         <ResourceDictionary>
+            <pages:StoryDiscussionVisibilityConverter x:Key="StoryDiscussionVisibilityConverter" />
             <pages:VoteClearEligibilityConverter x:Key="VoteClearEligibilityConverter" />
             <pages:FollowerDistributionVisibilityConverter x:Key="FollowerDistributionVisibilityConverter" />
         </ResourceDictionary>
@@ -283,14 +284,41 @@
                                         Text="{Binding StoryDiscussionActionLabel}"
                                         Clicked="OnStartStoryDiscussionClicked"
                                         CommandParameter="{Binding .}"
-                                        IsVisible="{Binding CanStartStoryDiscussion}"
-                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" />
+                                                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}" >
+                                        <Button.IsVisible>
+                                            <MultiBinding Converter="{StaticResource StoryDiscussionVisibilityConverter}">
+                                                <Binding Path="CanStartStoryDiscussion" />
+                                                <Binding Path="StoryArticles.HasItems" />
+                                            </MultiBinding>
+                                        </Button.IsVisible>
+                                    </Button>
                                     <Button
                                         Text="{DynamicResource native.swift.rssFeedList.openDiscussion}"
                                         Clicked="OnOpenStoryDiscussionClicked"
                                         CommandParameter="{Binding .}"
                                         IsVisible="{Binding CanOpenStoryDiscussion}" />
                                 </HorizontalStackLayout>
+                                <pages:StoryRelatedArticlesView PrimaryItem="{Binding .}"
+                                    CanVote="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanVote}"
+                                    CanClearVote="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanClearVote}"
+                                    CanRelate="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanRelate}"
+                                    LoadMoreRequested="OnLoadMoreStoryArticlesClicked"
+                                    ChooseVoteRequested="OnChooseVoteClicked"
+                                    ClearVoteRequested="OnClearVoteClicked"
+                                    FollowerSendRequested="OnFollowerSendClicked"
+                                    PlayRequested="OnPlayClicked"
+                                    EmbedPlayRequested="OnEmbedPlayClicked"
+                                    OpenRequested="OnOpenClicked"
+                                    EmbedOpenRequested="OnEmbedOpenClicked"
+                                    ToggleSourceRequested="OnToggleSourceClicked"
+                                    ToggleSourceMuteRequested="OnToggleSourceMuteClicked"
+                                    ToggleTopicRequested="OnToggleTopicClicked"
+                                    ToggleTopicMuteRequested="OnToggleTopicMuteClicked"
+                                    ToggleReadRequested="OnToggleReadClicked"
+                                    SaveRequested="OnSaveClicked"
+                                    HideRequested="OnHideClicked"
+                                    StartStoryDiscussionRequested="OnStartStoryDiscussionClicked"
+                                    OpenStoryDiscussionRequested="OnOpenStoryDiscussionClicked" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
