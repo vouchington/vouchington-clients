@@ -14,8 +14,6 @@
       "Mcp(agent-blackboard:session_search)",
       "Mcp(agent-blackboard:snapshot_export)"
     ],
-    "deny": [
-      "Shell(sudo)"
-    ]
+    "deny": ["Shell(sudo)"]
   }
 }

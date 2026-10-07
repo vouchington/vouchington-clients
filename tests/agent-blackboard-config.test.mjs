@@ -47,7 +47,11 @@ describe('Agent Blackboard host configuration', () => {
       'permission_mode',
       'permissionMode',
     ])
-      assert.equal(settings[key], undefined, `machine setting ${key} must stay out of project config`)
+      assert.equal(
+        settings[key],
+        undefined,
+        `machine setting ${key} must stay out of project config`,
+      )
     assert.deepEqual(settings.enabledMcpjsonServers, ['agent-blackboard'])
     assert.deepEqual(settings.permissions?.allow, tools)
     assert.equal(
@@ -109,7 +113,9 @@ describe('Agent Blackboard host configuration', () => {
     const cli = readJson('.cursor/cli.json')
     assert.deepEqual(cli.permissions.deny, ['Shell(sudo)'])
     assert.equal(
-      readJson('.cursor/permissions.json').autoRun.block_instructions.some(rule => rule.includes('~/')),
+      readJson('.cursor/permissions.json').autoRun.block_instructions.some(rule =>
+        rule.includes('~/'),
+      ),
       false,
     )
     assert.deepEqual(
@@ -140,7 +146,10 @@ describe('Agent Blackboard host configuration', () => {
   it("keeps Grok's project MCP registration and permissions without machine sandbox settings", () => {
     const config = readFileSync(resolve(root, '.grok/config.toml'), 'utf8')
     assert.doesNotMatch(config, /^\[mcp_servers\./mu)
-    assert.doesNotMatch(config, /^\s*(?:sandbox|model|permission_mode|approval_mode|startup_timeout)\s*=/mu)
+    assert.doesNotMatch(
+      config,
+      /^\s*(?:sandbox|model|permission_mode|approval_mode|startup_timeout)\s*=/mu,
+    )
     assert.equal((config.match(/MCPTool\(agent-blackboard__/gu) ?? []).length, 8)
     assert.match(config, /MCPTool\(agent-blackboard__snapshot_export\)/u)
     assert.doesNotMatch(config, /^\[(?:sandbox|model|ui)\]/mu)
@@ -152,7 +161,10 @@ describe('Agent Blackboard host configuration', () => {
 
   it('keeps machine sandbox, model, approval-mode, and startup defaults out of project settings', () => {
     const codex = readFileSync(resolve(root, '.codex/config.toml'), 'utf8')
-    assert.doesNotMatch(codex, /^\s*(?:sandbox_mode|approval_policy|model|model_reasoning_effort|startup_timeout)\s*=/mu)
+    assert.doesNotMatch(
+      codex,
+      /^\s*(?:sandbox_mode|approval_policy|model|model_reasoning_effort|startup_timeout)\s*=/mu,
+    )
     for (const path of ['.claude/README.md', '.codex/README.md', '.cursor/README.md']) {
       const instructions = readFileSync(resolve(root, path), 'utf8')
       assert.match(instructions, /vouchington-machines\/blob\/main\/docs\/agent-config\.md/u)
