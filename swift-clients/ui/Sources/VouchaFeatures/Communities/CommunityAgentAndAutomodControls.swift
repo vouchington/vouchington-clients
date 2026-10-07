@@ -126,8 +126,7 @@ extension CommunityAgentAndAutomodControls {
             }
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(UiMessages.string(.nativeSwiftCommunitiesAutomod, locale: nativeUiLocale))
-                    .font(Typography.subheadline)
+                CommunityAutomodActionStatusView(action: viewModel.communityDetail?.community.automodAction)
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesSourceKey, locale: nativeUiLocale),
                     text: $feedbackSourceKey
