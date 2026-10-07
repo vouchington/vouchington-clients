@@ -9,7 +9,9 @@ public static class NativeChatRoutePaths
   {
     ArgumentNullException.ThrowIfNull(path);
     conversationId = string.Empty;
-    if (!path.StartsWith("/chat/", StringComparison.OrdinalIgnoreCase))
+    if (!path.StartsWith("/chat/", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(path, "/chat/support", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/chat/support/", StringComparison.OrdinalIgnoreCase))
     {
       return false;
     }
