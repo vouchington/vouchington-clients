@@ -71,11 +71,19 @@ public sealed class StoryRelatedArticlesViewTests
   private static void ConfigureResources()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    var controller = new UiLocaleController(new EnglishLanguages());
     _ = new Application { Resources =
     {
       ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)),
       ["Eyebrow"] = new Style(typeof(Label)), ["Metadata"] = new Style(typeof(Label)),
+      ["UiLocaleVersion"] = new UiLocaleVersion(controller),
+      ["UiLocalizedValue"] = new UiLocalizedValueConverter(new UiLocalization(controller)),
     } };
+  }
+
+  private sealed class EnglishLanguages : IDeviceLanguageProvider
+  {
+    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 
   private static NewsFeedItem Item(string id) => new(id, id, "Source", "Summary", null, DateTimeOffset.UnixEpoch);
@@ -85,7 +93,7 @@ public sealed class StoryRelatedArticlesViewTests
     foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
     {
       if (child is T match) yield return match;
-      foreach (var match in Descendants<T>(child)) yield return match;
+      foreach (var descendant in Descendants<T>(child)) yield return descendant;
     }
   }
 
