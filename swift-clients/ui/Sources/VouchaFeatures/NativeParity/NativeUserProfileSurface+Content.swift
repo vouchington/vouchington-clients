@@ -16,6 +16,7 @@ extension NativeUserProfileSurface {
                 Text(verbatim: profile.user.displayAccount?.name ?? profile.user.verifiedDisplayName ?? profile.user
                     .username)
                     .font(Typography.headline).bold()
+                AccountTypeBadge(accountType: profile.user.accountType)
                 Text(verbatim: UiMessages.string(.userContent("@\(profile.user.username)"), locale: nativeUiLocale))
                     .foregroundStyle(Colors.secondaryLabel)
                 NativeHtmlContent(html: profile.userBioHtml, fallback: profile.user.markdown)

@@ -211,7 +211,7 @@ public sealed class ApiModelsMessagesTests
           "profile_image_id": "img-1",
           "markdown": "bio",
           "use_display_name_from": "username",
-          "is_official_account": true,
+          "account_type": "official",
           "verification_status": "verified",
           "verified_badge_visible": true,
           "verified_display_name": "Alice A",
@@ -230,7 +230,7 @@ public sealed class ApiModelsMessagesTests
     Assert.Equal(publicUser.ProfileImageId, searchResult.ProfileImageId);
     Assert.Equal(publicUser.Markdown, searchResult.Markdown);
     Assert.Equal(publicUser.UseDisplayNameFrom, searchResult.UseDisplayNameFrom);
-    Assert.Equal(publicUser.IsOfficialAccount, searchResult.IsOfficialAccount);
+    Assert.Equal(publicUser.AccountType, searchResult.AccountType);
     Assert.Equal(publicUser.VerificationStatus, searchResult.VerificationStatus);
     Assert.Equal(publicUser.VerifiedBadgeVisible, searchResult.VerifiedBadgeVisible);
     Assert.Equal(publicUser.VerifiedDisplayName, searchResult.VerifiedDisplayName);

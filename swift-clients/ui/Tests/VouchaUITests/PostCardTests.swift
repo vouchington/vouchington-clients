@@ -84,11 +84,37 @@ final class PostCardTests: XCTestCase {
         XCTAssertEqual(try sut.inspect().find(text: "_Native bio_").string(), "_Native bio_")
     }
 
+    func testPostCardSuppressesAccountTypeForAnonymousAndDeletedAuthors() throws {
+        let author = try makePublicUser(markdown: nil, accountType: "official")
+        let visible = PostCard(post: makePost(title: "Title", markdown: nil, html: nil, author: author))
+        let anonymous = PostCard(post: makePost(
+            title: "Title",
+            markdown: nil,
+            html: nil,
+            author: author,
+            isAnonymous: true
+        ))
+        let deleted = PostCard(post: makePost(
+            title: "Title",
+            markdown: nil,
+            html: nil,
+            author: author,
+            deletedAt: Date(timeIntervalSince1970: 1)
+        ))
+
+        XCTAssertEqual(try visible.inspect().find(AccountTypeBadge.self).actualView().accountType, .official)
+        XCTAssertNil(try anonymous.inspect().find(AccountTypeBadge.self).actualView().accountType)
+        XCTAssertNil(try deleted.inspect().find(AccountTypeBadge.self).actualView().accountType)
+    }
+
     private func makePost() -> Post {
         makePost(title: "Discussion", markdown: "Body", html: nil)
     }
 
-    private func makePost(title: String?, markdown: String?, html: String?) -> Post {
+    private func makePost(
+        title: String?, markdown: String?, html: String?, author: PublicUser? = nil,
+        isAnonymous: Bool = false, deletedAt: Date? = nil
+    ) -> Post {
         Post(
             id: "post-1",
             slug: "post-1",
@@ -102,15 +128,18 @@ final class PostCardTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 0),
             broadcast: nil,
             privacy: .public,
-            isAnonymous: false,
+            isAnonymous: isAnonymous,
             communityId: nil,
             clearanceStatus: nil,
-            election: PostElection(votesScoreNet: 2.25, votesCountUp: 3, votesCountDown: 1)
+            election: PostElection(votesScoreNet: 2.25, votesCountUp: 3, votesCountDown: 1),
+            createdBy: author,
+            deletedAt: deletedAt
         )
     }
 
-    private func makePublicUser(markdown: String?) throws -> PublicUser {
+    private func makePublicUser(markdown: String?, accountType: String? = nil) throws -> PublicUser {
         let markdownValue = markdown.map { "\"\($0)\"" } ?? "null"
+        let accountTypeValue = accountType.map { "\"\($0)\"" } ?? "null"
         let data = Data(
             """
             {
@@ -118,6 +147,7 @@ final class PostCardTests: XCTestCase {
               "username": "alice",
               "name": "Alice",
               "roles": ["user"],
+              "account_type": \(accountTypeValue),
               "markdown": \(markdownValue)
             }
             """.utf8

@@ -6,7 +6,7 @@ public extension PrivateUser {
             username: username,
             useDisplayNameFrom: useDisplayNameFrom,
             roles: roles,
-            isOfficialAccount: isOfficialAccount,
+            accountType: accountType,
             profileImageId: profileImageId,
             markdown: markdown,
             emailAddress: emailAddress,

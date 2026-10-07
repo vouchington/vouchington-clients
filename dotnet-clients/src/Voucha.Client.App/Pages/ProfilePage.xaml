@@ -31,6 +31,7 @@
                 <VerticalStackLayout Grid.Column="1" Spacing="6">
                     <Label Text="{Binding DisplayName}" Style="{StaticResource Headline}" />
                     <Label Text="{Binding UsernameLabel}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding AccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
                     <HorizontalStackLayout Spacing="8">
                         <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />

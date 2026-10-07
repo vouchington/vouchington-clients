@@ -73,6 +73,7 @@
                                     <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
                                 </VerticalStackLayout>
                                 <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                 <HorizontalStackLayout Spacing="10">
                                     <Button
                                         Text="{DynamicResource native.dotnet.mediaPlayback.play}"

@@ -19,6 +19,7 @@ public struct UserRow: View {
                     .font(Typography.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
+                AccountTypeBadge(accountType: user.accountType)
                 if let markdown = user.markdown, !markdown.isEmpty {
                     NativeHtmlContent(
                         html: nil,

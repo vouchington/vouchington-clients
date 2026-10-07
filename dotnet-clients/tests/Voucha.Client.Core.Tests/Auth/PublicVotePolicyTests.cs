@@ -9,9 +9,9 @@ public sealed class PublicVotePolicyTests
   [Theory]
   [InlineData(null, false)]
   [InlineData("user", true)]
-  [InlineData("administrator", false)]
-  [InlineData("investor", false)]
-  public void PublicVotePolicyExcludesOfficialRoles(string? role, bool expected)
+  [InlineData("administrator", true)]
+  [InlineData("investor", true)]
+  public void PublicVotePolicyUsesAccountTypeInsteadOfRoles(string? role, bool expected)
   {
     var session = role is null
         ? SessionSnapshot.Anonymous
@@ -25,14 +25,17 @@ public sealed class PublicVotePolicyTests
     Assert.Equal(expected, session.CanCastPublicVotes());
   }
 
-  [Fact]
-  public void PublicVotePolicyExcludesComputedOfficialAccountsWithoutOfficialRoles()
+  [Theory]
+  [InlineData(AccountType.Official)]
+  [InlineData(AccountType.System)]
+  [InlineData(AccountType.AiAgent)]
+  public void PublicVotePolicyExcludesPlatformAccounts(AccountType accountType)
   {
     var session = new SessionSnapshot(new User(
         "agent-1",
         "agent",
         Roles: ["user"],
-        IsOfficialAccount: true));
+        AccountType: accountType));
 
     Assert.False(session.CanCastPublicVotes());
   }
@@ -44,7 +47,7 @@ public sealed class PublicVotePolicyTests
         "agent-1",
         "agent",
         Roles: ["user"],
-        IsOfficialAccount: true));
+        AccountType: AccountType.Official));
 
     Assert.False(official.CanCastPublicVotes());
     Assert.False(official.CanClearPublicVote(null));
@@ -82,7 +85,7 @@ public sealed class PublicVotePolicyTests
         "user-1",
         "alice",
         Roles: [role],
-        IsOfficialAccount: role != "user"));
+        AccountType: role == "user" ? null : AccountType.Official));
 
     Assert.Equal(expected, session.CanCreateEntityRelationVote(isUserTag));
   }

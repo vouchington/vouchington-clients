@@ -44,6 +44,8 @@ struct CommentThreadPostSection: View {
                             declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
                             detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
                         )
+                    AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
+                        .accountType)
                     Text(pathText)
                         .font(Typography.caption.monospaced())
                         .foregroundStyle(Colors.secondaryLabel)

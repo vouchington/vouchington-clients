@@ -39,7 +39,7 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
             followsVisibility: "everyone",
             thirdPartyMarketing: false
         )
-        privacyOverrides["is_official_account"] = true
+        privacyOverrides["account_type"] = "official"
         CannedFeedURLProtocol.handlers["/api/v1/users/user-1"] = (
             PrivateUserTestFixture.userEnvelope(
                 username: "alice-2",
@@ -54,7 +54,7 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(viewModel.followsVisibility, .everyone)
         XCTAssertEqual(viewModel.uiLocale, "fr")
         XCTAssertFalse(viewModel.thirdPartyMarketing)
-        XCTAssertTrue(viewModel.identity?.isOfficialAccount == true)
+        XCTAssertEqual(viewModel.identity?.accountType, .official)
         XCTAssertEqual(uiEnglish(viewModel.statusMessage), "Privacy saved")
         XCTAssertTrue(
             CannedFeedURLProtocol.capturedBodies.last??.contains(#""ui_locale":"fr""#) == true

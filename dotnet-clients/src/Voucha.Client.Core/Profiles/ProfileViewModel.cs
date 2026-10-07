@@ -81,6 +81,8 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
 
   public string UsernameLabel => User?.Username is { Length: > 0 } username ? $"@{username}" : User?.Id ?? string.Empty;
 
+  public string? AccountTypeLabel => AccountTypeLabels.Resolve(User?.AccountType, localization);
+
   public string? ProfileImageId => Identity?.ProfileImageId ?? User?.ProfileImageId;
 
   public Uri? AvatarUrl => config.ImageUrlForImageId(ProfileImageId, 144);
@@ -154,6 +156,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   {
     OnPropertyChanged(nameof(DisplayName));
     OnPropertyChanged(nameof(UsernameLabel));
+    OnPropertyChanged(nameof(AccountTypeLabel));
     OnPropertyChanged(nameof(ProfileImageId));
     OnPropertyChanged(nameof(AvatarUrl));
   }

@@ -7,7 +7,8 @@ extension PrivateUser {
         id = try container.decode(String.self, forKey: .id)
         username = try container.decode(String.self, forKey: .username)
         useDisplayNameFrom = try container.decodeIfPresent(DisplayNameSource.self, forKey: .useDisplayNameFrom)
-        (roles, isOfficialAccount) = try Self.decodeVotingIdentity(from: container)
+        roles = try container.decode([String].self, forKey: .roles)
+        accountType = try container.decodeIfPresent(AccountType.self, forKey: .accountType)
         profileImageId = try container.decodeIfPresent(String.self, forKey: .profileImageId)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
         emailAddress = try container.decodeIfPresent(String.self, forKey: .emailAddress)
@@ -45,15 +46,6 @@ extension PrivateUser {
         hnDiscussions = try container.decodeIfPresent(Bool.self, forKey: .hnDiscussions)
         country = try container.decodeIfPresent(String.self, forKey: .country)
         uiLocale = try container.decodeIfPresent(String.self, forKey: .uiLocale)
-    }
-
-    private static func decodeVotingIdentity(
-        from container: KeyedDecodingContainer<CodingKeys>
-    ) throws -> ([String], Bool) {
-        try (
-            container.decode([String].self, forKey: .roles),
-            container.decode(Bool.self, forKey: .isOfficialAccount)
-        )
     }
 
     private struct DecodedPrivacyAudiences {

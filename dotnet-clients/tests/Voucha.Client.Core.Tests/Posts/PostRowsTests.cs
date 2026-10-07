@@ -62,4 +62,20 @@ public sealed class PostRowsTests
     Assert.Equal("RightToLeft", authored.TitleFlowDirection);
     Assert.Null(fallback.TitleFlowDirection);
   }
+
+  [Fact]
+  public void AccountTypeLabelIsVisibleOnlyForIdentifiedActiveAuthors()
+  {
+    var author = new User("user-1", "alice", AccountType: AccountType.Official);
+    var visible = new Post("post-1", "discussion", "Title", null, "user-1", CreatedBy: author);
+    var anonymous = visible with { IsAnonymous = true };
+    var deleted = visible with { DeletedAt = DateTimeOffset.UtcNow };
+
+    Assert.NotNull(PostRows.From(visible, null, null, null).AuthorAccountTypeLabel);
+    Assert.Null(PostRows.From(anonymous, null, null, null).AuthorAccountTypeLabel);
+    Assert.Null(PostRows.From(deleted, null, null, null).AuthorAccountTypeLabel);
+    Assert.NotNull(new CommentThreadRow(visible, 0, false, false).AuthorAccountTypeLabel);
+    Assert.Null(new CommentThreadRow(anonymous, 0, false, false).AuthorAccountTypeLabel);
+    Assert.Null(new CommentThreadRow(deleted, 0, false, false).AuthorAccountTypeLabel);
+  }
 }

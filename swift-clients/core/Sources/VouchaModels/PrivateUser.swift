@@ -6,7 +6,7 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
     public let username: String
     public let useDisplayNameFrom: DisplayNameSource?
     public let roles: [String]
-    public let isOfficialAccount: Bool
+    public let accountType: AccountType?
     public let profileImageId: String?
     public let markdown: String?
     public let emailAddress: String?
@@ -45,7 +45,7 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
     public let uiLocale: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, username, useDisplayNameFrom, roles, isOfficialAccount, profileImageId, markdown, emailAddress
+        case id, username, useDisplayNameFrom, roles, accountType, profileImageId, markdown, emailAddress
         case membershipPlan, verificationStatus, suspendedAt, cardsVisibility
         case rewardsProgramStatusesVisibility, spendingCategoriesVisibility, followsVisibility
         case topicFollowsVisibility, rssFeedFollowsVisibility, communityMembershipsVisibility

@@ -62,6 +62,10 @@ public sealed record PostDetailPageRow(
               ?? Post.CreatedById
               ?? Localization.Localize(UiMessageKey.NativeDotnetPostsUnknown);
 
+  public string? AuthorAccountTypeLabel => Post.DeletedAt is not null || Post.IsAnonymous == true
+      ? null
+      : AccountTypeLabels.Resolve(Post.CreatedBy?.AccountType, Localization);
+
   public string CreatedAtText => Post.CreatedAt is DateTimeOffset createdAt
       ? Localization.FormatDateTime(createdAt, TimeZoneInfo.Local)
       : string.Empty;

@@ -11,7 +11,7 @@ public sealed record UserSearchResult(
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("use_display_name_from")] string? UseDisplayNameFrom = null,
-    [property: JsonPropertyName("is_official_account")] bool? IsOfficialAccount = null,
+    [property: JsonPropertyName("account_type")] AccountType? AccountType = null,
     [property: JsonPropertyName("verification_status")] string? VerificationStatus = null,
     [property: JsonPropertyName("verified_badge_visible")] bool? VerifiedBadgeVisible = null,
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,

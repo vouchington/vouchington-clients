@@ -33,7 +33,7 @@ public sealed class TagRelationVoteEligibilityConverterTests
   {
     var anonymous = new TagRelationVoteEligibilityConverter(new SessionStore(SessionSnapshot.Anonymous), () => true, ElectionVoteChoice.Confirm);
     var investor = new TagRelationVoteEligibilityConverter(
-        new SessionStore(new SessionSnapshot(new User("investor-1", "investor", Roles: ["investor"], IsOfficialAccount: true))),
+        new SessionStore(new SessionSnapshot(new User("investor-1", "investor", Roles: ["investor"], AccountType: AccountType.Official))),
         () => true,
         ElectionVoteChoice.Dispute);
     var administrator = new TagRelationVoteEligibilityConverter(

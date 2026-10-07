@@ -12,6 +12,7 @@ public sealed partial class ProfileViewModel
     OnPropertyChanged(nameof(MuteUserButtonText));
     OnPropertyChanged(nameof(BlockUserButtonText));
     OnPropertyChanged(nameof(DisplayName));
+    OnPropertyChanged(nameof(AccountTypeLabel));
     OnPropertyChanged(nameof(LocalizedPositiveSignalsFromFollowing));
     OnPropertyChanged(nameof(LocalizedNegativeSignalsFromFollowing));
     HistoryTabs = BuildTabs(userMetrics, SelectedHistoryTab);

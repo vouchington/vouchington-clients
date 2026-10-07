@@ -9,7 +9,7 @@ import VouchaModels
 
 public enum SessionState: Sendable {
     case anonymous
-    case signedIn(userId: String, username: String, membershipPlan: String?, roles: [String], isOfficialAccount: Bool)
+    case signedIn(userId: String, username: String, membershipPlan: String?, roles: [String], accountType: AccountType?)
 }
 
 /// Manages the signed-in state by fetching the current identity from the server.
@@ -38,11 +38,11 @@ public final class SessionManager {
         return []
     }
 
-    public var currentUserIsOfficialAccount: Bool {
-        if case let .signedIn(_, _, _, _, isOfficialAccount) = state {
-            return isOfficialAccount
+    public var currentUserAccountType: AccountType? {
+        if case let .signedIn(_, _, _, _, accountType) = state {
+            return accountType
         }
-        return false
+        return nil
     }
 
     /// The signed-in user's ID, or `nil` when anonymous.
@@ -84,7 +84,7 @@ public final class SessionManager {
                 userId: identity.id, username: identity.username,
                 membershipPlan: identity.membershipPlan,
                 roles: identity.roles,
-                isOfficialAccount: identity.isOfficialAccount
+                accountType: identity.accountType
             )
             uiLocale = identity.uiLocale
             logger.info("Session restored: \(identity.username)")
@@ -119,7 +119,7 @@ public final class SessionManager {
             username: user.username,
             membershipPlan: user.membershipPlan,
             roles: user.roles,
-            isOfficialAccount: user.isOfficialAccount
+            accountType: user.accountType
         )
         uiLocale = user.uiLocale
     }

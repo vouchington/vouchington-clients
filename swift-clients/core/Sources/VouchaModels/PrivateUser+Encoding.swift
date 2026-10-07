@@ -14,7 +14,7 @@ public extension PrivateUser {
             "id": .string(id),
             "username": .string(username),
             "roles": .array(roles.map { .string($0) }),
-            "is_official_account": .bool(isOfficialAccount),
+            "account_type": accountType.map { .string($0.rawValue) } ?? .null,
             "cards_visibility": .string(cardsVisibility.rawValue),
             "rewards_program_statuses_visibility": .string(rewardsProgramStatusesVisibility.rawValue),
             "spending_categories_visibility": .string(spendingCategoriesVisibility.rawValue),

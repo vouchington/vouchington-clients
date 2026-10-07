@@ -93,7 +93,7 @@ enum PrivateUserTestFixture {
             "id": id,
             "username": username,
             "roles": roles,
-            "is_official_account": false,
+            "account_type": NSNull(),
             "profile_image_id": nullable(profileImageId),
             "markdown": nullable(markdown),
             "email_address": nullable(emailAddress),

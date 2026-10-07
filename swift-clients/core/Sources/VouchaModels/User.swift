@@ -6,7 +6,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
     public let username: String
     public let entityType: String?
     public let displayAccount: UserDisplayAccount?
-    public let isOfficialAccount: Bool?
+    public let accountType: AccountType?
     public let roles: [String]?
     public let displayNameSource: String?
     public let useDisplayNameFrom: DisplayNameSource?
@@ -27,7 +27,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         case username
         case entityType = "__entity_type"
         case displayAccount
-        case isOfficialAccount
+        case accountType
         case roles
         case displayNameSource
         case useDisplayNameFrom
@@ -54,7 +54,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
             entityType = nil
         }
         displayAccount = try container.decodeIfPresent(UserDisplayAccount.self, forKey: .displayAccount)
-        isOfficialAccount = try container.decodeIfPresent(Bool.self, forKey: .isOfficialAccount)
+        accountType = try container.decodeIfPresent(AccountType.self, forKey: .accountType)
         roles = try container.decodeIfPresent([String].self, forKey: .roles)
         displayNameSource = try container.decodeIfPresent(String.self, forKey: .displayNameSource)
         useDisplayNameFrom = try container.decodeIfPresent(DisplayNameSource.self, forKey: .useDisplayNameFrom)
@@ -82,7 +82,7 @@ public struct PublicUser: Codable, Identifiable, Sendable {
                 "name": $0.name.map { .string($0) } ?? .null
             ])
         }
-        object["is_official_account"] = isOfficialAccount.map { .bool($0) }
+        object["account_type"] = accountType.map { .string($0.rawValue) } ?? .null
         object["roles"] = roles.map { .array($0.map { .string($0) }) }
         object["display_name_source"] = displayNameSource.map { .string($0) }
         object["use_display_name_from"] = useDisplayNameFrom.map { .string($0.rawValue) }
