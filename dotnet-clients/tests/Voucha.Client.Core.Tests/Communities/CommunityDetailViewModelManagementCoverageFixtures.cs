@@ -161,7 +161,7 @@ internal sealed partial class ScriptedCommunitiesService
       Task.FromResult(ModeratorStatsResponses.Count > 0 ? ModeratorStatsResponses.Dequeue() : Deserialize<CommunityModeratorStatsResponse>("""
           {
             "window": 30,
-            "stats": [{ "actor_id": "user-1", "total": 2, "counts": { "approve": 2 } }],
+            "stats": [{ "actor_user_id": "user-1", "total": 2, "counts": { "approve": 2 } }],
             "users": {}
           }
           """));
@@ -253,7 +253,6 @@ internal sealed partial class ScriptedCommunitiesService
                 "name": "Spam Filter",
                 "description": "Filters spam",
                 "enabled": true,
-                "on_flag_action": "queue",
                 "required_membership_plan": null
               }
             ]
@@ -272,8 +271,7 @@ internal sealed partial class ScriptedCommunitiesService
                 "prompt": "Flag spam",
                 "model_name": "model",
                 "model_provider": "provider",
-                "slot_allocated": true,
-                "on_flag_action": "queue",
+                "is_slot_allocated": true,
                 "activated_at": null,
                 "deactivated_at": null,
                 "deleted_at": null,

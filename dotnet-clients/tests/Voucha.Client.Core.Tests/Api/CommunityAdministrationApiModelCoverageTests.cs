@@ -11,11 +11,13 @@ public sealed class CommunityAdministrationApiModelCoverageTests
   {
     var request = VouchaApiEndpoints.SetSuppressCommunityDigestsWhileOnVacation("test community", true);
     var json = JsonSerializer.Serialize(request.Body, VouchaApiJson.Options);
-    var response = JsonSerializer.Deserialize<ModeratorVacationDigestPreferenceResponse>(json, VouchaApiJson.Options);
-
     Assert.Equal(HttpMethod.Patch, request.Method);
     Assert.Equal("/api/v1/communities/test%20community/moderator-vacation", request.Path);
-    Assert.Equal("{\"suppress_community_digests_while_on_vacation\":true}", json);
+    Assert.Equal("{\"should_suppress_community_digests_while_on_vacation\":true}", json);
+
+    var response = JsonSerializer.Deserialize<ModeratorVacationDigestPreferenceResponse>(
+        """{"should_suppress_community_digests_while_on_vacation":true}""",
+        VouchaApiJson.Options);
     Assert.True(response!.SuppressCommunityDigestsWhileOnVacation);
   }
 

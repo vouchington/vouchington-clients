@@ -10,7 +10,7 @@ public sealed class ApiEngineeringModelsTests
   public void RequestModelsSerializeWithExpectedJsonNames()
   {
     Assert.Equal(
-        "{\"totalWaiting\":1,\"totalActive\":2,\"totalCompleted\":3,\"totalFailed\":4,\"queueCount\":5}",
+        "{\"totalWaiting\":1,\"totalActive\":2,\"totalCompleted\":3,\"totalFailed\":4,\"queueCount\":5,\"totalDelayed\":0}",
         JsonSerializer.Serialize(new QueueStatsSummary(1, 2, 3, 4, 5), VouchaApiJson.Options));
     Assert.Equal(
         "{\"id\":\"job-1\",\"queue_name\":\"emails\",\"job_name\":\"backfill_emails\",\"schedule\":\"* * * * *\",\"description\":\"Emails backfill\"}",

@@ -149,7 +149,7 @@ public sealed partial class VouchaApiClientTests
   public async Task CommunityModeratorStatsUsesExpectedRoute()
   {
     var handler = new RecordingHandler("""
-        {"window":7,"stats":[{"actor_id":"user-1","total":2,"counts":{"approve":2}}],"users":{}}
+        {"window":7,"stats":[{"actor_user_id":"user-1","total":2,"counts":{"approve":2}}],"users":{}}
         """);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
