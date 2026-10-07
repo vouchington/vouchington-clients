@@ -31,7 +31,9 @@ public extension SettingsViewModel {
     func loadCredentialSettings() async {
         guard let client else { return }
         credentialLoadGeneration += 1
-        let generation = credentialLoadGeneration
+        let catalogGeneration = credentialLoadGeneration
+        oauthGrantLoadGeneration += 1
+        let grantGeneration = oauthGrantLoadGeneration
         oauthGrantPagination.invalidateRequestsPreservingPage()
         credentialState = .loading
         oauthGrantState = .loading
@@ -39,33 +41,30 @@ public extension SettingsViewModel {
         async let grantResponse: Page<OAuthGrant> = client.send(.myOAuthGrants())
         do {
             let catalog = try await catalogResponse
-            guard generation == credentialLoadGeneration else { return }
+            guard catalogGeneration == credentialLoadGeneration else { return }
             try applyCredentialScopeCatalog(catalog)
             credentialState = .loaded
         } catch {
-            guard generation == credentialLoadGeneration else { return }
+            guard catalogGeneration == credentialLoadGeneration else { return }
             if error is CancellationError || Task.isCancelled {
                 credentialState = .idle
-                oauthGrantState = .idle
-                return
+            } else {
+                credentialState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
             }
-            credentialState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
         }
         do {
             let grants = try await grantResponse
-            guard generation == credentialLoadGeneration else { return }
+            guard grantGeneration == oauthGrantLoadGeneration else { return }
             if Task.isCancelled {
-                credentialState = .idle
-                oauthGrantState = .idle
+                finishCancelledOAuthGrantLoad(catalogGeneration: catalogGeneration)
                 return
             }
             replaceOAuthGrantPage(grants)
             oauthGrantState = .loaded
         } catch {
-            guard generation == credentialLoadGeneration else { return }
+            guard grantGeneration == oauthGrantLoadGeneration else { return }
             if error is CancellationError || Task.isCancelled {
-                credentialState = .idle
-                oauthGrantState = .idle
+                finishCancelledOAuthGrantLoad(catalogGeneration: catalogGeneration)
                 return
             }
             oauthGrantState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
@@ -107,6 +106,11 @@ public extension SettingsViewModel {
 }
 
 extension SettingsViewModel {
+    private func finishCancelledOAuthGrantLoad(catalogGeneration: Int) {
+        if catalogGeneration == credentialLoadGeneration { credentialState = .idle }
+        oauthGrantState = .idle
+    }
+
     var isScopeAdministrator: Bool {
         identity?.roles.contains("administrator") == true
     }
@@ -125,11 +129,10 @@ extension SettingsViewModel {
     }
 
     func reconcileRevokedOAuthGrant(id: String) {
-        credentialLoadGeneration += 1
+        oauthGrantLoadGeneration += 1
         revokedOAuthGrantIds.insert(id)
         oauthGrantPagination.invalidateRequestsPreservingPage()
         oauthGrantPagination.remove { $0.id == id }
-        if case .loading = credentialState { credentialState = .loaded }
         if case .loading = oauthGrantState { oauthGrantState = .loaded }
     }
 }

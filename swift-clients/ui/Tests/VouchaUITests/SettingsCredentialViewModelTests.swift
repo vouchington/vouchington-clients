@@ -177,6 +177,44 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertTrue(model.oauthGrants.isEmpty)
     }
 
+    func testRevocationDoesNotDiscardPendingScopeCatalogRetry() async throws {
+        seedCredentials()
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (Data("{".utf8), 200)
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
+        await model.loadCredentialSettings()
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+        XCTAssertTrue(model.apiKeyScopes.isEmpty)
+
+        let scopePath = "/api/v1/scopes"
+        CannedFeedURLProtocol.handlers[scopePath] = (SettingsCredentialsTestData.catalog, 200)
+        CannedFeedURLProtocol.suspendResponse(path: scopePath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: scopePath) }
+        let scopeBarrier = CannedFeedURLProtocol.requestBarrier(path: scopePath, method: "GET")
+        let retry = Task { await model.loadCredentialSettings() }
+        do {
+            _ = try await scopeBarrier.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: scopePath)
+            await retry.value
+            throw error
+        }
+
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants/one"] = (Data(), 204)
+        await model.revokeOAuthGrant(id: "one")
+        XCTAssertTrue(model.oauthGrants.isEmpty)
+        CannedFeedURLProtocol.releaseResponse(path: scopePath)
+        await retry.value
+
+        guard case .loaded = model.credentialState else { return XCTFail("Catalog retry must complete") }
+        guard case .loaded = model.oauthGrantState else { return XCTFail("Grant revoke must remain loaded") }
+        XCTAssertTrue(model.apiKeyScopes.contains { $0.scope == "data:write" })
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertTrue(model.canCreateApiKey)
+        XCTAssertTrue(model.oauthGrants.isEmpty, "Stale grant response must not restore revoked access")
+    }
+
     private func seedCredentials(hasMore: Bool = false) {
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (

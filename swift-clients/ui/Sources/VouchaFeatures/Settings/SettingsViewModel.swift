@@ -22,6 +22,8 @@ public final class SettingsViewModel {
     @ObservationIgnored
     var credentialLoadGeneration = 0
     @ObservationIgnored
+    var oauthGrantLoadGeneration = 0
+    @ObservationIgnored
     var revokedOAuthGrantIds: Set<String> = []
     var pushSubscriptionPagination = CursorPaginationState<WebPushSubscription>()
     var sessionPagination = CursorPaginationState<AuthSession>()
