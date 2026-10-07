@@ -5,7 +5,7 @@ extension PrivateUser {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         entityType = try Self.decodeEntityType(from: decoder)
         id = try container.decode(String.self, forKey: .id)
-        username = try container.decode(String.self, forKey: .username)
+        username = try container.decodeIfPresent(String.self, forKey: .username)
         useDisplayNameFrom = try container.decodeIfPresent(DisplayNameSource.self, forKey: .useDisplayNameFrom)
         roles = try container.decode([String].self, forKey: .roles)
         accountType = try container.decodeIfPresent(AccountType.self, forKey: .accountType)

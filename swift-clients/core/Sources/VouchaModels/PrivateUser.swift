@@ -3,7 +3,7 @@ import Foundation
 public struct PrivateUser: Codable, Identifiable, Sendable {
     public let entityType: String
     public let id: String
-    public let username: String
+    public let username: String?
     public let useDisplayNameFrom: DisplayNameSource?
     public let roles: [String]
     public let accountType: AccountType?

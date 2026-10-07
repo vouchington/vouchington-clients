@@ -4,7 +4,7 @@ import VouchaModels
 extension SettingsViewModel {
     func apply(identity: PrivateUser) {
         self.identity = identity
-        username = identity.username
+        username = identity.username ?? ""
         displayNameSource = identity.useDisplayNameFrom ?? .username
         profileImageId = identity.profileImageId ?? ""
         followsVisibility = identity.followsVisibility

@@ -12,7 +12,6 @@ public extension PrivateUser {
         [
             "__entity_type": .string(entityType),
             "id": .string(id),
-            "username": .string(username),
             "roles": .array(roles.map { .string($0) }),
             "account_type": accountType.map { .string($0.rawValue) } ?? .null,
             "cards_visibility": .string(cardsVisibility.rawValue),
@@ -38,6 +37,7 @@ public extension PrivateUser {
     }
 
     private func addOptionalProperties(to object: inout [String: DecodedJSONValue]) {
+        object["username"] = username.map { .string($0) }
         object["use_display_name_from"] = useDisplayNameFrom.map { .string($0.rawValue) }
         object["profile_image_id"] = profileImageId.map { .string($0) }
         object["markdown"] = markdown.map { .string($0) }

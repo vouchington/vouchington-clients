@@ -9,7 +9,13 @@ import VouchaModels
 
 public enum SessionState: Sendable {
     case anonymous
-    case signedIn(userId: String, username: String, membershipPlan: String?, roles: [String], accountType: AccountType?)
+    case signedIn(
+        userId: String,
+        username: String?,
+        membershipPlan: String?,
+        roles: [String],
+        accountType: AccountType?
+    )
 }
 
 /// Manages the signed-in state by fetching the current identity from the server.
@@ -87,7 +93,7 @@ public final class SessionManager {
                 accountType: identity.accountType
             )
             uiLocale = identity.uiLocale
-            logger.info("Session restored: \(identity.username)")
+            logger.info("Session restored: \(identity.username ?? "")")
             return true
         } catch VouchaError.unauthorized {
             state = .anonymous

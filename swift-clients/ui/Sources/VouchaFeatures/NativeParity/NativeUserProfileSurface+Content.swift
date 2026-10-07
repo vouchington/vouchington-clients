@@ -9,16 +9,20 @@ extension NativeUserProfileSurface {
         HStack(alignment: .top, spacing: Spacing.md) {
             Avatar(
                 imageURL: AppConfig.shared.imageURL(forImageId: profile.user.profileImageId, width: 144),
-                username: profile.user.username,
+                username: profile.user.username ?? "",
                 size: 72
             )
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(verbatim: profile.user.displayAccount?.name ?? profile.user.verifiedDisplayName ?? profile.user
-                    .username)
+                Text(verbatim: profile.user.displayAccount?.name
+                    ?? profile.user.verifiedDisplayName
+                    ?? profile.user.username
+                    ?? profile.user.id)
                     .font(Typography.headline).bold()
                 AccountTypeBadge(accountType: profile.user.accountType)
-                Text(verbatim: UiMessages.string(.userContent("@\(profile.user.username)"), locale: nativeUiLocale))
-                    .foregroundStyle(Colors.secondaryLabel)
+                if let username = profile.user.username?.ifNotEmpty {
+                    Text(verbatim: UiMessages.string(.userContent("@\(username)"), locale: nativeUiLocale))
+                        .foregroundStyle(Colors.secondaryLabel)
+                }
                 NativeHtmlContent(html: profile.userBioHtml, fallback: profile.user.markdown)
                 profileCounts(profile)
                 trustControls(profile)
@@ -29,7 +33,7 @@ extension NativeUserProfileSurface {
                         .message(.nativeSwiftIdentityVerificationAdmin),
                         locale: nativeUiLocale
                     )) {
-                        let target = profile.user.username.isEmpty ? profile.user.id : profile.user.username
+                        let target = profile.user.username?.ifNotEmpty ?? profile.user.id
                         onNavigate(NativeUserProfileNavigationTarget.userAdmin(target))
                     }
                     .accessibilityIdentifier("user-profile-admin")

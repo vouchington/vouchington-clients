@@ -157,7 +157,7 @@ extension DirectMessagesSurface {
         ))) {
             ForEach(composeState.selectedRecipients, id: \.id) { user in
                 HStack {
-                    Text(verbatim: UiMessages.string(.userContent("@\(user.username)"), locale: nativeUiLocale))
+                    Text(verbatim: UiMessages.string(.userContent(directMessageHandle(user)), locale: nativeUiLocale))
                     Spacer()
                     Button(UiMessages.string(.nativeSwiftCommonRemove, locale: nativeUiLocale)) {
                         composeState.selectedRecipients.removeAll { $0.id == user.id }
@@ -188,10 +188,9 @@ extension DirectMessagesSurface {
                     composeState.selectedRecipients.append(user)
                     composeState.recipientQuery = ""
                 } label: {
-                    Text(verbatim: UiMessages.string(.userContent("@\(user.username)"), locale: nativeUiLocale))
+                    Text(verbatim: UiMessages.string(.userContent(directMessageHandle(user)), locale: nativeUiLocale))
                 }
             }
         }
     }
-
 }

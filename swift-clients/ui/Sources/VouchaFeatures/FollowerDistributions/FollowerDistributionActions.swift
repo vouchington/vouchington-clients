@@ -91,7 +91,7 @@ struct FollowerDistributionSendSheet: View {
                             ForEach(viewModel.selectedRecipients) { recipient in
                                 Toggle(
                                     UiMessages.string(
-                                        .verbatim(recipient.name ?? recipient.username),
+                                        .verbatim(recipient.name ?? recipient.username ?? recipient.id),
                                         locale: nativeUiLocale
                                     ),
                                     isOn: Binding(
@@ -114,7 +114,7 @@ struct FollowerDistributionSendSheet: View {
                     ) { recipient in
                         Toggle(
                             UiMessages.string(
-                                .verbatim(recipient.name ?? recipient.username),
+                                .verbatim(recipient.name ?? recipient.username ?? recipient.id),
                                 locale: nativeUiLocale
                             ),
                             isOn: Binding(
