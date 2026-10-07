@@ -83,7 +83,7 @@ public sealed record CommunityListItemCountsResponse(
     [property: JsonPropertyName("url")] int Url);
 
 public sealed record CommunityModeratorStatEntry(
-    [property: JsonPropertyName("actor_id")] string ActorId,
+    [property: JsonPropertyName("actor_user_id")] string ActorId,
     [property: JsonPropertyName("total")] int Total,
     [property: JsonPropertyName("counts")] IReadOnlyDictionary<string, int>? Counts = null);
 

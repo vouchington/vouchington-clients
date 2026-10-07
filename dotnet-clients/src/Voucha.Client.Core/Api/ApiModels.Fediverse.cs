@@ -37,7 +37,7 @@ public sealed record FediverseInstanceAttributes(
     [property: JsonPropertyName("protocol")] string? Protocol,
     [property: JsonPropertyName("total_users")] int? TotalUsers,
     [property: JsonPropertyName("monthly_active_users")] int? MonthlyActiveUsers,
-    [property: JsonPropertyName("open_registrations")] bool? OpenRegistrations);
+    [property: JsonPropertyName("is_open_for_registrations")] bool? OpenRegistrations);
 
 public sealed record FediverseInstanceListItem(
     Topic Topic,

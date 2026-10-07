@@ -57,7 +57,7 @@ public sealed record ModerationAppealSubmissionResponse(
 public sealed record ModerationAppeal(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("case_id")] string? CaseId,
-    [property: JsonPropertyName("appellant_id")] string? AppellantId,
+    [property: JsonPropertyName("appellant_user_id")] string? AppellantUserId,
     [property: JsonPropertyName("user_warning_id")] string? UserWarningId,
     [property: JsonPropertyName("community_ban_id")] string? CommunityBanId,
     [property: JsonPropertyName("post_id")] string? PostId,

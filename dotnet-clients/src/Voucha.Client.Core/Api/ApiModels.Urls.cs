@@ -24,7 +24,7 @@ public sealed record Crawl(
     [property: JsonPropertyName("title")] string? Title = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("meta_tags")] IReadOnlyDictionary<string, JsonElement>? MetaTags = null,
-    [property: JsonPropertyName("lang")] string? Lang = null,
+    [property: JsonPropertyName("language")] string? Lang = null,
     [property: JsonPropertyName("request_headers")] IReadOnlyDictionary<string, string>? RequestHeaders = null,
     [property: JsonPropertyName("response_headers")] IReadOnlyDictionary<string, string>? ResponseHeaders = null,
     [property: JsonPropertyName("links")] IReadOnlyDictionary<string, object>? Links = null,
@@ -39,7 +39,8 @@ public sealed record Crawl(
     [property: JsonPropertyName("html_snapshot_uploaded_at")] DateTimeOffset? HtmlSnapshotUploadedAt = null,
     [property: JsonPropertyName("last_modified_at")] DateTimeOffset? LastModifiedAt = null,
     [property: JsonPropertyName("network_error")] object? NetworkError = null,
-    [property: JsonPropertyName("redirect_url_id")] string? RedirectUrlId = null);
+    [property: JsonPropertyName("redirect_url_id")] string? RedirectUrlId = null,
+    [property: JsonPropertyName("hostname_crawler_configuration_id")] string? HostnameCrawlerConfigurationId = null);
 
 public sealed record UrlSearchResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<Url> Results,

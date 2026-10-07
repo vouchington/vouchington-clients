@@ -8,7 +8,8 @@ public sealed record ReferralLinkFeedUser(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("display_name")] string? DisplayName = null,
-    [property: JsonPropertyName("profile_image_id")] string? ProfileImageId = null);
+    [property: JsonPropertyName("profile_image_id")] string? ProfileImageId = null,
+    [property: JsonPropertyName("account_type")] AccountType? AccountType = null);
 
 public sealed record ReferralLinkFeedItem(
     [property: JsonPropertyName("id")] string Id,

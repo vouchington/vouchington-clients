@@ -13,7 +13,7 @@ public sealed record UserSearchResult(
     [property: JsonPropertyName("use_display_name_from")] string? UseDisplayNameFrom = null,
     [property: JsonPropertyName("account_type")] AccountType? AccountType = null,
     [property: JsonPropertyName("verification_status")] string? VerificationStatus = null,
-    [property: JsonPropertyName("verified_badge_visible")] bool? VerifiedBadgeVisible = null,
+    [property: JsonPropertyName("is_verified_badge_visible")] bool? VerifiedBadgeVisible = null,
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,
     [property: JsonPropertyName("public_verified_name_display")] string? PublicVerifiedNameDisplay = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,

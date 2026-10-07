@@ -92,7 +92,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     var modlogAction = new ModeratorActionView(
         Id: "action-1",
         CommunityId: "community-1",
-        ActorId: "moderator-1",
+        ActorUserId: "moderator-1",
         ActionType: "ban",
         PostId: "post-1",
         TargetUserId: "user-3",
@@ -171,7 +171,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal("invite_only", activated.CommunityRestrictions["restriction-1"].RestrictionType);
     Assert.Equal("action-1", modlog.ModeratorActions["action-1"].Id);
     Assert.Equal("community-1", modlog.ModeratorActions["action-1"].CommunityId);
-    Assert.Equal("moderator-1", modlog.ModeratorActions["action-1"].ActorId);
+    Assert.Equal("moderator-1", modlog.ModeratorActions["action-1"].ActorUserId);
     Assert.Equal("ban", modlog.ModeratorActions["action-1"].ActionType);
     Assert.Equal("post-1", modlog.ModeratorActions["action-1"].PostId);
     Assert.Equal("user-3", modlog.ModeratorActions["action-1"].TargetUserId);
@@ -241,7 +241,6 @@ public sealed class CommunityAdministrationApiModelCoverageTests
         "gpt-test",
         "openai",
         true,
-        "queue",
         ActivatedAt: createdAt,
         CreatedAt: createdAt,
         UpdatedAt: updatedAt);
@@ -255,9 +254,9 @@ public sealed class CommunityAdministrationApiModelCoverageTests
         new Dictionary<string, object> { ["prompt"] = "new" },
         new Dictionary<string, object> { ["prompt"] = true },
         createdAt);
-    var simulationResult = new CommunityAutomodSimulationResult("post-1", "Title", "review", createdAt, "Excerpt", true, "spam", true);
+    var simulationResult = new CommunityAutomodSimulationResult("post-1", "Title", "review", createdAt, "Excerpt", true);
     var falsePositiveEstimate = new CommunityAutomodFalsePositiveEstimate(10, 2, 0.2m);
-    var simulationSummary = new CommunityAutomodSimulationSummary("prompt-1", 24, 5, 1, 1, falsePositiveEstimate);
+    var simulationSummary = new CommunityAutomodSimulationSummary("prompt-1", 24, 5, 1, "record_only", falsePositiveEstimate);
     var analytics = new CommunityModerationAnalyticsResponse(
         new CommunityModerationAnalyticsScope("community", "community-1"),
         "30d",
@@ -339,8 +338,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal("Prompt", prompts.CommunityAgentPrompts[0].Prompt);
     Assert.Equal("gpt-test", prompts.CommunityAgentPrompts[0].ModelName);
     Assert.Equal("openai", prompts.CommunityAgentPrompts[0].ModelProvider);
-    Assert.True(prompts.CommunityAgentPrompts[0].SlotAllocated);
-    Assert.Equal("queue", prompts.CommunityAgentPrompts[0].OnFlagAction);
+    Assert.True(prompts.CommunityAgentPrompts[0].IsSlotAllocated);
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].ActivatedAt);
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].CreatedAt);
     Assert.Equal(updatedAt, prompts.CommunityAgentPrompts[0].UpdatedAt);
@@ -359,16 +357,14 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(createdAt, simulation.Results[0].ApprovedAt);
     Assert.Equal("Excerpt", simulation.Results[0].ContentExcerpt);
     Assert.True(simulation.Results[0].Flagged);
-    Assert.Equal("spam", simulation.Results[0].Reason);
     Assert.Equal("prompt-1", simulation.Simulation.PromptId);
     Assert.Equal(24, simulation.Simulation.TimeWindowHours);
     Assert.Equal(5, simulation.Simulation.SampleCount);
     Assert.Equal(1, simulation.Simulation.WouldFlagCount);
-    Assert.Equal(1, simulation.Simulation.WouldUnpublishCount);
+    Assert.Equal("record_only", simulation.Simulation.CommunityAutomodAction);
     Assert.Equal(10, simulation.Simulation.FalsePositiveEstimate!.HistoricalFlaggedCount);
     Assert.Equal(2, simulation.Simulation.FalsePositiveEstimate.HistoricalApprovedCount);
     Assert.Equal(0.2m, simulation.Simulation.FalsePositiveEstimate.Rate);
-    Assert.True(simulation.Results[0].WouldUnpublish);
     Assert.Equal("community", analytics.Scope.Type);
     Assert.Equal("community-1", analytics.Scope.CommunityId);
     Assert.Equal("30d", analytics.Range);

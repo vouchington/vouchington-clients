@@ -44,7 +44,7 @@ public sealed record AdminReviewQueuePost(
     [property: JsonPropertyName("post_type")] string PostType,
     [property: JsonPropertyName("created_by_id")] string? CreatedById,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("root_id")] string? RootId,
+    [property: JsonPropertyName("root_post_id")] string? RootId,
     [property: JsonPropertyName("root_post_type")] string? RootPostType,
     [property: JsonPropertyName("root_slug")] string? RootSlug,
     [property: JsonPropertyName("clearance_status")] AdminReviewQueueClearanceStatus ClearanceStatus,

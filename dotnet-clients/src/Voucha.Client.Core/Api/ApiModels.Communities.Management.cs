@@ -11,7 +11,7 @@ public sealed record CommunityApplicationQuestion(
     [property: JsonPropertyName("field_type")] string FieldType,
     [property: JsonPropertyName("options")] IReadOnlyList<string>? Options,
     [property: JsonPropertyName("order_index")] int OrderIndex,
-    [property: JsonPropertyName("required")] bool Required,
+    [property: JsonPropertyName("is_required")] bool Required,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt = null,
@@ -109,7 +109,7 @@ public sealed record ActivateCommunityRestrictionsResponse(
 public sealed record ModeratorActionView(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("community_id")] string? CommunityId,
-    [property: JsonPropertyName("actor_id")] string? ActorId,
+    [property: JsonPropertyName("actor_user_id")] string? ActorUserId,
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonPropertyName("post_id")] string? PostId,
     [property: JsonPropertyName("target_user_id")] string? TargetUserId,
@@ -137,9 +137,9 @@ public sealed record CommunityMemberVacation(
 
 public sealed record ModeratorVacationResponse(
     [property: JsonPropertyName("vacation")] CommunityMemberVacation? Vacation,
-    [property: JsonPropertyName("suppress_community_digests_while_on_vacation")] bool SuppressCommunityDigestsWhileOnVacation = false);
+    [property: JsonPropertyName("should_suppress_community_digests_while_on_vacation")] bool SuppressCommunityDigestsWhileOnVacation = false);
 
 public sealed record ModeratorVacationDigestPreferenceResponse(
-    [property: JsonPropertyName("suppress_community_digests_while_on_vacation")] bool SuppressCommunityDigestsWhileOnVacation);
+    [property: JsonPropertyName("should_suppress_community_digests_while_on_vacation")] bool SuppressCommunityDigestsWhileOnVacation);
 
 #pragma warning restore CA1054, CA1056, CA1720

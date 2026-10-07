@@ -11,7 +11,7 @@ public enum HouseholdAccess
 
 public sealed record Household(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("owner_id")] string OwnerId,
+    [property: JsonPropertyName("owner_user_id")] string OwnerId,
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("created_at")] DateTimeOffset? CreatedAt = null);
 

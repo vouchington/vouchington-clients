@@ -10,7 +10,7 @@ public sealed record CommunityModmailThread(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("community_id")] string CommunityId,
     [property: JsonPropertyName("subject_user_id")] string? SubjectUserId,
-    [property: JsonPropertyName("assigned_mod_id")] string? AssignedModId,
+    [property: JsonPropertyName("assigned_moderator_user_id")] string? AssignedModId,
     [property: JsonPropertyName("assigned_at")] DateTimeOffset? AssignedAt,
     [property: JsonPropertyName("resolved_at")] DateTimeOffset? ResolvedAt,
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById,

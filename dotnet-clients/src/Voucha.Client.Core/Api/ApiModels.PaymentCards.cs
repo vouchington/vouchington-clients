@@ -15,13 +15,13 @@ public sealed record PaymentCardParentSummary(
 
 public sealed record PaymentCardWire(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("card_topic_id")] string CardId,
     [property: JsonPropertyName("opened_on")] DateOnly? OpenedOn,
     [property: JsonPropertyName("closed_on")] DateOnly? ClosedOn,
     [property: JsonPropertyName("received_sign_up_bonus_on")] DateOnly? ReceivedSignUpBonusOn,
     [property: JsonPropertyName("credit_limit")] Money? CreditLimit,
     [property: JsonPropertyName("is_authorized_user")] bool IsAuthorizedUser,
-    [property: JsonPropertyName("authorized_user_of_id")] string? AuthorizedUserOfId,
+    [property: JsonPropertyName("authorized_user_of_card_id")] string? AuthorizedUserOfId,
     [property: JsonPropertyName("note")] string? Note,
     [property: JsonPropertyName("card")] PaymentCardTopic Card,
     [property: JsonPropertyName("authorized_user_of_card")] PaymentCardParentSummary? AuthorizedUserOfCard);

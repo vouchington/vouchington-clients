@@ -44,7 +44,7 @@ public sealed partial class CommunityDetailViewModel
               action.SourceKey,
               UiText.Verbatim(authoredTitle ?? action.Title),
               UiText.Verbatim(action.CurrentState),
-              Verbatim(action.Reason ?? action.PostType),
+              Verbatim(action.PostType),
               titleDeclaredLanguage: authoredTitle is null ? null : action.DeclaredLanguage,
               titleDetectedLanguage: authoredTitle is null ? null : action.LinguaRsDetectedLanguage);
         })

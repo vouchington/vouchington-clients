@@ -104,9 +104,9 @@ public sealed partial class CommunityDetailViewModel
             .Select(id =>
             {
               var action = modlog.ModeratorActions[id!];
-              var actor = action.ActorId is not null && modlog.Users.TryGetValue(action.ActorId, out var user)
-                  ? UiText.Verbatim(user.Username ?? user.Name ?? action.ActorId)
-                  : action.ActorId is { } actorId
+              var actor = action.ActorUserId is not null && modlog.Users.TryGetValue(action.ActorUserId, out var user)
+                  ? UiText.Verbatim(user.Username ?? user.Name ?? action.ActorUserId)
+                  : action.ActorUserId is { } actorId
                       ? UiText.Verbatim(actorId)
                       : UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesModeratorAction);
               return Summary(

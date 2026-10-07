@@ -28,6 +28,7 @@ public sealed record VoteIntegrityFlagResponse(
     [property: JsonPropertyName("flag")] VoteIntegrityFlag Flag);
 
 public sealed record VoteIntegrityPenaltyApplicationResponse(
+    [property: JsonPropertyName("flag")] VoteIntegrityFlag Flag,
     [property: JsonPropertyName("penalized_user_count")] int PenalizedUserCount);
 
 public sealed record VoteWeightPenalty(
@@ -61,12 +62,13 @@ public sealed record ReportIntegrityFlag(
     [property: JsonPropertyName("rss_feed_item_id")] string? RssFeedItemId,
     [property: JsonPropertyName("flag_type")] string FlagType,
     [property: JsonPropertyName("reporter_count")] int ReporterCount,
-    [property: JsonPropertyName("new_account_reporter_pct")] double NewAccountReporterPct,
+    [property: JsonPropertyName("new_account_reporter_percent")] double NewAccountReporterPct,
     [property: JsonPropertyName("details")] IReadOnlyDictionary<string, JsonElement> Details,
     [property: JsonPropertyName("resolved_at")] DateTimeOffset? ResolvedAt,
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById,
     [property: JsonPropertyName("resolution")] string? Resolution,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("vote_count")] int? VoteCount = null);
 
 public sealed record ReportIntegrityFlagsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<ReportIntegrityFlag> Results,

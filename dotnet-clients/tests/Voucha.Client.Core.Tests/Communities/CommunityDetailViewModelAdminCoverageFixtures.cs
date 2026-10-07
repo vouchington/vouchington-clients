@@ -179,7 +179,6 @@ internal sealed partial class ScriptedCommunitiesService
           modelName,
           modelProvider,
           true,
-          "queue",
           ActivatedAt: null,
           DeactivatedAt: null,
           DeletedAt: null,

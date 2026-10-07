@@ -46,15 +46,15 @@ public sealed record User(
     [property: JsonPropertyName("direct_messages_audience")] string? DirectMessagesAudience = null,
     [property: JsonPropertyName("default_post_broadcast")] string? DefaultPostBroadcast = null,
     [property: JsonPropertyName("default_post_privacy")] string? DefaultPostPrivacy = null,
-    [property: JsonPropertyName("engagement_emails_enabled")] bool? EngagementEmailsEnabled = null,
+    [property: JsonPropertyName("is_engagement_emails_enabled")] bool? EngagementEmailsEnabled = null,
     [property: JsonPropertyName("news_digest_frequency")] string? NewsDigestFrequency = null,
-    [property: JsonPropertyName("moderation_emails_enabled")] bool? ModerationEmailsEnabled = null,
+    [property: JsonPropertyName("is_moderation_emails_enabled")] bool? ModerationEmailsEnabled = null,
     [property: JsonPropertyName("community_digest_frequency")] string? CommunityDigestFrequency = null,
     [property: JsonPropertyName("moderation_email_cadence")] string? ModerationEmailCadence = null,
     [property: JsonPropertyName("moderation_email_days_of_week")] IReadOnlyList<int>? ModerationEmailDaysOfWeek = null,
     [property: JsonPropertyName("moderation_email_time_of_day")] string? ModerationEmailTimeOfDay = null,
     [property: JsonPropertyName("moderation_email_timezone")] string? ModerationEmailTimezone = null,
-    [property: JsonPropertyName("fediverse_federation_enabled")] bool? FediverseFederationEnabled = null,
+    [property: JsonPropertyName("is_fediverse_federation_enabled")] bool? FediverseFederationEnabled = null,
     [property: JsonPropertyName("processing_restricted_at")] DateTimeOffset? ProcessingRestrictedAt = null,
     [property: JsonPropertyName("third_party_marketing")] bool? ThirdPartyMarketing = null,
     [property: JsonPropertyName("hn_discussions")] bool? HnDiscussions = null,
@@ -76,7 +76,9 @@ public sealed record User(
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
     [property: JsonPropertyName("membership_plan")] string? MembershipPlan = null,
     [property: JsonPropertyName("suspended_at")] DateTimeOffset? SuspendedAt = null,
-    [property: JsonPropertyName("verification_status")] string? VerificationStatus = null);
+    [property: JsonPropertyName("verification_status")] string? VerificationStatus = null,
+    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null,
+    [property: JsonPropertyName("is_verified_badge_visible")] bool? IsVerifiedBadgeVisible = null);
 
 public sealed record PublicDisplayAccount(
     [property: JsonPropertyName("name")] string? Name);
@@ -101,8 +103,8 @@ public sealed record Community(
     [property: JsonPropertyName("list_type")] string? ListType,
     [property: JsonPropertyName("member_invites_allowed_at")] DateTimeOffset? MemberInvitesAllowedAt,
     [property: JsonPropertyName("post_approval_required_at")] DateTimeOffset? PostApprovalRequiredAt,
-    [property: JsonPropertyName("allow_review_posts")] bool AllowReviewPosts,
-    [property: JsonPropertyName("allow_data_point_posts")] bool AllowDataPointPosts,
+    [property: JsonPropertyName("should_allow_review_posts")] bool AllowReviewPosts,
+    [property: JsonPropertyName("should_allow_data_point_posts")] bool AllowDataPointPosts,
     [property: JsonPropertyName("created_by_id")] string CreatedById,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
@@ -117,7 +119,10 @@ public sealed record Community(
     [property: JsonPropertyName("default_language")] string? DefaultLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("rules_markdown")] string? RulesMarkdown = null,
-    [property: JsonPropertyName("owner")] User? Owner = null);
+    [property: JsonPropertyName("owner")] User? Owner = null,
+    [property: JsonPropertyName("automod_action")] string? AutomodAction = null,
+    [property: JsonPropertyName("banner_image_placement")] TopicImagePlacement? BannerImagePlacement = null,
+    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null);
 
 public sealed record CommunityMetrics(
     [property: JsonPropertyName("id")] string Id,
@@ -151,7 +156,8 @@ public sealed record CommunityMutationResponse(
 
 public sealed record CommunityOwner(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("username")] string? Username = null);
+    [property: JsonPropertyName("username")] string? Username = null,
+    [property: JsonPropertyName("account_type")] AccountType? AccountType = null);
 
 public sealed record PublicUser(
     [property: JsonPropertyName("id")] string Id,
@@ -164,7 +170,7 @@ public sealed record PublicUser(
     [property: JsonPropertyName("use_display_name_from")] string? UseDisplayNameFrom = null,
     [property: JsonPropertyName("account_type")] AccountType? AccountType = null,
     [property: JsonPropertyName("verification_status")] string? VerificationStatus = null,
-    [property: JsonPropertyName("verified_badge_visible")] bool? VerifiedBadgeVisible = null,
+    [property: JsonPropertyName("is_verified_badge_visible")] bool? VerifiedBadgeVisible = null,
     [property: JsonPropertyName("verified_display_name")] string? VerifiedDisplayName = null,
     [property: JsonPropertyName("public_verified_name_display")] string? PublicVerifiedNameDisplay = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,

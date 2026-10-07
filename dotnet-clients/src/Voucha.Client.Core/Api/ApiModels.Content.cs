@@ -16,9 +16,9 @@ public sealed record Post(
     [property: JsonPropertyName("created_at")] DateTimeOffset? CreatedAt = null,
     [property: JsonPropertyName("html")] string? Html = null,
     [property: JsonPropertyName("is_anonymous")] bool? IsAnonymous = null,
-    [property: JsonPropertyName("parent_id")] string? ParentId = null,
+    [property: JsonPropertyName("parent_post_id")] string? ParentId = null,
     [property: JsonPropertyName("privacy")] string? Privacy = null,
-    [property: JsonPropertyName("root_id")] string? RootId = null,
+    [property: JsonPropertyName("root_post_id")] string? RootId = null,
     [property: JsonPropertyName("slug")] string? Slug = null,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
     [property: JsonPropertyName("created_by")] User? CreatedBy = null,
@@ -124,7 +124,8 @@ public sealed record Notification(
     [property: JsonPropertyName("pushed_at")] DateTimeOffset? PushedAt = null,
     [property: JsonPropertyName("review_dispute_id")] string? ReviewDisputeId = null,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
-    [property: JsonPropertyName("user_warning_id")] string? UserWarningId = null);
+    [property: JsonPropertyName("user_warning_id")] string? UserWarningId = null,
+    [property: JsonPropertyName("copyright_notice_id")] string? CopyrightNoticeId = null);
 
 public sealed record NotificationsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

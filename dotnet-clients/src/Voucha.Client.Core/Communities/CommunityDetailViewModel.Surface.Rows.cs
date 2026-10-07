@@ -61,10 +61,10 @@ public sealed partial class CommunityDetailViewModel
             .Select(prompt => Summary(
                 prompt.Id,
                 UiText.Verbatim(prompt.AgentId),
-                UiText.Localized(prompt.SlotAllocated
+                UiText.Localized(prompt.IsSlotAllocated
                     ? UiMessageKey.NativeDotnetCsharpCommunitiesAllocated
                     : UiMessageKey.NativeDotnetCsharpCommunitiesUnallocated),
-                Verbatim(prompt.OnFlagAction)))
+                Verbatim(prompt.ModelName)))
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.Moderation:
