@@ -116,6 +116,37 @@ public sealed class StoryRelatedArticlesTests
   }
 
   [Fact]
+  public async Task HidingPeerInvalidatesDelayedContinuationAndPreservesCursorForRetry()
+  {
+    var group = Group(1);
+    var completion = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = completion.Task };
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    var pending = model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    try
+    {
+      Assert.True(group.IsLoading);
+      await model.ToggleHideAsync(group.Items[0], TestContext.Current.CancellationToken);
+      Assert.Empty(group.Items);
+    }
+    finally
+    {
+      completion.TrySetResult(new([Item("peer-1"), Item("peer-2")], new("next", true, null)));
+    }
+    await pending;
+    Assert.Empty(group.Items);
+    Assert.False(group.IsLoading);
+    Assert.True(group.HasMore);
+
+    service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("peer-2")], new(null, false, null)));
+    await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
+    Assert.Equal(["peer-2"], group.Items.Select(item => item.Id));
+  }
+
+  [Fact]
   public async Task CancellationRetainsPreviewAndAllowsExplicitRetry()
   {
     var group = Group(1);

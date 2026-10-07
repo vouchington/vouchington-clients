@@ -28,7 +28,11 @@ public sealed partial class NewsFeedsViewModel
     if (mainOriginal is not null)
       Items = Items.Where(item => !remove || item.Id != original.Id)
           .Select(item => item.Id == original.Id ? mainUpdated! : item).ToArray();
-    if (remove) group.Items.RemoveAt(index);
+    if (remove)
+    {
+      group.InvalidatePendingPage();
+      group.Items.RemoveAt(index);
+    }
     else group.Items[index] = updated;
     group.Notify();
     ErrorMessage = null;

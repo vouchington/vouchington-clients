@@ -59,6 +59,8 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
     return request;
   }
 
+  internal void InvalidatePendingPage() => pages.InvalidateRequestsPreservingPage();
+
   internal void Complete(CursorPageRequest request, NewsFeedPage page)
   {
     if (!pages.Complete(request, page.Items.Where(item => item.Id != PrimaryItemId), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
