@@ -288,7 +288,7 @@
                                         <Button.IsVisible>
                                             <MultiBinding Converter="{StaticResource StoryDiscussionVisibilityConverter}">
                                                 <Binding Path="CanStartStoryDiscussion" />
-                                                <Binding Path="StoryArticles.HasItems" />
+                                                <Binding Path="StoryArticles.CanExpand" />
                                             </MultiBinding>
                                         </Button.IsVisible>
                                     </Button>
