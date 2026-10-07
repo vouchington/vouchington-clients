@@ -10,6 +10,11 @@ public sealed record TopicHostname(
     [property: JsonPropertyName("hostname")] string Hostname,
     [property: JsonPropertyName("topic_id")] string? TopicId);
 
+public sealed record TopicImagePlacement(
+    [property: JsonPropertyName("image_id")] string ImageId,
+    [property: JsonPropertyName("placement_id")] string PlacementId,
+    [property: JsonPropertyName("placement_revision")] int PlacementRevision);
+
 public sealed record Topic(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
@@ -18,7 +23,7 @@ public sealed record Topic(
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("html")] string? Html = null,
     [property: JsonPropertyName("aliases")] IReadOnlyList<string>? Aliases = null,
-    [property: JsonPropertyName("allow_reviews")] bool? AllowReviews = null,
+    [property: JsonPropertyName("should_allow_reviews")] bool? AllowReviews = null,
     [property: JsonPropertyName("created_at")] DateTimeOffset? CreatedAt = null,
     [property: JsonPropertyName("created_by")] User? CreatedBy = null,
     [property: JsonPropertyName("hero_image_id")] string? HeroImageId = null,
@@ -26,13 +31,15 @@ public sealed record Topic(
     [property: JsonPropertyName("hostname")] TopicHostname? Hostname = null,
     [property: JsonPropertyName("hostname_id")] string? HostnameId = null,
     [property: JsonPropertyName("logo_image_id")] string? LogoImageId = null,
-    [property: JsonPropertyName("noindex")] bool? Noindex = null,
+    [property: JsonPropertyName("is_noindexed")] bool? Noindex = null,
     [property: JsonPropertyName("referral_program_id")] string? ReferralProgramId = null,
     [property: JsonPropertyName("referral_program_slug")] string? ReferralProgramSlug = null,
     [property: JsonPropertyName("rewards_program_id")] string? RewardsProgramId = null,
     [property: JsonPropertyName("updated_by")] User? UpdatedBy = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
-    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
+    [property: JsonPropertyName("hero_image_placement")] TopicImagePlacement? HeroImagePlacement = null,
+    [property: JsonPropertyName("logo_image_placement")] TopicImagePlacement? LogoImagePlacement = null);
 
 public sealed record TopicSearchResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
