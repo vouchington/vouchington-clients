@@ -195,7 +195,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /run: pnpm run coverage:swift/u)
     assert.match(
       workflow,
-      /android-actions\/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699/u,
+      /android-actions\/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd/u,
     )
     assert.match(
       workflow,
@@ -367,7 +367,7 @@ describe('native contract workflow boundary', () => {
       readAction('prepare-native-contract'),
       readWorkflow('native-contract-tests.yml'),
     ])
-    const cachePin = /actions\/cache@caa296126883cff596d87d8935842f9db880ef25 # v5\.1\.0/u
+    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
     assert.match(workflow, cachePin)
     assert.match(action, cachePin)
     assert.match(
