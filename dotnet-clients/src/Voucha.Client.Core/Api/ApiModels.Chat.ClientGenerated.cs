@@ -9,6 +9,8 @@ public sealed record CreateClientGeneratedChatBody(
     [property: JsonPropertyName("message")] string Message,
     [property: JsonPropertyName("assistant_content")] string AssistantContent,
     [property: JsonPropertyName("model_provider")] string ModelProvider,
+    [property: JsonPropertyName("user_message_id")] string UserMessageId,
+    [property: JsonPropertyName("assistant_message_id")] string AssistantMessageId,
     [property: JsonPropertyName("model_name")] string? ModelName = null);
 
 public sealed record ClientGeneratedChatAgenticRun(

@@ -80,6 +80,9 @@ public sealed class ChatViewModelProviderTests
     Assert.Equal("windows-system-language-model", service.LastClientGeneratedChatBody?.ModelName);
     Assert.Equal("Hello", service.LastClientGeneratedChatBody?.Message);
     Assert.Equal("Local reply", service.LastClientGeneratedChatBody?.AssistantContent);
+    Assert.Matches("^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", service.LastClientGeneratedChatBody!.UserMessageId);
+    Assert.Matches("^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", service.LastClientGeneratedChatBody.AssistantMessageId);
+    Assert.True(string.CompareOrdinal(service.LastClientGeneratedChatBody.UserMessageId, service.LastClientGeneratedChatBody.AssistantMessageId) < 0);
     Assert.Equal(0, service.GenerateConversationTitleCount);
     Assert.Equal(2, viewModel.Messages.Count);
     Assert.Equal("Local reply", viewModel.Messages[1].Content);

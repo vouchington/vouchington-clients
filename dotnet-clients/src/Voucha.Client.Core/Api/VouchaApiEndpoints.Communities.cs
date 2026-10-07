@@ -8,6 +8,9 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest UpdateCommunity(string idOrSlug, UpdateCommunityRequest body) =>
       new(HttpMethod.Patch, $"/api/v1/communities/{Path(idOrSlug)}") { Body = body };
 
+  public static ApiRequest UpdateCommunityAutomodSettings(string idOrSlug, UpdateCommunityAutomodSettingsRequest body) =>
+      new(HttpMethod.Patch, $"/api/v1/communities/{Path(idOrSlug)}/automod-settings") { Body = body };
+
   public static ApiRequest DeleteCommunity(string idOrSlug) =>
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}");
 

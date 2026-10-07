@@ -31,7 +31,11 @@ public sealed partial class VouchaApiEndpointParityTests
       "createClientGeneratedChat",
       VouchaApiEndpoints.CreateClientGeneratedChat(
         "conversation-1",
-        new CreateClientGeneratedChatBody("Hello", "Hi", "windows_foundry", "phi-silica")),
+        new CreateClientGeneratedChatBody(
+            "Hello", "Hi", "windows_foundry",
+            "0198ffff-0001-7000-8000-000000000001",
+            "0198ffff-0001-7000-8000-000000000002",
+            "phi-silica")),
       HttpMethod.Post,
       "/api/v1/conversations/conversation-1/client-generated-chat",
       Query(),

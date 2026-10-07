@@ -25,7 +25,7 @@ public sealed record SpendingCategoryResponse(
     [property: JsonPropertyName("spending_category")] SpendingCategoryWire SpendingCategory);
 
 public sealed record CreateSpendingCategoryBody(
-    [property: JsonPropertyName("spending_category_id")] string SpendingCategoryId,
+    [property: JsonPropertyName("spending_category_topic_id")] string SpendingCategoryId,
     [property: JsonPropertyName("amount")] Money Amount,
     [property: JsonPropertyName("spending_frequency")] string SpendingFrequency,
     [property: JsonPropertyName("note")] string? Note = null);

@@ -32,7 +32,7 @@ public sealed record PaymentCardsResponse(
 
 public sealed record PaymentCardResponse([property: JsonPropertyName("card")] PaymentCardWire Card);
 
-public sealed record CreatePaymentCardBody([property: JsonPropertyName("card_id")] string CardId);
+public sealed record CreatePaymentCardBody([property: JsonPropertyName("card_topic_id")] string CardId);
 
 public sealed record UpdatePaymentCardBody(
     [property: JsonPropertyName("opened_on")] JsonNullableDate? OpenedOn = null,
@@ -40,5 +40,5 @@ public sealed record UpdatePaymentCardBody(
     [property: JsonPropertyName("received_sign_up_bonus_on")] JsonNullableDate? ReceivedSignUpBonusOn = null,
     [property: JsonPropertyName("credit_limit")] JsonNullableMoney? CreditLimit = null,
     [property: JsonPropertyName("is_authorized_user")] bool? IsAuthorizedUser = null,
-    [property: JsonPropertyName("authorized_user_of_id")] JsonNullableString? AuthorizedUserOfId = null,
+    [property: JsonPropertyName("authorized_user_of_card_id")] JsonNullableString? AuthorizedUserOfId = null,
     [property: JsonPropertyName("note")] JsonNullableString? Note = null);

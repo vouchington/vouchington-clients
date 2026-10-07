@@ -7,6 +7,7 @@ public sealed partial class ChatConversationViewModel
   private async Task<bool> SendLocalTurnAsync(
       string trimmed,
       string conversationId,
+      string localUserMessageId,
       string localAssistantMessageId,
       IReadOnlyList<LocalLLMResponseInput> history,
       ChatProviderStatus selectedProvider,
@@ -40,6 +41,8 @@ public sealed partial class ChatConversationViewModel
               trimmed,
               generation.AssistantContent,
               generation.ModelProvider,
+              localUserMessageId,
+              localAssistantMessageId,
               generation.ModelName),
           streamingTokenSource.Token).ConfigureAwait(true);
     }

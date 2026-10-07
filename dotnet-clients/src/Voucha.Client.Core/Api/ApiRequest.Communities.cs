@@ -46,8 +46,8 @@ public sealed record CommunityListItemRequest(
     [property: JsonPropertyName("url_id")] string? UrlId = null);
 
 public sealed record UpdateCommunityPostTypeSettingsRequest(
-    [property: JsonPropertyName("allow_review_posts")] bool? AllowReviewPosts = null,
-    [property: JsonPropertyName("allow_data_point_posts")] bool? AllowDataPointPosts = null);
+    [property: JsonPropertyName("should_allow_review_posts")] bool? AllowReviewPosts = null,
+    [property: JsonPropertyName("should_allow_data_point_posts")] bool? AllowDataPointPosts = null);
 
 public sealed record OpenCommunityModmailRequest(
     [property: JsonPropertyName("subject_user_id")] string? SubjectUserId = null);

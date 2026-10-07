@@ -161,7 +161,7 @@ public static partial class VouchaApiEndpoints
           "/api/v1/disputes",
           Query(("limit", limit), ("status", status), ("after", after), ("mine", mine ? "true" : null)));
 
-  public static ApiRequest MyChatConversations(string? after = null, int limit = 50) =>
+  public static ApiRequest MyChatConversations(string? after = null, int? limit = null) =>
       Get("/api/v1/my/conversations", Query(("limit", limit), ("after", after)));
 
   public static ApiRequest CreateChatConversation(CreateChatConversationBody body) =>

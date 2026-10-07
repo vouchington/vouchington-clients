@@ -55,8 +55,8 @@ public sealed record TopicExportResponse(IReadOnlyList<ExportTopic> Results);
 
 public sealed record TopicImportBody(IReadOnlyList<string> Names);
 
-public sealed record RssFeedUrlsImportBody(IReadOnlyList<string> Urls, bool Follow = true);
+public sealed record RssFeedUrlsImportBody(IReadOnlyList<string> Urls, [property: JsonPropertyName("should_follow_imported_feeds")] bool Follow = true);
 
-public sealed record RssFeedCsvImportBody(string Csv, bool Follow = true);
+public sealed record RssFeedCsvImportBody(string Csv, [property: JsonPropertyName("should_follow_imported_feeds")] bool Follow = true);
 
-public sealed record RssFeedOpmlImportBody(string Opml, bool Follow = true);
+public sealed record RssFeedOpmlImportBody(string Opml, [property: JsonPropertyName("should_follow_imported_feeds")] bool Follow = true);
