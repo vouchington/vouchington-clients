@@ -420,6 +420,33 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(skip, /path:.*android-sdk/u)
   })
 
+  it('restores the job-scoped NuGet package cache for portable and MAUI jobs', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+    const portable = jobBlock(workflow, 'dotnet-portable')
+    const maui = jobBlock(workflow, 'dotnet-maui')
+    const cachePin = /actions\/cache@caa296126883cff596d87d8935842f9db880ef25 # v5\.1\.0/u
+    const nugetKey =
+      /key: \$\{\{ runner\.os \}\}-nuget-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u
+
+    assert.match(action, /VOUCHA_DOTNET_CACHE_ROOT=\$RUNNER_TEMP\/voucha-dotnet-cache/u)
+    assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
+    assert.match(portable, cachePin)
+    assert.match(maui, cachePin)
+    assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
+    assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
+    assert.match(portable, nugetKey)
+    assert.match(
+      maui,
+      /key: \$\{\{ runner\.os \}\}-nuget-maui-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u,
+    )
+    assert.match(maui, /candidate-clients\/\.nuget\/packages/u)
+    assert.doesNotMatch(portable, /path:.*voucha-dotnet-temp/u)
+    assert.doesNotMatch(maui, /path:.*voucha-dotnet-temp/u)
+    assert.doesNotMatch(maui, /path:.*voucha-dotnet-lock-scratch/u)
+  })
   it('preserves exact run identities and exposes one aggregate Tests gate', async () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
 
