@@ -20,7 +20,7 @@ public sealed partial class ApiNewsFeedService : IStoryRelatedArticlesService
     return items.Where(item => item.StoryId is not { } id || seen.Add(id)).Select(item =>
     {
       if (item.StoryId is not { } storyId ||
-          response.StoryMemberPages?.TryGetValue(storyId, out var page) != true) return item;
+          response.StoryMemberPages?.TryGetValue(storyId, out var page) != true || page is null) return item;
       var peers = page.ItemIds.Where(id => id != item.Id && response.RssFeedItems.ContainsKey(id))
           .Select(id => MapItem(response.RssFeedItems[id], response.RssFeedItemElections,
               response.ElectionVotes, response.Bookmarks, false, NewsFeedItemKind.Article,
