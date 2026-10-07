@@ -197,7 +197,7 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
       return PostCalls == 1
           ? Task.FromException<VoteIntegrityPenaltyApplicationResponse>(
               new HttpRequestException("result uncertain"))
-          : Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(2));
+          : Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(flag, 2));
     }
 
     public Task<VoteIntegrityFlagResponse> ResolveVoteFlagAsync(

@@ -50,7 +50,7 @@ public sealed class TagRelationVoteEligibilityConverterTests
   public void OfficialSessionCanClearAHydratedBallot()
   {
     var official = new TagRelationVoteEligibilityConverter(
-        new SessionStore(new SessionSnapshot(new User("staff-1", "staff", Roles: ["administrator"]))),
+        new SessionStore(new SessionSnapshot(new User("staff-1", "staff", Roles: ["administrator"], AccountType: AccountType.Official))),
         () => false,
         null);
 
