@@ -164,24 +164,7 @@ internal sealed partial class FakeChatService : IChatService
             null,
             null,
             new ChatMessageContent("assistant", body.AssistantContent, null)),
-        new ClientGeneratedChatAgenticRun(
-            "run-1",
-            conversationId,
-            "message-assistant",
-            null,
-            body.ModelName ?? "client-generated",
-            body.ModelProvider,
-            default,
-            null,
-            null,
-            "completed",
-            null,
-            DateTimeOffset.UtcNow,
-            DateTimeOffset.UtcNow,
-            null,
-            DateTimeOffset.UtcNow,
-            DateTimeOffset.UtcNow,
-            null)));
+        new ClientGeneratedChatTurn("message-user", "message-assistant")));
   }
 
 }
