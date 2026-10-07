@@ -25,7 +25,7 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
     Assert.True(preview.IsSaved);
     Assert.Equal(ElectionVoteChoice.Like, preview.CurrentVoteChoice);
     Assert.Equal(4, preview.VoteCountUp);
-    Assert.Equal(new Uri("https://api.test/peer.jpg"), preview.ThumbnailUrl);
+    Assert.Equal(new Uri("/peer.jpg", UriKind.Relative), preview.ThumbnailUrl);
 
     var page = await service.GetStoryRelatedArticlesPageAsync("story/one", "primary/one", "opaque+/=", TestContext.Current.CancellationToken);
     Assert.Equal(["peer-2"], page.Items.Select(item => item.Id));

@@ -4,7 +4,6 @@ namespace Voucha.Client.Core.Api;
 
 public sealed record CommunityAiAgent(
     [property: JsonPropertyName("label_topic_slugs")] IReadOnlyList<string> LabelTopicSlugs,
-    [property: JsonPropertyName("on_flag_action")] string OnFlagAction,
     [property: JsonPropertyName("slug")] string Slug,
     [property: JsonPropertyName("agent_id")] string AgentId,
     [property: JsonPropertyName("system_user_id")] string SystemUserId,

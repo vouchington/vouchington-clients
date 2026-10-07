@@ -44,7 +44,7 @@ public sealed class EmailVerificationRecoveryWiringTests
     Assert.Equal(9, sources.Count(source => source.Contains(
         "public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();",
         StringComparison.Ordinal)));
-    Assert.Equal(11, sources.Sum(source => Count(source, "EmailVerificationGate.RunAsync")));
+    Assert.Equal(12, sources.Sum(source => Count(source, "EmailVerificationGate.RunAsync")));
     Assert.DoesNotContain(sources, source => source.Contains(
         "TakeEmailVerificationRecoveryRequest",
         StringComparison.Ordinal));

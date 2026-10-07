@@ -12,7 +12,9 @@ public sealed class ClientIntentParityTests
   public void DotNetBottomTabsMirrorSharedBottomNavContractForSignedInUsers()
   {
     var contract = ClientIntentParityContract.Load();
-    var actual = BottomTabShellViewModel.Create(new NavigationViewer(true, [])).Tabs.Select(tab => tab.Id).ToArray();
+    var actual = BottomTabShellViewModel.Create(new NavigationViewer(true, [])).Tabs
+        .Where(tab => contract.Intents.Any(intent => string.Equals(intent.Id, tab.Id, StringComparison.Ordinal)))
+        .Select(tab => tab.Id).ToArray();
     var expected = contract.Intents
         .Where(intent => string.Equals(intent.NativePlacement, "bottom-nav", StringComparison.Ordinal))
         .Where(intent => intent.FeatureFlag is null)

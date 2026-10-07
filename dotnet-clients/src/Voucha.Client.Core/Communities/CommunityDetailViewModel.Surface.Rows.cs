@@ -52,7 +52,7 @@ public sealed partial class CommunityDetailViewModel
                 UiText.Localized(agent.Enabled
                     ? UiMessageKey.NativeDotnetCsharpCommunitiesEnabled
                     : UiMessageKey.NativeDotnetCsharpCommunitiesDisabled),
-                Verbatim(agent.OnFlagAction)))
+                null))
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.AgentPrompts:

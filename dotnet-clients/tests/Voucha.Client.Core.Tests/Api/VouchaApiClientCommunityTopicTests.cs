@@ -56,7 +56,7 @@ public sealed partial class VouchaApiClientTests
     Assert.Contains("\"enabled\":true", handler.RequestBody!, StringComparison.Ordinal);
     Assert.Equal("self-promotion", response.CommunityAiAgent.Slug);
     Assert.Empty(response.CommunityAiAgent.LabelTopicSlugs);
-    Assert.Equal("none", response.CommunityAiAgent.OnFlagAction);
+    Assert.Equal("community_agent", response.CommunityAiAgent.SystemUsername);
     Assert.True(response.CommunityAiAgent.Enabled);
     Assert.False(response.CommunityAiAgent.AlwaysOn);
     Assert.True(response.CommunityAiAgent.Entitlement?.Allowed);
