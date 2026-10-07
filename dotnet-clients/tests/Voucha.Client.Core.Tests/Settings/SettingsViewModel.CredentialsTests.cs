@@ -67,6 +67,31 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
+  public async Task RssKeySelectionRejectsSecondScopeAndMultiScopePrerequisites()
+  {
+    var service = new FakeSettingsService
+    {
+      Catalog = new ScopeCatalogResponse([
+        new("rss:read", "api", "rss", "read", ["api-key"], null, null),
+        new("rss:write", "api", "rss", "write", ["api-key"], null, "rss:read"),
+      ]),
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    model.SetApiKeyScopeSelected("rss:write", true);
+    Assert.Empty(model.SelectedApiKeyScopes);
+    Assert.False(model.CanCreateApiKey);
+
+    model.SetApiKeyScopeSelected("rss:read", true);
+    Assert.True(model.CanCreateApiKey);
+    model.SetApiKeyScopeSelected("rss:write", true);
+    Assert.Equal(["rss:read"], model.SelectedApiKeyScopes);
+    Assert.True(model.CanCreateApiKey);
+    Assert.NotNull(model.CredentialNotice);
+  }
+
+  [Fact]
   public async Task AdminScopesRequireTheAdministratorRoleAndExplicitAudienceSelection()
   {
     var service = new FakeSettingsService { Roles = ["administrator"] };

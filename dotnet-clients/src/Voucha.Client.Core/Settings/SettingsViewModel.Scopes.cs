@@ -13,7 +13,8 @@ public sealed partial class SettingsViewModel
 
   public bool CanSelectAdminApiKeyScopes => loadedUser?.Roles?.Contains("administrator", StringComparer.Ordinal) == true;
   public bool ShowsApiKeyAudience => CanSelectAdminApiKeyScopes && ApiKeyType == "mcp";
-  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && !IsLoading && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 && SelectedApiKeyScopes.Count > 0;
+  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && !IsLoading && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
+      SelectedApiKeyScopes.Count > 0 && (ApiKeyType != "rss" || SelectedApiKeyScopes.Count == 1);
   public string? CredentialNotice => credentialNoticeKey is { } key ? localization.Localize(key) : null;
   public IReadOnlyList<string> SelectedApiKeyScopes => scopeSelection.SelectedScopes;
   public IReadOnlyList<SettingsScopeRow> ApiKeyScopes => scopeSelection.Scopes
@@ -41,7 +42,7 @@ public sealed partial class SettingsViewModel
   {
     try
     {
-      scopeSelection.SetSelected(scope, selected);
+      scopeSelection.SetSelected(scope, selected, ApiKeyType == "rss" ? 1 : null);
       SetCredentialNotice(null);
     }
     catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)

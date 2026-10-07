@@ -20,7 +20,7 @@ public sealed class ApiKeyScopeSelection
     selected.Clear();
   }
 
-  public void SetSelected(string scope, bool value)
+  public void SetSelected(string scope, bool value, int? maxSelected = null)
   {
     ArgumentNullException.ThrowIfNull(scope);
     if (!scopes.ContainsKey(scope)) throw new ArgumentException("Unknown scope.", nameof(scope));
@@ -28,6 +28,8 @@ public sealed class ApiKeyScopeSelection
     {
       var closure = new HashSet<string>(StringComparer.Ordinal);
       IncludePrerequisites(scope, closure, new HashSet<string>(StringComparer.Ordinal));
+      if (maxSelected is { } limit && selected.Union(closure).Count() > limit)
+        throw new InvalidOperationException("Too many scopes selected.");
       selected.UnionWith(closure);
       return;
     }
