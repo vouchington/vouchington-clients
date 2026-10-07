@@ -1906,6 +1906,9 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey SharedAccountTypeOfficial = new("shared.accountType.official");
     public static readonly UiMessageKey SharedAccountTypeSystem = new("shared.accountType.system");
     public static readonly UiMessageKey SharedCountLabelFormat = new("shared.countLabel.format");
+    public static readonly UiMessageKey SharedProvenanceViaApi = new("shared.provenance.viaApi");
+    public static readonly UiMessageKey SharedProvenanceViaApp = new("shared.provenance.viaApp");
+    public static readonly UiMessageKey SharedProvenanceViaMcp = new("shared.provenance.viaMcp");
 
     public static IReadOnlyList<UiMessageKey> All { get; } =
     [
@@ -3811,5 +3814,8 @@ public readonly record struct UiMessageKey(string Value)
         SharedAccountTypeOfficial,
         SharedAccountTypeSystem,
         SharedCountLabelFormat,
+        SharedProvenanceViaApi,
+        SharedProvenanceViaApp,
+        SharedProvenanceViaMcp,
     ];
 }

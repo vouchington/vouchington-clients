@@ -2264,3 +2264,6 @@
 "shared.countLabel.format.__select.visit.other" = "{count} visites";
 "shared.countLabel.format.__select.visitor.one" = "{count} visiteur";
 "shared.countLabel.format.__select.visitor.other" = "{count} visiteurs";
+"shared.provenance.viaApi" = "via l’API";
+"shared.provenance.viaApp" = "via {app}";
+"shared.provenance.viaMcp" = "via MCP";
