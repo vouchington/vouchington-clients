@@ -96,6 +96,12 @@ extension SettingsViewModel {
 
     func beginSettingsLoad() -> Int {
         settingsLoadGeneration += 1
+        credentialLoadGeneration += 1
+        identity = nil
+        apiKeyScopeSelection = ApiKeyScopeSelection(type: apiKeyType)
+        credentialState = .idle
+        oauthGrantState = .idle
+        oauthGrantPagination.reset()
         apiKeyPagination.invalidateRequestsPreservingPage()
         pushSubscriptionPagination.invalidateRequestsPreservingPage()
         sessionPagination.invalidateRequestsPreservingPage()

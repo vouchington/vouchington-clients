@@ -24,6 +24,10 @@ public extension SettingsViewModel {
 
         do {
             let identityResponse: SettingsIdentityResponse = try await client.send(.myIdentity)
+            guard isCurrentSettingsLoad(generation) else { return }
+            apply(identity: identityResponse.identity)
+            await loadCredentialSettings()
+            guard isCurrentSettingsLoad(generation) else { return }
             let profileResponse: SettingsProfileResponse = try await client.send(.myProfile)
             guard isCurrentSettingsLoad(generation) else { return }
 
@@ -46,7 +50,6 @@ public extension SettingsViewModel {
             let loadedDataRequest = try await dataRequestResponse
             guard isCurrentSettingsLoad(generation) else { return }
 
-            apply(identity: identityResponse.identity)
             profileMarkdown = profileResponse.profile.markdown
             profileLinks = links.results
             replaceApiKeyPage(loadedApiKeys)
@@ -57,7 +60,6 @@ public extension SettingsViewModel {
             membershipBenefitCatalog = loadedPlans?.benefitCatalog
             dataRequest = loadedDataRequest
             state = .loaded
-            await loadCredentialSettings()
         } catch {
             guard isCurrentSettingsLoad(generation) else { return }
             if error is CancellationError || Task.isCancelled {
