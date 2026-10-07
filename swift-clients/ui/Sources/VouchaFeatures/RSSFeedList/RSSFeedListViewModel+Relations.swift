@@ -60,11 +60,12 @@ public extension RSSFeedListViewModel {
         }
         original.pagination.invalidateRequestsPreservingPage()
 
-        let interveningRows = items.filter {
-            $0.id != original.primaryItemId && storyIdsByItemId[$0.id] == snapshot.id
+        let interveningRows = pagination.items.filter {
+            $0.showsStory && $0.item.id != original.primaryItemId &&
+                storyIdsByItemId[$0.item.id] == snapshot.id
         }
         original.pagination.replaceItems(
-            original.pagination.items + interveningRows +
+            original.pagination.items + interveningRows.map(\.item) +
                 (replacement?.pagination.items.filter { $0.id != original.primaryItemId } ?? [])
         )
         if !original.pagination.hasMore, let replacement, replacement.pagination.hasMore {
@@ -73,7 +74,8 @@ public extension RSSFeedListViewModel {
             )
         }
         pagination.remove {
-            $0.id != original.primaryItemId && storyIdsByItemId[$0.id] == snapshot.id
+            $0.showsStory && $0.item.id != original.primaryItemId &&
+                storyIdsByItemId[$0.item.id] == snapshot.id
         }
         storyRelatedArticlesByStoryId[snapshot.id] = original
     }
@@ -118,52 +120,52 @@ public extension RSSFeedListViewModel {
         }
     }
 
-    private struct RemovedArticle {
-        let group: StoryRelatedArticles?
+    private struct RemovedPeer {
+        let group: StoryRelatedArticles
         let offset: Int
         let item: RssFeedItem
-        let feedRows: [RssFeedListRow]
+    }
+
+    private struct RemovedArticle {
+        let peers: [RemovedPeer]
+        let feedRows: [(offset: Int, row: RssFeedListRow)]
     }
 
     private func removeItem(id: String) -> RemovedArticle? {
-        if let group = storyRelatedArticlesByStoryId.values
-            .first(where: { $0.pagination.items.contains { $0.id == id } }),
-            let index = group.pagination.items.firstIndex(where: { $0.id == id }) {
+        var removedPeers: [RemovedPeer] = []
+        for group in storyRelatedArticlesByStoryId.values {
+            guard let index = group.pagination.items.firstIndex(where: { $0.id == id }) else { continue }
             var peers = group.pagination.items
             let peer = peers.remove(at: index)
             group.pagination.replaceItems(peers)
-            return RemovedArticle(group: group, offset: index, item: peer, feedRows: [])
+            removedPeers.append(RemovedPeer(group: group, offset: index, item: peer))
         }
         let matches = pagination.items.enumerated().filter { $0.element.item.id == id }
-        guard let first = matches.first else { return nil }
-        pagination.replaceItems(pagination.items.filter { $0.item.id != id })
-        return RemovedArticle(
-            group: nil,
-            offset: first.offset,
-            item: first.element.item,
-            feedRows: matches.map(\.element)
-        )
+        guard !removedPeers.isEmpty || !matches.isEmpty else { return nil }
+        if !matches.isEmpty {
+            pagination.replaceItems(pagination.items.filter { $0.item.id != id })
+        }
+        return RemovedArticle(peers: removedPeers, feedRows: matches.map { ($0.offset, $0.element) })
     }
 
     private func restoreItem(_ snapshot: RemovedArticle?) {
         guard let snapshot else { return }
-        if let group = snapshot.group {
-            let isAttached = storyRelatedArticlesByStoryId.values.contains { $0 === group }
-            let isDetachedForPrimaryHide = inFlightBookmarkKeys.contains("\(group.primaryItemId)|hide") &&
-                storyIdsByItemId[group.primaryItemId] != nil
+        for peer in snapshot.peers {
+            let isAttached = storyRelatedArticlesByStoryId.values.contains { $0 === peer.group }
+            let isDetachedForPrimaryHide = inFlightBookmarkKeys.contains("\(peer.group.primaryItemId)|hide") &&
+                storyIdsByItemId[peer.group.primaryItemId] != nil
             guard isAttached || isDetachedForPrimaryHide,
-                  !group.pagination.items.contains(where: { $0.id == snapshot.item.id }) else { return }
-            var peers = group.pagination.items
-            peers.insert(snapshot.item, at: min(snapshot.offset, peers.count))
-            group.pagination.replaceItems(peers)
-            return
+                  !peer.group.pagination.items.contains(where: { $0.id == peer.item.id }) else { continue }
+            var peers = peer.group.pagination.items
+            peers.insert(peer.item, at: min(peer.offset, peers.count))
+            peer.group.pagination.replaceItems(peers)
         }
         let present = Set(pagination.items.map(\.deliveryId))
-        let missing = snapshot.feedRows.filter { !present.contains($0.deliveryId) }
+        let missing = snapshot.feedRows.filter { !present.contains($0.row.deliveryId) }
         guard !missing.isEmpty else { return }
         var updated = pagination.items
-        for (index, row) in missing.enumerated() {
-            updated.insert(row, at: min(snapshot.offset + index, updated.count))
+        for (offset, row) in missing {
+            updated.insert(row, at: min(offset, updated.count))
         }
         pagination.replaceItems(updated)
     }
