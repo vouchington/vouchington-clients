@@ -6,6 +6,10 @@ public struct UserRow: View {
     public let user: PublicUser
     public let avatarURL: String?
 
+    private var displayName: String {
+        user.displayAccount?.name ?? user.verifiedDisplayName ?? user.username ?? user.id
+    }
+
     public init(user: PublicUser, avatarURL: String?) {
         self.user = user
         self.avatarURL = avatarURL
@@ -13,9 +17,9 @@ public struct UserRow: View {
 
     public var body: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
-            Avatar(imageURL: avatarURL, username: user.username ?? "")
+            Avatar(imageURL: avatarURL, username: displayName)
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(user.username ?? "")
+                Text(verbatim: displayName)
                     .font(Typography.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)

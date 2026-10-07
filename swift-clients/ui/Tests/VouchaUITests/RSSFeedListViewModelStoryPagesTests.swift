@@ -4,6 +4,42 @@ import VouchaModels
 import XCTest
 
 extension RSSFeedListViewModelTests {
+    func testStoryWithoutUsablePreviewKeepsEveryFeedResultVisible() async {
+        for storyRelatedIds: [String: [String]] in [[:], ["story-1": []]] {
+            CannedFeedURLProtocol.reset()
+            CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+                makeFeedPage(
+                    ids: ["primary", "secondary"], hasMore: false,
+                    storyIds: ["primary": "story-1", "secondary": "story-1"],
+                    storyRelatedIds: storyRelatedIds
+                ), 200
+            )
+            let vm = makeViewModel()
+            await vm.load()
+
+            XCTAssertEqual(vm.items.map(\.id), ["primary", "secondary"])
+            XCTAssertNil(vm.relatedArticles(rssFeedItemId: "primary"))
+        }
+    }
+
+    func testEmptyStoryPreviewWithContinuationKeepsExpansionAvailable() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["primary", "secondary"], hasMore: false,
+                storyIds: ["primary": "story-1", "secondary": "story-1"],
+                storyRelatedIds: ["story-1": []], storyHasMore: true,
+                storyEndCursor: "story-cursor"
+            ), 200
+        )
+        let vm = makeViewModel()
+        await vm.load()
+
+        XCTAssertEqual(vm.items.map(\.id), ["primary"])
+        let related = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
+        XCTAssertTrue(related.pagination.hasMore)
+        XCTAssertEqual(related.pagination.endCursor, "story-cursor")
+    }
+
     func testPrefetchedStoryExpansionNeedsNoRequest() async throws {
         for preview in [["peer-1"], ["peer-3", "peer-2", "peer-1"]] {
             CannedFeedURLProtocol.reset()
@@ -44,6 +80,18 @@ extension RSSFeedListViewModelTests {
         let requests = CannedFeedURLProtocol.capturedURLs.count
         await vm.loadMoreStoryArticles(rssFeedItemId: "primary")
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, requests)
+    }
+
+    func testStoryContinuationAppliesRssFeedBookmarkSidecar() async {
+        let vm = await loadStoryPreview(peers: ["peer-3"])
+        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1"] = (
+            storyPage(ids: ["peer-2"], bookmarkedItemId: "peer-2"), 200
+        )
+
+        await vm.loadMoreStoryArticles(rssFeedItemId: "primary")
+
+        XCTAssertTrue(vm.isSaved(rssFeedItemId: "peer-2"))
+        XCTAssertTrue(vm.isHidden(rssFeedItemId: "peer-2"))
     }
 
     func testRepeatedStoryDoesNotReplacePrimaryPreviewOrCursor() async throws {
@@ -106,13 +154,18 @@ extension RSSFeedListViewModelTests {
         return vm
     }
 
-    private func storyPage(ids: [String]) -> Data {
+    private func storyPage(ids: [String], bookmarkedItemId: String? = nil) -> Data {
         let items = ids.map { "\"\($0)\":{\"id\":\"\($0)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item\"}" }
             .joined(separator: ",")
         let idsJSON = ids.map { "\"\($0)\"" }.joined(separator: ",")
+        let bookmarksJSON = bookmarkedItemId.map {
+            ",\"rss_feed_bookmarks\":{\"\($0)\":{\"save\":true,\"hide\":true}}"
+        } ?? ""
         return Data("""
         {"story":{"id":"story-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},
-         "item_ids":[\(idsJSON)],"page_info":{"has_next_page":false,"end_cursor":null},"rss_feed_items":{\(items)}}
+         "item_ids":[\(idsJSON)],"page_info":{"has_next_page":false,"end_cursor":null},"rss_feed_items":{\(items)}\(
+             bookmarksJSON
+         )}
         """.utf8)
     }
 }

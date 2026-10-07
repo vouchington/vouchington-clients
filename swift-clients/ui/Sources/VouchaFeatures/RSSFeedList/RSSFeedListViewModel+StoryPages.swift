@@ -30,7 +30,7 @@ extension RSSFeedListViewModel {
             itemElectionsById.merge(page.rssFeedItemElections ?? [:], uniquingKeysWith: { _, new in new })
             embedsByItemId.merge(page.rssFeedItemEmbeds ?? [:], uniquingKeysWith: { _, new in new })
             storyPostIdsByStoryId.merge(page.storyPostIds ?? [:], uniquingKeysWith: { _, new in new })
-            applyBookmarkState(from: page.bookmarks)
+            applyBookmarkState(from: page.rssFeedBookmarks)
             mergeVotes(page.electionVotes)
             related.pagination.complete(
                 request, items: items, endCursor: page.pageInfo.endCursor, hasNextPage: page.pageInfo.hasNextPage

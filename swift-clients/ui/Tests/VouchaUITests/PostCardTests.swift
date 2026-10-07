@@ -6,6 +6,21 @@ import XCTest
 
 @MainActor
 final class PostCardTests: XCTestCase {
+    func testUserRowShowsIdentityWhenUsernameIsNull() throws {
+        for (json, expected) in [
+            (#"{"id":"user-1","username":null,"display_account":{"name":"Alice"},"account_type":null}"#, "Alice"),
+            (#"{"id":"user-2","username":null,"display_account":null,"account_type":null}"#, "user-2")
+        ] {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let user = try decoder.decode(PublicUser.self, from: Data(json.utf8))
+            let row = UserRow(user: user, avatarURL: nil)
+
+            XCTAssertNoThrow(try row.inspect().find(text: expected))
+            XCTAssertEqual(try row.inspect().find(Avatar.self).actualView().username, expected)
+        }
+    }
+
     func testHandlerlessPostCardVoteControlsDisableCasting() throws {
         let sut = PostCard(post: makePost())
 

@@ -70,9 +70,11 @@ extension RSSFeedListViewModel {
                         items: page.rssFeedItems,
                         thumbnails: page.rssFeedItemThumbnailUrl
                     )
-                    storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
-                        primaryItemId: itemId, items: peers, pageInfo: preview.pageInfo
-                    )
+                    if preview.pageInfo.hasNextPage || peers.contains(where: { $0.id != itemId }) {
+                        storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
+                            primaryItemId: itemId, items: peers, pageInfo: preview.pageInfo
+                        )
+                    }
                 }
             }
             let thumbnailURL = VouchaURLResolver.absoluteString(
