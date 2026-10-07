@@ -8,6 +8,7 @@ public sealed partial class ChatConversationViewModel
     OnPropertyChanged(nameof(ProviderStatuses));
     OnPropertyChanged(nameof(SelectedProviderStatus));
     OnPropertyChanged(nameof(ProviderStatusText));
+    foreach (var message in messages) message.NotifyLocalizationChanged();
     OnPropertyChanged(nameof(Messages));
   }
 

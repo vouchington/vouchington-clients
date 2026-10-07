@@ -63,8 +63,12 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding Role}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding Content}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
-                                <Label Text="{Binding Error}" Style="{StaticResource Metadata}" TextColor="#991B1B" IsVisible="{Binding HasError}" />
+                                <Label
+                                    Text="{Binding Content}"
+                                    Style="{StaticResource Body}"
+                                    LineBreakMode="WordWrap"
+                                    IsVisible="{Binding HasContent}" />
+                                <Label Text="{Binding DisplayError}" Style="{StaticResource Metadata}" TextColor="#991B1B" IsVisible="{Binding HasError}" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
