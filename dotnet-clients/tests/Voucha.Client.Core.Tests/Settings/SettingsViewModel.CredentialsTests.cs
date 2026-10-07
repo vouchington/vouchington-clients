@@ -9,6 +9,42 @@ namespace Voucha.Client.Core.Tests.Settings;
 public sealed partial class SettingsViewModelTests
 {
   [Fact]
+  public async Task UnrelatedSettingsFailureDoesNotBlockCredentials()
+  {
+    var service = new FakeSettingsService
+    {
+      MembershipPlansFailure = new HttpRequestException("plans offline"),
+      Grants = Task.FromResult(new OAuthGrantListResponse([Grant("connected")], new PageInfo(null, false, null))),
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Contains("plans offline", model.ErrorMessage, StringComparison.Ordinal);
+    Assert.Equal("rss:read", Assert.Single(model.ApiKeyScopes).Scope);
+    model.SetApiKeyScopeSelected("rss:read", true);
+    Assert.True(model.CanCreateApiKey);
+    Assert.Equal("connected", Assert.Single(model.OAuthGrants).Id);
+  }
+
+  [Fact]
+  public async Task FailedUserReloadCannotRetainPreviousAdministratorScopes()
+  {
+    var service = new FakeSettingsService { Roles = ["administrator"] };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader", ApiKeyType = "mcp" };
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    model.SelectedApiKeyAudienceOption = model.ApiKeyAudienceOptions.Single(option => option.ProtocolValue == "admin");
+    Assert.Equal("mcp.admin:read", Assert.Single(model.ApiKeyScopes).Scope);
+    service.UserFailure = new HttpRequestException("user offline");
+
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.False(model.CanSelectAdminApiKeyScopes);
+    Assert.Empty(model.ApiKeyScopes);
+    Assert.False(model.CanCreateApiKey);
+  }
+
+  [Fact]
   public async Task ScopeChoicesAreCatalogueDrivenEmptyAndAudienceGated()
   {
     var service = new FakeSettingsService();

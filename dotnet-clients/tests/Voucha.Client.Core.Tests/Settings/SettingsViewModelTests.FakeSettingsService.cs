@@ -22,6 +22,8 @@ public sealed partial class SettingsViewModelTests
     public DeleteUserResponse DeleteUserResponse { get; set; } = new(false);
 
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
+    public Exception? UserFailure { get; set; }
+    public Exception? MembershipPlansFailure { get; set; }
 
     public MembershipPlansResponse MembershipPlansResponse { get; set; } =
         new(
@@ -138,6 +140,7 @@ public sealed partial class SettingsViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastFetchedUserIdOrSlug = idOrSlug;
+      if (UserFailure is { } failure) return Task.FromException<UserResponse>(failure);
       var response = CreateUser();
       return Task.FromResult(response with { User = response.User with { Roles = Roles } });
     }
@@ -238,7 +241,9 @@ public sealed partial class SettingsViewModelTests
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(MembershipPlansResponse);
+        MembershipPlansFailure is { } failure
+            ? Task.FromException<MembershipPlansResponse>(failure)
+            : Task.FromResult(MembershipPlansResponse);
 
     public Task<CheckoutSessionResponse> CreateMembershipCheckoutSessionAsync(
         MembershipCheckoutBody body,

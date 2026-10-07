@@ -12,6 +12,7 @@ public sealed partial class SettingsViewModel
     InvalidateSettingsPagination();
     IsLoading = true;
     ErrorMessage = null;
+    ResetCredentialAuthorization();
 
     try
     {
@@ -27,7 +28,10 @@ public sealed partial class SettingsViewModel
           ? $"{Username} · {email}"
           : Username;
 
-      var userTask = settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken);
+      var user = (await settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken).ConfigureAwait(true)).User;
+      loadedUser = user;
+      await LoadCredentialsAsync(cancellationToken).ConfigureAwait(true);
+
       var profileTask = settingsService.FetchMyProfileAsync(cancellationToken);
       var profileLinksTask = settingsService.FetchProfileLinksAsync(cancellationToken);
       var apiKeysTask = settingsService.FetchApiKeysAsync(cancellationToken);
@@ -38,7 +42,6 @@ public sealed partial class SettingsViewModel
       var dataRequestTask = settingsService.FetchUserDataRequestAsync(userIdOrSlug, cancellationToken);
 
       await Task.WhenAll(
-          userTask,
           profileTask,
           profileLinksTask,
           apiKeysTask,
@@ -48,9 +51,6 @@ public sealed partial class SettingsViewModel
           pushSubscriptionsTask,
           dataRequestTask).ConfigureAwait(true);
 
-      var user = (await userTask.ConfigureAwait(true)).User;
-      loadedUser = user;
-      await LoadCredentialsAsync(cancellationToken).ConfigureAwait(true);
       PrivacySelections = BuildSelections(user);
       PrivacyToggles = BuildToggles(user);
 

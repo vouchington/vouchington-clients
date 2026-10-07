@@ -68,6 +68,17 @@ public sealed partial class SettingsViewModel
     OnPropertyChanged(nameof(CanCreateApiKey));
   }
 
+  private void ResetCredentialAuthorization()
+  {
+    loadedUser = null;
+    scopeCatalog = [];
+    apiKeyAudience = "user";
+    RebuildScopeSelection();
+    OnPropertyChanged(nameof(CanSelectAdminApiKeyScopes));
+    OnPropertyChanged(nameof(ApiKeyAudienceOptions));
+    OnPropertyChanged(nameof(SelectedApiKeyAudienceOption));
+  }
+
   private async Task LoadCredentialsAsync(CancellationToken cancellationToken)
   {
     try
