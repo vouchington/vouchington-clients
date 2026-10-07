@@ -40,7 +40,7 @@ public sealed record Topic(
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("hero_image_placement")] TopicImagePlacement? HeroImagePlacement = null,
     [property: JsonPropertyName("logo_image_placement")] TopicImagePlacement? LogoImagePlacement = null,
-    [property: JsonPropertyName("content_provenance")] PublicContentProvenance? ContentProvenance = null);
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
 
 public sealed record TopicSearchResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

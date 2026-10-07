@@ -41,7 +41,7 @@ public struct Community: Codable, Identifiable, Sendable {
     @RequiredNullable
     public var rulesMarkdown: String?
     public let owner: DecodedJSONValue?
-    public let contentProvenance: PublicContentProvenance?
+    public let provenance: PublicContentProvenance?
 
     private enum CodingKeys: String, CodingKey {
         case entityType
@@ -71,7 +71,7 @@ public struct Community: Codable, Identifiable, Sendable {
         case linguaRsDetectedLanguage
         case rulesMarkdown
         case owner
-        case contentProvenance
+        case provenance
     }
 
     public init(from decoder: any Decoder) throws {
@@ -114,9 +114,11 @@ public struct Community: Codable, Identifiable, Sendable {
         )
         _rulesMarkdown = try container.decode(RequiredNullable<String>.self, forKey: .rulesMarkdown)
         owner = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .owner)
-        contentProvenance = try container.decodeIfPresent(PublicContentProvenance.self, forKey: .contentProvenance)
+        provenance = try container.decodeIfPresent(PublicContentProvenance.self, forKey: .provenance)
     }
+}
 
+extension Community {
     public func encode(to encoder: any Encoder) throws {
         var raw = encoder.singleValueContainer()
         var object: [String: DecodedJSONValue] = [:]
@@ -151,11 +153,20 @@ public struct Community: Codable, Identifiable, Sendable {
         if let owner {
             object["owner"] = owner
         }
-        if let contentProvenance {
-            object["content_provenance"] = .object([
-                "via": .string(contentProvenance.via),
-                "label": .string(contentProvenance.label)
-            ])
+        if let provenance {
+            var facts: [String: DecodedJSONValue] = [
+                "via": .string(provenance.via),
+                "app": .null
+            ]
+            if let app = provenance.app {
+                var appFacts: [String: DecodedJSONValue] = ["kind": .string(app.kind)]
+                if let key = app.key { appFacts["key"] = .string(key) }
+                if let hostname = app.hostname { appFacts["hostname"] = .string(hostname) }
+                if let clientId = app.clientId { appFacts["client_id"] = .string(clientId) }
+                if let clientName = app.clientName { appFacts["client_name"] = .string(clientName) }
+                facts["app"] = .object(appFacts)
+            }
+            object["provenance"] = .object(facts)
         }
         try raw.encode(object)
     }

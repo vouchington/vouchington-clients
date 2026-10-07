@@ -18,28 +18,37 @@ public sealed class ApiModelsContentTests
 
     Assert.Equal(
         ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags",
-         "DeclaredLanguage", "LinguaRsDetectedLanguage", "ContentProvenance"],
+         "DeclaredLanguage", "LinguaRsDetectedLanguage", "Provenance"],
         parameterNames[^8..]);
   }
 
   [Fact]
   public void PostDecodesOptionalPublicContentProvenance()
   {
-    const string withLabel = """
+    const string withFacts = """
         {"id":"post-1","post_type":"discussion","title":"Title","markdown":"Body",
-         "created_by_id":"user-1","content_provenance":{"via":"mcp","label":"via Example"}}
+         "created_by_id":"user-1","provenance":{"via":"mcp","app":{"kind":"verified","client_id":"agent-1","client_name":"Example"}}}
         """;
-    const string withoutLabel = """
+    const string withoutFacts = """
         {"id":"post-2","post_type":"discussion","title":"Title","markdown":"Body",
          "created_by_id":"user-1"}
         """;
+    const string plainFacts = """
+        {"id":"post-3","post_type":"discussion","title":"Title","markdown":"Body",
+         "created_by_id":"user-1","provenance":{"via":"api","app":null}}
+        """;
 
-    var labeled = JsonSerializer.Deserialize<Post>(withLabel);
-    var unlabeled = JsonSerializer.Deserialize<Post>(withoutLabel);
+    var labeled = JsonSerializer.Deserialize<Post>(withFacts);
+    var unlabeled = JsonSerializer.Deserialize<Post>(withoutFacts);
+    var plain = JsonSerializer.Deserialize<Post>(plainFacts);
 
-    Assert.Equal("mcp", labeled?.ContentProvenance?.Via);
-    Assert.Equal("via Example", labeled?.ContentProvenance?.Label);
-    Assert.Null(unlabeled?.ContentProvenance);
+    Assert.Equal("mcp", labeled?.Provenance?.Via);
+    Assert.Equal("verified", labeled?.Provenance?.App?.Kind);
+    Assert.Equal("agent-1", labeled?.Provenance?.App?.ClientId);
+    Assert.Equal("Example", labeled?.Provenance?.App?.ClientName);
+    Assert.Null(unlabeled?.Provenance);
+    Assert.Equal("api", plain?.Provenance?.Via);
+    Assert.Null(plain?.Provenance?.App);
   }
 
   [Fact]

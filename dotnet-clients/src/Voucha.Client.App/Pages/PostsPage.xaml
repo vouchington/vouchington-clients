@@ -60,7 +60,7 @@
                             </Border.GestureRecognizers>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding LocalizedContentProvenanceLabel}" IsVisible="{Binding HasContentProvenance}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Title}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Headline}" />
                                 <controls:NativeHtmlContentView
                                     Html="{Binding BodyHtml}"

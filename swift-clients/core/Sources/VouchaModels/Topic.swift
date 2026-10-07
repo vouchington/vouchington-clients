@@ -32,7 +32,7 @@ public struct Topic: Codable, Identifiable, Sendable {
     public let createdBy: PublicUser?
     public let updatedBy: PublicUser?
     public let election: TopicElection?
-    public let contentProvenance: PublicContentProvenance?
+    public let provenance: PublicContentProvenance?
 
     public init(
         id: String,
@@ -51,7 +51,7 @@ public struct Topic: Codable, Identifiable, Sendable {
         createdBy: PublicUser? = nil,
         updatedBy: PublicUser? = nil,
         election: TopicElection? = nil,
-        contentProvenance: PublicContentProvenance? = nil
+        provenance: PublicContentProvenance? = nil
     ) {
         entityType = nil
         self.id = id
@@ -75,7 +75,7 @@ public struct Topic: Codable, Identifiable, Sendable {
         self.createdBy = createdBy
         self.updatedBy = updatedBy
         self.election = election
-        self.contentProvenance = contentProvenance
+        self.provenance = provenance
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -84,7 +84,7 @@ public struct Topic: Codable, Identifiable, Sendable {
         case allowReviews = "shouldAllowReviews"
         case noindex = "isNoindexed"
         case logoImageId, heroImageId, homepageUrlId, linguaRsDetectedLanguage, referralProgramId
-        case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy, election, contentProvenance
+        case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy, election, provenance
     }
 }
 

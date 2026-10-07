@@ -46,11 +46,7 @@ struct CommentThreadPostSection: View {
                         )
                     AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
                         .accountType)
-                    if let label = post.contentProvenance?.label {
-                        Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(label), locale: nativeUiLocale))
-                            .font(Typography.caption)
-                            .foregroundStyle(Colors.secondaryLabel)
-                    }
+                    ProvenanceBadge(provenance: post.provenance)
                     Text(pathText)
                         .font(Typography.caption.monospaced())
                         .foregroundStyle(Colors.secondaryLabel)

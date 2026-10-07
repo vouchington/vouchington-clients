@@ -2,18 +2,47 @@ import VouchaModels
 import XCTest
 
 final class PostConcreteContractTests: XCTestCase {
+    func testPublicProvenanceAppFactsDecodeAndPreserveRequiredNull() throws {
+        let verified = Data("""
+        {"via":"mcp","app":{"kind":"verified","client_id":"agent-1","client_name":"Example"}}
+        """.utf8)
+        let decoded = try makeVouchaDecoder().decode(PublicContentProvenance.self, from: verified)
+        XCTAssertEqual(decoded.app?.clientId, "agent-1")
+        XCTAssertEqual(decoded.app?.clientName, "Example")
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(decoded)) as? [String: Any])
+        let app = try XCTUnwrap(encoded["app"] as? [String: Any])
+        XCTAssertEqual(app["client_id"] as? String, "agent-1")
+        XCTAssertEqual(app["client_name"] as? String, "Example")
+        XCTAssertNil(app["hostname"])
+
+        let plain = try makeVouchaDecoder().decode(
+            PublicContentProvenance.self, from: Data(#"{"via":"api","app":null}"#.utf8)
+        )
+        let encodedPlain = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(plain)) as? [String: Any])
+        XCTAssertTrue(encodedPlain["app"] is NSNull)
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(
+            PublicContentProvenance.self, from: Data(#"{"via":"api"}"#.utf8)
+        ))
+    }
+
     func testPostDecodesOptionalPublicContentProvenance() throws {
         let original = ApiFixtureLoader.data("native.bookmarks.posts.saved.default")
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: original) as? [String: Any])
         var results = try XCTUnwrap(object["results"] as? [[String: Any]])
-        results[0]["content_provenance"] = ["via": "mcp", "label": "via Example"]
+        results[0]["provenance"] = [
+            "via": "mcp",
+            "app": ["kind": "verified", "client_id": "agent-1", "client_name": "Example"]
+        ]
         object["results"] = results
 
         let labeled = try makeVouchaDecoder().decode(
             Page<Post>.self,
             from: JSONSerialization.data(withJSONObject: object)
         )
-        results[0].removeValue(forKey: "content_provenance")
+        results[0].removeValue(forKey: "provenance")
         object["results"] = results
         let unlabeled = try makeVouchaDecoder().decode(
             Page<Post>.self,
@@ -21,10 +50,12 @@ final class PostConcreteContractTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            labeled.results.first?.contentProvenance,
-            PublicContentProvenance(via: "mcp", label: "via Example")
+            labeled.results.first?.provenance,
+            PublicContentProvenance(via: "mcp", app: PublicProvenanceApp(
+                kind: "verified", clientId: "agent-1", clientName: "Example"
+            ))
         )
-        XCTAssertNil(unlabeled.results.first?.contentProvenance)
+        XCTAssertNil(unlabeled.results.first?.provenance)
     }
 
     func testConcretePostSidecarsDecodeFromSharedFixtures() throws {

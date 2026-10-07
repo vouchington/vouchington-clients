@@ -21,6 +21,30 @@ final class PostCardTests: XCTestCase {
         }
     }
 
+    func testProvenanceBadgeShowsOnlyTrustedAppNames() {
+        let locale = Locale(identifier: "en_US")
+        let channel = ProvenanceBadge.label(
+            for: PublicContentProvenance(via: "mcp", app: nil), locale: locale
+        )
+        let known = ProvenanceBadge.label(for: PublicContentProvenance(
+            via: "mcp", app: PublicProvenanceApp(kind: "known", key: "private-key")
+        ), locale: locale)
+        let verified = ProvenanceBadge.label(for: PublicContentProvenance(
+            via: "api", app: PublicProvenanceApp(
+                kind: "verified", clientId: "client-1", clientName: "Example App"
+            )
+        ), locale: locale)
+        let hostname = ProvenanceBadge.label(for: PublicContentProvenance(
+            via: "api", app: PublicProvenanceApp(kind: "hostname", hostname: "example.test")
+        ), locale: locale)
+
+        XCTAssertEqual(known, channel)
+        XCTAssertFalse(known.contains("private-key"))
+        XCTAssertFalse(verified.contains("client-1"))
+        XCTAssertTrue(verified.contains("Example App"))
+        XCTAssertTrue(hostname.contains("example.test"))
+    }
+
     func testHandlerlessPostCardVoteControlsDisableCasting() throws {
         let sut = PostCard(post: makePost())
 
