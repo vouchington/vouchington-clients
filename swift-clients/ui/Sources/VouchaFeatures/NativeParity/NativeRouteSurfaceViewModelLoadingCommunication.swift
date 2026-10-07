@@ -116,7 +116,11 @@ extension NativeRouteSurfaceViewModel {
         let conversationId = routeMatch?.param("conversationId")
             ?? routeMatch?.param("threadId")
             ?? routeMatch?.param("id")
-        return conversationId == "new" ? nil : conversationId
+        guard let conversationId else { return nil }
+        switch conversationId.lowercased() {
+        case "new", "support": return nil
+        default: return conversationId
+        }
     }
 
     private func loadChatDetailRows(client: APIClient, conversationId: String) async throws

@@ -148,6 +148,40 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
         XCTAssertEqual(viewModel.rows.first?.icon, "bubble.left.and.bubble.right")
     }
 
+    func testRetiredSupportChatPathLoadsConversationListWithoutRequestingSupportAsId() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/my/conversations"] = (conversationData, 200)
+        for path in ["/chat/new", "/chat/support", "/chat/SUPPORT"] {
+            CannedFeedURLProtocol.capturedURLs = []
+            let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: path)?.match)
+            let viewModel = try NativeRouteSurfaceViewModel(
+                entry: entry(for: .chat), client: makeClient(), routeMatch: match
+            )
+
+            await viewModel.load()
+
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), ["/api/v1/my/conversations"])
+            XCTAssertEqual(viewModel.rows.first?.title, "Support follow-up")
+        }
+    }
+
+    func testChatConversationIdContainingSupportStillLoadsDetail() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/my/conversations/supportive/messages"] = (
+            Data(#"{"results":[],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#.utf8),
+            200
+        )
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/chat/supportive")?.match)
+        let viewModel = try NativeRouteSurfaceViewModel(
+            entry: entry(for: .chat), client: makeClient(), routeMatch: match
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+            "/api/v1/my/conversations/supportive/messages"
+        ])
+        XCTAssertEqual(viewModel.rows.first?.title, "Conversation supportive")
+    }
+
     func testMessageDetailLoadsMatchedConversation() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/messages"] = (conversationMessagesData, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (conversationUsersData, 200)
