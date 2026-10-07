@@ -10,6 +10,7 @@ public sealed partial class NewsFeedsViewModel
   public static void ToggleStoryArticles(NewsFeedItem item)
   {
     ArgumentNullException.ThrowIfNull(item);
+    if (!Items.Contains(item)) return;
     if (item.StoryArticles is { } related) related.IsExpanded = !related.IsExpanded;
   }
 
