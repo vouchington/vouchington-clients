@@ -18,6 +18,7 @@ public final class SettingsViewModel {
     var oauthGrantPagination = CursorPaginationState<OAuthGrant>()
     public internal(set) var apiKeyScopeSelection = ApiKeyScopeSelection()
     public internal(set) var credentialState: LoadState = .idle
+    public internal(set) var oauthGrantState: LoadState = .idle
     @ObservationIgnored
     var credentialLoadGeneration = 0
     @ObservationIgnored
@@ -40,10 +41,6 @@ public final class SettingsViewModel {
 
     public var pushSubscriptions: [WebPushSubscription] {
         pushSubscriptionPagination.items
-    }
-
-    public var sessions: [AuthSession] {
-        sessionPagination.items
     }
 
     public internal(set) var membership: Membership?

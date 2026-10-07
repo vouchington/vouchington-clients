@@ -83,6 +83,23 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertFalse(model.canCreateApiKey)
     }
 
+    func testGrantFailureAppearsInConnectedAppsWithoutBlockingScopePicker() async throws {
+        seedCredentials()
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (Data(#"{"error":"unauthorized"}"#.utf8), 401)
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
+        await model.loadCredentialSettings()
+        let surface = SettingsSurface(viewModel: model)
+
+        XCTAssertNoThrow(try surface.connectedAppsSection.inspect().find(text: "Sign in to continue."))
+        XCTAssertNoThrow(try surface.connectedAppsSection.inspect().find(button: "Try Again"))
+        XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: "data:write"))
+        XCTAssertThrowsError(try surface.apiKeyScopePicker.inspect().find(text: "Sign in to continue."))
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
+    }
+
     func testConnectedGrantRevokeButtonCallsOwnedEndpointAndRemovesAfterCompletion() async throws {
         seedCredentials()
         let model = try SettingsViewModel(client: makeClient())

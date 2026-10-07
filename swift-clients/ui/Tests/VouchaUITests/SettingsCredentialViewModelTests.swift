@@ -65,9 +65,25 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         guard case .error = model.credentialState else { return XCTFail("Invalid catalogue must fail") }
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (Data(#"{"error":"unauthorized"}"#.utf8), 401)
+        CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
+            ApiFixtureLoader.data("native.my.api-keys.create"),
+            201
+        )
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
         await model.loadCredentialSettings()
         XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
-        guard case .error = model.credentialState else { return XCTFail("Authorization failure must be visible") }
+        XCTAssertFalse(model.hasNoOAuthGrants)
+        guard case .loaded = model.credentialState else { return XCTFail("Usable catalogue must remain loaded") }
+        guard case .error = model.oauthGrantState else { return XCTFail("Grant authorization failure must be visible") }
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertTrue(model.canCreateApiKey)
+        await model.createApiKey()
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests.contains { $0.method == "POST" })
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants(["two"]), 200)
+        await model.loadCredentialSettings()
+        guard case .loaded = model.oauthGrantState else { return XCTFail("Grant retry must recover") }
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["two"])
     }
 
     func testGrantPaginationRetriesOpaqueCursorAndDeduplicatesPages() async throws {
@@ -182,6 +198,7 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         load.cancel()
         await load.value
         guard case .idle = model.credentialState else { return XCTFail("Canceled reload must end loading") }
+        guard case .idle = model.oauthGrantState else { return XCTFail("Canceled grant reload must end loading") }
         XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
         let pageBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
         let page = Task { await model.loadMoreOAuthGrants() }

@@ -14,7 +14,7 @@ public extension SettingsViewModel {
     }
 
     var hasNoOAuthGrants: Bool {
-        guard case .loaded = credentialState else { return false }
+        guard case .loaded = oauthGrantState else { return false }
         return oauthGrants.isEmpty && !oauthGrantPagination.hasMore
     }
 
@@ -34,25 +34,41 @@ public extension SettingsViewModel {
         let generation = credentialLoadGeneration
         oauthGrantPagination.invalidateRequestsPreservingPage()
         credentialState = .loading
+        oauthGrantState = .loading
+        async let catalogResponse: ScopeCatalogResponse = client.send(.scopeCatalog)
+        async let grantResponse: Page<OAuthGrant> = client.send(.myOAuthGrants())
         do {
-            async let catalogResponse: ScopeCatalogResponse = client.send(.scopeCatalog)
-            async let grantResponse: Page<OAuthGrant> = client.send(.myOAuthGrants())
-            let (catalog, grants) = try await (catalogResponse, grantResponse)
+            let catalog = try await catalogResponse
             guard generation == credentialLoadGeneration else { return }
-            apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator)
-            apiKeyScopeSelection.replaceCatalog(catalog.scopes)
-            guard !apiKeyScopeSelection.availableScopes.isEmpty else {
-                throw VouchaError.unexpected(localized(.nativeCredentialsCatalogLoadFailed))
-            }
-            replaceOAuthGrantPage(grants)
+            try applyCredentialScopeCatalog(catalog)
             credentialState = .loaded
         } catch {
             guard generation == credentialLoadGeneration else { return }
             if error is CancellationError || Task.isCancelled {
                 credentialState = .idle
+                oauthGrantState = .idle
                 return
             }
             credentialState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
+        }
+        do {
+            let grants = try await grantResponse
+            guard generation == credentialLoadGeneration else { return }
+            if Task.isCancelled {
+                credentialState = .idle
+                oauthGrantState = .idle
+                return
+            }
+            replaceOAuthGrantPage(grants)
+            oauthGrantState = .loaded
+        } catch {
+            guard generation == credentialLoadGeneration else { return }
+            if error is CancellationError || Task.isCancelled {
+                credentialState = .idle
+                oauthGrantState = .idle
+                return
+            }
+            oauthGrantState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
         }
     }
 
@@ -95,6 +111,14 @@ extension SettingsViewModel {
         identity?.roles.contains("administrator") == true
     }
 
+    func applyCredentialScopeCatalog(_ catalog: ScopeCatalogResponse) throws {
+        apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator)
+        apiKeyScopeSelection.replaceCatalog(catalog.scopes)
+        guard !apiKeyScopeSelection.availableScopes.isEmpty else {
+            throw VouchaError.unexpected(localized(.nativeCredentialsCatalogLoadFailed))
+        }
+    }
+
     func replaceOAuthGrantPage(_ page: Page<OAuthGrant>) {
         oauthGrantPagination.reset(items: page.results.filter { !revokedOAuthGrantIds.contains($0.id) })
         oauthGrantPagination.restoreContinuation(endCursor: page.pageInfo.endCursor, hasMore: page.pageInfo.hasNextPage)
@@ -106,5 +130,6 @@ extension SettingsViewModel {
         oauthGrantPagination.invalidateRequestsPreservingPage()
         oauthGrantPagination.remove { $0.id == id }
         if case .loading = credentialState { credentialState = .loaded }
+        if case .loading = oauthGrantState { oauthGrantState = .loaded }
     }
 }

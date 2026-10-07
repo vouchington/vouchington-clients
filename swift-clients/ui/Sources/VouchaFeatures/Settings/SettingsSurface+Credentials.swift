@@ -55,6 +55,11 @@ extension SettingsSurface {
 
     var connectedAppsSection: some View {
         section(.nativeCredentialsConnectedApps, systemImage: "app.connected.to.app.below.fill") {
+            if case let .error(error) = viewModel.oauthGrantState {
+                ErrorStateView(error: error) { await viewModel.loadCredentialSettings() }
+            } else if case .loading = viewModel.oauthGrantState {
+                ProgressView()
+            }
             if viewModel.hasNoOAuthGrants {
                 Text(UiMessages.string(.nativeCredentialsNoConnectedApps, locale: nativeUiLocale))
             }
