@@ -150,11 +150,16 @@ public sealed partial class VouchaApiClientTests
     AssertRequest(handler, HttpMethod.Get, "/api/v1/my/email-preferences");
 
     var updated = await client.UpdateEmailPreferencesAsync(
-        new UpdateEmailPreferencesBody(NewsDigestFrequency: "daily"),
+        new UpdateEmailPreferencesBody(EngagementEmailsEnabled: false, NewsDigestFrequency: "daily", ModerationEmailsEnabled: true),
         TestContext.Current.CancellationToken);
     Assert.Equal("weekly", updated.EmailPreferences.CommunityDigestFrequency);
     AssertRequest(handler, HttpMethod.Patch, "/api/v1/my/email-preferences");
     Assert.Contains("\"news_digest_frequency\":\"daily\"", handler.RequestBody, StringComparison.Ordinal);
+    using var request = System.Text.Json.JsonDocument.Parse(handler.RequestBody!);
+    Assert.False(request.RootElement.GetProperty("is_engagement_emails_enabled").GetBoolean());
+    Assert.True(request.RootElement.GetProperty("is_moderation_emails_enabled").GetBoolean());
+    Assert.False(request.RootElement.TryGetProperty("engagement_emails_enabled", out _));
+    Assert.False(request.RootElement.TryGetProperty("moderation_emails_enabled", out _));
   }
 
   [Fact]

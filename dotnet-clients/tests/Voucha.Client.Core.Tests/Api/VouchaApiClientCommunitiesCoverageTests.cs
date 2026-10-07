@@ -130,6 +130,11 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(HttpMethod.Post, handler.Requests[0].Method);
     Assert.Equal("/api/v1/communities", handler.Requests[0].PathAndQuery);
     Assert.Contains("\"cf_turnstile_response\":\"turnstile\"", handler.Requests[0].Body!, StringComparison.Ordinal);
+    using var createBody = JsonDocument.Parse(handler.Requests[0].Body!);
+    Assert.True(createBody.RootElement.GetProperty("should_allow_review_posts").GetBoolean());
+    Assert.False(createBody.RootElement.GetProperty("should_allow_data_point_posts").GetBoolean());
+    Assert.False(createBody.RootElement.TryGetProperty("allow_review_posts", out _));
+    Assert.False(createBody.RootElement.TryGetProperty("allow_data_point_posts", out _));
     Assert.Equal(HttpMethod.Patch, handler.Requests[1].Method);
     Assert.Equal("/api/v1/communities/test%20community", handler.Requests[1].PathAndQuery);
     Assert.Contains("\"archive\":false", handler.Requests[1].Body!, StringComparison.Ordinal);
