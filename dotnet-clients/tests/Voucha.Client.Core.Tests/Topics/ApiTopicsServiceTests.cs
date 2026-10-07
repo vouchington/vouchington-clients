@@ -82,6 +82,21 @@ public sealed class ApiTopicsServiceTests
   }
 
   [Fact]
+  public async Task UpdateTopicUsesCurrentPolicyFlagNames()
+  {
+    var handler = new QueueHandler(Json(TopicMutationJson("Updated")));
+    var service = new ApiTopicsService(new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
+
+    var response = await service.UpdateTopicAsync("topic-1", new UpdateTopicBody(Noindex: true, AllowReviews: false), TestContext.Current.CancellationToken);
+
+    Assert.Equal(
+        (HttpMethod.Patch, "/api/v1/topics/topic-1", """{"is_noindexed":true,"should_allow_reviews":false}"""),
+        Assert.Single(handler.Requests));
+    Assert.False(response.Topic.Noindex);
+    Assert.True(response.Topic.AllowReviews);
+  }
+
+  [Fact]
   public async Task FetchMethodsForwardAfterAndLimitToTheQueryString()
   {
     var handler = new QueueHandler(
@@ -176,13 +191,13 @@ public sealed class ApiTopicsServiceTests
         "topic_type": "rss_feed",
         "markdown": "Body",
         "aliases": ["alt"],
-        "allow_reviews": true,
+        "should_allow_reviews": true,
         "created_at": "2026-01-01T00:00:00Z",
         "hero_image_id": "hero-1",
         "hostname": {"id":"hostname-1","hostname":"example.com","topic_id":"{{id}}"},
         "hostname_id": "hostname-1",
         "logo_image_id": "logo-1",
-        "noindex": false
+        "is_noindexed": false
       }
       """;
 
