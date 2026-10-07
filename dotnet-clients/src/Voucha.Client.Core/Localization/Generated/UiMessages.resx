@@ -256,6 +256,10 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Vote</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Vouch</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Email address</value></data>
+  <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} related article</value></data>
+  <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} related articles</value></data>
+  <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ related articles</value></data>
+  <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ related articles</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Try Again</value></data>
   <data name="native.credentials.action" xml:space="preserve"><value>Action</value></data>
   <data name="native.credentials.adminAudience" xml:space="preserve"><value>Administrator</value></data>
@@ -1907,6 +1911,9 @@
   <data name="settings.language.supportedCount.__plural.one" xml:space="preserve"><value>{count} language</value></data>
   <data name="settings.language.supportedCount.__plural.other" xml:space="preserve"><value>{count} languages</value></data>
   <data name="settings.language.useSiteDefault" xml:space="preserve"><value>Use site default</value></data>
+  <data name="shared.accountType.aiAgent" xml:space="preserve"><value>AI Agent</value></data>
+  <data name="shared.accountType.official" xml:space="preserve"><value>Official</value></data>
+  <data name="shared.accountType.system" xml:space="preserve"><value>System</value></data>
   <data name="shared.countLabel.format.__select.action.one" xml:space="preserve"><value>{count} action</value></data>
   <data name="shared.countLabel.format.__select.action.other" xml:space="preserve"><value>{count} actions</value></data>
   <data name="shared.countLabel.format.__select.alias.one" xml:space="preserve"><value>{count} alias</value></data>

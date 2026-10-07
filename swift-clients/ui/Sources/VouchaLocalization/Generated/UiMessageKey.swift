@@ -127,6 +127,8 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let nativeAuthVerifyCode = UiMessageKey(rawValue: "native.auth.verifyCode")
     public static let nativeCommonDone = UiMessageKey(rawValue: "native.common.done")
     public static let nativeCommonOk = UiMessageKey(rawValue: "native.common.ok")
+    public static let nativeCommonRelatedArticles = UiMessageKey(rawValue: "native.common.relatedArticles")
+    public static let nativeCommonRelatedArticlesMore = UiMessageKey(rawValue: "native.common.relatedArticlesMore")
     public static let nativeCommonRetry = UiMessageKey(rawValue: "native.common.retry")
     public static let nativeCommonSomethingWentWrong = UiMessageKey(rawValue: "native.common.somethingWentWrong")
     public static let nativeCredentialsAction = UiMessageKey(rawValue: "native.credentials.action")
@@ -2164,5 +2166,8 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let navSources = UiMessageKey(rawValue: "nav.sources")
     public static let settingsLanguageInterfaceLabel = UiMessageKey(rawValue: "settings.language.interfaceLabel")
     public static let settingsLanguageUseSiteDefault = UiMessageKey(rawValue: "settings.language.useSiteDefault")
+    public static let sharedAccountTypeAiAgent = UiMessageKey(rawValue: "shared.accountType.aiAgent")
+    public static let sharedAccountTypeOfficial = UiMessageKey(rawValue: "shared.accountType.official")
+    public static let sharedAccountTypeSystem = UiMessageKey(rawValue: "shared.accountType.system")
     public static let sharedCountLabelFormat = UiMessageKey(rawValue: "shared.countLabel.format")
 }

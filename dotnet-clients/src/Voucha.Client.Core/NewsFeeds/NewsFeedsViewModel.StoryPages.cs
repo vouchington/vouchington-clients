@@ -4,7 +4,7 @@ namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed partial class NewsFeedsViewModel
 {
-  public void ToggleStoryArticles(NewsFeedItem item)
+  public static void ToggleStoryArticles(NewsFeedItem item)
   {
     ArgumentNullException.ThrowIfNull(item);
     if (item.StoryArticles is { } related) related.IsExpanded = !related.IsExpanded;
@@ -35,7 +35,7 @@ public sealed partial class NewsFeedsViewModel
     }
   }
 
-  private IReadOnlyList<NewsFeedItem> KeepDisplayedStoryPrimaries(IReadOnlyList<NewsFeedItem> incoming)
+  private NewsFeedItem[] KeepDisplayedStoryPrimaries(IReadOnlyList<NewsFeedItem> incoming)
   {
     var displayed = Items.Where(item => item.StoryArticles is not null)
         .Select(item => item.StoryId!).ToHashSet(StringComparer.Ordinal);

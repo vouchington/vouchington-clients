@@ -16,7 +16,7 @@ public sealed class StoryRelatedArticlesTests
     var service = new Service(new([Primary(group)], new("feed-after", true, null)));
     var model = new NewsFeedsViewModel(service);
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    model.ToggleStoryArticles(model.Items[0]);
+    NewsFeedsViewModel.ToggleStoryArticles(model.Items[0]);
 
     Assert.True(group.IsExpanded);
     Assert.Equal(previewCount, group.Items.Count);
@@ -129,6 +129,7 @@ public sealed class StoryRelatedArticlesTests
       return StoryResponse;
     }
     public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => Task.FromResult(Feed);
+    public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => Task.FromResult(Feed);
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task SetSourceFollowAsync(string sourceId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;

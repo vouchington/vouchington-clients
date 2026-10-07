@@ -259,6 +259,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVote = new("extracted.votes.semanticVote.vote");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
+    public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
+    public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
     public static readonly UiMessageKey NativeCommonRetry = new("native.common.retry");
     public static readonly UiMessageKey NativeCredentialsAction = new("native.credentials.action");
     public static readonly UiMessageKey NativeCredentialsAdminAudience = new("native.credentials.adminAudience");
@@ -1900,6 +1902,9 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NavSettings = new("nav.settings");
     public static readonly UiMessageKey SettingsLanguageSupportedCount = new("settings.language.supportedCount");
     public static readonly UiMessageKey SettingsLanguageUseSiteDefault = new("settings.language.useSiteDefault");
+    public static readonly UiMessageKey SharedAccountTypeAiAgent = new("shared.accountType.aiAgent");
+    public static readonly UiMessageKey SharedAccountTypeOfficial = new("shared.accountType.official");
+    public static readonly UiMessageKey SharedAccountTypeSystem = new("shared.accountType.system");
     public static readonly UiMessageKey SharedCountLabelFormat = new("shared.countLabel.format");
 
     public static IReadOnlyList<UiMessageKey> All { get; } =
@@ -2159,6 +2164,8 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteVote,
         ExtractedVotesSemanticVoteVouch,
         NativeAuthEmailAddress,
+        NativeCommonRelatedArticles,
+        NativeCommonRelatedArticlesMore,
         NativeCommonRetry,
         NativeCredentialsAction,
         NativeCredentialsAdminAudience,
@@ -3800,6 +3807,9 @@ public readonly record struct UiMessageKey(string Value)
         NavSettings,
         SettingsLanguageSupportedCount,
         SettingsLanguageUseSiteDefault,
+        SharedAccountTypeAiAgent,
+        SharedAccountTypeOfficial,
+        SharedAccountTypeSystem,
         SharedCountLabelFormat,
     ];
 }

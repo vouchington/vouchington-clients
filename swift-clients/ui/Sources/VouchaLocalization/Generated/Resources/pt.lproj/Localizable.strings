@@ -125,6 +125,10 @@
 "native.auth.verifyCode" = "Verificar código";
 "native.common.done" = "Concluído";
 "native.common.ok" = "OK";
+"native.common.relatedArticles.__plural.one" = "{count} artigo relacionado";
+"native.common.relatedArticles.__plural.other" = "{count} artigos relacionados";
+"native.common.relatedArticlesMore.__plural.one" = "{count}+ artigos relacionados";
+"native.common.relatedArticlesMore.__plural.other" = "{count}+ artigos relacionados";
 "native.common.retry" = "Tentar novamente";
 "native.common.somethingWentWrong" = "Algo deu errado";
 "native.credentials.action" = "Ação";
@@ -2173,6 +2177,9 @@
 "nav.sources" = "Fontes";
 "settings.language.interfaceLabel" = "Idioma da interface";
 "settings.language.useSiteDefault" = "Usar idioma padrão do site";
+"shared.accountType.aiAgent" = "Agente de IA";
+"shared.accountType.official" = "Oficial";
+"shared.accountType.system" = "Sistema";
 "shared.countLabel.format.__select.action.one" = "{count} ação";
 "shared.countLabel.format.__select.action.other" = "{count} ações";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";
