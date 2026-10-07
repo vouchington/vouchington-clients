@@ -4,6 +4,26 @@ import XCTest
 
 @MainActor
 final class NativeDetailReportingTests: NativeRouteSurfaceViewModelTestCase {
+    func testMissingUsernamesDoNotMakeAnotherProfileTheViewer() async throws {
+        let profile = Data(#"{"user":{"id":"user-2","username":null},"profile_links":[]}"#.utf8)
+        let identityCases: [(Data, Int)] = [
+            (Data("{}".utf8), 500),
+            (PrivateUserTestFixture.identityEnvelope(
+                id: "viewer", overrides: ["username": NSNull()]
+            ), 200)
+        ]
+        for (identity, status) in identityCases {
+            CannedFeedURLProtocol.handlers = [
+                "/api/v1/users/user-2": (profile, 200),
+                "/api/v1/my/identity": (identity, status)
+            ]
+            let viewModel = try await load(path: "/user/user-2", destination: .userProfile)
+
+            XCTAssertFalse(viewModel.detailRelationIsSelfProfile)
+            XCTAssertEqual(viewModel.detailReportTarget, .user(id: "user-2"))
+        }
+    }
+
     func testDomainAndUrlRoutesUseCanonicalHostnameReportTarget() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/hostnames/example.com"] = (Self.domainData(), 200)
         let domain = try await load(path: "/domain/example.com", destination: .domainDetail)

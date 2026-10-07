@@ -24,6 +24,7 @@ public extension RSSFeedListViewModel {
     func toggleHide(rssFeedItemId: String) async {
         let wasHidden = hiddenItemIds.contains(rssFeedItemId)
         var removedItem: RemovedArticle?
+        var removedStoryGroup: (id: String, group: StoryRelatedArticles)?
         await toggleBookmark(
             rssFeedItemId: rssFeedItemId,
             predicate: "hide",
@@ -31,11 +32,24 @@ public extension RSSFeedListViewModel {
             activate: {
                 self.hiddenItemIds.insert($0)
                 if !wasHidden {
+                    if let storyId = self.storyIdsByItemId[$0],
+                       let group = self.storyRelatedArticlesByStoryId[storyId],
+                       group.primaryItemId == $0 {
+                        removedStoryGroup = (storyId, group)
+                        group.pagination.invalidateRequestsPreservingPage()
+                        self.storyRelatedArticlesByStoryId.removeValue(forKey: storyId)
+                    }
                     removedItem = self.removeItem(id: $0)
                 }
             },
             deactivate: { self.hiddenItemIds.remove($0) },
-            onRollbackActivate: { self.restoreItem(removedItem) }
+            onRollbackActivate: {
+                self.restoreItem(removedItem)
+                if let removedStoryGroup,
+                   self.storyRelatedArticlesByStoryId[removedStoryGroup.id] == nil {
+                    self.storyRelatedArticlesByStoryId[removedStoryGroup.id] = removedStoryGroup.group
+                }
+            }
         )
     }
 
