@@ -73,7 +73,7 @@ public sealed partial class SettingsViewModel
     try
     {
       var response = await settingsService.FetchScopeCatalogAsync(cancellationToken).ConfigureAwait(true);
-      if (response.Scopes.Any(scope => scope.DescriptionKey is not (null or "mcp_user_full_access" or "mcp_admin_full_access")))
+      if (response.Scopes.Any(scope => !SettingsScopeRow.IsSupportedDescriptionKey(scope.DescriptionKey)))
         throw new InvalidOperationException("Unknown scope description.");
       scopeCatalog = response.Scopes;
       if (!CanSelectAdminApiKeyScopes) apiKeyAudience = "user";

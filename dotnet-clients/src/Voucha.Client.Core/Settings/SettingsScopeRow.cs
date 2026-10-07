@@ -26,13 +26,18 @@ public sealed record SettingsScopeRow(
   public string Requires => ProtocolValue.Requires is { } scope
       ? Localization.Format(UiMessageKey.NativeCredentialsRequires, ("scope", UiText.ProtocolValue(scope)))
       : string.Empty;
-  public string Description => ProtocolValue.DescriptionKey is { } key
-      ? Localization.Localize(DescriptionMessage(key)) : string.Empty;
+  public string Description => ProtocolValue.DescriptionKey is { } key && DescriptionMessage(key) is { } message
+      ? Localization.Localize(message) : string.Empty;
 
-  public static UiMessageKey DescriptionMessage(string key) => key switch
+  public static bool IsSupportedDescriptionKey(string? key) => key is
+      null or "mcp_user_full_access" or "mcp_admin_full_access" or
+      "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write";
+
+  public static UiMessageKey? DescriptionMessage(string key) => key switch
   {
     "mcp_user_full_access" => UiMessageKey.NativeCredentialsMcpUserFullAccess,
     "mcp_admin_full_access" => UiMessageKey.NativeCredentialsMcpAdminFullAccess,
+    "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write" => null,
     _ => UiMessageKey.NativeCredentialsInvalidSelection,
   };
 }

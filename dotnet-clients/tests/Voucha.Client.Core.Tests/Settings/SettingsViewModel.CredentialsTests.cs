@@ -189,6 +189,30 @@ public sealed partial class SettingsViewModelTests
     Assert.DoesNotContain("unknown_description", model.CredentialNotice, StringComparison.Ordinal);
   }
 
+  [Theory]
+  [InlineData("financial_profile_read")]
+  [InlineData("financial_profile_write")]
+  [InlineData("spending_read")]
+  [InlineData("spending_write")]
+  public async Task SupportedOAuthDescriptionsDoNotDisableApiKeyCatalog(string descriptionKey)
+  {
+    var oauthScope = new ScopeCatalogEntry("oauth-only:read", "user", "oauth-only", "read", ["oauth"], descriptionKey, null);
+    var service = new FakeSettingsService
+    {
+      Catalog = new ScopeCatalogResponse([
+          new("rss:read", "api", "rss", "read", ["api-key"], null, null), oauthScope,
+      ]),
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal("rss:read", Assert.Single(model.ApiKeyScopes).Scope);
+    Assert.Equal(string.Empty, new SettingsScopeRow(oauthScope, false, UiLocalization.English).Description);
+    model.SetApiKeyScopeSelected("rss:read", true);
+    Assert.True(model.CanCreateApiKey);
+    Assert.Null(model.CredentialNotice);
+  }
+
   [Fact]
   public async Task SuccessfulRevocationCannotBeUndoneByAnOlderPageResponse()
   {
