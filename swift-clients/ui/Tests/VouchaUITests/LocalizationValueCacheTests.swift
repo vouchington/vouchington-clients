@@ -34,8 +34,9 @@ final class LocalizationValueCacheTests: XCTestCase {
             values: ["common.cancel": "Abort"],
             now: now
         )
-        cache.rememberNotModified(locale: "en", ttlSeconds: 300, now: now.addingTimeInterval(10))
+        cache.rememberNotModified(locale: "en", now: now.addingTimeInterval(10))
         XCTAssertFalse(cache.isExpired(locale: "en", now: now.addingTimeInterval(11)))
+        XCTAssertTrue(cache.isExpired(locale: "en", now: now.addingTimeInterval(20)))
         XCTAssertEqual(cache.value(for: "common.cancel", locale: "en"), "Abort")
     }
 
@@ -45,5 +46,11 @@ final class LocalizationValueCacheTests: XCTestCase {
         cache.apply(locale: "es", revision: "b", ttlSeconds: 60, values: ["b": "67890"])
         XCTAssertNil(cache.value(for: "a", locale: "en"))
         XCTAssertEqual(cache.value(for: "b", locale: "es"), "67890")
+    }
+
+    func testLruEvictsLocaleWhenItsPayloadAloneExceedsByteBound() {
+        let cache = LocalizationValueCache(maxBytes: 4)
+        cache.apply(locale: "en", revision: "a", ttlSeconds: 60, values: ["a": "12345"])
+        XCTAssertNil(cache.value(for: "a", locale: "en"))
     }
 }

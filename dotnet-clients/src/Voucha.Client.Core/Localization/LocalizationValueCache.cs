@@ -53,6 +53,7 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
       foreach (var (key, value) in values) merged[key] = value;
       entries[locale] = new Entry(
           revision,
+          ttlSeconds,
           now.AddSeconds(ttlSeconds),
           merged,
           merged.Values.Sum(static value => EncodingByteCount(value)));
@@ -61,12 +62,12 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
     }
   }
 
-  public void RememberNotModified(string locale, int ttlSeconds, DateTimeOffset now)
+  public void RememberNotModified(string locale, DateTimeOffset now)
   {
     lock (gate)
     {
       if (!entries.TryGetValue(locale, out var entry)) return;
-      entries[locale] = entry with { ExpiresAt = now.AddSeconds(ttlSeconds) };
+      entries[locale] = entry with { ExpiresAt = now.AddSeconds(entry.TtlSeconds) };
       Touch(locale);
     }
   }
@@ -89,7 +90,7 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
   private void Evict()
   {
     var total = entries.Values.Sum(static entry => entry.ByteCount);
-    while (total > maxBytes && order.Count > 1)
+    while (total > maxBytes && order.Count > 0)
     {
       var oldest = order[0];
       order.RemoveAt(0);
@@ -101,6 +102,7 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
 
   private readonly record struct Entry(
       string Revision,
+      int TtlSeconds,
       DateTimeOffset ExpiresAt,
       Dictionary<string, string> Values,
       int ByteCount);

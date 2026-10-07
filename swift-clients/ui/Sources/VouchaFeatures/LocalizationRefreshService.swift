@@ -11,6 +11,7 @@ public enum LocalizationRefreshService {
         now: Date = Date()
     ) async {
         let locale = controller.locale.rawValue
+        guard cache.isExpired(locale: locale, now: now) else { return }
         let etag = cache.etag(for: locale)
         var endpoint = Endpoint.localization(
             consumer: NativeLocalizationSelectors.consumer,
@@ -31,7 +32,7 @@ public enum LocalizationRefreshService {
                 )
                 controller.noteOverlayRefresh()
             } else {
-                cache.rememberNotModified(locale: locale, ttlSeconds: 300, now: now)
+                cache.rememberNotModified(locale: locale, now: now)
             }
         } catch {
             return

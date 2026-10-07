@@ -11,6 +11,7 @@ public sealed class LocalizationRefreshService(
   public async Task RefreshChromeAsync(CancellationToken cancellationToken = default)
   {
     var locale = localeController.EffectiveLocale;
+    if (!cache.IsExpired(locale, DateTimeOffset.UtcNow)) return;
     try
     {
       var batch = await client.FetchLocalizationAsync(
@@ -22,7 +23,7 @@ public sealed class LocalizationRefreshService(
       var now = DateTimeOffset.UtcNow;
       if (batch is null)
       {
-        cache.RememberNotModified(locale, 300, now);
+        cache.RememberNotModified(locale, now);
         return;
       }
       cache.Apply(

@@ -25,9 +25,10 @@ public sealed class LocalizationValueCacheTests
     var cache = new LocalizationValueCache();
     var now = DateTimeOffset.UnixEpoch;
     cache.Apply("en", "rev-1", 10, new Dictionary<string, string> { ["common.cancel"] = "Abort" }, now);
-    cache.RememberNotModified("en", 300, now.AddSeconds(10));
+    cache.RememberNotModified("en", now.AddSeconds(10));
 
     Assert.False(cache.IsExpired("en", now.AddSeconds(11)));
+    Assert.True(cache.IsExpired("en", now.AddSeconds(20)));
     Assert.Equal("Abort", cache.Value("common.cancel", "en"));
   }
 
@@ -40,5 +41,13 @@ public sealed class LocalizationValueCacheTests
 
     Assert.Null(cache.Value("a", "en"));
     Assert.Equal("67890", cache.Value("b", "es"));
+  }
+
+  [Fact]
+  public void LruEvictsLocaleWhenItsPayloadAloneExceedsByteBound()
+  {
+    var cache = new LocalizationValueCache(4);
+    cache.Apply("en", "a", 60, new Dictionary<string, string> { ["a"] = "12345" }, DateTimeOffset.UnixEpoch);
+    Assert.Null(cache.Value("a", "en"));
   }
 }

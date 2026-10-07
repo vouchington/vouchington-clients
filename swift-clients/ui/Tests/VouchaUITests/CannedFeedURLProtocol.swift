@@ -7,6 +7,7 @@ final class CannedFeedURLProtocol: URLProtocol {
         let url: URL
         let method: String
         let body: String?
+        let ifNoneMatch: String?
     }
 
     struct RequestBarrier {
@@ -397,7 +398,8 @@ final class CannedFeedURLProtocol: URLProtocol {
             sequence: sequence,
             url: url,
             method: request.httpMethod ?? "GET",
-            body: capturedBody(from: request)
+            body: capturedBody(from: request),
+            ifNoneMatch: request.value(forHTTPHeaderField: "If-None-Match")
         ))
         return sequence
     }

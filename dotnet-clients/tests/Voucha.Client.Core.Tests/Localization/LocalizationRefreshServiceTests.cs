@@ -52,6 +52,29 @@ public sealed class LocalizationRefreshServiceTests
 
     Assert.Equal("Abort", cache.Value("common.cancel", "en"));
     Assert.False(cache.IsExpired("en", DateTimeOffset.UtcNow.AddSeconds(1)));
+    Assert.True(cache.IsExpired("en", DateTimeOffset.UtcNow.AddSeconds(11)));
+  }
+
+  [Fact]
+  public async Task RefreshChromeSkipsNetworkWhenCachedLocaleIsFresh()
+  {
+    var now = DateTimeOffset.UtcNow;
+    var cache = new LocalizationValueCache();
+    cache.Apply(
+        "en",
+        "rev-1",
+        120,
+        new Dictionary<string, string> { ["common.cancel"] = "Abort" },
+        now);
+    var handler = new RecordingHandler("{}");
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
+    var service = new LocalizationRefreshService(client, controller, cache);
+
+    await service.RefreshChromeAsync(TestContext.Current.CancellationToken);
+
+    Assert.Null(handler.PathAndQuery);
+    Assert.Equal("Abort", cache.Value("common.cancel", "en"));
   }
 
   private sealed class RecordingHandler(string body, HttpStatusCode status = HttpStatusCode.OK)

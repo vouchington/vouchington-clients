@@ -60,6 +60,7 @@ public final class LocalizationValueCache: @unchecked Sendable {
         let byteCount = merged.values.reduce(0) { $0 + $1.utf8.count }
         entries[locale] = Entry(
             revision: revision,
+            ttlSeconds: ttlSeconds,
             expiresAt: now.addingTimeInterval(TimeInterval(ttlSeconds)),
             values: merged,
             byteCount: byteCount
@@ -68,11 +69,11 @@ public final class LocalizationValueCache: @unchecked Sendable {
         evictLocked()
     }
 
-    public func rememberNotModified(locale: String, ttlSeconds: Int, now: Date = Date()) {
+    public func rememberNotModified(locale: String, now: Date = Date()) {
         lock.lock()
         defer { lock.unlock() }
         guard var entry = entries[locale] else { return }
-        entry.expiresAt = now.addingTimeInterval(TimeInterval(ttlSeconds))
+        entry.expiresAt = now.addingTimeInterval(TimeInterval(entry.ttlSeconds))
         entries[locale] = entry
         touchLocked(locale)
     }
@@ -84,7 +85,7 @@ public final class LocalizationValueCache: @unchecked Sendable {
 
     private func evictLocked() {
         var total = entries.values.reduce(0) { $0 + $1.byteCount }
-        while total > maxBytes, order.count > 1, let oldest = order.first {
+        while total > maxBytes, let oldest = order.first {
             order.removeFirst()
             if let removed = entries.removeValue(forKey: oldest) {
                 total -= removed.byteCount
@@ -94,6 +95,7 @@ public final class LocalizationValueCache: @unchecked Sendable {
 
     private struct Entry {
         var revision: String
+        var ttlSeconds: Int
         var expiresAt: Date
         var values: [String: String]
         var byteCount: Int
