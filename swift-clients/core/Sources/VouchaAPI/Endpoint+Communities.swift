@@ -7,6 +7,11 @@ public struct CommunityApplicationQuestionInput: Encodable, Sendable {
     public let options: [String]?
     public let required: Bool?
 
+    private enum CodingKeys: String, CodingKey {
+        case question, fieldType, options
+        case required = "is_required"
+    }
+
     public init(
         question: String,
         fieldType: CommunityApplicationQuestionFieldType,

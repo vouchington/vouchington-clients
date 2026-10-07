@@ -217,11 +217,11 @@ final class EndpointCommunityCoverageTests: XCTestCase {
         assertEndpoint(
             Endpoint.setCommunityApplicationQuestions(
                 idOrSlug: "test community",
-                questions: [CommunityApplicationQuestionInput(question: "Why?", fieldType: .shortText)]
+                questions: [CommunityApplicationQuestionInput(question: "Why?", fieldType: .shortText, required: false)]
             ),
             method: .PUT,
             path: "/api/v1/communities/test%20community/application-questions",
-            body: ["questions": [["question": "Why?", "field_type": "short_text"]]]
+            body: ["questions": [["question": "Why?", "field_type": "short_text", "is_required": false]]]
         )
         assertEndpoint(
             Endpoint.submitCommunityApplication(

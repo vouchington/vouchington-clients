@@ -43,7 +43,7 @@ struct NativeReviewQueueMediaGroup: View {
 
     private func images(_ values: [AdminReviewQueueImage]) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            ForEach(values.sorted(by: { $0.orderIndex < $1.orderIndex }), id: \.imageId) { image in
+            ForEach(values.sorted(by: { $0.orderIndex < $1.orderIndex }), id: \.placementId) { image in
                 AsyncImageView(
                     urlString: AppConfig.shared.imageURL(
                         forPlacementId: image.placementId,

@@ -242,8 +242,8 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(body?.contains(#""hostname":null"#) == true)
         XCTAssertTrue(body?.contains(#""logo_image_id":"logo-1""#) == true)
         XCTAssertTrue(body?.contains(#""hero_image_id":null"#) == true)
-        XCTAssertTrue(body?.contains(#""noindex":true"#) == true)
-        XCTAssertTrue(body?.contains(#""allow_reviews":true"#) == true)
+        XCTAssertTrue(body?.contains(#""is_noindexed":true"#) == true)
+        XCTAssertTrue(body?.contains(#""should_allow_reviews":true"#) == true)
     }
 
     func testTopicManagementViewModelCreateLoadAndGuardBranches() async throws {
@@ -339,8 +339,8 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(body.contains(#""hostname":null"#))
         XCTAssertTrue(body.contains(#""logo_image_id":null"#))
         XCTAssertTrue(body.contains(#""hero_image_id":"hero-1""#))
-        XCTAssertTrue(body.contains(#""noindex":true"#))
-        XCTAssertTrue(body.contains(#""allow_reviews":true"#))
+        XCTAssertTrue(body.contains(#""is_noindexed":true"#))
+        XCTAssertTrue(body.contains(#""should_allow_reviews":true"#))
     }
 
     func testTopicManagementViewModelManagesAliasesAndHostnames() async throws {
@@ -430,8 +430,8 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
           "markdown": "Body",
           "topic_type": "rss_feed",
           "aliases": ["alias"],
-          "allow_reviews": true,
-          "noindex": false,
+          "should_allow_reviews": true,
+          "is_noindexed": false,
           "hostname_id": "hostname-1",
           "hostname": { "id": "hostname-1", "hostname": "example.com", "topic_id": "topic-1" },
           "logo_image_id": "logo-1",

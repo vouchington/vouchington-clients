@@ -51,6 +51,25 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertNoThrow(try inspection.find(text: "Exposure status needs an update."))
     }
 
+    func testSeparatePlacementsOfSameImageKeepTheirOwnMediaRows() throws {
+        let post = try decodedPost(id: "shared-image", requiresReveal: false, repeatedImageId: true)
+        let viewModel = try makeViewModel(posts: [post])
+        let inspection = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
+
+        let images = inspection.findAll(ViewType.View<AsyncImageView>.self)
+        XCTAssertEqual(images.count, 2)
+        XCTAssertEqual(
+            try images[0].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-1/0/image-1?w=960"
+        )
+        XCTAssertEqual(
+            try images[1].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-2/0/image-1?w=960"
+        )
+        XCTAssertNoThrow(try inspection.find(text: "First image"))
+        XCTAssertNoThrow(try inspection.find(text: "Second image"))
+    }
+
     func testCooldownAndStaleStatesOfferBreakAndRefetchWithoutDisablingActions() throws {
         let post = try decodedPost(id: "sensitive", requiresReveal: true)
         let viewModel = try makeViewModel(posts: [post])
@@ -84,7 +103,10 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         return viewModel
     }
 
-    private func decodedPost(id: String, requiresReveal: Bool) throws -> AdminReviewQueuePost {
+    private func decodedPost(
+        id: String, requiresReveal: Bool, repeatedImageId: Bool = false
+    ) throws -> AdminReviewQueuePost {
+        let secondImageId = repeatedImageId ? "image-1" : "image-2"
         let data = Data(
             """
             {
@@ -99,7 +121,9 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
                 "requires_reveal":\(requiresReveal),
                 "images":[
                   {"image_id":"image-1","placement_id":"placement-1","placement_revision":0,"order_index":0,"caption":"First image"},
-                  {"image_id":"image-2","placement_id":"placement-2","placement_revision":0,"order_index":1,"caption":"Second image"}
+                  {"image_id":"\(
+                      secondImageId
+                  )","placement_id":"placement-2","placement_revision":0,"order_index":1,"caption":"Second image"}
                 ]
               }
             }

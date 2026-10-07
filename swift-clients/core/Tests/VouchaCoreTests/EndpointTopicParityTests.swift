@@ -4,6 +4,15 @@ import Foundation
 import XCTest
 
 final class EndpointTopicParityTests: XCTestCase {
+    func testUpdateTopicFlagsUseProducerWireKeys() {
+        assertEndpoint(
+            Endpoint.updateTopic(id: "topic 1", body: UpdateTopicBody(noindex: true, allowReviews: false)),
+            method: .PATCH,
+            path: "/api/v1/topics/topic%201",
+            body: ["is_noindexed": true, "should_allow_reviews": false]
+        )
+    }
+
     func testCreateTopicEndpointUsesExpectedRoute() {
         assertEndpoint(
             Endpoint.createTopic(body: CreateTopicBody(
