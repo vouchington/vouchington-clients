@@ -65,6 +65,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPageInitialLoad.cs" Link="Pages/SettingsPageInitialLoad.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionInitialRouteState.cs" Link="Pages/CommunitySectionInitialRouteState.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityModerationTransparencyControls.cs" Link="Pages/CommunityModerationTransparencyControls.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodActionView.cs" Link="Pages/CommunityAutomodActionView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />
