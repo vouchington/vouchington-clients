@@ -10,6 +10,10 @@ const dotnet = await readFile(
   new URL('../.github/workflows/repair-dependabot-dotnet-locks.yml', import.meta.url),
   'utf8',
 )
+const swiftAndroidClassifier = await readFile(
+  new URL('../scripts/classify-dependabot-swift-android-repair.mjs', import.meta.url),
+  'utf8',
+)
 
 function count(source, pattern) {
   return [...source.matchAll(pattern)].length
@@ -20,7 +24,7 @@ describe('Dependabot repair workflow contracts', () => {
     await assert.rejects(
       access(new URL('../.github/workflows/repair-dependabot-native.yml', import.meta.url)),
     )
-    assert.match(automerge, /\.dependencyName == "source\.skip\.tools\/skip"/u)
+    assert.match(swiftAndroidClassifier, /dependencyName === 'source\.skip\.tools\/skip'/u)
     assert.doesNotMatch(automerge, /outputs\.dependency-names/u)
   })
 
