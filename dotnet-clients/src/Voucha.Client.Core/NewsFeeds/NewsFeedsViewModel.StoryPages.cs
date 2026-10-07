@@ -38,12 +38,15 @@ public sealed partial class NewsFeedsViewModel
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
-      if (!IsCurrentStoryContinuation(generation, related)) return;
       related.Cancel(request);
     }
     catch (Exception ex)
     {
-      if (!IsCurrentStoryContinuation(generation, related)) return;
+      if (!IsCurrentStoryContinuation(generation, related))
+      {
+        related.Cancel(request);
+        return;
+      }
       related.Fail(request, ex.Message);
     }
   }

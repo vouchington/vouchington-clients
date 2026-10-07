@@ -260,7 +260,8 @@ public sealed class StoryRelatedArticlesTests
 
     await continuation;
     Assert.False(group.HasError);
-    Assert.True(group.IsLoading);
+    Assert.False(group.IsLoading);
+    Assert.True(group.CanLoadMore);
     Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
     Assert.Same(group, model.Items[0].StoryArticles);
 
@@ -459,6 +460,68 @@ public sealed class StoryRelatedArticlesTests
     service.StoryResponse = Task.FromResult(new NewsFeedPage([], new(null, false, null)));
     await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
     Assert.Equal("1 related article", group.CountLabel);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task FailedPrimaryHideRestoresRetryAfterDetachedContinuation(bool cancelStory)
+  {
+    var group = Group(1);
+    var story = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var bookmark = new HeldBookmarkService();
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = story.Task };
+    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmark);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    using var storyCancellation = new CancellationTokenSource();
+    var continuation = model.LoadMoreStoryArticlesAsync(model.Items[0], storyCancellation.Token);
+    var hide = model.ToggleHideAsync(model.Items[0], TestContext.Current.CancellationToken);
+    try
+    {
+      Assert.True(group.IsLoading);
+      Assert.Empty(model.Items);
+
+      if (cancelStory)
+      {
+        storyCancellation.Cancel();
+        story.TrySetCanceled(storyCancellation.Token);
+      }
+      else
+      {
+        story.TrySetException(new HttpRequestException("Offline"));
+      }
+      await continuation;
+      bookmark.Fail();
+      await hide;
+
+      Assert.Same(group, Assert.Single(model.Items).StoryArticles);
+      Assert.False(group.IsLoading);
+      Assert.False(group.HasError);
+      Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+      Assert.True(group.CanLoadMore);
+      Assert.Equal(["opaque+/="], service.StoryCursors);
+      service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("peer-2")], new(null, false, null)));
+      await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+      Assert.Equal(["peer-1", "peer-2"], group.Items.Select(item => item.Id));
+      Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
+    }
+    finally
+    {
+      story.TrySetCanceled(TestContext.Current.CancellationToken);
+      bookmark.Fail();
+      await Task.WhenAll(continuation, hide);
+    }
+  }
+
+  private sealed class HeldBookmarkService : IBookmarkService
+  {
+    private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Task SetAsync(string entityType, string entityId, BookmarkPredicate predicate, bool active,
+        CancellationToken cancellationToken = default) => completion.Task;
+
+    public void Fail() => completion.TrySetException(new HttpRequestException("Hide failed"));
   }
 
   private static StoryRelatedArticles Group(int count) =>
