@@ -91,7 +91,8 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
   private static string Page() => JsonSerializer.Serialize(new
   {
     story = new { id = "story/one", created_at = "2026-01-01T00:00:00Z", updated_at = "2026-01-01T00:00:00Z" },
-    item_ids = new[] { "peer-2", "primary/one" }, page_info = new { has_next_page = false },
+    item_ids = new[] { "peer-2", "primary/one" },
+    page_info = new { has_next_page = false },
     rss_feed_items = new Dictionary<string, object> { ["peer-2"] = Article("peer-2"), ["primary/one"] = Article("primary/one") },
   });
 

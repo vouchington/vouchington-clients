@@ -17,6 +17,7 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
     StoryId = storyId;
     PrimaryItemId = primaryItemId;
     this.localization = localization;
+    ArgumentNullException.ThrowIfNull(pageInfo);
     pages = new(item => item.Id, preview.Where(item => item.Id != primaryItemId));
     pages.RestoreContinuation(pageInfo.EndCursor, pageInfo.HasNextPage);
     Items = new(pages.Items);

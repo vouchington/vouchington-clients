@@ -119,8 +119,11 @@ public sealed partial class NewsFeedsViewModel
     {
       var enabled = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
       await MutateStoryPeerAsync(related, item,
-          peer => peer with { IsSaved = predicate == BookmarkPredicate.Save ? enabled : peer.IsSaved,
-            IsHidden = predicate == BookmarkPredicate.Hide ? enabled : peer.IsHidden },
+          peer => peer with
+          {
+            IsSaved = predicate == BookmarkPredicate.Save ? enabled : peer.IsSaved,
+            IsHidden = predicate == BookmarkPredicate.Hide ? enabled : peer.IsHidden
+          },
           predicate == BookmarkPredicate.Hide && enabled && removeOnActivate,
           () => bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, enabled, cancellationToken)).ConfigureAwait(true);
       return;
