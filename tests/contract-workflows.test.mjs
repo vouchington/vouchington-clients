@@ -332,7 +332,7 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+env:\n\s+npm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
@@ -376,7 +376,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(action, /hashFiles\('candidate-clients\/pnpm-lock\.yaml'\)/u)
     assert.match(action, /key: \$\{\{ runner\.os \}\}-pnpm-clients-/u)
-    assert.match(action, /npm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store/u)
+    assert.match(action, /pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store/u)
     assert.doesNotMatch(workflow, /path:.*skip-swift-home/u)
     assert.doesNotMatch(action, /path:.*skip-swift-home/u)
   })

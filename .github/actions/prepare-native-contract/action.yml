@@ -85,5 +85,5 @@ runs:
       shell: bash
       working-directory: candidate-clients
       env:
-        npm_config_store_dir: ${{ runner.temp }}/pnpm-store
+        pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
       run: pnpm install --frozen-lockfile

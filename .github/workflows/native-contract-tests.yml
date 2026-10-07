@@ -118,7 +118,7 @@ jobs:
       - name: Install trusted Vouchington exporter dependencies
         working-directory: filaments
         env:
-          npm_config_store_dir: ${{ runner.temp }}/pnpm-store
+          pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
         run: pnpm install --frozen-lockfile
       - name: Stage trusted native contract
         env:
