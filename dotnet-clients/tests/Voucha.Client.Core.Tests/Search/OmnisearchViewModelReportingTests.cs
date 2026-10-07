@@ -250,7 +250,7 @@ public sealed class OmnisearchViewModelReportingTests
 
   private static string DomainJson(bool blocked) => $$"""
       {
-        "hostname": { "id": "hostname-1", "hostname": "example.com", "blocked": {{blocked.ToString().ToLowerInvariant()}} },
+        "hostname": { "id": "hostname-1", "hostname": "example.com", "is_blocked": {{blocked.ToString().ToLowerInvariant()}} },
         "topic": null, "top_urls": [], "rss_feeds": [], "hostname_election": null, "election_vote": null
       }
       """;
@@ -258,7 +258,7 @@ public sealed class OmnisearchViewModelReportingTests
   private const string UrlJson = """
       {
         "url": { "id": "url-1", "url": "https://example.com/a", "pathname": "/a",
-          "hostname": { "id": "hostname-1", "hostname": "example.com", "blocked": false } },
+          "hostname": { "id": "hostname-1", "hostname": "example.com", "is_blocked": false } },
         "latest_crawl": null, "can_view_latest_crawl": true, "can_view_crawl_history": true,
         "can_trigger_crawl": false, "url_type": "web", "rss_feed_id": null
       }

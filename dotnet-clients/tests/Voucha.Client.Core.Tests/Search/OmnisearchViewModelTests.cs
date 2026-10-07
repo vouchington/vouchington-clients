@@ -341,9 +341,9 @@ public sealed partial class OmnisearchViewModelTests
             "__entity_type": "hostname",
             "id": "hostname-1",
             "hostname": "example.com",
-            "blocked": false,
-            "crawlable": true,
-            "link_rel_follow": true
+            "is_blocked": false,
+            "is_crawlable": true,
+            "should_follow_link_rel": true
           }
         },
         "hostname_elections": {
@@ -364,8 +364,8 @@ public sealed partial class OmnisearchViewModelTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": { "id": "topic-1", "name": "Example", "slug": "example", "topic_type": "company" },
         "top_urls": [{ "id": "url-1", "pathname": "/native", "url": "https://example.com/native" }],

@@ -276,8 +276,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": { "id": "topic-1", "name": "Example", "slug": "example", "topic_type": "company" },
         "top_urls": [],
@@ -293,8 +293,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": null,
         "top_urls": [{ "id": "url-1", "pathname": "/native", "url": "https://example.com/native" }],
@@ -310,8 +310,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": null,
         "top_urls": [],
@@ -333,8 +333,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": null,
         "top_urls": [],
@@ -356,8 +356,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
           "__entity_type": "hostname",
           "id": "hostname-1",
           "hostname": "example.com",
-          "blocked": false,
-          "crawlable": true
+          "is_blocked": false,
+          "is_crawlable": true
         },
         "topic": null,
         "top_urls": [],
@@ -398,8 +398,8 @@ public sealed class OmnisearchViewModelHostnameActionTests
             "__entity_type": "hostname",
             "id": "hostname-1",
             "hostname": "example.com",
-            "blocked": false,
-            "crawlable": true
+            "is_blocked": false,
+            "is_crawlable": true
           }
         ],
         "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null }
