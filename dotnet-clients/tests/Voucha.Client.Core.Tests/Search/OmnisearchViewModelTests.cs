@@ -113,7 +113,7 @@ public sealed partial class OmnisearchViewModelTests
       new RecordedResponse(HostnameDetailJson),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: AuthenticatedViewerProvider());
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: AuthenticatedViewerProvider(), sessionStore: new VotingSessionStore());
 
     await viewModel.LoadDomainsAsync(TestContext.Current.CancellationToken);
     await viewModel.OpenRowAsync(viewModel.Groups[0].Rows[0], TestContext.Current.CancellationToken);
@@ -202,7 +202,7 @@ public sealed partial class OmnisearchViewModelTests
       new RecordedResponse(UrlDetailJson),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: AuthenticatedViewerProvider());
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: AuthenticatedViewerProvider(), sessionStore: new VotingSessionStore());
 
     await viewModel.LoadUrlDetailAsync("url-1", TestContext.Current.CancellationToken);
     var row = viewModel.Groups.SelectMany(group => group.Rows).Single(row => row.Route == OmnisearchResultRoute.CrawlHistory("url-1"));
@@ -288,7 +288,7 @@ public sealed partial class OmnisearchViewModelTests
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var viewerProvider = AuthenticatedViewerProvider();
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: viewerProvider);
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: viewerProvider, sessionStore: new VotingSessionStore());
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
     await viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);

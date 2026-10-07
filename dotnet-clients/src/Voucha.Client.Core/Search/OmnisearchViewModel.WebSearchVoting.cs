@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Voting;
 
@@ -15,9 +16,7 @@ public sealed partial class OmnisearchViewModel
 
   public bool CanClearSelectedHostnameVote =>
       selectedHostnameId is { } id &&
-      selectedHostnameVote is not null &&
-      ViewerIsAuthenticated &&
-      !ViewerCanCastPublicVotes &&
+      (sessionStore?.Current.CanClearPublicVote(selectedHostnameVote) ?? false) &&
       !votingHostnameIds.Contains(id);
 
   public async Task VoteSelectedHostnameAsync(ElectionVoteChoice? choice, CancellationToken cancellationToken = default)

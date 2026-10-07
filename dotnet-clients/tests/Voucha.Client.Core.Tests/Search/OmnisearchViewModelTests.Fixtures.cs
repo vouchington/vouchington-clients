@@ -1,4 +1,6 @@
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Navigation;
 
 namespace Voucha.Client.Core.Tests.Search;
@@ -31,6 +33,27 @@ public sealed partial class OmnisearchViewModelTests
     var viewerProvider = new MutableNavigationViewerProvider();
     viewerProvider.SetViewer(new NavigationViewer(true, ["administrator"]));
     return viewerProvider;
+  }
+
+  private sealed class VotingSessionStore : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged;
+
+    public SessionSnapshot Current { get; private set; } = new(new User("user-1", "alice"));
+
+    public void SetSession(SessionSnapshot snapshot)
+    {
+      Current = snapshot;
+      SessionChanged?.Invoke(this, new SessionChangedEventArgs(snapshot));
+    }
+
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task SignOutAsync(CancellationToken cancellationToken = default)
+    {
+      SetSession(SessionSnapshot.Anonymous);
+      return Task.CompletedTask;
+    }
   }
 
   private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider

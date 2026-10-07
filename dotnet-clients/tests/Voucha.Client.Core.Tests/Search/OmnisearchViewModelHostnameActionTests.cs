@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Search;
 
-public sealed class OmnisearchViewModelHostnameActionTests
+public sealed partial class OmnisearchViewModelHostnameActionTests
 {
   [Fact]
   public async Task HostnameVotesReconcileRawCountsWhilePreservingTheServerOwnedTrustBadge()
@@ -19,7 +19,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{}"),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     Assert.Equal(("Neutral", "4 up, 0 down"), TrustRow(viewModel));
@@ -44,7 +44,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("vote failed", System.Net.HttpStatusCode.InternalServerError),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     await viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{\"code\":\"EMAIL_VERIFICATION_REQUIRED\"}", System.Net.HttpStatusCode.Forbidden),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     await viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -78,7 +78,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
   {
     var handler = new DeferredHostnameVoteHandler();
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     var firstVote = viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -100,7 +100,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
   {
     var handler = new DeferredHostnameVoteHandler();
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     var vote = viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -119,7 +119,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
   {
     var handler = new DeferredHostnameVoteHandler();
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
     var vote = viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -143,7 +143,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{}"),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider(["administrator"]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider(["administrator"]), sessionStore: new StubSessionStore(AccountType.Official));
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
     await viewModel.VoteSelectedHostnameAsync(ElectionVoteChoice.Like, TestContext.Current.CancellationToken);
@@ -168,7 +168,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{}"),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider(["administrator"]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider(["administrator"]), sessionStore: new StubSessionStore(AccountType.Official));
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
     Assert.False(viewModel.CanVoteSelectedHostname);
@@ -204,7 +204,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{}", System.Net.HttpStatusCode.InternalServerError),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
     await viewModel.LoadUrlsAsync(TestContext.Current.CancellationToken);
@@ -223,7 +223,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
       new RecordedResponse("{}", System.Net.HttpStatusCode.InternalServerError),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([])) { Query = "native" };
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore()) { Query = "native" };
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
     await viewModel.SearchAsync(TestContext.Current.CancellationToken);
@@ -239,7 +239,7 @@ public sealed class OmnisearchViewModelHostnameActionTests
   {
     var handler = new RecordingHandler(HostnameDetailLowSignalElectionJson);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]));
+    var viewModel = new OmnisearchViewModel(client, viewerProvider: ViewerProvider([]), sessionStore: new StubSessionStore());
 
     await viewModel.LoadDomainDetailAsync("hostname-1", TestContext.Current.CancellationToken);
 
@@ -442,8 +442,10 @@ public sealed class OmnisearchViewModelHostnameActionTests
       remove { }
     }
 
-    public SessionSnapshot Current { get; } =
-        new(new User("user-1", "alice", Roles: []));
+    public StubSessionStore(AccountType? accountType = null) =>
+        Current = new(new User("user-1", "alice", Roles: [], AccountType: accountType));
+
+    public SessionSnapshot Current { get; } = SessionSnapshot.Anonymous;
 
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
