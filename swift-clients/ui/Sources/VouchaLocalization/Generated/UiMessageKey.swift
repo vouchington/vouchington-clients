@@ -2170,4 +2170,7 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let sharedAccountTypeOfficial = UiMessageKey(rawValue: "shared.accountType.official")
     public static let sharedAccountTypeSystem = UiMessageKey(rawValue: "shared.accountType.system")
     public static let sharedCountLabelFormat = UiMessageKey(rawValue: "shared.countLabel.format")
+    public static let sharedProvenanceViaApi = UiMessageKey(rawValue: "shared.provenance.viaApi")
+    public static let sharedProvenanceViaApp = UiMessageKey(rawValue: "shared.provenance.viaApp")
+    public static let sharedProvenanceViaMcp = UiMessageKey(rawValue: "shared.provenance.viaMcp")
 }

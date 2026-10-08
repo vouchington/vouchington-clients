@@ -1998,4 +1998,7 @@
   <data name="shared.countLabel.format.__select.visit.other" xml:space="preserve"><value>{count} visits</value></data>
   <data name="shared.countLabel.format.__select.visitor.one" xml:space="preserve"><value>{count} visitor</value></data>
   <data name="shared.countLabel.format.__select.visitor.other" xml:space="preserve"><value>{count} visitors</value></data>
+  <data name="shared.provenance.viaApi" xml:space="preserve"><value>via API</value></data>
+  <data name="shared.provenance.viaApp" xml:space="preserve"><value>via {app}</value></data>
+  <data name="shared.provenance.viaMcp" xml:space="preserve"><value>via MCP</value></data>
 </root>

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Posts;
 using Xunit;
 
@@ -6,6 +7,42 @@ namespace Voucha.Client.Core.Tests.Posts;
 
 public sealed class PostRowsTests
 {
+  [Fact]
+  public void ProvenanceLabelsExposeOnlyTrustedAppNames()
+  {
+    var channel = PublicProvenanceLabels.Resolve(new("mcp", null), UiLocalization.English);
+    var known = PublicProvenanceLabels.Resolve(
+        new("mcp", new PublicProvenanceApp("known", Key: "private-key")), UiLocalization.English);
+    var verified = PublicProvenanceLabels.Resolve(
+        new("api", new PublicProvenanceApp("verified", ClientId: "client-1", ClientName: "Example App")),
+        UiLocalization.English);
+    var hostname = PublicProvenanceLabels.Resolve(
+        new("api", new PublicProvenanceApp("hostname", Hostname: "example.test")), UiLocalization.English);
+
+    Assert.Equal(channel, known);
+    Assert.DoesNotContain("private-key", known ?? string.Empty, StringComparison.Ordinal);
+    Assert.DoesNotContain("client-1", verified ?? string.Empty, StringComparison.Ordinal);
+    Assert.Contains("Example App", verified ?? string.Empty, StringComparison.Ordinal);
+    Assert.Contains("example.test", hostname ?? string.Empty, StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public void FromCarriesOnlyPublicProvenanceFacts()
+  {
+    var labeled = PostRows.From(
+        new Post("post-1", "discussion", "Title", null, "user-1",
+            Provenance: new PublicContentProvenance("api", null)),
+        null, null, null);
+    var unlabeled = PostRows.From(
+        new Post("post-2", "story", "Title", null, "user-1"),
+        null, null, null);
+
+    Assert.Equal("api", labeled.Provenance?.Via);
+    Assert.True(labeled.HasProvenance);
+    Assert.Null(unlabeled.Provenance);
+    Assert.False(unlabeled.HasProvenance);
+  }
+
   [Fact]
   public void FromCarriesCommentRootId()
   {

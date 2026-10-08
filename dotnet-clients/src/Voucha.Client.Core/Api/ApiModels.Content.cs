@@ -49,7 +49,19 @@ public sealed record Post(
     [property: JsonPropertyName("post_explicit_categories")] IReadOnlyList<PostExplicitCategory>? PostExplicitCategories = null,
     [property: JsonPropertyName("post_hashtags")] IReadOnlyList<PostHashtag>? PostHashtags = null,
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
-    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
+
+public sealed record PublicContentProvenance(
+    [property: JsonPropertyName("via")] string Via,
+    [property: JsonPropertyName("app")] PublicProvenanceApp? App);
+
+public sealed record PublicProvenanceApp(
+    [property: JsonPropertyName("kind")] string Kind,
+    [property: JsonPropertyName("key")] string? Key = null,
+    [property: JsonPropertyName("hostname")] string? Hostname = null,
+    [property: JsonPropertyName("client_id")] string? ClientId = null,
+    [property: JsonPropertyName("client_name")] string? ClientName = null);
 
 public sealed record PostExplicitCategory(
     [property: JsonPropertyName("type")] string Type,

@@ -122,7 +122,8 @@ public sealed record Community(
     [property: JsonPropertyName("owner")] User? Owner = null,
     [property: JsonPropertyName("automod_action")] string? AutomodAction = null,
     [property: JsonPropertyName("banner_image_placement")] TopicImagePlacement? BannerImagePlacement = null,
-    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null);
+    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null,
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
 
 public sealed record CommunityMetrics(
     [property: JsonPropertyName("id")] string Id,

@@ -27,6 +27,7 @@
                     <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
                     <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
                     <Label Text="{Binding RootRow.AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding RootRow.ProvenanceLabel}" IsVisible="{Binding RootRow.HasProvenance}" Style="{StaticResource Metadata}" />
                     <controls:NativeHtmlContentView Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" IsRightToLeft="{Binding RootRow.ContentIsRightToLeft}" />
                     <VerticalStackLayout Spacing="4" IsVisible="{Binding RootRow.EmbedPreview.HasPreview}">
                         <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.EmbedPreview.ThumbnailUrl}" />
@@ -89,6 +90,7 @@
                                 <Label Text="{Binding LocalizedTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Body}" />
                                 <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                     <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
                                     <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
@@ -127,6 +129,7 @@
                                     <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" />
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
                                 <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" IsRightToLeft="{Binding ContentIsRightToLeft}" />

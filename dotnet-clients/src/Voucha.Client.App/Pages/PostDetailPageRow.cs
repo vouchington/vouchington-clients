@@ -46,6 +46,10 @@ public sealed record PostDetailPageRow(
 
   public string LocalizedTitle => Localization.Resolve(TitleText);
 
+  public string? ProvenanceLabel => PublicProvenanceLabels.Resolve(Post.Provenance, Localization);
+
+  public bool HasProvenance => ProvenanceLabel is not null;
+
   public string BodyText => Post.Markdown ?? Post.Html ?? string.Empty;
 
   public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(

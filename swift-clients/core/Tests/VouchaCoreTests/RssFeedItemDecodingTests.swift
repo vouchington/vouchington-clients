@@ -3,6 +3,56 @@ import Foundation
 import XCTest
 
 final class RssFeedItemDecodingTests: XCTestCase {
+    func testEmbeddedFeedPreservesPublicProvenanceFromDirectFeed() throws {
+        let provenanceCases = [
+            (
+                #"""
+                {
+                  "via": "mcp",
+                  "app": {
+                    "kind": "verified",
+                    "client_id": "voucha_fixture_agent",
+                    "client_name": "Fixture Agent"
+                  }
+                }
+                """#,
+                "mcp"
+            ),
+            (
+                #"{"via":"api","app":null}"#,
+                "api"
+            )
+        ]
+
+        for (index, (provenance, via)) in provenanceCases.enumerated() {
+            let sourceJSON = """
+            {
+              "id": "feed-\(index)",
+              "title": "Example Feed",
+              "feed_type": "article",
+              "rss_feed_url": { "url": "https://example.com/feed.xml" },
+              "etag": null,
+              "home_page_url": null,
+              "last_modified_at": null,
+              "hostname": null,
+              "publisher_type": null,
+              "podcast_show": null,
+              "provenance": \(provenance)
+            }
+            """
+            let source = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(sourceJSON.utf8)) as? [String: Any])
+            let directFeed = try makeVouchaDecoder().decode(RssFeedSource.self, from: Data(sourceJSON.utf8))
+            let itemData = try JSONSerialization.data(withJSONObject: [
+                "id": "item-\(index)",
+                "rss_feed": source
+            ])
+            let item = try makeVouchaDecoder().decode(RssFeedItem.self, from: itemData)
+            XCTAssertEqual(directFeed.provenance?.via, via)
+            XCTAssertEqual(item.rssFeed?.id, directFeed.id)
+            XCTAssertEqual(item.rssFeed?.provenance, directFeed.provenance)
+        }
+    }
+
     func testFallsBackToNestedRssFeedIdWhenFlatFieldIsMissing() throws {
         let decoder = makeVouchaDecoder()
         let json = Data(

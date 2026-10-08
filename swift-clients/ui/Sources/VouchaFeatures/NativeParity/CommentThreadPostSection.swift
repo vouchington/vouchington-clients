@@ -46,6 +46,7 @@ struct CommentThreadPostSection: View {
                         )
                     AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
                         .accountType)
+                    ProvenanceBadge(provenance: post.provenance)
                     Text(pathText)
                         .font(Typography.caption.monospaced())
                         .foregroundStyle(Colors.secondaryLabel)
