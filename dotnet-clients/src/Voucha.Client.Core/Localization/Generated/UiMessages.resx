@@ -681,6 +681,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Active: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Backfills</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Completed: {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Delayed: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Failed: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Queues: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Run backfill</value></data>

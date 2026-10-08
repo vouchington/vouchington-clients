@@ -752,14 +752,14 @@
 "native.swift.engineeringQueues.backfills" = "Rattrapages";
 "native.swift.engineeringQueues.pause" = "Suspendre";
 "native.swift.engineeringQueues.queueStats" = "Statistiques des files";
-"native.swift.engineeringQueues.queueSummary" = "{waiting} en attente · {active} actives · {failed} en échec · {completed} terminées";
+"native.swift.engineeringQueues.queueSummary" = "{waiting} en attente · {delayed} différées · {active} actives · {failed} en échec · {completed} terminées";
 "native.swift.engineeringQueues.queues" = "Files";
 "native.swift.engineeringQueues.resume" = "Reprendre";
 "native.swift.engineeringQueues.runBackfill" = "Exécuter le Remplissage";
 "native.swift.engineeringQueues.runBackfillConfirmationTitle" = "Exécuter le rattrapage ?";
 "native.swift.engineeringQueues.runBackfillMessage" = "Cette action exécutera le rattrapage {id}.";
 "native.swift.engineeringQueues.scheduledJobs" = "Tâches planifiées";
-"native.swift.engineeringQueues.statsSummary" = "{waiting} en attente, {active} actives, {failed} en échec, {queues} files";
+"native.swift.engineeringQueues.statsSummary" = "{waiting} en attente, {delayed} différées, {active} actives, {failed} en échec, {queues} files";
 "native.swift.engineeringValkey.bloomFilterRebuild" = "Reconstruction du filtre de Bloom";
 "native.swift.engineeringValkey.cacheManagement" = "Gestion du cache";
 "native.swift.engineeringValkey.clearAll" = "Tout effacer";

@@ -681,6 +681,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Ativas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Reprocessamentos</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Concluídas: {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Adiadas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Falhadas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Filas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Executar reprocessamento</value></data>

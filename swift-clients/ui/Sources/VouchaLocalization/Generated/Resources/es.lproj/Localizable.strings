@@ -752,14 +752,14 @@
 "native.swift.engineeringQueues.backfills" = "Cargas retroactivas";
 "native.swift.engineeringQueues.pause" = "Pausar";
 "native.swift.engineeringQueues.queueStats" = "Estadísticas de colas";
-"native.swift.engineeringQueues.queueSummary" = "{waiting} en espera · {active} activos · {failed} fallidos · {completed} completados";
+"native.swift.engineeringQueues.queueSummary" = "{waiting} en espera · {delayed} retrasados · {active} activos · {failed} fallidos · {completed} completados";
 "native.swift.engineeringQueues.queues" = "Colas";
 "native.swift.engineeringQueues.resume" = "Reanudar";
 "native.swift.engineeringQueues.runBackfill" = "Ejecutar Relleno";
 "native.swift.engineeringQueues.runBackfillConfirmationTitle" = "¿Ejecutar la carga retroactiva?";
 "native.swift.engineeringQueues.runBackfillMessage" = "Esto ejecutará el relleno {id}.";
 "native.swift.engineeringQueues.scheduledJobs" = "Trabajos programados";
-"native.swift.engineeringQueues.statsSummary" = "{waiting} en espera, {active} activos, {failed} fallidos, {queues} colas";
+"native.swift.engineeringQueues.statsSummary" = "{waiting} en espera, {delayed} retrasados, {active} activos, {failed} fallidos, {queues} colas";
 "native.swift.engineeringValkey.bloomFilterRebuild" = "Reconstrucción del filtro de Bloom";
 "native.swift.engineeringValkey.cacheManagement" = "Gestión de caché";
 "native.swift.engineeringValkey.clearAll" = "Limpiar todo";

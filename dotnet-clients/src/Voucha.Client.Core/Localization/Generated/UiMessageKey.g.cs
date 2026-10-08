@@ -682,6 +682,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesActiveCount = new("native.dotnet.engineeringQueues.activeCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesBackfills = new("native.dotnet.engineeringQueues.backfills");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesCompletedCount = new("native.dotnet.engineeringQueues.completedCount");
+    public static readonly UiMessageKey NativeDotnetEngineeringQueuesDelayedCount = new("native.dotnet.engineeringQueues.delayedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesFailedCount = new("native.dotnet.engineeringQueues.failedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesQueueCount = new("native.dotnet.engineeringQueues.queueCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesRunBackfill = new("native.dotnet.engineeringQueues.runBackfill");
@@ -2591,6 +2592,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetEngineeringQueuesActiveCount,
         NativeDotnetEngineeringQueuesBackfills,
         NativeDotnetEngineeringQueuesCompletedCount,
+        NativeDotnetEngineeringQueuesDelayedCount,
         NativeDotnetEngineeringQueuesFailedCount,
         NativeDotnetEngineeringQueuesQueueCount,
         NativeDotnetEngineeringQueuesRunBackfill,

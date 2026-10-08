@@ -752,14 +752,14 @@
 "native.swift.engineeringQueues.backfills" = "Backfills";
 "native.swift.engineeringQueues.pause" = "Pause";
 "native.swift.engineeringQueues.queueStats" = "Queue Stats";
-"native.swift.engineeringQueues.queueSummary" = "{waiting} waiting · {active} active · {failed} failed · {completed} completed";
+"native.swift.engineeringQueues.queueSummary" = "{waiting} waiting · {delayed} delayed · {active} active · {failed} failed · {completed} completed";
 "native.swift.engineeringQueues.queues" = "Queues";
 "native.swift.engineeringQueues.resume" = "Resume";
 "native.swift.engineeringQueues.runBackfill" = "Run Backfill";
 "native.swift.engineeringQueues.runBackfillConfirmationTitle" = "Run backfill?";
 "native.swift.engineeringQueues.runBackfillMessage" = "This will run the {id} backfill.";
 "native.swift.engineeringQueues.scheduledJobs" = "Scheduled Jobs";
-"native.swift.engineeringQueues.statsSummary" = "{waiting} waiting, {active} active, {failed} failed, {queues} queues";
+"native.swift.engineeringQueues.statsSummary" = "{waiting} waiting, {delayed} delayed, {active} active, {failed} failed, {queues} queues";
 "native.swift.engineeringValkey.bloomFilterRebuild" = "Bloom Filter Rebuild";
 "native.swift.engineeringValkey.cacheManagement" = "Cache Management";
 "native.swift.engineeringValkey.clearAll" = "Clear All";

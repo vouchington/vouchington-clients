@@ -681,6 +681,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Actives : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Reprises historiques</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Terminées : {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Différées : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Échouées : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Files : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Lancer la reprise historique</value></data>
