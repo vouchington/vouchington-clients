@@ -1,6 +1,6 @@
 # Claude Code configuration
 
-No repository file registers an MCP server, plugin, marketplace, or tool approval.
+No repository file registers an MCP server, plugin, marketplace, or MCP tool approval.
 vouchington-machines registers the `vouchington-tooling` MCP server once per machine and
 pre-approves its tools; journal through it with the `vouchington-workflow:blackboard` skill.
 
@@ -45,6 +45,6 @@ workflow. Its repository guidance is portable; it does not install Filaments web
 or post-edit hooks in this client checkout.
 
 Session ids, agent names, and parent-session ids remain explicit journal inputs; the server must
-not infer them. Plugins, marketplaces, MCP servers, tool approvals, and machine sandbox, model,
+not infer them. Plugins, marketplaces, MCP servers, MCP tool approvals, and machine sandbox, model,
 permission-mode, and startup defaults belong in the host setup described by the [agent
 configuration ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).

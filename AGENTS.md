@@ -34,7 +34,7 @@ explicit and must never be used from the primary worktree.
 
 Use the machine-registered `vouchington-tooling` MCP server, installed by vouchington-machines,
 together with the `vouchington-workflow:blackboard` skill for session journaling. No repository
-file registers an MCP server, plugin, marketplace, or tool approval. Session ids, agent/version
+file registers an MCP server, plugin, marketplace, or MCP tool approval. Session ids, agent/version
 identities, and parent-session ids must be explicit; never infer or generate them from host state.
 Use only the client credential supplied by `AGENT_BLACKBOARD_TOKEN` with `AGENT_BLACKBOARD_URL`;
 fail closed when either credential is missing, malformed, or unavailable, and never substitute an
