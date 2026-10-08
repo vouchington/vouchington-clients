@@ -49,6 +49,31 @@ final class SettingsNotificationTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(model.current?.days, [1])
     }
 
+    func testRenderedModerationScheduleAppearsAndDisappearsWithEnabledPreference() async throws {
+        let path = "/api/v1/my/email-preferences"
+        CannedFeedURLProtocol.handlers[path] = (preferences(cadence: "selected_days"), 200)
+        let notifications = try NotificationSettingsViewModel(client: makeClient())
+        await notifications.load()
+        let surface = SettingsSurface(
+            viewModel: SettingsViewModel(client: nil),
+            focusedSection: .notifications,
+            notificationSettingsViewModel: notifications
+        )
+
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
+
+        CannedFeedURLProtocol.handlers[path] = (preferences(moderation: false, cadence: "selected_days"), 200)
+        await notifications.setModeration(false)
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 0)
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 2)
+
+        CannedFeedURLProtocol.handlers[path] = (preferences(cadence: "selected_days"), 200)
+        await notifications.setModeration(true)
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
+        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
+    }
+
     func testReturnedResponseCommitsOnlyTheMutatedField() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/email-preferences"] = (preferences(), 200)
         let model = try NotificationSettingsViewModel(client: makeClient())
