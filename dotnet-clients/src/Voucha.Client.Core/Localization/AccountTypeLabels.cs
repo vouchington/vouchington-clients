@@ -7,12 +7,14 @@ public static class AccountTypeLabels
   public static string? Resolve(AccountType? accountType, IUiLocalization localization)
   {
     ArgumentNullException.ThrowIfNull(localization);
-    return accountType switch
-    {
-      AccountType.Official => localization.Localize(UiMessageKey.SharedAccountTypeOfficial),
-      AccountType.System => localization.Localize(UiMessageKey.SharedAccountTypeSystem),
-      AccountType.AiAgent => localization.Localize(UiMessageKey.SharedAccountTypeAiAgent),
-      _ => null,
-    };
+    return MessageKey(accountType) is { } key ? localization.Localize(key) : null;
   }
+
+  public static UiMessageKey? MessageKey(AccountType? accountType) => accountType switch
+  {
+    AccountType.Official => UiMessageKey.SharedAccountTypeOfficial,
+    AccountType.System => UiMessageKey.SharedAccountTypeSystem,
+    AccountType.AiAgent => UiMessageKey.SharedAccountTypeAiAgent,
+    _ => null,
+  };
 }

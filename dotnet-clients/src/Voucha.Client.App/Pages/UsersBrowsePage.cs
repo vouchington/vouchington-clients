@@ -78,12 +78,13 @@ public sealed class UsersBrowsePage : ContentPage, IDisposable
   {
     var name = new Label { FontAttributes = FontAttributes.Bold };
     var handle = new Label();
+    var accountType = new Label { AutomationId = "user-card-account-type" };
     var email = new Label { AutomationId = "user-card-email" };
     var status = new Label { AutomationId = "user-card-status" };
     var manage = UiCopy.Bind(new Button { AutomationId = "user-card-manage-link" }, Button.TextProperty, UiMessageKey.NativeSwiftCommonManage);
-    var labels = new VerticalStackLayout { Children = { name, handle, email, status } };
+    var labels = new VerticalStackLayout { Children = { name, handle, accountType, email, status } };
     var row = new HorizontalStackLayout { Spacing = 10, Children = { labels, manage } };
-    void Bind() => BindRow(row, name, handle, email, status, manage);
+    void Bind() => BindRow(row, name, handle, accountType, email, status, manage);
     row.BindingContextChanged += (_, _) => Bind();
     rebindRows.Add(Bind);
     manage.Clicked += async (_, _) =>
@@ -95,11 +96,18 @@ public sealed class UsersBrowsePage : ContentPage, IDisposable
     return row;
   }
 
-  private void BindRow(BindableObject row, Label name, Label handle, Label email, Label status, View manage)
+  private void BindRow(BindableObject row, Label name, Label handle, Label accountType, Label email, Label status, View manage)
   {
     if (row.BindingContext is not UserSearchResult user) return;
     name.Text = UserLabel(user);
     handle.Text = UiUserHandle.FromUsername(user.Username).Value;
+    accountType.RemoveDynamicResource(Label.TextProperty);
+    accountType.ClearValue(Label.TextProperty);
+    accountType.IsVisible = AccountTypeLabels.MessageKey(user.AccountType) is not null;
+    if (AccountTypeLabels.MessageKey(user.AccountType) is { } accountTypeKey)
+      accountType.SetDynamicResource(Label.TextProperty, accountTypeKey.Value);
+    else
+      accountType.Text = null;
     manage.IsVisible = viewModel.IsAdministrator;
     if (viewModel.IsAdministrator)
     {
