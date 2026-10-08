@@ -38,6 +38,128 @@ extension RSSFeedListViewModelTests {
         XCTAssertTrue(vm.relatedArticles(rssFeedItemId: "primary") === original)
     }
 
+    func testFailedPrimaryHideReconcilesInterveningFeedMembers() async throws {
+        for suppliesPreview in [false, true] {
+            CannedFeedURLProtocol.reset()
+            let vm = await loadStoryPreview(
+                peers: ["peer-3"], feedHasMore: true, storyHasMore: !suppliesPreview
+            )
+            let original = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
+            original.isExpanded = true
+            let feedPath = "/api/v1/feeds/rss_feed_items/any"
+            let hidePath = "/api/v1/bookmarks/rss_feed_item/primary/hide"
+            CannedFeedURLProtocol.handlers[feedPath] = (
+                makeFeedPage(
+                    ids: ["later-primary", "later-sibling"], hasMore: false,
+                    storyIds: ["later-primary": "story-1", "later-sibling": "story-1"],
+                    storyRelatedIds: suppliesPreview ? ["story-1": ["primary", "preview-peer"]] : [:],
+                    storyHasMore: suppliesPreview, storyEndCursor: "replacement-cursor"
+                ), 200
+            )
+            CannedFeedURLProtocol.handlers[hidePath] = (Data("{}".utf8), 500)
+            let hideBarrier = CannedFeedURLProtocol.requestBarrier(path: hidePath, method: "PUT")
+            CannedFeedURLProtocol.suspendResponse(path: hidePath)
+            CannedFeedURLProtocol.suspendResponse(path: feedPath)
+            defer { CannedFeedURLProtocol.discardPendingResponses() }
+            let pendingHide = Task { await vm.toggleHide(rssFeedItemId: "primary") }
+            do {
+                _ = try await hideBarrier.wait()
+            } catch {
+                pendingHide.cancel()
+                CannedFeedURLProtocol.releaseResponse(path: hidePath)
+                CannedFeedURLProtocol.discardPendingResponses()
+                await pendingHide.value
+                throw error
+            }
+            let feedBarrier = CannedFeedURLProtocol.requestBarrier(path: feedPath, method: "GET")
+            let pendingFeed = Task { await vm.loadNextPage() }
+            do {
+                _ = try await feedBarrier.wait()
+            } catch {
+                pendingFeed.cancel()
+                pendingHide.cancel()
+                CannedFeedURLProtocol.releaseResponse(path: feedPath)
+                CannedFeedURLProtocol.releaseResponse(path: hidePath)
+                CannedFeedURLProtocol.discardPendingResponses()
+                await pendingFeed.value
+                await pendingHide.value
+                throw error
+            }
+            CannedFeedURLProtocol.releaseResponse(path: feedPath)
+            await pendingFeed.value
+            XCTAssertEqual(vm.items.map(\.id), suppliesPreview ? ["later-primary"] : ["later-primary", "later-sibling"])
+
+            CannedFeedURLProtocol.releaseResponse(path: hidePath)
+            await pendingHide.value
+            XCTAssertEqual(vm.items.map(\.id), ["primary"])
+            XCTAssertTrue(vm.relatedArticles(rssFeedItemId: "primary") === original)
+            XCTAssertEqual(
+                Set(original.pagination.items.map(\.id)),
+                Set(suppliesPreview
+                    ? ["peer-3", "later-primary", "later-sibling", "preview-peer"]
+                    : ["peer-3", "later-primary", "later-sibling"])
+            )
+            XCTAssertEqual(original.pagination.endCursor, suppliesPreview ? "replacement-cursor" : "opaque+/=")
+            XCTAssertTrue(original.pagination.hasMore)
+            XCTAssertTrue(original.isExpanded)
+            XCTAssertFalse(original.pagination.items.contains { $0.id == "primary" })
+            XCTAssertFalse(vm.isHidden(rssFeedItemId: "primary"))
+        }
+    }
+
+    func testFailedPeerAndPrimaryHidesRestoreDetachedOriginalGroup() async throws {
+        let vm = await loadStoryPreview(peers: ["peer-3"])
+        let original = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
+        let peerPath = "/api/v1/bookmarks/rss_feed_item/peer-3/hide"
+        let primaryPath = "/api/v1/bookmarks/rss_feed_item/primary/hide"
+        CannedFeedURLProtocol.handlers[peerPath] = (Data("{}".utf8), 500)
+        CannedFeedURLProtocol.handlers[primaryPath] = (Data("{}".utf8), 500)
+        let peerBarrier = CannedFeedURLProtocol.requestBarrier(path: peerPath, method: "PUT")
+        CannedFeedURLProtocol.suspendResponse(path: peerPath)
+        CannedFeedURLProtocol.suspendResponse(path: primaryPath)
+        defer { CannedFeedURLProtocol.discardPendingResponses() }
+
+        let pendingPeer = Task { await vm.toggleHide(rssFeedItemId: "peer-3") }
+        do {
+            _ = try await peerBarrier.wait()
+        } catch {
+            pendingPeer.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: peerPath)
+            CannedFeedURLProtocol.discardPendingResponses()
+            await pendingPeer.value
+            throw error
+        }
+        XCTAssertTrue(original.pagination.items.isEmpty)
+        let primaryBarrier = CannedFeedURLProtocol.requestBarrier(path: primaryPath, method: "PUT")
+        let pendingPrimary = Task { await vm.toggleHide(rssFeedItemId: "primary") }
+        do {
+            _ = try await primaryBarrier.wait()
+        } catch {
+            pendingPeer.cancel()
+            pendingPrimary.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: peerPath)
+            CannedFeedURLProtocol.releaseResponse(path: primaryPath)
+            CannedFeedURLProtocol.discardPendingResponses()
+            await pendingPeer.value
+            await pendingPrimary.value
+            throw error
+        }
+        XCTAssertNil(vm.relatedArticles(rssFeedItemId: "primary"))
+
+        CannedFeedURLProtocol.releaseResponse(path: peerPath)
+        await pendingPeer.value
+        XCTAssertFalse(vm.isHidden(rssFeedItemId: "peer-3"))
+        CannedFeedURLProtocol.releaseResponse(path: primaryPath)
+        await pendingPrimary.value
+
+        XCTAssertEqual(vm.items.map(\.id), ["primary"])
+        XCTAssertTrue(vm.relatedArticles(rssFeedItemId: "primary") === original)
+        XCTAssertEqual(original.pagination.items.map(\.id), ["peer-3"])
+        XCTAssertFalse(vm.isHidden(rssFeedItemId: "primary"))
+        XCTAssertEqual(original.pagination.endCursor, "opaque+/=")
+        XCTAssertTrue(original.pagination.hasMore)
+    }
+
     func testFailedPrimaryHideRestoresPaginationAfterDelayedStoryResponse() async throws {
         let vm = await loadStoryPreview(peers: ["peer-3"])
         let related = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
@@ -294,7 +416,9 @@ extension RSSFeedListViewModelTests {
         XCTAssertEqual(related.pagination.items.map(\.id), ["peer-3"])
     }
 
-    private func loadStoryPreview(peers: [String], feedHasMore: Bool = false) async -> RSSFeedListViewModel {
+    private func loadStoryPreview(
+        peers: [String], feedHasMore: Bool = false, storyHasMore: Bool = true
+    ) async -> RSSFeedListViewModel {
         CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
             makeFeedPage(
                 ids: ["primary"],
@@ -302,7 +426,7 @@ extension RSSFeedListViewModelTests {
                 endCursor: "feed-cursor",
                 storyIds: ["primary": "story-1"],
                 storyRelatedIds: ["story-1": peers],
-                storyHasMore: true,
+                storyHasMore: storyHasMore,
                 storyEndCursor: "opaque+/="
             ), 200
         )

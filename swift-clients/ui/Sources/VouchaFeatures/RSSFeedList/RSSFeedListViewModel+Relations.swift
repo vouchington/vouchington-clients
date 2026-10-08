@@ -45,12 +45,37 @@ public extension RSSFeedListViewModel {
             deactivate: { self.hiddenItemIds.remove($0) },
             onRollbackActivate: {
                 self.restoreItem(removedItem)
-                if let removedStoryGroup,
-                   self.storyRelatedArticlesByStoryId[removedStoryGroup.id] == nil {
-                    self.storyRelatedArticlesByStoryId[removedStoryGroup.id] = removedStoryGroup.group
+                if let removedStoryGroup {
+                    self.restoreStoryGroup(removedStoryGroup)
                 }
             }
         )
+    }
+
+    private func restoreStoryGroup(_ snapshot: (id: String, group: StoryRelatedArticles)) {
+        let original = snapshot.group
+        let replacement = storyRelatedArticlesByStoryId[snapshot.id]
+        if replacement !== original {
+            replacement?.pagination.invalidateRequestsPreservingPage()
+        }
+        original.pagination.invalidateRequestsPreservingPage()
+
+        let interveningRows = items.filter {
+            $0.id != original.primaryItemId && storyIdsByItemId[$0.id] == snapshot.id
+        }
+        original.pagination.replaceItems(
+            original.pagination.items + interveningRows +
+                (replacement?.pagination.items.filter { $0.id != original.primaryItemId } ?? [])
+        )
+        if !original.pagination.hasMore, let replacement, replacement.pagination.hasMore {
+            original.pagination.restoreContinuation(
+                endCursor: replacement.pagination.endCursor, hasMore: true
+            )
+        }
+        pagination.remove {
+            $0.id != original.primaryItemId && storyIdsByItemId[$0.id] == snapshot.id
+        }
+        storyRelatedArticlesByStoryId[snapshot.id] = original
     }
 
     private func toggleBookmark(
@@ -63,8 +88,13 @@ public extension RSSFeedListViewModel {
     ) async {
         let key = "\(rssFeedItemId)|\(predicate)"
         guard !inFlightBookmarkKeys.contains(key) else { return }
+        let generation = bookmarkMutationGeneration
         inFlightBookmarkKeys.insert(key)
-        defer { inFlightBookmarkKeys.remove(key) }
+        defer {
+            if generation == bookmarkMutationGeneration {
+                inFlightBookmarkKeys.remove(key)
+            }
+        }
 
         let wasActive = isActive(rssFeedItemId)
         if wasActive {
@@ -78,6 +108,7 @@ public extension RSSFeedListViewModel {
                 : Endpoint.bookmark(entityType: "rss_feed_item", entityId: rssFeedItemId, predicate: predicate)
             let _: EmptyResponse = try await client.send(endpoint)
         } catch {
+            guard generation == bookmarkMutationGeneration else { return }
             if wasActive {
                 activate(rssFeedItemId)
             } else {
@@ -112,7 +143,10 @@ public extension RSSFeedListViewModel {
     private func restoreItem(_ snapshot: RemovedArticle?) {
         guard let snapshot else { return }
         if let group = snapshot.group {
-            guard storyRelatedArticlesByStoryId.values.contains(where: { $0 === group }),
+            let isAttached = storyRelatedArticlesByStoryId.values.contains { $0 === group }
+            let isDetachedForPrimaryHide = inFlightBookmarkKeys.contains("\(group.primaryItemId)|hide") &&
+                storyIdsByItemId[group.primaryItemId] != nil
+            guard isAttached || isDetachedForPrimaryHide,
                   !group.pagination.items.contains(where: { $0.id == snapshot.item.id }) else { return }
             var peers = group.pagination.items
             peers.insert(snapshot.item, at: min(snapshot.offset, peers.count))

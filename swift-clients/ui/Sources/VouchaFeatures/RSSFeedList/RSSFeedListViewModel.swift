@@ -48,6 +48,7 @@ public final class RSSFeedListViewModel {
     var embedsByItemId: [String: UrlEmbed] = [:]
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
+    var bookmarkMutationGeneration = 0
     var storyIdsByItemId: [String: String] = [:]
     var storyRelatedArticlesByStoryId: [String: StoryRelatedArticles] = [:]
     var storyPostIdsByStoryId: [String: String] = [:]
@@ -77,6 +78,7 @@ public final class RSSFeedListViewModel {
 
     /// Reset all pagination state (safe to call before reload).
     public func reset() {
+        bookmarkMutationGeneration += 1
         pagination.reset()
         actionState = nil
         itemElectionsById = [:]
