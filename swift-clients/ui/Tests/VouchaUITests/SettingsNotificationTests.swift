@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import ViewInspector
 @testable import VouchaAPI
 @testable import VouchaFeatures
@@ -60,18 +61,22 @@ final class SettingsNotificationTests: NativeRouteSurfaceViewModelTestCase {
             notificationSettingsViewModel: notifications
         )
 
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
+        try await ViewHosting.host(surface) {
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
 
-        CannedFeedURLProtocol.handlers[path] = (preferences(moderation: false, cadence: "selected_days"), 200)
-        await notifications.setModeration(false)
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 0)
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 2)
+            CannedFeedURLProtocol.handlers[path] = (preferences(moderation: false, cadence: "selected_days"), 200)
+            try moderationToggle(in: surface).tap()
+            await waitForModerationCommit(notifications, enabled: false)
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 0)
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 2)
 
-        CannedFeedURLProtocol.handlers[path] = (preferences(cadence: "selected_days"), 200)
-        await notifications.setModeration(true)
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
-        XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
+            CannedFeedURLProtocol.handlers[path] = (preferences(cadence: "selected_days"), 200)
+            try moderationToggle(in: surface).tap()
+            await waitForModerationCommit(notifications, enabled: true)
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.DatePicker.self).count, 1)
+            XCTAssertEqual(try surface.inspect().findAll(ViewType.Toggle.self).count, 9)
+        }
     }
 
     func testReturnedResponseCommitsOnlyTheMutatedField() async throws {
@@ -416,6 +421,33 @@ final class SettingsNotificationTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(focusedCount, 2)
         XCTAssertEqual(announcements, [announcement, announcement])
         XCTAssertEqual(activation.announcementCount, 2)
+    }
+
+    private func moderationToggle(in surface: SettingsSurface) throws -> InspectableView<ViewType.Toggle> {
+        try surface.inspect().find(ViewType.Toggle.self, where: {
+            try $0.labelView().text().string() == "Moderation emails"
+        })
+    }
+
+    private func waitForModerationCommit(_ model: NotificationSettingsViewModel, enabled: Bool) async {
+        let committed = expectation(description: "moderation preference commits as \(enabled)")
+        var active = true
+        defer { active = false }
+        func observe() {
+            guard active else { return }
+            if model.committed?.moderation == enabled, !model.isPending(.moderation) {
+                committed.fulfill()
+                return
+            }
+            withObservationTracking {
+                _ = model.committed?.moderation
+                _ = model.pendingFields
+            } onChange: {
+                Task { @MainActor in observe() }
+            }
+        }
+        observe()
+        await fulfillment(of: [committed], timeout: 2)
     }
 
     private func preferences(
