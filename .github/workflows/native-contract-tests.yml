@@ -311,6 +311,13 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ runner.temp }}/voucha-dotnet-cache
+          key: ${{ runner.os }}-nuget-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Read exact .NET SDK version
         id: dotnet-sdk
         working-directory: candidate-clients
@@ -835,6 +842,17 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
       - name: Configure isolated MAUI paths
         shell: bash
         run: |
