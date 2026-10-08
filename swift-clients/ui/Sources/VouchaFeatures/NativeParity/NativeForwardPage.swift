@@ -44,7 +44,8 @@ extension NativeRouteSurfaceViewModel {
         detail: UiVerbatimText,
         declaredLanguage: String? = nil,
         detectedLanguage: String? = nil,
-        targetPath: String? = nil
+        targetPath: String? = nil,
+        provenance: PublicContentProvenance? = nil
     ) -> NativeForwardRow {
         .init(
             id: id,
@@ -54,7 +55,8 @@ extension NativeRouteSurfaceViewModel {
                 detail: detail,
                 declaredLanguage: declaredLanguage,
                 detectedLanguage: detectedLanguage,
-                targetPath: targetPath
+                targetPath: targetPath,
+                provenance: provenance
             )
         )
     }

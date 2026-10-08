@@ -207,4 +207,5 @@ struct CommunityBrowseItem: Identifiable, Equatable {
     let title: String
     let detail: String
     let metrics: UiVerbatimText
+    var provenance: PublicContentProvenance?
 }

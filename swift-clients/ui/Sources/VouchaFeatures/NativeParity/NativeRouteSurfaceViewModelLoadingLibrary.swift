@@ -30,7 +30,8 @@ extension NativeRouteSurfaceViewModel {
                 id: result.id,
                 icon: "list.bullet.rectangle",
                 title: rawText(list.name),
-                detail: list.description.map(rawText) ?? listVisibilityText(list.visibility)
+                detail: list.description.map(rawText) ?? listVisibilityText(list.visibility),
+                provenance: list.provenance
             )
         }
         return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)

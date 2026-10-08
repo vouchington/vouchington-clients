@@ -20,7 +20,8 @@ extension NativeRouteSurfaceViewModel {
                 return row(
                     "person.3",
                     rawText(community.displayTitle(fallback: "")),
-                    rawText(community.displayDetail)
+                    rawText(community.displayDetail),
+                    provenance: community.provenance
                 )
             }
         case .feedReferralLinks:

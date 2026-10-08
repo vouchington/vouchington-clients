@@ -1,6 +1,8 @@
 import Foundation
+import VouchaModels
 
 struct NativeGenericEntity: Decodable {
+    let provenance: PublicContentProvenance?
     let id: String
     let slug: String?
     let name: String?
@@ -20,6 +22,7 @@ struct NativeGenericEntity: Decodable {
     let linguaRsDetectedLanguage: String?
 
     private enum CodingKeys: String, CodingKey {
+        case provenance
         case id
         case entityId
         case slug
@@ -42,6 +45,7 @@ struct NativeGenericEntity: Decodable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        provenance = try container.decodeIfPresent(PublicContentProvenance.self, forKey: .provenance)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? container.decode(String.self, forKey: .entityId)
         slug = try container.decodeIfPresent(String.self, forKey: .slug)
         name = try container.decodeIfPresent(String.self, forKey: .name)
@@ -64,6 +68,7 @@ struct NativeGenericEntity: Decodable {
     init(id: String) {
         self.id = id
         slug = nil
+        provenance = nil
         name = nil
         title = nil
         username = nil
@@ -98,9 +103,11 @@ struct NativeGenericEntity: Decodable {
         description: String?,
         summary: String?,
         declaredLanguage: String? = nil,
-        linguaRsDetectedLanguage: String? = nil
+        linguaRsDetectedLanguage: String? = nil,
+        provenance: PublicContentProvenance? = nil
     ) {
         self.id = id
+        self.provenance = provenance
         self.slug = slug
         self.name = name
         self.title = title

@@ -29,6 +29,7 @@ struct NativeSurfaceRow: View {
                 Text(row.localizedTitle(locale: locale, timeZone: timeZone))
                     .font(Typography.headline)
                     .authoredContentLanguage(declared: row.declaredLanguage, detected: row.detectedLanguage)
+                ProvenanceBadge(provenance: row.provenance)
                 Text(row.localizedDetail(locale: locale, timeZone: timeZone))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)

@@ -1,7 +1,9 @@
 import Foundation
 import VouchaLocalization
+import VouchaModels
 
 public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
+    public let provenance: PublicContentProvenance?
     public let id: String
     public let icon: String
     public let title: String
@@ -25,8 +27,10 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         detailDeclaredLanguage: String? = nil,
         detailDetectedLanguage: String? = nil,
         externalURL: URL? = nil,
-        targetPath: String? = nil
+        targetPath: String? = nil,
+        provenance: PublicContentProvenance? = nil
     ) {
+        self.provenance = provenance
         self.id = id
         self.icon = icon
         titleText = title
@@ -66,9 +70,16 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
             && lhs.detailDeclaredLanguage == rhs.detailDeclaredLanguage
             && lhs.detailDetectedLanguage == rhs.detailDetectedLanguage
             && lhs.externalURL == rhs.externalURL && lhs.targetPath == rhs.targetPath
+            && lhs.provenance == rhs.provenance
     }
 
     public func hash(into hasher: inout Hasher) {
+        hasher.combine(provenance?.via)
+        hasher.combine(provenance?.app?.kind)
+        hasher.combine(provenance?.app?.key)
+        hasher.combine(provenance?.app?.hostname)
+        hasher.combine(provenance?.app?.clientId)
+        hasher.combine(provenance?.app?.clientName)
         hasher.combine(icon)
         hasher.combine(title)
         hasher.combine(detail)
