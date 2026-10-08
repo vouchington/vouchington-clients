@@ -8,7 +8,8 @@ import XCTest
 final class MemberMCPAuthorizedClientTests: XCTestCase {
     func testLateUnauthorizedForOldTokenReusesCompletedRotation() async throws {
         let bothOldRequests = expectation(description: "both old-token requests arrived")
-        LateMCPURLProtocol.configure(arrival: bothOldRequests)
+        let firstRetry = expectation(description: "first rotated-token retry arrived")
+        LateMCPURLProtocol.configure(arrival: bothOldRequests, firstRetry: firstRetry)
         let site = try XCTUnwrap(URL(string: "https://example.test"))
         let metadata = try MemberMCPOAuthMetadata(
             issuerIdentifier: "https://example.test",
@@ -39,8 +40,9 @@ final class MemberMCPAuthorizedClientTests: XCTestCase {
         do {
             await fulfillment(of: [bothOldRequests], timeout: 10)
             LateMCPURLProtocol.releaseFirst()
-            _ = try await first.value
+            await fulfillment(of: [firstRetry], timeout: 10)
             LateMCPURLProtocol.releaseSecond()
+            _ = try await first.value
             _ = try await second.value
         } catch {
             LateMCPURLProtocol.releaseFirst()
@@ -105,14 +107,19 @@ final class MemberMCPAuthorizedClientTests: XCTestCase {
 private final class LateMCPURLProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var arrival: XCTestExpectation?
+    private static var firstRetry: XCTestExpectation?
     private static var pending: [LateMCPURLProtocol?] = []
     private static var oldRequests = 0
     private static var refreshCalls = 0
     private static var bearers: [String] = []
 
-    static func configure(arrival: XCTestExpectation) {
+    private let deliveryLock = NSRecursiveLock()
+    private var stopped = false
+
+    static func configure(arrival: XCTestExpectation, firstRetry: XCTestExpectation) {
         lock.lock()
         self.arrival = arrival
+        self.firstRetry = firstRetry
         pending = []
         oldRequests = 0
         refreshCalls = 0
@@ -165,6 +172,9 @@ private final class LateMCPURLProtocol: URLProtocol {
                 Self.lock.unlock()
                 return
             }
+            if bearer == "Bearer new-access", Self.bearers.filter({ $0 == bearer }).count == 1 {
+                Self.firstRetry?.fulfill()
+            }
         }
         Self.lock.unlock()
         if isToken {
@@ -178,6 +188,9 @@ private final class LateMCPURLProtocol: URLProtocol {
     }
 
     private func complete(status: Int, body: String) {
+        deliveryLock.lock()
+        defer { deliveryLock.unlock() }
+        guard !stopped else { return }
         let response = HTTPURLResponse(
             url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"]
@@ -187,7 +200,11 @@ private final class LateMCPURLProtocol: URLProtocol {
         client?.urlProtocolDidFinishLoading(self)
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        deliveryLock.lock()
+        stopped = true
+        deliveryLock.unlock()
+    }
 }
 
 private actor AuthorizedMCPTokenStore: MemberMCPOAuthTokenStore {
