@@ -30,7 +30,10 @@ public sealed partial class NewsFeedsViewModel
         related.Cancel(request);
         return;
       }
-      related.Complete(request, page);
+      if (related.Complete(request, page) &&
+          page.StoryPostIds?.TryGetValue(related.StoryId, out var postId) == true &&
+          !string.IsNullOrWhiteSpace(postId))
+        Items = SetStoryDiscussionPost(Items, related.StoryId, postId);
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
@@ -65,8 +68,9 @@ public sealed partial class NewsFeedsViewModel
       }
       if (grouped.TryGetValue(storyId, out var existingGroup))
       {
-        existingGroup.IncludePeers(item.StoryArticles is { } preview
-            ? [item, .. preview.Items]
+        if (item.StoryArticles is { } preview) existingGroup.IncludeContinuation(preview);
+        existingGroup.IncludePeers(item.StoryArticles is { } previewPeers
+            ? [item, .. previewPeers.Items]
             : [item]);
         continue;
       }

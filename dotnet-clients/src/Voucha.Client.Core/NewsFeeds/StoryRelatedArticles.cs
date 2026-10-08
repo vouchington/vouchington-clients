@@ -95,13 +95,14 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
     Notify();
   }
 
-  internal void Complete(CursorPageRequest request, NewsFeedPage page)
+  internal bool Complete(CursorPageRequest request, NewsFeedPage page)
   {
     if (!pages.Complete(request, page.Items.Where(item => item.Id != PrimaryItemId && !hiddenPeerIds.Contains(item.Id)),
-            page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
+            page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return false;
     var known = Items.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
     foreach (var item in pages.Items.Where(item => known.Add(item.Id))) Items.Add(item);
     Notify();
+    return true;
   }
 
   internal void Fail(CursorPageRequest request, string message)

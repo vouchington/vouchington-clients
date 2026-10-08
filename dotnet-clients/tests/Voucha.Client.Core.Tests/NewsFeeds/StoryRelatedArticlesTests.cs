@@ -96,6 +96,42 @@ public sealed class StoryRelatedArticlesTests
   }
 
   [Fact]
+  public async Task LaterPreviewRestoresContinuationOnAnExhaustedDisplayedStory()
+  {
+    var group = new StoryRelatedArticles("story-1", "primary", [Item("peer-1")], new(null, false, null), UiLocalization.English);
+    var service = new Service(new([Primary(group)], new("feed-after", true, null)));
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var later = new StoryRelatedArticles("story-1", "later", [Item("peer-2")], new("later-cursor", true, null), UiLocalization.English);
+    service.Feed = new([Item("later") with { StoryId = "story-1", StoryArticles = later }], new(null, false, null));
+
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Same(group, Assert.Single(model.Items).StoryArticles);
+    Assert.Equal(["peer-1", "later", "peer-2"], group.Items.Select(item => item.Id));
+    Assert.True(group.HasMore);
+    await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    Assert.Equal(["later-cursor"], service.StoryCursors);
+  }
+
+  [Fact]
+  public async Task AcceptedStoryPageDiscussionSidecarUpdatesDisplayedPrimary()
+  {
+    var group = Group(1);
+    var service = new Service(new([Primary(group)], new(null, false, null)))
+    { StoryResponse = Task.FromResult(new NewsFeedPage([], new(null, false, null), new Dictionary<string, string> { ["story-1"] = "post-1" })) };
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.True(model.Items[0].CanStartStoryDiscussion);
+
+    await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+
+    Assert.Equal("post-1", model.Items[0].StoryPostId);
+    Assert.False(model.Items[0].CanStartStoryDiscussion);
+    Assert.True(model.Items[0].CanOpenStoryDiscussion);
+  }
+
+  [Fact]
   public async Task ContinuationKeepsDistinctStoryMembersWithoutAUsablePreview()
   {
     var service = new Service(new([Item("other")], new("feed-after", true, null)));
@@ -157,10 +193,12 @@ public sealed class StoryRelatedArticlesTests
     }
     finally
     {
-      heldPage.TrySetResult(new([Item("stale-peer")], new("stale-cursor", true, null)));
+      heldPage.TrySetResult(new([Item("stale-peer")], new("stale-cursor", true, null),
+          new Dictionary<string, string> { ["story-1"] = "stale-post" }));
       await pending;
     }
     Assert.Equal(["peer-1", "feed-peer"], group.Items.Select(item => item.Id));
+    Assert.Null(model.Items[0].StoryPostId);
     Assert.True(group.HasMore);
     service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("fresh-peer")], new(null, false, null)));
     await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);

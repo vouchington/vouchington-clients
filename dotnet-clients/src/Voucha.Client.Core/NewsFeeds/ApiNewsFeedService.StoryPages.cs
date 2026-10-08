@@ -11,7 +11,7 @@ public sealed partial class ApiNewsFeedService : IStoryRelatedArticlesService
         .Select(id => MapItem(response.RssFeedItems[id], response.RssFeedItemElections,
             response.ElectionVotes, response.RssFeedBookmarks, false, NewsFeedItemKind.Article,
             response.RssFeedItemThumbnailUrl, response.RssFeedItemEmbeds, null, null)).ToArray();
-    return new(items, response.PageInfo);
+    return new(items, response.PageInfo, response.StoryPostIds);
   }
 
   private NewsFeedItem[] AttachStoryPreviews(RssFeedItemsFeedResponse response, NewsFeedItem[] items)

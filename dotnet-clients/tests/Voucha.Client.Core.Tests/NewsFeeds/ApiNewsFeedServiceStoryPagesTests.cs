@@ -32,6 +32,7 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
     Assert.True(page.Items[0].IsSaved);
     Assert.True(page.Items[0].IsHidden);
     Assert.False(page.PageInfo.HasNextPage);
+    Assert.Equal("post-1", page.StoryPostIds?["story/one"]);
     Assert.Equal(HttpMethod.Get, handler.Method);
     var request = Assert.IsType<string>(handler.PathAndQuery);
     Assert.StartsWith("/api/v1/stories/story%2Fone?", request, StringComparison.Ordinal);
@@ -153,6 +154,7 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
     page_info = new { has_next_page = false },
     rss_feed_items = new Dictionary<string, object> { ["peer-2"] = Article("peer-2"), ["primary/one"] = Article("primary/one") },
     rss_feed_bookmarks = new Dictionary<string, object> { ["peer-2"] = new { save = true, hide = true } },
+    story_post_ids = new Dictionary<string, string> { ["story/one"] = "post-1" },
   });
 
   private static object Article(string id) => new { id, title = id, published_at = "2026-01-01T00:00:00Z" };

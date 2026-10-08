@@ -2,7 +2,10 @@ using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
-public sealed record NewsFeedPage(IReadOnlyList<NewsFeedItem> Items, PageInfo PageInfo);
+public sealed record NewsFeedPage(
+    IReadOnlyList<NewsFeedItem> Items,
+    PageInfo PageInfo,
+    IReadOnlyDictionary<string, string>? StoryPostIds = null);
 
 public interface INewsFeedService
 {
