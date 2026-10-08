@@ -30,6 +30,7 @@ public sealed partial class NewsFeedsViewModel
           .Select(item => item.Id == original.Id ? mainUpdated! : item).ToArray();
     if (remove)
     {
+      group.SuppressHiddenPeer(original.Id);
       group.InvalidatePendingPage();
       group.Items.RemoveAt(index);
     }
@@ -49,12 +50,13 @@ public sealed partial class NewsFeedsViewModel
 
     void Restore(string? message)
     {
-      if (generation != loadRequestId || !Items.Any(item => ReferenceEquals(item.StoryArticles, group))) return;
+      if (generation != loadRequestId) return;
+      if (remove) group.RestoreHiddenPeer(original.Id);
       if (remove && !group.Items.Any(item => item.Id == original.Id))
         group.Items.Insert(Math.Min(index, group.Items.Count), original);
       else if (!remove && group.Items.IndexOf(updated) is var current && current >= 0)
         group.Items[current] = original;
-      if (mainOriginal is not null)
+      if (mainOriginal is not null && Items.Any(item => ReferenceEquals(item.StoryArticles, group)))
       {
         if (remove && !Items.Any(item => item.Id == original.Id))
         {

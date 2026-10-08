@@ -10,6 +10,7 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 {
   private readonly CursorPaginationState<NewsFeedItem, string> pages;
   private readonly IUiLocalization localization;
+  private readonly HashSet<string> hiddenPeerIds = new(StringComparer.Ordinal);
   private bool isExpanded;
 
   public StoryRelatedArticles(string storyId, string primaryItemId, IReadOnlyList<NewsFeedItem> preview, PageInfo pageInfo, IUiLocalization localization)
@@ -61,6 +62,10 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 
   internal void InvalidatePendingPage() => pages.InvalidateRequestsPreservingPage();
 
+  internal void SuppressHiddenPeer(string itemId) => hiddenPeerIds.Add(itemId);
+
+  internal void RestoreHiddenPeer(string itemId) => hiddenPeerIds.Remove(itemId);
+
   internal StoryRelatedArticles WithPrimary(NewsFeedItem primary, IEnumerable<NewsFeedItem> additionalPeers)
   {
     var peers = additionalPeers.Concat(Items).Where(item => item.Id != primary.Id)
@@ -72,7 +77,8 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
   internal void IncludePeers(IEnumerable<NewsFeedItem> peers)
   {
     var known = Items.Select(item => item.Id).Append(PrimaryItemId).ToHashSet(StringComparer.Ordinal);
-    var additions = peers.Where(item => known.Add(item.Id)).Select(item => item with { StoryArticles = null }).ToArray();
+    var additions = peers.Where(item => !hiddenPeerIds.Contains(item.Id) && known.Add(item.Id))
+        .Select(item => item with { StoryArticles = null }).ToArray();
     if (additions.Length == 0) return;
     pages.InvalidateRequestsPreservingPage();
     foreach (var item in additions) Items.Add(item);
@@ -82,7 +88,8 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 
   internal void Complete(CursorPageRequest request, NewsFeedPage page)
   {
-    if (!pages.Complete(request, page.Items.Where(item => item.Id != PrimaryItemId), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
+    if (!pages.Complete(request, page.Items.Where(item => item.Id != PrimaryItemId && !hiddenPeerIds.Contains(item.Id)),
+            page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
     var known = Items.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
     foreach (var item in pages.Items.Where(item => known.Add(item.Id))) Items.Add(item);
     Notify();
