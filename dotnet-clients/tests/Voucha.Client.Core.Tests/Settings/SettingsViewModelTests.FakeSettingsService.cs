@@ -24,6 +24,11 @@ public sealed partial class SettingsViewModelTests
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
     public Exception? UserFailure { get; set; }
     public Exception? MembershipPlansFailure { get; set; }
+    public Task<ApiKeyCreationResponse>? ApiKeyCreationTask { get; set; }
+    public Task<ApiKeyListResponse>? FirstApiKeysPageTask { get; set; }
+    public TaskCompletionSource? ApiKeyCreationStarted { get; set; }
+    public ApiKey? CreatedApiKey { get; private set; }
+    private int apiKeyFetchCount;
 
     public MembershipPlansResponse MembershipPlansResponse { get; set; } =
         new(
@@ -199,17 +204,26 @@ public sealed partial class SettingsViewModelTests
       return Task.FromResult(DeleteUserResponse);
     }
 
-    public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ApiKeyListResponse(
-            [CreateApiKey()],
-            InitialApiKeyPage));
+    public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default)
+    {
+      apiKeyFetchCount++;
+      if (apiKeyFetchCount == 1 && FirstApiKeysPageTask is not null) return FirstApiKeysPageTask;
+      return Task.FromResult(new ApiKeyListResponse([CreatedApiKey ?? CreateApiKey()], InitialApiKeyPage));
+    }
 
-    public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
+    public async Task<ApiKeyCreationResponse> CreateApiKeyAsync(
         string label,
         string type,
         IReadOnlyList<string> permissions,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
+        CancellationToken cancellationToken = default)
+    {
+      ApiKeyCreationStarted?.TrySetResult();
+      var response = ApiKeyCreationTask is { } task
+          ? await task
+          : new ApiKeyCreationResponse(CreateApiKey(), "raw-key");
+      CreatedApiKey = response.ApiKey;
+      return response;
+    }
 
     public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;

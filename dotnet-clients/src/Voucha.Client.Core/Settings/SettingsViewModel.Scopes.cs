@@ -13,7 +13,7 @@ public sealed partial class SettingsViewModel
 
   public bool CanSelectAdminApiKeyScopes => loadedUser?.Roles?.Contains("administrator", StringComparer.Ordinal) == true;
   public bool ShowsApiKeyAudience => CanSelectAdminApiKeyScopes && ApiKeyType == "mcp";
-  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && !IsLoading && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
+  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && loadedUser is not null && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
       SelectedApiKeyScopes.Count > 0 && (ApiKeyType != "rss" || SelectedApiKeyScopes.Count == 1);
   public string? CredentialNotice => credentialNoticeKey is { } key ? localization.Localize(key) : null;
   public IReadOnlyList<string> SelectedApiKeyScopes => scopeSelection.SelectedScopes;

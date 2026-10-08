@@ -59,6 +59,62 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
+  public async Task ApiKeyCanBeCreatedWhileUnrelatedSettingsContentIsStillLoading()
+  {
+    var heldApiKeys = new TaskCompletionSource<ApiKeyListResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var apiKeyCreation = new TaskCompletionSource<ApiKeyCreationResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var apiKeyCreationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var catalogReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new FakeSettingsService
+    {
+      FirstApiKeysPageTask = heldApiKeys.Task,
+      ApiKeyCreationTask = apiKeyCreation.Task,
+      ApiKeyCreationStarted = apiKeyCreationStarted,
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+    model.PropertyChanged += (_, args) =>
+    {
+      if (args.PropertyName == nameof(model.ApiKeyScopes) && model.ApiKeyScopes.Any(scope => scope.Scope == "rss:read"))
+        catalogReady.TrySetResult();
+    };
+    var load = model.LoadAsync(TestContext.Current.CancellationToken);
+    Task? create = null;
+    try
+    {
+      await catalogReady.Task.WaitAsync(TestContext.Current.CancellationToken);
+      model.SetApiKeyScopeSelected("rss:read", true);
+
+      Assert.True(model.IsLoading);
+      Assert.True(model.CanCreateApiKey);
+
+      create = model.CreateApiKeyAsync(TestContext.Current.CancellationToken);
+      await apiKeyCreationStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+      Assert.True(model.IsLoading);
+      Assert.False(load.IsCompleted);
+      Assert.False(create.IsCompleted);
+
+      apiKeyCreation.TrySetResult(new ApiKeyCreationResponse(
+          FakeSettingsService.CreateApiKey() with { Id = "created-key" },
+          "raw-key"));
+      await create;
+      Assert.Contains(model.ApiKeys, apiKey => apiKey.Id == "created-key");
+      Assert.Equal("Hello, Voucha!", model.ProfileMarkdown);
+      Assert.False(model.IsLoading);
+    }
+    finally
+    {
+      heldApiKeys.TrySetResult(new ApiKeyListResponse([FakeSettingsService.CreateApiKey()], new PageInfo(null, false, null)));
+      apiKeyCreation.TrySetResult(new ApiKeyCreationResponse(FakeSettingsService.CreateApiKey() with { Id = "created-key" }, "raw-key"));
+      await load;
+      if (create is not null) await create;
+    }
+
+    Assert.Equal("raw-key", model.ApiKeySecret);
+    Assert.Contains(model.ApiKeys, apiKey => apiKey.Id == "created-key");
+  }
+
+  [Fact]
   public async Task OlderCredentialResponsesCannotOverwriteANewIdentityLoad()
   {
     var oldCatalog = new TaskCompletionSource<ScopeCatalogResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
