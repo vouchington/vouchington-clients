@@ -3,189 +3,96 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, it } from 'node:test'
 
+// vouchington-machines registers the `vouchington-tooling` MCP server, plugins, and marketplaces
+// per machine and pre-approves its tools. No tracked repository file does.
 const root = resolve(import.meta.dirname, '..')
-const tools = [
-  'entry_append',
-  'entry_get',
-  'session_archive',
-  'session_create',
-  'session_ensure',
-  'session_patch',
-  'session_search',
-  'snapshot_export',
-].map(name => `mcp__agent-blackboard__${name}`)
+const removedConfigs = [
+  '.mcp.json',
+  '.cursor/mcp.json',
+  '.claude/settings.json',
+  '.codex/config.toml',
+  '.grok/config.toml',
+]
+const harnessFiles = [
+  'AGENTS.md',
+  '.claude/README.md',
+  '.codex/README.md',
+  '.cursor/README.md',
+  '.cursor/cli.json',
+  '.cursor/permissions.json',
+  '.grok/README.md',
+]
 
-function readJson(path) {
-  return JSON.parse(readFileSync(resolve(root, path), 'utf8'))
+function read(path) {
+  return readFileSync(resolve(root, path), 'utf8')
 }
 
-describe('Agent Blackboard host configuration', () => {
-  it('keeps Claude MCP registration pinned and environment-only', () => {
-    assert.deepEqual(readJson('.mcp.json'), {
-      mcpServers: {
-        'agent-blackboard': {
-          command: 'npx',
-          args: ['-y', 'agent-blackboard@0.5.0', 'mcp'],
-          env: {
-            AGENT_BLACKBOARD_URL: '${AGENT_BLACKBOARD_URL}',
-            AGENT_BLACKBOARD_TOKEN: '${AGENT_BLACKBOARD_TOKEN}',
-          },
-        },
+describe('machine-owned agent host configuration', () => {
+  it('keeps no repository-level MCP registration, plugin, marketplace, or settings file', () => {
+    for (const path of [
+      ...removedConfigs,
+      '.cursor/hooks.json',
+      '.cursor/sandbox.json',
+      '.grok/sandbox.toml',
+      '.grok/hooks',
+    ])
+      assert.equal(existsSync(resolve(root, path)), false, `${path} must stay absent`)
+  })
+
+  it('keeps no agent-blackboard registration, credential, or tool grant in harness files', () => {
+    for (const path of harnessFiles) {
+      const text = read(path)
+      // AGENTS.md keeps the fail-closed client-credential rule; host config must not wire it.
+      const retired =
+        path === 'AGENTS.md' ? /agent-blackboard/u : /agent-blackboard|AGENT_BLACKBOARD/u
+      assert.doesNotMatch(text, retired, `${path} names it`)
+      assert.doesNotMatch(text, /enabledMcpjsonServers|extraKnownMarketplaces|enabledPlugins/u)
+    }
+  })
+
+  it('keeps Cursor approvals limited to native-client shell tools', () => {
+    assert.deepEqual(JSON.parse(read('.cursor/cli.json')), {
+      permissions: {
+        allow: ['Shell(no-mistakes)', 'Shell(swift)', 'Shell(xcodebuild)', 'Shell(dotnet)'],
+        deny: ['Shell(sudo)'],
       },
     })
-  })
-
-  it('pre-authorizes exactly the current eight MCP tools', () => {
-    const settings = readJson('.claude/settings.json')
-    for (const key of [
-      'sandbox',
-      'defaultMode',
-      'model',
-      'effortLevel',
-      'advisorModel',
-      'statusLine',
-      'permission_mode',
-      'permissionMode',
-    ])
-      assert.equal(
-        settings[key],
-        undefined,
-        `machine setting ${key} must stay out of project config`,
-      )
-    assert.deepEqual(settings.enabledMcpjsonServers, ['agent-blackboard'])
-    assert.deepEqual(settings.permissions?.allow, tools)
+    const permissions = JSON.parse(read('.cursor/permissions.json'))
+    assert.deepEqual(Object.keys(permissions), ['autoRun'])
     assert.equal(
-      settings.permissions.allow.some(tool => tool.includes('*')),
+      permissions.autoRun.block_instructions.some(rule => rule.includes('~/')),
       false,
-      'MCP approval must not use a wildcard',
     )
   })
 
-  it('documents the upstream Codex plugin registration', () => {
-    const instructions = readFileSync(resolve(root, '.codex/README.md'), 'utf8')
-    assert.match(instructions, /codex plugin marketplace add jonathanong\/agent-blackboard/u)
-    assert.match(instructions, /codex plugin add agent-blackboard@agent-blackboard/u)
-    assert.match(instructions, /agent-blackboard@0\.5\.0/u)
-    const config = readFileSync(resolve(root, '.codex/config.toml'), 'utf8')
-    assert.match(config, /\[plugins\."agent-blackboard@agent-blackboard"\]\nenabled = true/u)
-    const approvals = [...config.matchAll(/\.tools\.([a-z_]+)\]\napproval_mode = "approve"/gu)].map(
-      match => match[1],
-    )
-    assert.equal((config.match(/approval_mode = "approve"/gu) ?? []).length, 8)
-    assert.deepEqual(approvals, [
-      'entry_append',
-      'entry_get',
-      'session_archive',
-      'session_create',
-      'session_ensure',
-      'session_patch',
-      'session_search',
-      'snapshot_export',
-    ])
-  })
-
-  it('requires fail-closed, explicit session journaling in root instructions', () => {
-    const instructions = readFileSync(resolve(root, 'AGENTS.md'), 'utf8')
-    assert.match(instructions, /upstream `agent-blackboard` plugin/u)
+  it('requires fail-closed, explicit journaling through the machine-registered server', () => {
+    const instructions = read('AGENTS.md')
+    assert.match(instructions, /machine-registered `vouchington-tooling` MCP server/u)
     assert.match(instructions, /`vouchington-workflow:blackboard`/u)
     assert.match(instructions, /Session ids.*must\s+be\s+explicit/isu)
     assert.match(instructions, /fail closed/iu)
   })
 
-  it("keeps Cursor's native registration and allowlists pinned to eight tools", () => {
-    const mcp = readJson('.cursor/mcp.json')
-    assert.equal(mcp.mcpServers['agent-blackboard'].command, 'npx')
-    assert.deepEqual(mcp.mcpServers['agent-blackboard'].args, [
-      '-y',
-      'agent-blackboard@0.5.0',
-      'mcp',
+  it('points machine defaults and provisioning at the ownership contract', () => {
+    for (const path of [
+      '.claude/README.md',
+      '.codex/README.md',
+      '.cursor/README.md',
+      '.grok/README.md',
     ])
-    assert.deepEqual(readJson('.cursor/permissions.json').mcpAllowlist, [
-      'agent-blackboard:entry_append',
-      'agent-blackboard:entry_get',
-      'agent-blackboard:session_archive',
-      'agent-blackboard:session_create',
-      'agent-blackboard:session_ensure',
-      'agent-blackboard:session_patch',
-      'agent-blackboard:session_search',
-      'agent-blackboard:snapshot_export',
-    ])
-    const cli = readJson('.cursor/cli.json')
-    assert.deepEqual(cli.permissions.deny, ['Shell(sudo)'])
-    assert.equal(
-      readJson('.cursor/permissions.json').autoRun.block_instructions.some(rule =>
-        rule.includes('~/'),
-      ),
-      false,
-    )
-    assert.deepEqual(
-      cli.permissions.allow.filter(entry => entry.startsWith('Shell(')),
-      ['Shell(no-mistakes)', 'Shell(swift)', 'Shell(xcodebuild)', 'Shell(dotnet)'],
-    )
-    assert.deepEqual(
-      cli.permissions.allow.filter(entry => entry.startsWith('Mcp(')),
-      [
-        'Mcp(agent-blackboard:entry_append)',
-        'Mcp(agent-blackboard:entry_get)',
-        'Mcp(agent-blackboard:session_archive)',
-        'Mcp(agent-blackboard:session_create)',
-        'Mcp(agent-blackboard:session_ensure)',
-        'Mcp(agent-blackboard:session_patch)',
-        'Mcp(agent-blackboard:session_search)',
-        'Mcp(agent-blackboard:snapshot_export)',
-      ],
-    )
-    assert.equal(
-      cli.permissions.allow.some(entry => entry.includes('*')),
-      false,
-    )
-    assert.equal(existsSync(resolve(root, '.cursor/hooks.json')), false)
-    assert.equal(existsSync(resolve(root, '.cursor/sandbox.json')), false)
+      assert.match(read(path), /vouchington-machines\/blob\/main\/docs\/agent-config\.md/u)
   })
 
-  it("keeps Grok's project MCP registration and permissions without machine sandbox settings", () => {
-    const config = readFileSync(resolve(root, '.grok/config.toml'), 'utf8')
-    assert.doesNotMatch(config, /^\[mcp_servers\./mu)
-    assert.doesNotMatch(
-      config,
-      /^\s*(?:sandbox|model|permission_mode|approval_mode|startup_timeout)\s*=/mu,
-    )
-    assert.equal((config.match(/MCPTool\(agent-blackboard__/gu) ?? []).length, 8)
-    assert.match(config, /MCPTool\(agent-blackboard__snapshot_export\)/u)
-    assert.doesNotMatch(config, /^\[(?:sandbox|model|ui)\]/mu)
-    assert.equal(existsSync(resolve(root, '.grok/sandbox.toml')), false)
-    const instructions = readFileSync(resolve(root, '.grok/README.md'), 'utf8')
-    assert.match(instructions, /vouchington-machines\/blob\/main\/docs\/agent-config\.md/u)
-    assert.equal(existsSync(resolve(root, '.grok/hooks')), false)
-  })
-
-  it('keeps machine sandbox, model, approval-mode, and startup defaults out of project settings', () => {
-    const codex = readFileSync(resolve(root, '.codex/config.toml'), 'utf8')
-    assert.doesNotMatch(
-      codex,
-      /^\s*(?:sandbox_mode|approval_policy|model|model_reasoning_effort|startup_timeout)\s*=/mu,
-    )
-    for (const path of ['.claude/README.md', '.codex/README.md', '.cursor/README.md']) {
-      const instructions = readFileSync(resolve(root, path), 'utf8')
-      assert.match(instructions, /vouchington-machines\/blob\/main\/docs\/agent-config\.md/u)
-    }
-  })
-
-  it('documents focused plugin provisioning and reads AGENTS.md without a CLAUDE fallback', () => {
-    const claude = readFileSync(resolve(root, '.claude/README.md'), 'utf8')
+  it('documents user-scope plugin provisioning and reads AGENTS.md without a CLAUDE fallback', () => {
+    const claude = read('.claude/README.md')
     assert.match(claude, /vouchington-workflow@vouchington/u)
     assert.match(claude, /vouchington-testing@vouchington/u)
     assert.match(claude, /pr-shepherd@jonathanong/u)
     assert.match(claude, /canonical plugin is unavailable, stop/iu)
-    const codex = readFileSync(resolve(root, '.codex/README.md'), 'utf8')
+    assert.doesNotMatch(claude, /--scope project/u)
+    const codex = read('.codex/README.md')
     assert.match(codex, /vouchington-testing@vouchington/u)
-    const codexConfig = readFileSync(resolve(root, '.codex/config.toml'), 'utf8')
-    assert.equal(codexConfig.includes('project_doc_fallback_filenames'), false)
-    assert.match(codexConfig, /Do not add a CLAUDE\.md fallback/u)
-    const settings = readJson('.claude/settings.json')
-    assert.equal(settings.enabledPlugins['vouchington-workflow@vouchington'], true)
-    assert.equal(settings.enabledPlugins['vouchington-testing@vouchington'], true)
-    assert.equal(settings.enabledPlugins['pr-shepherd@jonathanong'], true)
+    assert.match(codex, /Do not add a CLAUDE\.md fallback/u)
   })
 
   it('keeps native test overlays dependent on canonical testing skills', () => {
@@ -201,7 +108,7 @@ describe('Agent Blackboard host configuration', () => {
         'dotnet-clients/AGENTS.md',
       ],
     ]) {
-      const skill = readFileSync(resolve(root, `.agents/skills/${name}/SKILL.md`), 'utf8')
+      const skill = read(`.agents/skills/${name}/SKILL.md`)
       const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
       assert.match(skill, new RegExp(escapeRegExp(canonical), 'u'))
       assert.match(skill, new RegExp(escapeRegExp(guidance), 'u'))
@@ -210,8 +117,8 @@ describe('Agent Blackboard host configuration', () => {
   })
 
   it('keeps client-owned architecture links local and Vouchington-owned links explicit', () => {
-    const swift = readFileSync(resolve(root, 'swift-clients/AGENTS.md'), 'utf8')
-    const dotnet = readFileSync(resolve(root, 'dotnet-clients/AGENTS.md'), 'utf8')
+    const swift = read('swift-clients/AGENTS.md')
+    const dotnet = read('dotnet-clients/AGENTS.md')
     for (const instructions of [swift, dotnet]) {
       assert.match(
         instructions,
@@ -240,7 +147,7 @@ describe('Agent Blackboard host configuration', () => {
   })
 
   it('ignores provider worktree state without ignoring checked-in configuration', () => {
-    const gitignore = readFileSync(resolve(root, '.gitignore'), 'utf8')
+    const gitignore = read('.gitignore')
     for (const path of [
       '.claude/worktrees/',
       '.codex/worktrees/',

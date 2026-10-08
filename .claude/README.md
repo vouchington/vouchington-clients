@@ -1,9 +1,8 @@
 # Claude Code configuration
 
-Claude Code uses the project-scoped [`../.mcp.json`](../.mcp.json) registration, enabled by
-`enabledMcpjsonServers`. It runs the published Agent Blackboard MCP server at the pinned
-`agent-blackboard@0.5.0` version. Export `AGENT_BLACKBOARD_URL` and `AGENT_BLACKBOARD_TOKEN` before
-starting Claude Code.
+No repository file registers an MCP server, plugin, marketplace, or tool approval.
+vouchington-machines registers the `vouchington-tooling` MCP server once per machine and
+pre-approves its tools; journal through it with the `vouchington-workflow:blackboard` skill.
 
 Use Claude Code v2.1.281 or later for this repository's `AGENTS.md` instructions. Direct
 `AGENTS.md` loading began in v2.1.277, but earlier versions could miss it in some sessions,
@@ -18,15 +17,19 @@ native-client `AGENTS.md` files as you work in those directories.
 
 ## Workflow plugins
 
-The checked-in settings enable the portable workflow and testing plugins plus pr-shepherd. Install
-them after registering their public marketplaces, then restart Claude Code:
+vouchington-machines enables the portable `vouchington-workflow@vouchington` and
+`vouchington-testing@vouchington` plugins plus `pr-shepherd@jonathanong`, and registers their
+marketplaces in each machine's user settings (`./configure-agents.sh`, then
+`./diagnose-agents.sh --repo <worktree>`). If a plugin is missing, rerun the machine configuration
+or install it by hand into user scope, never project scope, which would write a declaration into
+this repository:
 
 ```sh
-claude plugin marketplace add vouchington/vouchington-tooling --scope project --sparse .claude-plugin plugins
-claude plugin marketplace add jonathanong/pr-shepherd --scope project
-claude plugin install vouchington-workflow@vouchington --scope project
-claude plugin install vouchington-testing@vouchington --scope project
-claude plugin install pr-shepherd@jonathanong --scope project
+claude plugin marketplace add vouchington/vouchington-tooling --scope user --sparse .claude-plugin plugins
+claude plugin marketplace add jonathanong/pr-shepherd --scope user
+claude plugin install vouchington-workflow@vouchington --scope user
+claude plugin install vouchington-testing@vouchington --scope user
+claude plugin install pr-shepherd@jonathanong --scope user
 ```
 
 Confirm with `claude plugin marketplace list`, `claude plugin list`, and
@@ -41,8 +44,7 @@ Use `pr-shepherd@jonathanong` for PR creation or iteration only when the user re
 workflow. Its repository guidance is portable; it does not install Filaments web, tmux, session,
 or post-edit hooks in this client checkout.
 
-The project settings pre-authorize only the eight current Agent Blackboard tools. Session ids,
-agent names, and parent-session ids remain explicit inputs; the server must not infer them. Keep
-project plugins, MCP integrations, and project-specific hooks here. Machine sandbox, model,
+Session ids, agent names, and parent-session ids remain explicit journal inputs; the server must
+not infer them. Plugins, marketplaces, MCP servers, tool approvals, and machine sandbox, model,
 permission-mode, and startup defaults belong in the host setup described by the [agent
 configuration ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).
