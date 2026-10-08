@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
@@ -53,6 +61,26 @@ test('Linux setup accepts equivalent explicit Git root spellings', () => {
   }
 })
 
+test('Linux setup rejects a stage beneath a symlinked source ancestor', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'voucha-linux-stage-link-'))
+  const producer = join(directory, 'producer')
+  const link = join(directory, 'source-link')
+  mkdirSync(join(producer, 'api-fixtures/v1'), { recursive: true })
+  mkdirSync(join(producer, 'dev'))
+  writeFileSync(join(producer, 'dev/native-localization.mts'), '')
+  execFileSync('git', ['init', '-q', producer])
+  symlinkSync(producer, link, 'dir')
+  const result = run('setup-linux', [
+    '--producer-root',
+    producer,
+    '--stage-root',
+    join(link, 'stage'),
+  ])
+  assert.equal(result.status, 2, result.stdout + result.stderr)
+  assert.match(result.stderr, /outside the client and producer checkouts/u)
+  assert.equal(readFileSync(join(producer, 'dev/native-localization.mts'), 'utf8'), '')
+})
+
 test('doctor and portable tests reject an implicit contract stage', () => {
   for (const script of ['linux-doctor', 'linux-portable-tests']) {
     const result = run(script, [], {
@@ -79,9 +107,15 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
     readFileSync(join(root, 'dev/linux-native-images.sh')),
   )
   writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}')
+  writeFileSync(
+    join(checkout, 'package.json'),
+    JSON.stringify({
+      devDependencies: { 'vouchington-tooling': '1', 'no-mistakes': '1', oxfmt: '1' },
+    }),
+  )
   writeFileSync(join(checkout, 'pnpm-lock.yaml'), 'pinned-lock')
   execFileSync('git', ['init', '-q', checkout])
-  execFileSync('git', ['-C', checkout, 'add', 'global.json', 'pnpm-lock.yaml'])
+  execFileSync('git', ['-C', checkout, 'add', 'global.json', 'package.json', 'pnpm-lock.yaml'])
   execFileSync('git', [
     '-C',
     checkout,
@@ -124,12 +158,30 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
 
   mkdirSync(join(checkout, 'node_modules/.bin'), { recursive: true })
   mkdirSync(join(checkout, 'node_modules/.pnpm'))
-  for (const name of ['vouchington', 'no-mistakes']) {
+  for (const [name, bin] of [
+    ['vouchington-tooling', 'vouchington'],
+    ['no-mistakes', 'no-mistakes'],
+    ['oxfmt', 'oxfmt'],
+  ]) {
+    const packageRoot = join(checkout, 'node_modules', name)
+    mkdirSync(packageRoot, { recursive: true })
+    writeFileSync(
+      join(packageRoot, 'package.json'),
+      JSON.stringify({ name, bin: { [bin]: 'cli.js' } }),
+    )
+  }
+  for (const name of ['vouchington', 'no-mistakes', 'oxfmt']) {
     const path = join(checkout, 'node_modules/.bin', name)
     writeFileSync(path, '#!/bin/sh\nexit 0\n')
     chmodSync(path, 0o755)
   }
   writeFileSync(join(checkout, 'node_modules/.pnpm/lock.yaml'), 'pinned-lock')
+  rmSync(join(checkout, 'node_modules/.bin/oxfmt'))
+  const missingFormatter = doctor(environment)
+  assert.equal(missingFormatter.status, 1, missingFormatter.stdout + missingFormatter.stderr)
+  assert.match(missingFormatter.stderr, /Checkout dependencies are absent/u)
+  writeFileSync(join(checkout, 'node_modules/.bin/oxfmt'), '#!/bin/sh\nexit 0\n')
+  chmodSync(join(checkout, 'node_modules/.bin/oxfmt'), 0o755)
   for (const project of ['src/Voucha.Client.Core', 'tests/Voucha.Client.Core.Tests']) {
     const directory = join(checkout, 'dotnet-clients', project, 'obj')
     mkdirSync(directory, { recursive: true })

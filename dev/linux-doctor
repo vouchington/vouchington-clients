@@ -76,9 +76,35 @@ if [[ "$setup_ready" == true ]]; then
     echo 'Setup or portable .NET restore inputs changed locally; rerun dev/setup-linux with a fresh stage.' >&2
     exit 1
   fi
-  if [[ ! -x "$root/node_modules/.bin/vouchington" ||
-    ! -x "$root/node_modules/.bin/no-mistakes" ]] ||
-    ! cmp -s "$root/pnpm-lock.yaml" "$root/node_modules/.pnpm/lock.yaml"; then
+  if ! cmp -s "$root/pnpm-lock.yaml" "$root/node_modules/.pnpm/lock.yaml" ||
+    ! node - "$root" <<'NODE'
+const fs = require('node:fs')
+const path = require('node:path')
+const root = process.argv[2]
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const dependencies = { ...manifest.dependencies, ...manifest.devDependencies }
+for (const name of Object.keys(dependencies)) {
+  const packageRoot = path.join(root, 'node_modules', name)
+  let dependency
+  try {
+    dependency = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'))
+  } catch {
+    process.exit(1)
+  }
+  const bins = typeof dependency.bin === 'string'
+    ? [name.split('/').at(-1)]
+    : Object.keys(dependency.bin ?? {})
+  for (const bin of bins) {
+    try {
+      const mode = fs.statSync(path.join(root, 'node_modules', '.bin', bin)).mode
+      if ((mode & 0o111) === 0) process.exit(1)
+    } catch {
+      process.exit(1)
+    }
+  }
+}
+NODE
+  then
     echo 'Checkout dependencies are absent or stale; rerun dev/setup-linux with a fresh stage.' >&2
     exit 1
   fi

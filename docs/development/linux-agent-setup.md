@@ -12,12 +12,15 @@ also need the opt-in Android Core cross-compile: its NDK path is currently
 `toolchains/llvm/prebuilt/linux-x86_64/bin/clang`.
 
 Supply the path to a **complete** Vouchington checkout explicitly. The repository scripts do not
-discover or fetch one. Choose an absent or empty output directory outside both checkouts:
+discover or fetch one. Choose an absent or empty output directory outside both checkouts. Create
+its parent first so setup can resolve the parent physically and reject symlink paths into a source
+checkout:
 
 ```sh
+mkdir -p "$HOME/.cache/voucha-native"
 ./dev/setup-linux \
   --producer-root /absolute/path/to/vouchington \
-  --stage-root /absolute/path/to/native-contract-stage
+  --stage-root "$HOME/.cache/voucha-native/native-contract-stage"
 ```
 
 Setup verifies host versions and Docker, runs `pnpm install --frozen-lockfile`, installs the
@@ -29,8 +32,8 @@ root must then be passed explicitly to each fixture
 check or test process:
 
 ```sh
-./dev/linux-doctor --stage-root /absolute/path/to/native-contract-stage
-./dev/linux-portable-tests --stage-root /absolute/path/to/native-contract-stage
+./dev/linux-doctor --stage-root "$HOME/.cache/voucha-native/native-contract-stage"
+./dev/linux-portable-tests --stage-root "$HOME/.cache/voucha-native/native-contract-stage"
 ./dev/linux-quality
 ```
 

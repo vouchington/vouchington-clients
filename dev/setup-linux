@@ -2,7 +2,7 @@
 # Install checkout-local dependencies and stage explicitly supplied producer contracts.
 set -euo pipefail
 
-root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -P -- "$(dirname -- "$0")/.." && pwd -P)"
 producer_root=''
 stage_root=''
 usage() {
@@ -24,6 +24,18 @@ if [[ -L "$stage_root" ]] || { [[ -e "$stage_root" ]] && [[ ! -d "$stage_root" |
   echo '--stage-root must be absent or an empty directory.' >&2
   exit 2
 fi
+stage_parent="$(dirname -- "$stage_root")"
+if [[ ! -d "$stage_parent" ]]; then
+  echo '--stage-root parent must be an existing directory.' >&2
+  exit 2
+fi
+stage_root="$(cd -P -- "$stage_parent" && pwd -P)/$(basename -- "$stage_root")"
+case "$stage_root/" in
+  "$root/"*|"$producer_root/"*)
+    echo '--stage-root must be outside the client and producer checkouts.' >&2
+    exit 2
+    ;;
+esac
 [[ -d "$producer_root/api-fixtures/v1" && -f "$producer_root/dev/native-localization.mts" ]] || {
   echo '--producer-root must name a complete Vouchington checkout with fixtures and exporter.' >&2
   exit 2

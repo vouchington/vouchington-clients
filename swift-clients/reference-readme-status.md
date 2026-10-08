@@ -47,7 +47,14 @@ cd apps/android && skip android build --android-api-level 28
 
 By default the native clients use `https://voucha.ai`. For a local backend, set
 `VOUCHA_API_BASE_URL` in the ignored `swift-clients/apps/Voucha.local.xcconfig` to that backend's
-URL. Generated Debug schemes reference the file, so changing the URL does not require project
+URL. In XCConfig syntax, use the generated file's slash variable so `//` is not parsed as a comment:
+
+```xcconfig
+VOUCHA_URL_SLASH = /
+VOUCHA_API_BASE_URL = http:$(VOUCHA_URL_SLASH)$(VOUCHA_URL_SLASH)localhost:3000
+```
+
+Generated Debug schemes reference the file, so changing the URL does not require project
 regeneration. Clean generation creates a production-default XCConfig when it is absent. See
 [web-mode resource allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
 for the backend port contract. Set
