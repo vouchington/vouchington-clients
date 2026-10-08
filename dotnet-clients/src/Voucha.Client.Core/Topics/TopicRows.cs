@@ -14,12 +14,17 @@ public sealed record TopicRow(
     int? VoteCountUp = null,
     int? VoteCountDown = null,
     ElectionVoteChoice? CurrentVoteChoice = null,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    PublicContentProvenance? Provenance = null)
 {
   public string LocalizedTopicType =>
       (Localization ?? UiLocalization.English).Resolve(TopicTypeText);
 
   public bool HasVoteCounts => VoteCountUp is not null || VoteCountDown is not null;
+
+  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization ?? UiLocalization.English);
+
+  public bool HasProvenance => LocalizedProvenanceLabel is not null;
 
 
   public TopicRow WithLocalization(IUiLocalization localization) =>

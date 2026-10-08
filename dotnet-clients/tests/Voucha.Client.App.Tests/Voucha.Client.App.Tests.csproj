@@ -15,6 +15,27 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityBrowsePage.cs" Link="Pages/CommunityBrowsePage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.cs" Link="Pages/CommunityDetailPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.EmbedPreview.cs" Link="Pages/CommunityDetailPage.EmbedPreview.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ListsPage.xaml" Link="Pages/ListsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ListsPage.xaml.cs" Link="Pages/ListsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ListsPageBinding.cs" Link="Pages/ListsPageBinding.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicDetailPage.xaml" Link="Pages/TopicDetailPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicDetailPage.xaml.cs" Link="Pages/TopicDetailPage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicsPage.xaml" Link="Pages/TopicsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicsPage.xaml.cs" Link="Pages/TopicsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicsPage.Binding.cs" Link="Pages/TopicsPage.Binding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/LoadablePageBinding.cs" Link="Pages/LoadablePageBinding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/SemanticVoteActionSheet.cs" Link="Controls/SemanticVoteActionSheet.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml" Link="Pages/NewsFeedsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml.cs" Link="Pages/NewsFeedsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPageBinding.cs" Link="Pages/NewsFeedsPageBinding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.Pagination.cs" Link="Pages/NewsFeedsPage.Pagination.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.StoryDiscussions.cs" Link="Pages/NewsFeedsPage.StoryDiscussions.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.StoryPages.cs" Link="Pages/NewsFeedsPage.StoryPages.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.FollowerDistribution.cs" Link="Pages/NewsFeedsPage.FollowerDistribution.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.EmbedPreview.cs" Link="Pages/NewsFeedsPage.EmbedPreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml" Link="Pages/TopicManagementPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml.cs" Link="Pages/TopicManagementPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.State.cs" Link="Pages/TopicManagementPage.State.cs" />

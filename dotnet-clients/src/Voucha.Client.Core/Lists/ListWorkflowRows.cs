@@ -9,9 +9,14 @@ public sealed record ListSummaryRow(
     string? Description,
     string ProtocolVisibility,
     UiText VisibilityText,
-    IUiLocalization Localization)
+    IUiLocalization Localization,
+    PublicContentProvenance? Provenance = null)
 {
   public string LocalizedVisibility => Localization.Resolve(VisibilityText);
+
+  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization);
+
+  public bool HasProvenance => LocalizedProvenanceLabel is not null;
 
   public static ListSummaryRow FromList(
       UserList list,
@@ -25,7 +30,8 @@ public sealed record ListSummaryRow(
         list.Description,
         list.Visibility,
         UiTaxonomy.ListVisibility(list.Visibility),
-        localizer);
+        localizer,
+        list.Provenance);
   }
 
   public ListSummaryRow WithLocalization(IUiLocalization localization) =>

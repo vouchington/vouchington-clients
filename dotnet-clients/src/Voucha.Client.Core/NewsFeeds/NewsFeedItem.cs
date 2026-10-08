@@ -35,11 +35,16 @@ public sealed record NewsFeedItem(
     UrlEmbedPreview? EmbedPreview = null,
     IUiLocalization? Localization = null,
     StoryRelatedArticles? StoryArticles = null,
-    string? DeliveryId = null)
+    string? DeliveryId = null,
+    Api.PublicContentProvenance? Provenance = null)
 {
   public string FeedRowId => DeliveryId ?? Id;
 
   public bool IsSource => Kind == NewsFeedItemKind.Source;
+
+  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, L);
+
+  public bool HasProvenance => LocalizedProvenanceLabel is not null;
 
   public bool IsArticle => Kind == NewsFeedItemKind.Article;
 

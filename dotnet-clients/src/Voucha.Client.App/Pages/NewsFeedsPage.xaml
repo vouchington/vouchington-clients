@@ -172,6 +172,7 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}" />
+                                <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding Summary}" Style="{StaticResource Body}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
