@@ -104,59 +104,6 @@ public sealed partial class NewsFeedsViewModel
     }
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "Native news mutations surface API failures in view state before MAUI async event handlers observe them.")]
-  private async Task ToggleArticleBookmarkAsync(
-      NewsFeedItem item,
-      BookmarkPredicate predicate,
-      bool removeOnActivate,
-      CancellationToken cancellationToken)
-  {
-    ArgumentNullException.ThrowIfNull(item);
-    if (FindStoryPeer(item.Id) is { } related)
-    {
-      var enabled = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
-      await MutateStoryPeerAsync(related, item,
-          peer => peer with
-          {
-            IsSaved = predicate == BookmarkPredicate.Save ? enabled : peer.IsSaved,
-            IsHidden = predicate == BookmarkPredicate.Hide ? enabled : peer.IsHidden
-          },
-          predicate == BookmarkPredicate.Hide && enabled && removeOnActivate,
-          () => bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, enabled, cancellationToken)).ConfigureAwait(true);
-      return;
-    }
-    if (!togglingArticleIds.Add(item.Id)) return;
-
-    var previousItems = Items;
-    var mutationScope = SelectedScope;
-    var mutationLoadRequestId = loadRequestId;
-    var active = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
-    Items = ToggleArticleBookmark(previousItems, item.Id, predicate, active, removeOnActivate);
-    var optimisticItems = Items;
-    ErrorMessage = null;
-
-    try
-    {
-      await bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, active, cancellationToken)
-          .ConfigureAwait(true);
-    }
-    catch (OperationCanceledException)
-    {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, null);
-    }
-    catch (Exception ex)
-    {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
-    }
-    finally
-    {
-      togglingArticleIds.Remove(item.Id);
-    }
-  }
-
   private static NewsFeedItem[] ToggleSourceBookmark(
       IReadOnlyList<NewsFeedItem> sourceItems,
       string sourceId,

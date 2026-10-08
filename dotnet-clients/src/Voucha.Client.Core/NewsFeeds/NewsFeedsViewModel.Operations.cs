@@ -168,4 +168,5 @@ public sealed partial class NewsFeedsViewModel
     Items = previousItems;
     ErrorMessage = rollbackErrorMessage;
   }
+
 }
