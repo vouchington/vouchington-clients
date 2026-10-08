@@ -873,7 +873,6 @@ jobs:
         working-directory: candidate-clients
         run: >-
           dotnet workload install maui-maccatalyst
-          --version "$(jq -er '.sdk.workloadVersion' global.json)"
           --configfile dotnet-clients/NuGet.config
       - name: Verify all seven committed NuGet locks
         working-directory: candidate-clients

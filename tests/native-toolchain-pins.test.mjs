@@ -19,10 +19,11 @@ test('mise, global.json, and MAUI CI select the Xcode-compatible .NET 10 SDK set
   assert.equal(global.sdk.version, '10.0.401')
   assert.equal(global.sdk.workloadVersion, '10.0.401')
   assert.match(mise, /^dotnet = "10\.0\.401"$/mu)
-  assert.match(
-    workflow,
-    /dotnet workload install maui-maccatalyst\s+--version "\$\(jq -er '\.sdk\.workloadVersion' global\.json\)"/u,
-  )
+  const workloadInstall = workflow.match(
+    /dotnet workload install maui-maccatalyst(?:\n[ \t]+[^\n]+)*/u,
+  )?.[0]
+  assert.match(workloadInstall ?? '', /--configfile dotnet-clients\/NuGet\.config/u)
+  assert.doesNotMatch(workloadInstall ?? '', /--version/u)
   assert.match(workflow, /select-xcode\.sh 26\.6/u)
   assert.doesNotMatch(workflow, /actions\/setup-dotnet@/u)
   assert.match(
@@ -52,6 +53,10 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   assert.match(linuxAndroid, /SWIFT_ANDROID_SDK_VERSION="6\.4\.0"/u)
   assert.match(macAndroid, /SWIFT_VERSION="6\.4\.0"/u)
   assert.match(linuxAndroid, /ANDROID_NDK_VERSION="r30"/u)
+  assert.match(
+    linuxAndroid,
+    /export ANDROID_NDK_HOME="\$ANDROID_NDK_PATH"[\s\S]*?setup-android-sdk\.sh[\s\S]*?swift build/u,
+  )
   assert.match(macAndroid, /ANDROID_NDK_VERSION="r30"/u)
   const androidJob = workflow.slice(
     workflow.indexOf('  test-swift-android:'),
@@ -144,4 +149,21 @@ test('Periphery scans the index store produced by its selected Swift compiler', 
   assert.doesNotMatch(uiPeripheryJob, /setup-mise-toolchain/u)
   assert.match(corePeripheryJob, /periphery-scan\.sh core/u)
   assert.match(uiPeripheryJob, /periphery-scan\.sh ui/u)
+})
+
+test('Linux mise jobs install the Swift runtime libraries they require', () => {
+  const action = read('.github/actions/setup-mise-toolchain/action.yml')
+  const validation = read('.github/workflows/validate.yml')
+  assert.match(
+    action,
+    /if: runner\.os == 'Linux'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?mise-action/u,
+  )
+  for (const job of ['tooling-lint', 'gitleaks', 'swift-lint']) {
+    const block = jobBlock(validation, job)
+    assert.match(block, /apt-get install --yes --no-install-recommends libncurses6/u)
+    const aptIndex = block.indexOf('apt-get install --yes --no-install-recommends libncurses6')
+    const miseExecIndex = block.indexOf('mise exec')
+    if (miseExecIndex >= 0)
+      assert.ok(aptIndex < miseExecIndex, `${job} installs libs before mise exec`)
+  }
 })

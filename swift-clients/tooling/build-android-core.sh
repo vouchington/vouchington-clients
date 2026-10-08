@@ -123,7 +123,8 @@ if [[ ! -x "$ANDROID_NDK_CLANG" || ! -f "$ANDROID_NDK_SENTINEL" ]]; then
   touch "$ANDROID_NDK_SENTINEL"
 fi
 
-ANDROID_NDK_HOME="$ANDROID_NDK_PATH" "$sdk_path/scripts/setup-android-sdk.sh"
+export ANDROID_NDK_HOME="$ANDROID_NDK_PATH"
+"$sdk_path/scripts/setup-android-sdk.sh"
 
 swift build \
   --package-path "$CORE_DIR" \

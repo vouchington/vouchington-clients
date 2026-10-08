@@ -12,6 +12,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install mise Swift runtime libraries
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install --yes --no-install-recommends libncurses6
     - name: Install mise
       uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
       with:
