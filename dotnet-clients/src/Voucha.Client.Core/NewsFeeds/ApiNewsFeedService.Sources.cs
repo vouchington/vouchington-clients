@@ -77,7 +77,8 @@ public sealed partial class ApiNewsFeedService
             VoteScoreNet: election?.VotesScoreNet,
             VoteCountUp: election?.VotesCountUp,
             VoteCountDown: election?.VotesCountDown,
-            CurrentVoteChoice: vote?.Choice);
+            CurrentVoteChoice: vote?.Choice,
+            Provenance: source.Provenance);
       }).ToArray();
 
   private string FeedTypeLabel(string? feedType) =>

@@ -27,6 +27,9 @@ public sealed class CommunityBrowsePage : ContentPage
       title.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.Name));
       var subtitle = new Label();
       subtitle.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.Slug));
+      var provenance = new Label { FontSize = 12 };
+      provenance.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.LocalizedProvenanceLabel));
+      provenance.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProvenance));
       var counts = new Label();
       counts.SetBinding(Label.TextProperty, new Binding(nameof(CommunityBrowseRow.MemberCount), stringFormat: "{0} members"));
       var postCount = new Label();
@@ -35,7 +38,7 @@ public sealed class CommunityBrowsePage : ContentPage
       {
         Spacing = 4,
         Padding = 0,
-        Children = { title, subtitle, counts, postCount },
+        Children = { title, subtitle, provenance, counts, postCount },
       };
     });
 

@@ -40,6 +40,11 @@ public sealed partial class ListsViewModel
   public void OnUiLocaleChanged()
   {
     Lists = Lists.Select(row => row.WithLocalization(localization)).ToArray();
+    if (SelectedList is { } selected)
+    {
+      selectedList = selected.WithLocalization(localization);
+      OnPropertyChanged(nameof(SelectedList));
+    }
     Items = Items.Select(row => row.WithLocalization(localization)).ToArray();
     SynchronizePaginationItems();
   }
