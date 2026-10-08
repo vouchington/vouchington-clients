@@ -53,7 +53,7 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
           ttlSeconds,
           now.AddSeconds(ttlSeconds),
           replacement,
-          replacement.Values.Sum(static value => EncodingByteCount(value)));
+          replacement.Sum(static pair => EncodingByteCount(pair.Key) + EncodingByteCount(pair.Value)));
       Touch(locale);
       Evict();
     }

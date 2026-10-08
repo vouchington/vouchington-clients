@@ -49,6 +49,21 @@ public sealed class LocalizationValueCacheTests
     Assert.Equal("Abort", cache.Value("common.cancel", "en"));
   }
 
+  [Theory]
+  [InlineData("longkey", "", 6)]
+  [InlineData("é", "", 1)]
+  [InlineData("é", "é", 3)]
+  public void ByteBudgetIncludesUtf8KeysAndValues(string key, string value, int maxBytes)
+  {
+    var cache = new LocalizationValueCache(maxBytes);
+    cache.Apply("en", "revision", 60,
+        new Dictionary<string, string> { [key] = value }, DateTimeOffset.UnixEpoch);
+
+    Assert.Null(cache.Value(key, "en"));
+    Assert.Null(cache.Etag("en"));
+    Assert.True(cache.IsExpired("en", DateTimeOffset.UnixEpoch));
+  }
+
   [Fact]
   public void LruEvictsOldestLocaleWhenByteBoundIsExceeded()
   {

@@ -30,7 +30,8 @@ public sealed class LocalizationRefreshServiceTests
     Assert.Equal("Abort", cache.Value("common.cancel", "en"));
     Assert.Equal(1, changes);
     Assert.Contains("consumer=dotnet", handler.PathAndQuery, StringComparison.Ordinal);
-    Assert.Contains("selectors=", handler.PathAndQuery, StringComparison.Ordinal);
+    Assert.Contains($"selectors={NativeLocalizationSelectors.ChromeJoined}",
+        Uri.UnescapeDataString(handler.PathAndQuery!), StringComparison.Ordinal);
   }
 
   [Fact]

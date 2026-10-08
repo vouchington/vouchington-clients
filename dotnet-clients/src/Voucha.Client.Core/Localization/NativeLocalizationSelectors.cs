@@ -7,12 +7,19 @@ public static class NativeLocalizationSelectors
   public static readonly IReadOnlyList<string> Chrome =
   [
       "common.*",
+      "extracted.*",
       "nav.*",
       "settings.*",
       "shared.*",
       "native.common.*",
       "native.auth.*",
+      "native.credentials.*",
       "native.dotnet.*",
+      "native.language.*",
+      "native.legal.*",
+      "native.moderation.*",
+      "native.swift.*",
+      "native.taxonomy.*",
   ];
 
   public static string ChromeJoined { get; } = string.Join(',', Chrome);
