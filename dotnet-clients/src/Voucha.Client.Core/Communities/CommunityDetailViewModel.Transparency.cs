@@ -160,7 +160,6 @@ public sealed partial class CommunityDetailViewModel
     "spam" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesSpam),
     "spam_detection" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesSpamDetection),
     "suspend" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesSuspend),
-    "tag" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesTag),
     "unlock" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesUnlock),
     "unpin" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesUnpin),
     "unsuspend" => UiText.Localized(UiMessageKey.NativeSwiftCommunityRowsTransparencyCategoriesUnsuspend),

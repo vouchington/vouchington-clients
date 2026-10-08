@@ -515,7 +515,6 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let nativeSwiftCommunityRowsTransparencyCategoriesSpam = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.spam")
     public static let nativeSwiftCommunityRowsTransparencyCategoriesSpamDetection = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.spamDetection")
     public static let nativeSwiftCommunityRowsTransparencyCategoriesSuspend = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.suspend")
-    public static let nativeSwiftCommunityRowsTransparencyCategoriesTag = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.tag")
     public static let nativeSwiftCommunityRowsTransparencyCategoriesUnlock = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.unlock")
     public static let nativeSwiftCommunityRowsTransparencyCategoriesUnpin = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.unpin")
     public static let nativeSwiftCommunityRowsTransparencyCategoriesUnsuspend = UiMessageKey(rawValue: "native.swift.communityRows.transparencyCategories.unsuspend")

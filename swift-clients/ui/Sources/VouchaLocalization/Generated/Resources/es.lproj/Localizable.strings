@@ -517,7 +517,6 @@
 "native.swift.communityRows.transparencyCategories.spam" = "Spam";
 "native.swift.communityRows.transparencyCategories.spamDetection" = "Detección de spam";
 "native.swift.communityRows.transparencyCategories.suspend" = "Suspender";
-"native.swift.communityRows.transparencyCategories.tag" = "Etiquetar";
 "native.swift.communityRows.transparencyCategories.unlock" = "Desbloquear";
 "native.swift.communityRows.transparencyCategories.unpin" = "Desfijar";
 "native.swift.communityRows.transparencyCategories.unsuspend" = "Restablecer";
