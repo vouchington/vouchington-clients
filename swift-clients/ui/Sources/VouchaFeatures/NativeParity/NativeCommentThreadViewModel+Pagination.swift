@@ -112,7 +112,15 @@ extension NativeCommentThreadViewModel {
             position: request.cursor == nil ? .append : .prepend
         )
         ancestorPosts = ancestorPagination.items.filter {
-            $0.id != rootPostId && $0.id != focusedCommentId
+            $0.id != rootPostId && $0.id != rootPost?.id && $0.id != focusedCommentId
+        }
+        if let focusedCommentId,
+           focusedCommentId != rootPost?.id,
+           !descendantPosts.contains(where: { $0.id == focusedCommentId }),
+           let focusedPost = ancestorPagination.items.first(where: { $0.id == focusedCommentId }) {
+            descendantPosts.append(focusedPost)
+            descendantPagination.replaceItems(descendantPosts)
+            rebuildCommentTree()
         }
     }
 

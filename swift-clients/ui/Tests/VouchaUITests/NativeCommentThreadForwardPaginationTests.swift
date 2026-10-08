@@ -4,6 +4,214 @@ import XCTest
 
 @MainActor
 final class NativeCommentThreadForwardPaginationTests: NativeRouteSurfaceViewModelTestCase {
+    func testRootPermalinkDoesNotInsertRootAmongComments() async throws {
+        let rootPath = "/api/v1/posts/comment-root-post"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/descendants"] = try (
+            descendantsPage(ids: ["comment-a"], cursor: nil, hasMore: false), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/ancestors"] = try (
+            ancestorsPage(ids: ["comment-root-post"], cursor: nil, hasMore: false), 200
+        )
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "comment-root-post", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-root-post")
+
+        XCTAssertEqual(viewModel.rootPost?.id, "comment-root-post")
+        XCTAssertEqual(viewModel.descendantPosts.map(\.id), ["comment-a"])
+        XCTAssertEqual(viewModel.commentTree.map(\.post.id), ["comment-a"])
+    }
+
+    func testSlugBackedPermalinkOmitsCanonicalRootFromAncestorTrail() async throws {
+        let rootPath = "/api/v1/posts/story-slug"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/descendants"] = try (
+            descendantsPage(ids: ["comment-a", "comment-b"], cursor: nil, hasMore: false), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-b/ancestors"] = (
+            ApiFixtureLoader.data("native.comments.ancestors.permalink"), 200
+        )
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "story-slug", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-b")
+
+        XCTAssertEqual(viewModel.rootPost?.id, "comment-root-post")
+        XCTAssertEqual(viewModel.ancestorPosts.map(\.id), ["comment-a"])
+        XCTAssertEqual(viewModel.commentTree.first?.children.map(\.post.id), ["comment-b"])
+    }
+
+    func testPermalinkTargetOutsideFirstDescendantPageAppearsOnceAndSurvivesContinuation() async throws {
+        let rootPath = "/api/v1/posts/comment-root-post"
+        let descendantsPath = "\(rootPath)/descendants"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.queuedHandlers[descendantsPath] = try [
+            (descendantsPage(ids: ["comment-a"], cursor: "next-descendants", hasMore: true), 200, 0),
+            (descendantsPage(ids: ["comment-b"], cursor: nil, hasMore: false), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-b/ancestors"] = (
+            ApiFixtureLoader.data("native.comments.ancestors.permalink"), 200
+        )
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "comment-root-post", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-b")
+        XCTAssertEqual(viewModel.descendantPosts.map(\.id), ["comment-a", "comment-b"])
+        XCTAssertEqual(viewModel.ancestorPosts.map(\.id), ["comment-a"])
+        XCTAssertEqual(viewModel.commentTree.first?.children.map(\.post.id), ["comment-b"])
+
+        await viewModel.loadMoreDescendants()
+        XCTAssertEqual(viewModel.descendantPosts.filter { $0.id == "comment-b" }.count, 1)
+        XCTAssertEqual(viewModel.commentTree.first?.children.map(\.post.id), ["comment-b"])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.filter { $0.path == descendantsPath }.map(\.query),
+            ["limit=100", "limit=100&after=next-descendants"]
+        )
+    }
+
+    func testEditedAncestorSurvivesPrependingAnotherAncestorPage() async throws {
+        let rootPath = "/api/v1/posts/comment-root-post"
+        let ancestorsPath = "/api/v1/posts/comment-b/ancestors"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/descendants"] = (
+            ApiFixtureLoader.data("native.comments.descendants.default"), 200
+        )
+        CannedFeedURLProtocol.queuedHandlers[ancestorsPath] = try [
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-a", "comment-b"],
+                cursor: "earlier-ancestors", hasMore: true
+            ), 200, 0),
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-before"],
+                cursor: nil, hasMore: false, extraPostId: "comment-before"
+            ), 200, 0)
+        ]
+        var mutation = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: ApiFixtureLoader.data("native.comments.ancestors.permalink"))
+                as? [String: Any]
+        )
+        var posts = try XCTUnwrap(mutation["posts"] as? [String: Any])
+        var editedPost = try XCTUnwrap(posts["comment-a"] as? [String: Any])
+        editedPost["markdown"] = "Updated ancestor"
+        editedPost["html"] = "<p>Updated ancestor</p>"
+        posts["comment-a"] = editedPost
+        mutation["posts"] = posts
+        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-a"] = try (
+            JSONSerialization.data(withJSONObject: ["post": editedPost]), 200
+        )
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "comment-root-post", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-b")
+        await viewModel.edit(postId: "comment-a", markdown: "Updated ancestor")
+        XCTAssertEqual(viewModel.ancestorPosts.first?.markdown, "Updated ancestor")
+        await viewModel.loadMoreAncestors()
+
+        XCTAssertEqual(viewModel.ancestorPosts.map(\.id), ["comment-before", "comment-a"])
+        XCTAssertEqual(viewModel.ancestorPosts.last?.markdown, "Updated ancestor")
+        XCTAssertEqual(viewModel.ancestorPagination.items.first { $0.id == "comment-a" }?.markdown, "Updated ancestor")
+        XCTAssertEqual(viewModel.ancestorPagination.endCursor, nil)
+    }
+
+    func testVotedAncestorSurvivesPrependingAnotherAncestorPage() async throws {
+        let rootPath = "/api/v1/posts/comment-root-post"
+        let ancestorsPath = "/api/v1/posts/comment-b/ancestors"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/descendants"] = try (
+            descendantsPage(ids: ["comment-b"], cursor: nil, hasMore: false), 200
+        )
+        CannedFeedURLProtocol.queuedHandlers[ancestorsPath] = try [
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-a", "comment-b"],
+                cursor: "earlier-ancestors", hasMore: true
+            ), 200, 0),
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-before"],
+                cursor: nil, hasMore: false, extraPostId: "comment-before"
+            ), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-a/vote"] = (Data("{}".utf8), 200)
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "comment-root-post", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-b")
+        XCTAssertNil(viewModel.ancestorPosts.first?.election)
+        XCTAssertEqual(viewModel.postElectionsById["comment-a"]?.votesCountUp, 8)
+        XCTAssertEqual(viewModel.voteChoicesByPostId["comment-a"], .like)
+        await viewModel.vote(postId: "comment-a", choice: .dislike)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.myVote, .dislike)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.votesCountUp, 7)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.votesCountDown, 1)
+        await viewModel.loadMoreAncestors()
+
+        XCTAssertEqual(viewModel.ancestorPosts.map(\.id), ["comment-before", "comment-a"])
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.myVote, .dislike)
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.votesCountUp, 7)
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.votesCountDown, 1)
+        XCTAssertEqual(viewModel.ancestorPagination.items.first { $0.id == "comment-a" }?.election?.myVote, .dislike)
+    }
+
+    func testFailedAncestorVoteRestoresSidecarElectionAcrossPrepend() async throws {
+        let rootPath = "/api/v1/posts/comment-root-post"
+        let ancestorsPath = "/api/v1/posts/comment-b/ancestors"
+        CannedFeedURLProtocol.handlers[rootPath] = (
+            ApiFixtureLoader.data("native.comments.post-detail.default"), 200
+        )
+        CannedFeedURLProtocol.handlers["\(rootPath)/descendants"] = try (
+            descendantsPage(ids: ["comment-b"], cursor: nil, hasMore: false), 200
+        )
+        CannedFeedURLProtocol.queuedHandlers[ancestorsPath] = try [
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-a", "comment-b"],
+                cursor: "earlier-ancestors", hasMore: true
+            ), 200, 0),
+            (ancestorsPage(
+                ids: ["comment-root-post", "comment-before"],
+                cursor: nil, hasMore: false, extraPostId: "comment-before"
+            ), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-a/vote"] = (
+            Data(#"{"message":"vote failed"}"#.utf8), 503
+        )
+        let viewModel = try NativeCommentThreadViewModel(
+            client: makeClient(), rootPostId: "comment-root-post", currentUserId: "user-1"
+        )
+
+        await viewModel.loadPermalink(targetCommentId: "comment-b")
+        XCTAssertNil(viewModel.ancestorPosts.first?.election)
+        XCTAssertEqual(viewModel.voteChoicesByPostId["comment-a"], .like)
+        await viewModel.vote(postId: "comment-a", choice: .dislike)
+
+        XCTAssertEqual(viewModel.voteChoicesByPostId["comment-a"], .like)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.myVote, .like)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.votesCountUp, 8)
+        XCTAssertEqual(viewModel.ancestorPosts.first?.election?.votesCountDown, 0)
+        XCTAssertEqual(viewModel.postElectionsById["comment-a"]?.votesCountUp, 8)
+
+        await viewModel.loadMoreAncestors()
+        XCTAssertEqual(viewModel.ancestorPosts.map(\.id), ["comment-before", "comment-a"])
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.myVote, .like)
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.votesCountUp, 8)
+        XCTAssertEqual(viewModel.ancestorPosts.last?.election?.votesCountDown, 0)
+        XCTAssertEqual(viewModel.ancestorPagination.items.first { $0.id == "comment-a" }?.election?.myVote, .like)
+    }
+
     func testAncestorContinuationPrependsUniqueRowsAndRetriesSameCursor() async throws {
         let detailPath = "/api/v1/posts/comment-root-post"
         let ancestorsPath = "/api/v1/posts/comment-b/ancestors"

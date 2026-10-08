@@ -188,7 +188,9 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
         let restoredElection = viewModel.descendantPosts.first { $0.id == "comment-a" }?.election
         XCTAssertEqual(restoredElection?.votesCountUp, originalElection?.votesCountUp)
         XCTAssertEqual(restoredElection?.votesCountDown, originalElection?.votesCountDown)
-        XCTAssertEqual(restoredElection?.myVote, originalElection?.myVote)
+        XCTAssertEqual(restoredElection?.myVote, originalChoice ?? originalElection?.myVote)
+        XCTAssertEqual(viewModel.postElectionsById["comment-a"]?.votesCountUp, originalElection?.votesCountUp)
+        XCTAssertEqual(viewModel.postElectionsById["comment-a"]?.votesCountDown, originalElection?.votesCountDown)
     }
 
     func testReplyAppendUsesLocalPermissionsWhenMutationOmitsPermissionFields() async throws {
