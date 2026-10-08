@@ -66,6 +66,15 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 
   internal void RestoreHiddenPeer(string itemId) => hiddenPeerIds.Remove(itemId);
 
+  internal void IncludeContinuation(StoryRelatedArticles incoming)
+  {
+    ArgumentNullException.ThrowIfNull(incoming);
+    if (HasMore || !incoming.HasMore) return;
+    pages.InvalidateRequestsPreservingPage();
+    pages.RestoreContinuation(incoming.pages.EndCursor, true);
+    Notify();
+  }
+
   internal StoryRelatedArticles WithPrimary(NewsFeedItem primary, IEnumerable<NewsFeedItem> additionalPeers)
   {
     var peers = additionalPeers.Concat(Items).Where(item => item.Id != primary.Id)
