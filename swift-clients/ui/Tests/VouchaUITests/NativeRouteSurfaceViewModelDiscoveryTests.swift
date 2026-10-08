@@ -359,8 +359,8 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
                   "title": "Native recommendation",
                   "markdown": "Create this topic.",
                   "html": null,
-                  "parent_id": null,
-                  "root_id": null,
+                  "parent_post_id": null,
+                  "root_post_id": null,
                   "created_by_id": "user-1",
                   "created_at": "2026-01-01T00:00:00Z",
                   "broadcast": "everyone",
@@ -431,7 +431,7 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
             }
           ],
           "users": {
-            "user-1": { "id": "user-1", "username": "alice", "display_name": null, "profile_image_id": null }
+            "user-1": { "id": "user-1", "username": "alice", "display_name": null, "profile_image_id": null, "account_type": null }
           },
           "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null }
         }

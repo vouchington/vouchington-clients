@@ -15,6 +15,21 @@ public final class SettingsViewModel {
     public internal(set) var identity: PrivateUser?
     public internal(set) var profileLinks: [VouchaModels.ProfileLink] = []
     var apiKeyPagination = CursorPaginationState<ApiKey>()
+    var oauthGrantPagination = CursorPaginationState<OAuthGrant>()
+    public internal(set) var apiKeyScopeSelection = ApiKeyScopeSelection()
+    public internal(set) var credentialState: LoadState = .idle
+    public internal(set) var oauthGrantState: LoadState = .idle
+    public internal(set) var apiKeyCreationInFlight = false
+    @ObservationIgnored
+    var activeMainSettingsLoadGeneration: Int?
+    @ObservationIgnored
+    var createdApiKeysDuringMainLoad: [ApiKey] = []
+    @ObservationIgnored
+    var credentialLoadGeneration = 0
+    @ObservationIgnored
+    var oauthGrantLoadGeneration = 0
+    @ObservationIgnored
+    var revokedOAuthGrantIds: Set<String> = []
     var pushSubscriptionPagination = CursorPaginationState<WebPushSubscription>()
     var sessionPagination = CursorPaginationState<AuthSession>()
     @ObservationIgnored
@@ -27,18 +42,6 @@ public final class SettingsViewModel {
     var revokedSessionIds: Set<String> = []
     @ObservationIgnored
     var revokedAllSessions = false
-    public var apiKeys: [ApiKey] {
-        apiKeyPagination.items
-    }
-
-    public var pushSubscriptions: [WebPushSubscription] {
-        pushSubscriptionPagination.items
-    }
-
-    public var sessions: [AuthSession] {
-        sessionPagination.items
-    }
-
     public internal(set) var membership: Membership?
     public internal(set) var membershipPlans: [String: [MembershipSkuSummary]] = [:]
     public internal(set) var membershipBenefitCatalog: MembershipBenefitCatalog?
@@ -83,7 +86,10 @@ public final class SettingsViewModel {
     public var profileLinkImageId = ""
 
     public var apiKeyLabel = ""
-    public var apiKeyType: ApiKeyType = .rss
+    public var apiKeyType: ApiKeyType = .rss {
+        didSet { apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator) }
+    }
+
     public var deleteConfirmation = ""
     public var localLLMEnabled = false
     public internal(set) var localLLMConfiguration: LocalLLMConfiguration = .disabled

@@ -22,7 +22,7 @@ public sealed record ReplaceLandingPageItemsBody(
 public record LandingPageItemInput(
     [property: JsonPropertyName("type")] string Type,
     [property: JsonPropertyName("profile_link_id")] string? ProfileLinkId = null,
-    [property: JsonPropertyName("review_id")] string? ReviewId = null,
+    [property: JsonPropertyName("review_post_id")] string? ReviewId = null,
     [property: JsonPropertyName("referral_link_id")] string? ReferralLinkId = null,
     [property: JsonPropertyName("topic_id")] string? TopicId = null,
     [property: JsonPropertyName("entries")] IReadOnlyList<LandingPageItemInput>? Entries = null,

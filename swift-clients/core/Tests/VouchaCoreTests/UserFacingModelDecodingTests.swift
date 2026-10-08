@@ -3,6 +3,37 @@ import Foundation
 import XCTest
 
 final class UserFacingModelDecodingTests: XCTestCase {
+    func testReferralLinkSidecarsDecodeUsernameLessUsersWithoutDroppingPage() throws {
+        func usernameLess(_ fixtureId: String) throws -> Data {
+            var page = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: ApiFixtureLoader.data(fixtureId)) as? [String: Any]
+            )
+            var users = try XCTUnwrap(page["users"] as? [String: [String: Any]])
+            var user = try XCTUnwrap(users["user-1"])
+            user["username"] = NSNull()
+            users["user-1"] = user
+            page["users"] = users
+            return try JSONSerialization.data(withJSONObject: page)
+        }
+
+        let decoder = makeVouchaDecoder()
+        let feed = try decoder.decode(
+            ReferralLinkFeedResponse.self,
+            from: usernameLess("web.referral-links.feed.default")
+        )
+        XCTAssertEqual(feed.results.map(\.id), ["referral-link-1"])
+        XCTAssertNil(feed.users?["user-1"]?.username)
+        XCTAssertEqual(feed.users?["user-1"]?.displayName, "Test User")
+
+        let prioritized = try decoder.decode(
+            PrioritizedReferralLinksResponse.self,
+            from: usernameLess("web.referral-links.prioritized.default")
+        )
+        XCTAssertEqual(prioritized.links.map(\.id), ["referral-link-1"])
+        XCTAssertNil(prioritized.users["user-1"]?.username)
+        XCTAssertEqual(prioritized.users["user-1"]?.id, "user-1")
+    }
+
     func testDecodesDiscoveryAndAccountModels() throws {
         let decoder = makeVouchaDecoder()
 
@@ -51,7 +82,7 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(recommended.results.first?.reason, "from_viewed_posts")
 
         let referralClicksJSON = Data(
-            #"{"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":"https://voucha.ai/@alice","signed_up_at":null,"user_id":"user-1","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-1":{"id":"user-1","username":"alice","roles":[],"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-1","end_cursor":null}}"#
+            #"{"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":"https://voucha.ai/@alice","signed_up_at":null,"user_id":"user-1","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-1":{"id":"user-1","username":"alice","roles":[],"account_type":null,"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-1","end_cursor":null}}"#
                 .utf8
         )
         let referralClicks = try decoder.decode(ReferralClickLogResponse.self, from: referralClicksJSON)
@@ -59,7 +90,7 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(referralClicks.users["user-1"]?.username, "alice")
 
         let anonymousReferralClicksJSON = Data(
-            #"{"results":[{"id":"click-2"}],"clicks":{"click-2":{"id":"click-2","landing_url":"https://voucha.ai/signup","signed_up_at":"2026-03-01T11:56:00Z","user_id":"user-2","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-2":{"id":"user-2","roles":[],"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-2","end_cursor":null}}"#
+            #"{"results":[{"id":"click-2"}],"clicks":{"click-2":{"id":"click-2","landing_url":"https://voucha.ai/signup","signed_up_at":"2026-03-01T11:56:00Z","user_id":"user-2","created_at":"2026-03-01T11:55:00Z"}},"users":{"user-2":{"id":"user-2","roles":[],"account_type":null,"profile_image_id":null,"markdown":null}},"page_info":{"has_next_page":false,"start_cursor":"click-2","end_cursor":null}}"#
                 .utf8
         )
         let anonymousReferralClicks = try decoder.decode(
@@ -185,39 +216,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         )
         let chatMessages = try decoder.decode(ChatMessagesResponse.self, from: chatMessagesJSON)
         XCTAssertEqual(chatMessages.results.first?.content.role, "assistant")
-
-        let supportThreadsJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        let supportThreads = try decoder.decode(SupportThreadListResponse.self, from: supportThreadsJSON)
-        XCTAssertEqual(supportThreads.results.first?.conversationId, "conversation-1")
-
-        let closedSupportThreadsJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":null,"created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"closed"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        let closedSupportThreads = try decoder.decode(SupportThreadListResponse.self, from: closedSupportThreadsJSON)
-        XCTAssertEqual(closedSupportThreads.results.first?.status, .closed)
-
-        let supportThreadsWithNullStatusJSON = Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":null,"contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"start_cursor":"thread-1","end_cursor":null}}"#
-                .utf8
-        )
-        XCTAssertThrowsError(try decoder.decode(SupportThreadListResponse.self, from: supportThreadsWithNullStatusJSON))
-
-        let supportThreadDetailJSON = Data(
-            #"{"thread":{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":"conversation-1","created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"},"messages":[{"id":"support-message-1","support_thread_id":"thread-1","direction":"inbound","body_text":"Help","body_html":"<p>Help</p>","created_at":"2026-03-01T11:55:00Z","created_by_id":"user-1","updated_at":"2026-03-01T11:55:00Z","email_message_id":null,"email_subject":null,"email_from":null,"email_to":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null}],"page_info":{"has_next_page":false,"start_cursor":"support-message-1","end_cursor":null}}"#
-                .utf8
-        )
-        let supportThreadDetail = try decoder.decode(SupportThreadDetailResponse.self, from: supportThreadDetailJSON)
-        XCTAssertEqual(supportThreadDetail.messages.first?.direction, .inbound)
-
-        let supportThreadCreateJSON = Data(
-            #"{"thread":{"id":"thread-1","support_contact_id":"contact-1","subject":"Need help","conversation_id":null,"created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":null},"message":null}"#
-                .utf8
-        )
-        XCTAssertThrowsError(try decoder.decode(CreateSupportThreadResponse.self, from: supportThreadCreateJSON))
 
         let participantsJSON = Data(
             #"{"results":[{"id":"participant-1","conversation_id":"conversation-1","user_id":"user-1","role":"owner","created_at":"2026-03-01T11:55:00Z","removed_at":null}],"page_info":{"has_next_page":false,"start_cursor":"participant-1","end_cursor":null}}"#

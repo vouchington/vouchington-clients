@@ -14,6 +14,6 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest SetSuppressCommunityDigestsWhileOnVacation(string idOrSlug, bool suppress) =>
       new(HttpMethod.Patch, $"/api/v1/communities/{Path(idOrSlug)}/moderator-vacation")
       {
-        Body = new { suppress_community_digests_while_on_vacation = suppress },
+        Body = new { should_suppress_community_digests_while_on_vacation = suppress },
       };
 }

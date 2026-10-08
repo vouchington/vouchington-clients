@@ -9,7 +9,7 @@ public sealed record ChatConversation(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("created_by_id")] string CreatedById,
+    [property: JsonPropertyName("created_by_id")] string? CreatedById,
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("updated_by_id")] string? UpdatedById,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt,
@@ -24,16 +24,20 @@ public sealed record ChatMessageContent(
   public string DisplayText => Content ?? string.Empty;
 }
 
+public sealed record ChatMessageCompletion(
+    [property: JsonPropertyName("status")] string Status);
+
 public sealed record ChatMessage(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("conversation_id")] string ConversationId,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("created_by_id")] string CreatedById,
+    [property: JsonPropertyName("created_by_id")] string? CreatedById,
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("updated_by_id")] string? UpdatedById,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt,
     [property: JsonPropertyName("deleted_by_id")] string? DeletedById,
-    [property: JsonPropertyName("content")] ChatMessageContent Content);
+    [property: JsonPropertyName("content")] ChatMessageContent Content,
+    [property: JsonPropertyName("completion")] ChatMessageCompletion? Completion = null);
 
 public sealed record ChatConversationListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<ChatConversation> Results,

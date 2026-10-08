@@ -9,7 +9,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let show = try decoder.decode(
             CommunityResponse.self,
             from: Data(
-                #"{"community":{"id":"community-1","name":"Test Community","slug":"test-community","markdown":"","visibility":"public","member_roster_visibility":"public","list_type":null,"member_invites_allowed_at":null,"post_approval_required_at":null,"allow_review_posts":false,"allow_data_point_posts":false,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null,"owner":null},"community_metrics":{"id":"community-1","member_count":3,"post_count":2,"list_item_count":5,"proxy_follow_count":1,"proxy_mute_count":0,"virtual_subscription_count":1},"membership":{"id":"membership-1","community_id":"community-1","user_id":"user-1","role":"member","approved_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","removed_at":null,"removed_by_id":null},"user":{"id":"user-1","username":"owner","roles":[],"profile_image_id":null,"markdown":null},"has_pending_application":true}"#
+                #"{"community":{"id":"community-1","name":"Test Community","slug":"test-community","markdown":"","visibility":"public","member_roster_visibility":"public","list_type":null,"member_invites_allowed_at":null,"post_approval_required_at":null,"automod_action":"record_only","should_allow_review_posts":false,"should_allow_data_point_posts":false,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null,"owner":null},"community_metrics":{"id":"community-1","member_count":3,"post_count":2,"list_item_count":5,"proxy_follow_count":1,"proxy_mute_count":0,"virtual_subscription_count":1},"membership":{"id":"membership-1","community_id":"community-1","user_id":"user-1","role":"member","approved_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","removed_at":null,"removed_by_id":null},"user":{"id":"user-1","username":"owner","roles":[],"profile_image_id":null,"markdown":null},"has_pending_application":true}"#
                     .utf8
             )
         )
@@ -22,7 +22,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let search = try decoder.decode(
             CommunitiesSearchResponse.self,
             from: Data(
-                #"{"results":[{"id":"community-1"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"communities":{"community-1":{"id":"community-1","name":"Test Community","slug":"test-community","markdown":"","visibility":"public","member_roster_visibility":"public","list_type":"follow","member_invites_allowed_at":null,"post_approval_required_at":null,"allow_review_posts":false,"allow_data_point_posts":false,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null,"owner":null}},"community_metrics":{"community-1":{"id":"community-1","member_count":3,"post_count":2,"list_item_count":5,"proxy_follow_count":1,"proxy_mute_count":0,"virtual_subscription_count":1}},"users":{},"community_memberships":{},"pending_application_community_ids":["community-1"],"bookmarks":{"community-1":{"save":true,"follow":false}}}"#
+                #"{"results":[{"id":"community-1"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"communities":{"community-1":{"id":"community-1","name":"Test Community","slug":"test-community","markdown":"","visibility":"public","member_roster_visibility":"public","list_type":"follow","member_invites_allowed_at":null,"post_approval_required_at":null,"automod_action":"record_only","should_allow_review_posts":false,"should_allow_data_point_posts":false,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null,"owner":null}},"community_metrics":{"community-1":{"id":"community-1","member_count":3,"post_count":2,"list_item_count":5,"proxy_follow_count":1,"proxy_mute_count":0,"virtual_subscription_count":1}},"users":{},"community_memberships":{},"pending_application_community_ids":["community-1"],"bookmarks":{"community-1":{"save":true,"follow":false}}}"#
                     .utf8
             )
         )
@@ -40,7 +40,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let questions = try decoder.decode(
             CommunityApplicationQuestionsResponse.self,
             from: Data(
-                #"{"questions":[{"id":"question-1","community_id":"community-1","question":"Why join?","field_type":"short_text","options":null,"order_index":0,"required":true,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null}]}"#
+                #"{"questions":[{"id":"question-1","community_id":"community-1","question":"Why join?","field_type":"short_text","options":null,"order_index":0,"is_required":true,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null}]}"#
                     .utf8
             )
         )
@@ -174,17 +174,17 @@ final class CommunityModelDecodingTests: XCTestCase {
         let aiAgent = try decoder.decode(
             CommunityAiAgentResponse.self,
             from: Data(
-                #"{"community_ai_agent":{"agent_id":"agent-1","always_on":false,"enabled":true,"enabled_at":"2026-01-01T00:00:00Z","enabled_by_id":"user-1","label_topic_slugs":[],"on_flag_action":"unpublish","slug":"self-promotion","system_user_id":"system-user-1","system_username":"community_agent"}}"#
+                #"{"community_ai_agent":{"agent_id":"agent-1","always_on":false,"enabled":true,"enabled_at":"2026-01-01T00:00:00Z","enabled_by_id":"user-1","entitlement":{"allowed":true,"reason":null},"label_topic_slugs":[],"slug":"self-promotion","system_user_id":"system-user-1","system_username":"community_agent"}}"#
                     .utf8
             )
         )
-        XCTAssertEqual(aiAgent.communityAiAgent.onFlagAction, .unpublish)
-        XCTAssertNil(aiAgent.communityAiAgent.entitlement)
+        XCTAssertTrue(aiAgent.communityAiAgent.entitlement.allowed)
+        XCTAssertNil(aiAgent.communityAiAgent.entitlement.reason)
 
         let thread = try decoder.decode(
             CommunityModmailThreadResponse.self,
             from: Data(
-                #"{"thread":{"id":"thread-1","channel_type":"modmail","title":"Modmail","community_id":"community-1","subject_user_id":null,"assigned_mod_id":null,"assigned_at":null,"resolved_at":null,"resolved_by_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}"#
+                #"{"thread":{"id":"thread-1","channel_type":"modmail","title":"Modmail","community_id":"community-1","subject_user_id":null,"assigned_moderator_user_id":null,"assigned_at":null,"resolved_at":null,"resolved_by_id":null,"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}"#
                     .utf8
             )
         )
@@ -211,7 +211,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let stats = try decoder.decode(
             CommunityModeratorStatsResponse.self,
             from: Data(
-                #"{"window":30,"stats":[{"actor_id":"user-1","total":2}],"users":{"user-1":{"id":"user-1","username":"moderator","roles":[],"profile_image_id":null,"markdown":null}}}"#
+                #"{"window":30,"stats":[{"actor_user_id":"user-1","total":2}],"users":{"user-1":{"id":"user-1","username":"moderator","roles":[],"profile_image_id":null,"markdown":null}}}"#
                     .utf8
             )
         )
@@ -220,7 +220,7 @@ final class CommunityModelDecodingTests: XCTestCase {
         let simulation = try decoder.decode(
             CommunityAutomodSimulation.self,
             from: Data(
-                #"{"simulation":{"prompt_id":"prompt-1","time_window_hours":24,"sample_count":1,"would_flag_count":1,"would_unpublish_count":1,"false_positive_estimate":null},"results":[{"post_id":"post-1","title":"Test post","declared_language":null,"lingua_rs_detected_language":null,"post_type":"discussion","approved_at":"2026-01-01T00:00:00Z","content_excerpt":"excerpt","flagged":true,"reason":"Spam","would_unpublish":true}]}"#
+                #"{"simulation":{"prompt_id":"prompt-1","time_window_hours":24,"sample_count":1,"would_flag_count":1,"community_automod_action":"record_only","false_positive_estimate":null},"results":[{"post_id":"post-1","title":"Test post","declared_language":null,"lingua_rs_detected_language":null,"post_type":"discussion","approved_at":"2026-01-01T00:00:00Z","content_excerpt":"excerpt","flagged":true}]}"#
                     .utf8
             )
         )

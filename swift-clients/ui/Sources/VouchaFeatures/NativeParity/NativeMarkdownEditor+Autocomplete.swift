@@ -35,10 +35,11 @@ extension NativeMarkdownEditor {
             switch token.kind {
             case .user:
                 let users = await matchingMarkdownUsers(query: token.query, client: client)
-                return users.map { user in
-                    MarkdownAutocompleteSuggestion(
-                        replacement: "@\(user.username)",
-                        label: "@\(user.username)",
+                return users.compactMap { user in
+                    guard let username = user.username?.ifNotEmpty else { return nil }
+                    return MarkdownAutocompleteSuggestion(
+                        replacement: "@\(username)",
+                        label: "@\(username)",
                         detail: user.name
                     )
                 }

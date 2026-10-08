@@ -1,10 +1,15 @@
 using Voucha.Client.Core.Navigation;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Search;
 
 public sealed partial class OmnisearchViewModel
 {
-  private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args)
+  private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args) => DispatchViewerStateChanged();
+
+  private void OnSessionChanged(object? sender, SessionChangedEventArgs args) => DispatchViewerStateChanged();
+
+  private void DispatchViewerStateChanged()
   {
     if (syncContext is not null)
     {

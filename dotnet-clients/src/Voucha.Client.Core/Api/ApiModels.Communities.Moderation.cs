@@ -56,8 +56,7 @@ public sealed record CommunityAgentPrompt(
     [property: JsonPropertyName("prompt")] string Prompt,
     [property: JsonPropertyName("model_name")] string ModelName,
     [property: JsonPropertyName("model_provider")] string ModelProvider,
-    [property: JsonPropertyName("slot_allocated")] bool SlotAllocated,
-    [property: JsonPropertyName("on_flag_action")] string OnFlagAction,
+    [property: JsonPropertyName("is_slot_allocated")] bool IsSlotAllocated,
     [property: JsonPropertyName("activated_at")] DateTimeOffset? ActivatedAt = null,
     [property: JsonPropertyName("deactivated_at")] DateTimeOffset? DeactivatedAt = null,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt = null,
@@ -94,8 +93,6 @@ public sealed record CommunityAutomodSimulationResult(
     [property: JsonPropertyName("approved_at")] DateTimeOffset ApprovedAt,
     [property: JsonPropertyName("content_excerpt")] string ContentExcerpt,
     [property: JsonPropertyName("flagged")] bool Flagged,
-    [property: JsonPropertyName("reason")] string Reason,
-    [property: JsonPropertyName("would_unpublish")] bool WouldUnpublish,
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
@@ -108,7 +105,7 @@ public sealed record CommunityAutomodSimulationSummary(
     [property: JsonPropertyName("time_window_hours")] int TimeWindowHours,
     [property: JsonPropertyName("sample_count")] int SampleCount,
     [property: JsonPropertyName("would_flag_count")] int WouldFlagCount,
-    [property: JsonPropertyName("would_unpublish_count")] int WouldUnpublishCount,
+    [property: JsonPropertyName("community_automod_action")] string CommunityAutomodAction,
     [property: JsonPropertyName("false_positive_estimate")] CommunityAutomodFalsePositiveEstimate? FalsePositiveEstimate);
 
 public sealed record CommunityAutomodFalsePositiveEstimate(
@@ -136,7 +133,6 @@ public sealed record CommunityModerationAnalyticsAppeals(
     [property: JsonPropertyName("accepted")] int Accepted,
     [property: JsonPropertyName("reduced")] int Reduced,
     [property: JsonPropertyName("denied")] int Denied,
-    [property: JsonPropertyName("dismissed")] int Dismissed,
     [property: JsonPropertyName("success_rate")] decimal? SuccessRate);
 
 public sealed record CommunityModerationAnalyticsModeratorWorkload(

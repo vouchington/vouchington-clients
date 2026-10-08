@@ -85,14 +85,12 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
                 { "id": "topic-1" },
                 { "id": "community-1" },
                 { "id": "user-1" },
-                { "id": "hostname-1" },
-                { "id": "support-thread-1" }
+                { "id": "hostname-1" }
               ],
               "topics": { "topic-1": { "id": "topic-1" } },
               "communities": { "community-1": { "id": "community-1" } },
               "users": { "user-1": { "id": "user-1" } },
-              "hostnames": { "hostname-1": { "id": "hostname-1" } },
-              "support_threads": { "support-thread-1": { "id": "support-thread-1" } }
+              "hostnames": { "hostname-1": { "id": "hostname-1" } }
             }
             """#.utf8)
         )
@@ -101,8 +99,7 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
             (id: "topic-1", icon: "tag"),
             (id: "community-1", icon: "person.3"),
             (id: "user-1", icon: "person"),
-            (id: "hostname-1", icon: "globe"),
-            (id: "support-thread-1", icon: "questionmark.bubble")
+            (id: "hostname-1", icon: "globe")
         ]
 
         for expected in expectedIcons {
@@ -443,7 +440,7 @@ final class NativeBookmarkCollectionActionTests: NativeRouteSurfaceViewModelTest
         return Data(#"""
         {"post":{
           "id":"\#(id)","slug":\#(slugValue),"post_type":"\#(type)","title":"Post","markdown":"","html":"",
-          "root_id":\#(root),"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z",
+          "root_post_id":\#(root),"created_by_id":"user-1","created_at":"2026-01-01T00:00:00Z",
           "broadcast":"everyone","privacy":"public","is_anonymous":false,"community_id":null,
           "clearance_status":"pending","deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,
           "archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,

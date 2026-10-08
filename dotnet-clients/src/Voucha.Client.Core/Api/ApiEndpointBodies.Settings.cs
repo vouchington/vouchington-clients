@@ -28,9 +28,9 @@ public sealed record UpdateUserPrivacyBody(
     [property: JsonPropertyName("hn_discussions")] bool? HnDiscussions = null);
 
 public sealed record UpdateEmailPreferencesBody(
-    [property: JsonPropertyName("engagement_emails_enabled")] bool? EngagementEmailsEnabled = null,
+    [property: JsonPropertyName("is_engagement_emails_enabled")] bool? EngagementEmailsEnabled = null,
     [property: JsonPropertyName("news_digest_frequency")] string? NewsDigestFrequency = null,
-    [property: JsonPropertyName("moderation_emails_enabled")] bool? ModerationEmailsEnabled = null,
+    [property: JsonPropertyName("is_moderation_emails_enabled")] bool? ModerationEmailsEnabled = null,
     [property: JsonPropertyName("community_digest_frequency")] string? CommunityDigestFrequency = null,
     [property: JsonPropertyName("moderation_email_cadence")] string? ModerationEmailCadence = null,
     [property: JsonPropertyName("moderation_email_days_of_week")] IReadOnlyList<int>? ModerationEmailDaysOfWeek = null,

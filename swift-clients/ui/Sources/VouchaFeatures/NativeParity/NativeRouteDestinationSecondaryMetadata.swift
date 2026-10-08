@@ -131,19 +131,6 @@ extension NativeRouteDestinationIdentifier {
                     .nativeSwiftRouteMetadataMainChatNewChatDescription
                 )
             ]
-        case .support:
-            [
-                row(
-                    "questionmark.circle",
-                    .nativeSwiftRouteMetadataMainSupportSupportChatTitle,
-                    .nativeSwiftRouteMetadataMainSupportSupportChatDescription
-                ),
-                row(
-                    "plus.message",
-                    .nativeSwiftRouteMetadataMainSupportNewSupportThreadTitle,
-                    .nativeSwiftRouteMetadataMainSupportNewSupportThreadDescription
-                )
-            ]
         case .notifications:
             [
                 row(

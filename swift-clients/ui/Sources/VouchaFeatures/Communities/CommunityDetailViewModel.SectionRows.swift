@@ -51,7 +51,7 @@ extension CommunityDetailViewModel {
                 icon: "doc.text",
                 title: .message(.nativeSwiftCommunityRowsReviewPosts),
                 detail: .message(
-                    community.allowReviewPosts
+                    community.shouldAllowReviewPosts
                         ? .nativeSwiftCommunityRowsEnabled
                         : .nativeSwiftCommunityRowsDisabled
                 )
@@ -60,7 +60,7 @@ extension CommunityDetailViewModel {
                 icon: "chart.bar",
                 title: .message(.nativeSwiftCommunityRowsDataPointPosts),
                 detail: .message(
-                    community.allowDataPointPosts
+                    community.shouldAllowDataPointPosts
                         ? .nativeSwiftCommunityRowsEnabled
                         : .nativeSwiftCommunityRowsDisabled
                 )

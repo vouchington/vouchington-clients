@@ -14,8 +14,9 @@ public struct Community: Codable, Identifiable, Sendable {
     public var memberInvitesAllowedAt: Date?
     @RequiredNullable
     public var postApprovalRequiredAt: Date?
-    public let allowReviewPosts: Bool
-    public let allowDataPointPosts: Bool
+    public let automodAction: CommunityAutomodActionSetting
+    public let shouldAllowReviewPosts: Bool
+    public let shouldAllowDataPointPosts: Bool
     @RequiredNullable
     public var trustedAt: Date?
     @RequiredNullable
@@ -52,8 +53,9 @@ public struct Community: Codable, Identifiable, Sendable {
         case listType
         case memberInvitesAllowedAt
         case postApprovalRequiredAt
-        case allowReviewPosts
-        case allowDataPointPosts
+        case automodAction
+        case shouldAllowReviewPosts
+        case shouldAllowDataPointPosts
         case trustedAt
         case profileImageId
         case bannerImageId
@@ -90,8 +92,9 @@ public struct Community: Codable, Identifiable, Sendable {
         _listType = try container.decode(RequiredNullable<CommunityListType>.self, forKey: .listType)
         _memberInvitesAllowedAt = try container.decode(RequiredNullable<Date>.self, forKey: .memberInvitesAllowedAt)
         _postApprovalRequiredAt = try container.decode(RequiredNullable<Date>.self, forKey: .postApprovalRequiredAt)
-        allowReviewPosts = try container.decode(Bool.self, forKey: .allowReviewPosts)
-        allowDataPointPosts = try container.decode(Bool.self, forKey: .allowDataPointPosts)
+        automodAction = try container.decode(CommunityAutomodActionSetting.self, forKey: .automodAction)
+        shouldAllowReviewPosts = try container.decode(Bool.self, forKey: .shouldAllowReviewPosts)
+        shouldAllowDataPointPosts = try container.decode(Bool.self, forKey: .shouldAllowDataPointPosts)
         _trustedAt = try container.decode(RequiredNullable<Date>.self, forKey: .trustedAt)
         _profileImageId = try container.decode(RequiredNullable<String>.self, forKey: .profileImageId)
         _bannerImageId = try container.decode(RequiredNullable<String>.self, forKey: .bannerImageId)
@@ -126,8 +129,9 @@ public struct Community: Codable, Identifiable, Sendable {
         object["list_type"] = listType.map { .string($0.rawValue) } ?? .null
         object["member_invites_allowed_at"] = memberInvitesAllowedAt.map(Self.dateValue) ?? .null
         object["post_approval_required_at"] = postApprovalRequiredAt.map(Self.dateValue) ?? .null
-        object["allow_review_posts"] = .bool(allowReviewPosts)
-        object["allow_data_point_posts"] = .bool(allowDataPointPosts)
+        object["automod_action"] = .string(automodAction.rawValue)
+        object["should_allow_review_posts"] = .bool(shouldAllowReviewPosts)
+        object["should_allow_data_point_posts"] = .bool(shouldAllowDataPointPosts)
         object["trusted_at"] = trustedAt.map(Self.dateValue) ?? .null
         object["profile_image_id"] = profileImageId.map(DecodedJSONValue.string) ?? .null
         object["banner_image_id"] = bannerImageId.map(DecodedJSONValue.string) ?? .null

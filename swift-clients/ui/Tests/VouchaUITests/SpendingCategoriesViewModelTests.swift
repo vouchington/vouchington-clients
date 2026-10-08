@@ -303,7 +303,7 @@ final class SpendingCategoriesViewModelTests: XCTestCase {
 
     func testServiceUsesNativeReadSearchAndMutationEndpoints() async throws {
         let categoryJSON = """
-        {"id":"entry","spending_category_id":"topic","amount":{"amount":350,"currency":"usd"},"spending_frequency":"monthly","note":null,"owner_type":"individual","can_manage":true,"spending_category":{"id":"topic","name":"Groceries","slug":"groceries"}}
+        {"id":"entry","spending_category_topic_id":"topic","amount":{"amount":350,"currency":"usd"},"spending_frequency":"monthly","note":null,"owner_type":"individual","can_manage":true,"spending_category":{"id":"topic","name":"Groceries","slug":"groceries"}}
         """
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/spending-categories"] = [
             (Data("{\"results\":[\(categoryJSON)],\"page_info\":{\"has_next_page\":false}}".utf8), 200, 0),

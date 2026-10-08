@@ -59,27 +59,4 @@ public sealed class ApiChatService : IChatService
       CancellationToken cancellationToken = default) =>
       client.CreateClientGeneratedChatAsync(conversationId, body, cancellationToken);
 
-  public Task<SupportThreadListResponse> FetchSupportThreadsAsync(
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default) =>
-      client.SendAsync<SupportThreadListResponse>(
-          VouchaApiEndpoints.MySupportThreads(after, limit),
-          cancellationToken);
-
-  public Task<CreateSupportThreadResponse> CreateSupportThreadAsync(
-      CreateSupportThreadBody body,
-      CancellationToken cancellationToken = default) =>
-      client.SendAsync<CreateSupportThreadResponse>(
-          VouchaApiEndpoints.CreateMySupportThread(body),
-          cancellationToken);
-
-  public Task<SupportThreadDetailResponse> FetchSupportThreadAsync(
-      string threadId,
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default) =>
-      client.SendAsync<SupportThreadDetailResponse>(
-          VouchaApiEndpoints.MySupportThread(threadId, after, limit),
-          cancellationToken);
 }

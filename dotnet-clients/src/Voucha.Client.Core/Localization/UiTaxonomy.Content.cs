@@ -72,14 +72,6 @@ public static partial class UiTaxonomy
         _ => null,
       }, value);
 
-  public static UiText SupportStatus(string? value) =>
-      LocalizedOrProtocol(value switch
-      {
-        "open" => UiMessageKey.NativeTaxonomySupportOpen,
-        "closed" => UiMessageKey.NativeTaxonomySupportClosed,
-        _ => null,
-      }, value);
-
   public static UiText DataRequestStatus(string? value) =>
       LocalizedOrProtocol(value switch
       {

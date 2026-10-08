@@ -135,30 +135,6 @@ extension PostType {
     }
 }
 
-func supportThreadStatusText(_ status: SupportThreadStatus) -> UiVerbatimText {
-    switch status {
-    case .open:
-        .message(.nativeSwiftPresentationValuesOpen)
-    case .assigned:
-        .message(.nativeSwiftPresentationValuesAssigned)
-    case .resolved:
-        .message(.nativeSwiftPresentationValuesResolved)
-    case .closed:
-        .message(.nativeSwiftRouteSurfaceClosed)
-    }
-}
-
-func staffSupportThreadStatusFilterText(_ status: StaffSupportThreadStatusFilter) -> UiVerbatimText {
-    switch status {
-    case .open:
-        .message(.nativeSwiftPresentationValuesOpen)
-    case .assigned:
-        .message(.nativeSwiftPresentationValuesAssigned)
-    case .resolved:
-        .message(.nativeSwiftPresentationValuesResolved)
-    }
-}
-
 func membershipPlanText(_ plan: String) -> UiVerbatimText {
     switch plan {
     case "free":

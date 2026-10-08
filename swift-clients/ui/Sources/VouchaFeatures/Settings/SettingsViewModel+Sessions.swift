@@ -3,6 +3,10 @@ import VouchaLocalization
 import VouchaModels
 
 public extension SettingsViewModel {
+    var sessions: [AuthSession] {
+        sessionPagination.items
+    }
+
     func revokeSession(id: String) async {
         guard let client, let session = sessions.first(where: { $0.id == id }) else { return }
         var shouldLogout = false

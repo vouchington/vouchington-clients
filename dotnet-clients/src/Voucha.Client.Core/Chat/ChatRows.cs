@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Chat;
@@ -33,62 +34,30 @@ public sealed record ChatMessageRow(
     string Content,
     DateTimeOffset CreatedAt,
     bool HasError = false,
-    string? Error = null)
+    string? Error = null,
+    string? CompletionStatus = null,
+    UiMessageKey? ErrorMessageKey = null,
+    IUiLocalization? Localization = null) : INotifyPropertyChanged
 {
+  public event PropertyChangedEventHandler? PropertyChanged;
+
   public bool IsUser => string.Equals(Role, "user", StringComparison.Ordinal);
 
   public bool IsAssistant => string.Equals(Role, "assistant", StringComparison.Ordinal);
-}
 
-public sealed partial record SupportThreadRow(
-    string Id,
-    string Subject,
-    UiText DisplaySubjectText,
-    string ProtocolStatus,
-    UiText StatusText,
-    string? ConversationId,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt,
-    IUiLocalization Localization);
+  public bool HasContent => !string.IsNullOrWhiteSpace(Content);
 
-public sealed partial record SupportThreadRow
-{
-  public SupportThreadRow(
-      string id,
-      string subject,
-      string displaySubject,
-      string status,
-      string? conversationId,
-      DateTimeOffset createdAt,
-      DateTimeOffset updatedAt)
-      : this(
-          id,
-          subject,
-          UiText.Verbatim(displaySubject),
-          status,
-          UiTaxonomy.SupportStatus(status),
-          conversationId,
-          createdAt,
-          updatedAt,
-          UiLocalization.English)
+  public bool IsIncomplete => string.Equals(CompletionStatus, "incomplete", StringComparison.Ordinal);
+
+  public string? DisplayError => ErrorMessageKey is UiMessageKey key
+      ? Localization?.Localize(key)
+      : Error;
+
+  internal void NotifyLocalizationChanged()
   {
+    if (ErrorMessageKey is not null)
+    {
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayError)));
+    }
   }
-
-  public string DisplaySubject => Localization.Resolve(DisplaySubjectText);
-
-  public string LocalizedStatus => Localization.Resolve(StatusText);
-}
-
-public sealed record SupportMessageRow(
-    string Id,
-    string ProtocolDirection,
-    UiText DirectionText,
-    string UserContent,
-    DateTimeOffset CreatedAt,
-    IUiLocalization Localization)
-{
-  public string LocalizedDirection => Localization.Resolve(DirectionText);
-
-  public SupportMessageRow WithLocalization(IUiLocalization localization) =>
-      this with { Localization = localization };
 }

@@ -8,7 +8,8 @@ public sealed record QueueStats(
     int Active,
     int Completed,
     int Failed,
-    bool Paused);
+    bool Paused,
+    [property: JsonPropertyName("delayed")] int Delayed = 0);
 
 public sealed record QueueStatsResponse(IReadOnlyList<QueueStats> Queues, int Total);
 
@@ -17,7 +18,8 @@ public sealed record QueueStatsSummary(
     int TotalActive,
     int TotalCompleted,
     int TotalFailed,
-    int QueueCount);
+    int QueueCount,
+    [property: JsonPropertyName("totalDelayed")] int TotalDelayed = 0);
 
 public sealed record QueueStatsSummaryResponse(QueueStatsSummary Stats);
 

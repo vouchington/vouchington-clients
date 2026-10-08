@@ -10,7 +10,7 @@ public sealed class ApiEngineeringModelsTests
   public void RequestModelsSerializeWithExpectedJsonNames()
   {
     Assert.Equal(
-        "{\"totalWaiting\":1,\"totalActive\":2,\"totalCompleted\":3,\"totalFailed\":4,\"queueCount\":5}",
+        "{\"totalWaiting\":1,\"totalActive\":2,\"totalCompleted\":3,\"totalFailed\":4,\"queueCount\":5,\"totalDelayed\":0}",
         JsonSerializer.Serialize(new QueueStatsSummary(1, 2, 3, 4, 5), VouchaApiJson.Options));
     Assert.Equal(
         "{\"id\":\"job-1\",\"queue_name\":\"emails\",\"job_name\":\"backfill_emails\",\"schedule\":\"* * * * *\",\"description\":\"Emails backfill\"}",
@@ -91,23 +91,4 @@ public sealed class ApiEngineeringModelsTests
     Assert.Same(userBookmarks, userBookmarksResponse.Bookmarks);
   }
 
-  [Fact]
-  public void AgentDetailFixtureRoundTripsOptionalUserAndModerator()
-  {
-    var fixture = ApiFixtureLoader.LoadResponse("native.agents.detail.default");
-    var populated = JsonSerializer.Deserialize<AgentDetailResponse>(fixture, VouchaApiJson.Options)!;
-    var withoutUser = JsonSerializer.Deserialize<AgentDetailResponse>(
-        "{\"agent\":{\"id\":\"agent\",\"system_user_id\":\"system\",\"agent_type\":\"helper\",\"activated_at\":null,\"deactivated_at\":null,\"created_at\":\"2026-01-01T00:00:00Z\",\"updated_at\":\"2026-01-01T00:00:00Z\",\"deleted_at\":null,\"slug\":null,\"moderator\":null},\"user\":null}",
-        VouchaApiJson.Options)!;
-
-    Assert.Equal("helper", populated.Agent.Slug);
-    Assert.Equal(populated.Agent.Id, populated.Agent.Moderator?.AgentId);
-    Assert.Equal("Fixture Agent User 001", populated.User?.DisplayAccount?.Name);
-    Assert.Null(withoutUser.User);
-    Assert.Null(withoutUser.Agent.Moderator);
-    var roundTrip = JsonSerializer.Deserialize<AgentDetailResponse>(
-        JsonSerializer.Serialize(populated, VouchaApiJson.Options), VouchaApiJson.Options)!;
-    Assert.Equal(populated.Agent, roundTrip.Agent);
-    Assert.Equal(populated.User?.DisplayAccount?.Name, roundTrip.User?.DisplayAccount?.Name);
-  }
 }

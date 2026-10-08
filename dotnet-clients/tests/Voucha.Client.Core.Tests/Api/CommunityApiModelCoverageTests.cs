@@ -93,7 +93,6 @@ public sealed class CommunityApiModelCoverageTests
   {
     var agent = new CommunityAiAgent(
         ["topic"],
-        "flag",
         "agent-slug",
         "agent-1",
         "user-1",

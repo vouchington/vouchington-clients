@@ -39,7 +39,9 @@ extension NativeUserProfileSurface {
     }
 
     var username: String {
-        viewModel.userProfile.header?.user.username ?? ""
+        viewModel.userProfile.header?.user.username?.ifNotEmpty
+            ?? viewModel.userProfile.header?.user.id
+            ?? ""
     }
 
     var basePath: String {

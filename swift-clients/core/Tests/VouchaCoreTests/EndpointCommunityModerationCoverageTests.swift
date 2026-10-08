@@ -104,12 +104,12 @@ final class EndpointCommunityModerationCoverageTests: XCTestCase {
             Endpoint.updateCommunityModmailThread(
                 idOrSlug: "test community",
                 conversationId: "thread 1",
-                assignedModId: "mod 1",
+                assignedModeratorUserId: "mod 1",
                 resolved: true
             ),
             method: .PATCH,
             path: "/api/v1/communities/test%20community/modmail/thread%201",
-            body: ["assigned_mod_id": "mod 1", "resolved": true]
+            body: ["assigned_moderator_user_id": "mod 1", "resolved": true]
         )
         let queue = Endpoint.communityModerationQueue(idOrSlug: "test community", after: "cursor 4", limit: 13)
         assertEndpoint(queue, path: "/api/v1/communities/test%20community/moderation-queue")
@@ -228,7 +228,7 @@ final class EndpointCommunityModerationCoverageTests: XCTestCase {
             ),
             method: .PATCH,
             path: "/api/v1/communities/test%20community/moderator-vacation",
-            body: ["suppress_community_digests_while_on_vacation": true]
+            body: ["should_suppress_community_digests_while_on_vacation": true]
         )
     }
 }

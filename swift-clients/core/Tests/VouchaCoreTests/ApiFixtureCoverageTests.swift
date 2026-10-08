@@ -10,7 +10,7 @@ final class ApiFixtureCoverageTests: XCTestCase {
 
         let identity = try makeVouchaDecoder().decode(IdentityCoverageEnvelope.self, from: data).identity
         XCTAssertEqual(identity.entityType, "user")
-        XCTAssertFalse(identity.isOfficialAccount)
+        XCTAssertNil(identity.accountType)
         XCTAssertEqual(identity.cardsVisibility, .everyone)
         XCTAssertEqual(identity.directMessagesAudience, .users)
         XCTAssertEqual(identity.defaultPostPrivacy, "public")

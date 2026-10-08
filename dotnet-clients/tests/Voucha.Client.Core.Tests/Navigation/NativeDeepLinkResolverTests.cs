@@ -9,7 +9,6 @@ public sealed class NativeDeepLinkResolverTests
   [InlineData("administrator")]
   [InlineData("moderator")]
   [InlineData("developer")]
-  [InlineData("customer_support")]
   [InlineData("investor")]
   public void DynamicConfigAllowsEveryViewerRole(string role)
   {
@@ -100,41 +99,6 @@ public sealed class NativeDeepLinkResolverTests
   }
 
   [Fact]
-  public void ResolveRejectsRoleGatedStaffRoutesForNonStaff()
-  {
-    var resolution = NativeDeepLinkResolver.Resolve(
-        "voucha://crm/contact-1",
-        new NavigationViewer(true, []));
-
-    Assert.Equal(NativeRouteDestinationId.CrmContacts, resolution.DestinationId);
-    Assert.False(resolution.CanNavigate);
-    Assert.False(resolution.ShouldQueueUntilAuthenticated);
-  }
-
-  [Fact]
-  public void ResolveQueuesRoleGatedStaffRoutesForAnonymousViewers()
-  {
-    var resolution = NativeDeepLinkResolver.Resolve(
-        "voucha://crm/contact-1",
-        NavigationViewer.Anonymous);
-
-    Assert.Equal(NativeRouteDestinationId.CrmContacts, resolution.DestinationId);
-    Assert.True(resolution.RequiresAuthentication);
-    Assert.True(resolution.ShouldQueueUntilAuthenticated);
-  }
-
-  [Fact]
-  public void ResolveAllowsRoleGatedStaffRoutesForAdministrators()
-  {
-    var resolution = NativeDeepLinkResolver.Resolve(
-        "voucha://crm/contact-1",
-        new NavigationViewer(true, ["administrator"]));
-
-    Assert.True(resolution.CanNavigate);
-    Assert.Equal("crm", resolution.IntentId);
-  }
-
-  [Fact]
   public void ResolveAllowsModerationRoutesForModerators()
   {
     var resolution = NativeDeepLinkResolver.Resolve(
@@ -173,7 +137,6 @@ public sealed class NativeDeepLinkResolverTests
 
   [Theory]
   [InlineData("moderator")]
-  [InlineData("customer_support")]
   [InlineData("member")]
   public void ResolveRejectsIntegrityRoutesForNonAdministratorRoles(string role)
   {
@@ -315,7 +278,6 @@ public sealed class NativeDeepLinkResolverTests
   [InlineData("voucha://user/alice/topics/following", NativeRouteDestinationId.UserProfile, "friends")]
   [InlineData("voucha://my/friend-recommendations", NativeRouteDestinationId.UsersBrowse, "friends")]
   [InlineData("voucha://chat", NativeRouteDestinationId.Chat, "chat")]
-  [InlineData("voucha://chat/support", NativeRouteDestinationId.Support, "chat")]
   [InlineData("voucha://my/landing-pages", NativeRouteDestinationId.LandingPages, "landing-pages")]
   [InlineData("voucha://landing/alice", NativeRouteDestinationId.LandingPages, "landing-pages")]
   [InlineData("voucha://topic-recommendations", NativeRouteDestinationId.TopicRecommendations, "topics")]

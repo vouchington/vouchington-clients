@@ -36,7 +36,11 @@ public struct Hostname: Codable, Identifiable, Sendable {
         case id
         case hostname
         case topicId
-        case blocked, crawlable, linkRelFollow, skipWebRisk, votesCountDown, votesCountUp, votesScoreNet
+        case blocked = "isBlocked"
+        case crawlable = "isCrawlable"
+        case linkRelFollow = "shouldFollowLinkRel"
+        case skipWebRisk = "shouldSkipWebRisk"
+        case votesCountDown, votesCountUp, votesScoreNet
     }
 }
 
@@ -83,6 +87,7 @@ public struct PostFeedResponse: Codable, Sendable {
     public let electionVotes: [String: ScoreVote]?
     public let bookmarks: [String: [String: Bool]]?
     public let users: [String: PublicUser]?
+    public let communities: [String: Community]?
 }
 
 public struct PostFeedResult: Codable, Identifiable, Sendable {
@@ -157,7 +162,7 @@ public struct RssFeedItemFeedResponse: Codable, Sendable {
     public let rssFeedItems: [String: RssFeedItem]
     public let rssFeedItemElections: [String: RssFeedItemElection]
     public let electionVotes: [String: ElectionVote]
-    public let storyMemberIds: [String: [String]]?
+    public let storyMemberPages: [String: StoryMemberPage]?
     public let storyPostIds: [String: String]?
     public let rssFeedItemEmbeds: [String: UrlEmbed]?
 }

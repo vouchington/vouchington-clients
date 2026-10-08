@@ -105,8 +105,6 @@ public sealed class NativeRouteCatalogTests
   [InlineData("/notification-redirect?notification_id=notification-1", NativeRouteDestinationId.Notifications)]
   [InlineData("/messages/new", NativeRouteDestinationId.Messages)]
   [InlineData("/messages/modmail/community-slug/thread-1", NativeRouteDestinationId.Messages)]
-  [InlineData("/crm/contact-1", NativeRouteDestinationId.CrmContacts)]
-  [InlineData("/agent/helper/conversation/conversation-1", NativeRouteDestinationId.EngineeringAgents)]
   [InlineData("/admin/modlog", NativeRouteDestinationId.ModerationAdmin)]
   [InlineData("/admin/queues", NativeRouteDestinationId.EngineeringQueues)]
   [InlineData("/admin/postgresql", NativeRouteDestinationId.EngineeringPostgresql)]
@@ -141,6 +139,15 @@ public sealed class NativeRouteCatalogTests
   }
 
   [Theory]
+  [InlineData("/agents")]
+  [InlineData("/agent/helper")]
+  [InlineData("/agent/helper/conversation/conversation-1")]
+  public void HostedAgentInspectorRoutesAreNotInTheNativeCatalog(string path)
+  {
+    Assert.Null(NativeRouteCatalog.MatchingRoute(path));
+  }
+
+  [Theory]
   [InlineData("/source/example/crawls")]
   [InlineData("/source/example/crawls/crawl-1")]
   public void SourceCrawlRoutesResolveToSourceDetail(string path)
@@ -172,8 +179,8 @@ public sealed class NativeRouteCatalogTests
   [Fact]
   public void RouteDecodingUsesFormRulesForQueriesAndPreservesPathPlusSigns()
   {
-    var match = Assert.IsType<NativeRouteMatch>(new NativeRoutePattern("/agent/:idOrSlug")
-        .Match("/agent/foo+bar?username=alice+smith&post_slug=one%2Btwo"));
+    var match = Assert.IsType<NativeRouteMatch>(new NativeRoutePattern("/example/:idOrSlug")
+        .Match("/example/foo+bar?username=alice+smith&post_slug=one%2Btwo"));
 
     Assert.Equal("foo+bar", match.Param("idOrSlug"));
     Assert.Equal("alice smith", match.QueryValue("username"));

@@ -104,69 +104,6 @@ public sealed partial class NewsFeedsViewModel
     }
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "Native news mutations surface API failures in view state before MAUI async event handlers observe them.")]
-  private async Task ToggleArticleBookmarkAsync(
-      NewsFeedItem item,
-      BookmarkPredicate predicate,
-      bool removeOnActivate,
-      CancellationToken cancellationToken)
-  {
-    ArgumentNullException.ThrowIfNull(item);
-    if (!togglingArticleIds.Add(item.Id)) return;
-
-    var previousItems = Items;
-    var mutationScope = SelectedScope;
-    var mutationLoadRequestId = loadRequestId;
-    var active = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
-    Items = ToggleArticleBookmark(previousItems, item.Id, predicate, active, removeOnActivate);
-    var optimisticItems = Items;
-    ErrorMessage = null;
-
-    try
-    {
-      await bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, active, cancellationToken)
-          .ConfigureAwait(true);
-    }
-    catch (OperationCanceledException)
-    {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, null);
-    }
-    catch (Exception ex)
-    {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
-    }
-    finally
-    {
-      togglingArticleIds.Remove(item.Id);
-    }
-  }
-
-  private static NewsFeedItem[] ToggleArticleBookmark(
-      IReadOnlyList<NewsFeedItem> sourceItems,
-      string itemId,
-      BookmarkPredicate predicate,
-      bool active,
-      bool removeOnActivate)
-  {
-    if (predicate == BookmarkPredicate.Hide && active && removeOnActivate)
-    {
-      return sourceItems.Where(item => !string.Equals(item.Id, itemId, StringComparison.Ordinal)).ToArray();
-    }
-
-    return sourceItems
-        .Select(item => string.Equals(item.Id, itemId, StringComparison.Ordinal)
-            ? item with
-            {
-              IsSaved = predicate == BookmarkPredicate.Save ? active : item.IsSaved,
-              IsHidden = predicate == BookmarkPredicate.Hide ? active : item.IsHidden,
-            }
-            : item)
-        .ToArray();
-  }
-
   private static NewsFeedItem[] ToggleSourceBookmark(
       IReadOnlyList<NewsFeedItem> sourceItems,
       string sourceId,

@@ -5,7 +5,7 @@ public struct EntityRelation: Codable, Identifiable, Sendable {
     public let subjectId: String?
     public let objectId: String?
     public let createdAt: Date
-    public let createdById: String
+    @RequiredNullable public var createdById: String?
     public let deletedAt: Date?
     public let deletedById: String?
     public let orderIndex: Int?
@@ -27,6 +27,8 @@ public struct EntityRelationObjectData: Codable, Sendable {
     public let postType: String?
     public let topicType: String?
     public let feedType: String?
+    public let declaredLanguage: String?
+    public let linguaRsDetectedLanguage: String?
     public let hostname: EntityRelationHostname?
     public let latestCrawl: EntityRelationLatestCrawl?
 

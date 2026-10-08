@@ -58,7 +58,6 @@ public sealed class FeatureFlagOverridesPageTests
   [InlineData("administrator", true)]
   [InlineData("developer", true)]
   [InlineData("moderator", false)]
-  [InlineData("customer_support", false)]
   [InlineData("investor", false)]
   public void EngineeringEntryIsRoleGatedAndResolvesWithoutDynamicConfig(string role, bool expected)
   {

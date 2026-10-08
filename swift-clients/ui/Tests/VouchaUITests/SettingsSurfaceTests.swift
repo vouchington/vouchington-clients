@@ -52,7 +52,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try sut.inspect().find(button: "Privacy Policy"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Terms of Service"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Community Guidelines"))
-        XCTAssertNoThrow(try sut.inspect().find(button: "Support"))
+        XCTAssertNoThrow(try sut.inspect().find(text: "Support"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Current plan"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Native billing pending"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Included"))
@@ -103,15 +103,13 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         try sut.inspect().find(button: "Privacy Policy").tap()
         try sut.inspect().find(button: "Terms of Service").tap()
         try sut.inspect().find(button: "Community Guidelines").tap()
-        try sut.inspect().find(button: "Support").tap()
 
         XCTAssertEqual(
             navigatedPaths,
             [
                 "/article/privacy-policy",
                 "/article/terms-of-service",
-                "/article/community-guidelines",
-                "/chat/support"
+                "/article/community-guidelines"
             ]
         )
     }
@@ -137,9 +135,9 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                 """
                 {
                   "email_preferences": {
-                    "engagement_emails_enabled": true,
+                    "is_engagement_emails_enabled": true,
                     "news_digest_frequency": "weekly",
-                    "moderation_emails_enabled": true,
+                    "is_moderation_emails_enabled": true,
                     "community_digest_frequency": "weekly",
                     "moderation_email_cadence": "daily",
                     "moderation_email_days_of_week": [1, 2, 3],
@@ -192,7 +190,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         let sut = SettingsSurface(viewModel: viewModel)
 
         XCTAssertNoThrow(try sut.inspect().find(text: "Download Data Export"))
-        XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 1)
+        XCTAssertEqual(try sut.inspect().findAll(ViewType.Link.self).count, 2)
         XCTAssertTrue(try sut.inspect().find(button: "Delete Account").isDisabled())
 
         viewModel.deleteConfirmation = "  DELETE my account  "
@@ -287,6 +285,8 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func seedSettingsResponses() {
+        CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants([]), 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             PrivateUserTestFixture.identityEnvelope(
                 profileImageId: "image-1",
@@ -347,7 +347,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                   "permissions": ["rss-feeds:read"],
                   "created_at": "2026-03-01T10:00:00Z",
                   "last_used_at": null,
-                  "revoked_at": null,
+                  "revoked_at": null,"expires_at":null,"expiry_reminder_sent_at":null,"replaced_by_api_key_id":null,
                   "updated_at": "2026-03-01T10:00:00Z"
                 }
               ],

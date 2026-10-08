@@ -50,7 +50,7 @@ final class PaymentCardEndpointAndModelTests: XCTestCase {
             .createPaymentCard(body: .init(cardId: "topic-1")),
             method: .POST,
             path: "/api/v1/my/cards",
-            body: ["card_id": "topic-1"]
+            body: ["card_topic_id": "topic-1"]
         )
         try assertEndpoint(
             .updatePaymentCard(id: "card/one", body: .init(
@@ -64,7 +64,7 @@ final class PaymentCardEndpointAndModelTests: XCTestCase {
             body: [
                 "opened_on": "2024-01-20",
                 "credit_limit": ["amount": 1_250, "currency": "usd"],
-                "authorized_user_of_id": NSNull(),
+                "authorized_user_of_card_id": NSNull(),
                 "note": NSNull()
             ]
         )

@@ -36,7 +36,7 @@ extension SettingsSurface {
     private var createProfileLinkForm: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Picker(
-                UiMessages.string(.nativeSwiftCrmContactsType, locale: nativeUiLocale),
+                UiMessages.string(.nativeSwiftPresentationType, locale: nativeUiLocale),
                 selection: $viewModel.profileLinkType
             ) {
                 ForEach(ProfileLinkType.allCases, id: \.self) { type in

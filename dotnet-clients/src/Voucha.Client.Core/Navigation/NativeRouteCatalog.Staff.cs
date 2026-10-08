@@ -4,12 +4,8 @@ public static partial class NativeRouteCatalog
 {
   private static NativeRouteCatalogEntry[] StaffEntries() =>
   [
-    Included("CRM contacts", NativeRouteDestinationId.CrmContacts, "/crm", ["/crm", "/crm/:contactId"]),
     Included("Membership grants", NativeRouteDestinationId.MembershipGrants, "/memberships/grants", ["/memberships/grants"]),
     Included("User administration", NativeRouteDestinationId.UserAdmin, "/user/alice/admin", ["/user/:idOrUsername/admin"]),
-    Included("Staff support contacts", NativeRouteDestinationId.SupportStaffContacts, "/support/contacts", ["/support/contacts", "/support/contacts/:contactId"]),
-    Included("Staff support threads", NativeRouteDestinationId.SupportStaffThreads, "/support", ["/support", "/support/threads/:threadId"]),
-    Included("Engineering agents", NativeRouteDestinationId.EngineeringAgents, "/agents", ["/agents", "/agent/:idOrSlug", "/agent/:idOrSlug/conversation/:conversationId"]),
     Included("Engineering queues", NativeRouteDestinationId.EngineeringQueues, "/admin/queues", ["/admin/queues"]),
     Included("Engineering PostgreSQL", NativeRouteDestinationId.EngineeringPostgresql, "/admin/postgresql", ["/admin/postgresql"]),
     Included("Engineering Valkey", NativeRouteDestinationId.EngineeringValkey, "/admin/valkey", ["/admin/valkey"]),

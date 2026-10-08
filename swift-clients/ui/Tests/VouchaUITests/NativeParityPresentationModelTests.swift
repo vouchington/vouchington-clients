@@ -114,8 +114,6 @@ final class NativeParityPresentationModelTests: XCTestCase {
             ["Private", "Unlisted", "Public"]
         )
         XCTAssertEqual(uiEnglish(listItemMediaTypeText(nil)), "Item")
-        XCTAssertEqual(uiEnglish(supportThreadStatusText(.assigned)), "Assigned")
-        XCTAssertEqual(uiEnglish(supportThreadStatusText(.resolved)), "Resolved")
         XCTAssertEqual(uiEnglish(membershipPlanText("enterprise")), "enterprise")
     }
 }

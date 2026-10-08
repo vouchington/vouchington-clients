@@ -100,6 +100,8 @@ public sealed record ModerationDisputeQueueResponse(
 
 public sealed record AdminReviewQueueImage(
     [property: JsonPropertyName("image_id")] string ImageId,
+    [property: JsonPropertyName("placement_id")] string PlacementId,
+    [property: JsonPropertyName("placement_revision")] int PlacementRevision,
     [property: JsonPropertyName("order_index")] int OrderIndex,
     [property: JsonPropertyName("caption")] string Caption);
 

@@ -31,7 +31,7 @@ public sealed partial class OmnisearchViewModelTests
 
   private const string UrlJson = """
       { "url": { "id": "url-1", "url": "https://example.com/a", "pathname": "/a",
-        "hostname": { "id": "hostname-1", "hostname": "example.com", "blocked": false } },
+        "hostname": { "id": "hostname-1", "hostname": "example.com", "is_blocked": false } },
         "latest_crawl": null, "can_view_latest_crawl": true, "can_view_crawl_history": true,
         "can_trigger_crawl": false, "url_type": "web", "rss_feed_id": null }
       """;

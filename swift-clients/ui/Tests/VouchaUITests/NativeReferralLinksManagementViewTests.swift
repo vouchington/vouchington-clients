@@ -345,6 +345,7 @@ final class NativeReferralLinksManagementViewTests: NativeRouteSurfaceViewModelT
                 "user-1": {
                   "id": "user-1",
                   "roles": [],
+                  "account_type": null,
                   "profile_image_id": null,
                   "markdown": null
                 }

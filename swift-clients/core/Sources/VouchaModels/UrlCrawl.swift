@@ -12,6 +12,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
     public let title: String?
     public let urlId: String?
     public let crawlerId: String?
+    public let hostnameCrawlerConfigurationId: String?
     public let embedMetadata: IntegerPreservingJSONValue?
     public let embedOembedResolvedAt: Date?
     public let embedOembedUrl: String?
@@ -34,12 +35,12 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         case responseStatusCode
         case createdAt
         case completedAt
-        case lang
+        case lang = "language"
         case markdown
         case metaTags
         case title
         case urlId
-        case crawlerId, embedMetadata, embedOembedResolvedAt, embedOembedUrl
+        case crawlerId, hostnameCrawlerConfigurationId, embedMetadata, embedOembedResolvedAt, embedOembedUrl
         case embeddingsGeneratedAt, etag, hasPendingEmbeddings, htmlSha256
         case htmlSnapshotUploadedAt, lastModifiedAt, links, networkError, redirectUrlId
         case requestHeaders, responseHeaders
@@ -59,6 +60,10 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         title = try container.decodeIfPresent(String.self, forKey: .title)
         urlId = try container.decodeIfPresent(String.self, forKey: .urlId)
         crawlerId = try container.decodeIfPresent(String.self, forKey: .crawlerId)
+        hostnameCrawlerConfigurationId = try container.decodeIfPresent(
+            String.self,
+            forKey: .hostnameCrawlerConfigurationId
+        )
         embedMetadata = try container.decodeIfPresent(IntegerPreservingJSONValue.self, forKey: .embedMetadata)
         embedOembedResolvedAt = try container.decodeIfPresent(Date.self, forKey: .embedOembedResolvedAt)
         embedOembedUrl = try container.decodeIfPresent(String.self, forKey: .embedOembedUrl)
@@ -94,6 +99,7 @@ public struct UrlCrawl: Codable, Identifiable, Sendable {
         try encode(title, forKey: .title, to: &container)
         try encode(urlId, forKey: .urlId, to: &container)
         try encode(crawlerId, forKey: .crawlerId, to: &container)
+        try encode(hostnameCrawlerConfigurationId, forKey: .hostnameCrawlerConfigurationId, to: &container)
         try encode(embedMetadata, forKey: .embedMetadata, to: &container)
         try encode(embedOembedResolvedAt, forKey: .embedOembedResolvedAt, to: &container)
         try encode(embedOembedUrl, forKey: .embedOembedUrl, to: &container)

@@ -109,6 +109,9 @@ public sealed partial class VouchaApiClient
       CancellationToken cancellationToken = default) =>
       SendAsync<ApiKeyCreationResponse>(VouchaApiEndpoints.CreateApiKey(body), cancellationToken);
 
+  public Task<ApiKeyCreationResponse> RotateApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
+      SendAsync<ApiKeyCreationResponse>(VouchaApiEndpoints.RotateApiKey(id), cancellationToken);
+
   public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
       SendAsync(VouchaApiEndpoints.DeleteApiKey(id), cancellationToken);
 

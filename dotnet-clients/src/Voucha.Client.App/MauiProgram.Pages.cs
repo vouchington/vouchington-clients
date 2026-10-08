@@ -61,13 +61,7 @@ public static partial class MauiProgram
     services.AddTransient<NotificationsPage>();
     services.AddTransient<SettingsPage>();
     services.AddTransient<BottomTabCustomizePage>();
-    services.AddTransient<CrmContactsPage>();
-    services.AddTransient<CrmContactPage>();
     services.AddTransient<MembershipGrantPage>();
     services.AddTransient<IdentityVerificationAttemptGrantPage>();
-    services.AddTransient<StaffSupportThreadsPage>();
-    services.AddTransient<StaffSupportThreadPage>();
-    services.AddTransient<StaffSupportContactsPage>();
-    services.AddTransient<StaffSupportContactPage>();
   }
 }

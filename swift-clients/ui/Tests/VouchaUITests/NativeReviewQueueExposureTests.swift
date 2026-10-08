@@ -432,14 +432,20 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
               id
           )","markdown_preview":"Preview",
           "post_type":"discussion","created_by_id":"author","created_at":"2026-06-01T11:30:00.000Z",
-          "root_id":null,"root_post_type":null,"root_slug":null,"clearance_status":"rejected",
+          "root_post_id":null,"root_post_type":null,"root_slug":null,"clearance_status":"rejected",
           "clearance_updated_at":null,
           "moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":1,"signal_count":2},"reason_codes":["provider_flagged"]},
           "media_reveal":{
             "requires_reveal":\(requiresReveal),
             "images":[
-              {"image_id":"\(id)-1","order_index":0,"caption":"First"},
-              {"image_id":"\(id)-2","order_index":1,"caption":"Second"}
+              {
+                "image_id":"\(id)-1","placement_id":"\(id)-placement-1",
+                "placement_revision":0,"order_index":0,"caption":"First"
+              },
+              {
+                "image_id":"\(id)-2","placement_id":"\(id)-placement-2",
+                "placement_revision":0,"order_index":1,"caption":"Second"
+              }
             ]
           }
         }

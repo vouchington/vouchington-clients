@@ -80,12 +80,12 @@ public struct ProfileView: View {
         VStack(spacing: Spacing.sm) {
             Avatar(
                 imageURL: viewModel.avatarURL,
-                username: viewModel.identity?.username ?? "",
+                username: profileUsername,
                 size: 72
             )
             avatarActions
             VStack(spacing: Spacing.xs) {
-                Text(viewModel.identity?.username ?? "")
+                Text(profileUsername)
                     .font(Typography.headline)
                     .fontWeight(.bold)
                     .foregroundStyle(.primary)
@@ -102,6 +102,10 @@ public struct ProfileView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var profileUsername: String {
+        viewModel.identity?.username ?? viewModel.identity?.id ?? ""
     }
 
     private func bioSection(bio: String, html: String?) -> some View {

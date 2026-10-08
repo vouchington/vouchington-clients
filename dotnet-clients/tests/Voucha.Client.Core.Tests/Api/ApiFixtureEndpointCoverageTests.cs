@@ -4,19 +4,14 @@ namespace Voucha.Client.Core.Tests.Api;
 
 public sealed partial class ApiFixtureEndpointCoverageTests
 {
-  private const string SupportAdministratorId = "00000000-0000-7000-8000-000000000001";
-  private const string SupportContactId = "00000000-0000-7000-8000-000000000711";
-  private const string SupportThreadId = "00000000-0000-7000-8000-000000000712";
-  private const string SupportMessageId = "00000000-0000-7000-8000-000000000713";
   private static readonly IReadOnlyDictionary<string, ApiRequest> Registry =
       WithMembershipStoreEndpoints(
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
-                  CreateCoreRegistry()
-                      .Concat(CreateCrmAndAccountRegistry())
+                  StoryFixtureRequests.AddTo(new Dictionary<string, ApiRequest>(CreateCoreRegistry(), StringComparer.Ordinal))
                       .Concat(CreateModerationParityRegistry())
-                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal)))));
+                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests();
 
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
@@ -55,22 +50,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
         ["web.trending-referral-programs.default"] = VouchaApiEndpoints.TrendingReferralPrograms(),
         ["web.referral-links.prioritized.default"] = VouchaApiEndpoints.PrioritizedReferralLinks("referral-program-1", true),
-        ["web.my.support-threads.create.default"] = VouchaApiEndpoints.CreateMySupportThread(
-            new CreateSupportThreadBody("Account access issue", "I need help with my account.", null)),
-        ["native.staff-support.threads.default"] = VouchaApiEndpoints.StaffSupportThreads("account", StaffSupportThreadStatusFilter.Open, limit: 25),
-        ["native.staff-support.thread-detail.default"] = VouchaApiEndpoints.StaffSupportThread(SupportThreadId),
-        ["native.staff-support.thread-assign.default"] = VouchaApiEndpoints.AssignStaffSupportThread(SupportThreadId, SupportAdministratorId),
-        ["native.staff-support.thread-resolve.default"] = VouchaApiEndpoints.ResolveStaffSupportThread(SupportThreadId, true),
-        ["native.staff-support.thread-reopen.default"] = VouchaApiEndpoints.ResolveStaffSupportThread(SupportThreadId, false),
-        ["native.staff-support.messages.default"] = VouchaApiEndpoints.StaffSupportMessages(SupportThreadId),
-        ["native.staff-support.message-create.default"] = VouchaApiEndpoints.CreateStaffSupportMessage(SupportThreadId, "Saved outbound reply."),
-        ["native.staff-support.draft-create.default"] = VouchaApiEndpoints.QueueStaffSupportDraft(SupportThreadId),
-        ["native.staff-support.message-edit.default"] = VouchaApiEndpoints.UpdateStaffSupportDraft(SupportThreadId, SupportMessageId, "Edited support draft."),
-        ["native.staff-support.message-approve.default"] = VouchaApiEndpoints.ApproveStaffSupportMessage(SupportThreadId, SupportMessageId),
-        ["native.staff-support.message-send.default"] = VouchaApiEndpoints.SendStaffSupportMessage(SupportThreadId, SupportMessageId),
-        ["native.staff-support.contacts.default"] = VouchaApiEndpoints.StaffSupportContacts("traveler", limit: 25),
-        ["native.staff-support.contact-detail.default"] = VouchaApiEndpoints.StaffSupportContact(SupportContactId, limit: 25),
-        ["native.staff-support.contact-update.default"] = VouchaApiEndpoints.UpdateStaffSupportContact(SupportContactId, new("Traveler Support", "Updated support notes.")),
         ["web.admin.article-syncs.trigger.default"] = VouchaApiEndpoints.TriggerArticleSync(),
         ["web.admin.article-syncs.status.active"] = VouchaApiEndpoints.FetchArticleSyncStatus("job-1"),
         ["web.admin.mq.stats.default"] = VouchaApiEndpoints.FetchQueueStats(),
@@ -410,29 +389,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
         ["native.messages.conversations.default"] = VouchaApiEndpoints.MyMessages(),
-        ["native.agents.default"] = VouchaApiEndpoints.Agents(limit: 2),
-        ["native.agents.page-2"] = VouchaApiEndpoints.Agents(
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDMwMSIsInNjb3BlIjoiYWdlbnQtZGlyZWN0b3J5OmlkLWRlc2MifQ",
-            2),
-        ["native.agents.detail.default"] = VouchaApiEndpoints.Agent("helper"),
-        ["native.agents.conversations.default"] = VouchaApiEndpoints.AgentConversations(
-            "helper",
-            limit: 2),
-        ["native.agents.conversations.filtered-username"] = VouchaApiEndpoints.AgentConversations(
-            "helper", limit: 2, filter: new AgentConversationFilter(AgentConversationFilterKind.Username, "fixture-agent-user-011")),
-        ["native.agents.conversations.page-2"] = VouchaApiEndpoints.AgentConversations(
-            "helper",
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMTAxMSIsInNjb3BlIjoie1wiYWdlbnRTeXN0ZW1Vc2VySWRcIjpcIjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDAwMVwiLFwidXNlcklkXCI6bnVsbCxcInBvc3RJZFwiOm51bGwsXCJyc3NGZWVkSXRlbUlkXCI6bnVsbCxcIm9ubHlMaW5rZWRcIjp0cnVlLFwib3JkZXJcIjpcImlkLWRlc2NcIn0ifQ",
-            2),
-        ["native.agents.conversation.default"] = VouchaApiEndpoints.AgentConversation(
-            "helper",
-            "00000000-0000-7000-8000-000000000101",
-            limit: 2),
-        ["native.agents.conversation.page-2"] = VouchaApiEndpoints.AgentConversation(
-            "helper",
-            "00000000-0000-7000-8000-000000000101",
-            "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDIwMSIsInNjb3BlIjoie1wiYWdlbnRJZFwiOlwiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMzAyXCIsXCJjb252ZXJzYXRpb25JZFwiOlwiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMTAxXCIsXCJvcmRlclwiOlwiaWQtZGVzY1wifSJ9",
-            2),
         ["native.messages.conversations.page-2"] = VouchaApiEndpoints.MyMessages(
             "eyJ0aW1lc3RhbXAiOiIyMDI2LTA3LTAxVDA5OjE1OjAwLjAwMDAwMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiJ9"),
         ["native.messages.conversation.default"] = VouchaApiEndpoints.MyMessage("00000000-0000-7000-8000-000000000101"),

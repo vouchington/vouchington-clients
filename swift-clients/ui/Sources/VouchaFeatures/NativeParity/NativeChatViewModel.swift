@@ -25,6 +25,7 @@ final class NativeChatViewModel {
     var streamingConversationId: String?
     var streamingUserMessageId: String?
     var streamingAssistantMessageId: String?
+    var pendingLocalAssistantMessageId: String?
     var createdConversationIds: Set<String> = []
     var selectionRevision = 0
     var olderMessagesLoadRevision = 0

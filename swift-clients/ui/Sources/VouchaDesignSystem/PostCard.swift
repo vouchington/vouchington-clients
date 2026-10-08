@@ -57,6 +57,8 @@ public struct PostCard: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(alignment: .top, spacing: Spacing.sm) {
                 postTypeBadge
+                AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
+                    .accountType)
                 Spacer(minLength: 0)
             }
             if let title = authoredTitle {
@@ -84,6 +86,8 @@ public struct PostCard: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
                 postTypeBadge
+                AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
+                    .accountType)
                 Spacer()
             }
             if let title = authoredTitle {

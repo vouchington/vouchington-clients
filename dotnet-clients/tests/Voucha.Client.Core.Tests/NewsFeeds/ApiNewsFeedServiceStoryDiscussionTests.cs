@@ -23,7 +23,7 @@ public sealed class ApiNewsFeedServiceStoryDiscussionTests
         {
           Assert.Equal("item-1", item.Id);
           Assert.Equal("story-1", item.StoryId);
-          Assert.Equal(1, item.StoryPeerCount);
+          Assert.Single(Assert.IsType<StoryRelatedArticles>(item.StoryArticles).Items);
           Assert.True(item.CanStartStoryDiscussion);
           Assert.False(item.CanOpenStoryDiscussion);
         },
@@ -120,14 +120,16 @@ public sealed class ApiNewsFeedServiceStoryDiscussionTests
           { "id": "item-2", "story_id": "story-2" }
         ],
         "page_info": { "has_next_page": false },
-        "story_member_ids": {
-          "story-1": ["item-1", "item-peer"],
-          "story-2": ["item-2", "item-peer-2"]
+        "story_member_pages": {
+          "story-1": {"item_ids":["item-peer"],"page_info":{"has_next_page":false}},
+          "story-2": {"item_ids":["item-peer-2"],"page_info":{"has_next_page":false}}
         },
         "story_post_ids": {
           "story-2": "post-existing"
         },
         "rss_feed_items": {
+          "item-peer": {"id":"item-peer","title":"Peer","published_at":"2026-06-28T10:00:00Z"},
+          "item-peer-2": {"id":"item-peer-2","title":"Peer","published_at":"2026-06-28T10:00:00Z"},
           "item-1": {
             "id": "item-1",
             "title": "Cluster article",
@@ -158,11 +160,13 @@ public sealed class ApiNewsFeedServiceStoryDiscussionTests
           { "id": "item-1", "story_id": "story-1" }
         ],
         "page_info": { "has_next_page": false },
-        "story_member_ids": {
-          "story-1": ["item-1", "item-peer"]
+        "story_member_pages": {
+          "story-1": {"item_ids":["item-peer"],"page_info":{"has_next_page":false}}
         },
         "story_post_ids": {},
         "rss_feed_items": {
+          "item-peer": {"id":"item-peer","title":"Peer","published_at":"2026-06-28T10:00:00Z"},
+          "item-peer-2": {"id":"item-peer-2","title":"Peer","published_at":"2026-06-28T10:00:00Z"},
           "item-1": {
             "id": "item-1",
             "title": "Fallback discussed",

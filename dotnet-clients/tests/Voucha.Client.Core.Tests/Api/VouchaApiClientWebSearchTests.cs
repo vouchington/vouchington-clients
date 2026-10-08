@@ -78,8 +78,8 @@ public sealed partial class VouchaApiClientTests
               "__entity_type": "hostname",
               "id": "hostname-1",
               "hostname": "example.com",
-              "blocked": false,
-              "crawlable": true
+              "is_blocked": false,
+              "is_crawlable": true
             }
           ],
           "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null }

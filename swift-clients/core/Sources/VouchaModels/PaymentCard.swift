@@ -111,8 +111,10 @@ public struct PaymentCard: Codable, Equatable, Identifiable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, cardId, openedOn, closedOn, receivedSignUpBonusOn, creditLimit
-        case isAuthorizedUser, authorizedUserOfId, note, card, authorizedUserOfCard
+        case id, openedOn, closedOn, receivedSignUpBonusOn, creditLimit
+        case cardId = "cardTopicId"
+        case isAuthorizedUser, note, card, authorizedUserOfCard
+        case authorizedUserOfId = "authorizedUserOfCardId"
     }
 }
 

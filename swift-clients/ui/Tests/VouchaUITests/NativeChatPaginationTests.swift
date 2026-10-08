@@ -1,10 +1,48 @@
 import Foundation
+import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 @testable import VouchaModels
 import XCTest
 
 @MainActor
 final class NativeChatPaginationTests: NativeRouteSurfaceViewModelTestCase {
+    func testIncompleteHistoryShowsInterruptedResponseInChatAndRouteRows() async throws {
+        let conversationId = "0198ffff-0000-7000-8000-000000000001"
+        let path = "/api/v1/my/conversations/\(conversationId)/messages"
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("native.chat.incomplete"), 200)
+        let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil)
+        viewModel.conversations = try [NativeChatTestFixtures.decode(
+            ChatConversation.self,
+            #"{"id":"0198ffff-0000-7000-8000-000000000001","title":"Interrupted","created_at":"2026-09-29T00:00:00Z","updated_at":"2026-09-29T00:00:00Z"}"#
+        )]
+
+        await viewModel.selectConversation(id: conversationId)
+
+        let message = try XCTUnwrap(viewModel.messages.first)
+        let interruption = "The response was interrupted. Please try again."
+        XCTAssertEqual(message.content, "")
+        XCTAssertEqual(message.error.map { UiMessages.string($0, locale: .english) }, interruption)
+        XCTAssertNoThrow(try NativeChatMessageBubbleView(message: message).inspect().find(text: interruption))
+
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/chat/\(conversationId)")?.match)
+        let route = try NativeRouteSurfaceViewModel(entry: entry(for: .chat), client: makeClient(), routeMatch: match)
+        await route.load()
+        XCTAssertEqual(route.rows.last?.detail, interruption)
+
+        let incompleteJSON = String(decoding: ApiFixtureLoader.data("native.chat.incomplete"), as: UTF8.self)
+        let partialJSON = incompleteJSON.replacingOccurrences(
+            of: #""content": null"#, with: #""content": "Partial reply""#
+        )
+        XCTAssertNotEqual(partialJSON, incompleteJSON)
+        CannedFeedURLProtocol.handlers[path] = (Data(partialJSON.utf8), 200)
+        let partialRoute = try NativeRouteSurfaceViewModel(
+            entry: entry(for: .chat), client: makeClient(), routeMatch: match
+        )
+        await partialRoute.load()
+        XCTAssertEqual(partialRoute.rows.last?.detail, "Partial reply")
+    }
+
     func testConversationContinuationDeduplicatesIncomingAndPreservesCurrentOverlap() async throws {
         let path = "/api/v1/my/conversations"
         CannedFeedURLProtocol.handlers[path] = (Self.conversationPageWithDuplicates, 200)
@@ -110,7 +148,7 @@ final class NativeChatPaginationTests: NativeRouteSurfaceViewModelTestCase {
 
     private func makeViewModel() throws -> NativeChatViewModel {
         let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil)
-        viewModel.conversations = try [NativeChatSupportSurfaceTests.decode(
+        viewModel.conversations = try [NativeChatTestFixtures.decode(
             ChatConversation.self,
             #"{"id":"conversation-1","title":"Paged chat","created_at":"2026-01-01T00:00:00Z","created_by_id":"user-1","updated_at":"2026-01-01T00:03:00Z","updated_by_id":null,"deleted_at":null,"deleted_by_id":null}"#
         )]

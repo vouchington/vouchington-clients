@@ -108,7 +108,7 @@ extension NativeChatSurface {
     private func providerPicker(viewModel: NativeChatViewModel) -> some View {
         Group {
             Picker(
-                UiMessages.string(.nativeSwiftCrmContactsProvider, locale: nativeUiLocale),
+                UiMessages.string(.nativeSwiftPresentationProvider, locale: nativeUiLocale),
                 selection: Binding(
                     get: { viewModel.titleProviderSelection },
                     set: { viewModel.selectTitleProvider($0) }

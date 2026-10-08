@@ -51,13 +51,13 @@ public sealed partial class AppShell
       NavigationCatalog.ListsIntentId => serviceProvider.GetRequiredService<ListsPage>(),
       NavigationCatalog.MessagesIntentId => CreateMessagesPage(match),
       "chat" => CreateChatPage(match),
-      "crm" => CreateCrmPage(match, intent),
       "friends" => serviceProvider.GetRequiredService<FriendsPage>(),
       NavigationCatalog.SettingsIntentId => CreateSettingsPage(match),
       "posts" => serviceProvider.GetRequiredService<PostsPage>(),
       "topics" => serviceProvider.GetRequiredService<TopicsPage>(),
       "referral-links" => serviceProvider.GetRequiredService<ReferralLinksPage>(),
       "moderation" => CreateModerationPage(match),
+      "administration" => serviceProvider.GetRequiredService<MembershipGrantPage>(),
       "engineering" => CreateEngineeringPage(match, intent),
       LandingPagesRoute => serviceProvider.GetRequiredService<LandingPagesPage>(),
       "growth" => CreateGrowthDashboardPage(match),
@@ -150,11 +150,6 @@ public sealed partial class AppShell
     if (intentId == "moderation")
     {
       return await PrepareModerationIntentRouteMatchAsync(match).ConfigureAwait(true);
-    }
-
-    if (intentId == "crm")
-    {
-      return await PrepareCrmIntentRouteMatchAsync(match).ConfigureAwait(true);
     }
 
     if (intentId == "engineering")

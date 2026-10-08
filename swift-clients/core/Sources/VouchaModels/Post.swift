@@ -92,7 +92,8 @@ public struct Post: Codable, Identifiable, Sendable {
     /** compatibility initializer is in Post+Compatibility.swift */
     private enum TransportCodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html, parentId, rootId
+        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
+        case parentId = "parentPostId", rootId = "rootPostId"
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
         case metrics, election, createdBy, updatedAt, deletedAt, deletedById
@@ -185,7 +186,8 @@ extension Post {
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html, parentId, rootId
+        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
+        case parentId = "parentPostId", rootId = "rootPostId"
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
         case metrics, election, createdBy, updatedAt, deletedAt, deletedById

@@ -50,7 +50,6 @@ extension NativeRouteSurfaceViewModel {
         guard detailRelationEntityId == user.id else { return }
         detailRelationBookmarks = bookmarks?.bookmarks ?? [:]
         detailRelationIsSelfProfile = user.id == identity?.identity.id
-            || user.username == identity?.identity.username
         if detailRelationIsSelfProfile {
             detailReportTarget = nil
         } else if identity != nil {

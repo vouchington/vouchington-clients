@@ -10,6 +10,24 @@ public struct Story: Codable, Identifiable, Sendable {
     public let createdAt: Date
     public let updatedAt: Date
     public let deletedAt: Date?
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(clusterReason, forKey: .clusterReason)
+        try container.encode(publishedAt, forKey: .publishedAt)
+        try container.encode(officialRssFeedItemId, forKey: .officialRssFeedItemId)
+        try container.encode(officialLockedAt, forKey: .officialLockedAt)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(deletedAt, forKey: .deletedAt)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, clusterReason, publishedAt, officialRssFeedItemId, officialLockedAt
+        case createdAt, updatedAt, deletedAt
+    }
 }
 
 public struct PostStory: Codable, Sendable {

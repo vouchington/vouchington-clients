@@ -96,11 +96,6 @@ enum NativeRouteCatalogEntities {
             ]
         ),
         .included(
-            destinationIdentifier: .support,
-            representativePath: "/chat/support",
-            patterns: ["/chat/support", "/chat/support/new", "/chat/support/:threadId"]
-        ),
-        .included(
             destinationIdentifier: .chat,
             representativePath: "/chat",
             patterns: [

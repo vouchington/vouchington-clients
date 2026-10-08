@@ -91,7 +91,7 @@ extension PostsListViewModelTests {
     ) -> Data {
         let broadcastJSON = broadcast.map { #""\#($0)""# } ?? "null"
         let posts = ids.map { id in
-            "\"\(id)\":{\"id\":\"\(id)\",\"slug\":null,\"post_type\":\"discussion\",\"title\":\"Post \(id)\",\"markdown\":null,\"html\":null,\"parent_id\":null,\"root_id\":null,\"created_by_id\":\"user1\",\"created_at\":\"2024-01-01T00:00:00Z\",\"broadcast\":\(broadcastJSON),\"privacy\":\"public\",\"is_anonymous\":false,\"community_id\":null,\"clearance_status\":null,\"deleted_at\":null,\"deleted_by_id\":null,\"locked_at\":null,\"locked_by_id\":null,\"archived_at\":null,\"archived_by_id\":null,\"clearance_reason\":null,\"clearance_updated_at\":null,\"spam_detection_created_at\":null,\"spam_detection_flagged\":null,\"spam_detection_results\":null,\"spam_detection_score\":null,\"updated_by_id\":null}"
+            "\"\(id)\":{\"id\":\"\(id)\",\"slug\":null,\"post_type\":\"discussion\",\"title\":\"Post \(id)\",\"markdown\":null,\"html\":null,\"parent_post_id\":null,\"root_post_id\":null,\"created_by_id\":\"user1\",\"created_at\":\"2024-01-01T00:00:00Z\",\"broadcast\":\(broadcastJSON),\"privacy\":\"public\",\"is_anonymous\":false,\"community_id\":null,\"clearance_status\":null,\"deleted_at\":null,\"deleted_by_id\":null,\"locked_at\":null,\"locked_by_id\":null,\"archived_at\":null,\"archived_by_id\":null,\"clearance_reason\":null,\"clearance_updated_at\":null,\"spam_detection_created_at\":null,\"spam_detection_flagged\":null,\"spam_detection_results\":null,\"spam_detection_score\":null,\"updated_by_id\":null}"
         }.joined(separator: ",")
         let results = ids.map { "{\"entity_id\":\"\($0)\"}" }.joined(separator: ",")
         let cursor = endCursor.map { "\"\($0)\"" } ?? "null"
@@ -264,7 +264,7 @@ extension PostsListViewModelTests {
         // String would cause a decodingFailed error here instead of .loaded.
         CannedFeedURLProtocol.handlers = [:]
         let page = Data("""
-        {"results":[{"entity_id":"anon1"}],"page_info":{"has_next_page":false,"end_cursor":null},"posts":{"anon1":{"id":"anon1","slug":null,"post_type":"discussion","title":"Anonymous post","markdown":"hello","html":null,"parent_id":null,"root_id":null,"created_by_id":null,"created_at":"2024-01-01T00:00:00Z","broadcast":null,"privacy":"public","is_anonymous":true,"community_id":null,"clearance_status":null,"deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,"archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,"spam_detection_created_at":null,"spam_detection_flagged":null,"spam_detection_results":null,"spam_detection_score":null,"updated_by_id":null}},"posts_metrics":{},"post_elections":{}}
+        {"results":[{"entity_id":"anon1"}],"page_info":{"has_next_page":false,"end_cursor":null},"posts":{"anon1":{"id":"anon1","slug":null,"post_type":"discussion","title":"Anonymous post","markdown":"hello","html":null,"parent_post_id":null,"root_post_id":null,"created_by_id":null,"created_at":"2024-01-01T00:00:00Z","broadcast":null,"privacy":"public","is_anonymous":true,"community_id":null,"clearance_status":null,"deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,"archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,"spam_detection_created_at":null,"spam_detection_flagged":null,"spam_detection_results":null,"spam_detection_score":null,"updated_by_id":null}},"posts_metrics":{},"post_elections":{}}
         """.utf8)
         CannedFeedURLProtocol.handlers["/api/v1/feeds/posts/any"] = (page, 200)
         let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
@@ -412,7 +412,7 @@ extension PostsListViewModelTests {
         XCTAssertTrue(vm.emailVerificationGate.isRecoveryPresented)
     }
 
-    func testRepeatedVoteWhileWriteInFlightSendsOneRequest() async {
+    func testRepeatedVoteWhileWriteInFlightSendsOneRequest() async throws {
         CannedFeedURLProtocol.handlers = [:]
         CannedFeedURLProtocol.queuedHandlers = [:]
         CannedFeedURLProtocol.capturedURLs = []
@@ -426,20 +426,37 @@ extension PostsListViewModelTests {
             ),
             200
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts/p1/vote"] = [
-            (Data("{}".utf8), 200, 0.05),
-            (Data("{}".utf8), 200, 0)
-        ]
+        let votePath = "/api/v1/posts/p1/vote"
+        CannedFeedURLProtocol.handlers[votePath] = (Data("{}".utf8), 200)
         let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
         await vm.load()
 
-        async let firstVote: Void = vm.vote(postId: "p1", choice: .like)
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        async let secondVote: Void = vm.vote(postId: "p1", choice: .dislike)
-        await firstVote
-        await secondVote
+        CannedFeedURLProtocol.suspendResponse(path: votePath)
+        let firstRequest = CannedFeedURLProtocol.requestBarrier(path: votePath, method: "PUT")
+        let firstVote = Task { await vm.vote(postId: "p1", choice: .like) }
+        do {
+            _ = try await firstRequest.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: votePath)
+            await firstVote.value
+            throw error
+        }
 
-        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/posts/p1/vote" }
+        let secondReturned = expectation(description: "Repeated vote returns while the first write is held")
+        let secondVote = Task {
+            await vm.vote(postId: "p1", choice: .dislike)
+            secondReturned.fulfill()
+        }
+        await fulfillment(of: [secondReturned], timeout: 1)
+        let requestsWhileHeld = CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }
+        XCTAssertEqual(requestsWhileHeld.count, 1)
+        XCTAssertEqual(vm.myVotesByPostId["p1"], .like)
+
+        CannedFeedURLProtocol.releaseResponse(path: votePath)
+        await firstVote.value
+        await secondVote.value
+
+        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }
         XCTAssertEqual(voteRequests.count, 1)
         XCTAssertEqual(vm.myVotesByPostId["p1"], .like)
     }

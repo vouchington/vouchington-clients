@@ -57,9 +57,9 @@ public sealed partial class CommunityDetailViewModel
               .Select(id =>
               {
                 var action = response.ModeratorActions[id!];
-                var actor = action.ActorId is not null && response.Users is not null && response.Users.TryGetValue(action.ActorId, out var user)
-                    ? UiText.Verbatim(user.Username ?? user.Name ?? action.ActorId)
-                    : action.ActorId is { } actorId
+                var actor = action.ActorUserId is not null && response.Users is not null && response.Users.TryGetValue(action.ActorUserId, out var user)
+                    ? UiText.Verbatim(user.Username ?? user.Name ?? action.ActorUserId)
+                    : action.ActorUserId is { } actorId
                         ? UiText.Verbatim(actorId)
                         : UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesModeratorAction);
                 var target = action.TargetUserId ?? action.PostId ?? action.ReportId ?? action.CommunityApplicationId ?? action.Id;

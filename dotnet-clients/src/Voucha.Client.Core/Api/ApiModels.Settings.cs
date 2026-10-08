@@ -11,9 +11,9 @@ public sealed record UserResponse(
     [property: JsonPropertyName("user_bio_html")] string? UserBioHtml = null);
 
 public sealed record EmailPreferences(
-    [property: JsonPropertyName("engagement_emails_enabled")] bool EngagementEmailsEnabled,
+    [property: JsonPropertyName("is_engagement_emails_enabled")] bool EngagementEmailsEnabled,
     [property: JsonPropertyName("news_digest_frequency")] string NewsDigestFrequency,
-    [property: JsonPropertyName("moderation_emails_enabled")] bool ModerationEmailsEnabled,
+    [property: JsonPropertyName("is_moderation_emails_enabled")] bool ModerationEmailsEnabled,
     [property: JsonPropertyName("community_digest_frequency")] string CommunityDigestFrequency,
     [property: JsonPropertyName("moderation_email_cadence")] string ModerationEmailCadence,
     [property: JsonPropertyName("moderation_email_days_of_week")] IReadOnlyList<int> ModerationEmailDaysOfWeek,
@@ -76,7 +76,10 @@ public sealed record ApiKey(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("last_used_at")] DateTimeOffset? LastUsedAt,
     [property: JsonPropertyName("revoked_at")] DateTimeOffset? RevokedAt,
-    [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt);
+    [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt = null,
+    [property: JsonPropertyName("expiry_reminder_sent_at")] DateTimeOffset? ExpiryReminderSentAt = null,
+    [property: JsonPropertyName("replaced_by_api_key_id")] string? ReplacedByApiKeyId = null);
 
 public sealed record ApiKeyListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<ApiKey> Results,
@@ -97,7 +100,8 @@ public sealed record ProfileLink(
     [property: JsonPropertyName("name")] string? Name,
     [property: JsonPropertyName("image_id")] string? ImageId,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt);
+    [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
+    [property: JsonPropertyName("image_placement")] TopicImagePlacement? ImagePlacement = null);
 
 public sealed record ProfileLinkListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<ProfileLink> Results,

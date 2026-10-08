@@ -291,6 +291,22 @@ final class CannedFeedURLProtocol: URLProtocol {
         response.deliver()
     }
 
+    static func releaseOldestResponse(path: String) {
+        lock.lock()
+        guard var responses = pendingResponses[path], !responses.isEmpty else {
+            lock.unlock()
+            preconditionFailure("No pending response to release for path: \(path)")
+        }
+        let response = responses.removeFirst()
+        if responses.isEmpty {
+            pendingResponses.removeValue(forKey: path)
+        } else {
+            pendingResponses[path] = responses
+        }
+        lock.unlock()
+        response.deliver()
+    }
+
     static func suspendedResponseCount(path: String) -> Int {
         lock.lock()
         defer { lock.unlock() }

@@ -18,6 +18,13 @@ public sealed partial class VouchaApiClient
       CancellationToken cancellationToken = default) =>
       SendAsync<CommunityMutationResponse>(VouchaApiEndpoints.UpdateCommunity(idOrSlug, Require(request)), cancellationToken);
 
+  public Task<CommunityResponse> UpdateCommunityAutomodSettingsAsync(
+      string idOrSlug,
+      UpdateCommunityAutomodSettingsRequest request,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<CommunityResponse>(
+          VouchaApiEndpoints.UpdateCommunityAutomodSettings(idOrSlug, Require(request)), cancellationToken);
+
   public Task<CommunityMutationResponse> ArchiveCommunityAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
       SendAsync<CommunityMutationResponse>(
           VouchaApiEndpoints.UpdateCommunity(idOrSlug, new UpdateCommunityRequest(Archive: true)),

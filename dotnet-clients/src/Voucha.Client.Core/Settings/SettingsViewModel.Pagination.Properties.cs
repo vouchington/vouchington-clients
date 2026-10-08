@@ -9,7 +9,12 @@ public sealed partial class SettingsViewModel
     get => isLoading;
     private set
     {
-      if (SetProperty(ref isLoading, value)) NotifyAllSettingsPagination();
+      if (SetProperty(ref isLoading, value))
+      {
+        NotifyAllSettingsPagination();
+        NotifyOAuthGrantPagination();
+        OnPropertyChanged(nameof(CanCreateApiKey));
+      }
     }
   }
 

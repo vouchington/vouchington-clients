@@ -5,7 +5,7 @@ import XCTest
 final class NativeChatProviderSnapshotTests: NativeRouteSurfaceViewModelTestCase {
     func testSendDraftMessageKeepsProviderSelectedBeforeConversationCreationAwait() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/conversations"] = [
-            (NativeChatSupportSurfaceTests.createdConversationData, 201, 0.1)
+            (NativeChatTestFixtures.createdConversationData, 201, 0.1)
         ]
         CannedFeedURLProtocol.contentTypes["/api/v1/conversations/conversation-3/chat"] = "text/event-stream"
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-3/chat"] = (
@@ -13,7 +13,7 @@ final class NativeChatProviderSnapshotTests: NativeRouteSurfaceViewModelTestCase
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-3/title"] = (
-            NativeChatSupportSurfaceTests.renamedConversationData,
+            NativeChatTestFixtures.renamedConversationData,
             200
         )
         let client = try makeClient()

@@ -21,7 +21,7 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
                   "conversation_id": null,
                   "moderation_report_id": null,
                   "review_dispute_id": null,
-                  "user_warning_id": null,
+                  "user_warning_id": null,"copyright_notice_id":null,
                   "actor_label": null,
                   "event_key": null,
                   "title": "Native notification",
@@ -148,17 +148,38 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
         XCTAssertEqual(viewModel.rows.first?.icon, "bubble.left.and.bubble.right")
     }
 
-    func testSupportLoadsNativeSupportThreadEndpoint() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/my/support-threads"] = (supportThreadsData, 200)
-        let viewModel = try NativeRouteSurfaceViewModel(entry: entry(for: .support), client: makeClient())
+    func testRetiredSupportChatPathLoadsConversationListWithoutRequestingSupportAsId() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/my/conversations"] = (conversationData, 200)
+        for path in ["/chat/new", "/chat/support", "/chat/SUPPORT"] {
+            CannedFeedURLProtocol.capturedURLs = []
+            let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: path)?.match)
+            let viewModel = try NativeRouteSurfaceViewModel(
+                entry: entry(for: .chat), client: makeClient(), routeMatch: match
+            )
+
+            await viewModel.load()
+
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), ["/api/v1/my/conversations"])
+            XCTAssertEqual(viewModel.rows.first?.title, "Support follow-up")
+        }
+    }
+
+    func testChatConversationIdContainingSupportStillLoadsDetail() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/my/conversations/supportive/messages"] = (
+            Data(#"{"results":[],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#.utf8),
+            200
+        )
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/chat/supportive")?.match)
+        let viewModel = try NativeRouteSurfaceViewModel(
+            entry: entry(for: .chat), client: makeClient(), routeMatch: match
+        )
 
         await viewModel.load()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/my/support-threads")
-        XCTAssertEqual(viewModel.rows.first?.title, "Support request")
-        let row = try XCTUnwrap(viewModel.rows.first)
-        XCTAssertEqual(row.localizedDetail(locale: Locale(identifier: "en")), "Open")
-        XCTAssertEqual(row.localizedDetail(locale: Locale(identifier: "fr")), "Ouvert")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+            "/api/v1/my/conversations/supportive/messages"
+        ])
+        XCTAssertEqual(viewModel.rows.first?.title, "Conversation supportive")
     }
 
     func testMessageDetailLoadsMatchedConversation() async throws {
@@ -312,16 +333,9 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
         )
     }
 
-    private var supportThreadsData: Data {
-        Data(
-            #"{"results":[{"id":"thread-1","support_contact_id":"contact-1","subject":"Support request","conversation_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","assigned_at":null,"assigned_to_id":null,"resolved_at":null,"resolved_by_id":null,"status":"open","contact_user_id":"user-1"}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
-                .utf8
-        )
-    }
-
     private var appealData: Data {
         Data(
-            #"{"appeals":[{"id":"appeal-1","case_id":"case-1","appellant_id":"user-1","user_warning_id":null,"user_suspension_id":null,"community_ban_id":null,"post_id":"post-1","community_id":null,"post_removal_kind":"platform","appeal_reason":"Please review.","status":"pending","recommended_action":null,"ai_public_response":null,"ai_internal_response":null,"model":null,"ai_drafted_at":null,"public_response":null,"internal_notes":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,"resolution_action":null,"latest_lifecycle_change_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","is_overdue":false}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
+            #"{"appeals":[{"id":"appeal-1","case_id":"case-1","appellant_id":"user-1","user_warning_id":null,"copyright_notice_id":null,"user_suspension_id":null,"community_ban_id":null,"post_id":"post-1","community_id":null,"post_removal_kind":"platform","appeal_reason":"Please review.","status":"pending","recommended_action":null,"ai_public_response":null,"ai_internal_response":null,"model":null,"ai_drafted_at":null,"public_response":null,"internal_notes":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,"resolution_action":null,"latest_lifecycle_change_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","is_overdue":false}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                 .utf8
         )
     }

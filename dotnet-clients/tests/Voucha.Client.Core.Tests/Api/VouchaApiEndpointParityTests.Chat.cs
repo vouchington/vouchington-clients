@@ -31,18 +31,14 @@ public sealed partial class VouchaApiEndpointParityTests
       "createClientGeneratedChat",
       VouchaApiEndpoints.CreateClientGeneratedChat(
         "conversation-1",
-        new CreateClientGeneratedChatBody("Hello", "Hi", "windows_foundry", "phi-silica")),
+        new CreateClientGeneratedChatBody(
+            "Hello", "Hi", "windows_foundry",
+            "0198ffff-0001-7000-8000-000000000001",
+            "0198ffff-0001-7000-8000-000000000002",
+            "phi-silica")),
       HttpMethod.Post,
       "/api/v1/conversations/conversation-1/client-generated-chat",
       Query(),
       hasBody: true);
-    yield return Case("mySupportThreads", VouchaApiEndpoints.MySupportThreads("cursor-9", 17), HttpMethod.Get, "/api/v1/my/support-threads", Query(("limit", "17"), ("after", "cursor-9")));
-    yield return Case(
-      "mySupportThread",
-      VouchaApiEndpoints.MySupportThread("thread-1", "cursor-3", 9),
-      HttpMethod.Get,
-      "/api/v1/my/support-threads/thread-1",
-      Query(("limit", "9"), ("after", "cursor-3")));
-    yield return Case("createMySupportThread", VouchaApiEndpoints.CreateMySupportThread(new CreateSupportThreadBody("Need help", "Initial note", "conversation-1")), HttpMethod.Post, "/api/v1/my/support-threads", Query(), hasBody: true);
   }
 }

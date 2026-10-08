@@ -338,7 +338,7 @@ public sealed class BookmarkCollectionActionTests
     var row = Assert.Single(viewModel.Rows);
 
     var first = viewModel.ResolveDestinationPathAsync(row, TestContext.Current.CancellationToken);
-    await handler.RootStarted.Task;
+    Assert.Same(handler.RootStarted.Task, await Task.WhenAny(handler.RootStarted.Task, first));
     var concurrent = viewModel.ResolveDestinationPathAsync(row, TestContext.Current.CancellationToken);
     handler.ReleaseRoot.TrySetResult();
 
@@ -366,7 +366,7 @@ public sealed class BookmarkCollectionActionTests
 
     var staleRow = Assert.Single(viewModel.Rows);
     var staleResolution = viewModel.ResolveDestinationPathAsync(staleRow, TestContext.Current.CancellationToken);
-    await handler.RootStarted.Task;
+    Assert.Same(handler.RootStarted.Task, await Task.WhenAny(handler.RootStarted.Task, staleResolution));
     viewModel.SetContext(new(
         "/my/users/followers",
         UiText.Verbatim("Followers"),
@@ -465,7 +465,7 @@ public sealed class BookmarkCollectionActionTests
       if (RequestCount == 2)
       {
         RootStarted.TrySetResult();
-        await ReleaseRoot.Task.ConfigureAwait(false);
+        await ReleaseRoot.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
       }
       return new(HttpStatusCode.OK) { Content = new StringContent(body), RequestMessage = request };
     }
@@ -485,7 +485,7 @@ public sealed class BookmarkCollectionActionTests
       """;
 
   private const string CommentPostsJson = """
-      { "results": [{ "id": "comment-1", "post_type": "comment", "root_id": "root-1" }],
+      { "results": [{ "id": "comment-1", "post_type": "comment", "root_post_id": "root-1" }],
         "page_info": { "has_next_page": false } }
       """;
 

@@ -17,13 +17,10 @@ public static partial class MauiProgram
     services.AddTransient<IDynamicConfigService, ApiDynamicConfigService>();
     services.AddTransient<DynamicConfigViewModel>();
     services.AddSingleton<IEngineeringService, ApiEngineeringService>();
-    services.AddSingleton<IAgentConversationsService, ApiAgentConversationsService>();
     services.AddTransient<EngineeringQueuesViewModel>();
     services.AddTransient<EngineeringPostgreSqlViewModel>();
     services.AddTransient<EngineeringValkeyViewModel>();
     services.AddTransient<AiCostsViewModel>();
-    services.AddTransient<AgentConversationViewModel>();
-    services.AddTransient<AgentListsViewModel>();
     services.AddTransient<EngineeringPage>();
     services.AddTransient<EngineeringQueuesPage>();
     services.AddTransient<EngineeringPostgreSqlPage>();
@@ -31,8 +28,5 @@ public static partial class MauiProgram
     services.AddTransient<AiCostsPage>();
     services.AddTransient<DynamicConfigPage>();
     services.AddTransient<FeatureFlagOverridesPage>();
-    services.AddTransient<AgentConversationPage>();
-    services.AddTransient<AgentDetailPage>();
-    services.AddTransient<AgentListsPage>();
   }
 }

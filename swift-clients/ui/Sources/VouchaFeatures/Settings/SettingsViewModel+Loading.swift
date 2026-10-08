@@ -24,8 +24,32 @@ public extension SettingsViewModel {
 
         do {
             let identityResponse: SettingsIdentityResponse = try await client.send(.myIdentity)
-            let profileResponse: SettingsProfileResponse = try await client.send(.myProfile)
             guard isCurrentSettingsLoad(generation) else { return }
+            apply(identity: identityResponse.identity)
+            activeMainSettingsLoadGeneration = generation
+            await loadMainSettings(
+                client: client,
+                userIdOrSlug: identityResponse.identity.id,
+                generation: generation
+            )
+        } catch {
+            guard isCurrentSettingsLoad(generation) else { return }
+            if error is CancellationError || Task.isCancelled {
+                state = identity == nil ? .idle : .loaded
+                return
+            }
+            state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
+        }
+    }
+
+    private func loadMainSettings(client: APIClient, userIdOrSlug: String, generation: Int) async {
+        async let credentialSettings: Void = loadCredentialSettings(forSettingsLoad: generation)
+        do {
+            let profileResponse: SettingsProfileResponse = try await client.send(.myProfile)
+            guard isCurrentSettingsLoad(generation) else {
+                await credentialSettings
+                return
+            }
 
             async let linksResponse: SettingsListResponse<VouchaModels.ProfileLink> = client.send(.myProfileLinks)
             async let apiKeysResponse: SettingsListResponse<ApiKey> = client.send(.myApiKeys())
@@ -34,8 +58,7 @@ public extension SettingsViewModel {
             async let sessionsResponse: Page<AuthSession> = client.send(.authSessions())
             async let membershipResponse: MembershipResponse? = loadOptional(.membershipMe)
             async let plansResponse: MembershipPlansResponse? = loadOptional(.membershipPlans)
-            async let dataRequestResponse: UserDataRequest? = loadDataRequest(userIdOrSlug: identityResponse.identity
-                .id)
+            async let dataRequestResponse: UserDataRequest? = loadDataRequest(userIdOrSlug: userIdOrSlug)
 
             let links = try await linksResponse
             let loadedApiKeys = try await apiKeysResponse
@@ -44,9 +67,11 @@ public extension SettingsViewModel {
             let loadedMembership = try await membershipResponse
             let loadedPlans = try await plansResponse
             let loadedDataRequest = try await dataRequestResponse
-            guard isCurrentSettingsLoad(generation) else { return }
+            guard isCurrentSettingsLoad(generation) else {
+                await credentialSettings
+                return
+            }
 
-            apply(identity: identityResponse.identity)
             profileMarkdown = profileResponse.profile.markdown
             profileLinks = links.results
             replaceApiKeyPage(loadedApiKeys)
@@ -58,13 +83,24 @@ public extension SettingsViewModel {
             dataRequest = loadedDataRequest
             state = .loaded
         } catch {
-            guard isCurrentSettingsLoad(generation) else { return }
-            if error is CancellationError || Task.isCancelled {
-                state = identity == nil ? .idle : .loaded
-                return
+            if isCurrentSettingsLoad(generation) {
+                if error is CancellationError || Task.isCancelled {
+                    state = identity == nil ? .idle : .loaded
+                } else {
+                    state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
+                }
             }
-            state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
         }
+        if activeMainSettingsLoadGeneration == generation {
+            activeMainSettingsLoadGeneration = nil
+            createdApiKeysDuringMainLoad = []
+        }
+        await credentialSettings
+    }
+
+    private func loadCredentialSettings(forSettingsLoad generation: Int) async {
+        guard isCurrentSettingsLoad(generation) else { return }
+        await loadCredentialSettings()
     }
 
     func reload() async {

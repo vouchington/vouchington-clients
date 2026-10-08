@@ -27,7 +27,10 @@ extension NativeChatViewModel {
         }
 
         do {
-            let response: ChatConversationListResponse = try await client.send(.myConversations(after: request.cursor))
+            let response: ChatConversationListResponse = try await client.send(.myConversations(
+                after: request.cursor,
+                limit: 50
+            ))
             guard activeConversationListLoadRevision == revision,
                   conversationPagination.isCurrent(request)
             else { return }

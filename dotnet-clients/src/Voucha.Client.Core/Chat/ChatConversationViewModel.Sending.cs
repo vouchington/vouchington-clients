@@ -42,15 +42,15 @@ public sealed partial class ChatConversationViewModel
 
     var currentRequest = BeginMutation();
     var conversationId = ConversationId;
-    var localUserMessageId = Guid.NewGuid().ToString("N");
-    var localAssistantMessageId = Guid.NewGuid().ToString("N");
+    var messageTime = DateTimeOffset.UtcNow;
+    var localUserMessageId = Guid.CreateVersion7(messageTime).ToString();
+    var localAssistantMessageId = Guid.CreateVersion7(messageTime.AddMilliseconds(1)).ToString();
     LocalLLMResponseInput[] localHistory = selectedProvider.Kind == ChatProviderKind.Local ? LocalLLMHistory() : [];
     var streamAccepted = false;
     var streamFailed = false;
     var userMessageInserted = false;
     var assistantMessageInserted = false;
     var localChatPersisted = false;
-
     try
     {
       if (conversationId is null)
@@ -77,6 +77,7 @@ public sealed partial class ChatConversationViewModel
         assistantMessageInserted = await SendLocalTurnAsync(
             trimmed,
             conversationId,
+            localUserMessageId,
             localAssistantMessageId,
             localHistory,
             selectedProvider,

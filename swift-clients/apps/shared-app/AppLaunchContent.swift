@@ -167,8 +167,8 @@ struct AppLaunchContent: View {
               "community_memberships_visibility":"everyone", "followers_visibility":"everyone",
               "likes_visibility":"everyone", "direct_messages_audience":"users",
               "default_post_broadcast":"everyone", "default_post_privacy":"public",
-              "engagement_emails_enabled":true, "news_digest_frequency":"weekly",
-              "moderation_emails_enabled":true, "community_digest_frequency":"weekly",
+              "is_engagement_emails_enabled":true, "news_digest_frequency":"weekly",
+              "is_moderation_emails_enabled":true, "community_digest_frequency":"weekly",
               "moderation_email_cadence":"daily", "moderation_email_days_of_week":[1],
               "moderation_email_time_of_day":"09:00", "moderation_email_timezone":"UTC",
               "processing_restricted_at":null, "third_party_marketing":null, "country":null,
@@ -178,8 +178,8 @@ struct AppLaunchContent: View {
         )
         private static let emailPreferences = Data(
             """
-            {"email_preferences":{"engagement_emails_enabled":true,"news_digest_frequency":"weekly",
-            "moderation_emails_enabled":true,"community_digest_frequency":"weekly",
+            {"email_preferences":{"is_engagement_emails_enabled":true,"news_digest_frequency":"weekly",
+            "is_moderation_emails_enabled":true,"community_digest_frequency":"weekly",
             "moderation_email_cadence":"daily","moderation_email_days_of_week":[1],
             "moderation_email_time_of_day":"09:00","moderation_email_timezone":"UTC"}}
             """.utf8

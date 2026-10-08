@@ -350,7 +350,6 @@ final class NativeParityHelpersTests: NativeRouteSurfaceViewModelTestCase {
             topics: nil,
             communities: nil,
             agents: nil,
-            supportThreads: nil,
             users: nil,
             topicElections: nil,
             electionVotes: nil
@@ -379,7 +378,6 @@ final class NativeParityHelpersTests: NativeRouteSurfaceViewModelTestCase {
             user: nil,
             community: nil,
             agent: nil,
-            supportThread: nil,
             entity: .init(id: "entity-1")
         )
         XCTAssertEqual(envelope.firstEntity?.id, "entity-1")

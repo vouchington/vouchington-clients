@@ -13,6 +13,10 @@ public sealed partial class OmnisearchViewModel
     {
       viewerProvider.ViewerChanged -= OnViewerChanged;
     }
+    if (sessionStore is not null)
+    {
+      sessionStore.SessionChanged -= OnSessionChanged;
+    }
     localeSubscription?.Dispose();
 
     var cancellation = Interlocked.Exchange(ref activeSearchCancellation, null);

@@ -14,10 +14,8 @@
   <data name="extracted.asides.hnDiscussionsAside.commentsComments_29834540" xml:space="preserve"><value>{comments} comentarios</value></data>
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} puntos</value></data>
-  <data name="extracted.intents.admin.agents_279b44d2" xml:space="preserve"><value>Agentes</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>Costos de IA</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Apelaciones</value></data>
-  <data name="extracted.intents.admin.crm_130f70ae" xml:space="preserve"><value>CRM</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Configuración dinámica</value></data>
   <data name="extracted.intents.admin.engineering_729bb48d" xml:space="preserve"><value>Ingeniería</value></data>
   <data name="extracted.intents.admin.growth_66b06e99" xml:space="preserve"><value>Crecimiento</value></data>
@@ -34,8 +32,6 @@
   <data name="extracted.intents.admin.reports_dacca3cb" xml:space="preserve"><value>Reportes</value></data>
   <data name="extracted.intents.admin.reviewDisputes_25c25858" xml:space="preserve"><value>Revisar disputas</value></data>
   <data name="extracted.intents.admin.reviewQueue_83c3c922" xml:space="preserve"><value>Cola de revisión</value></data>
-  <data name="extracted.intents.admin.supportContacts_96f650a3" xml:space="preserve"><value>Contactos de soporte</value></data>
-  <data name="extracted.intents.admin.support_be91940b" xml:space="preserve"><value>Soporte</value></data>
   <data name="extracted.intents.admin.valkey_2392ad6b" xml:space="preserve"><value>Valkey</value></data>
   <data name="extracted.intents.admin.voteIntegrity_c05b33b5" xml:space="preserve"><value>Integridad de votos</value></data>
   <data name="extracted.intents.productCommunication.allMessages_020dc04d" xml:space="preserve"><value>Todos los mensajes</value></data>
@@ -47,7 +43,6 @@
   <data name="extracted.intents.productCommunication.myLandingPages_68f82dad" xml:space="preserve"><value>Mis páginas de destino</value></data>
   <data name="extracted.intents.productCommunication.newChat_0d332351" xml:space="preserve"><value>Nuevo chat</value></data>
   <data name="extracted.intents.productCommunication.notifications_78801183" xml:space="preserve"><value>Notificaciones</value></data>
-  <data name="extracted.intents.productCommunication.support_be91940b" xml:space="preserve"><value>Soporte</value></data>
   <data name="extracted.intents.productFediverse.browse_3227aa96" xml:space="preserve"><value>Explorar</value></data>
   <data name="extracted.intents.productFediverse.fediverseSearch_a4896269" xml:space="preserve"><value>Búsqueda Fediverse</value></data>
   <data name="extracted.intents.productFediverse.fediverse_5b02ab9d" xml:space="preserve"><value>Fediverse</value></data>
@@ -261,7 +256,34 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Avalar</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Correo electrónico</value></data>
+  <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} artículo relacionado</value></data>
+  <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} artículos relacionados</value></data>
+  <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ artículos relacionados</value></data>
+  <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ artículos relacionados</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="native.credentials.action" xml:space="preserve"><value>Acción</value></data>
+  <data name="native.credentials.adminAudience" xml:space="preserve"><value>Administrador</value></data>
+  <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
+  <data name="native.credentials.audience" xml:space="preserve"><value>Audiencia</value></data>
+  <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>No se pudo cargar la configuración de credenciales</value></data>
+  <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Elegir ámbitos</value></data>
+  <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicaciones conectadas</value></data>
+  <data name="native.credentials.grantActivity" xml:space="preserve"><value>Autorizada el {consentedAt} · Último uso: {lastUsedAt}</value></data>
+  <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Acceso revocado</value></data>
+  <data name="native.credentials.invalidSelection" xml:space="preserve"><value>Elige al menos un permiso</value></data>
+  <data name="native.credentials.mcpAdminFullAccess" xml:space="preserve"><value>Acceso completo de MCP de administrador</value></data>
+  <data name="native.credentials.mcpUserFullAccess" xml:space="preserve"><value>Acceso MCP de usuario, excepto perfil financiero y gastos; solicítalos por separado.</value></data>
+  <data name="native.credentials.noConnectedApps" xml:space="preserve"><value>Ninguna aplicación tiene acceso a tu cuenta.</value></data>
+  <data name="native.credentials.readAction" xml:space="preserve"><value>Lectura</value></data>
+  <data name="native.credentials.requires" xml:space="preserve"><value>Requiere {scope}</value></data>
+  <data name="native.credentials.resource" xml:space="preserve"><value>Recurso</value></data>
+  <data name="native.credentials.revokeFailed" xml:space="preserve"><value>No se pudo revocar el acceso</value></data>
+  <data name="native.credentials.scopes" xml:space="preserve"><value>Ámbitos</value></data>
+  <data name="native.credentials.unusedGrantActivity" xml:space="preserve"><value>Autorizada {consentedAt} · Aún no se ha usado</value></data>
+  <data name="native.credentials.unverified" xml:space="preserve"><value>Sin verificar</value></data>
+  <data name="native.credentials.userAudience" xml:space="preserve"><value>Usuario</value></data>
+  <data name="native.credentials.verified" xml:space="preserve"><value>Verificado</value></data>
+  <data name="native.credentials.writeAction" xml:space="preserve"><value>Escritura</value></data>
   <data name="native.dotnet.auth.appleSignIn" xml:space="preserve"><value>Inicio de sesión con Apple</value></data>
   <data name="native.dotnet.auth.developmentCookieLoadingUnavailable" xml:space="preserve"><value>La carga de cookies de desarrollo no está disponible.</value></data>
   <data name="native.dotnet.auth.developmentCookiesStoredWithoutIdentity" xml:space="preserve"><value>Las cookies se guardaron, pero la identidad no se autenticó.</value></data>
@@ -356,38 +378,22 @@
   <data name="native.dotnet.community.communityNameLength" xml:space="preserve"><value>El nombre de la comunidad debe tener entre 1 y 100 caracteres.</value></data>
   <data name="native.dotnet.community.communityNameWords" xml:space="preserve"><value>El nombre de la comunidad debe tener al menos 3 palabras.</value></data>
   <data name="native.dotnet.community.communitySlugInvalid" xml:space="preserve"><value>El slug debe usar letras minúsculas, números y guiones.</value></data>
-  <data name="native.dotnet.crm.crmArchived" xml:space="preserve"><value>Archivado</value></data>
-  <data name="native.dotnet.crm.crmAwaitingResponse" xml:space="preserve"><value>Esperando respuesta</value></data>
-  <data name="native.dotnet.crm.crmConverted" xml:space="preserve"><value>Convertido</value></data>
-  <data name="native.dotnet.crm.crmInConversation" xml:space="preserve"><value>En conversación</value></data>
-  <data name="native.dotnet.crm.crmInbound" xml:space="preserve"><value>Entrante</value></data>
-  <data name="native.dotnet.crm.crmNew" xml:space="preserve"><value>Nuevo</value></data>
-  <data name="native.dotnet.crm.crmNoSubject" xml:space="preserve"><value>(sin asunto)</value></data>
-  <data name="native.dotnet.crm.crmOptedOut" xml:space="preserve"><value>Baja solicitada</value></data>
-  <data name="native.dotnet.crm.crmOutbound" xml:space="preserve"><value>Saliente</value></data>
-  <data name="native.dotnet.crm.crmUnknownDirection" xml:space="preserve"><value>Dirección desconocida</value></data>
-  <data name="native.dotnet.crm.rowError" xml:space="preserve"><value>Fila {row}: {error}</value></data>
   <data name="native.dotnet.csharp.accountDeleted" xml:space="preserve"><value>Cuenta eliminada</value></data>
   <data name="native.dotnet.csharp.actionFailed" xml:space="preserve"><value>La acción falló</value></data>
   <data name="native.dotnet.csharp.add" xml:space="preserve"><value>Añadir</value></data>
-  <data name="native.dotnet.csharp.archive" xml:space="preserve"><value>Archivar</value></data>
   <data name="native.dotnet.csharp.avatarUploadFailed" xml:space="preserve"><value>La carga del avatar falló.</value></data>
   <data name="native.dotnet.csharp.avatarUploadTimedOut" xml:space="preserve"><value>La carga del avatar agotó el tiempo de espera.</value></data>
-  <data name="native.dotnet.csharp.bodyRequired" xml:space="preserve"><value>El cuerpo es obligatorio.</value></data>
   <data name="native.dotnet.csharp.bookmarks" xml:space="preserve"><value>Marcadores</value></data>
   <data name="native.dotnet.csharp.cancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="native.dotnet.csharp.chooseImageUpTo50Mb" xml:space="preserve"><value>Elige una imagen de hasta 50 MB.</value></data>
   <data name="native.dotnet.csharp.clear" xml:space="preserve"><value>Borrar</value></data>
   <data name="native.dotnet.csharp.close" xml:space="preserve"><value>Cerrar</value></data>
   <data name="native.dotnet.csharp.conversationIdRequired" xml:space="preserve"><value>El ID de conversación es obligatorio.</value></data>
-  <data name="native.dotnet.csharp.csvImportFailed" xml:space="preserve"><value>La importación del CSV falló.</value></data>
-  <data name="native.dotnet.csharp.csvRequired" xml:space="preserve"><value>El CSV es obligatorio.</value></data>
   <data name="native.dotnet.csharp.customize" xml:space="preserve"><value>Personalizar</value></data>
   <data name="native.dotnet.csharp.customizeNavigation" xml:space="preserve"><value>Personalizar navegación</value></data>
   <data name="native.dotnet.csharp.delete" xml:space="preserve"><value>Eliminar</value></data>
   <data name="native.dotnet.csharp.developmentSession" xml:space="preserve"><value>Sesión de desarrollo</value></data>
   <data name="native.dotnet.csharp.down" xml:space="preserve"><value>Bajar</value></data>
-  <data name="native.dotnet.csharp.emailRequired" xml:space="preserve"><value>El correo es obligatorio.</value></data>
   <data name="native.dotnet.csharp.emailVerified" xml:space="preserve"><value>Correo verificado. Vuelve a intentar la acción.</value></data>
   <data name="native.dotnet.csharp.enterEmail" xml:space="preserve"><value>Introduce una dirección de correo.</value></data>
   <data name="native.dotnet.csharp.enterVerificationCode" xml:space="preserve"><value>Introduce el código de verificación de 8 caracteres.</value></data>
@@ -405,10 +411,8 @@
   <data name="native.dotnet.csharp.localModelEndpointDisabled" xml:space="preserve"><value>Este modelo local está desactivado. Actívalo antes de convertirlo en el actual.</value></data>
   <data name="native.dotnet.csharp.localModelEndpointMissing" xml:space="preserve"><value>Este modelo local ya no existe.</value></data>
   <data name="native.dotnet.csharp.localModelSaved" xml:space="preserve"><value>Se guardó la configuración del modelo local.</value></data>
-  <data name="native.dotnet.csharp.nameRequired" xml:space="preserve"><value>El nombre es obligatorio.</value></data>
   <data name="native.dotnet.csharp.noEmailAddresses" xml:space="preserve"><value>Aún no hay direcciones de correo</value></data>
   <data name="native.dotnet.csharp.ok" xml:space="preserve"><value>Aceptar</value></data>
-  <data name="native.dotnet.csharp.open" xml:space="preserve"><value>Abrir</value></data>
   <data name="native.dotnet.csharp.refresh" xml:space="preserve"><value>Actualizar</value></data>
   <data name="native.dotnet.csharp.run" xml:space="preserve"><value>Ejecutar</value></data>
   <data name="native.dotnet.csharp.saved" xml:space="preserve"><value>Guardado</value></data>
@@ -541,46 +545,6 @@
   <data name="native.dotnet.csharpCommunities.userId" xml:space="preserve"><value>ID de usuario</value></data>
   <data name="native.dotnet.csharpCommunities.username" xml:space="preserve"><value>Nombre de usuario</value></data>
   <data name="native.dotnet.csharpCommunities.warn" xml:space="preserve"><value>Advertir</value></data>
-  <data name="native.dotnet.csharpCrm.addNote" xml:space="preserve"><value>Añadir nota</value></data>
-  <data name="native.dotnet.csharpCrm.aiDraft" xml:space="preserve"><value>Borrador de IA</value></data>
-  <data name="native.dotnet.csharpCrm.any" xml:space="preserve"><value>Cualquiera</value></data>
-  <data name="native.dotnet.csharpCrm.anyStatus" xml:space="preserve"><value>Cualquier estado</value></data>
-  <data name="native.dotnet.csharpCrm.anyVertical" xml:space="preserve"><value>Cualquier vertical</value></data>
-  <data name="native.dotnet.csharpCrm.create" xml:space="preserve"><value>Crear</value></data>
-  <data name="native.dotnet.csharpCrm.createContact" xml:space="preserve"><value>Crear contacto</value></data>
-  <data name="native.dotnet.csharpCrm.createNotes" xml:space="preserve"><value>Crear notas</value></data>
-  <data name="native.dotnet.csharpCrm.crm" xml:space="preserve"><value>CRM</value></data>
-  <data name="native.dotnet.csharpCrm.crmContact" xml:space="preserve"><value>Contacto de CRM</value></data>
-  <data name="native.dotnet.csharpCrm.csvImport" xml:space="preserve"><value>Importación CSV</value></data>
-  <data name="native.dotnet.csharpCrm.draft" xml:space="preserve"><value>Borrador</value></data>
-  <data name="native.dotnet.csharpCrm.draftPrompt" xml:space="preserve"><value>Instrucción del borrador</value></data>
-  <data name="native.dotnet.csharpCrm.draftTone" xml:space="preserve"><value>Tono del borrador</value></data>
-  <data name="native.dotnet.csharpCrm.email" xml:space="preserve"><value>Correo</value></data>
-  <data name="native.dotnet.csharpCrm.emailHtml" xml:space="preserve"><value>HTML del correo</value></data>
-  <data name="native.dotnet.csharpCrm.emailProvider" xml:space="preserve"><value>Proveedor de correo</value></data>
-  <data name="native.dotnet.csharpCrm.emailSubject" xml:space="preserve"><value>Asunto del correo</value></data>
-  <data name="native.dotnet.csharpCrm.emailText" xml:space="preserve"><value>Texto del correo</value></data>
-  <data name="native.dotnet.csharpCrm.emails" xml:space="preserve"><value>Correos</value></data>
-  <data name="native.dotnet.csharpCrm.followerCount" xml:space="preserve"><value>Número de seguidores</value></data>
-  <data name="native.dotnet.csharpCrm.import" xml:space="preserve"><value>Importar</value></data>
-  <data name="native.dotnet.csharpCrm.importCsv" xml:space="preserve"><value>Importar CSV</value></data>
-  <data name="native.dotnet.csharpCrm.link" xml:space="preserve"><value>Vincular</value></data>
-  <data name="native.dotnet.csharpCrm.linked" xml:space="preserve"><value>Vinculado</value></data>
-  <data name="native.dotnet.csharpCrm.name" xml:space="preserve"><value>Nombre</value></data>
-  <data name="native.dotnet.csharpCrm.newNote" xml:space="preserve"><value>Nueva nota</value></data>
-  <data name="native.dotnet.csharpCrm.noType" xml:space="preserve"><value>Sin tipo</value></data>
-  <data name="native.dotnet.csharpCrm.noVertical" xml:space="preserve"><value>Sin vertical</value></data>
-  <data name="native.dotnet.csharpCrm.notes" xml:space="preserve"><value>Notas</value></data>
-  <data name="native.dotnet.csharpCrm.notesHistory" xml:space="preserve"><value>Historial de notas</value></data>
-  <data name="native.dotnet.csharpCrm.phone" xml:space="preserve"><value>Teléfono</value></data>
-  <data name="native.dotnet.csharpCrm.search" xml:space="preserve"><value>Buscar</value></data>
-  <data name="native.dotnet.csharpCrm.sendEmail" xml:space="preserve"><value>Enviar correo</value></data>
-  <data name="native.dotnet.csharpCrm.socialAccounts" xml:space="preserve"><value>Cuentas sociales</value></data>
-  <data name="native.dotnet.csharpCrm.type" xml:space="preserve"><value>Tipo</value></data>
-  <data name="native.dotnet.csharpCrm.unlink" xml:space="preserve"><value>Desvincular</value></data>
-  <data name="native.dotnet.csharpCrm.unlinked" xml:space="preserve"><value>Sin vincular</value></data>
-  <data name="native.dotnet.csharpCrm.userId" xml:space="preserve"><value>ID de usuario</value></data>
-  <data name="native.dotnet.csharpCrm.vertical" xml:space="preserve"><value>Vertical</value></data>
   <data name="native.dotnet.csharpDialogs.addContext" xml:space="preserve"><value>Añade cualquier contexto que deban conocer los moderadores.</value></data>
   <data name="native.dotnet.csharpDialogs.chooseProgram" xml:space="preserve"><value>Elige un programa</value></data>
   <data name="native.dotnet.csharpDialogs.cleanUp" xml:space="preserve"><value>Limpiar</value></data>
@@ -682,7 +646,6 @@
   <data name="native.dotnet.dynamic.signOutDeviceQuestion" xml:space="preserve"><value>¿Cerrar sesión en este dispositivo?</value></data>
   <data name="native.dotnet.dynamic.signOutSessionQuestion" xml:space="preserve"><value>¿Cerrar esta sesión?</value></data>
   <data name="native.dotnet.dynamic.signedOut" xml:space="preserve"><value>Sesión cerrada</value></data>
-  <data name="native.dotnet.dynamic.supportThread" xml:space="preserve"><value>Hilo de soporte</value></data>
   <data name="native.dotnet.dynamic.unfollow" xml:space="preserve"><value>Dejar de seguir</value></data>
   <data name="native.dotnet.dynamic.unfollowSource" xml:space="preserve"><value>Dejar de seguir la fuente</value></data>
   <data name="native.dotnet.dynamic.unfollowTopic" xml:space="preserve"><value>Dejar de seguir el tema</value></data>
@@ -1222,16 +1185,6 @@
   <data name="native.dotnet.settings.uiLocale" xml:space="preserve"><value>Idioma de la interfaz</value></data>
   <data name="native.dotnet.settings.verifyEmail" xml:space="preserve"><value>Verificar correo</value></data>
   <data name="native.dotnet.settings.vouchesDisavows" xml:space="preserve"><value>Votos a favor y en contra</value></data>
-  <data name="native.dotnet.support.close" xml:space="preserve"><value>Cerrar</value></data>
-  <data name="native.dotnet.support.createDescription" xml:space="preserve"><value>Crea un hilo para contactar con soporte.</value></data>
-  <data name="native.dotnet.support.listDescription" xml:space="preserve"><value>Abre un hilo de soporte nuevo o revisa los existentes.</value></data>
-  <data name="native.dotnet.support.listEmpty" xml:space="preserve"><value>Aún no hay hilos de soporte</value></data>
-  <data name="native.dotnet.support.newThread" xml:space="preserve"><value>Nuevo hilo de soporte</value></data>
-  <data name="native.dotnet.support.optionalConversationId" xml:space="preserve"><value>ID de conversación opcional</value></data>
-  <data name="native.dotnet.support.optionalMessage" xml:space="preserve"><value>Mensaje opcional</value></data>
-  <data name="native.dotnet.support.thread" xml:space="preserve"><value>Hilo de soporte</value></data>
-  <data name="native.dotnet.support.threadEmpty" xml:space="preserve"><value>Este hilo de soporte aún no tiene mensajes.</value></data>
-  <data name="native.dotnet.support.title" xml:space="preserve"><value>Contactar con soporte</value></data>
   <data name="native.dotnet.tagManagement.categories" xml:space="preserve"><value>Categorías</value></data>
   <data name="native.dotnet.tagManagement.categoryTopics" xml:space="preserve"><value>Temas de categoría</value></data>
   <data name="native.dotnet.tagManagement.faqPosts" xml:space="preserve"><value>Publicaciones de preguntas frecuentes</value></data>
@@ -1372,9 +1325,6 @@
   <data name="native.swift.communityRows.transparencyLatestReleasedDay" xml:space="preserve"><value>Último día publicado</value></data>
   <data name="native.swift.communityRows.transparencyLocked" xml:space="preserve"><value>Se requiere Plus o Pro para ver los datos agregados.</value></data>
   <data name="native.swift.communityRows.transparencyReleasedOn" xml:space="preserve"><value>Publicado {date}</value></data>
-  <data name="native.swift.crmContacts.phone" xml:space="preserve"><value>Teléfono</value></data>
-  <data name="native.swift.crmContacts.provider" xml:space="preserve"><value>Proveedor</value></data>
-  <data name="native.swift.crmContacts.subject" xml:space="preserve"><value>Asunto</value></data>
   <data name="native.swift.detail.userTags" xml:space="preserve"><value>Etiquetas de usuario</value></data>
   <data name="native.swift.directMessages.loadOlderMessages" xml:space="preserve"><value>Cargar mensajes más antiguos</value></data>
   <data name="native.swift.directMessages.newMessage" xml:space="preserve"><value>Nuevo mensaje</value></data>
@@ -1762,8 +1712,8 @@
   <data name="native.swift.postCompose.images" xml:space="preserve"><value>Imágenes</value></data>
   <data name="native.swift.postCompose.publish" xml:space="preserve"><value>Publicar</value></data>
   <data name="native.swift.postsList.posts" xml:space="preserve"><value>Publicaciones</value></data>
-  <data name="native.swift.presentationValues.assigned" xml:space="preserve"><value>Asignado</value></data>
-  <data name="native.swift.presentationValues.deleted" xml:space="preserve"><value>Eliminado</value></data>
+  <data name="native.swift.presentation.phone" xml:space="preserve"><value>Teléfono</value></data>
+  <data name="native.swift.presentation.provider" xml:space="preserve"><value>Proveedor</value></data>
   <data name="native.swift.presentationValues.facebook" xml:space="preserve"><value>Facebook</value></data>
   <data name="native.swift.presentationValues.github" xml:space="preserve"><value>GitHub</value></data>
   <data name="native.swift.presentationValues.member" xml:space="preserve"><value>Miembro</value></data>
@@ -1834,18 +1784,6 @@
   <data name="native.swift.routeMetadata.staffEngineeringPostgresqlPostgresqlTitle" xml:space="preserve"><value>PostgreSQL</value></data>
   <data name="native.swift.routeMetadata.staffEngineeringQueuesQueuesTitle" xml:space="preserve"><value>Colas</value></data>
   <data name="native.swift.routeMetadata.staffEngineeringValkeyValkeyTitle" xml:space="preserve"><value>valkey</value></data>
-  <data name="native.swift.routeSurface.agent" xml:space="preserve"><value>Agente</value></data>
-  <data name="native.swift.routeSurface.agentFilterKind" xml:space="preserve"><value>Filtro de conversación</value></data>
-  <data name="native.swift.routeSurface.agentFilterPostId" xml:space="preserve"><value>ID de publicación</value></data>
-  <data name="native.swift.routeSurface.agentFilterPostSlug" xml:space="preserve"><value>Slug de publicación</value></data>
-  <data name="native.swift.routeSurface.agentFilterRssFeedItemId" xml:space="preserve"><value>ID de elemento RSS</value></data>
-  <data name="native.swift.routeSurface.agentFilterUserId" xml:space="preserve"><value>ID de usuario</value></data>
-  <data name="native.swift.routeSurface.agentFilterUsername" xml:space="preserve"><value>Nombre de usuario</value></data>
-  <data name="native.swift.routeSurface.agentFilterValue" xml:space="preserve"><value>Valor de {filter}</value></data>
-  <data name="native.swift.routeSurface.agentId" xml:space="preserve"><value>ID del agente</value></data>
-  <data name="native.swift.routeSurface.agentStatusActive" xml:space="preserve"><value>Activo</value></data>
-  <data name="native.swift.routeSurface.agentStatusInactive" xml:space="preserve"><value>Inactivo</value></data>
-  <data name="native.swift.routeSurface.agentSystemUserId" xml:space="preserve"><value>ID de usuario del sistema</value></data>
   <data name="native.swift.routeSurface.allProviders" xml:space="preserve"><value>Todos</value></data>
   <data name="native.swift.routeSurface.closed" xml:space="preserve"><value>Cerrados</value></data>
   <data name="native.swift.routeSurface.distrusted" xml:space="preserve"><value>No confiable</value></data>
@@ -1908,23 +1846,13 @@
   <data name="native.swift.settings.selectedModel" xml:space="preserve"><value>Modelo seleccionado</value></data>
   <data name="native.swift.settings.sendVerificationCode" xml:space="preserve"><value>Enviar código de verificación</value></data>
   <data name="native.swift.settings.sessions" xml:space="preserve"><value>Sesiones</value></data>
+  <data name="native.swift.settings.support" xml:space="preserve"><value>Soporte</value></data>
   <data name="native.swift.settings.unnamedLocalModel" xml:space="preserve"><value>Modelo local sin nombre</value></data>
   <data name="native.swift.settings.url" xml:space="preserve"><value>URL</value></data>
   <data name="native.swift.settings.useLocalModel" xml:space="preserve"><value>Usar modelo local</value></data>
   <data name="native.swift.settings.username" xml:space="preserve"><value>Nombre de usuario</value></data>
   <data name="native.swift.settings.users" xml:space="preserve"><value>Usuarios</value></data>
   <data name="native.swift.settings.weekly" xml:space="preserve"><value>Semanal</value></data>
-  <data name="native.swift.support.approveDraftConfirmationTitle" xml:space="preserve"><value>¿Aprobar este borrador?</value></data>
-  <data name="native.swift.support.assignToMe" xml:space="preserve"><value>Asignarme</value></data>
-  <data name="native.swift.support.generateAiDraft" xml:space="preserve"><value>Generar borrador con IA</value></data>
-  <data name="native.swift.support.reopenThreadConfirmationTitle" xml:space="preserve"><value>¿Reabrir este hilo de soporte?</value></data>
-  <data name="native.swift.support.resolveThreadConfirmationTitle" xml:space="preserve"><value>¿Resolver este hilo de soporte?</value></data>
-  <data name="native.swift.support.saveOutboundReply" xml:space="preserve"><value>Guardar respuesta saliente</value></data>
-  <data name="native.swift.support.savedReplyNotEmailed" xml:space="preserve"><value>Guarda esta respuesta en el hilo. No se envía por correo electrónico.</value></data>
-  <data name="native.swift.support.sendDraftConfirmationTitle" xml:space="preserve"><value>¿Enviar esta respuesta?</value></data>
-  <data name="native.swift.support.status" xml:space="preserve"><value>Estado</value></data>
-  <data name="native.swift.support.support" xml:space="preserve"><value>Soporte</value></data>
-  <data name="native.swift.support.waitingForAiDraft" xml:space="preserve"><value>Esperando el borrador de IA</value></data>
   <data name="native.swift.topicManagementFields.addAlias" xml:space="preserve"><value>Agregar alias</value></data>
   <data name="native.swift.topicManagementFields.addHostname" xml:space="preserve"><value>Agregar nombre de host</value></data>
   <data name="native.swift.topicManagementFields.additionalHostname" xml:space="preserve"><value>Nombre de host adicional</value></data>
@@ -1937,17 +1865,6 @@
   <data name="native.taxonomy.contributionAdmission.capacityUnavailable" xml:space="preserve"><value>No puedes publicar ahora. Inténtalo de nuevo más tarde.</value></data>
   <data name="native.taxonomy.contributionAdmission.idempotencyMismatch" xml:space="preserve"><value>No pudimos asociar este borrador con la solicitud anterior. Inténtalo de nuevo.</value></data>
   <data name="native.taxonomy.contributionAdmission.inProgress" xml:space="preserve"><value>Tu publicación todavía se está enviando. Inténtalo de nuevo en breve.</value></data>
-  <data name="native.taxonomy.crm.ai" xml:space="preserve"><value>IA</value></data>
-  <data name="native.taxonomy.crm.cars" xml:space="preserve"><value>Automóviles</value></data>
-  <data name="native.taxonomy.crm.creditCards" xml:space="preserve"><value>Tarjetas de crédito</value></data>
-  <data name="native.taxonomy.crm.customer" xml:space="preserve"><value>Cliente</value></data>
-  <data name="native.taxonomy.crm.finance" xml:space="preserve"><value>Finanzas</value></data>
-  <data name="native.taxonomy.crm.influencer" xml:space="preserve"><value>Influencer</value></data>
-  <data name="native.taxonomy.crm.lifestyle" xml:space="preserve"><value>Estilo de vida</value></data>
-  <data name="native.taxonomy.crm.other" xml:space="preserve"><value>Otro</value></data>
-  <data name="native.taxonomy.crm.partner" xml:space="preserve"><value>Socio</value></data>
-  <data name="native.taxonomy.crm.technology" xml:space="preserve"><value>Tecnología</value></data>
-  <data name="native.taxonomy.crm.travel" xml:space="preserve"><value>Viajes</value></data>
   <data name="native.taxonomy.dataRequest.expired" xml:space="preserve"><value>Caducado</value></data>
   <data name="native.taxonomy.dataRequest.failed" xml:space="preserve"><value>Fallido</value></data>
   <data name="native.taxonomy.dataRequest.processing" xml:space="preserve"><value>Procesando</value></data>
@@ -1984,8 +1901,6 @@
   <data name="native.taxonomy.settings.username" xml:space="preserve"><value>Nombre de usuario</value></data>
   <data name="native.taxonomy.settings.x" xml:space="preserve"><value>X</value></data>
   <data name="native.taxonomy.settings.youtube" xml:space="preserve"><value>YouTube</value></data>
-  <data name="native.taxonomy.support.closed" xml:space="preserve"><value>Cerrado</value></data>
-  <data name="native.taxonomy.support.open" xml:space="preserve"><value>Abierto</value></data>
   <data name="native.taxonomy.topics.rssFeed" xml:space="preserve"><value>Fuente RSS</value></data>
   <data name="native.taxonomy.topics.topic" xml:space="preserve"><value>Tema</value></data>
   <data name="nav.messages" xml:space="preserve"><value>Mensajes</value></data>
@@ -1996,6 +1911,9 @@
   <data name="settings.language.supportedCount.__plural.one" xml:space="preserve"><value>{count} idioma</value></data>
   <data name="settings.language.supportedCount.__plural.other" xml:space="preserve"><value>{count} idiomas</value></data>
   <data name="settings.language.useSiteDefault" xml:space="preserve"><value>Usar configuración predeterminada del sitio</value></data>
+  <data name="shared.accountType.aiAgent" xml:space="preserve"><value>Agente de IA</value></data>
+  <data name="shared.accountType.official" xml:space="preserve"><value>Oficial</value></data>
+  <data name="shared.accountType.system" xml:space="preserve"><value>Sistema</value></data>
   <data name="shared.countLabel.format.__select.action.one" xml:space="preserve"><value>{count} acción</value></data>
   <data name="shared.countLabel.format.__select.action.other" xml:space="preserve"><value>{count} acciones</value></data>
   <data name="shared.countLabel.format.__select.alias.one" xml:space="preserve"><value>{count} alias</value></data>

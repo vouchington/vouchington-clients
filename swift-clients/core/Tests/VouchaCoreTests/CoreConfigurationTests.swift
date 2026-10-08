@@ -242,13 +242,24 @@ extension AppConfigTests {
     }
 
     func testImageURLBuildsCorrectPath() throws {
-        let config = try AppConfig(
-            baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
-            imageBaseURL: XCTUnwrap(URL(string: "https://images.voucha.ai")),
-            turnstileSiteKey: "test-site-key"
-        )
-        let url = config.imageURL(forImageId: "abc123", width: 96)
-        XCTAssertEqual(url, "https://images.voucha.ai/images/abc123?w=96")
+        for (base, expectedBase) in [
+            ("https://images.voucha.ai", "https://images.voucha.ai"),
+            ("https://images.voucha.ai/", "https://images.voucha.ai"),
+            ("https://images.voucha.ai/assets///", "https://images.voucha.ai/assets"),
+            ("https://images.voucha.ai/assets%20one/", "https://images.voucha.ai/assets%20one")
+        ] {
+            let config = try AppConfig(
+                baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
+                imageBaseURL: XCTUnwrap(URL(string: base)),
+                turnstileSiteKey: "test-site-key"
+            )
+            let url = config.imageURL(forImageId: "abc123", width: 96)
+            XCTAssertEqual(url, "\(expectedBase)/images/abc123?w=96")
+            XCTAssertEqual(
+                config.imageURL(forImageId: "a b%c?d#e/f", width: 96),
+                "\(expectedBase)/images/a%20b%25c%3Fd%23e/f?w=96"
+            )
+        }
     }
 
     func testImageURLUsesDefaultWidth() throws {

@@ -46,8 +46,8 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelSkipsConcurrentConversationPaginationRequests() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/conversations"] = [
-            (NativeChatSupportSurfaceTests.chatConversationListPageTwoData, 200, 0.1),
-            (NativeChatSupportSurfaceTests.chatConversationListPageTwoData, 200, 0.1)
+            (NativeChatTestFixtures.chatConversationListPageTwoData, 200, 0.1),
+            (NativeChatTestFixtures.chatConversationListPageTwoData, 200, 0.1)
         ]
 
         let client = try makeClient()
@@ -76,10 +76,10 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelSkipsCreateResultWhenSelectionChangesBeforeSendStarts() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/conversations"] = [
-            (NativeChatSupportSurfaceTests.createdConversationData, 201, 0.1)
+            (NativeChatTestFixtures.createdConversationData, 201, 0.1)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-1/messages"] = (
-            NativeChatSupportSurfaceTests.chatMessagesData,
+            NativeChatTestFixtures.chatMessagesData,
             200
         )
 
@@ -113,7 +113,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelKeepsStreamWhenReselectingCurrentConversation() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-1/messages"] = (
-            NativeChatSupportSurfaceTests.chatMessagesData,
+            NativeChatTestFixtures.chatMessagesData,
             200
         )
         let client = try makeClient()
@@ -144,7 +144,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelKeepsExistingConversationMessageWhenStreamFailsBeforeMetadata() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            NativeChatSupportSurfaceTests.errorData,
+            NativeChatTestFixtures.errorData,
             500
         )
         let client = try makeClient()
@@ -162,7 +162,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelDoesNotOverwriteDraftWhenRenameFinishesAfterSelectionChanges() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/conversations/conversation-1"] = [
-            (NativeChatSupportSurfaceTests.renamedConversationData, 200, 0.1)
+            (NativeChatTestFixtures.renamedConversationData, 200, 0.1)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-2/messages"] = (
             Self.chatFreshConversationTwoDetailData,
@@ -246,7 +246,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
 
     func testChatViewModelSkipsTitleGenerationAfterAbortedStream() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations"] = (
-            NativeChatSupportSurfaceTests.createdConversationData,
+            NativeChatTestFixtures.createdConversationData,
             201
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/conversations/conversation-3/chat"] = [
@@ -320,7 +320,7 @@ private extension NativeChatViewModelRegressionTests {
         createdAt: String,
         updatedAt: String
     ) throws -> ChatConversation {
-        try NativeChatSupportSurfaceTests.decode(
+        try NativeChatTestFixtures.decode(
             ChatConversation.self,
             """
             {

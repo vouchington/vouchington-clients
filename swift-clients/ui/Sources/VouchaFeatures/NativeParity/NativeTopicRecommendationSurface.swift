@@ -75,7 +75,7 @@ extension NativeTopicRecommendationSurface {
     private func formContent(viewModel: NativeTopicRecommendationViewModel) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Picker(
-                UiMessages.string(.nativeSwiftCrmContactsType, locale: nativeUiLocale),
+                UiMessages.string(.nativeSwiftPresentationType, locale: nativeUiLocale),
                 selection: $viewModel.topicType
             ) {
                 Text(UiMessages.string(.nativeSwiftTopicRecommendationTopic, locale: nativeUiLocale)).tag("topic")

@@ -12,6 +12,7 @@ public abstract partial class CommunitySectionPage
     var body = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesSavedReplyBody);
     settingsAllowReviewPostsSwitch = new Switch();
     settingsAllowDataPointPostsSwitch = new Switch();
+    settingsAutomodActionView = new CommunityAutomodActionView(viewModel.Community?.AutomodAction);
     UpdateSettingsSwitches();
 
     return new VerticalStackLayout
@@ -19,6 +20,7 @@ public abstract partial class CommunitySectionPage
       Spacing = 8,
       Children =
       {
+        settingsAutomodActionView,
         UiCopy.Bind(new Label { FontAttributes = FontAttributes.Bold }, Label.TextProperty, UiMessageKey.NativeDotnetCsharpCommunitiesSavedReplies),
         title,
         body,

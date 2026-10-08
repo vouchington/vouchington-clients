@@ -211,13 +211,13 @@ public sealed class ApiModelsMessagesTests
           "profile_image_id": "img-1",
           "markdown": "bio",
           "use_display_name_from": "username",
-          "is_official_account": true,
+          "account_type": "official",
           "verification_status": "verified",
           "verified_badge_visible": true,
           "verified_display_name": "Alice A",
           "public_verified_name_display": "full_name",
           "roles": ["member"],
-          "display_account": { "id": "acct-1", "name": "Alice" },
+          "display_account": { "name": "Alice" },
           "lingua_rs_detected_language": "en",
           "__entity_type": "user"
         }
@@ -230,13 +230,12 @@ public sealed class ApiModelsMessagesTests
     Assert.Equal(publicUser.ProfileImageId, searchResult.ProfileImageId);
     Assert.Equal(publicUser.Markdown, searchResult.Markdown);
     Assert.Equal(publicUser.UseDisplayNameFrom, searchResult.UseDisplayNameFrom);
-    Assert.Equal(publicUser.IsOfficialAccount, searchResult.IsOfficialAccount);
+    Assert.Equal(publicUser.AccountType, searchResult.AccountType);
     Assert.Equal(publicUser.VerificationStatus, searchResult.VerificationStatus);
     Assert.Equal(publicUser.VerifiedBadgeVisible, searchResult.VerifiedBadgeVisible);
     Assert.Equal(publicUser.VerifiedDisplayName, searchResult.VerifiedDisplayName);
     Assert.Equal(publicUser.PublicVerifiedNameDisplay, searchResult.PublicVerifiedNameDisplay);
     Assert.Equal(publicUser.Roles, searchResult.Roles);
-    Assert.Equal(publicUser.DisplayAccount?.Id, searchResult.DisplayAccount?.Id);
     Assert.Equal(publicUser.DisplayAccount?.Name, searchResult.DisplayAccount?.Name);
     Assert.Equal(publicUser.LinguaRsDetectedLanguage, searchResult.LinguaRsDetectedLanguage);
     Assert.Equal(publicUser.EntityType, searchResult.EntityType);

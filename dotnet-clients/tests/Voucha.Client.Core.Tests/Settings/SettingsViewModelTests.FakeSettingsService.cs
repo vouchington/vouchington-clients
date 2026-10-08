@@ -22,6 +22,17 @@ public sealed partial class SettingsViewModelTests
     public DeleteUserResponse DeleteUserResponse { get; set; } = new(false);
 
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
+    public Exception? UserFailure { get; set; }
+    public Task<UserResponse>? UserTask { get; set; }
+    public TaskCompletionSource? UserFetchStarted { get; set; }
+    public TaskCompletionSource? ProfileFetchStarted { get; set; }
+    public string ProfileMarkdown { get; set; } = "Hello, Voucha!";
+    public Exception? MembershipPlansFailure { get; set; }
+    public Task<ApiKeyCreationResponse>? ApiKeyCreationTask { get; set; }
+    public Task<ApiKeyListResponse>? FirstApiKeysPageTask { get; set; }
+    public TaskCompletionSource? ApiKeyCreationStarted { get; set; }
+    public ApiKey? CreatedApiKey { get; private set; }
+    private int apiKeyFetchCount;
 
     public MembershipPlansResponse MembershipPlansResponse { get; set; } =
         new(
@@ -115,8 +126,11 @@ public sealed partial class SettingsViewModelTests
       return Task.FromResult(CreateIdentity());
     }
 
-    public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateProfile());
+    public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default)
+    {
+      ProfileFetchStarted?.TrySetResult();
+      return Task.FromResult(new MyProfileResponse(new MyProfile("profile-1", ProfileMarkdown)));
+    }
 
     public Task<MyProfileResponse> UpdateMyProfileAsync(
         string markdown,
@@ -132,13 +146,16 @@ public sealed partial class SettingsViewModelTests
     public Task RevokeAuthSessionsAsync(CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 
-    public Task<UserResponse> FetchUserAsync(
+    public async Task<UserResponse> FetchUserAsync(
         string idOrSlug,
         bool includeBio = false,
         CancellationToken cancellationToken = default)
     {
       LastFetchedUserIdOrSlug = idOrSlug;
-      return Task.FromResult(CreateUser());
+      UserFetchStarted?.TrySetResult();
+      if (UserFailure is { } failure) throw failure;
+      var response = UserTask is { } task ? await task : CreateUser();
+      return response with { User = response.User with { Roles = Roles } };
     }
 
     public Task<UserResponse> UpdateUserAsync(
@@ -195,16 +212,26 @@ public sealed partial class SettingsViewModelTests
       return Task.FromResult(DeleteUserResponse);
     }
 
-    public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ApiKeyListResponse(
-            [CreateApiKey()],
-            InitialApiKeyPage));
+    public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default)
+    {
+      apiKeyFetchCount++;
+      if (apiKeyFetchCount == 1 && FirstApiKeysPageTask is not null) return FirstApiKeysPageTask;
+      return Task.FromResult(new ApiKeyListResponse([CreatedApiKey ?? CreateApiKey()], InitialApiKeyPage));
+    }
 
-    public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
+    public async Task<ApiKeyCreationResponse> CreateApiKeyAsync(
         string label,
         string type,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
+        IReadOnlyList<string> permissions,
+        CancellationToken cancellationToken = default)
+    {
+      ApiKeyCreationStarted?.TrySetResult();
+      var response = ApiKeyCreationTask is { } task
+          ? await task
+          : new ApiKeyCreationResponse(CreateApiKey(), "raw-key");
+      CreatedApiKey = response.ApiKey;
+      return response;
+    }
 
     public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
@@ -236,7 +263,9 @@ public sealed partial class SettingsViewModelTests
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(MembershipPlansResponse);
+        MembershipPlansFailure is { } failure
+            ? Task.FromException<MembershipPlansResponse>(failure)
+            : Task.FromResult(MembershipPlansResponse);
 
     public Task<CheckoutSessionResponse> CreateMembershipCheckoutSessionAsync(
         MembershipCheckoutBody body,
@@ -305,7 +334,7 @@ public sealed partial class SettingsViewModelTests
             "rk_abc123",
             "rss",
             "Reader",
-            ["rss-feeds:read"],
+            ["rss:read"],
             DateTimeOffset.Parse("2026-07-01T12:00:00Z"),
             null,
             null,

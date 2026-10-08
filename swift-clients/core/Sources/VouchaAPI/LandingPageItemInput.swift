@@ -4,7 +4,7 @@ public enum LandingPageTopicGroupEntryInput: Encodable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case type
-        case reviewId
+        case reviewId = "reviewPostId"
         case referralLinkId
     }
 
@@ -31,7 +31,7 @@ public enum LandingPageItemInput: Encodable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case type
         case profileLinkId
-        case reviewId
+        case reviewId = "reviewPostId"
         case referralLinkId
         case topicId
         case entries

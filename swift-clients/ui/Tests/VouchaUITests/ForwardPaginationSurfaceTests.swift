@@ -82,7 +82,7 @@ final class ForwardPaginationSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     private func communityPage(ids: [String], hasMore: Bool, cursor: String?) -> Data {
         let results = ids.map { #"{"id":"\#($0)"}"# }.joined(separator: ",")
         let communities = ids.map { id in
-            #""\#(id)":{"id":"\#(id)","name":"\#(id)","slug":"\#(id)","markdown":null,"visibility":"public","member_roster_visibility":"public","list_type":null,"member_invites_allowed_at":null,"post_approval_required_at":null,"allow_review_posts":true,"allow_data_point_posts":true,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null}"#
+            #""\#(id)":{"id":"\#(id)","name":"\#(id)","slug":"\#(id)","markdown":null,"visibility":"public","member_roster_visibility":"public","list_type":null,"member_invites_allowed_at":null,"post_approval_required_at":null,"automod_action":"record_only","should_allow_review_posts":true,"should_allow_data_point_posts":true,"trusted_at":null,"profile_image_id":null,"banner_image_id":null,"created_by_id":"user","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null,"deleted_by_id":null,"archived_at":null,"archived_by_id":null,"default_language":null,"lingua_rs_detected_language":null,"rules_markdown":null}"#
         }.joined(separator: ",")
         return Data(
             #"{"results":[\#(results)],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(cursor.map { "\"\($0)\"" } ?? "null")},"communities":{\#(communities)}}"#

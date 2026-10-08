@@ -77,7 +77,6 @@ public static partial class NativeRouteCatalog
         ]),
     Included("Messages", NativeRouteDestinationId.Messages, "/messages/123",
         ["/messages", "/messages/new", "/messages/:conversationId", "/messages/modmail/:communitySlug/:threadId"]),
-    Included("Support", NativeRouteDestinationId.Support, "/chat/support", ["/chat/support", "/chat/support/new", "/chat/support/:threadId"]),
     Included("Chat", NativeRouteDestinationId.Chat, "/chat", ["/chat", "/chat/:id"]),
     Included("Notifications", NativeRouteDestinationId.Notifications, "/my/notifications", ["/my/notifications", "/notification-redirect"]),
   ];

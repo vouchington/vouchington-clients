@@ -343,7 +343,7 @@ final class NativeHtmlContentTests: XCTestCase {
             ),
             "/api/v1/posts": (
                 Data(
-                    #"{"results":[{"id":"result-1","entity_id":"post-1"},{"id":"missing"}],"posts":{"post-1":{"id":"post-1","slug":"native-markdown","post_type":"discussion","title":"Native Markdown","markdown":"body","parent_id":null,"root_id":null,"created_by_id":"user-1","created_at":"2026-07-09T00:00:00Z","broadcast":"everyone","privacy":"public","is_anonymous":false,"community_id":null,"clearance_status":null,"deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,"archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,"spam_detection_created_at":null,"spam_detection_flagged":null,"spam_detection_results":null,"spam_detection_score":null,"updated_by_id":null}}}"#
+                    #"{"results":[{"id":"result-1","entity_id":"post-1"},{"id":"missing"}],"posts":{"post-1":{"id":"post-1","slug":"native-markdown","post_type":"discussion","title":"Native Markdown","markdown":"body","parent_post_id":null,"root_post_id":null,"created_by_id":"user-1","created_at":"2026-07-09T00:00:00Z","broadcast":"everyone","privacy":"public","is_anonymous":false,"community_id":null,"clearance_status":null,"deleted_at":null,"deleted_by_id":null,"locked_at":null,"locked_by_id":null,"archived_at":null,"archived_by_id":null,"clearance_reason":null,"clearance_updated_at":null,"spam_detection_created_at":null,"spam_detection_flagged":null,"spam_detection_results":null,"spam_detection_score":null,"updated_by_id":null}}}"#
                         .utf8
                 ),
                 200

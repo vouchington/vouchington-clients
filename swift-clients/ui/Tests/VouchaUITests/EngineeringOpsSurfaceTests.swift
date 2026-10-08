@@ -273,6 +273,7 @@ final class EngineeringOpsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                     totalActive: 2,
                     totalCompleted: 3,
                     totalFailed: 4,
+                    totalDelayed: 0,
                     queueCount: 5
                 )
             )),
@@ -286,6 +287,7 @@ final class EngineeringOpsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                     active: 0,
                     completed: 2,
                     failed: 0,
+                    delayed: 0,
                     paused: false
                 )
             ),
@@ -299,6 +301,7 @@ final class EngineeringOpsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                     active: 0,
                     completed: 2,
                     failed: 0,
+                    delayed: 0,
                     paused: true
                 )
             ),
@@ -408,14 +411,14 @@ final class EngineeringOpsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
     private func statsData() -> Data {
         Data(
-            #"{"stats":{"totalWaiting":1,"totalActive":2,"totalCompleted":3,"totalFailed":4,"queueCount":5}}"#
+            #"{"stats":{"totalWaiting":1,"totalActive":2,"totalCompleted":3,"totalFailed":4,"totalDelayed":0,"queueCount":5}}"#
                 .utf8
         )
     }
 
     private func queuesData(paused: Bool) -> Data {
         Data(
-            #"{"queues":[{"name":"emails","waiting":1,"active":0,"completed":12,"failed":0,"paused":\#(paused)}],"total":1}"#
+            #"{"queues":[{"name":"emails","waiting":1,"active":0,"completed":12,"failed":0,"delayed":0,"paused":\#(paused)}],"total":1}"#
                 .utf8
         )
     }

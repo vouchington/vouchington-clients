@@ -64,6 +64,19 @@ public sealed record AppConfig(
     return builder.Uri;
   }
 
+  public Uri? ImageUrlForPlacement(string? placementId, int revision, string? imageId, int width = 96)
+  {
+    if (string.IsNullOrWhiteSpace(placementId) || string.IsNullOrWhiteSpace(imageId))
+    {
+      return null;
+    }
+
+    var builder = new UriBuilder(ImageBaseUrl ?? new Uri(DefaultImageBaseUrl));
+    builder.Path = $"{builder.Path.TrimEnd('/')}/images/placements/{Uri.EscapeDataString(placementId)}/{revision}/{Uri.EscapeDataString(imageId)}";
+    builder.Query = $"w={width}";
+    return builder.Uri;
+  }
+
   private static string? Read(IReadOnlyDictionary<string, string?> environment, string key) =>
       environment.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
           ? value

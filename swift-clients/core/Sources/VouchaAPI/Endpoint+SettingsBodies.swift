@@ -71,9 +71,9 @@ struct UpdateUserSettingsBody: Encodable {
         case directMessagesAudience = "direct_messages_audience"
         case defaultPostBroadcast = "default_post_broadcast"
         case defaultPostPrivacy = "default_post_privacy"
-        case engagementEmailsEnabled = "engagement_emails_enabled"
+        case engagementEmailsEnabled = "is_engagement_emails_enabled"
         case newsDigestFrequency = "news_digest_frequency"
-        case moderationEmailsEnabled = "moderation_emails_enabled"
+        case moderationEmailsEnabled = "is_moderation_emails_enabled"
         case communityDigestFrequency = "community_digest_frequency"
         case moderationEmailCadence = "moderation_email_cadence"
         case moderationEmailDaysOfWeek = "moderation_email_days_of_week"
@@ -98,9 +98,9 @@ struct UpdateEmailPreferencesBody: Encodable {
     let moderationEmailTimezone: String?
 
     private enum CodingKeys: String, CodingKey {
-        case engagementEmailsEnabled = "engagement_emails_enabled"
+        case engagementEmailsEnabled = "is_engagement_emails_enabled"
         case newsDigestFrequency = "news_digest_frequency"
-        case moderationEmailsEnabled = "moderation_emails_enabled"
+        case moderationEmailsEnabled = "is_moderation_emails_enabled"
         case communityDigestFrequency = "community_digest_frequency"
         case moderationEmailCadence = "moderation_email_cadence"
         case moderationEmailDaysOfWeek = "moderation_email_days_of_week"

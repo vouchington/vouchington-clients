@@ -54,7 +54,7 @@ final class HostnameDetailVotingTests: NativeRouteSurfaceViewModelTestCase {
             "{\"__entity_type\":\"hostname\",\"user_id\":\"user-1\",\"entity_id\":\"hostname-1\",\"choice\":\"\($0)\",\"created_at\":\"2026-01-01T00:00:00Z\"}"
         } ?? "null"
         return Data("""
-        {"hostname":{"id":"hostname-1","hostname":"example.com","blocked":false},
+        {"hostname":{"id":"hostname-1","hostname":"example.com","is_blocked":false},
         "hostname_election":{"votes_score_net":2,"votes_count_up":5,"votes_count_down":3,"my_vote":null},
         "election_vote":\(electionVote),"rss_feeds":[],"top_urls":[],"topic":null}
         """.utf8)

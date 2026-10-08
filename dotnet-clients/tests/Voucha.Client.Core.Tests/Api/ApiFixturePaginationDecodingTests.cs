@@ -7,23 +7,6 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed class ApiFixturePaginationDecodingTests
 {
   [Fact]
-  public void DecodesOpaqueAgentConversationContinuationFixtures()
-  {
-    var first = Decode<AgentConversationDetailResponse>("native.agents.conversation.default");
-    var older = Decode<AgentConversationDetailResponse>("native.agents.conversation.page-2");
-
-    Assert.Equal(
-        ["00000000-0000-7000-8000-000000000201", "00000000-0000-7000-8000-000000000202"],
-        first.Results.Select(message => message.Id));
-    Assert.True(first.PageInfo.HasNextPage);
-    Assert.StartsWith("eyJ", first.PageInfo.EndCursor, StringComparison.Ordinal);
-    Assert.Null(first.Results[0].CreatedById);
-    Assert.Equal("Earlier context", Assert.Single(older.Results).Content?.Content);
-    Assert.False(older.PageInfo.HasNextPage);
-    Assert.Null(older.PageInfo.EndCursor);
-  }
-
-  [Fact]
   public void DecodesOpaqueMessagingContinuationFixtures()
   {
     var conversations = Decode<DirectConversationsResponse>("native.messages.conversations.default");

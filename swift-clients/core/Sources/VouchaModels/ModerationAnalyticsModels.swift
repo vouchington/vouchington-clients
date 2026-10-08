@@ -43,7 +43,7 @@ public struct ModerationAnalyticsModeratorWorkload: Codable, Sendable {
 }
 
 public struct ModerationAnalyticsModerator: Codable, Sendable {
-    public let actorId: String
+    public let actorUserId: String
     public let total: Int
     public let counts: [String: Int]
     public let weeklyCounts: [DailyTypedCountDataPoint]
@@ -58,7 +58,6 @@ public struct ModerationAnalyticsAppeals: Codable, Sendable {
     public let accepted: Int
     public let reduced: Int
     public let denied: Int
-    public let dismissed: Int
     public let successRate: Double?
 }
 

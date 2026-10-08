@@ -6,18 +6,30 @@ import VouchaModels
 public extension SettingsViewModel {
     func createApiKey() async {
         guard let client else { return }
+        guard canCreateApiKey else {
+            statusMessage = .message(.nativeCredentialsInvalidSelection)
+            return
+        }
+        apiKeyCreationInFlight = true
+        defer { apiKeyCreationInFlight = false }
+        let permissions = apiKeyScopeSelection.permissions
         await mutate {
-            let permissions = apiKeyType == .mcp ? ["mcp-tools:read", "mcp-tools:write"] : ["rss-feeds:read"]
             let response: SettingsApiKeyResponse = try await client.send(
                 .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions)
             )
-            settingsLoadGeneration += 1
+            if activeMainSettingsLoadGeneration == settingsLoadGeneration {
+                createdApiKeysDuringMainLoad.append(response.apiKey)
+            }
             revokedApiKeyIds.remove(response.apiKey.id)
             apiKeyPagination.invalidateRequestsPreservingPage()
             apiKeyPagination.replaceItems([response.apiKey] + apiKeyPagination.items)
             latestRawAPIKey = response.rawKey
             apiKeyLabel = ""
+            apiKeyScopeSelection.clear()
             statusMessage = .message(.nativeSwiftSettingsApiKeyCreated)
+        }
+        if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
+            state = .loading
         }
     }
 
@@ -27,6 +39,9 @@ public extension SettingsViewModel {
             let _: EmptyResponse = try await client.send(.revokeMyApiKey(id: id))
             reconcileRevokedApiKey(id: id)
             statusMessage = .message(.nativeSwiftSettingsApiKeyRevoked)
+        }
+        if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
+            state = .loading
         }
     }
 

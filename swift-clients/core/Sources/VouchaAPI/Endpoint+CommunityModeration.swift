@@ -3,7 +3,7 @@ import Foundation
 private struct EmptyBody: Encodable {}
 
 private struct CommunityModmailThreadUpdateBody: Encodable {
-    let assignedModId: String?
+    let assignedModeratorUserId: String?
     let resolved: Bool?
 }
 
@@ -80,13 +80,13 @@ public extension Endpoint {
     static func updateCommunityModmailThread(
         idOrSlug: String,
         conversationId: String,
-        assignedModId: String? = nil,
+        assignedModeratorUserId: String? = nil,
         resolved: Bool? = nil
     ) -> Endpoint {
         Endpoint(
             .PATCH,
             path: "/api/v1/communities/\(pathSegment(idOrSlug))/modmail/\(pathSegment(conversationId))",
-            body: CommunityModmailThreadUpdateBody(assignedModId: assignedModId, resolved: resolved)
+            body: CommunityModmailThreadUpdateBody(assignedModeratorUserId: assignedModeratorUserId, resolved: resolved)
         )
     }
 

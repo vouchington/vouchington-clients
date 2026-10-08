@@ -34,9 +34,9 @@ struct NativeHostnameSummary: Decodable, Identifiable {
         case id
         case hostname
         case topicId
-        case blocked
-        case crawlable
-        case linkRelFollow
+        case blocked = "isBlocked"
+        case crawlable = "isCrawlable"
+        case linkRelFollow = "shouldFollowLinkRel"
     }
 
     init(from decoder: any Decoder) throws {

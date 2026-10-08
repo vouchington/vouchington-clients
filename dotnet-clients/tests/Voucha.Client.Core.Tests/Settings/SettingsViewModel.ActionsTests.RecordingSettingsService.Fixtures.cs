@@ -45,7 +45,7 @@ public sealed partial class SettingsViewModelActionsTests
             "rk_abc123",
             "rss",
             "Reader",
-            ["rss-feeds:read"],
+            ["rss:read"],
             DateTimeOffset.Parse("2026-07-01T12:00:00Z"),
             null,
             null,

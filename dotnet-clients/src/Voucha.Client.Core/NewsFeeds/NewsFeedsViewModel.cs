@@ -156,7 +156,11 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
 
   public void Dispose() => localeSubscription?.Dispose();
 
-  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(Items));
+  public void OnUiLocaleChanged()
+  {
+    foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
+    OnPropertyChanged(nameof(Items));
+  }
 
   private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
   {

@@ -47,20 +47,15 @@ public static partial class NavigationCatalog
       ],
       RequiresAuth: true);
 
-  private static NavIntent CrmIntent { get; } = new(
-      "crm",
-      UiMessageKey.ExtractedIntentsAdminCrm130f70ae,
-      "contact",
+  private static NavIntent AdministrationIntent { get; } = new(
+      "administration",
+      UiMessageKey.ExtractedIntentsAdminMembershipsB50f1a42,
+      "checkmark.seal",
       [
         new NavGroup(
-            UiMessageKey.ExtractedIntentsAdminCrm130f70ae,
-            "sidebar-group-admin-crm",
-            [
-              new NavItem(UiMessageKey.ExtractedIntentsAdminCrm130f70ae, "/crm", "sidebar-link-crm"),
-              new NavItem(UiMessageKey.ExtractedIntentsAdminMembershipsB50f1a42, "/memberships/grants", "sidebar-link-memberships"),
-              new NavItem(UiMessageKey.ExtractedIntentsAdminSupportBe91940b, "/support", "sidebar-link-support"),
-              new NavItem(UiMessageKey.ExtractedIntentsAdminSupportContacts96f650a3, "/support/contacts", "sidebar-link-support-contacts"),
-            ]),
+            UiMessageKey.ExtractedIntentsAdminMembershipsB50f1a42,
+            "sidebar-group-admin-memberships",
+            [new NavItem(UiMessageKey.ExtractedIntentsAdminMembershipsB50f1a42, "/memberships/grants", "sidebar-link-memberships")]),
       ],
       Roles: ["administrator"]);
 
@@ -73,7 +68,6 @@ public static partial class NavigationCatalog
             UiMessageKey.ExtractedIntentsAdminEngineering729bb48d,
             "sidebar-group-admin-engineering",
             [
-              new NavItem(UiMessageKey.ExtractedIntentsAdminAgents279b44d2, "/agents", "sidebar-link-agents"),
               new NavItem(UiMessageKey.ExtractedIntentsAdminQueuesBe77db11, "/admin/queues", "sidebar-link-queues", Exact: true),
               new NavItem(UiMessageKey.ExtractedIntentsAdminPostgresqlCc52d032, "/admin/postgresql", "sidebar-link-postgresql"),
               new NavItem(UiMessageKey.ExtractedIntentsAdminValkey2392ad6b, "/admin/valkey", "sidebar-link-valkey"),
@@ -85,7 +79,7 @@ public static partial class NavigationCatalog
             "sidebar-group-dynamic-config",
             [new NavItem(UiMessageKey.ExtractedIntentsAdminDynamicConfig59cf5829, "/admin/dynamic-config", "sidebar-link-admin-dynamic-config")]),
       ],
-      Roles: ["administrator", "moderator", "developer", "customer_support", "investor"]);
+      Roles: ["administrator", "moderator", "developer", "investor"]);
 
   private static NavIntent GrowthIntent { get; } = new(
       "growth",

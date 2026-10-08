@@ -21,11 +21,13 @@ enum EndpointManifestCoverage {
             + engineeringEndpoints
             + swiftCoreEndpoints
             + nativeContentEndpoints
-            + nativeCrmEndpoints
-            + nativeAgentConversationEndpoints
             + nativeMessageEndpoints
             + membershipStoreEndpoints
             + importExportEndpoints
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints
+            + storyEndpoints
+            + currentContractFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
 }

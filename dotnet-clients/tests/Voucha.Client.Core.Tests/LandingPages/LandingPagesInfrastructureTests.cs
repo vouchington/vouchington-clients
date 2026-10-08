@@ -97,7 +97,7 @@ public sealed class LandingPagesInfrastructureTests
           Assert.Equal(HttpMethod.Put, request.Method);
           Assert.Equal("/api/v1/my/landing-pages/landing-page-1/items", request.PathAndQuery);
           Assert.Contains("\"profile_link_id\":\"profile-link-1\"", request.Body!, StringComparison.Ordinal);
-          Assert.Contains("\"review_id\":\"review-1\"", request.Body!, StringComparison.Ordinal);
+          Assert.Contains("\"review_post_id\":\"review-1\"", request.Body!, StringComparison.Ordinal);
           Assert.Contains("\"referral_link_id\":\"referral-link-1\"", request.Body!, StringComparison.Ordinal);
           Assert.Contains("\"topic_id\":\"topic-1\"", request.Body!, StringComparison.Ordinal);
           Assert.Contains("\"label\":\"Newsletter\"", request.Body!, StringComparison.Ordinal);

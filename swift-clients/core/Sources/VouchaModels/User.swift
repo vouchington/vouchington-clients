@@ -1,16 +1,31 @@
 import Foundation
 
+public struct ImagePlacement: Codable, Sendable {
+    public let imageId: String
+    public let placementId: String
+    public let placementRevision: Int
+
+    var encodedValue: DecodedJSONValue {
+        .object([
+            "image_id": .string(imageId),
+            "placement_id": .string(placementId),
+            "placement_revision": .number(Double(placementRevision))
+        ])
+    }
+}
+
 public struct PublicUser: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String?
-    public let username: String
+    public let username: String?
     public let entityType: String?
     public let displayAccount: UserDisplayAccount?
-    public let isOfficialAccount: Bool?
+    public let accountType: AccountType?
     public let roles: [String]?
     public let displayNameSource: String?
     public let useDisplayNameFrom: DisplayNameSource?
     public let profileImageId: String?
+    public let profileImagePlacement: ImagePlacement?
     public let markdown: String?
     public let verificationStatus: String?
     public let verifiedBadgeVisible: Bool?
@@ -27,14 +42,15 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         case username
         case entityType = "__entity_type"
         case displayAccount
-        case isOfficialAccount
+        case accountType
         case roles
         case displayNameSource
         case useDisplayNameFrom
         case profileImageId
+        case profileImagePlacement
         case markdown
         case verificationStatus
-        case verifiedBadgeVisible
+        case verifiedBadgeVisible = "isVerifiedBadgeVisible"
         case verifiedDisplayName
         case publicVerifiedNameDisplay
         case linguaRsDetectedLanguage
@@ -47,18 +63,19 @@ public struct PublicUser: Codable, Identifiable, Sendable {
         let raw = try decoder.singleValueContainer().decode([String: DecodedJSONValue].self)
         id = try container.decode(String.self, forKey: .id)
         name = try container.decodeIfPresent(String.self, forKey: .name)
-        username = try container.decode(String.self, forKey: .username)
+        username = try container.decodeIfPresent(String.self, forKey: .username)
         if case let .string(value) = raw["__entity_type"] {
             entityType = value
         } else {
             entityType = nil
         }
         displayAccount = try container.decodeIfPresent(UserDisplayAccount.self, forKey: .displayAccount)
-        isOfficialAccount = try container.decodeIfPresent(Bool.self, forKey: .isOfficialAccount)
+        accountType = try container.decodeIfPresent(AccountType.self, forKey: .accountType)
         roles = try container.decodeIfPresent([String].self, forKey: .roles)
         displayNameSource = try container.decodeIfPresent(String.self, forKey: .displayNameSource)
         useDisplayNameFrom = try container.decodeIfPresent(DisplayNameSource.self, forKey: .useDisplayNameFrom)
         profileImageId = try container.decodeIfPresent(String.self, forKey: .profileImageId)
+        profileImagePlacement = try container.decodeIfPresent(ImagePlacement.self, forKey: .profileImagePlacement)
         markdown = try container.decodeIfPresent(String.self, forKey: .markdown)
         verificationStatus = try container.decodeIfPresent(String.self, forKey: .verificationStatus)
         verifiedBadgeVisible = try container.decodeIfPresent(Bool.self, forKey: .verifiedBadgeVisible)
@@ -71,25 +88,25 @@ public struct PublicUser: Codable, Identifiable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var object: [String: DecodedJSONValue] = [
-            "id": .string(id),
-            "username": .string(username)
+            "id": .string(id)
         ]
+        object["username"] = username.map { .string($0) }
         object["__entity_type"] = entityType.map { .string($0) }
         object["name"] = name.map { .string($0) }
         object["display_account"] = displayAccount.map {
             .object([
-                "id": $0.id.map { .string($0) } ?? .null,
                 "name": $0.name.map { .string($0) } ?? .null
             ])
         }
-        object["is_official_account"] = isOfficialAccount.map { .bool($0) }
+        object["account_type"] = accountType.map { .string($0.rawValue) } ?? .null
         object["roles"] = roles.map { .array($0.map { .string($0) }) }
         object["display_name_source"] = displayNameSource.map { .string($0) }
         object["use_display_name_from"] = useDisplayNameFrom.map { .string($0.rawValue) }
         object["profile_image_id"] = profileImageId.map { .string($0) }
+        object["profile_image_placement"] = profileImagePlacement?.encodedValue
         object["markdown"] = markdown.map { .string($0) }
         object["verification_status"] = verificationStatus.map { .string($0) }
-        object["verified_badge_visible"] = verifiedBadgeVisible.map { .bool($0) }
+        object["is_verified_badge_visible"] = verifiedBadgeVisible.map { .bool($0) } ?? .null
         object["verified_display_name"] = verifiedDisplayName.map { .string($0) }
         object["public_verified_name_display"] = publicVerifiedNameDisplay.map { .string($0) }
         object["lingua_rs_detected_language"] = linguaRsDetectedLanguage.map { .string($0) }
@@ -101,7 +118,6 @@ public struct PublicUser: Codable, Identifiable, Sendable {
 }
 
 public struct UserDisplayAccount: Codable, Sendable {
-    public let id: String?
     public let name: String?
 }
 

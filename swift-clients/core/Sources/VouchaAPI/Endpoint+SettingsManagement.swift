@@ -119,6 +119,10 @@ public extension Endpoint {
         Endpoint(.DELETE, path: "/api/v1/my/api-keys/\(pathSegment(id))")
     }
 
+    static func rotateMyApiKey(id: String) -> Endpoint {
+        Endpoint(.POST, path: "/api/v1/my/api-keys/\(pathSegment(id))/rotate")
+    }
+
     static var membershipMe: Endpoint {
         Endpoint(.GET, path: "/api/v1/memberships/me")
     }

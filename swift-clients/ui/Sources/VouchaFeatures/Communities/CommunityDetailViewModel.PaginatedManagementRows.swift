@@ -9,7 +9,7 @@ extension CommunityDetailViewModel {
         )
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let entry = response.moderatorActions[result.id] else { return nil }
-            let actor = entry.actorId.flatMap { response.users[$0]?.username } ?? entry.actorId
+            let actor = entry.actorUserId.flatMap { response.users[$0]?.username } ?? entry.actorUserId
             let target = entry.targetUserId.flatMap { response.users[$0]?.username } ?? entry.targetUserId
             return .init(
                 id: result.id,

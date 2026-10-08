@@ -10,6 +10,8 @@ public enum PostClearanceAction: String, Codable, Sendable {
 
 public struct AdminReviewQueueImage: Codable, Sendable {
     public let imageId: String
+    public let placementId: String
+    public let placementRevision: Int
     public let orderIndex: Int
     public let caption: String
 }
@@ -44,13 +46,20 @@ public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
     public let postType: String
     public let createdById: String?
     public let createdAt: Date
-    public let rootId: String?
+    @RequiredNullable public var rootId: String?
     public let rootPostType: String?
     public let rootSlug: String?
     public let clearanceStatus: AdminReviewQueueClearanceStatus
     public let clearanceUpdatedAt: Date?
     public let moderationSummary: AdminModerationSummary
     public let mediaReveal: AdminReviewQueueMediaReveal
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, declaredLanguage, linguaRsDetectedLanguage, slug, markdownPreview
+        case postType, createdById, createdAt, rootPostType, rootSlug, clearanceStatus
+        case clearanceUpdatedAt, moderationSummary, mediaReveal
+        case rootId = "rootPostId"
+    }
 }
 
 public struct AdminReviewQueueResponse: Codable, Sendable {

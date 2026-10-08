@@ -117,15 +117,6 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
             Data("""
             {
-              "results": [],
-              "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null }
-            }
-            """.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
-            Data("""
-            {
               "api_key": {
                 "id": "key-2",
                 "user_id": "user-1",
@@ -135,7 +126,7 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
                 "permissions": ["rss-feeds:read"],
                 "created_at": "2026-03-01T10:00:00Z",
                 "last_used_at": null,
-                "revoked_at": null,
+                "revoked_at": null,"expires_at":null,"expiry_reminder_sent_at":null,"replaced_by_api_key_id":null,
                 "updated_at": "2026-03-01T10:00:00Z"
               },
               "raw_key": "voucha_rss_raw"
@@ -145,6 +136,9 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         )
         let viewModel = try SettingsViewModel(client: makeClient())
         viewModel.apiKeyLabel = "Reader"
+
+        await viewModel.loadCredentialSettings()
+        viewModel.setApiKeyScope("feed:read", selected: true)
 
         await viewModel.createApiKey()
 

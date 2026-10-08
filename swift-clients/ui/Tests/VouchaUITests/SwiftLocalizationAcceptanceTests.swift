@@ -14,7 +14,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
                 navigation: String,
                 collection: String,
                 detail: String,
-                validation: String,
                 emptyError: String
             )
         ] = [
@@ -24,7 +23,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
                 "Communities",
                 "Lists",
                 "Community workspace",
-                "Email is required.",
                 "Unable to load"
             ),
             (
@@ -33,7 +31,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
                 "Comunidades",
                 "Listas",
                 "Espacio de trabajo de la comunidad",
-                "El correo electrónico es obligatorio.",
                 "No se pudo cargar"
             ),
             (
@@ -42,7 +39,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
                 "Communautés",
                 "Listes",
                 "Espace de travail de la communauté",
-                "L’adresse e-mail est obligatoire.",
                 "Impossible de charger"
             ),
             (
@@ -51,7 +47,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
                 "Comunidades",
                 "Listas",
                 "Espaço de trabalho da comunidade",
-                "O e-mail é obrigatório.",
                 "Não foi possível carregar"
             )
         ]
@@ -69,10 +64,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
             XCTAssertEqual(
                 UiMessages.string(.nativeSwiftCommunitiesCommunityWorkspace, locale: item.locale),
                 item.detail
-            )
-            XCTAssertEqual(
-                UiMessages.string(.nativeSwiftValidationEmailRequired, locale: item.locale),
-                item.validation
             )
             XCTAssertEqual(
                 UiMessages.string(.nativeSwiftEmptyStateUnableToLoad, locale: item.locale),
@@ -102,10 +93,6 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
         XCTAssertEqual(
             UiMessages.string(DisplayNameSource.username.titleKey, locale: .portuguese),
             "Nome de utilizador"
-        )
-        XCTAssertEqual(
-            UiMessages.string(supportThreadStatusText(.resolved), locale: .spanish),
-            "Resuelto"
         )
     }
 

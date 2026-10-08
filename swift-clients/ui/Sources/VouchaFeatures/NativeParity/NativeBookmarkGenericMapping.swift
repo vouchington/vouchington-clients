@@ -66,9 +66,6 @@ extension NativeRouteSurfaceViewModel {
         if response.hostnames?[entity.id] != nil {
             return "globe"
         }
-        if response.supportThreads?[entity.id] != nil {
-            return "questionmark.bubble"
-        }
         return fallback
     }
 }

@@ -45,11 +45,10 @@ extension CommunityDetailViewModel {
 
     private func automodRow(_ action: CommunityAutomodAction) -> NativeRouteDestinationRow {
         NativeRouteDestinationRow(
-            icon: action.flagged ? "exclamationmark.triangle" : "checkmark.shield",
+            icon: action.isFlagged ? "exclamationmark.triangle" : "checkmark.shield",
             title: .verbatim(action.authoredTitle ?? action.title),
             detail: .joined([
                 .message(action.currentState.titleKey),
-                action.reason.map(UiVerbatimText.verbatim),
                 action.confidenceScore.map {
                     .message(.nativeSwiftRouteSurfaceNumberValue, numberParameters: ["value": $0])
                 }

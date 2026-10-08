@@ -28,7 +28,8 @@ public sealed record PostRow(
     UrlEmbedPreview? EmbedPreview = null,
     string? DeclaredLanguage = null,
     string? DetectedLanguage = null,
-    bool HasAuthoredTitle = false)
+    bool HasAuthoredTitle = false,
+    AccountType? AuthorAccountType = null)
 {
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
@@ -37,6 +38,8 @@ public sealed record PostRow(
   public string Subtitle => L.Resolve(SubtitleText);
 
   public string LocalizedPostType => L.Resolve(PostTypeText);
+
+  public string? AuthorAccountTypeLabel => AccountTypeLabels.Resolve(AuthorAccountType, L);
 
   public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(DeclaredLanguage, DetectedLanguage);
   public bool? ContentIsRightToLeft => ContentLanguage.Direction is null ? null : ContentLanguage.Direction == AuthoredTextDirection.RightToLeft;
@@ -111,7 +114,8 @@ public static class PostRows
         EmbedPreview: EmbedFor(post.Id, embeds),
         DeclaredLanguage: post.DeclaredLanguage,
         DetectedLanguage: post.LinguaRsDetectedLanguage,
-        HasAuthoredTitle: Normalize(post.Title) is not null);
+        HasAuthoredTitle: Normalize(post.Title) is not null,
+        AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType);
   }
 
   public static PostRow From(

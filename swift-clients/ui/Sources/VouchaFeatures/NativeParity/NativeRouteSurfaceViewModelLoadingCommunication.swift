@@ -7,21 +7,11 @@ extension NativeRouteSurfaceViewModel {
         -> [NativeRouteDestinationRow] {
         switch destination {
         case .chat:
-            return try await loadChatRows(client: client)
+            try await loadChatRows(client: client)
         case .messages:
-            return try await loadDirectMessageRows(client: client)
-        case .engineeringAgents:
-            if isAgentRoute {
-                return try await loadAgentRows(client: client)
-            }
-            return []
-        case .support:
-            let page: SupportThreadListResponse = try await client.send(.mySupportThreads(limit: 50))
-            return page.results.map {
-                row("questionmark.circle", .verbatim($0.subject), supportThreadStatusText($0.status))
-            }
+            try await loadDirectMessageRows(client: client)
         default:
-            return []
+            []
         }
     }
 
@@ -126,7 +116,11 @@ extension NativeRouteSurfaceViewModel {
         let conversationId = routeMatch?.param("conversationId")
             ?? routeMatch?.param("threadId")
             ?? routeMatch?.param("id")
-        return conversationId == "new" ? nil : conversationId
+        guard let conversationId else { return nil }
+        switch conversationId.lowercased() {
+        case "new", "support": return nil
+        default: return conversationId
+        }
     }
 
     private func loadChatDetailRows(client: APIClient, conversationId: String) async throws
@@ -140,11 +134,12 @@ extension NativeRouteSurfaceViewModel {
                 appText(.nativeSwiftDirectMessagesConversation, parameters: ["id": conversationId]),
                 countText(page.results.count, item: "message")
             )
-        ] + page.results.map {
-            row(
+        ] + page.results.map { message in
+            let detail = message.content.displayText
+            return row(
                 "bubble.left",
-                .verbatim($0.content.role),
-                .verbatim($0.content.displayText.isEmpty ? $0.id : $0.content.displayText)
+                .verbatim(message.content.role),
+                detail.isEmpty ? (message.presentationError ?? .verbatim(message.id)) : .verbatim(detail)
             )
         }
     }

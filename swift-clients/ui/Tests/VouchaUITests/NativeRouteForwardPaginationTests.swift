@@ -42,7 +42,7 @@ final class NativeRouteForwardPaginationTests: NativeRouteSurfaceViewModelTestCa
     private func notificationPage(ids: [String], cursor: String?, hasMore: Bool) -> Data {
         let results = ids.map { #"{"id":"\#($0)"}"# }.joined(separator: ",")
         let notifications = ids.map { id in
-            #""\#(id)":{"id":"\#(id)","user_id":"user","entity_type":"follow","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"actor_label":null,"event_key":null,"title":"Notification \#(id)","body":"Body","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","pushed_at":null}"#
+            #""\#(id)":{"id":"\#(id)","user_id":"user","entity_type":"follow","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"actor_label":null,"event_key":null,"title":"Notification \#(id)","body":"Body","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","pushed_at":null}"#
         }.joined(separator: ",")
         let endCursor = cursor.map { #""\#($0)""# } ?? "null"
         return Data(

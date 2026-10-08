@@ -4,15 +4,11 @@ namespace Voucha.Client.Core.Auth;
 
 public static class PublicVotePolicy
 {
-  private static readonly string[] OfficialRoles = ["administrator", "investor", "customer_support"];
-
   public static bool CanCastPublicVotes(this SessionSnapshot session)
   {
     ArgumentNullException.ThrowIfNull(session);
     return session.IsAuthenticated &&
-        session.Identity?.IsOfficialAccount is not true &&
-        session.Identity?.Roles is { } roles &&
-        !OfficialRoles.Any(role => roles.Contains(role, StringComparer.Ordinal));
+        session.Identity?.AccountType is null;
   }
 
   public static bool CanClearPublicVote(this SessionSnapshot session, ElectionVoteChoice? currentVote)

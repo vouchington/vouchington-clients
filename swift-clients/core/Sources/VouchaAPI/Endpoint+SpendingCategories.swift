@@ -18,6 +18,11 @@ public struct CreateSpendingCategoryBody: Encodable, Sendable {
         self.spendingFrequency = spendingFrequency
         self.note = note
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case spendingCategoryId = "spendingCategoryTopicId"
+        case amount, spendingFrequency, note
+    }
 }
 
 public struct UpdateSpendingCategoryBody: Encodable, Sendable {

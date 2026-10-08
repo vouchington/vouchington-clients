@@ -74,14 +74,14 @@ final class EndpointCommunityExtrasCoverageTests: XCTestCase {
         assertEndpoint(
             Endpoint.updateCommunityPostTypeSettings(
                 idOrSlug: "test community",
-                allowReviewPosts: true,
-                allowDataPointPosts: true
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: true
             ),
             method: .PATCH,
             path: "/api/v1/communities/test%20community/post-type-settings",
             body: [
-                "allow_review_posts": true,
-                "allow_data_point_posts": true
+                "should_allow_review_posts": true,
+                "should_allow_data_point_posts": true
             ]
         )
     }

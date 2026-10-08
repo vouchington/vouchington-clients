@@ -10,8 +10,6 @@ namespace Voucha.Client.Core.Search;
 
 public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
 {
-  private static readonly string[] OfficialPublicVoteRoles = ["administrator", "investor", "customer_support"];
-
   private readonly VouchaApiClient client;
   private readonly OmnisearchMode mode;
   private string? fediverseProviders;
@@ -53,6 +51,10 @@ public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDispo
     if (viewerProvider is not null)
     {
       viewerProvider.ViewerChanged += OnViewerChanged;
+    }
+    if (sessionStore is not null)
+    {
+      sessionStore.SessionChanged += OnSessionChanged;
     }
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
 
@@ -182,8 +184,7 @@ public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDispo
       viewerProvider?.CurrentViewer.IsAuthenticated ?? false;
 
   private bool ViewerCanCastPublicVotes =>
-      viewerProvider?.CurrentViewer is { IsAuthenticated: true, Roles: var roles } &&
-      !OfficialPublicVoteRoles.Any(role => roles.Contains(role, StringComparer.Ordinal));
+      sessionStore?.Current.CanCastPublicVotes() ?? false;
 
   private bool ViewerCanTriggerUrlCrawls =>
       viewerProvider?.CurrentViewer is { IsAuthenticated: true, Roles: var roles } &&

@@ -5,8 +5,11 @@ namespace Voucha.Client.App.Pages;
 
 public abstract partial class CommunitySectionPage
 {
+  private CommunityAutomodActionView? settingsAutomodActionView;
+
   private void UpdateSettingsSwitches()
   {
+    settingsAutomodActionView?.Update(viewModel.Community?.AutomodAction);
     if (viewModel.Community is not { } community)
     {
       return;

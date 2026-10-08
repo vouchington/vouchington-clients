@@ -11,6 +11,8 @@ public static class UiMessageDescriptors
         new Dictionary<UiMessageKey, UiMessageDescriptor>
         {
         [UiMessageKey.ExtractedAiCostsPageUnpricedRequestCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
+        [UiMessageKey.NativeCommonRelatedArticles] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
+        [UiMessageKey.NativeCommonRelatedArticlesMore] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeDotnetPostsImageNumber] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeDotnetReferralLinksActiveLinks] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeModerationSummaryEvidenceFlaggedCategories] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),

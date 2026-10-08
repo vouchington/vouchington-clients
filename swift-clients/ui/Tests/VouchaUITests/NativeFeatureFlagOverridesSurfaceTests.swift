@@ -75,7 +75,7 @@ final class NativeFeatureFlagOverridesSurfaceTests: XCTestCase {
     func testOnlyAdministratorAndDeveloperRolesCanManageDeviceOverrides() {
         XCTAssertTrue(FeatureFlagState.canManageDeviceOverrides(userRoles: ["administrator"]))
         XCTAssertTrue(FeatureFlagState.canManageDeviceOverrides(userRoles: ["developer"]))
-        for role in ["moderator", "customer_support", "investor"] {
+        for role in ["moderator", "investor"] {
             XCTAssertFalse(FeatureFlagState.canManageDeviceOverrides(userRoles: [role]))
         }
     }

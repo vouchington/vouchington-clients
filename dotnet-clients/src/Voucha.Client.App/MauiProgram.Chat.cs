@@ -26,11 +26,7 @@ public static partial class MauiProgram
     services.AddSingleton<IChatService, ApiChatService>();
     services.AddTransient<ChatListViewModel>();
     services.AddTransient<ChatConversationViewModel>();
-    services.AddTransient<SupportThreadsViewModel>();
-    services.AddTransient<SupportThreadViewModel>();
     services.AddTransient<ChatListPage>();
     services.AddTransient<ChatConversationPage>();
-    services.AddTransient<SupportThreadsPage>();
-    services.AddTransient<SupportThreadPage>();
   }
 }

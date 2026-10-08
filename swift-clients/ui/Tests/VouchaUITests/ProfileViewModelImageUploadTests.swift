@@ -3,6 +3,7 @@ import ViewInspector
 import VouchaAPI
 import VouchaAuth
 import VouchaCore
+import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -182,6 +183,19 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(try sut.inspect().findAll(ViewType.Button.self).count, 3)
         XCTAssertNoThrow(try sut.inspect().find(ViewType.ProgressView.self))
         XCTAssertEqual(try sut.inspect().find(text: "Avatar failed.").string(), "Avatar failed.")
+    }
+
+    func testProfileViewFallsBackToIdentityIDWhenUsernameIsNull() throws {
+        let vm = try makeViewModel()
+        let identityData = PrivateUserTestFixture.userData(
+            id: "user-without-username",
+            overrides: ["username": NSNull()]
+        )
+        vm.identity = try JSONDecoder.vouchaFixtureDecoder.decode(PrivateUser.self, from: identityData)
+        let sut = ProfileView(viewModel: vm)
+
+        XCTAssertEqual(try sut.inspect().find(Avatar.self).actualView().username, "user-without-username")
+        XCTAssertEqual(try sut.inspect().find(text: "user-without-username").string(), "user-without-username")
     }
 
     func testProfileViewRendersBioMarkdownNatively() throws {

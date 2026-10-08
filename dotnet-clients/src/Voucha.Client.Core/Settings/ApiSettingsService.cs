@@ -86,12 +86,13 @@ public sealed partial class ApiSettingsService : ISettingsService, INotification
   public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
       string label,
       string type,
+      IReadOnlyList<string> permissions,
       CancellationToken cancellationToken = default) =>
       client.CreateApiKeyAsync(
           new CreateApiKeyBody(
               (label ?? throw new ArgumentNullException(nameof(label))).Trim(),
-              type == "mcp" ? ["mcp-tools:read", "mcp-tools:write"] : ["rss-feeds:read"],
-              type == "mcp" ? "mcp" : "rss"),
+              permissions ?? throw new ArgumentNullException(nameof(permissions)),
+              type),
           cancellationToken);
 
   public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) =>

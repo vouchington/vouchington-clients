@@ -1,6 +1,5 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Chat;
-using Voucha.Client.Core.Support;
 using System.Runtime.CompilerServices;
 
 namespace Voucha.Client.Core.Tests.Chat;
@@ -30,29 +29,6 @@ internal sealed partial class FakeChatService : IChatService
 
   public Exception? DeleteConversationError { get; set; }
 
-  public CreateSupportThreadResponse CreateSupportThreadResult { get; set; } =
-      new(new SupportThread("thread-1", "contact-1", "Need help", null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null, null, null, SupportThreadStatus.Open));
-
-  public SupportThreadListResponse SupportThreadsResult { get; set; } =
-      new([], new PageInfo(null, false, null));
-
-  public Func<string?, int, CancellationToken, Task<SupportThreadListResponse>>? FetchSupportThreadsAsyncOverride { get; set; }
-
-  public SupportThreadDetailResponse SupportThreadDetailResult { get; set; } =
-      new(
-          new SupportThread("thread-1", "contact-1", "Need help", null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null, null, null, null, SupportThreadStatus.Open),
-          [],
-          new PageInfo(null, false, null));
-
-  public Exception? FetchSupportThreadsError { get; set; }
-
-  public Exception? CreateSupportThreadError { get; set; }
-
-  public Func<CreateSupportThreadBody, CancellationToken, Task<CreateSupportThreadResponse>>? CreateSupportThreadAsyncOverride { get; set; }
-
-  public int CreateSupportThreadCount { get; private set; }
-
-  public Exception? FetchSupportThreadError { get; set; }
 
   public string? LastChatPath { get; private set; }
 
@@ -62,15 +38,6 @@ internal sealed partial class FakeChatService : IChatService
 
   public CreateClientGeneratedChatBody? LastClientGeneratedChatBody { get; private set; }
 
-  public string? LastSupportThreadSubject { get; private set; }
-
-  public string? LastSupportThreadMessage { get; private set; }
-
-  public string? LastSupportThreadConversationId { get; private set; }
-
-  public string? LastSupportThreadAfter { get; private set; }
-
-  public int? LastSupportThreadLimit { get; private set; }
 
   public Queue<ChatStreamEvent> StreamEvents { get; } = [];
 
@@ -80,7 +47,6 @@ internal sealed partial class FakeChatService : IChatService
 
   public Func<string, CreateClientGeneratedChatBody, CancellationToken, Task<ClientGeneratedChatResponse>>? CreateClientGeneratedChatAsyncOverride { get; set; }
 
-  public int FetchSupportThreadCount { get; private set; }
 
   public Task<ChatConversationListResponse> FetchMyConversationsAsync(
       string? after = null,
@@ -198,67 +164,7 @@ internal sealed partial class FakeChatService : IChatService
             null,
             null,
             new ChatMessageContent("assistant", body.AssistantContent, null)),
-        new ClientGeneratedChatAgenticRun(
-            "run-1",
-            conversationId,
-            "message-assistant",
-            null,
-            body.ModelName ?? "client-generated",
-            body.ModelProvider,
-            default,
-            null,
-            null,
-            "completed",
-            null,
-            DateTimeOffset.UtcNow,
-            DateTimeOffset.UtcNow,
-            null,
-            DateTimeOffset.UtcNow,
-            DateTimeOffset.UtcNow,
-            null)));
+        new ClientGeneratedChatTurn("message-user", "message-assistant")));
   }
 
-  public Task<SupportThreadListResponse> FetchSupportThreadsAsync(
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default)
-  {
-    if (FetchSupportThreadsError is not null) throw FetchSupportThreadsError;
-    if (FetchSupportThreadsAsyncOverride is not null)
-    {
-      return FetchSupportThreadsAsyncOverride(after, limit, cancellationToken);
-    }
-
-    return Task.FromResult(SupportThreadsResult);
-  }
-
-  public Task<CreateSupportThreadResponse> CreateSupportThreadAsync(
-      CreateSupportThreadBody body,
-      CancellationToken cancellationToken = default)
-  {
-    CreateSupportThreadCount += 1;
-    LastSupportThreadSubject = body.Subject;
-    LastSupportThreadMessage = body.Message;
-    LastSupportThreadConversationId = body.ConversationId;
-    if (CreateSupportThreadAsyncOverride is not null)
-    {
-      return CreateSupportThreadAsyncOverride(body, cancellationToken);
-    }
-
-    if (CreateSupportThreadError is not null) throw CreateSupportThreadError;
-    return Task.FromResult(CreateSupportThreadResult);
-  }
-
-  public Task<SupportThreadDetailResponse> FetchSupportThreadAsync(
-      string threadId,
-      string? after = null,
-      int limit = 25,
-      CancellationToken cancellationToken = default)
-  {
-    if (FetchSupportThreadError is not null) throw FetchSupportThreadError;
-    FetchSupportThreadCount += 1;
-    LastSupportThreadAfter = after;
-    LastSupportThreadLimit = limit;
-    return Task.FromResult(SupportThreadDetailResult);
-  }
 }

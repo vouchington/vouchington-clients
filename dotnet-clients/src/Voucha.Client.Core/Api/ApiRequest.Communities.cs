@@ -15,8 +15,8 @@ public sealed record CreateCommunityRequest(
     [property: JsonPropertyName("list_type")] string? ListType = null,
     [property: JsonPropertyName("member_roster_visibility")] string? MemberRosterVisibility = null,
     [property: JsonPropertyName("post_approval_required_at")] bool? PostApprovalRequiredAt = null,
-    [property: JsonPropertyName("allow_review_posts")] bool? AllowReviewPosts = null,
-    [property: JsonPropertyName("allow_data_point_posts")] bool? AllowDataPointPosts = null,
+    [property: JsonPropertyName("should_allow_review_posts")] bool? AllowReviewPosts = null,
+    [property: JsonPropertyName("should_allow_data_point_posts")] bool? AllowDataPointPosts = null,
     [property: JsonPropertyName("member_invites_allowed_at")] bool? MemberInvitesAllowedAt = null,
     [property: JsonPropertyName("cf_turnstile_response")] string? TurnstileToken = null);
 
@@ -46,14 +46,14 @@ public sealed record CommunityListItemRequest(
     [property: JsonPropertyName("url_id")] string? UrlId = null);
 
 public sealed record UpdateCommunityPostTypeSettingsRequest(
-    [property: JsonPropertyName("allow_review_posts")] bool? AllowReviewPosts = null,
-    [property: JsonPropertyName("allow_data_point_posts")] bool? AllowDataPointPosts = null);
+    [property: JsonPropertyName("should_allow_review_posts")] bool? AllowReviewPosts = null,
+    [property: JsonPropertyName("should_allow_data_point_posts")] bool? AllowDataPointPosts = null);
 
 public sealed record OpenCommunityModmailRequest(
     [property: JsonPropertyName("subject_user_id")] string? SubjectUserId = null);
 
 public sealed record UpdateCommunityModmailThreadRequest(
-    [property: JsonPropertyName("assigned_mod_id")] string? AssignedModId = null,
+    [property: JsonPropertyName("assigned_moderator_user_id")] string? AssignedModId = null,
     [property: JsonPropertyName("resolved")] bool? Resolved = null);
 
 public sealed record CreateCommunitySavedReplyRequest(

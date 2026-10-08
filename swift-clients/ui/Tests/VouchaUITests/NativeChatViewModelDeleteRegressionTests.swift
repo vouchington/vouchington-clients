@@ -52,7 +52,7 @@ private extension NativeChatViewModelDeleteRegressionTests {
         createdAt: String,
         updatedAt: String
     ) throws -> ChatConversation {
-        try NativeChatSupportSurfaceTests.decode(
+        try NativeChatTestFixtures.decode(
             ChatConversation.self,
             """
             {

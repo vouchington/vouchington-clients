@@ -4,6 +4,26 @@ import XCTest
 
 @MainActor
 final class NativeDetailReportingTests: NativeRouteSurfaceViewModelTestCase {
+    func testMissingUsernamesDoNotMakeAnotherProfileTheViewer() async throws {
+        let profile = Data(#"{"user":{"id":"user-2","username":null},"profile_links":[]}"#.utf8)
+        let identityCases: [(Data, Int)] = [
+            (Data("{}".utf8), 500),
+            (PrivateUserTestFixture.identityEnvelope(
+                id: "viewer", overrides: ["username": NSNull()]
+            ), 200)
+        ]
+        for (identity, status) in identityCases {
+            CannedFeedURLProtocol.handlers = [
+                "/api/v1/users/user-2": (profile, 200),
+                "/api/v1/my/identity": (identity, status)
+            ]
+            let viewModel = try await load(path: "/user/user-2", destination: .userProfile)
+
+            XCTAssertFalse(viewModel.detailRelationIsSelfProfile)
+            XCTAssertEqual(viewModel.detailReportTarget, .user(id: "user-2"))
+        }
+    }
+
     func testDomainAndUrlRoutesUseCanonicalHostnameReportTarget() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/hostnames/example.com"] = (Self.domainData(), 200)
         let domain = try await load(path: "/domain/example.com", destination: .domainDetail)
@@ -218,14 +238,14 @@ final class NativeDetailReportingTests: NativeRouteSurfaceViewModelTestCase {
 
     private static func domainData(blocked: Bool = false) -> Data {
         Data("""
-        {"hostname":{"id":"hostname-1","hostname":"example.com","blocked":\(blocked)},
+        {"hostname":{"id":"hostname-1","hostname":"example.com","is_blocked":\(blocked)},
         "hostname_election":null,"election_vote":null,"rss_feeds":[],"top_urls":[],"topic":null}
         """.utf8)
     }
 
     private static func urlData(includeHostname: Bool = true) -> Data {
         let hostname = includeHostname
-            ? #", "hostname":{"id":"hostname-1","hostname":"example.com","blocked":false}"#
+            ? #", "hostname":{"id":"hostname-1","hostname":"example.com","is_blocked":false}"#
             : ""
         return Data("""
         {"can_trigger_crawl":false,"can_view_crawl_history":true,"can_view_latest_crawl":false,

@@ -7,6 +7,10 @@ public struct CreateRewardsProgramStatusBody: Encodable, Sendable {
     public init(rewardsProgramStatusId: String) {
         self.rewardsProgramStatusId = rewardsProgramStatusId
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case rewardsProgramStatusId = "rewardsProgramStatusTopicId"
+    }
 }
 
 public struct UpdateRewardsProgramStatusBody: Encodable, Sendable {
@@ -16,6 +20,11 @@ public struct UpdateRewardsProgramStatusBody: Encodable, Sendable {
     public init(since: NullableValue<LocalDate>? = nil, until: NullableValue<LocalDate>? = nil) {
         self.since = since
         self.until = until
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case since = "startedOn"
+        case until = "expiresOn"
     }
 }
 

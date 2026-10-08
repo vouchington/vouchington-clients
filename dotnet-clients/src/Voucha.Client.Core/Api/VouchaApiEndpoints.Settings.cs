@@ -48,6 +48,9 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest CreateApiKey(CreateApiKeyBody body) =>
       new(HttpMethod.Post, "/api/v1/my/api-keys") { Body = body };
 
+  public static ApiRequest RotateApiKey(string id) =>
+      new(HttpMethod.Post, $"/api/v1/my/api-keys/{Path(id)}/rotate");
+
   public static ApiRequest DeleteApiKey(string id) =>
       new(HttpMethod.Delete, $"/api/v1/my/api-keys/{Path(id)}");
 

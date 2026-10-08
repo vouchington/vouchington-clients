@@ -35,7 +35,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
                     "posted-primary": "story-2",
                     "single-primary": "story-3"
                 ],
-                storyMemberIds: [
+                storyRelatedIds: [
                     "story-1": ["story-primary", "story-peer"],
                     "story-2": ["posted-primary", "posted-peer"],
                     "story-3": ["single-primary"]
@@ -57,7 +57,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             makeFeedPage(
                 ids: ["story-primary"],
                 storyIds: ["story-primary": "story-1"],
-                storyMemberIds: ["story-1": ["story-primary", "story-peer"]]
+                storyRelatedIds: ["story-1": ["story-primary", "story-peer"]]
             ),
             200
         )
@@ -82,7 +82,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             makeFeedPage(
                 ids: ["story-primary"],
                 storyIds: ["story-primary": "story-1"],
-                storyMemberIds: ["story-1": ["story-primary", "story-peer"]]
+                storyRelatedIds: ["story-1": ["story-primary", "story-peer"]]
             ),
             200
         )
@@ -114,7 +114,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             makeFeedPage(
                 ids: ["story-primary"],
                 storyIds: ["story-primary": "story-1"],
-                storyMemberIds: ["story-1": ["story-primary", "story-peer"]]
+                storyRelatedIds: ["story-1": ["story-primary", "story-peer"]]
             ),
             200
         )
@@ -154,7 +154,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             makeFeedPage(
                 ids: ["story-primary"],
                 storyIds: ["story-primary": "story-1"],
-                storyMemberIds: ["story-1": ["story-primary", "story-peer"]]
+                storyRelatedIds: ["story-1": ["story-primary", "story-peer"]]
             ),
             200
         )
@@ -167,18 +167,19 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
     private func makeFeedPage(
         ids: [String],
         storyIds: [String: String],
-        storyMemberIds: [String: [String]],
+        storyRelatedIds: [String: [String]],
         storyPostIds: [String: String] = [:]
     ) -> Data {
-        let items = ids.map { id in
+        let items = Array(Set(ids + storyRelatedIds.values.flatMap { $0 })).sorted().map { id in
             "\"\(id)\":{\"id\":\"\(id)\",\"rss_feed_id\":\"feed1\",\"title\":\"Item \(id)\",\"description\":null,\"content\":null,\"link\":null,\"published_at\":null,\"creator\":null,\"categories\":[],\"media_content\":null}"
         }.joined(separator: ",")
         let results = ids.map { id in
             "{\"id\":\"\(id)\",\"entity_id\":\"\(id)\",\"story_id\":\"\(storyIds[id] ?? "")\"}"
         }.joined(separator: ",")
-        let storyMembers = storyMemberIds.map { storyId, memberIds in
-            let members = memberIds.map { "\"\($0)\"" }.joined(separator: ",")
-            return "\"\(storyId)\":[\(members)]"
+        let storyMembers = storyRelatedIds.map { storyId, memberIds in
+            let primary = ids.first { storyIds[$0] == storyId }
+            let members = memberIds.filter { $0 != primary }.map { "\"\($0)\"" }.joined(separator: ",")
+            return "\"\(storyId)\":{\"item_ids\":[\(members)],\"page_info\":{\"has_next_page\":false,\"end_cursor\":null}}"
         }.joined(separator: ",")
         let storyPosts = storyPostIds.map { storyId, postId in
             "\"\(storyId)\":\"\(postId)\""
@@ -188,7 +189,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
           "results":[\(results)],
           "page_info":{"has_next_page":false,"end_cursor":null},
           "rss_feed_items":{\(items)},
-          "story_member_ids":{\(storyMembers)},
+          "story_member_pages":{\(storyMembers)},
           "story_post_ids":{\(storyPosts)}
         }
         """.utf8)
@@ -233,8 +234,8 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         "title":"Created",
         "markdown":null,
         "html":null,
-        "parent_id":null,
-        "root_id":null,
+        "parent_post_id":null,
+        "root_post_id":null,
         "created_by_id":"user-1",
         "created_at":"2026-01-01T00:00:00Z",
         "broadcast":null,

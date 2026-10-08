@@ -40,7 +40,10 @@ public struct RewardsProgramStatus: Codable, Equatable, Identifiable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, rewardsProgramStatusId, since, until, rewardsProgramStatus
+        case id, rewardsProgramStatus
+        case rewardsProgramStatusId = "rewardsProgramStatusTopicId"
+        case since = "startedOn"
+        case until = "expiresOn"
     }
 }
 

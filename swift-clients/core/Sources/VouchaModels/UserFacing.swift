@@ -39,6 +39,7 @@ public struct ReferralClickLogUser: Codable, Identifiable, Sendable {
     public let roles: [String]?
     public let profileImageId: String?
     public let markdown: String?
+    @RequiredNullable public var accountType: AccountType?
 }
 
 public struct ReferralClickLogResponse: Codable, Sendable {
@@ -97,15 +98,17 @@ public struct PrioritizedReferralLink: Codable, Identifiable, Sendable {
 
 public struct ReferralLinkUser: Decodable, Encodable, Identifiable, Sendable {
     public let id: String
-    public let username: String
+    public let username: String?
     public let displayName: String?
     public let profileImageId: String?
+    @RequiredNullable public var accountType: AccountType?
 
     private enum CodingKeys: String, CodingKey {
         case id
         case username
         case displayName
         case profileImageId
+        case accountType
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -114,6 +117,7 @@ public struct ReferralLinkUser: Decodable, Encodable, Identifiable, Sendable {
         try container.encode(username, forKey: .username)
         try container.encodeIfPresent(displayName, forKey: .displayName)
         try container.encode(profileImageId, forKey: .profileImageId)
+        try container.encode(accountType, forKey: .accountType)
     }
 }
 

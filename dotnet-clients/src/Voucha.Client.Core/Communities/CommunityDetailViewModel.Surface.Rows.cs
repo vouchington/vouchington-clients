@@ -52,7 +52,7 @@ public sealed partial class CommunityDetailViewModel
                 UiText.Localized(agent.Enabled
                     ? UiMessageKey.NativeDotnetCsharpCommunitiesEnabled
                     : UiMessageKey.NativeDotnetCsharpCommunitiesDisabled),
-                Verbatim(agent.OnFlagAction)))
+                null))
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.AgentPrompts:
@@ -61,10 +61,10 @@ public sealed partial class CommunityDetailViewModel
             .Select(prompt => Summary(
                 prompt.Id,
                 UiText.Verbatim(prompt.AgentId),
-                UiText.Localized(prompt.SlotAllocated
+                UiText.Localized(prompt.IsSlotAllocated
                     ? UiMessageKey.NativeDotnetCsharpCommunitiesAllocated
                     : UiMessageKey.NativeDotnetCsharpCommunitiesUnallocated),
-                Verbatim(prompt.OnFlagAction)))
+                Verbatim(prompt.ModelName)))
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.Moderation:

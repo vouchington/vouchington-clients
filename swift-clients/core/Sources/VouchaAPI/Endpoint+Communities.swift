@@ -7,6 +7,11 @@ public struct CommunityApplicationQuestionInput: Encodable, Sendable {
     public let options: [String]?
     public let required: Bool?
 
+    private enum CodingKeys: String, CodingKey {
+        case question, fieldType, options
+        case required = "is_required"
+    }
+
     public init(
         question: String,
         fieldType: CommunityApplicationQuestionFieldType,
@@ -81,8 +86,8 @@ public extension Endpoint {
         memberRosterVisibility: CommunityMemberRosterVisibility? = nil,
         memberInvitesAllowedAt: Bool? = nil,
         postApprovalRequiredAt: Bool? = nil,
-        allowReviewPosts: Bool? = nil,
-        allowDataPointPosts: Bool? = nil,
+        shouldAllowReviewPosts: Bool? = nil,
+        shouldAllowDataPointPosts: Bool? = nil,
         profileImageId: String? = nil,
         bannerImageId: String? = nil,
         defaultLanguage: String? = nil,
@@ -100,8 +105,8 @@ public extension Endpoint {
                 memberRosterVisibility: memberRosterVisibility,
                 memberInvitesAllowedAt: memberInvitesAllowedAt,
                 postApprovalRequiredAt: postApprovalRequiredAt,
-                allowReviewPosts: allowReviewPosts,
-                allowDataPointPosts: allowDataPointPosts,
+                shouldAllowReviewPosts: shouldAllowReviewPosts,
+                shouldAllowDataPointPosts: shouldAllowDataPointPosts,
                 profileImageId: profileImageId,
                 bannerImageId: bannerImageId,
                 defaultLanguage: defaultLanguage,

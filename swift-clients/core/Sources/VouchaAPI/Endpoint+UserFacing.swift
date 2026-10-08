@@ -215,8 +215,11 @@ public extension Endpoint {
         Endpoint(.DELETE, path: "/api/v1/bookmarks/\(entityType)/\(pathSegment(entityId))/\(predicate)")
     }
 
-    static func myConversations(after: String? = nil, limit: Int = 50) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
+    static func myConversations(after: String? = nil, limit: Int? = nil) -> Endpoint {
+        var items: [URLQueryItem] = []
+        if let limit {
+            items.append(.init(name: "limit", value: "\(limit)"))
+        }
         if let after {
             items.append(.init(name: "after", value: after))
         }

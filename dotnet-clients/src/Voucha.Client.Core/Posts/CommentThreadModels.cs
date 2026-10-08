@@ -42,6 +42,10 @@ public sealed record CommentThreadRow(
       ?? (Localization ?? UiLocalization.English).Localize(
           UiMessageKey.NativeDotnetPostsAnonymous);
 
+  public string? AuthorAccountTypeLabel => Post.IsAnonymous == true || Post.DeletedAt is not null
+      ? null
+      : AccountTypeLabels.Resolve(Post.CreatedBy?.AccountType, Localization ?? UiLocalization.English);
+
   public string Metadata => Post.LockedAt is null
       ? Author
       : (Localization ?? UiLocalization.English).Format(

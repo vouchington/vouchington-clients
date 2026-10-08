@@ -406,29 +406,6 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
             path: "/api/v1/my/messages/conv-2/participants"
         )
 
-        let supportThreads = Endpoint.mySupportThreads(after: "cursor-9", limit: 13)
-        XCTAssertEqual(supportThreads.path, "/api/v1/my/support-threads")
-        XCTAssertEqual(supportThreads.queryItems, [
-            URLQueryItem(name: "limit", value: "13"),
-            URLQueryItem(name: "after", value: "cursor-9")
-        ])
-        let supportThread = Endpoint.mySupportThread(threadId: "thread-1", after: "cursor-3", limit: 9)
-        XCTAssertEqual(supportThread.path, "/api/v1/my/support-threads/thread-1")
-        XCTAssertEqual(supportThread.queryItems, [
-            URLQueryItem(name: "limit", value: "9"),
-            URLQueryItem(name: "after", value: "cursor-3")
-        ])
-        assertEndpoint(
-            Endpoint.createSupportThread(subject: "Need help", message: "Hello", conversationId: "conv-1"),
-            method: .POST,
-            path: "/api/v1/my/support-threads",
-            body: [
-                "subject": "Need help",
-                "message": "Hello",
-                "conversation_id": "conv-1"
-            ]
-        )
-
         let appeals = Endpoint.appeals(status: .pending, limit: 5, after: "cursor-7", mine: true)
         XCTAssertEqual(appeals.path, "/api/v1/appeals")
         XCTAssertEqual(appeals.queryItems, [

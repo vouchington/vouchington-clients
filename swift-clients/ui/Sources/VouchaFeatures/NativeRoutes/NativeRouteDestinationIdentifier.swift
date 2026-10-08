@@ -34,11 +34,7 @@ public enum NativeRouteDestinationIdentifier: String, CaseIterable, Identifiable
     case usersBrowse = "users-browse"
     case userProfile = "user-profile"
     case userAdmin = "user-admin"
-    case crmContacts = "crm-contacts"
     case membershipGrants = "membership-grants"
-    case supportStaffThreads = "support-staff-threads"
-    case supportStaffContacts = "support-staff-contacts"
-    case engineeringAgents = "engineering-agents"
     case engineeringQueues = "engineering-queues"
     case engineeringPostgresql = "engineering-postgresql"
     case engineeringValkey = "engineering-valkey"
@@ -51,7 +47,6 @@ public enum NativeRouteDestinationIdentifier: String, CaseIterable, Identifiable
 
     case messages
     case chat
-    case support
     case notifications
 
     case accountSettings = "account-settings"

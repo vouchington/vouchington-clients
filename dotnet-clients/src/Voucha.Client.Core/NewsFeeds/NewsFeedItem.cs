@@ -30,11 +30,11 @@ public sealed record NewsFeedItem(
     string? VideoId = null,
     int? DurationSeconds = null,
     string? StoryId = null,
-    int StoryPeerCount = 0,
     string? StoryPostId = null,
     bool IsStartingStoryDiscussion = false,
     UrlEmbedPreview? EmbedPreview = null,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    StoryRelatedArticles? StoryArticles = null)
 {
   public bool IsSource => Kind == NewsFeedItemKind.Source;
 
@@ -72,7 +72,9 @@ public sealed record NewsFeedItem(
   public bool HasMediaPlayback => IsMedia && (HasDirectPlayback || HasExternalAudioFallback);
 
   public bool CanStartStoryDiscussion =>
-      IsArticle && StoryId is not null && StoryPeerCount > 0 && StoryPostId is null && !IsStartingStoryDiscussion;
+      IsArticle && StoryId is not null && StoryArticles is { } related && (related.HasItems || related.HasMore) && StoryPostId is null && !IsStartingStoryDiscussion;
+
+  public bool HasRelatedArticles => StoryArticles?.HasItems == true;
 
   public bool CanOpenStoryDiscussion => IsArticle && !string.IsNullOrWhiteSpace(StoryPostId);
 

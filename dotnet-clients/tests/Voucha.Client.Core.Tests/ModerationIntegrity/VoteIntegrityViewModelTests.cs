@@ -189,7 +189,7 @@ public sealed class VoteIntegrityViewModelTests
     {
       FetchVotes = (_, _, _) => Task.FromResult(
           ModerationIntegrityTestService.VotePage([pending])),
-      PenalizeVotes = (_, _) => Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(3)),
+      PenalizeVotes = (_, _) => Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(pending, 3)),
       FetchVotePenalties = (_, _, sourceFlagId, _) =>
           Task.FromResult(VotePenaltyPage(sourceFlagId!)),
     };
@@ -278,7 +278,7 @@ public sealed class VoteIntegrityViewModelTests
       PenalizeVotes = (_, _) => ++attempts == 1
           ? Task.FromException<VoteIntegrityPenaltyApplicationResponse>(
               new HttpRequestException("uncertain"))
-          : Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(2)),
+          : Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(flag, 2)),
       FetchVotePenalties = (_, _, sourceFlagId, _) =>
       {
         snapshots++;

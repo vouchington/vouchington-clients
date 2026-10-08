@@ -165,14 +165,6 @@ final class PresentationLocalizationMappingTests: XCTestCase {
             ]
         )
         XCTAssertEqual(
-            [SupportThreadStatus.open, .assigned, .resolved].map(supportThreadStatusText),
-            [
-                .message(.nativeSwiftPresentationValuesOpen),
-                .message(.nativeSwiftPresentationValuesAssigned),
-                .message(.nativeSwiftPresentationValuesResolved)
-            ]
-        )
-        XCTAssertEqual(
             ["free", "plus", "pro", "enterprise"].map(membershipPlanText),
             [
                 .message(.nativeSwiftMembershipFree),

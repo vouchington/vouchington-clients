@@ -1,7 +1,7 @@
 import Foundation
 
 public struct CommunityModeratorStatEntry: Codable, Sendable {
-    public let actorId: String
+    public let actorUserId: String
     public let total: Int
     public let counts: [String: Int]?
 }
@@ -23,7 +23,7 @@ public struct CommunityModlogEntry: Codable, Identifiable, Sendable {
     public let entityType: String?
     public let id: String
     public let communityId: String?
-    public let actorId: String?
+    public let actorUserId: String?
     public let actionType: String
     public let postId: String?
     public let targetUserId: String?
@@ -37,7 +37,7 @@ public struct CommunityModlogEntry: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, communityId, actorId, actionType, postId, targetUserId, reportedUserId, reportId
+        case id, communityId, actorUserId, actionType, postId, targetUserId, reportedUserId, reportId
         case reviewDisputeId, communityApplicationId, reason, metadata, createdAt
     }
 }
@@ -48,7 +48,7 @@ public struct CommunityModmailThread: Codable, Identifiable, Sendable {
     public let title: String
     public let communityId: String
     @RequiredNullable public var subjectUserId: String?
-    @RequiredNullable public var assignedModId: String?
+    @RequiredNullable public var assignedModeratorUserId: String?
     @RequiredNullable public var assignedAt: Date?
     @RequiredNullable public var resolvedAt: Date?
     @RequiredNullable public var resolvedById: String?

@@ -34,36 +34,10 @@ extension NativeRouteDestinationSurface {
             case .engineeringQueues, .engineeringPostgresql, .engineeringValkey, .engineeringAiCosts,
                  .engineeringDynamicConfig, .topicImportExport, .sourceImportExport:
                 EmptyView()
-            case .engineeringAgents:
-                NativeEngineeringAgentsSurface(
-                    viewModel: viewModel,
-                    isSignedIn: isSignedIn,
-                    isAdministrator: isAdministrator,
-                    onNavigate: onNavigateToTargetPath,
-                    showSignIn: showSignIn
-                )
             case .moderationReviewQueue:
                 NativeReviewQueueSurface(viewModel: reviewQueueViewModel)
-            case .crmContacts:
-                crmDestinationContent
             case .membershipGrants, .userAdmin:
                 EmptyView()
-            case .supportStaffThreads:
-                StaffSupportSurface(
-                    client: viewModel.client,
-                    administratorId: currentUserId,
-                    mode: .threads,
-                    routeMatch: routeMatch,
-                    onNavigateToTargetPath: onNavigateToTargetPath
-                )
-            case .supportStaffContacts:
-                StaffSupportSurface(
-                    client: viewModel.client,
-                    administratorId: currentUserId,
-                    mode: .contacts,
-                    routeMatch: routeMatch,
-                    onNavigateToTargetPath: onNavigateToTargetPath
-                )
             case .moderationReports:
                 ModerationReportsSurface(
                     client: moderationReportsClient,
@@ -86,7 +60,7 @@ extension NativeRouteDestinationSurface {
                 communitySurface
             case .messages:
                 messagesDestinationContent
-            case .chat, .support:
+            case .chat:
                 EmptyView()
             case .topicRecommendations:
                 topicRecommendationContent

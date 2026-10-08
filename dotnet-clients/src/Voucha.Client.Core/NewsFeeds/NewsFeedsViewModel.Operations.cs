@@ -89,6 +89,12 @@ public sealed partial class NewsFeedsViewModel
     var mutationScope = SelectedScope;
     var mutationLoadRequestId = loadRequestId;
     var isRead = !item.IsRead;
+    if (FindStoryPeer(item.Id) is { } related)
+    {
+      await MutateStoryPeerAsync(related, item, peer => peer with { IsRead = isRead }, false,
+          () => newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken)).ConfigureAwait(true);
+      return;
+    }
     Items = ToggleRead(previousItems, item.Id, isRead);
     var optimisticItems = Items;
     ErrorMessage = null;
@@ -162,4 +168,5 @@ public sealed partial class NewsFeedsViewModel
     Items = previousItems;
     ErrorMessage = rollbackErrorMessage;
   }
+
 }

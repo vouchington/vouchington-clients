@@ -31,6 +31,12 @@ public struct UpdateTopicBody: Encodable, Sendable {
     public let logoImageId: NullableStringPatchField?
     public let heroImageId: NullableStringPatchField?
 
+    private enum CodingKeys: String, CodingKey {
+        case name, slug, markdown, topicType, hostname, logoImageId, heroImageId
+        case noindex = "is_noindexed"
+        case allowReviews = "should_allow_reviews"
+    }
+
     public init(
         name: String? = nil,
         slug: String? = nil,

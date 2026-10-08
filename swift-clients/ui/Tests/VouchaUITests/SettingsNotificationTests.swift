@@ -8,9 +8,9 @@ import XCTest
 final class SettingsNotificationTests: NativeRouteSurfaceViewModelTestCase {
     func testEachFieldUsesOneFieldEmailPreferencesPatch() async throws {
         let cases: [(String, (NotificationSettingsViewModel) async -> Void)] = [
-            (#""engagement_emails_enabled":false"#, { await $0.setEngagement(false) }),
+            (#""is_engagement_emails_enabled":false"#, { await $0.setEngagement(false) }),
             (#""news_digest_frequency":"daily""#, { await $0.setNewsDigest("daily") }),
-            (#""moderation_emails_enabled":false"#, { await $0.setModeration(false) }),
+            (#""is_moderation_emails_enabled":false"#, { await $0.setModeration(false) }),
             (#""community_digest_frequency":"none""#, { await $0.setCommunityDigest("none") }),
             (#""moderation_email_cadence":"selected_days""#, { await $0.setCadence("selected_days") }),
             (#""moderation_email_days_of_week":[1,2,3,4]"#, { await $0.setDay(4, selected: true) }),
@@ -403,9 +403,9 @@ final class SettingsNotificationTests: NativeRouteSurfaceViewModelTestCase {
     ) -> Data {
         let timezoneJSON = timezone.map { "\"\($0)\"" } ?? "null"
         return Data("""
-        {"email_preferences":{"engagement_emails_enabled":\(engagement),"news_digest_frequency":"\(
+        {"email_preferences":{"is_engagement_emails_enabled":\(engagement),"news_digest_frequency":"\(
             news
-        )","moderation_emails_enabled":\(
+        )","is_moderation_emails_enabled":\(
             moderation
         ),"community_digest_frequency":"weekly","moderation_email_cadence":"\(
             cadence

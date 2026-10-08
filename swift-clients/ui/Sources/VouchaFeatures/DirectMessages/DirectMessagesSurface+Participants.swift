@@ -69,7 +69,12 @@ extension DirectMessagesSurface {
             ForEach(viewModel.participantUserResults, id: \.id) { user in
                 Button(UiMessages.string(
                     .nativeSwiftDirectMessagesAddUser,
-                    parameters: ["username": UiMessages.string(.verbatim(user.username), locale: nativeUiLocale)],
+                    parameters: [
+                        "username": UiMessages.string(
+                            .verbatim(user.username ?? user.id),
+                            locale: nativeUiLocale
+                        )
+                    ],
                     locale: nativeUiLocale
                 )) {
                     Task { await viewModel.addParticipant(userId: user.id) }
@@ -96,4 +101,8 @@ extension DirectMessagesSurface {
 
 func directMessageParticipantRoleLabel(_ role: String, locale: Locale) -> String {
     UiMessages.string(communityMemberRoleText(role), locale: locale)
+}
+
+func directMessageHandle(_ user: PublicUser) -> String {
+    user.username.map { "@\($0)" } ?? user.id
 }

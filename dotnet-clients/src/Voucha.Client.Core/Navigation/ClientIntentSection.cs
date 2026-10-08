@@ -14,7 +14,6 @@ public enum ClientIntentSection
   Friends,
   Settings,
   Moderation,
-  Crm,
   Engineering,
   Growth,
 }

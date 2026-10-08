@@ -24,8 +24,14 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
 
         let images = inspection.findAll(ViewType.View<AsyncImageView>.self)
         XCTAssertEqual(images.count, 2)
-        XCTAssertEqual(try images[0].actualView().resolvedURLString, "https://images.voucha.ai/images/image-1")
-        XCTAssertEqual(try images[1].actualView().resolvedURLString, "https://images.voucha.ai/images/image-2")
+        XCTAssertEqual(
+            try images[0].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-1/0/image-1?w=960"
+        )
+        XCTAssertEqual(
+            try images[1].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-2/0/image-2?w=960"
+        )
         XCTAssertNoThrow(try inspection.find(text: "First image"))
         XCTAssertNoThrow(try inspection.find(text: "Second image"))
     }
@@ -43,6 +49,25 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertEqual(inspection.findAll(ViewType.View<AsyncImageView>.self).count, 2)
         XCTAssertTrue(try inspection.find(button: "Reveal").isDisabled())
         XCTAssertNoThrow(try inspection.find(text: "Exposure status needs an update."))
+    }
+
+    func testSeparatePlacementsOfSameImageKeepTheirOwnMediaRows() throws {
+        let post = try decodedPost(id: "shared-image", requiresReveal: false, repeatedImageId: true)
+        let viewModel = try makeViewModel(posts: [post])
+        let inspection = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
+
+        let images = inspection.findAll(ViewType.View<AsyncImageView>.self)
+        XCTAssertEqual(images.count, 2)
+        XCTAssertEqual(
+            try images[0].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-1/0/image-1?w=960"
+        )
+        XCTAssertEqual(
+            try images[1].actualView().resolvedURLString,
+            "https://images.voucha.ai/images/placements/placement-2/0/image-1?w=960"
+        )
+        XCTAssertNoThrow(try inspection.find(text: "First image"))
+        XCTAssertNoThrow(try inspection.find(text: "Second image"))
     }
 
     func testCooldownAndStaleStatesOfferBreakAndRefetchWithoutDisablingActions() throws {
@@ -78,7 +103,10 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         return viewModel
     }
 
-    private func decodedPost(id: String, requiresReveal: Bool) throws -> AdminReviewQueuePost {
+    private func decodedPost(
+        id: String, requiresReveal: Bool, repeatedImageId: Bool = false
+    ) throws -> AdminReviewQueuePost {
+        let secondImageId = repeatedImageId ? "image-1" : "image-2"
         let data = Data(
             """
             {
@@ -86,14 +114,16 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
                   id
               )","markdown_preview":"Preview",
               "post_type":"discussion","created_by_id":"author",
-              "created_at":"2026-06-01T11:30:00.000Z","root_id":null,"root_post_type":null,
+              "created_at":"2026-06-01T11:30:00.000Z","root_post_id":null,"root_post_type":null,
               "root_slug":null,"clearance_status":"rejected","clearance_updated_at":null,
               "moderation_summary":{"disposition":"review","evidence_summary":{"flagged_category_count":1,"signal_count":2},"reason_codes":["provider_flagged"]},
               "media_reveal":{
                 "requires_reveal":\(requiresReveal),
                 "images":[
-                  {"image_id":"image-1","order_index":0,"caption":"First image"},
-                  {"image_id":"image-2","order_index":1,"caption":"Second image"}
+                  {"image_id":"image-1","placement_id":"placement-1","placement_revision":0,"order_index":0,"caption":"First image"},
+                  {"image_id":"\(
+                      secondImageId
+                  )","placement_id":"placement-2","placement_revision":0,"order_index":1,"caption":"Second image"}
                 ]
               }
             }

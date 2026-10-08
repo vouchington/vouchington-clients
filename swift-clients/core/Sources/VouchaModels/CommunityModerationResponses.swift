@@ -17,10 +17,19 @@ public struct CommunityModeratorStatsResponse: Codable, Sendable {
 public struct ModeratorVacationResponse: Codable, Sendable {
     public let vacation: CommunityMemberVacation?
     public let suppressCommunityDigestsWhileOnVacation: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case vacation
+        case suppressCommunityDigestsWhileOnVacation = "shouldSuppressCommunityDigestsWhileOnVacation"
+    }
 }
 
 public struct VacationDigestPreferenceResponse: Codable, Sendable {
     public let suppressCommunityDigestsWhileOnVacation: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case suppressCommunityDigestsWhileOnVacation = "shouldSuppressCommunityDigestsWhileOnVacation"
+    }
 }
 
 public struct CommunityModlogResultsResult: Codable, Identifiable, Sendable {

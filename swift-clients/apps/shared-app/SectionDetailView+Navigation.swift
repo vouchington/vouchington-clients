@@ -21,7 +21,7 @@ extension SectionDetailView {
                             userRoles: factory.sessionManager.currentUserRoles
                         ),
                         isSiteModerator: factory.sessionManager.currentUserRoles.contains("moderator"),
-                        isCustomerSupport: factory.sessionManager.currentUserRoles.contains("customer_support"),
+                        isCustomerSupport: false,
                         featureFlags: factory.featureFlagState,
                         nativeOAuthAuthorizationCoordinator: factory.nativeOAuthAuthorizationCoordinator,
                         a11yActivator: notificationA11yActivator,
@@ -63,14 +63,7 @@ extension SectionDetailView {
     }
 
     func navigateWithinNativeSection(_ targetPath: String) {
-        guard let target = NativeRouteCatalog.matchingRoute(for: targetPath),
-              target.entry.destinationIdentifier == .engineeringAgents,
-              target.entry.nativeSection == section
-        else {
-            onNavigateToTargetPath(targetPath)
-            return
-        }
-        nativeRouteHistory.append(targetPath)
+        onNavigateToTargetPath(targetPath)
     }
 
     @ViewBuilder
@@ -90,7 +83,7 @@ extension SectionDetailView {
                     userRoles: factory.sessionManager.currentUserRoles
                 ),
                 isSiteModerator: factory.sessionManager.currentUserRoles.contains("moderator"),
-                isCustomerSupport: factory.sessionManager.currentUserRoles.contains("customer_support"),
+                isCustomerSupport: false,
                 featureFlags: factory.featureFlagState,
                 a11yActivator: notificationA11yActivator,
                 notificationActivationToken: nativeRouteDispatchGeneration,

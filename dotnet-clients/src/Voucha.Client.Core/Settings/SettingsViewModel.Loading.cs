@@ -6,18 +6,31 @@ namespace Voucha.Client.Core.Settings;
 
 public sealed partial class SettingsViewModel
 {
+  private int settingsLoadGeneration;
+  private bool settingsContentLoadCompleted;
+  private bool settingsUserLoadCompleted;
+
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Settings mutations should surface failures in view state.")]
   public async Task LoadAsync(CancellationToken cancellationToken = default)
   {
+    var generation = Interlocked.Increment(ref settingsLoadGeneration);
     InvalidateSettingsPagination();
+    oauthGrantPages.InvalidateRequestsPreservingPage();
     IsLoading = true;
+    settingsContentLoadCompleted = false;
+    settingsUserLoadCompleted = false;
     ErrorMessage = null;
+    ResetCredentialAuthorization();
+    PrivacySelections = [];
+    PrivacyToggles = [];
 
     try
     {
       await LoadLocalLLMSettingsAsync(cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentSettingsLoad(generation)) return;
 
       var identity = await settingsService.FetchMyIdentityAsync(cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentSettingsLoad(generation)) return;
       var userIdOrSlug = identity.Identity.Id;
       currentUserIdOrSlug = userIdOrSlug;
       Username = identity.Identity.Username ?? string.Empty;
@@ -27,65 +40,49 @@ public sealed partial class SettingsViewModel
           ? $"{Username} · {email}"
           : Username;
 
-      var userTask = settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken);
-      var profileTask = settingsService.FetchMyProfileAsync(cancellationToken);
-      var profileLinksTask = settingsService.FetchProfileLinksAsync(cancellationToken);
-      var apiKeysTask = settingsService.FetchApiKeysAsync(cancellationToken);
-      var sessionsTask = settingsService.FetchAuthSessionsAsync(cancellationToken);
-      var membershipPlansTask = settingsService.FetchMembershipPlansAsync(cancellationToken);
-      var membershipTask = settingsService.FetchMembershipAsync(cancellationToken);
-      var pushSubscriptionsTask = settingsService.FetchPushSubscriptionsAsync(cancellationToken);
-      var dataRequestTask = settingsService.FetchUserDataRequestAsync(userIdOrSlug, cancellationToken);
-
-      await Task.WhenAll(
-          userTask,
-          profileTask,
-          profileLinksTask,
-          apiKeysTask,
-          sessionsTask,
-          membershipPlansTask,
-          membershipTask,
-          pushSubscriptionsTask,
-          dataRequestTask).ConfigureAwait(true);
-
-      var user = (await userTask.ConfigureAwait(true)).User;
-      loadedUser = user;
-      PrivacySelections = BuildSelections(user);
-      PrivacyToggles = BuildToggles(user);
-
-      var profile = (await profileTask.ConfigureAwait(true)).Profile;
-      ProfileMarkdown = profile.Markdown ?? string.Empty;
-      ProfileSummary = ProfileMarkdown.Length == 0
-          ? localization.Localize(UiMessageKey.NativeDotnetProfileNoProfileBio)
-          : localization.Format(
-              UiMessageKey.NativeDotnetSettingsCharacterCount,
-              ("count", ProfileMarkdown.Length));
-
-      ProfileLinks = (await profileLinksTask.ConfigureAwait(true)).Results;
-      var apiKeysResponse = await apiKeysTask.ConfigureAwait(true);
-      var sessionsResponse = await sessionsTask.ConfigureAwait(true);
-      ReplaceApiKeyPage(apiKeysResponse);
-      ReplaceSessionPage(sessionsResponse);
-      ApiKeySecret = null;
-
-      var plansResponse = await membershipPlansTask.ConfigureAwait(true);
-      var plans = plansResponse.Plans;
-      Membership = (await membershipTask.ConfigureAwait(true))?.Membership;
-      UpdateMembershipSummary();
-      MembershipPlanOptions = BuildMembershipPlanOptions(plans, Membership, plansResponse.BenefitCatalog);
-
-      ReplacePushSubscriptionPage(await pushSubscriptionsTask.ConfigureAwait(true));
-
-      DataRequest = await dataRequestTask.ConfigureAwait(true);
+      var contentTask = LoadSettingsContentAsync(userIdOrSlug, generation, cancellationToken);
+      var userTask = LoadSettingsUserAsync(userIdOrSlug, generation, cancellationToken);
+      await Task.WhenAll(contentTask, userTask).ConfigureAwait(true);
     }
     catch (Exception ex)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentSettingsLoad(generation)) ErrorMessage = ex.Message;
     }
     finally
     {
-      IsLoading = false;
+      if (IsCurrentSettingsLoad(generation)) IsLoading = false;
     }
+  }
+
+  private bool IsCurrentSettingsLoad(int generation) => generation == Volatile.Read(ref settingsLoadGeneration);
+
+  private async Task LoadSettingsUserAsync(string userIdOrSlug, int generation, CancellationToken cancellationToken)
+  {
+    User user;
+    try
+    {
+      user = (await settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken).ConfigureAwait(true)).User;
+      if (!IsCurrentSettingsLoad(generation)) return;
+      loadedUser = user;
+      PrivacySelections = BuildSelections(user);
+      PrivacyToggles = BuildToggles(user);
+      OnPropertyChanged(nameof(CanSelectAdminApiKeyScopes));
+    }
+    finally
+    {
+      if (IsCurrentSettingsLoad(generation))
+      {
+        settingsUserLoadCompleted = true;
+        UpdateSettingsLoadingState();
+      }
+    }
+
+    if (IsCurrentSettingsLoad(generation)) await LoadCredentialsAsync(generation, cancellationToken).ConfigureAwait(true);
+  }
+
+  private void UpdateSettingsLoadingState()
+  {
+    IsLoading = !(settingsContentLoadCompleted && settingsUserLoadCompleted);
   }
 
   private string DisplayMembershipStatus(string status) => status.ToUpperInvariant() switch

@@ -164,8 +164,8 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "web.communities.post-type-settings.update.default") {
             Endpoint.updateCommunityPostTypeSettings(
                 idOrSlug: "test-community",
-                allowReviewPosts: true,
-                allowDataPointPosts: true
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: true
             )
         },
         ManifestRegisteredEndpoint(id: "web.topics.search.default") {

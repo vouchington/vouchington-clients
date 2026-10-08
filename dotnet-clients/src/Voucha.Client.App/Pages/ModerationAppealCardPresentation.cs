@@ -32,7 +32,7 @@ internal static partial class ModerationAppealCardPresentation
     var target = Target(appeal);
     var appellant = appeal.StaffContext is { } staff
         ? UiText.UserContent(ActorLabel(staff.Appellant))
-        : appeal.AppellantId is { } appellantId
+        : appeal.AppellantUserId is { } appellantId
             ? UiText.ProtocolValue(appellantId)
             : UiText.Localized(UiMessageKey.NativeSwiftModerationAppealsUnknown);
     var lines = new List<string>

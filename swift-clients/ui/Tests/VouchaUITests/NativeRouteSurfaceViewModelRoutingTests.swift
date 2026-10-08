@@ -153,13 +153,6 @@ final class NativeRouteSurfaceViewModelRoutingTests: NativeRouteSurfaceViewModel
         XCTAssertEqual(browseSources.sourceBrowseFeedType, "podcast")
         XCTAssertEqual(browseSources.sourceBrowseCategory, "business")
 
-        let agentRoutes = try NativeRouteSurfaceViewModel(
-            entry: entry(for: .engineeringAgents),
-            client: nil,
-            routeMatch: NativeRouteCatalog.matchingRoute(for: "/agents")?.match
-        )
-        XCTAssertTrue(agentRoutes.isAgentRoute)
-
         let browsePosts = try NativeRouteSurfaceViewModel(
             entry: entry(for: .postsBrowse),
             client: nil,
@@ -277,8 +270,8 @@ final class NativeRouteSurfaceViewModelRoutingTests: NativeRouteSurfaceViewModel
               "title": "Native post",
               "markdown": "Body",
               "html": null,
-              "parent_id": null,
-              "root_id": null,
+              "parent_post_id": null,
+              "root_post_id": null,
               "created_by_id": "user-1",
               "created_at": "2026-01-01T00:00:00Z",
               "broadcast": "everyone",

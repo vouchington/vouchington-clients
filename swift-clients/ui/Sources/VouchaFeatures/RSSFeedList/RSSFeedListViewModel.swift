@@ -48,8 +48,9 @@ public final class RSSFeedListViewModel {
     var embedsByItemId: [String: UrlEmbed] = [:]
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
+    var bookmarkMutationGeneration = 0
     var storyIdsByItemId: [String: String] = [:]
-    var storyMemberIdsByStoryId: [String: [String]] = [:]
+    var storyRelatedArticlesByStoryId: [String: StoryRelatedArticles] = [:]
     var storyPostIdsByStoryId: [String: String] = [:]
     var storyDiscussionDestinationsByStoryId: [String: StoryDiscussionDestination] = [:]
     var fallbackStoryDestinationsByStoryId: [String: StoryDiscussionDestination] = [:]
@@ -77,6 +78,7 @@ public final class RSSFeedListViewModel {
 
     /// Reset all pagination state (safe to call before reload).
     public func reset() {
+        bookmarkMutationGeneration += 1
         pagination.reset()
         actionState = nil
         itemElectionsById = [:]
@@ -87,7 +89,7 @@ public final class RSSFeedListViewModel {
         hiddenItemIds = []
         inFlightBookmarkKeys = []
         storyIdsByItemId = [:]
-        storyMemberIdsByStoryId = [:]
+        storyRelatedArticlesByStoryId = [:]
         storyPostIdsByStoryId = [:]
         storyDiscussionDestinationsByStoryId = [:]
         startedDiscussionStoryIds = []

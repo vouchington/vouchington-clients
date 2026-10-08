@@ -20,7 +20,6 @@ struct NativeGenericListResponse: Decodable {
     let topics: [String: NativeGenericEntity]?
     let communities: [String: NativeGenericEntity]?
     let agents: [String: NativeGenericEntity]?
-    let supportThreads: [String: NativeGenericEntity]?
     let users: [String: NativeGenericEntity]?
     let topicElections: [String: TopicElection]?
     let electionVotes: [String: NativeViewerVote]?
@@ -40,9 +39,6 @@ struct NativeGenericListResponse: Decodable {
         }
         if let agent = agents?[result.id] {
             return agent
-        }
-        if let supportThread = supportThreads?[result.id] {
-            return supportThread
         }
         if let hostname = hostnames?[result.id] {
             return hostname
@@ -104,11 +100,10 @@ struct NativeGenericEntityEnvelope: Decodable {
     let user: NativeGenericEntity?
     let community: NativeGenericEntity?
     let agent: NativeGenericEntity?
-    let supportThread: NativeGenericEntity?
     let entity: NativeGenericEntity?
 
     var firstEntity: NativeGenericEntity? {
-        topic ?? domain ?? hostname ?? url ?? user ?? community ?? agent ?? supportThread ?? entity
+        topic ?? domain ?? hostname ?? url ?? user ?? community ?? agent ?? entity
     }
 }
 

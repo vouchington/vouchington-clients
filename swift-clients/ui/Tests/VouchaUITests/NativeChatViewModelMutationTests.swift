@@ -76,7 +76,7 @@ final class NativeChatViewModelMutationTests: NativeRouteSurfaceViewModelTestCas
 
     func testChatViewModelSurfacesHostedVouchaErrors() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            NativeChatSupportSurfaceTests.errorData,
+            NativeChatTestFixtures.errorData,
             500
         )
         let client = try makeClient()

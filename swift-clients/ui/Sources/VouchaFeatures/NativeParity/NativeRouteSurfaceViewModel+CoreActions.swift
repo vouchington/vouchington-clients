@@ -2,24 +2,6 @@ import VouchaAPI
 import VouchaCore
 
 public extension NativeRouteSurfaceViewModel {
-    var canLoadOlderAgentConversationMessages: Bool {
-        agentConversationPageInfo?.hasNextPage == true && !isLoadingOlderAgentConversationMessages
-    }
-
-    var canLoadMoreAgents: Bool {
-        agentDirectoryPageInfo?.hasNextPage == true && !isLoadingMoreAgents
-    }
-
-    var canLoadMoreAgentConversations: Bool {
-        !isLoadingAgentConversations
-            && (agentConversationListPageInfo?.hasNextPage == true
-                || agentConversationsPageErrorMessage != nil)
-    }
-
-    var isLoadingAgentConversations: Bool {
-        agentConversationListPagination.isLoading
-    }
-
     func perform(action: NativeRouteSurfaceAction) async {
         guard let client, !isLoading else { return }
 

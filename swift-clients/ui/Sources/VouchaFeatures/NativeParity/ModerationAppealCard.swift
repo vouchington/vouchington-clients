@@ -62,7 +62,7 @@ struct ModerationAppealCard: View {
             if let id = appeal.caseId {
                 Text(localized(.nativeSwiftModerationAppealsCaseId, parameters: ["id": id]))
             }
-            if let id = appeal.appellantId {
+            if let id = appeal.appellantUserId {
                 Text(localized(.nativeSwiftModerationAppealsAppellantId, parameters: ["id": id]))
             }
             if let id = appeal.targetId {

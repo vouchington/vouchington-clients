@@ -192,7 +192,6 @@ public sealed class ReportIntegrityViewModelTests
   [Theory]
   [InlineData(false, null)]
   [InlineData(true, "moderator")]
-  [InlineData(true, "customer_support")]
   [InlineData(true, "member")]
   public async Task NonAdministratorsCannotLoadOrAct(bool authenticated, string? role)
   {

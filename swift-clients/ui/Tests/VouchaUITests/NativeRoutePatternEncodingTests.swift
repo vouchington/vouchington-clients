@@ -61,7 +61,7 @@ final class NativeRoutePatternEncodingTests: XCTestCase {
     }
 
     func testDirectRoutesKeepTheirExistingSingleDecodeContract() throws {
-        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/agent/foo%252fbar"))
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/foo%252fbar"))
 
         XCTAssertEqual(route.match.param("idOrSlug"), "foo%2fbar")
     }

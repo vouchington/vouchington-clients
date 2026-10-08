@@ -37,8 +37,6 @@ struct NativeRouteDestinationSurface: View {
                 signedOutChatSupportContent
             } else if entry.destinationIdentifier == .chat {
                 NativeChatSurface(client: viewModel.client, routeMatch: routeMatch)
-            } else if entry.destinationIdentifier == .support {
-                NativeSupportSurface(client: viewModel.client, routeMatch: routeMatch)
             } else if isOwnerLandingPageManagementRoute {
                 landingPageManagementContent
             } else if isSignedInMessagesRoute {

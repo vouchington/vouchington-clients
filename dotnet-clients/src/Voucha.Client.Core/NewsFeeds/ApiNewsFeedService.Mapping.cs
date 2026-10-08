@@ -9,11 +9,11 @@ public sealed partial class ApiNewsFeedService
   private NewsFeedItem[] MapItems(
       RssFeedItemsFeedResponse response,
       NewsFeedItemKind kind) =>
-      response.Results
+      AttachStoryPreviews(response, response.Results
           .Select(reference => (
               ItemId: reference.EntityId ?? reference.Id,
               reference.ReadAt,
-              reference.StoryId))
+              StoryId: reference.DeliveryType == "share" ? null : reference.StoryId))
           .Where(reference =>
               reference.ItemId is { } itemId &&
               response.RssFeedItems.ContainsKey(itemId))
@@ -27,9 +27,8 @@ public sealed partial class ApiNewsFeedService
               response.RssFeedItemThumbnailUrl,
               response.RssFeedItemEmbeds,
               reference.StoryId,
-              response.StoryMemberIds,
               response.StoryPostIds))
-          .ToArray();
+          .ToArray());
 
   private NewsFeedItem MapItem(
       RssFeedItem item,
@@ -41,7 +40,6 @@ public sealed partial class ApiNewsFeedService
       IReadOnlyDictionary<string, string>? thumbnailUrls,
       IReadOnlyDictionary<string, UrlEmbed>? embeds,
       string? storyId,
-      IReadOnlyDictionary<string, IReadOnlyList<string>>? storyMemberIds,
       IReadOnlyDictionary<string, string>? storyPostIds)
   {
     var title = item.Data?.Title ?? item.Title
@@ -63,14 +61,6 @@ public sealed partial class ApiNewsFeedService
 
     ElectionVote? vote = null;
     votes?.TryGetValue(item.Id, out vote);
-    var storyPeerCount = 0;
-    if (storyId is not null &&
-        storyMemberIds?.TryGetValue(storyId, out var memberIds) == true)
-    {
-      storyPeerCount = memberIds.Count(memberId =>
-          !string.Equals(memberId, item.Id, StringComparison.Ordinal));
-    }
-
     string? storyPostId = null;
     if (storyId is not null)
     {
@@ -104,7 +94,6 @@ public sealed partial class ApiNewsFeedService
             ?? item.Data?.DurationSeconds
             ?? item.MediaContent?.Duration,
         StoryId: storyId,
-        StoryPeerCount: storyPeerCount,
         StoryPostId: storyPostId,
         EmbedPreview: UrlEmbedPreviews.From(embed),
         Localization: localization);

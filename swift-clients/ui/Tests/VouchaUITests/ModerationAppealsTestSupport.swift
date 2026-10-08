@@ -32,7 +32,7 @@ enum ModerationAppealsTestSupport {
     ) -> String {
         """
         {
-          "id":"\(id)","case_id":"case-\(id)","appellant_id":"user-1",
+          "id":"\(id)","case_id":"case-\(id)","appellant_user_id":"user-1",
           "user_warning_id":\(suspensionId == nil && postId == nil ? quote("warning-1") : "null"),
           "user_suspension_id":\(json(suspensionId)),"community_ban_id":null,"post_id":\(json(postId)),
           "community_id":null,"post_removal_kind":\(json(postRemovalKind)),"appeal_reason":"Please reconsider.",

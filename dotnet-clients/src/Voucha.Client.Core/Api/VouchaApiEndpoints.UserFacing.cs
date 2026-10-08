@@ -161,7 +161,7 @@ public static partial class VouchaApiEndpoints
           "/api/v1/disputes",
           Query(("limit", limit), ("status", status), ("after", after), ("mine", mine ? "true" : null)));
 
-  public static ApiRequest MyChatConversations(string? after = null, int limit = 50) =>
+  public static ApiRequest MyChatConversations(string? after = null, int? limit = null) =>
       Get("/api/v1/my/conversations", Query(("limit", limit), ("after", after)));
 
   public static ApiRequest CreateChatConversation(CreateChatConversationBody body) =>
@@ -187,14 +187,5 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest CreateClientGeneratedChat(string conversationId, CreateClientGeneratedChatBody body) =>
       new(HttpMethod.Post, $"/api/v1/conversations/{Path(conversationId)}/client-generated-chat") { Body = body };
-
-  public static ApiRequest MySupportThreads(string? after = null, int limit = 25) =>
-      Get("/api/v1/my/support-threads", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest MySupportThread(string threadId, string? after = null, int limit = 25) =>
-      Get($"/api/v1/my/support-threads/{Path(threadId)}", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest CreateMySupportThread(CreateSupportThreadBody body) =>
-      new(HttpMethod.Post, "/api/v1/my/support-threads") { Body = body };
 
 }

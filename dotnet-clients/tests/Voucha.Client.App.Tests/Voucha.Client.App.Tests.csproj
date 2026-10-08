@@ -15,6 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml" Link="Pages/ChatConversationPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml.cs" Link="Pages/ChatConversationPage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/StoryRelatedArticlesView.xaml" Link="Pages/StoryRelatedArticlesView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/StoryRelatedArticlesView.xaml.cs" Link="Pages/StoryRelatedArticlesView.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/DynamicConfigPage.xaml" Link="Pages/DynamicConfigPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/DynamicConfigPage.xaml.cs" Link="Pages/DynamicConfigPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/DynamicConfigRoutePageFactory.cs" Link="DynamicConfigRoutePageFactory.cs" />
@@ -61,6 +65,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPageInitialLoad.cs" Link="Pages/SettingsPageInitialLoad.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionInitialRouteState.cs" Link="Pages/CommunitySectionInitialRouteState.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityModerationTransparencyControls.cs" Link="Pages/CommunityModerationTransparencyControls.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodActionView.cs" Link="Pages/CommunityAutomodActionView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />
@@ -71,9 +76,6 @@
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.cs" Link="Controls/NativeHtmlContentView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Spans.cs" Link="Controls/NativeHtmlContentView.Spans.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/NativeHtmlContentView.Localization.cs" Link="Controls/NativeHtmlContentView.Localization.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentListsPage.cs" Link="Pages/AgentListsPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentDetailPage.cs" Link="Pages/AgentDetailPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/AgentConversationPage.cs" Link="Pages/AgentConversationPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml" Link="Pages/HouseholdPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/HouseholdPage.xaml.cs" Link="Pages/HouseholdPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MembershipGrantOptions.cs" Link="Pages/MembershipGrantOptions.cs" />
@@ -85,6 +87,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/InvertedBooleanConverter.cs" Link="Pages/InvertedBooleanConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/LandingPageItemDescriptionConverter.cs" Link="Pages/LandingPageItemDescriptionConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/VoteClearEligibilityConverter.cs" Link="Pages/VoteClearEligibilityConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/StoryDiscussionVisibilityConverter.cs" Link="Pages/StoryDiscussionVisibilityConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionVisibilityConverter.cs" Link="Pages/FollowerDistributionVisibilityConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TagRelationVoteEligibilityConverter.cs" Link="Pages/TagRelationVoteEligibilityConverter.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Moderation/ReviewQueueModerationServiceStub.cs" Link="TestSupport/ReviewQueueModerationServiceStub.cs" />
@@ -102,6 +105,5 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPenaltiesPageBase.cs" Link="Pages/IntegrityPenaltiesPageBase.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPenaltiesPage.cs" Link="Pages/ReportIntegrityPenaltiesPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPenaltiesPage.cs" Link="Pages/VoteIntegrityPenaltiesPage.cs" />
-    <Compile Include="../../src/Voucha.Client.App/Pages/StaffSupportPageOperation.cs" Link="Pages/StaffSupportPageOperation.cs" />
   </ItemGroup>
 </Project>

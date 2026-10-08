@@ -1,6 +1,7 @@
 using System.Net;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Localization;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
@@ -20,7 +21,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
                 null,
                 DateTimeOffset.UtcNow,
                 StoryId: "story-1",
-                StoryPeerCount: 1),
+                StoryArticles: Preview()),
             new NewsFeedItem(
                 "item-2",
                 "Peer",
@@ -29,7 +30,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
                 null,
                 DateTimeOffset.UtcNow,
                 StoryId: "story-1",
-                StoryPeerCount: 1),
+                StoryArticles: Preview()),
         ]);
     var viewModel = new NewsFeedsViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
@@ -60,7 +61,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
                 null,
                 DateTimeOffset.UtcNow,
                 StoryId: "story-1",
-                StoryPeerCount: 1),
+                StoryArticles: Preview()),
             new NewsFeedItem(
                 "item-2",
                 "Peer",
@@ -69,7 +70,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
                 null,
                 DateTimeOffset.UtcNow,
                 StoryId: "story-1",
-                StoryPeerCount: 1),
+                StoryArticles: Preview()),
         ])
     {
       PendingResult = new TaskCompletionSource<StoryDiscussionResult>(TaskCreationOptions.RunContinuationsAsynchronously)
@@ -113,7 +114,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
   public async Task StartStoryDiscussionAsyncClearsPendingStateAndRequestsEmailRecovery()
   {
     var service = new StoryDiscussionNewsFeedService(
-        [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryPeerCount: 1)])
+        [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryArticles: Preview())])
     {
       Failure = new VouchaApiException(
           HttpStatusCode.Forbidden,
@@ -141,7 +142,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
       string expectedMessage)
   {
     var service = new StoryDiscussionNewsFeedService(
-        [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryPeerCount: 1)])
+        [new NewsFeedItem("item-1", "Article", "News", "Summary", null, DateTimeOffset.UtcNow, StoryId: "story-1", StoryArticles: Preview())])
     {
       Failure = new VouchaApiException(statusCode, $$"""{"code":"{{code}}"}"""),
     };
@@ -155,6 +156,10 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
     Assert.False(viewModel.Items[0].IsStartingStoryDiscussion);
     Assert.True(viewModel.Items[0].CanStartStoryDiscussion);
   }
+
+  private static StoryRelatedArticles Preview() => new("story-1", "item-1",
+      [new("peer", "Peer", "Source", "Summary", null, DateTimeOffset.UnixEpoch)],
+      new(null, false, null), UiLocalization.English);
 
   private sealed class StoryDiscussionNewsFeedService(
       IReadOnlyList<NewsFeedItem> items) : INewsFeedService, IStoryDiscussionService
@@ -222,7 +227,7 @@ public sealed class NewsFeedsViewModelStoryDiscussionTests
               null,
               DateTimeOffset.UtcNow,
               StoryId: "story-1",
-              StoryPeerCount: 1,
+              StoryArticles: Preview(),
               StoryPostId: storyPostId),
       ]);
     }

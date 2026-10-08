@@ -70,7 +70,7 @@ final class SettingsForwardPaginationTests: NativeRouteSurfaceViewModelTestCase 
 
     private func apiKeyPage(ids: [String]) -> Data {
         let rows = ids.map { id in
-            #"{"id":"\#(id)","user_id":"user-1","prefix":"voucha","type":"rss","label":"\#(id)","permissions":[],"created_at":"2026-01-01T00:00:00Z","last_used_at":null,"revoked_at":null,"updated_at":"2026-01-01T00:00:00Z"}"#
+            #"{"id":"\#(id)","user_id":"user-1","prefix":"voucha","type":"rss","label":"\#(id)","permissions":[],"created_at":"2026-01-01T00:00:00Z","last_used_at":null,"revoked_at":null,"expires_at":null,"expiry_reminder_sent_at":null,"replaced_by_api_key_id":null,"updated_at":"2026-01-01T00:00:00Z"}"#
         }.joined(separator: ",")
         return listPage(rows)
     }

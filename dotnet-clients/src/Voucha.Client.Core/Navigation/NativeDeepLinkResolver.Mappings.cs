@@ -39,9 +39,8 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.UsersBrowse => "friends",
         NativeRouteDestinationId.UserProfile => "friends",
         NativeRouteDestinationId.UserAdmin => "friends",
-        NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or NativeRouteDestinationId.SupportStaffThreads or
-            NativeRouteDestinationId.SupportStaffContacts => "crm",
-        NativeRouteDestinationId.EngineeringAgents or NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
+        NativeRouteDestinationId.MembershipGrants => "administration",
+        NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or
         NativeRouteDestinationId.EngineeringValkey or NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig => "engineering",
         NativeRouteDestinationId.GrowthDashboard => "growth",
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -50,7 +49,7 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.CommunitiesBrowse or NativeRouteDestinationId.CommunityDetail or NativeRouteDestinationId.CommunityAction => "communities",
         NativeRouteDestinationId.TagManagement => "topics",
         NativeRouteDestinationId.Messages or NativeRouteDestinationId.Notifications => NavigationCatalog.MessagesIntentId,
-        NativeRouteDestinationId.Chat or NativeRouteDestinationId.Support => "chat",
+        NativeRouteDestinationId.Chat => "chat",
         NativeRouteDestinationId.LandingPages => "landing-pages",
         NativeRouteDestinationId.Lists or NativeRouteDestinationId.Bookmarks => NavigationCatalog.ListsIntentId,
         NativeRouteDestinationId.AccountSettings or NativeRouteDestinationId.ProfileSettings or NativeRouteDestinationId.Household or NativeRouteDestinationId.PaymentCards or NativeRouteDestinationId.PointValuations or NativeRouteDestinationId.SpendingCategories or NativeRouteDestinationId.RewardsProgramStatuses or
@@ -108,12 +107,11 @@ public static partial class NativeDeepLinkResolver
     }
 
     return destinationId is NativeRouteDestinationId.UrlsBrowse or NativeRouteDestinationId.UrlDetail or NativeRouteDestinationId.UsersBrowse or
-        NativeRouteDestinationId.PostCompose or NativeRouteDestinationId.Messages or NativeRouteDestinationId.Chat or NativeRouteDestinationId.Support or
+        NativeRouteDestinationId.PostCompose or NativeRouteDestinationId.Messages or NativeRouteDestinationId.Chat or
         NativeRouteDestinationId.Notifications or NativeRouteDestinationId.AccountSettings or NativeRouteDestinationId.ProfileSettings or NativeRouteDestinationId.Household or NativeRouteDestinationId.PaymentCards or NativeRouteDestinationId.PointValuations or NativeRouteDestinationId.SpendingCategories or NativeRouteDestinationId.RewardsProgramStatuses or
         NativeRouteDestinationId.AdvancedSettings or NativeRouteDestinationId.Referrals or
         NativeRouteDestinationId.Bookmarks or NativeRouteDestinationId.TopicRecommendations or NativeRouteDestinationId.TagManagement or
-        NativeRouteDestinationId.ModerationCases or NativeRouteDestinationId.UserAdmin or NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or
-        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or NativeRouteDestinationId.EngineeringAgents or
+        NativeRouteDestinationId.ModerationCases or NativeRouteDestinationId.UserAdmin or NativeRouteDestinationId.MembershipGrants or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.EngineeringDynamicConfig or NativeRouteDestinationId.GrowthDashboard or
         NativeRouteDestinationId.ModerationReports or NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes or
@@ -131,11 +129,10 @@ public static partial class NativeDeepLinkResolver
   {
     if (destinationId is NativeRouteDestinationId.UserAdmin)
     {
-      return ["administrator", "customer_support"];
+      return ["administrator"];
     }
 
-    if (destinationId is NativeRouteDestinationId.CrmContacts or NativeRouteDestinationId.MembershipGrants or
-        NativeRouteDestinationId.SupportStaffThreads or NativeRouteDestinationId.SupportStaffContacts or NativeRouteDestinationId.EngineeringAgents or
+    if (destinationId is NativeRouteDestinationId.MembershipGrants or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or
         NativeRouteDestinationId.EngineeringAiCosts or NativeRouteDestinationId.ModerationReviewQueue or
         NativeRouteDestinationId.ModerationAdmin or NativeRouteDestinationId.ModerationIntegrity)
@@ -145,7 +142,7 @@ public static partial class NativeDeepLinkResolver
 
     if (destinationId == NativeRouteDestinationId.EngineeringDynamicConfig)
     {
-      return ["administrator", "moderator", "developer", "customer_support", "investor"];
+      return ["administrator", "moderator", "developer", "investor"];
     }
 
     if (destinationId is NativeRouteDestinationId.ModerationAppeals or NativeRouteDestinationId.ModerationDisputes)

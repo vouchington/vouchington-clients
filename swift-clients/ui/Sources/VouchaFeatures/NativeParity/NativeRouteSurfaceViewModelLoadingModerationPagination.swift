@@ -66,7 +66,7 @@ extension NativeRouteSurfaceViewModel {
         let response: AdminModlogResponse = try await client.send(.adminModlog(after: after, limit: 25))
         let rows = response.results.compactMap { result -> NativeForwardRow? in
             guard let action = response.moderatorActions[result.id] else { return nil }
-            let actorName = action.actorId.flatMap { response.users[$0]?.username } ?? action.actorId
+            let actorName = action.actorUserId.flatMap { response.users[$0]?.username } ?? action.actorUserId
             return forwardRow(
                 id: result.id,
                 icon: "clock.arrow.circlepath",

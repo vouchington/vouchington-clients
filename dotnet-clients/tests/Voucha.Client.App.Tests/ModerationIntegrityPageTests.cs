@@ -147,7 +147,7 @@ public sealed class ModerationIntegrityPageTests
     {
       Votes = (_, _, _) => Task.FromResult(
           new VoteIntegrityFlagsResponse([pending], new PageInfo(null, false, pending.Id))),
-      VotePenalty = (_, _) => Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(3)),
+      VotePenalty = (_, _) => Task.FromResult(new VoteIntegrityPenaltyApplicationResponse(pending, 3)),
       VoteResolution = (_, resolution, _) => Task.FromResult(new VoteIntegrityFlagResponse(
           VoteFlag(
               "vote-1", topicId: "topic-1",

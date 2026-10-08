@@ -71,7 +71,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   }
 
   public string DisplayName =>
-      SelectedDisplayAccount()?.Name ??
+      SelectedDisplayAccountName() ??
       User?.VerifiedDisplayName ??
       User?.Name ??
       Identity?.Username ??
@@ -80,6 +80,8 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
       localization.Localize(UiMessageKey.NativeDotnetResidualProfile);
 
   public string UsernameLabel => User?.Username is { Length: > 0 } username ? $"@{username}" : User?.Id ?? string.Empty;
+
+  public string? AccountTypeLabel => AccountTypeLabels.Resolve(User?.AccountType, localization);
 
   public string? ProfileImageId => Identity?.ProfileImageId ?? User?.ProfileImageId;
 
@@ -154,23 +156,24 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   {
     OnPropertyChanged(nameof(DisplayName));
     OnPropertyChanged(nameof(UsernameLabel));
+    OnPropertyChanged(nameof(AccountTypeLabel));
     OnPropertyChanged(nameof(ProfileImageId));
     OnPropertyChanged(nameof(AvatarUrl));
   }
 
-  private UserDisplayAccount? SelectedDisplayAccount()
+  private string? SelectedDisplayAccountName()
   {
-    if (User?.DisplayAccount is { } displayAccount) return displayAccount;
+    if (User?.DisplayAccount is { } displayAccount) return displayAccount.Name;
 
     return User?.UseDisplayNameFrom switch
     {
-      "facebook" => User.FacebookAccount,
-      "apple" => User.AppleAccount,
-      "google" => User.GoogleAccount,
-      "x" => User.XAccount,
-      "linkedin" => User.LinkedinAccount,
-      "microsoft" => User.MicrosoftAccount,
-      "github" => User.GithubAccount,
+      "facebook" => User.FacebookAccount?.Name,
+      "apple" => User.AppleAccount?.Name,
+      "google" => User.GoogleAccount?.Name,
+      "x" => User.XAccount?.Name,
+      "linkedin" => User.LinkedinAccount?.Name,
+      "microsoft" => User.MicrosoftAccount?.Name,
+      "github" => User.GithubAccount?.Name,
       _ => null,
     };
   }

@@ -156,8 +156,8 @@ public sealed record UpdateTopicBody(
     [property: JsonPropertyName("slug")] string? Slug = null,
     [property: JsonPropertyName("markdown")] string? Markdown = null,
     [property: JsonPropertyName("topic_type")] string? TopicType = null,
-    [property: JsonPropertyName("noindex")] bool? Noindex = null,
-    [property: JsonPropertyName("allow_reviews")] bool? AllowReviews = null,
+    [property: JsonPropertyName("is_noindexed")] bool? Noindex = null,
+    [property: JsonPropertyName("should_allow_reviews")] bool? AllowReviews = null,
     [property: JsonPropertyName("hostname")] JsonNullableString? Hostname = null,
     [property: JsonPropertyName("logo_image_id")] JsonNullableString? LogoImageId = null,
     [property: JsonPropertyName("hero_image_id")] JsonNullableString? HeroImageId = null);

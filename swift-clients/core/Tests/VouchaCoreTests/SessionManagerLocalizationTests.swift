@@ -25,13 +25,13 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertTrue(sessionManager.isSignedIn)
         XCTAssertEqual(sessionManager.currentUserId, "user-abc")
         XCTAssertEqual(sessionManager.currentUserRoles, ["user"])
-        XCTAssertFalse(sessionManager.currentUserIsOfficialAccount)
+        XCTAssertNil(sessionManager.currentUserAccountType)
         XCTAssertEqual(sessionManager.uiLocale, "es")
     }
 
-    func testRefreshRetainsComputedOfficialAccountEligibility() async throws {
+    func testRefreshRetainsAccountType() async throws {
         MockURLProtocol.handlers["/api/v1/my/identity"] = try (
-            identityEnvelope(uiLocale: "en", isOfficialAccount: true),
+            identityEnvelope(uiLocale: "en", accountType: "official"),
             200
         )
         let sessionManager = makeSessionManager()
@@ -39,7 +39,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
         let refreshed = await sessionManager.refresh()
 
         XCTAssertTrue(refreshed)
-        XCTAssertTrue(sessionManager.currentUserIsOfficialAccount)
+        XCTAssertEqual(sessionManager.currentUserAccountType, .official)
     }
 
     func testUnauthorizedRefreshClearsSynchronizedLocaleAndIdentity() async throws {
@@ -97,7 +97,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
         ).identity
     }
 
-    private func identityEnvelope(uiLocale: String, isOfficialAccount: Bool = false) throws -> Data {
+    private func identityEnvelope(uiLocale: String, accountType: String? = nil) throws -> Data {
         var envelope = try XCTUnwrap(
             JSONSerialization.jsonObject(
                 with: ApiFixtureLoader.data("swift.my.identity.default")
@@ -105,7 +105,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
         )
         var identity = try XCTUnwrap(envelope["identity"] as? [String: Any])
         identity["ui_locale"] = uiLocale
-        identity["is_official_account"] = isOfficialAccount
+        identity["account_type"] = accountType as Any? ?? NSNull()
         envelope["identity"] = identity
         return try JSONSerialization.data(withJSONObject: envelope)
     }

@@ -110,9 +110,9 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
         {
           if (reference.Id is { } id && response.ModeratorActions.TryGetValue(id, out var action))
           {
-            var actorName = action.ActorId is { } actorId && response.Users.TryGetValue(actorId, out var user)
+            var actorName = action.ActorUserId is { } actorId && response.Users.TryGetValue(actorId, out var user)
                 ? user.Username ?? actorId
-                : action.ActorId ?? localization.Localize(UiMessageKey.NativeDotnetModerationSystem);
+                : action.ActorUserId ?? localization.Localize(UiMessageKey.NativeDotnetModerationSystem);
             var detail = action.Reason ?? action.CommunityId ?? action.PostId ?? action.ReportId ?? action.ReviewDisputeId ?? localization.Localize(UiMessageKey.NativeDotnetModerationGlobal);
             return Row(action.Id, UiText.Verbatim(action.ActionType), UiText.Verbatim($"{actorName} · {detail}"), "clock-arrow-circlepath");
           }

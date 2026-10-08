@@ -15,9 +15,9 @@ public sealed class ImportExportApiTests
     AssertBody(VouchaApiEndpoints.ImportTopics(["Travel"]), "{\"names\":[\"Travel\"]}");
     AssertBody(
         VouchaApiEndpoints.ImportRssFeedUrls(["https://example.test/feed.xml"]),
-        "{\"urls\":[\"https://example.test/feed.xml\"],\"follow\":true}");
-    AssertBody(VouchaApiEndpoints.ImportRssFeedCsv("url\na"), "{\"csv\":\"url\\na\",\"follow\":true}");
-    AssertBody(VouchaApiEndpoints.ImportRssFeedOpml("<opml/>"), "{\"opml\":\"\\u003Copml/\\u003E\",\"follow\":true}");
+        "{\"urls\":[\"https://example.test/feed.xml\"],\"should_follow_imported_feeds\":true}");
+    AssertBody(VouchaApiEndpoints.ImportRssFeedCsv("url\na"), "{\"csv\":\"url\\na\",\"should_follow_imported_feeds\":true}");
+    AssertBody(VouchaApiEndpoints.ImportRssFeedOpml("<opml/>"), "{\"opml\":\"\\u003Copml/\\u003E\",\"should_follow_imported_feeds\":true}");
     Assert.Empty(VouchaApiEndpoints.ExportTopics().Query);
     Assert.Equal("1", VouchaApiEndpoints.ExportTopicsDownload().Query["download"]);
 

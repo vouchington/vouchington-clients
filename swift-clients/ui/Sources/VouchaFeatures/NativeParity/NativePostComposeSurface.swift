@@ -43,7 +43,7 @@ struct NativePostComposeSurface: View {
 
         VStack(alignment: .leading, spacing: Spacing.md) {
             Picker(
-                UiMessages.string(.nativeSwiftCrmContactsType, locale: nativeUiLocale),
+                UiMessages.string(.nativeSwiftPresentationType, locale: nativeUiLocale),
                 selection: $viewModel.postType
             ) {
                 ForEach(postTypes, id: \.self) { type in

@@ -138,7 +138,7 @@ public sealed class ApiCommunitiesServiceTests
   {
     var handler = new RecordingHandler([
         new RecordedResponse("""
-            {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_mod_id":null,"resolved_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
+            {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_moderator_user_id":null,"resolved_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
             {"conversation":{"id":"conversation-1","channel_type":"direct_message"}}
@@ -147,7 +147,7 @@ public sealed class ApiCommunitiesServiceTests
             {"message":{"id":"message-1","conversation_id":"thread-1","body_text":"hello","created_by_id":"moderator-1","sender_username":"mod","created_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_mod_id":"moderator-1","resolved_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
+            {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_moderator_user_id":"moderator-1","resolved_at":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
             """),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
@@ -209,6 +209,7 @@ public sealed class ApiCommunitiesServiceTests
     Assert.Equal("conversation-1", conversation.Id);
     Assert.Equal("message-1", message.Id);
     Assert.Equal("thread-1", updatedThread.Id);
+    Assert.Equal("moderator-1", updatedThread.AssignedModId);
     Assert.Equal("prompt-1", prompt.Id);
     Assert.Equal("prompt-2", createdPrompt.Id);
     Assert.Equal("prompt-3", updatedPrompt.Id);
@@ -232,7 +233,9 @@ public sealed class ApiCommunitiesServiceTests
         request => Assert.Equal("/api/v1/communities/test%20community/ban-evasion/user-1", request.PathAndQuery),
         request => Assert.Equal("/api/v1/communities/test%20community/ban-evasion/user-1", request.PathAndQuery));
     Assert.Contains("\"subject_user_id\":\"user-1\"", handler.Requests[0].Body!, StringComparison.Ordinal);
-    Assert.Contains("\"assigned_mod_id\":\"moderator-1\"", handler.Requests[3].Body!, StringComparison.Ordinal);
+    Assert.Contains("\"assigned_moderator_user_id\":\"moderator-1\"", handler.Requests[3].Body!, StringComparison.Ordinal);
+    using var assignmentBody = System.Text.Json.JsonDocument.Parse(handler.Requests[3].Body!);
+    Assert.False(assignmentBody.RootElement.TryGetProperty("assigned_mod_id", out _));
     Assert.Contains("\"resolved\":true", handler.Requests[3].Body!, StringComparison.Ordinal);
     Assert.Contains("\"status\":\"resolved\"", handler.Requests[4].Body!, StringComparison.Ordinal);
     Assert.Contains("\"prompt\":\"Created\"", handler.Requests[8].Body!, StringComparison.Ordinal);

@@ -43,8 +43,8 @@ final class EndpointCommunityCoverageTests: XCTestCase {
                 memberRosterVisibility: .members,
                 memberInvitesAllowedAt: true,
                 postApprovalRequiredAt: false,
-                allowReviewPosts: true,
-                allowDataPointPosts: true,
+                shouldAllowReviewPosts: true,
+                shouldAllowDataPointPosts: true,
                 turnstileToken: "turnstile-token"
             ),
             method: .POST,
@@ -58,8 +58,8 @@ final class EndpointCommunityCoverageTests: XCTestCase {
                 "member_roster_visibility": "members",
                 "member_invites_allowed_at": true,
                 "post_approval_required_at": false,
-                "allow_review_posts": true,
-                "allow_data_point_posts": true,
+                "should_allow_review_posts": true,
+                "should_allow_data_point_posts": true,
                 "cf_turnstile_response": "turnstile-token"
             ]
         )
@@ -217,11 +217,11 @@ final class EndpointCommunityCoverageTests: XCTestCase {
         assertEndpoint(
             Endpoint.setCommunityApplicationQuestions(
                 idOrSlug: "test community",
-                questions: [CommunityApplicationQuestionInput(question: "Why?", fieldType: .shortText)]
+                questions: [CommunityApplicationQuestionInput(question: "Why?", fieldType: .shortText, required: false)]
             ),
             method: .PUT,
             path: "/api/v1/communities/test%20community/application-questions",
-            body: ["questions": [["question": "Why?", "field_type": "short_text"]]]
+            body: ["questions": [["question": "Why?", "field_type": "short_text", "is_required": false]]]
         )
         assertEndpoint(
             Endpoint.submitCommunityApplication(
