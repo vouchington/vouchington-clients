@@ -75,8 +75,8 @@ fail PRs; the iOS launch-smoke target is wired in `project.yml` for later enable
 Run lock-aware package and app checks from the repository root:
 
 ```sh
-./swift-clients/tooling/harness.sh --checks build
-./swift-clients/tooling/harness.sh --checks test
+mise exec -- ./swift-clients/tooling/harness.sh --checks build
+mise exec -- ./swift-clients/tooling/harness.sh --checks test
 ./swift-clients/tooling/generate.sh macOS
 (
   XCODE_BUILD_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/voucha-xcode-build.XXXXXX")"

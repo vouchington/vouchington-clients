@@ -11,6 +11,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SWIFT_DIR="$ROOT_DIR/swift-clients"
+SWIFT_COMMAND=(mise exec -- swift)
+XCODE_SWIFT_COMMAND=(xcrun swift)
 IS_DARWIN=false
 if [[ "$(uname)" == "Darwin" ]]; then
   IS_DARWIN=true
@@ -271,9 +273,9 @@ fi
 
 # ── build: swift build ────────────────────────────────────────────────────────
 if contains build; then
-  run_check "build/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/core" --force-resolved-versions
+  run_check "build/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" build --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "build/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift build --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "build/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${XCODE_SWIFT_COMMAND[@]}" build --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
     echo "  build/ui     - (skipped: macOS only; UI package is not Linux-portable yet)"
     SKIPPED=$((SKIPPED + 1))
@@ -297,8 +299,8 @@ if contains periphery; then
     echo "  periphery/ui   - (skipped: macOS only; packages are not Linux-portable yet)"
     SKIPPED=$((SKIPPED + 2))
   elif command -v periphery >/dev/null 2>&1; then
-    run_check "periphery/core" run_in_directory "$SWIFT_DIR/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions
-    run_check "periphery/ui" run_in_directory "$SWIFT_DIR/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" periphery scan --strict -- --force-resolved-versions -Xswiftc -index-store-path -Xswiftc .build/debug/index/store
+    run_check "periphery/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" bash "$SWIFT_DIR/tooling/periphery-scan.sh" core
+    run_check "periphery/ui" env VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN=xcode bash "$SWIFT_DIR/tooling/with-build-lock.sh" bash "$SWIFT_DIR/tooling/periphery-scan.sh" ui
   else
     run_check "periphery" missing_periphery
   fi
@@ -318,10 +320,10 @@ fi
 
 # ── test: swift test ─────────────────────────────────────────────────────────
 if contains test; then
-  run_check "test/test-support" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/test-support" --force-resolved-versions
-  run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/core" --force-resolved-versions
+  run_check "test/test-support" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/test-support" --force-resolved-versions
+  run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" swift test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${XCODE_SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
   else
     echo "  test/ui      - (skipped — macOS only)"
     SKIPPED=$((SKIPPED + 1))

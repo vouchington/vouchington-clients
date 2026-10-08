@@ -28,6 +28,6 @@ bash swift-clients/tooling/with-build-lock.sh docker run --rm \
       --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"
   '
 VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" \
-  bash dotnet-clients/tooling/with-build-lock.sh \
+  mise exec -- bash dotnet-clients/tooling/with-build-lock.sh \
   bash dotnet-clients/tooling/harness.sh --exec dotnet test Voucha.DotNet.sln \
     --no-restore -p:UseSharedCompilation=false

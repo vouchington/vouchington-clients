@@ -1,6 +1,6 @@
 # Voucha Android
 
-The Android client is a Skip Fuse 1.9+ app targeting Android API 28 and newer. Skip's Swift Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
+The Android client is a Skip Fuse 1.9.13 app targeting Android API 28 and newer. Its pinned Swift 6.4.0 Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
 Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the SwiftUI shell.
 
 ## Local models
@@ -19,10 +19,11 @@ Play Integrity, Play Store signing, and release packaging remain tracked by #662
 ## Checks
 
 ```sh
-skip android sdk install
-skip checkup --native
-swift test --package-path swift-clients/apps/android
-bash swift-clients/apps/android/tooling/pre-push.sh
+mise install
+mise exec -- skip android sdk install --version swift-6.4.0-RELEASE_android
+mise exec -- skip checkup --native
+mise exec -- swift test --package-path swift-clients/apps/android
+mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
 ```
 
 Despite its historical filename, `pre-push.sh` is a manually and CI-invoked validation wrapper; it
@@ -35,9 +36,10 @@ same checksum) into SwiftPM's artifact cache so the build does not live-fetch th
 both aliases also protects Android Studio and other direct Gradle callers from whichever canonical
 artifact URL their SwiftPM resolution uses.
 It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
-CI provisions checksum-verified Swiftly plus Swift in `RUNNER_TEMP`; the wrapper keeps
-that toolchain and SwiftPM SDK state job-scoped. Host archives, including `skip-macos.zip`, are
-reused from `$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
+CI installs the pinned Swift 6.4.0 toolchain with mise into `RUNNER_TEMP`; the wrapper exposes that
+verified toolchain to Skip's Xcode-style discovery path and keeps SwiftPM SDK state job-scoped. Host archives,
+including the Swift Android SDK, NDK, and `skip-macos.zip`, are reused from
+`$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
 `cached-archive.sh`. Only these immutable, checksum-verified archives persist across jobs;
 each job materializes the Swift toolchain, SDK, and NDK into job-scoped `$RUNNER_TEMP` before
 use, so an untrusted job cannot leave those extracted executables for a later trusted job. CI then seeds SwiftPM's

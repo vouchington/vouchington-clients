@@ -46,10 +46,10 @@ esac
 }
 cd "$root"
 bash dev/linux-doctor --host-only
-pnpm install --frozen-lockfile
 mise trust "$root/.mise.toml"
 mise install
-bash dotnet-clients/tooling/harness.sh --checks restore
+pnpm install --frozen-lockfile
+mise exec -- bash dotnet-clients/tooling/harness.sh --checks restore
 # shellcheck source=dev/linux-native-images.sh
 # shellcheck disable=SC1091
 source "$root/dev/linux-native-images.sh"
@@ -64,4 +64,5 @@ if ! node scripts/stage-native-contract.mjs \
   exit 1
 fi
 VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check
+bash dev/linux-doctor --stage-root "$stage_root"
 printf 'Ready. Set VOUCHA_FILAMENTS_CONTRACT_ROOT=%q for portable tests.\n' "$stage_root"

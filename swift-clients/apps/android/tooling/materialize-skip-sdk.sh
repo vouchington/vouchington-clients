@@ -5,20 +5,18 @@ SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=swift-clients/tooling/cached-archive.sh
 source "$SCRIPT_DIR/../../../tooling/cached-archive.sh"
 
-SWIFT_VERSION="6.3.3"
+SWIFT_VERSION="6.4.0"
 SWIFT_TOOLCHAIN_ID="swift-${SWIFT_VERSION}-RELEASE"
-SWIFT_OSX_PKG_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/xcode/${SWIFT_TOOLCHAIN_ID}/${SWIFT_TOOLCHAIN_ID}-osx.pkg"
-SWIFT_OSX_PKG_SHA256="ee82e57774d6650f94aa06302435d6f44a055b9411698db8ecb85d9a3bcc91d0"
 SWIFT_ANDROID_SDK_ID="${SWIFT_TOOLCHAIN_ID}_android"
 SWIFT_ANDROID_SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/android-sdk/${SWIFT_TOOLCHAIN_ID}/${SWIFT_ANDROID_SDK_ID}.artifactbundle.tar.gz"
-SWIFT_ANDROID_SDK_CHECKSUM="d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721c56cc69da7f5"
-ANDROID_NDK_VERSION="r27d"
+SWIFT_ANDROID_SDK_CHECKSUM="21fb555122a3d801ad943d48df7ebffdd8824de61c25c180bb792d3edaee0b43"
+ANDROID_NDK_VERSION="r30"
 ANDROID_NDK_URL="https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-darwin.zip"
-ANDROID_NDK_SHA256="e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7bb7"
-SKIP_VERSION="1.9.11"
+ANDROID_NDK_SHA1="c060be96767eefbb8e0a27796d6f43115fc1a0c4"
+SKIP_VERSION="1.9.13"
 SKIP_MACOS_ZIP_URL="https://source.skip.tools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
 SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
-SKIP_MACOS_ZIP_SHA256="b0c8864748a6b21f9376e8fbe79e44c1162f5f203c8f1e94c3c542b7ee0d5b33"
+SKIP_MACOS_ZIP_SHA256="8a0242c19a65e3cb0c1af0cbceb79a7294bd545b47748c007c0a69dc41c9bfdc"
 
 if [[ -z "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   echo "VOUCHA_SKIP_SWIFT_HOME must be set to a job-scoped home." >&2
@@ -39,15 +37,14 @@ CFFIXED_USER_HOME="$VOUCHA_SKIP_SWIFT_HOME"
 SWIFT_SDKS_DIR="$HOME/Library/org.swift.swiftpm/swift-sdks"
 export HOME CFFIXED_USER_HOME SWIFT_SDKS_DIR
 
-SWIFTLY_TMP="${RUNNER_TEMP}/swiftly-tmp"
-mkdir -p -- "$SWIFTLY_TMP" "$VOUCHA_SKIP_SWIFT_HOME"
-TMPDIR="$SWIFTLY_TMP"
+SWIFT_TMP="${RUNNER_TEMP}/swift-tmp"
+mkdir -p -- "$SWIFT_TMP" "$VOUCHA_SKIP_SWIFT_HOME"
+TMPDIR="$SWIFT_TMP"
 export TMPDIR
 
 DOWNLOAD_DIR="$VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR"
 mkdir -p -- "$DOWNLOAD_DIR"
 
-OSX_PKG_PATH="$DOWNLOAD_DIR/${SWIFT_TOOLCHAIN_ID}-osx.pkg"
 SDK_TAR_PATH="$DOWNLOAD_DIR/${SWIFT_ANDROID_SDK_ID}.artifactbundle.tar.gz"
 NDK_ZIP_PATH="$DOWNLOAD_DIR/android-ndk-${ANDROID_NDK_VERSION}-darwin.zip"
 SKIP_MACOS_ZIP_PATH="$DOWNLOAD_DIR/skip-macos-${SKIP_VERSION}.zip"
@@ -58,15 +55,23 @@ SDK_ROOT="$SDK_BUNDLE/swift-android"
 NDK_DIR="$SDK_ROOT/android-ndk-${ANDROID_NDK_VERSION}"
 NDK_SENTINEL="$NDK_DIR/.extraction-complete"
 NDK_SYSROOT_LIB="$SDK_ROOT/ndk-sysroot/usr/lib/aarch64-linux-android"
-TOOLCHAIN_SWIFT="$TOOLCHAIN_DIR/usr/bin/swift"
 SDK_INFO="$SDK_BUNDLE/info.json"
+MISE_SWIFT_TOOLCHAIN_ROOT="$(bash "$SCRIPT_DIR/resolve-mise-swift-toolchain.sh")"
+MISE_SWIFT_BIN="$(mise which swift)"
 
-ensure_cached_archive \
-  "$SWIFT_OSX_PKG_URL" \
-  "$OSX_PKG_PATH" \
-  sha256 \
-  "$SWIFT_OSX_PKG_SHA256" \
-  "Using cached Swift host toolchain package at $OSX_PKG_PATH"
+mkdir -p -- "$HOME/toolchains"
+if [[ -L "$TOOLCHAIN_DIR" ]]; then
+  if [[ "$(CDPATH='' cd -- "$TOOLCHAIN_DIR" && pwd -P)" != "$MISE_SWIFT_TOOLCHAIN_ROOT" ]]; then
+    echo "Skip toolchain alias points outside the mise installation: $TOOLCHAIN_DIR" >&2
+    exit 1
+  fi
+elif [[ -e "$TOOLCHAIN_DIR" ]]; then
+  echo "Skip toolchain alias must be a symlink to the mise installation: $TOOLCHAIN_DIR" >&2
+  exit 1
+else
+  ln -s -- "$MISE_SWIFT_TOOLCHAIN_ROOT" "$TOOLCHAIN_DIR"
+fi
+TOOLCHAIN_SWIFT="$TOOLCHAIN_DIR/usr/bin/swift"
 
 ensure_cached_archive \
   "$SWIFT_ANDROID_SDK_URL" \
@@ -78,8 +83,8 @@ ensure_cached_archive \
 ensure_cached_archive \
   "$ANDROID_NDK_URL" \
   "$NDK_ZIP_PATH" \
-  sha256 \
-  "$ANDROID_NDK_SHA256" \
+  sha1 \
+  "$ANDROID_NDK_SHA1" \
   "Using cached Darwin Android NDK archive at $NDK_ZIP_PATH"
 
 ensure_cached_archive \
@@ -112,30 +117,8 @@ skip_toolchain_ready() {
 }
 
 if ! skip_toolchain_ready; then
-  if [[ ! -x "$TOOLCHAIN_SWIFT" ]]; then
-    pkgutil --check-signature "$OSX_PKG_PATH"
-    # pkgutil --expand requires a dest that does not exist (Error 17 if it does).
-    expand_parent="$(mktemp -d "$TMPDIR/swift-osx-pkg.XXXXXX")"
-    trap 'rm -rf -- "$expand_parent"' EXIT
-    expand_dir="$expand_parent/expanded"
-    pkgutil --expand "$OSX_PKG_PATH" "$expand_dir"
-    payload="$expand_dir/Payload"
-    if [[ ! -f "$payload" ]]; then
-      payload="$expand_dir/${SWIFT_TOOLCHAIN_ID}-osx-package.pkg/Payload"
-    fi
-    if [[ ! -f "$payload" ]]; then
-      echo "Swift toolchain pkg Payload not found under $expand_dir" >&2
-      exit 1
-    fi
-    rm -rf -- "$TOOLCHAIN_DIR"
-    mkdir -p -- "$TOOLCHAIN_DIR"
-    tar -xf "$payload" -C "$TOOLCHAIN_DIR"
-    rm -rf -- "$expand_parent"
-    trap - EXIT
-  fi
-
   if [[ ! -f "$SDK_INFO" ]]; then
-    swift sdk install "$SDK_TAR_PATH" --checksum "$SWIFT_ANDROID_SDK_CHECKSUM"
+    "$MISE_SWIFT_BIN" sdk install "$SDK_TAR_PATH" --checksum "$SWIFT_ANDROID_SDK_CHECKSUM"
   fi
 
   if [[ ! -x "$SDK_ROOT/scripts/setup-android-sdk.sh" ]]; then

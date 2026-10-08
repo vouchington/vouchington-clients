@@ -114,7 +114,7 @@ describe('native contract workflow boundary', () => {
       /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
     ])
       assert.match(workflow, command)
-    assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.5/u)
+    assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.6/u)
     assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
     assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
     assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
@@ -131,23 +131,17 @@ describe('native contract workflow boundary', () => {
   })
 
   it('installs each candidate .NET SDK at its exact global.json version', async () => {
-    const workflow = await readWorkflow('native-contract-tests.yml')
+    const [workflow, action] = await Promise.all([
+      readWorkflow('native-contract-tests.yml'),
+      readAction('setup-mise-toolchain'),
+    ])
 
-    assert.equal(workflow.split('name: Read exact .NET SDK version').length - 1, 2)
-    assert.equal(workflow.split('id: dotnet-sdk').length - 1, 2)
-    assert.equal(workflow.split('working-directory: candidate-clients').length - 1 >= 2, true)
-    assert.equal(
-      workflow.split(
-        'jq -er \'.sdk.version | select(type == "string" and test("^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"))\' global.json',
-      ).length - 1,
-      2,
-    )
-    assert.equal(
-      workflow.split('dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}').length - 1,
-      2,
-    )
-    assert.doesNotMatch(workflow, /global-json-file: candidate-clients\/global\.json/u)
-    assert.doesNotMatch(workflow, /dotnet-version:\s*["']?\d/u)
+    assert.equal(jobBlock(workflow, 'dotnet-portable').split('tool: dotnet').length - 1, 1)
+    assert.equal(jobBlock(workflow, 'dotnet-maui').split('tool: dotnet').length - 1, 1)
+    assert.doesNotMatch(workflow, /actions\/setup-dotnet@/u)
+    assert.match(action, /expected="\$\(jq -er '\.sdk\.version' global\.json\)"/u)
+    assert.match(action, /actual="\$\(mise exec -- dotnet --version\)"/u)
+    assert.doesNotMatch(action, /dotnet-version:\s*["']?\d/u)
   })
 
   it('runs the complete standalone Swift consumer matrix without trusted coverage transport', async () => {
@@ -174,7 +168,8 @@ describe('native contract workflow boundary', () => {
       validation,
       /bash swift-clients\/tooling\/harness\.sh --checks fmt,lint,lint-tests/u,
     )
-    assert.match(workflow, /periphery scan --strict/u)
+    assert.match(workflow, /periphery-scan\.sh core/u)
+    assert.match(workflow, /periphery-scan\.sh ui/u)
     assert.match(workflow, /--enable-code-coverage/u)
     assert.match(
       workflow,
@@ -186,11 +181,9 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(workflow, /run: pnpm run coverage:swift/u)
     assert.match(workflow, /android-actions\/setup-android@[a-f0-9]{40}(?=\s|$)/u)
-    assert.match(
-      workflow,
-      /swiftly_sha256="fade009739a84f18ee30e524793f927019fc9c2e16b2ad958da50d3f9ff7a7f8"/u,
-    )
-    assert.match(workflow, /export SWIFTLY_HOME_DIR="\$skip_swift_home\/\.swiftly"/u)
+    assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
+    assert.match(workflow, /mise exec -- swift test/u)
+    assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
     assert.match(workflow, /VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: ["']1["']/u)
     assert.match(workflow, /Record swift test start marker/u)
@@ -200,7 +193,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /Upload xctest crash reports[\s\S]*swift-ui-crash-reports/u)
     assert.match(
       workflow,
-      /swift:6\.3\.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259/u,
+      /swift:6\.4\.0-noble@sha256:31d14d727f4451f25e29bac9c42563a098c39ac66415e8bad970f48038e38aca/u,
     )
     assert.match(workflow, /xcodegen-\$XCODEGEN_VERSION\.zip/u)
     assert.match(
@@ -282,9 +275,15 @@ describe('native contract workflow boundary', () => {
   })
 
   it('uses the repository SDK policy in required .NET validation', async () => {
-    const validation = await readWorkflow('validate.yml')
+    const [validation, action] = await Promise.all([
+      readWorkflow('validate.yml'),
+      readAction('setup-mise-toolchain'),
+    ])
 
-    assert.match(validation, /global-json-file: global\.json/u)
+    assert.match(validation, /setup-mise-toolchain[\s\S]*?tool: dotnet/u)
+    assert.match(action, /jq -er '\.sdk\.version' global\.json/u)
+    assert.match(action, /mise install "\$MISE_TOOL"/u)
+    assert.doesNotMatch(validation, /actions\/setup-dotnet@/u)
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
     assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
     assert.doesNotMatch(validation, /mise_dir:/u)

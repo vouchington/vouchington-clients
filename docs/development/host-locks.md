@@ -13,7 +13,7 @@ not be reintroduced in GitHub Actions.
 Use the client wrapper only for local compiler-heavy commands:
 
 ```sh
-bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core --force-resolved-versions
+bash swift-clients/tooling/with-build-lock.sh mise exec -- swift test --package-path swift-clients/core --force-resolved-versions
 bash dotnet-clients/tooling/with-build-lock.sh dotnet build dotnet-clients/Voucha.DotNet.sln --no-restore
 ```
 

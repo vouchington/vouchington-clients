@@ -1,0 +1,68 @@
+name: Set up a mise-managed native toolchain
+description: Install the pinned .NET SDK or Swift compiler from the candidate client's mise configuration
+
+inputs:
+  client-root:
+    description: Candidate client checkout path relative to GITHUB_WORKSPACE
+    required: true
+  tool:
+    description: mise tool to install (dotnet or swift)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install mise
+      uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
+      with:
+        cache: false
+        install: false
+    - name: Install candidate-pinned toolchain
+      shell: bash
+      env:
+        CLIENT_ROOT: ${{ inputs.client-root }}
+        MISE_TOOL: ${{ inputs.tool }}
+      run: |
+        set -euo pipefail
+        case "$MISE_TOOL" in
+          dotnet|swift) ;;
+          *) echo "unsupported mise tool: $MISE_TOOL" >&2; exit 2 ;;
+        esac
+        client_root="$GITHUB_WORKSPACE/$CLIENT_ROOT"
+        [[ -f "$client_root/.mise.toml" && -f "$client_root/global.json" ]]
+        mise_data_dir="$RUNNER_TEMP/mise-data"
+        mise_cache_dir="$RUNNER_TEMP/mise-cache"
+        mkdir -p -- "$mise_data_dir" "$mise_cache_dir"
+        export MISE_DATA_DIR="$mise_data_dir" MISE_CACHE_DIR="$mise_cache_dir"
+        {
+          echo "MISE_DATA_DIR=$MISE_DATA_DIR"
+          echo "MISE_CACHE_DIR=$MISE_CACHE_DIR"
+        } >> "$GITHUB_ENV"
+        cd "$client_root"
+        mise trust "$client_root/.mise.toml"
+        mise install "$MISE_TOOL"
+        if [[ "$MISE_TOOL" == dotnet ]]; then
+          expected="$(jq -er '.sdk.version' global.json)"
+          actual="$(mise exec -- dotnet --version)"
+          [[ "$actual" == "$expected" ]] || {
+            echo "mise selected .NET SDK $actual; expected global.json $expected." >&2
+            exit 1
+          }
+          dotnet_root="$(mise where dotnet)"
+          [[ -x "$dotnet_root/dotnet" ]]
+          echo "DOTNET_ROOT=$dotnet_root" >> "$GITHUB_ENV"
+          echo "$dotnet_root" >> "$GITHUB_PATH"
+        else
+          expected="$(mise ls --current --json | jq -er '.swift[0] | select(.active == true) | .version')"
+          actual="$(mise exec -- swift --version | sed -n -E '1s/^(Apple )?Swift version ([^ (]+).*/\2/p')"
+          expected_minor="${expected%.0}"
+          [[ "$actual" == "$expected" || "$actual" == "$expected_minor" ]] || {
+            echo "mise selected Swift $actual; expected $expected from .mise.toml." >&2
+            exit 1
+          }
+          swift_root="$(mise where swift)"
+          case "$swift_root" in
+            "$MISE_DATA_DIR"/installs/swift/*) ;;
+            *) echo "mise Swift installation is outside the job-scoped data directory: $swift_root" >&2; exit 1 ;;
+          esac
+        fi

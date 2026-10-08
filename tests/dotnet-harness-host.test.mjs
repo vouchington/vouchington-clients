@@ -10,18 +10,7 @@ import test from 'node:test'
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const harnessPath = join(repositoryRoot, 'dotnet-clients/tooling/harness.sh')
-const harnessTools = [
-  'cat',
-  'dirname',
-  'env',
-  'mktemp',
-  'od',
-  'realpath',
-  'rm',
-  'tail',
-  'tr',
-  'whoami',
-]
+const harnessTools = ['cat', 'dirname', 'env', 'mktemp', 'node', 'realpath', 'rm', 'tr', 'whoami']
 
 async function writeExecutable(path, contents) {
   await writeFile(path, contents)
@@ -32,9 +21,10 @@ async function isolatedPath(t, leadingDirectories) {
   const tools = await mkdtemp(join(tmpdir(), 'voucha-dotnet-tools-'))
   t.after(() => rm(tools, { recursive: true, force: true }))
   for (const name of harnessTools) {
-    const source = ['/usr/bin', '/bin']
-      .map(directory => join(directory, name))
-      .find(candidate => existsSync(candidate))
+    const source =
+      name === 'node'
+        ? process.execPath
+        : ['/usr/bin', '/bin'].map(directory => join(directory, name)).find(existsSync)
     if (source) await symlink(source, join(tools, name))
   }
   return [...leadingDirectories, tools].join(':')
@@ -49,198 +39,117 @@ function baseEnvironment() {
   return environment
 }
 
-async function writeDotnetStub(directory, { status, message, sdkRoot = true }) {
+async function writeDotnetStub(directory, version = '10.0.401') {
   await mkdir(directory, { recursive: true })
   const host = join(directory, 'dotnet')
-  const quotedMessage = message.replaceAll("'", "'\\''")
-  const stream = status === 0 ? '' : ' >&2'
-  await writeExecutable(
-    host,
-    `#!/bin/bash\nprintf '%s\\n' '${quotedMessage}'${stream}\nexit ${status}\n`,
-  )
-  if (sdkRoot) {
-    await mkdir(join(directory, 'sdk'), { recursive: true })
-  }
+  await writeExecutable(host, `#!/bin/bash\nprintf '%s\\n' '${version}'\n`)
+  await mkdir(join(directory, 'sdk'), { recursive: true })
   return realpath(host)
 }
 
-async function invokeHarness(environment) {
-  return execFileAsync(
-    '/bin/bash',
-    [
-      harnessPath,
-      '--exec',
-      '/bin/bash',
-      '-c',
-      'printf \'%s\\n\' "$VOUCHA_DOTNET_HOST" "$DOTNET_ROOT"',
-    ],
-    {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-      env: environment,
-    },
+async function writeMiseStub(directory) {
+  await mkdir(directory, { recursive: true })
+  await writeExecutable(
+    join(directory, 'mise'),
+    `#!/bin/bash
+set -euo pipefail
+case "${'${1:-}'}" in
+  where) [[ "${'${2:-}'}" == dotnet ]] && printf '%s\\n' "$MISE_TEST_DOTNET_ROOT" ;;
+  which) [[ "${'${2:-}'}" == dotnet ]] && printf '%s\\n' "$MISE_TEST_DOTNET_HOST" ;;
+  exec)
+    shift
+    [[ "${'${1:-}'}" == -- ]]
+    shift
+    [[ "${'${1:-}'}" == dotnet ]]
+    shift
+    exec "$MISE_TEST_DOTNET_HOST" "$@"
+    ;;
+  *) echo "unexpected mise command: $*" >&2; exit 2 ;;
+esac
+`,
   )
 }
 
-test('uses the first PATH host when it satisfies global.json', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-path-ok-'))
+async function invokeHarness(
+  environment,
+  command = ['/bin/bash', '-c', 'printf \'%s\\n\' "$VOUCHA_DOTNET_HOST" "$DOTNET_ROOT"'],
+) {
+  return execFileAsync('/bin/bash', [harnessPath, '--exec', ...command], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: environment,
+  })
+}
+
+async function setupMiseHarness(
+  t,
+  root,
+  { selectedVersion = '10.0.401', ambientHost = null } = {},
+) {
   t.after(() => rm(root, { recursive: true, force: true }))
-  const pathHost = await writeDotnetStub(join(root, 'path-bin'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  const fallbackHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 0,
-    message: '10.0.999',
-  })
-  const result = await invokeHarness({
+  const miseDirectory = join(root, 'mise-bin')
+  const installRoot = join(root, 'mise-install')
+  const selectedHost = await writeDotnetStub(installRoot, selectedVersion)
+  await writeMiseStub(miseDirectory)
+  const leading = [miseDirectory]
+  if (ambientHost) leading.push(dirname(ambientHost))
+  return {
     ...baseEnvironment(),
     HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [pathHost, dirname(pathHost)])
-  assert.notEqual(result.stdout.trim().split('\n')[0], fallbackHost)
+    MISE_TEST_DOTNET_HOST: selectedHost,
+    MISE_TEST_DOTNET_ROOT: installRoot,
+    PATH: await isolatedPath(t, leading),
+  }
+}
+
+test('selects and runs the exact .NET SDK from mise even when PATH has another dotnet', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-mise-selected-'))
+  const ambientHost = await writeDotnetStub(join(root, 'ambient-bin'), '10.0.401')
+  const environment = await setupMiseHarness(t, root, { ambientHost })
+  const result = await invokeHarness(environment)
+
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    environment.MISE_TEST_DOTNET_HOST,
+    await realpath(environment.MISE_TEST_DOTNET_ROOT),
+  ])
   assert.equal(result.stderr, '')
 })
 
-test('binds DOTNET_ROOT to the resolved install when PATH host is a symlink', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-symlink-host-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const realHost = await writeDotnetStub(join(root, 'real-install'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  await mkdir(join(root, 'path-bin'), { recursive: true })
-  await symlink(realHost, join(root, 'path-bin/dotnet'))
-  const result = await invokeHarness({
-    ...baseEnvironment(),
-    HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [realHost, dirname(realHost)])
+test('binds DOTNET_ROOT to mise installation when mise returns a symlinked host', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-mise-symlink-'))
+  const environment = await setupMiseHarness(t, root)
+  const symlinkRoot = join(root, 'mise-bin')
+  const link = join(symlinkRoot, 'selected-dotnet')
+  await symlink(environment.MISE_TEST_DOTNET_HOST, link)
+  environment.MISE_TEST_DOTNET_HOST = link
+  const result = await invokeHarness(environment)
+
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    await realpath(link),
+    await realpath(environment.MISE_TEST_DOTNET_ROOT),
+  ])
 })
 
-test('leaves a pre-existing DOTNET_ROOT untouched when the selected host has no SDK shape', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-wrapper-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const wrapperHost = await writeDotnetStub(join(root, 'path-bin'), {
-    status: 0,
-    message: '10.0.301',
-    sdkRoot: false,
-  })
-  const inheritedRoot = join(root, 'inherited-root')
-  const result = await invokeHarness({
-    ...baseEnvironment(),
-    DOTNET_ROOT: inheritedRoot,
-    HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [wrapperHost, inheritedRoot])
-})
-
-test('falls back to the Microsoft user-local host when PATH-first fails locally', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-home-fallback-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const pathHost = await writeDotnetStub(join(root, 'path-bin'), {
-    status: 155,
-    message: 'Voucha requires a compatible .NET 10.0.3xx SDK.',
-  })
-  const fallbackHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  const result = await invokeHarness({
-    ...baseEnvironment(),
-    HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [fallbackHost, dirname(fallbackHost)])
-  assert.ok(result.stderr.includes(pathHost), 'names the failed PATH host')
-  assert.ok(result.stderr.includes(fallbackHost), 'names the host actually used')
-  assert.equal(result.stderr.trim().split('\n').length, 1)
-})
-
-test('does not search HOME/.dotnet when GITHUB_ACTIONS is set', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-ci-isolated-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const pathHost = await writeDotnetStub(join(root, 'path-bin'), {
-    status: 155,
-    message: 'Voucha requires a compatible .NET 10.0.3xx SDK.',
-  })
-  const fallbackHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  const path = await isolatedPath(t, [join(root, 'path-bin')])
+test('rejects a mise host outside its declared installation instead of using ambient dotnet', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-mise-mismatch-'))
+  const environment = await setupMiseHarness(t, root)
+  const outsideHost = await writeDotnetStub(join(root, 'outside-install'), '10.0.401')
+  environment.MISE_TEST_DOTNET_HOST = outsideHost
   await assert.rejects(
-    () =>
-      invokeHarness({
-        ...baseEnvironment(),
-        DOTNET_ROOT: join(root, 'home/.dotnet'),
-        GITHUB_ACTIONS: 'true',
-        HOME: join(root, 'home'),
-        PATH: path,
-      }),
+    () => invokeHarness(environment),
     error => {
-      assert.equal(error.code, 155)
-      assert.ok(error.stdout.includes(`dotnet host: ${pathHost} (exit 155)`))
-      assert.equal(error.stdout.includes(fallbackHost), false)
-      assert.match(
-        error.stderr,
-        /No dotnet host on PATH or in any fallback location can satisfy the repository root global\.json policy/u,
-      )
+      assert.equal(error.code, 1)
+      assert.match(error.stderr, /mise selected \.NET outside its pinned installation root/u)
       return true
     },
   )
 })
 
-test('prefers an explicit DOTNET_ROOT host over HOME/.dotnet locally', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-root-fallback-'))
+test('fails clearly when mise is missing even if an ambient dotnet host exists', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-mise-missing-'))
   t.after(() => rm(root, { recursive: true, force: true }))
-  await writeDotnetStub(join(root, 'path-bin'), {
-    status: 155,
-    message: 'Voucha requires a compatible .NET 10.0.3xx SDK.',
-  })
-  const rootHost = await writeDotnetStub(join(root, 'explicit-root'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  const homeHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 0,
-    message: '10.0.302',
-  })
-  const result = await invokeHarness({
-    ...baseEnvironment(),
-    DOTNET_ROOT: join(root, 'explicit-root'),
-    HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'path-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [rootHost, dirname(rootHost)])
-  assert.notEqual(result.stdout.trim().split('\n')[0], homeHost)
-})
-
-test('falls back to HOME/.dotnet when PATH has no dotnet host', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-home-only-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  await mkdir(join(root, 'empty-bin'), { recursive: true })
-  const fallbackHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 0,
-    message: '10.0.301',
-  })
-  const result = await invokeHarness({
-    ...baseEnvironment(),
-    HOME: join(root, 'home'),
-    PATH: await isolatedPath(t, [join(root, 'empty-bin')]),
-  })
-  assert.deepEqual(result.stdout.trim().split('\n'), [fallbackHost, dirname(fallbackHost)])
-})
-
-test('exits 127 when no PATH host or local fallback exists', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-missing-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  await mkdir(join(root, 'empty-bin'), { recursive: true })
-  await mkdir(join(root, 'home'), { recursive: true })
-  const path = await isolatedPath(t, [join(root, 'empty-bin')])
+  const ambientHost = await writeDotnetStub(join(root, 'ambient-bin'), '10.0.401')
+  const path = await isolatedPath(t, [dirname(ambientHost)])
   await assert.rejects(
     () =>
       invokeHarness({
@@ -250,41 +159,17 @@ test('exits 127 when no PATH host or local fallback exists', async t => {
       }),
     error => {
       assert.equal(error.code, 127)
-      assert.match(
-        error.stderr,
-        /Error: no dotnet host was found on PATH or in any fallback location/u,
-      )
+      assert.match(error.stderr, /mise is required to select the repository \.NET SDK/u)
       return true
     },
   )
 })
 
-test('replays every failed candidate host path before giving up', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-all-fail-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const pathHost = await writeDotnetStub(join(root, 'path-bin'), {
-    status: 155,
-    message: 'PATH host cannot satisfy global.json',
-  })
-  const homeHost = await writeDotnetStub(join(root, 'home/.dotnet'), {
-    status: 155,
-    message: 'HOME host cannot satisfy global.json',
-  })
-  const path = await isolatedPath(t, [join(root, 'path-bin')])
-  await assert.rejects(
-    () =>
-      invokeHarness({
-        ...baseEnvironment(),
-        HOME: join(root, 'home'),
-        PATH: path,
-      }),
-    error => {
-      assert.equal(error.code, 155)
-      assert.ok(error.stdout.includes(`dotnet host: ${pathHost} (exit 155)`))
-      assert.ok(error.stdout.includes(`dotnet host: ${homeHost} (exit 155)`))
-      assert.match(error.stdout, /PATH host cannot satisfy global\.json/u)
-      assert.match(error.stdout, /HOME host cannot satisfy global\.json/u)
-      return true
-    },
-  )
+test('--exec dotnet runs the mise-selected host directly', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-mise-exec-'))
+  const environment = await setupMiseHarness(t, root)
+  const result = await invokeHarness(environment, ['dotnet', '--version'])
+
+  assert.equal(result.stdout.trim(), '10.0.401')
+  assert.equal(result.stderr, '')
 })

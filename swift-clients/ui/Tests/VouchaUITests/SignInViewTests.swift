@@ -450,7 +450,10 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
                 client: client,
                 sessionManager: sessionManager,
                 store: NativeOAuthAuthorizationStore(
-                    defaults: XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+                    secureState: UserDefaultsNativePendingState(
+                        key: "nativeOAuthPendingAuthorization",
+                        defaults: XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+                    )
                 )
             )
         )
@@ -481,20 +484,4 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
         """.utf8)
     }
 
-}
-
-private final class EmailOTPViewFailingURLProtocol: URLProtocol {
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
-    }
-
-    override func stopLoading() {}
 }

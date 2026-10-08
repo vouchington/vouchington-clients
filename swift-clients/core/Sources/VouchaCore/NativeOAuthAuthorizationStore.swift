@@ -19,13 +19,6 @@ public final class NativeOAuthAuthorizationStore: @unchecked Sendable {
         }
     #endif
 
-    convenience init(defaults: UserDefaults) {
-        self.init(secureState: UserDefaultsNativePendingState(
-            key: "nativeOAuthPendingAuthorization",
-            defaults: defaults
-        ))
-    }
-
     public init(secureState: any NativeOAuthSecureStatePersisting) {
         self.secureState = secureState
     }

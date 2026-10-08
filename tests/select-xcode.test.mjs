@@ -50,7 +50,7 @@ esac`,
       return developer
     },
     run: () =>
-      exec('/bin/bash', [script, '26.5', applications], {
+      exec('/bin/bash', [script, '26.6', applications], {
         env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_ENV: environmentFile },
       }),
   }
@@ -58,8 +58,8 @@ esac`,
 
 test('selects the required Xcode using Mac Catalyst support inside the macOS SDK', async t => {
   const f = await fixture(t)
-  await f.xcode('Xcode_26.6.app', '26.6')
-  const developer = await f.xcode('Xcode_26.5.app', '26.5')
+  await f.xcode('Xcode_26.7.app', '26.7')
+  const developer = await f.xcode('Xcode_26.6.app', '26.6')
   await f.run()
   assert.equal(
     await readFile(f.environmentFile, 'utf8'),
@@ -69,35 +69,35 @@ test('selects the required Xcode using Mac Catalyst support inside the macOS SDK
 
 test('fails the job when the required Xcode is unavailable instead of skipping its build', async t => {
   const f = await fixture(t)
-  await f.xcode('Xcode_26.6.app', '26.6')
-  await f.xcode('Xcode_26.50.app', '26.50')
+  await f.xcode('Xcode_26.7.app', '26.7')
+  await f.xcode('Xcode_26.60.app', '26.60')
   await assert.rejects(f.run(), error => error.code === 1 && /is required/u.test(error.stderr))
   assert.equal(await readFile(f.environmentFile, 'utf8'), '')
 })
 
 test('rejects an SDK without Mac Catalyst support', async t => {
   const f = await fixture(t)
-  await f.xcode('Xcode_26.5.app', '26.5', { catalyst: false })
+  await f.xcode('Xcode_26.6.app', '26.6', { catalyst: false })
   await assert.rejects(f.run(), { code: 1 })
 })
 
 test('rejects a failed xcrun SDK lookup', async t => {
   const f = await fixture(t)
-  const developer = await f.xcode('Xcode_26.5.app', '26.5')
+  const developer = await f.xcode('Xcode_26.6.app', '26.6')
   await writeFile(join(developer, 'reject-sdk'), '')
   await assert.rejects(f.run(), { code: 1 })
 })
 
 test('rejects a missing asset compiler', async t => {
   const f = await fixture(t)
-  await f.xcode('Xcode_26.5.app', '26.5', { actool: false })
+  await f.xcode('Xcode_26.6.app', '26.6', { actool: false })
   await assert.rejects(f.run(), { code: 1 })
 })
 
 test('continues past an incomplete installation and accepts a matching patch version', async t => {
   const f = await fixture(t)
-  await f.xcode('Xcode_26.5.app', '26.5', { catalyst: false })
-  const developer = await f.xcode('Xcode_26.5.1.app', '26.5.1')
+  await f.xcode('Xcode_26.6.app', '26.6', { catalyst: false })
+  const developer = await f.xcode('Xcode_26.6.1.app', '26.6.1')
   await f.run()
   assert.equal(
     await readFile(f.environmentFile, 'utf8'),
@@ -107,8 +107,8 @@ test('continues past an incomplete installation and accepts a matching patch ver
 
 test('resolves hosted Xcode aliases before exporting the toolchain path', async t => {
   const f = await fixture(t)
-  const developer = await f.xcode('Toolchain.app', '26.5')
-  await symlink(join(f.applications, 'Toolchain.app'), join(f.applications, 'Xcode_26.5.0.app'))
+  const developer = await f.xcode('Toolchain.app', '26.6')
+  await symlink(join(f.applications, 'Toolchain.app'), join(f.applications, 'Xcode_26.6.0.app'))
   await f.run()
   assert.equal(
     await readFile(f.environmentFile, 'utf8'),

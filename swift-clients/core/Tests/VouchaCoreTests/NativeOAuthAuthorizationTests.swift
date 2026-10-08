@@ -8,7 +8,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
     func testDiscardedAuthorizationRejectsLateFinalizationResult() throws {
         let (suiteName, defaults) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let store = NativeOAuthAuthorizationStore(defaults: defaults)
+        let store = makeStore(defaults: defaults)
         XCTAssertTrue(store.save(
             flowId: "superseded-oauth",
             provider: .github,
@@ -261,7 +261,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
     func testStoreClaimsOnlyMatchingFixedCallbackAndRejectsReplacement() throws {
         let (suiteName, defaults) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let store = NativeOAuthAuthorizationStore(defaults: defaults)
+        let store = makeStore(defaults: defaults)
         let now = Date(timeIntervalSince1970: 1_800_000_000)
 
         XCTAssertTrue(store.save(
@@ -307,7 +307,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         let (suiteName, defaults) = makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let store = NativeOAuthAuthorizationStore(defaults: defaults)
+        let store = makeStore(defaults: defaults)
         XCTAssertTrue(store.save(
             flowId: "flow-1",
             provider: .github,
@@ -321,12 +321,12 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         )
         let claimed = try XCTUnwrap(try store.claimCallback(for: callbackURL, now: now))
 
-        let restoredStore = NativeOAuthAuthorizationStore(defaults: defaults)
+        let restoredStore = makeStore(defaults: defaults)
         XCTAssertEqual(restoredStore.pending(now: now), claimed)
         XCTAssertTrue(restoredStore.complete(claimed, with: .connected(provider: .github)))
         XCTAssertFalse(restoredStore.complete(claimed, with: .connected(provider: .github)))
 
-        let completedStore = NativeOAuthAuthorizationStore(defaults: defaults)
+        let completedStore = makeStore(defaults: defaults)
         XCTAssertEqual(completedStore.result(), .connected(provider: .github))
         XCTAssertNil(completedStore.pending(now: now))
         let replayURL = try XCTUnwrap(
@@ -335,7 +335,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertNil(try completedStore.claimCallback(for: replayURL, now: now))
 
         try completedStore.acknowledgeResult()
-        XCTAssertNil(NativeOAuthAuthorizationStore(defaults: defaults).result())
+        XCTAssertNil(makeStore(defaults: defaults).result())
 
         XCTAssertTrue(completedStore.save(
             flowId: "expired-flow",
@@ -345,7 +345,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             expiresAt: now.addingTimeInterval(-1),
             now: now.addingTimeInterval(-2)
         ))
-        let expiredStore = NativeOAuthAuthorizationStore(defaults: defaults)
+        let expiredStore = makeStore(defaults: defaults)
         XCTAssertNil(expiredStore.pending(now: now))
         XCTAssertEqual(
             expiredStore.pendingStatus(now: now),
@@ -389,6 +389,13 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
     private func makeDefaults() -> (suiteName: String, defaults: UserDefaults) {
         let suiteName = "NativeOAuthAuthorizationTests.\(UUID().uuidString)"
         return (suiteName, UserDefaults(suiteName: suiteName)!)
+    }
+
+    private func makeStore(defaults: UserDefaults) -> NativeOAuthAuthorizationStore {
+        NativeOAuthAuthorizationStore(secureState: UserDefaultsNativePendingState(
+            key: "nativeOAuthPendingAuthorization",
+            defaults: defaults
+        ))
     }
 }
 
