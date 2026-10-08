@@ -5,18 +5,22 @@ set -euo pipefail
 root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 stage_root=''
 host_only=false
+setup_ready=false
 usage() {
   echo 'Usage: ./dev/linux-doctor --stage-root /absolute/complete/native-contract-stage' >&2
+  echo '       ./dev/linux-doctor --stage-root /absolute/complete/native-contract-stage --setup-ready' >&2
   echo '       ./dev/linux-doctor --host-only' >&2
 }
 while (($#)); do
   case "$1" in
     --stage-root) (($# >= 2)) || { usage; exit 2; }; stage_root="$2"; shift 2 ;;
+    --setup-ready) setup_ready=true; shift ;;
     --host-only) host_only=true; shift ;;
     *) usage; exit 2 ;;
   esac
 done
-if [[ "$host_only" == true && -n "$stage_root" ]] || [[ "$host_only" == false && -z "$stage_root" ]]; then
+if [[ "$host_only" == true && ( -n "$stage_root" || "$setup_ready" == true ) ]] ||
+  [[ "$host_only" == false && -z "$stage_root" ]]; then
   usage
   exit 2
 fi
@@ -51,5 +55,40 @@ if [[ "$host_only" == false ]]; then
     exit 2
   }
   (cd "$root" && VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
+fi
+if [[ "$setup_ready" == true ]]; then
+  if [[ ! -x "$root/node_modules/.bin/vouchington" ||
+    ! -x "$root/node_modules/.bin/no-mistakes" ]] ||
+    ! cmp -s "$root/pnpm-lock.yaml" "$root/node_modules/.pnpm/lock.yaml"; then
+    echo 'Checkout dependencies are absent or stale; rerun dev/setup-linux with a fresh stage.' >&2
+    exit 1
+  fi
+  (cd "$root" && mise ls --missing --json | node -e '
+    let text = "";
+    process.stdin.on("data", chunk => { text += chunk; });
+    process.stdin.on("end", () => {
+      if (Object.keys(JSON.parse(text)).length > 0) process.exit(1);
+    });
+  ') || {
+    echo 'Pinned mise tools are missing; rerun dev/setup-linux.' >&2
+    exit 1
+  }
+  for assets in \
+    "$root/dotnet-clients/src/Voucha.Client.Core/obj/project.assets.json" \
+    "$root/dotnet-clients/tests/Voucha.Client.Core.Tests/obj/project.assets.json"; do
+    [[ -s "$assets" ]] || {
+      echo 'Portable .NET restore assets are missing; rerun dev/setup-linux.' >&2
+      exit 1
+    }
+  done
+  # shellcheck source=dev/linux-native-images.sh
+  # shellcheck disable=SC1091
+  source "$root/dev/linux-native-images.sh"
+  for image in "$SWIFT_LINUX_IMAGE" "$SWIFTFORMAT_LINUX_IMAGE" "$SWIFTLINT_LINUX_IMAGE"; do
+    docker image inspect "$image" >/dev/null 2>&1 || {
+      echo "Pinned Linux image is missing: $image; rerun dev/setup-linux." >&2
+      exit 1
+    }
+  done
 fi
 echo 'Linux native-client host and contract checks passed.'

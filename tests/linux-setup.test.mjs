@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
@@ -29,6 +29,30 @@ test('Linux setup requires an explicit producer checkout and rejects a nonempty 
   assert.equal(readFileSync(join(stage, 'existing'), 'utf8'), 'preserve')
 })
 
+test('Linux setup accepts equivalent explicit Git root spellings', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'voucha-linux-root-'))
+  const producer = join(directory, 'producer')
+  const stage = join(directory, 'stage')
+  const bin = join(directory, 'bin')
+  mkdirSync(join(producer, 'api-fixtures/v1'), { recursive: true })
+  mkdirSync(join(producer, 'dev'))
+  mkdirSync(stage)
+  mkdirSync(bin)
+  writeFileSync(join(producer, 'dev/native-localization.mts'), '')
+  execFileSync('git', ['init', '-q', producer])
+  writeFileSync(join(bin, 'uname'), '#!/bin/sh\nprintf "Darwin\\n"\n')
+  chmodSync(join(bin, 'uname'), 0o755)
+  for (const spelling of [`${producer}/`, `${producer}/.`]) {
+    const result = run('setup-linux', ['--producer-root', spelling, '--stage-root', stage], {
+      ...process.env,
+      PATH: `${bin}:${process.env.PATH}`,
+    })
+    assert.equal(result.status, 1, result.stdout + result.stderr)
+    assert.match(result.stderr, /Linux doctor requires a Linux host/u)
+    assert.doesNotMatch(result.stderr, /--producer-root must be the root/u)
+  }
+})
+
 test('doctor and portable tests reject an implicit contract stage', () => {
   for (const script of ['linux-doctor', 'linux-portable-tests']) {
     const result = run(script, [], {
@@ -38,6 +62,71 @@ test('doctor and portable tests reject an implicit contract stage', () => {
     assert.equal(result.status, 2, script)
     assert.match(result.stderr, /--stage-root/, script)
   }
+  assert.equal(run('linux-doctor', ['--setup-ready']).status, 2)
+})
+
+test('setup-ready requires checkout dependencies, restore assets, and pinned images', t => {
+  const checkout = mkdtempSync(join(tmpdir(), 'voucha-linux-ready-'))
+  t.after(() => rmSync(checkout, { recursive: true, force: true }))
+  const bin = join(checkout, 'bin')
+  const stage = join(checkout, 'stage')
+  mkdirSync(join(checkout, 'dev'))
+  mkdirSync(bin)
+  mkdirSync(stage)
+  writeFileSync(join(checkout, 'dev/linux-doctor'), readFileSync(join(root, 'dev/linux-doctor')))
+  writeFileSync(
+    join(checkout, 'dev/linux-native-images.sh'),
+    readFileSync(join(root, 'dev/linux-native-images.sh')),
+  )
+  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}')
+  writeFileSync(join(checkout, 'pnpm-lock.yaml'), 'pinned-lock')
+  for (const [name, body] of [
+    ['uname', 'printf "Linux\\n"'],
+    ['pnpm', 'if [[ "$1" == --version ]]; then echo 12.0.0; fi'],
+    ['dotnet', 'echo 10.0.301'],
+    [
+      'docker',
+      'if [[ "$1" == info ]]; then echo linux; elif [[ -n "${FAIL_IMAGE:-}" ]]; then exit 1; fi',
+    ],
+    ['mise', 'echo "{}"'],
+  ]) {
+    const path = join(bin, name)
+    writeFileSync(path, `#!/bin/bash\n${body}\n`)
+    chmodSync(path, 0o755)
+  }
+  const environment = { ...process.env, PATH: `${bin}:${process.env.PATH}` }
+  const doctor = env =>
+    spawnSync(
+      'bash',
+      [join(checkout, 'dev/linux-doctor'), '--stage-root', stage, '--setup-ready'],
+      {
+        cwd: checkout,
+        encoding: 'utf8',
+        env,
+      },
+    )
+  const missing = doctor(environment)
+  assert.equal(missing.status, 1, missing.stdout + missing.stderr)
+  assert.match(missing.stderr, /Checkout dependencies are absent/u)
+
+  mkdirSync(join(checkout, 'node_modules/.bin'), { recursive: true })
+  mkdirSync(join(checkout, 'node_modules/.pnpm'))
+  for (const name of ['vouchington', 'no-mistakes']) {
+    const path = join(checkout, 'node_modules/.bin', name)
+    writeFileSync(path, '#!/bin/sh\nexit 0\n')
+    chmodSync(path, 0o755)
+  }
+  writeFileSync(join(checkout, 'node_modules/.pnpm/lock.yaml'), 'pinned-lock')
+  for (const project of ['src/Voucha.Client.Core', 'tests/Voucha.Client.Core.Tests']) {
+    const directory = join(checkout, 'dotnet-clients', project, 'obj')
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(join(directory, 'project.assets.json'), '{}')
+  }
+  const missingImage = doctor({ ...environment, FAIL_IMAGE: '1' })
+  assert.equal(missingImage.status, 1, missingImage.stdout + missingImage.stderr)
+  assert.match(missingImage.stderr, /Pinned Linux image is missing/u)
+  const ready = doctor(environment)
+  assert.equal(ready.status, 0, ready.stdout + ready.stderr)
 })
 
 test('Linux image pins match the reviewed CI images', () => {

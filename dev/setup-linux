@@ -19,6 +19,7 @@ if [[ "$producer_root" != /* || ! -d "$producer_root" || "$stage_root" != /* || 
   usage
   exit 2
 fi
+producer_root="$(cd -- "$producer_root" && pwd -P)"
 if [[ -L "$stage_root" ]] || { [[ -e "$stage_root" ]] && [[ ! -d "$stage_root" || -n "$(ls -A "$stage_root")" ]]; }; then
   echo '--stage-root must be absent or an empty directory.' >&2
   exit 2
@@ -34,9 +35,11 @@ fi
 cd "$root"
 bash dev/linux-doctor --host-only
 pnpm install --frozen-lockfile
+mise trust "$root/.mise.toml"
 mise install
 bash dotnet-clients/tooling/harness.sh --checks restore
 # shellcheck source=dev/linux-native-images.sh
+# shellcheck disable=SC1091
 source "$root/dev/linux-native-images.sh"
 for image in "$SWIFT_LINUX_IMAGE" "$SWIFTFORMAT_LINUX_IMAGE" "$SWIFTLINT_LINUX_IMAGE"; do
   docker pull "$image"

@@ -34,6 +34,16 @@ check or test process:
 ./dev/linux-quality
 ```
 
+Machine wrappers may use `./dev/linux-doctor --stage-root /absolute/stage --setup-ready` as a
+postcondition check for an unchanged managed checkout. This additionally verifies
+the frozen pnpm lock installation, pinned mise tools, portable .NET restore assets, and all pinned
+Swift container images. The regular doctor checks only host compatibility and contract parity.
+Machine wrappers must also compare both client and explicit producer checkout revisions with the
+revisions they used for setup; the stage manifest does not record either Git revision. If either
+changed, or local edits changed .NET restore inputs, rerun setup with a fresh empty stage before
+using `--no-restore` tests. The readiness check verifies restore assets exist; it does not attest
+that they match changed project files.
+
 `linux-portable-tests` runs the CI-aligned Swift `test-support` and Core tests in the pinned
 container and .NET `Voucha.DotNet.sln` Core tests on the host. The Linux Swift Core invocation
 excludes the fixture round-trip method that uses Darwin-only `XCTContext`; the macOS job runs that
