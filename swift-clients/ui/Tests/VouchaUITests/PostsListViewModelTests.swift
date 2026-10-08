@@ -412,7 +412,7 @@ extension PostsListViewModelTests {
         XCTAssertTrue(vm.emailVerificationGate.isRecoveryPresented)
     }
 
-    func testRepeatedVoteWhileWriteInFlightSendsOneRequest() async {
+    func testRepeatedVoteWhileWriteInFlightSendsOneRequest() async throws {
         CannedFeedURLProtocol.handlers = [:]
         CannedFeedURLProtocol.queuedHandlers = [:]
         CannedFeedURLProtocol.capturedURLs = []
@@ -426,20 +426,37 @@ extension PostsListViewModelTests {
             ),
             200
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts/p1/vote"] = [
-            (Data("{}".utf8), 200, 0.05),
-            (Data("{}".utf8), 200, 0)
-        ]
+        let votePath = "/api/v1/posts/p1/vote"
+        CannedFeedURLProtocol.handlers[votePath] = (Data("{}".utf8), 200)
         let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
         await vm.load()
 
-        async let firstVote: Void = vm.vote(postId: "p1", choice: .like)
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        async let secondVote: Void = vm.vote(postId: "p1", choice: .dislike)
-        await firstVote
-        await secondVote
+        CannedFeedURLProtocol.suspendResponse(path: votePath)
+        let firstRequest = CannedFeedURLProtocol.requestBarrier(path: votePath, method: "PUT")
+        let firstVote = Task { await vm.vote(postId: "p1", choice: .like) }
+        do {
+            _ = try await firstRequest.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: votePath)
+            await firstVote.value
+            throw error
+        }
 
-        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/posts/p1/vote" }
+        let secondReturned = expectation(description: "Repeated vote returns while the first write is held")
+        let secondVote = Task {
+            await vm.vote(postId: "p1", choice: .dislike)
+            secondReturned.fulfill()
+        }
+        await fulfillment(of: [secondReturned], timeout: 1)
+        let requestsWhileHeld = CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }
+        XCTAssertEqual(requestsWhileHeld.count, 1)
+        XCTAssertEqual(vm.myVotesByPostId["p1"], .like)
+
+        CannedFeedURLProtocol.releaseResponse(path: votePath)
+        await firstVote.value
+        await secondVote.value
+
+        let voteRequests = CannedFeedURLProtocol.capturedURLs.filter { $0.path == votePath }
         XCTAssertEqual(voteRequests.count, 1)
         XCTAssertEqual(vm.myVotesByPostId["p1"], .like)
     }
