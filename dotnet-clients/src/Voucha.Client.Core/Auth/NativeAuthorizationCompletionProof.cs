@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -7,15 +8,12 @@ public sealed record NativeAuthorizationCompletionProof(string Verifier, string 
 {
   public static NativeAuthorizationCompletionProof Create()
   {
-    var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
+    var verifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
     return FromVerifier(verifier);
   }
 
   public static NativeAuthorizationCompletionProof FromVerifier(string verifier) =>
       new(
           verifier,
-          Base64Url(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
-
-  private static string Base64Url(byte[] bytes) =>
-      Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+          Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
 }
