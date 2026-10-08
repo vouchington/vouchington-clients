@@ -22,6 +22,17 @@ public sealed class CursorPaginationStateTests
   }
 
   [Fact]
+  public void PrependsDistinctItemsWithoutBreakingForwardAppendBehavior()
+  {
+    var state = new CursorPaginationState<Item, string>(item => item.Id, [new("root"), new("near")]);
+    state.RestoreContinuation("older", hasMore: true);
+    var request = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+
+    Assert.True(state.CompletePrepending(request, [new("root"), new("far")], null, hasNextPage: false));
+    Assert.Equal(["root", "far", "near"], state.Items.Select(item => item.Id));
+  }
+
+  [Fact]
   public void FailurePreservesRowsBlocksAutomaticLoadingAndRetriesSameCursor()
   {
     var state = new CursorPaginationState<Item, string>(item => item.Id);

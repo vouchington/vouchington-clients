@@ -17,6 +17,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideCommentsComments29834540 = new("extracted.asides.hnDiscussionsAside.commentsComments_29834540");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideHackerNews619f304a = new("extracted.asides.hnDiscussionsAside.hackerNews_619f304a");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = new("extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8");
+    public static readonly UiMessageKey ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971 = new("extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971");
     public static readonly UiMessageKey ExtractedIntentsAdminAiCosts75cce222 = new("extracted.intents.admin.aiCosts_75cce222");
     public static readonly UiMessageKey ExtractedIntentsAdminAppeals03e8c5a5 = new("extracted.intents.admin.appeals_03e8c5a5");
     public static readonly UiMessageKey ExtractedIntentsAdminDynamicConfig59cf5829 = new("extracted.intents.admin.dynamicConfig_59cf5829");
@@ -1925,6 +1926,7 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedAsidesHnDiscussionsAsideCommentsComments29834540,
         ExtractedAsidesHnDiscussionsAsideHackerNews619f304a,
         ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8,
+        ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971,
         ExtractedIntentsAdminAiCosts75cce222,
         ExtractedIntentsAdminAppeals03e8c5a5,
         ExtractedIntentsAdminDynamicConfig59cf5829,

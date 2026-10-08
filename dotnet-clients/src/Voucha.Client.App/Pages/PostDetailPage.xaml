@@ -81,6 +81,14 @@
                 </CollectionView>
             </VerticalStackLayout>
 
+            <Button
+                x:Name="AncestorsPagination"
+                AutomationId="pagination-post-ancestors-action"
+                Text="{Binding AncestorPaginationLabel}"
+                IsVisible="{Binding HasMoreAncestors}"
+                IsEnabled="{Binding CanLoadMoreAncestors}"
+                Clicked="OnLoadMoreAncestorsRequested" />
+
             <VerticalStackLayout Spacing="8" IsVisible="{Binding HasAncestors}">
                 <Label Text="{DynamicResource native.swift.commentThread.ancestorChain}" Style="{StaticResource Headline}" />
                 <CollectionView ItemsSource="{Binding AncestorRows}" SelectionMode="None">

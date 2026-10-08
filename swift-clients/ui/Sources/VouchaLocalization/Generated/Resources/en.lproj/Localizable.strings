@@ -12,6 +12,7 @@
 "extracted.asides.hnDiscussionsAside.commentsComments_29834540" = "{comments} comments";
 "extracted.asides.hnDiscussionsAside.hackerNews_619f304a" = "Hacker News";
 "extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" = "{points} points";
+"extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" = "Show earlier replies";
 "extracted.memberships.benefitCatalog.access_0c11c1a5" = "Publish public contributions";
 "extracted.memberships.benefitCatalog.afterWait_0c11c1b9" = "After the new-member wait";
 "extracted.memberships.benefitCatalog.automaticPostTopics_0c11c1ab" = "Automatic post topics";

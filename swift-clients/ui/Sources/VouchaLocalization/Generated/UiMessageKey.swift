@@ -14,6 +14,7 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let extractedAsidesHnDiscussionsAsideCommentsComments29834540 = UiMessageKey(rawValue: "extracted.asides.hnDiscussionsAside.commentsComments_29834540")
     public static let extractedAsidesHnDiscussionsAsideHackerNews619f304a = UiMessageKey(rawValue: "extracted.asides.hnDiscussionsAside.hackerNews_619f304a")
     public static let extractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = UiMessageKey(rawValue: "extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8")
+    public static let extractedCommentsCommentAncestorTrailShowEarlierReplies56b87971 = UiMessageKey(rawValue: "extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971")
     public static let extractedMembershipsBenefitCatalogAccess0c11c1a5 = UiMessageKey(rawValue: "extracted.memberships.benefitCatalog.access_0c11c1a5")
     public static let extractedMembershipsBenefitCatalogAfterWait0c11c1b9 = UiMessageKey(rawValue: "extracted.memberships.benefitCatalog.afterWait_0c11c1b9")
     public static let extractedMembershipsBenefitCatalogAutomaticPostTopics0c11c1ab = UiMessageKey(rawValue: "extracted.memberships.benefitCatalog.automaticPostTopics_0c11c1ab")

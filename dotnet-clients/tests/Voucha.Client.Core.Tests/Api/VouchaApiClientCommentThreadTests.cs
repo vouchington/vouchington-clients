@@ -200,6 +200,25 @@ public sealed class VouchaApiClientCommentThreadTests
             "markdown_to_html": {}
           }
           """),
+      new RecordedResponse("""
+          {
+            "results": [{ "entity_id": "root-1" }],
+            "page_info": { "has_next_page": false },
+            "posts": {
+              "root-1": {
+                "id": "root-1",
+                "post_type": "discussion",
+                "title": "Root",
+                "markdown": "Root body",
+                "created_by_id": "user-1"
+              }
+            },
+            "users": {},
+            "communities": {},
+            "posts_metrics": {},
+            "markdown_to_html": {}
+          }
+          """),
       new RecordedResponse("{}", HttpStatusCode.OK),
       new RecordedResponse("{}", HttpStatusCode.OK),
       new RecordedResponse("{}", HttpStatusCode.OK),
@@ -222,6 +241,14 @@ public sealed class VouchaApiClientCommentThreadTests
     var ancestors = await service.FetchPostAncestorsAsync("comment-1", TestContext.Current.CancellationToken);
     Assert.Equal("/api/v1/posts/comment-1/ancestors", handler.PathAndQuery);
     Assert.Equal("root-1", ancestors.Results[0].EntityId);
+
+    var ancestorPage = await service.FetchPostAncestorsPageAsync(
+        "comment-1",
+        "ancestor-cursor",
+        5,
+        TestContext.Current.CancellationToken);
+    Assert.Equal("/api/v1/posts/comment-1/ancestors?after=ancestor-cursor&limit=5", handler.PathAndQuery);
+    Assert.Equal("root-1", ancestorPage.Results[0].EntityId);
 
     await service.LockPostAsync("root-1", TestContext.Current.CancellationToken);
     Assert.Equal("/api/v1/posts/root-1/lock", handler.PathAndQuery);

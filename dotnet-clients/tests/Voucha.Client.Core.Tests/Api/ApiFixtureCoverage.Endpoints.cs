@@ -302,7 +302,6 @@ internal static partial class ApiFixtureCoverage
             "comment-root-post",
             "fixture-root-and-subtree-scoped-cursor",
             2),
-        ["native.comments.ancestors.permalink"] = VouchaApiEndpoints.PostAncestors("comment-b"),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.lists-containing.default"] = VouchaApiEndpoints.ListsContaining("rss_feed_item", "item-1"),

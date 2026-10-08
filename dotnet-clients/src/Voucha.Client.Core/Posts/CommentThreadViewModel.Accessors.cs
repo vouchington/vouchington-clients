@@ -28,16 +28,17 @@ public sealed partial class CommentThreadViewModel
       rootPostResponse?.Bookmarks ?? EmptyBookmarks;
 
   public IReadOnlyDictionary<string, PostElection> CommentElections =>
-      descendantsResponse?.PostElections ?? EmptyPostElections;
+      MergeNullable(ancestorsResponse?.PostElections, descendantsResponse?.PostElections) ?? EmptyPostElections;
 
   public IReadOnlyDictionary<string, ElectionVote> CommentElectionVotes =>
-      descendantsResponse?.ElectionVotes ?? EmptyElectionVotes;
+      MergeNullable(ancestorsResponse?.ElectionVotes, descendantsResponse?.ElectionVotes) ?? EmptyElectionVotes;
 
   public IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>> CommentBookmarks =>
-      descendantsResponse?.Bookmarks ?? EmptyBookmarks;
+      MergeNullable(ancestorsResponse?.Bookmarks, descendantsResponse?.Bookmarks) ?? EmptyBookmarks;
 
   public IReadOnlyDictionary<string, string> CommentHtml =>
-      descendantsResponse?.MarkdownToHtml ?? new Dictionary<string, string>(StringComparer.Ordinal);
+      MergeNullable(ancestorsResponse?.MarkdownToHtml, descendantsResponse?.MarkdownToHtml) ??
+          new Dictionary<string, string>(StringComparer.Ordinal);
 
   public UrlEmbedPreview? EmbedPreviewFor(Post post)
   {

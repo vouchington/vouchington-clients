@@ -332,6 +332,10 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         XCTAssertNoThrow(try loaded.inspect().find(text: "Comments"))
         XCTAssertNoThrow(try loaded.inspect().find(text: "/comment/root-1/comment/comment-a"))
 
+        loaded.viewModel.ancestorPagination.reset(items: [root])
+        loaded.viewModel.ancestorPagination.restoreContinuation(endCursor: "ancestor-cursor", hasMore: true)
+        XCTAssertNoThrow(try loaded.inspect().find(viewWithAccessibilityIdentifier: "comment-ancestors-pagination"))
+
         let empty = seededSurface(root: root, ancestor: nil, child: nil)
         XCTAssertNoThrow(try empty.inspect().find(text: "No comments yet"))
 

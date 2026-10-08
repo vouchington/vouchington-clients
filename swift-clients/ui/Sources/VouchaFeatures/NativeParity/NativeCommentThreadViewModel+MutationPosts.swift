@@ -14,6 +14,10 @@ extension NativeCommentThreadViewModel {
         }
         if let index = ancestorPosts.firstIndex(where: { $0.id == post.id }) {
             ancestorPosts[index] = mergedMutationPost(post, preserving: ancestorPosts[index])
+            let updatedAncestor = ancestorPosts[index]
+            ancestorPagination.replaceItems(ancestorPagination.items.map {
+                $0.id == updatedAncestor.id ? updatedAncestor : $0
+            })
             didMergeExistingPost = true
         }
         if !didMergeExistingPost {

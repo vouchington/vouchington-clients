@@ -15,6 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.cs" Link="Pages/PostDetailPageBinding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Rows.cs" Link="Pages/PostDetailPageBinding.Rows.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Pagination.cs" Link="Pages/PostDetailPageBinding.Pagination.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageRow.cs" Link="Pages/PostDetailPageRow.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml" Link="Pages/ChatConversationPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml.cs" Link="Pages/ChatConversationPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/StoryRelatedArticlesView.xaml" Link="Pages/StoryRelatedArticlesView.xaml" />

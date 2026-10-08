@@ -7,6 +7,8 @@ internal static partial class ApiFixtureCoverage
   private static Dictionary<string, ApiRequest> WithMembershipGrantAndAncestorEndpoints(
       this Dictionary<string, ApiRequest> registry)
   {
+    registry["native.comments.ancestors.permalink"] =
+        VouchaApiEndpoints.PostAncestors("comment-b");
     registry["native.comments.ancestors.bounded.shallow"] =
         VouchaApiEndpoints.PostAncestors("comment-b", limit: 5);
     registry["native.comments.ancestors.bounded.deep-initial"] =

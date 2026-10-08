@@ -10,4 +10,11 @@ public partial interface ICommentThreadService
       int limit,
       CancellationToken cancellationToken = default) =>
       FetchPostDescendantsAsync(postIdOrSlug, cancellationToken);
+
+  Task<PostThreadResponse> FetchPostAncestorsPageAsync(
+      string postIdOrSlug,
+      string? after,
+      int limit,
+      CancellationToken cancellationToken = default) =>
+      FetchPostAncestorsAsync(postIdOrSlug, cancellationToken);
 }

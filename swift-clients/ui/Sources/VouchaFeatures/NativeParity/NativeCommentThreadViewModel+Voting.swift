@@ -6,7 +6,14 @@ extension NativeCommentThreadViewModel {
         guard let client, inFlightVotePostIds.insert(postId).inserted else { return }
         defer { inFlightVotePostIds.remove(postId) }
         let previousChoice = voteChoicesByPostId[postId]
-        let previousPost = post(with: postId)
+        let previousPost = post(with: postId).map { post in
+            post.hydrated(
+                renderedHtml: nil,
+                metrics: nil,
+                election: post.election ?? postElectionsById[postId],
+                voteChoice: previousChoice
+            )
+        }
         reconcileVote(postId: postId, previous: previousChoice, next: choice)
         if let choice {
             voteChoicesByPostId[postId] = choice
@@ -30,7 +37,8 @@ extension NativeCommentThreadViewModel {
     }
 
     private func reconcileVote(postId: String, previous: ElectionVoteChoice?, next: ElectionVoteChoice?) {
-        guard let post = post(with: postId), let election = post.election else { return }
+        guard let post = post(with: postId),
+              let election = post.election ?? postElectionsById[postId] else { return }
         let counts = ElectionVoteCountReconciler.reconcile(
             previous: previous ?? election.myVote,
             next: next,
@@ -69,6 +77,7 @@ extension NativeCommentThreadViewModel {
         }
         descendantPosts = descendantPosts.map { $0.id == post.id ? post : $0 }
         ancestorPosts = ancestorPosts.map { $0.id == post.id ? post : $0 }
+        ancestorPagination.replaceItems(ancestorPagination.items.map { $0.id == post.id ? post : $0 })
         if let election = post.election {
             postElectionsById[post.id] = election
         }

@@ -46,6 +46,18 @@ public final class NativeCommentThreadViewModel {
     public internal(set) var postElectionsById: [String: PostElection] = [:]
     public internal(set) var electionVotesById: [String: PostVote] = [:]
     public internal(set) var postEmbedsByPostId: [String: UrlEmbed] = [:]
+    public internal(set) var usersById: [String: PublicUser] = [:]
+    public internal(set) var postMetricsById: [String: PostMetrics] = [:]
+    public internal(set) var communitiesById: [String: DecodedJSONValue] = [:]
+    public internal(set) var storiesById: [String: Story] = [:]
+    public internal(set) var rssFeedItemsById: [String: RssFeedItem] = [:]
+    public internal(set) var rssFeedItemElectionsById: [String: RssFeedItemElection] = [:]
+    public internal(set) var rssFeedItemThumbnailUrlsById: [String: String] = [:]
+    public internal(set) var relatedPostIdsByUrlId: [String: [String]] = [:]
+    public internal(set) var storyMemberIdsById: [String: [String]] = [:]
+    public internal(set) var storyPostIdsById: [String: [String]] = [:]
+    public internal(set) var pinnedPostIds: [String] = []
+    public internal(set) var rssFeedItemEmbedsById: [String: UrlEmbed] = [:]
     public var bookmarksByPostId: [String: [String: Bool]] = [:]
     public var voteChoicesByPostId: [String: ElectionVoteChoice] = [:]
     public internal(set) var inFlightVotePostIds: Set<String> = []
@@ -56,6 +68,7 @@ public final class NativeCommentThreadViewModel {
     let client: APIClient?
     var descendantPosts: [Post] = []
     var descendantPagination = CursorPaginationState<Post>()
+    var ancestorPagination = CursorPaginationState<Post>()
 
     public init(client: APIClient?, rootPostId: String, currentUserId: String? = nil) {
         self.client = client

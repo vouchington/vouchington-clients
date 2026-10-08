@@ -300,7 +300,7 @@ public sealed partial class CommentThreadViewModelTests
         Bookmarks: bookmarks);
   }
 
-  private sealed class RecordingPostsService : ICommentThreadService, IPostsService
+  private sealed partial class RecordingPostsService : ICommentThreadService, IPostsService
   {
     public PostResponse? RootResponse { get; init; }
 

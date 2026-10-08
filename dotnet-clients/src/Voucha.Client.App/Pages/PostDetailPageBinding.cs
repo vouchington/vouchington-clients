@@ -81,6 +81,7 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
 
   public void RefreshRows()
   {
+    RefreshCommentMetadata();
     RootRow = viewModel.RootPost is null ? null : BuildRow(viewModel.RootPost, 0, false, false);
     AncestorRows.Clear();
     foreach (var ancestor in viewModel.AncestorPosts)
@@ -88,8 +89,15 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
       AncestorRows.Add(BuildRow(ancestor, 0, false, false));
     }
 
+    var descendantRows = BuildRows(viewModel.Comments, 1).ToArray();
     CommentRows.Clear();
-    foreach (var row in BuildRows(viewModel.Comments, 1))
+    if (viewModel.FocusedComment is { } focused &&
+        !string.Equals(focused.Id, viewModel.RootPost?.Id, StringComparison.Ordinal) &&
+        !ContainsComment(viewModel.Comments, focused.Id))
+    {
+      CommentRows.Add(BuildRow(focused, 1, false, false));
+    }
+    foreach (var row in descendantRows)
     {
       CommentRows.Add(row);
     }
@@ -102,6 +110,11 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     OnPropertyChanged(nameof(HasMoreDescendants));
     OnPropertyChanged(nameof(IsLoadingMoreDescendants));
     OnPropertyChanged(nameof(HasDescendantPaginationError));
+    OnPropertyChanged(nameof(HasMoreAncestors));
+    OnPropertyChanged(nameof(IsLoadingMoreAncestors));
+    OnPropertyChanged(nameof(HasAncestorPaginationError));
+    OnPropertyChanged(nameof(CanLoadMoreAncestors));
+    OnPropertyChanged(nameof(AncestorPaginationLabel));
     OnPropertyChanged(nameof(CanVote));
     OnPropertyChanged(nameof(CanCompose));
     OnPropertyChanged(nameof(CurrentUserId));

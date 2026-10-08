@@ -1,9 +1,28 @@
+using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.App.Pages;
 
 public sealed partial class PostDetailPageBinding
 {
+  private IReadOnlyDictionary<string, PostElection> commentElections = new Dictionary<string, PostElection>();
+  private IReadOnlyDictionary<string, ElectionVote> commentElectionVotes = new Dictionary<string, ElectionVote>();
+  private IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>> commentBookmarks =
+      new Dictionary<string, IReadOnlyDictionary<string, bool>>();
+  private IReadOnlyDictionary<string, string> commentHtml = new Dictionary<string, string>();
+
+  private void RefreshCommentMetadata()
+  {
+    commentElections = viewModel.CommentElections;
+    commentElectionVotes = viewModel.CommentElectionVotes;
+    commentBookmarks = viewModel.CommentBookmarks;
+    commentHtml = viewModel.CommentHtml;
+  }
+
+  private static bool ContainsComment(IReadOnlyList<CommentThreadNodeViewModel> nodes, string id) =>
+      nodes.Any(node => string.Equals(node.Id, id, StringComparison.Ordinal) || ContainsComment(node.Children, id));
+
   private IEnumerable<PostDetailPageRow> BuildRows(
       IReadOnlyList<CommentThreadNodeViewModel> nodes,
       int depth)
@@ -36,12 +55,12 @@ public sealed partial class PostDetailPageBinding
             string.Equals(post.CreatedById, sessionStore.Current.Identity?.Id, StringComparison.Ordinal));
     var canDelete = CanCompose && post.CanDelete == true;
     var canLock = CanCompose && post.CanLock == true;
-    var bookmarks = isRoot ? viewModel.RootBookmarks : viewModel.CommentBookmarks;
+    var bookmarks = isRoot ? viewModel.RootBookmarks : commentBookmarks;
     var saved = bookmarks.TryGetValue(post.Id, out var actions) &&
         actions.TryGetValue("save", out var active) &&
         active;
-    var election = isRoot ? viewModel.RootElection : TryGet(viewModel.CommentElections, post.Id);
-    var vote = isRoot ? viewModel.RootElectionVote : TryGet(viewModel.CommentElectionVotes, post.Id);
+    var election = isRoot ? viewModel.RootElection : TryGet(commentElections, post.Id);
+    var vote = isRoot ? viewModel.RootElectionVote : TryGet(commentElectionVotes, post.Id);
 
     return new PostDetailPageRow(
         post,
@@ -73,7 +92,7 @@ public sealed partial class PostDetailPageBinding
   private string? BodyHtml(Post post, bool isRoot)
   {
     if (isRoot) return viewModel.RootHtml;
-    return viewModel.CommentHtml.TryGetValue(post.Id, out var html) ? html : null;
+    return commentHtml.TryGetValue(post.Id, out var html) ? html : null;
   }
 
   private static bool IsLocked(Post post) => post.LockedAt is not null;
