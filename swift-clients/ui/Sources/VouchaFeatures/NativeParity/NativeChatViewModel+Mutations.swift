@@ -16,6 +16,8 @@ extension NativeChatViewModel {
             return
         }
 
+        let retry = pendingTurn(for: text, providerSelection: providerSelection)
+
         detailErrorMessage = nil
         streamErrorMessage = nil
         draftMessage = ""
@@ -34,7 +36,7 @@ extension NativeChatViewModel {
 
         streamTask?.cancel()
         let localTurnIds = NativeChatMessageIDs.nextLocalTurn()
-        let userMessageId = localTurnIds.user
+        let userMessageId = retry?.context.userMessageId ?? localTurnIds.user
         messages.append(.init(
             id: userMessageId,
             role: .user,
@@ -42,11 +44,12 @@ extension NativeChatViewModel {
             isStreaming: false
         ))
         beginStreaming(conversationId: conversationId, userMessageId: userMessageId)
+        pendingLocalTurn = retry
 
         streamTask = Task { [weak self, client] in
             await self?.streamDraftMessage(
                 client: client,
-                context: .init(
+                context: retry?.context ?? .init(
                     conversationId: conversationId,
                     text: text,
                     userMessageId: userMessageId,

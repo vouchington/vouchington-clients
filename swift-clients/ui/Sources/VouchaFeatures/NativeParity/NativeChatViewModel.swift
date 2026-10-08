@@ -39,30 +39,27 @@ final class NativeChatViewModel {
         set { conversationPagination.replaceItems(newValue) }
     }
 
-    var listPageInfo: NativePaginationState? {
-        get {
-            guard conversationPagination.hasLoadedPage else { return nil }
-            return .init(
-                hasNextPage: conversationPagination.hasMore,
-                endCursor: conversationPagination.endCursor
-            )
-        }
-        set {
-            guard let newValue else {
-                conversationPagination.reset(items: conversations)
-                return
+    var detailPageInfo: NativePaginationState?
+    var selectedConversationId: String? {
+        didSet {
+            if pendingLocalTurn?.context.conversationId != selectedConversationId {
+                pendingLocalTurn = nil
             }
-            conversationPagination.restoreContinuation(
-                endCursor: newValue.endCursor,
-                hasMore: newValue.hasNextPage
-            )
         }
     }
 
-    var detailPageInfo: NativePaginationState?
-    var selectedConversationId: String?
     var messages: [NativeChatTimelineMessage] = []
-    var draftMessage = ""
+    var draftMessage = "" {
+        didSet {
+            if let pendingLocalTurn,
+               draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) != pendingLocalTurn.context.text {
+                self.pendingLocalTurn = nil
+            }
+        }
+    }
+
+    @ObservationIgnored
+    var pendingLocalTurn: NativeChatPendingLocalTurn?
     var listErrorMessage: UiVerbatimText?
     var detailErrorMessage: UiVerbatimText?
     var streamErrorMessage: UiVerbatimText?
@@ -73,7 +70,13 @@ final class NativeChatViewModel {
     var isGeneratingTitle = false
     var streamedContent = ""
     var conversationTitleDraft = ""
-    var titleProviderSelection: NativeChatTitleProviderKind
+    var titleProviderSelection: NativeChatTitleProviderKind {
+        didSet {
+            if pendingLocalTurn?.context.providerSelection != titleProviderSelection {
+                pendingLocalTurn = nil
+            }
+        }
+    }
 
     init(
         client: APIClient?,

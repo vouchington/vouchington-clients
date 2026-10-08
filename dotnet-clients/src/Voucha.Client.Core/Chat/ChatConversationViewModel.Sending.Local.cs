@@ -11,22 +11,33 @@ public sealed partial class ChatConversationViewModel
       string localAssistantMessageId,
       IReadOnlyList<LocalLLMResponseInput> history,
       ILocalChatProvider provider,
+      ChatProviderStatus selectedProvider,
+      PendingLocalTurn? retry,
       int currentRequest,
       CancellationToken cancellationToken)
   {
     ResetStreamingState();
     var streamingTokenSource = await ResetStreamingTokenAsync(cancellationToken).ConfigureAwait(true);
 
-    var generation = await provider.GenerateAssistantContentAsync(
-        trimmed,
-        history,
-        streamingTokenSource.Token).ConfigureAwait(true);
+    var generation = retry is null
+        ? await provider.GenerateAssistantContentAsync(trimmed, history, streamingTokenSource.Token).ConfigureAwait(true)
+        : null;
     if (currentRequest != Volatile.Read(ref requestId)) return false;
+
+    var body = retry?.Body ?? new CreateClientGeneratedChatBody(
+        trimmed,
+        generation!.AssistantContent,
+        generation.ModelProvider,
+        localUserMessageId,
+        localAssistantMessageId,
+        generation.ModelName);
+    var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body);
+    pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(
         localAssistantMessageId,
         "assistant",
-        generation.AssistantContent,
+        body.AssistantContent,
         DateTimeOffset.UtcNow));
     OnPropertyChanged(nameof(Messages));
 
@@ -34,14 +45,9 @@ public sealed partial class ChatConversationViewModel
     {
       await chatService.CreateClientGeneratedChatAsync(
           conversationId,
-          new CreateClientGeneratedChatBody(
-              trimmed,
-              generation.AssistantContent,
-              generation.ModelProvider,
-              localUserMessageId,
-              localAssistantMessageId,
-              generation.ModelName),
+          body,
           streamingTokenSource.Token).ConfigureAwait(true);
+      if (ReferenceEquals(pendingLocalTurn, pending)) pendingLocalTurn = null;
     }
     catch
     {

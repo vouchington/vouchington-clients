@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 using Xunit;
 
@@ -231,6 +232,60 @@ public sealed class ChatViewModelProviderTests
     Assert.Equal(LoadState.Error, viewModel.State);
     Assert.Empty(viewModel.Messages);
     Assert.False(viewModel.IsStreaming);
+  }
+
+  [Fact]
+  public async Task FailedPersistenceRetriesTheExactGeneratedTurnAndEditedTextStartsANewTurn()
+  {
+    var bodies = new List<CreateClientGeneratedChatBody>();
+    var attempts = 0;
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (conversationId, body, _) =>
+      {
+        bodies.Add(body);
+        if (++attempts is 1 or 3)
+        {
+          return Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+        }
+        return Task.FromResult(new ClientGeneratedChatResponse(
+            NewChatMessage(body.UserMessageId, "user", body.Message, "2026-07-01T10:00:01Z"),
+            NewChatMessage(body.AssistantMessageId, "assistant", body.AssistantContent, "2026-07-01T10:00:02Z"),
+            new ClientGeneratedChatTurn(body.UserMessageId, body.AssistantMessageId)));
+      },
+    };
+    var generations = 0;
+    var provider = AvailableLocalProvider((_, _, _) =>
+        Task.FromResult(new LocalChatGenerationResult(
+            $"Generated {++generations}", "windows_foundry", "windows-system-language-model")));
+    var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    provider.Status = provider.Status with
+    {
+      DisplayNameText = UiText.Verbatim("Localized provider"),
+      StatusTextValue = UiText.Verbatim("Localized status"),
+    };
+    viewModel.SelectedProviderStatus = provider.Status;
+    Assert.True(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    Assert.Equal(1, generations);
+    Assert.Equal(bodies[0], bodies[1]);
+
+    Assert.False(await viewModel.TrySendAsync("Edited", TestContext.Current.CancellationToken));
+    Assert.Equal(2, generations);
+    Assert.NotEqual(bodies[1].UserMessageId, bodies[2].UserMessageId);
+    Assert.Equal("Edited", bodies[2].Message);
+
+    provider.Status = provider.Status with { ModelName = "changed-model" };
+    viewModel.SelectedProviderStatus = provider.Status;
+    Assert.True(await viewModel.TrySendAsync("Edited", TestContext.Current.CancellationToken));
+    Assert.Equal(3, generations);
+    Assert.NotEqual(bodies[2].UserMessageId, bodies[3].UserMessageId);
+
+    Assert.True(await viewModel.TrySendAsync("Different", TestContext.Current.CancellationToken));
+    Assert.Equal(4, generations);
+    Assert.NotEqual(bodies[3].UserMessageId, bodies[4].UserMessageId);
+    Assert.Equal("Different", bodies[4].Message);
   }
 
   [Fact]

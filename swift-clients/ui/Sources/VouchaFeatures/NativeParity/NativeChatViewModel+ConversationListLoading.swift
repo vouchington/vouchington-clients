@@ -4,6 +4,26 @@ import VouchaLocalization
 import VouchaModels
 
 extension NativeChatViewModel {
+    var listPageInfo: NativePaginationState? {
+        get {
+            guard conversationPagination.hasLoadedPage else { return nil }
+            return .init(
+                hasNextPage: conversationPagination.hasMore,
+                endCursor: conversationPagination.endCursor
+            )
+        }
+        set {
+            guard let newValue else {
+                conversationPagination.reset(items: conversations)
+                return
+            }
+            conversationPagination.restoreContinuation(
+                endCursor: newValue.endCursor,
+                hasMore: newValue.hasNextPage
+            )
+        }
+    }
+
     func loadMoreConversations() async {
         await loadConversations(reset: false)
     }
