@@ -55,7 +55,9 @@ describe('event-driven CI orchestration', () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
 
     assert.equal(
-      workflow.includes('pull_request:\n    types: [opened, synchronize, reopened, ready_for_review]\n'),
+      workflow.includes(
+        'pull_request:\n    types: [opened, synchronize, reopened, ready_for_review]\n',
+      ),
       true,
     )
     assert.doesNotMatch(workflow, /converted_to_draft/u)
