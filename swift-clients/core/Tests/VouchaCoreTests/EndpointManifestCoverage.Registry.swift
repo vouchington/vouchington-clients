@@ -30,4 +30,8 @@ enum EndpointManifestCoverage {
             + currentContractFixtureEndpoints.map { id, endpoint in
                 ManifestRegisteredEndpoint(id: id) { endpoint }
             }
+
+            + entityProvenanceFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
 }
