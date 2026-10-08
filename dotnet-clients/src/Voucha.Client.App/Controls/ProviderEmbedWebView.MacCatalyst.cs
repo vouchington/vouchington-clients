@@ -33,8 +33,8 @@ public sealed partial class ProviderEmbedWebView
   {
     if (native is null) return;
     native.StopLoading();
-    native.NavigationDelegate = null;
-    native.UIDelegate = null;
+    native.NavigationDelegate = null!;
+    native.UIDelegate = null!;
     native = null;
   }
 
@@ -44,7 +44,9 @@ public sealed partial class ProviderEmbedWebView
         WKWebView webView,
         WKNavigationAction navigationAction,
         Action<WKNavigationActionPolicy> decisionHandler) =>
-        decisionHandler(navigationAction.Request.Url is { } url && UrlEmbedPreviews.IsApprovedPlayer(new Uri(url.AbsoluteString))
+        decisionHandler(navigationAction.Request.Url?.AbsoluteString is { } absolute &&
+            Uri.TryCreate(absolute, UriKind.Absolute, out var target) &&
+            UrlEmbedPreviews.IsApprovedPlayer(target)
             ? WKNavigationActionPolicy.Allow
             : WKNavigationActionPolicy.Cancel);
   }
