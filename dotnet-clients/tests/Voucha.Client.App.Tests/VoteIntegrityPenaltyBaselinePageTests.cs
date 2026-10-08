@@ -35,7 +35,7 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     await WaitUntilAsync(() => !Descendants<Button>(page).Any(button =>
         button.AutomationId == "vote-integrity-reconcile-flag-1"));
 
-    Assert.Equal(permitsRetry ? 1 : 0, service.FlagGets);
+    Assert.Equal(1, service.FlagGets);
     Assert.Equal(permitsRetry, Find<Button>(page, "vote-integrity-penalty-flag-1").IsEnabled);
     if (permitsRetry)
     {

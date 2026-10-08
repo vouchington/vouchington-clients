@@ -132,6 +132,8 @@ public sealed class LifecycleScenarioContractTests
           ModerationIntegrityTestService.VoteFlag(flagId)]));
       service.FetchVotePenalties = (_, _, _, _) => Task.FromResult(VotePenaltyPage(
           ++reads == 1 ? baseline : exact, flagId));
+      service.FetchVote = (_, _) => Task.FromResult(new VoteIntegrityFlagResponse(
+          ModerationIntegrityTestService.VoteFlag(flagId)));
       service.PenalizeVotes = (_, _) => Task.FromException<VoteIntegrityPenaltyApplicationResponse>(
           new HttpRequestException("ambiguous", null, HttpStatusCode.InternalServerError));
       var model = new VoteIntegrityViewModel(service, new NavigationViewer(true, ["administrator"]));
