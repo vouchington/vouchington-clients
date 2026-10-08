@@ -15,19 +15,21 @@ public sealed partial class NewsFeedsViewModel
   {
     if (!togglingArticleIds.Add(original.Id)) return;
     var generation = loadRequestId;
-    var index = group.Items.IndexOf(original);
+    var index = group.Items.ToList().FindIndex(peer => peer.Id == original.Id);
     if (index < 0)
     {
       togglingArticleIds.Remove(original.Id);
       return;
     }
-    var updated = project(original);
-    var mainIndex = Items.ToList().FindIndex(item => item.Id == original.Id);
-    var mainOriginal = mainIndex >= 0 ? Items[mainIndex] : null;
-    var mainUpdated = mainOriginal is null ? null : project(mainOriginal);
-    if (mainOriginal is not null)
+    var peerOriginal = group.Items[index];
+    var updated = project(peerOriginal);
+    var mainOriginals = Items.Select((item, index) => (item, index))
+        .Where(entry => entry.item.Id == original.Id).ToArray();
+    var mainOriginalByFeedRowId = mainOriginals.ToDictionary(entry => entry.item.FeedRowId, entry => entry.item);
+    var mainUpdated = mainOriginals.ToDictionary(entry => entry.item.FeedRowId, entry => project(entry.item));
+    if (mainOriginals.Length > 0)
       Items = Items.Where(item => !remove || item.Id != original.Id)
-          .Select(item => item.Id == original.Id ? mainUpdated! : item).ToArray();
+          .Select(item => item.Id == original.Id ? mainUpdated[item.FeedRowId] : item).ToArray();
     if (remove)
     {
       group.SuppressHiddenPeer(original.Id);
@@ -40,32 +42,43 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       if (verifyEmail)
-        await EmailVerificationGate.RunAsync(submit, ex => Restore(ex.Message)).ConfigureAwait(true);
+        await EmailVerificationGate.RunAsync(SubmitAndProjectAsync, ex => Restore(ex.Message)).ConfigureAwait(true);
       else
-        await submit().ConfigureAwait(true);
+        await SubmitAndProjectAsync().ConfigureAwait(true);
     }
     catch (OperationCanceledException) { Restore(null); }
     catch (Exception ex) { Restore(ex.Message); }
     finally { togglingArticleIds.Remove(original.Id); }
+
+    async Task SubmitAndProjectAsync()
+    {
+      await submit().ConfigureAwait(true);
+      if (generation != loadRequestId) return;
+      Items = Items.Where(item => !remove || item.Id != original.Id)
+          .Select(item => item.Id == original.Id ? project(item) : item).ToArray();
+    }
 
     void Restore(string? message)
     {
       if (generation != loadRequestId) return;
       if (remove) group.RestoreHiddenPeer(original.Id);
       if (remove && !group.Items.Any(item => item.Id == original.Id))
-        group.Items.Insert(Math.Min(index, group.Items.Count), original);
+        group.Items.Insert(Math.Min(index, group.Items.Count), peerOriginal);
       else if (!remove && group.Items.IndexOf(updated) is var current && current >= 0)
-        group.Items[current] = original;
-      if (mainOriginal is not null && Items.Any(item => ReferenceEquals(item.StoryArticles, group)))
+        group.Items[current] = peerOriginal;
+      if (mainOriginals.Length > 0 && Items.Any(item => ReferenceEquals(item.StoryArticles, group)))
       {
-        if (remove && !Items.Any(item => item.Id == original.Id))
+        if (remove)
         {
           var restored = Items.ToList();
-          restored.Insert(Math.Min(mainIndex, restored.Count), mainOriginal);
+          foreach (var (item, originalIndex) in mainOriginals)
+            if (!restored.Any(currentItem => currentItem.FeedRowId == item.FeedRowId))
+              restored.Insert(Math.Clamp(originalIndex, 0, restored.Count), item);
           Items = restored;
         }
         else if (!remove)
-          Items = Items.Select(item => ReferenceEquals(item, mainUpdated) ? mainOriginal : item).ToArray();
+          Items = Items.Select(item => mainUpdated.TryGetValue(item.FeedRowId, out var optimistic) &&
+                  ReferenceEquals(item, optimistic) ? mainOriginalByFeedRowId[item.FeedRowId] : item).ToArray();
       }
       group.Notify();
       ErrorMessage = message;

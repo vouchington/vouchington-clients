@@ -79,6 +79,37 @@ final class CursorPaginationStateTests: XCTestCase {
         ))
         XCTAssertEqual(state.items.map(\.id), ["one", "two", "three"])
     }
+
+    func testDeliveryIdentityRetainsSharedItemAcrossPages() throws {
+        struct Delivery: Identifiable {
+            let id: String
+            let itemId: String
+        }
+        var state = CursorPaginationState<Delivery>()
+        let first = try XCTUnwrap(state.beginNextPage())
+        XCTAssertTrue(state.complete(
+            first,
+            items: [
+                Delivery(id: "share-A", itemId: "item-X"),
+                Delivery(id: "share-B", itemId: "item-X"),
+                Delivery(id: "direct", itemId: "item-X")
+            ],
+            endCursor: "cursor-2",
+            hasNextPage: true
+        ))
+        let second = try XCTUnwrap(state.beginNextPage())
+        XCTAssertTrue(state.complete(
+            second,
+            items: [
+                Delivery(id: "share-A", itemId: "item-X"),
+                Delivery(id: "share-C", itemId: "item-X")
+            ],
+            endCursor: nil,
+            hasNextPage: false
+        ))
+        XCTAssertEqual(state.items.map(\.id), ["share-A", "share-B", "direct", "share-C"])
+        XCTAssertEqual(state.items.map(\.itemId), ["item-X", "item-X", "item-X", "item-X"])
+    }
 }
 
 private struct TestItem: Identifiable {

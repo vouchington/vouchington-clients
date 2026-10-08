@@ -97,17 +97,18 @@ final class RSSFeedListViewStoryDiscussionTests: XCTestCase {
         )
         model.storyRelatedArticlesByStoryId["story"] = group
         let view = RSSFeedListView(viewModel: model, playbackController: makePlaybackController())
-        let collapsed = view.storyRelatedArticlesView(for: primary)
+        let row = RssFeedListRow(deliveryId: primary.id, item: primary, showsStory: true)
+        let collapsed = view.storyRelatedArticlesView(for: row)
         XCTAssertNoThrow(try collapsed.inspect().find(text: "1+ related articles"))
         XCTAssertTrue(try collapsed.inspect().findAll(ViewType.View<RssFeedItemCard>.self).isEmpty)
         try collapsed.inspect().find(ViewType.Button.self).tap()
-        let expanded = view.storyRelatedArticlesView(for: primary)
+        let expanded = view.storyRelatedArticlesView(for: row)
         XCTAssertEqual(try expanded.inspect().findAll(ViewType.View<RssFeedItemCard>.self).count, 1)
         XCTAssertNoThrow(try expanded.inspect().find(button: "Load more"))
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
         CannedFeedURLProtocol.handlers["/api/v1/stories/story"] = (Data("{}".utf8), 500)
         await model.loadMoreStoryArticles(rssFeedItemId: primary.id)
-        let failed = view.storyRelatedArticlesView(for: primary)
+        let failed = view.storyRelatedArticlesView(for: row)
         XCTAssertEqual(try failed.inspect().findAll(ViewType.View<RssFeedItemCard>.self).count, 1)
         XCTAssertNoThrow(try failed.inspect().find(button: "Try Again"))
         XCTAssertEqual(group.pagination.items.map(\.id), [peer.id])
@@ -128,24 +129,25 @@ final class RSSFeedListViewStoryDiscussionTests: XCTestCase {
         )
         model.storyRelatedArticlesByStoryId["story"] = group
         let view = RSSFeedListView(viewModel: model, playbackController: makePlaybackController())
+        let row = RssFeedListRow(deliveryId: primary.id, item: primary, showsStory: true)
 
         XCTAssertTrue(model.canStartStoryDiscussion(rssFeedItemId: primary.id))
-        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: primary).inspect().find(text: "1 related article"))
+        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: row).inspect().find(text: "1 related article"))
         group.isExpanded = true
         XCTAssertEqual(
-            try view.storyRelatedArticlesView(for: primary).inspect().findAll(ViewType.View<RssFeedItemCard>.self)
+            try view.storyRelatedArticlesView(for: row).inspect().findAll(ViewType.View<RssFeedItemCard>.self)
                 .count,
             1
         )
 
         group.pagination.replaceItems([hidden])
         XCTAssertFalse(model.canStartStoryDiscussion(rssFeedItemId: primary.id))
-        XCTAssertThrowsError(try view.storyRelatedArticlesView(for: primary).inspect().find(ViewType.Button.self))
+        XCTAssertThrowsError(try view.storyRelatedArticlesView(for: row).inspect().find(ViewType.Button.self))
 
         group.pagination.restoreContinuation(endCursor: "next", hasMore: true)
         XCTAssertTrue(model.canStartStoryDiscussion(rssFeedItemId: primary.id))
-        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: primary).inspect().find(text: "0+ related articles"))
-        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: primary).inspect().find(button: "Load more"))
+        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: row).inspect().find(text: "0+ related articles"))
+        XCTAssertNoThrow(try view.storyRelatedArticlesView(for: row).inspect().find(button: "Load more"))
     }
 
     private func article(_ id: String) -> RssFeedItem {

@@ -12,6 +12,7 @@ public sealed partial class ApiNewsFeedService
       AttachStoryPreviews(response, response.Results
           .Select(reference => (
               ItemId: reference.EntityId ?? reference.Id,
+              DeliveryId: reference.Id ?? reference.EntityId,
               reference.ReadAt,
               StoryId: reference.DeliveryType == "share" ? null : reference.StoryId))
           .Where(reference =>
@@ -27,7 +28,8 @@ public sealed partial class ApiNewsFeedService
               response.RssFeedItemThumbnailUrl,
               response.RssFeedItemEmbeds,
               reference.StoryId,
-              response.StoryPostIds))
+              response.StoryPostIds,
+              reference.DeliveryId))
           .ToArray());
 
   private NewsFeedItem MapItem(
@@ -40,7 +42,8 @@ public sealed partial class ApiNewsFeedService
       IReadOnlyDictionary<string, string>? thumbnailUrls,
       IReadOnlyDictionary<string, UrlEmbed>? embeds,
       string? storyId,
-      IReadOnlyDictionary<string, string>? storyPostIds)
+      IReadOnlyDictionary<string, string>? storyPostIds,
+      string? deliveryId = null)
   {
     var title = item.Data?.Title ?? item.Title
         ?? localization.Localize(UiMessageKey.NativeDotnetNewsFeedsUntitled);
@@ -96,7 +99,8 @@ public sealed partial class ApiNewsFeedService
         StoryId: storyId,
         StoryPostId: storyPostId,
         EmbedPreview: UrlEmbedPreviews.From(embed),
-        Localization: localization);
+        Localization: localization,
+        DeliveryId: deliveryId);
   }
 
   private static string? SelectProtocolMediaType(RssFeedItem item) =>

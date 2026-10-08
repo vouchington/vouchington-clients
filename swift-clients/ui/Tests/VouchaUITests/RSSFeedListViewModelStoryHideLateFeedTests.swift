@@ -3,6 +3,103 @@ import Foundation
 import XCTest
 
 extension RSSFeedListViewModelTests {
+    func testFailedHideRestoresDeliveriesSkippedByHeldFeedContinuation() async throws {
+        let feedPath = "/api/v1/feeds/rss_feed_items/any"
+        let hidePath = "/api/v1/bookmarks/rss_feed_item/item-X/hide"
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["direct", "before"], hasMore: true, endCursor: "feed-cursor",
+                resultEntityIds: ["item-X", "before"], rssFeedItemIds: ["item-X", "before"],
+                deliveryTypes: ["direct": "direct"]
+            ), 200
+        )
+        let vm = makeViewModel()
+        await vm.load()
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["share-A", "between", "share-B"], hasMore: false,
+                resultEntityIds: ["item-X", "between", "item-X"],
+                rssFeedItemIds: ["item-X", "between"],
+                deliveryTypes: ["share-A": "share", "share-B": "share"]
+            ), 200
+        )
+        CannedFeedURLProtocol.handlers[hidePath] = (Data("{}".utf8), 500)
+        let hideBarrier = CannedFeedURLProtocol.requestBarrier(path: hidePath, method: "PUT")
+        CannedFeedURLProtocol.suspendResponse(path: hidePath)
+        defer { CannedFeedURLProtocol.discardPendingResponses() }
+        let pendingHide = Task { await vm.toggleHide(rssFeedItemId: "item-X") }
+        do {
+            _ = try await hideBarrier.wait()
+        } catch {
+            pendingHide.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: hidePath)
+            CannedFeedURLProtocol.discardPendingResponses()
+            await pendingHide.value
+            throw error
+        }
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["before"])
+
+        await vm.loadNextPage()
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["before", "between"])
+        XCTAssertFalse(vm.hasMore)
+        await vm.toggleHide(rssFeedItemId: "item-X")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(hidePath), 1)
+
+        CannedFeedURLProtocol.releaseResponse(path: hidePath)
+        await pendingHide.value
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["direct", "before", "share-A", "between", "share-B"])
+        XCTAssertEqual(vm.feedRows.map(\.item.id), ["item-X", "before", "item-X", "between", "item-X"])
+        XCTAssertFalse(vm.isHidden(rssFeedItemId: "item-X"))
+        XCTAssertFalse(vm.hasMore)
+    }
+
+    func testFailedHideRestoresEarlierSkippedTailBeforeLaterFeedPage() async throws {
+        let feedPath = "/api/v1/feeds/rss_feed_items/any"
+        let hidePath = "/api/v1/bookmarks/rss_feed_item/item-X/hide"
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["direct"], hasMore: true, endCursor: "first",
+                resultEntityIds: ["item-X"], rssFeedItemIds: ["item-X"]
+            ), 200
+        )
+        let vm = makeViewModel()
+        await vm.load()
+        CannedFeedURLProtocol.handlers[hidePath] = (Data("{}".utf8), 500)
+        let hideBarrier = CannedFeedURLProtocol.requestBarrier(path: hidePath, method: "PUT")
+        CannedFeedURLProtocol.suspendResponse(path: hidePath)
+        defer { CannedFeedURLProtocol.discardPendingResponses() }
+        let pendingHide = Task { await vm.toggleHide(rssFeedItemId: "item-X") }
+        do {
+            _ = try await hideBarrier.wait()
+        } catch {
+            pendingHide.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: hidePath)
+            CannedFeedURLProtocol.discardPendingResponses()
+            await pendingHide.value
+            throw error
+        }
+
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["share-A"], hasMore: true, endCursor: "second",
+                resultEntityIds: ["item-X"], rssFeedItemIds: ["item-X"],
+                deliveryTypes: ["share-A": "share"]
+            ), 200
+        )
+        await vm.loadNextPage()
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(ids: ["later"], hasMore: false), 200
+        )
+        await vm.loadNextPage()
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["later"])
+
+        CannedFeedURLProtocol.releaseResponse(path: hidePath)
+        await pendingHide.value
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["direct", "share-A", "later"])
+        XCTAssertEqual(vm.feedRows.map(\.item.id), ["item-X", "item-X", "later"])
+        XCTAssertFalse(vm.hasMore)
+    }
+
     func testSuccessfulPrimaryHideRejectsRepeatedItemFromHeldFeedPage() async throws {
         let feedPath = "/api/v1/feeds/rss_feed_items/any"
         CannedFeedURLProtocol.handlers[feedPath] = (

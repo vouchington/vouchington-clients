@@ -6,9 +6,13 @@ import VouchaModels
 @Observable
 @MainActor
 public final class RSSFeedListViewModel {
-    var pagination = CursorPaginationState<RssFeedItem>()
+    var pagination = CursorPaginationState<RssFeedListRow>()
     private var actionState: LoadState?
     public var items: [RssFeedItem] {
+        pagination.items.map(\.item)
+    }
+
+    var feedRows: [RssFeedListRow] {
         pagination.items
     }
 
@@ -49,6 +53,7 @@ public final class RSSFeedListViewModel {
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
     var bookmarkMutationGeneration = 0
+    @ObservationIgnored var skippedPendingHideDeliveriesByItemId: [String: [PendingHideDelivery]] = [:]
     var storyIdsByItemId: [String: String] = [:]
     var storyRelatedArticlesByStoryId: [String: StoryRelatedArticles] = [:]
     var storyPostIdsByStoryId: [String: String] = [:]
@@ -88,6 +93,7 @@ public final class RSSFeedListViewModel {
         savedItemIds = []
         hiddenItemIds = []
         inFlightBookmarkKeys = []
+        skippedPendingHideDeliveriesByItemId = [:]
         storyIdsByItemId = [:]
         storyRelatedArticlesByStoryId = [:]
         storyPostIdsByStoryId = [:]

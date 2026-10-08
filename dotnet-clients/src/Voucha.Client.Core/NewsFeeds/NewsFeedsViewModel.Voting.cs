@@ -32,7 +32,7 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       await EmailVerificationGate.RunAsync(
-          () => SubmitVoteAsync(item, choice, cancellationToken),
+          SubmitAndProjectAsync,
           ex =>
           {
             RollbackVote(mutationLoadRequestId, item, previousTargetItems, ex.Message);
@@ -49,6 +49,12 @@ public sealed partial class NewsFeedsViewModel
     finally
     {
       votingArticleIds.Remove(voteKey);
+    }
+
+    async Task SubmitAndProjectAsync()
+    {
+      await SubmitVoteAsync(item, choice, cancellationToken).ConfigureAwait(true);
+      if (loadRequestId == mutationLoadRequestId) Items = UpdateVote(Items, item, choice);
     }
   }
 
@@ -98,8 +104,11 @@ public sealed partial class NewsFeedsViewModel
       return;
     }
 
-    var previousById = previousTargetItems.ToDictionary(item => item.Id, StringComparer.Ordinal);
-    Items = Items.Select(item => MatchesVoteTarget(item, votedItem) && previousById.TryGetValue(item.Id, out var previous) ? previous : item).ToArray();
+    var previousByRow = previousTargetItems.ToDictionary(item => item.FeedRowId, StringComparer.Ordinal);
+    Items = Items.Select(item =>
+        MatchesVoteTarget(item, votedItem) && previousByRow.TryGetValue(item.FeedRowId, out var previous)
+            ? previous
+            : item).ToArray();
     ErrorMessage = errorMessage;
   }
 }

@@ -34,8 +34,11 @@ public sealed record NewsFeedItem(
     bool IsStartingStoryDiscussion = false,
     UrlEmbedPreview? EmbedPreview = null,
     IUiLocalization? Localization = null,
-    StoryRelatedArticles? StoryArticles = null)
+    StoryRelatedArticles? StoryArticles = null,
+    string? DeliveryId = null)
 {
+  public string FeedRowId => DeliveryId ?? Id;
+
   public bool IsSource => Kind == NewsFeedItemKind.Source;
 
   public bool IsArticle => Kind == NewsFeedItemKind.Article;

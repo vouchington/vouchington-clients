@@ -150,6 +150,7 @@ public sealed class ApiNewsFeedServiceTests
 
     var item = Assert.Single(items);
     Assert.Equal("item-1", item.Id);
+    Assert.Equal("share-1", item.FeedRowId);
     Assert.True(item.IsRead);
   }
 

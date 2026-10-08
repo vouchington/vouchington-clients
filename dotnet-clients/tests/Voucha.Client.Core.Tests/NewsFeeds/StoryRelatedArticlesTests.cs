@@ -41,7 +41,7 @@ public sealed class StoryRelatedArticlesTests
     var service = new Service(new([Primary(group)], new("feed-after", true, null)));
     var model = new NewsFeedsViewModel(service);
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    NewsFeedsViewModel.ToggleStoryArticles(model.Items[0]);
+    model.ToggleStoryArticles(model.Items[0]);
 
     Assert.True(group.IsExpanded);
     Assert.Equal(previewCount, group.Items.Count);

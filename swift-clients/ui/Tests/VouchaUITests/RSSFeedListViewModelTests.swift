@@ -324,6 +324,114 @@ final class RSSFeedListViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isHidden(rssFeedItemId: "i1"))
         XCTAssertEqual(vm.items.map(\.id), ["i1", "i2"])
     }
+
+    func testHideSharedStoryPeerRestoresInterleavedDeliveriesThenRemovesAllLocations() async {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["primary", "share-A", "other", "share-B"], hasMore: false,
+                resultEntityIds: ["primary", "item-X", "other", "item-X"],
+                rssFeedItemIds: ["primary", "item-X", "other"],
+                storyIds: ["primary": "story-1"], storyRelatedIds: ["story-1": ["item-X"]],
+                deliveryTypes: ["share-A": "share", "share-B": "share"]
+            ),
+            200
+        )
+        let hidePath = "/api/v1/bookmarks/rss_feed_item/item-X/hide"
+        CannedFeedURLProtocol.handlers[hidePath] = (Data("{}".utf8), 500)
+        let vm = makeViewModel()
+        await vm.load()
+        XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "primary")?.pagination.items.map(\.id), ["item-X"])
+
+        await vm.toggleHide(rssFeedItemId: "item-X")
+        XCTAssertFalse(vm.isHidden(rssFeedItemId: "item-X"))
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["primary", "share-A", "other", "share-B"])
+        XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "primary")?.pagination.items.map(\.id), ["item-X"])
+
+        CannedFeedURLProtocol.handlers[hidePath] = (Data("{}".utf8), 204)
+        await vm.toggleHide(rssFeedItemId: "item-X")
+        XCTAssertTrue(vm.isHidden(rssFeedItemId: "item-X"))
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["primary", "other"])
+        XCTAssertTrue(vm.relatedArticles(rssFeedItemId: "primary")?.pagination.items.isEmpty == true)
+    }
+
+    func testHideFailureRestoresInterleavedShareDeliveryOrder() async {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["share-A", "other", "share-B"], hasMore: false,
+                resultEntityIds: ["item-X", "other", "item-X"],
+                deliveryTypes: ["share-A": "share", "share-B": "share"]
+            ), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/bookmarks/rss_feed_item/item-X/hide"] = (Data("{}".utf8), 500)
+        let vm = makeViewModel()
+        await vm.load()
+        await vm.toggleHide(rssFeedItemId: "item-X")
+        XCTAssertFalse(vm.isHidden(rssFeedItemId: "item-X"))
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["share-A", "other", "share-B"])
+    }
+
+    func testDistinctShareDeliveriesKeepSharedItemHydration() async {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["direct", "share-A", "share-B"],
+                hasMore: false,
+                resultEntityIds: ["item-X", "item-X", "item-X"],
+                rssFeedItemIds: ["item-X", "peer-1"],
+                thumbnailURLs: ["item-X": "/sideload/item-X.jpg"],
+                storyIds: ["item-X": "story-1"],
+                storyRelatedIds: ["story-1": ["peer-1"]],
+                deliveryTypes: ["direct": "direct", "share-A": "share", "share-B": "share"]
+            ),
+            200
+        )
+        let vm = makeViewModel()
+        await vm.load()
+
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["direct", "share-A", "share-B"])
+        XCTAssertEqual(vm.feedRows.map(\.showsStory), [true, false, false])
+        XCTAssertEqual(vm.items.map(\.id), ["item-X", "item-X", "item-X"])
+        XCTAssertEqual(vm.items.map(\.title), ["Item item-X", "Item item-X", "Item item-X"])
+        XCTAssertEqual(
+            vm.items.map(\.thumbnailURL),
+            Array(repeating: "http://localhost:2999/sideload/item-X.jpg", count: 3)
+        )
+        XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "item-X")?.primaryItemId, "item-X")
+    }
+
+    func testContinuationKeepsNewDeliveriesAndDropsRepeatedOnes() async {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["direct"],
+                hasMore: true,
+                endCursor: "c2",
+                resultEntityIds: ["item-X"],
+                rssFeedItemIds: ["item-X", "peer-1"],
+                storyIds: ["item-X": "story-1"],
+                storyRelatedIds: ["story-1": ["peer-1"]],
+                deliveryTypes: ["direct": "direct"]
+            ),
+            200
+        )
+        let vm = makeViewModel()
+        await vm.loadNextPage()
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(
+                ids: ["direct", "share-A", "direct-Y"],
+                hasMore: false,
+                resultEntityIds: ["item-X", "item-X", "item-Y"],
+                rssFeedItemIds: ["item-X", "item-Y"],
+                storyIds: ["item-X": "story-1", "item-Y": "story-1"],
+                deliveryTypes: ["direct": "direct", "share-A": "share", "direct-Y": "direct"]
+            ),
+            200
+        )
+        await vm.loadNextPage()
+
+        XCTAssertEqual(vm.feedRows.map(\.deliveryId), ["direct", "share-A"])
+        XCTAssertEqual(vm.feedRows.map(\.showsStory), [true, false])
+        XCTAssertEqual(vm.items.map(\.id), ["item-X", "item-X"])
+        XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "item-X")?.primaryItemId, "item-X")
+    }
 }
 
 // MARK: - RSSFeedListViewModel (All Feed path)
