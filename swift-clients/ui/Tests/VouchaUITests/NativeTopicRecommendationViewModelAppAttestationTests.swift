@@ -125,9 +125,11 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
         XCTFail("Expected loaded state")
     }
 
-    func testSubmitRequiresTurnstileWhenServerRejectsBypassAndNoTokenAvailable() async throws {
+    func testTurnstileFallbackAndResumptionPreserveContributionIdentity() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations"] = [
-            (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0)
+            (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
+            (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
+            (Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8), 201, 0)
         ]
         let viewModel = try makeViewModel()
         viewModel.topicTitle = "Native Topic"
@@ -136,12 +138,41 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
         await viewModel.submit()
 
-        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/topic-recommendations" }
-        XCTAssertEqual(attempts.count, 1)
-        if case .required = viewModel.state {
-            return
+        let initialAttempts = CannedFeedURLProtocol.capturedRequests.filter {
+            $0.url.path == "/api/v1/topic-recommendations"
         }
-        XCTFail("Expected turnstile-required state")
+        XCTAssertEqual(initialAttempts.count, 1)
+        guard case .required = viewModel.state else {
+            return XCTFail("Expected turnstile-required state")
+        }
+        let originalKey = try XCTUnwrap(initialAttempts.first?.idempotencyKey)
+        XCTAssertFalse(originalKey.isEmpty)
+
+        viewModel.turnstileToken = "resumed-token"
+        await viewModel.submit()
+
+        XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
+        let attempts = CannedFeedURLProtocol.capturedRequests.filter {
+            $0.url.path == "/api/v1/topic-recommendations"
+        }
+        XCTAssertEqual(attempts.count, 3)
+        let initialBody = try topicRequestBody(XCTUnwrap(initialAttempts.first?.body))
+        XCTAssertEqual(initialBody["topic_title"] as? String, "Native Topic")
+        XCTAssertEqual(initialBody["topic_slug"] as? String, "native-topic")
+        XCTAssertEqual(initialBody["markdown"] as? String, "Please add this topic.")
+        for attempt in attempts {
+            XCTAssertEqual(attempt.method, "POST")
+            XCTAssertEqual(attempt.idempotencyKey, originalKey)
+            var body = try topicRequestBody(XCTUnwrap(attempt.body))
+            body.removeValue(forKey: "cf_turnstile_response")
+            XCTAssertTrue(NSDictionary(dictionary: body).isEqual(to: initialBody))
+        }
+        let resumedBody = try topicRequestBody(XCTUnwrap(attempts.last?.body))
+        XCTAssertEqual(resumedBody["cf_turnstile_response"] as? String, "resumed-token")
+    }
+
+    private func topicRequestBody(_ body: String) throws -> [String: Any] {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
     }
 
     func testSubmitForgetsCachedKeyWhenServerRejectsAssertion() async throws {
