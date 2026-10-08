@@ -502,7 +502,7 @@ jobs:
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
       - name: Export deterministic core LCOV
         working-directory: candidate-clients
-        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCoreTests coverage/core/lcov.info
       - name: Upload core LCOV
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
@@ -524,8 +524,6 @@ jobs:
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 30
-    env:
-      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -579,6 +577,9 @@ jobs:
         with:
           client-root: candidate-clients
           tool: swift
+      - name: Select Xcode 26.6 for Android host SwiftPM tests
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -600,10 +601,13 @@ jobs:
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Verify Android host test compiler
+        working-directory: candidate-clients
+        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
       - name: Test Android Swift package
         working-directory: candidate-clients
         run: >-
-          mise exec -- swift test --package-path swift-clients/apps/android
+          mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

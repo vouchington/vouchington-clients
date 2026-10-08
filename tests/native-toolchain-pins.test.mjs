@@ -46,6 +46,10 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   const workflow = read('.github/workflows/native-contract-tests.yml')
   const linuxAndroid = read('swift-clients/tooling/build-android-core.sh')
   const macAndroid = read('swift-clients/apps/android/tooling/materialize-skip-sdk.sh')
+  const androidHostCompiler = read(
+    'swift-clients/apps/android/tooling/verify-android-host-swift.sh',
+  )
+  const androidPrePush = read('swift-clients/apps/android/tooling/pre-push.sh')
 
   assert.match(mise, /^swift = "6\.4\.0"$/mu)
   assert.match(images, /swift:6\.4\.0-noble@sha256:[0-9a-f]{64}/u)
@@ -66,7 +70,18 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
     androidJob,
     /setup-mise-toolchain[\s\S]*?client-root: candidate-clients[\s\S]*?tool: swift/u,
   )
-  assert.match(androidJob, /mise exec -- swift test/u)
+  assert.match(androidJob, /mise exec swift@6\.3\.3 -- swift test/u)
+  assert.match(androidJob, /verify-android-host-swift\.sh/u)
+  assert.match(androidHostCompiler, /mise install "swift@\$expected_version"/u)
+  assert.match(
+    androidHostCompiler,
+    /expected_version="6\.3\.3"[\s\S]*?selected_xcode_version[\s\S]*?expected_version/su,
+  )
+  assert.match(androidHostCompiler, /mise exec "swift@\$expected_version" -- swift --version/u)
+  assert.match(
+    androidPrePush,
+    /verify-android-host-swift\.sh[\s\S]*mise exec swift@6\.3\.3 -- swift test/u,
+  )
   assert.doesNotMatch(androidJob, /swiftly|Provision pinned job-scoped Swiftly/u)
   assert.match(macAndroid, /mise which swift/u)
   assert.match(macAndroid, /resolve-mise-swift-toolchain\.sh/u)

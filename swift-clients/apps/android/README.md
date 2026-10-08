@@ -20,9 +20,13 @@ Play Integrity, Play Store signing, and release packaging remain tracked by #662
 
 ```sh
 mise install
+mise install swift@6.3.3
 mise exec -- skip android sdk install --version swift-6.4.0-RELEASE_android
 mise exec -- skip checkup --native
-mise exec -- swift test --package-path swift-clients/apps/android
+# Point this shell at an installed Xcode 26.6; adjust the app name if needed.
+export DEVELOPER_DIR="/Applications/Xcode_26.6.app/Contents/Developer"
+bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
+mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
 mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
 ```
 
@@ -37,7 +41,13 @@ both aliases also protects Android Studio and other direct Gradle callers from w
 artifact URL their SwiftPM resolution uses.
 It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
 CI installs the pinned Swift 6.4.0 toolchain with mise into `RUNNER_TEMP`; the wrapper exposes that
-verified toolchain to Skip's Xcode-style discovery path and keeps SwiftPM SDK state job-scoped. Host archives,
+verified toolchain to Skip's Xcode-style discovery path and keeps SwiftPM SDK state job-scoped.
+For local host-side SwiftPM tests, set `DEVELOPER_DIR` to an installed Xcode 26.6 developer
+directory; the verification script checks both Xcode and `xcrun` compiler paths without changing
+the machine's global Xcode selection. The Android package's host-side SwiftPM tests use mise Swift
+6.3.3, matched to the selected Xcode 26.6 compiler; SwiftPM 6.4 rejects duplicate static products
+in Skip's non-bridge macOS test graph.
+The Swift 6.4 compiler still builds the Android SDK and Gradle application. Host archives,
 including the Swift Android SDK, NDK, and `skip-macos.zip`, are reused from
 `$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
 `cached-archive.sh`. Only these immutable, checksum-verified archives persist across jobs;

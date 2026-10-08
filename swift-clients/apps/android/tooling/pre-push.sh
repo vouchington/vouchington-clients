@@ -14,7 +14,8 @@ if [[ -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then
-  mise exec -- swift test \
+  bash "$SCRIPT_DIR/verify-android-host-swift.sh"
+  mise exec swift@6.3.3 -- swift test \
     --package-path "$ANDROID_PACKAGE_DIR" \
     --force-resolved-versions \
     --disable-dependency-cache \

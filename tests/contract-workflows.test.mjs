@@ -173,7 +173,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /--enable-code-coverage/u)
     assert.match(
       workflow,
-      /write-lcov\.sh swift-clients\/core VouchaCorePackageTests coverage\/core\/lcov\.info/u,
+      /write-lcov\.sh swift-clients\/core VouchaCoreTests coverage\/core\/lcov\.info/u,
     )
     assert.match(
       workflow,
@@ -182,7 +182,10 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /run: pnpm run coverage:swift/u)
     assert.match(workflow, /android-actions\/setup-android@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
-    assert.match(workflow, /mise exec -- swift test/u)
+    assert.match(
+      workflow,
+      /verify-android-host-swift\.sh[\s\S]*?mise exec swift@6\.3\.3 -- swift test/u,
+    )
     assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
     assert.match(workflow, /VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: ["']1["']/u)
