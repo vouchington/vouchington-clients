@@ -157,7 +157,7 @@ private struct RaceTitleProviderResolver: NativeChatTitleProviderResolving, @unc
     }
 
     func provider(for kind: NativeChatTitleProviderKind) -> any NativeChatTitleProviding {
-        providers[kind] ?? providers[defaultSelectionValue] ?? NativeChatHostedTitleProvider(kind: kind)
+        providers[kind] ?? providers[defaultSelectionValue] ?? NativeChatUnavailableTitleProvider(id: kind.id)
     }
 }
 

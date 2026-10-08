@@ -6,21 +6,22 @@ import XCTest
 final class NativeChatProviderSelectionPersistenceTests: XCTestCase {
     func testRapidProviderSelectionsPersistOnlyTheLatestSelection() async {
         let recorder = ProviderSelectionRecorder()
+        let endpointID = UUID()
         let viewModel = NativeChatViewModel(
             client: nil,
             routeMatch: nil,
             titleProviderResolver: RecordingProviderSelectionResolver(recorder: recorder)
         )
 
-        viewModel.selectTitleProvider(.openAI)
+        viewModel.selectTitleProvider(.androidAICore)
         await recorder.waitForFirstPersistenceStart()
-        viewModel.selectTitleProvider(.anthropic)
         viewModel.selectTitleProvider(.appleFoundationModels)
+        viewModel.selectTitleProvider(.openAICompatible(endpointID: endpointID))
         await recorder.releaseFirstPersistence()
 
         let selections = await recorder.waitForPersistedSelectionCount(2)
 
-        XCTAssertEqual(selections, [.openAI, .appleFoundationModels])
+        XCTAssertEqual(selections, [.androidAICore, .openAICompatible(endpointID: endpointID)])
     }
 
     func testSelectionRollsBackWhenPersistenceFails() async {
@@ -30,10 +31,10 @@ final class NativeChatProviderSelectionPersistenceTests: XCTestCase {
             titleProviderResolver: FailingProviderSelectionResolver()
         )
 
-        viewModel.selectTitleProvider(.anthropic)
+        viewModel.selectTitleProvider(.androidAICore)
         await viewModel.titleProviderPersistenceTask?.value
 
-        XCTAssertEqual(viewModel.titleProviderSelection, .openAI)
+        XCTAssertEqual(viewModel.titleProviderSelection, .appleFoundationModels)
     }
 
     func testSelectingAndroidAICorePersistsItsPersistedIDThroughTheResolver() async {
@@ -63,13 +64,13 @@ final class NativeChatProviderSelectionPersistenceTests: XCTestCase {
             titleProviderResolver: RecordingProviderSelectionResolver(recorder: recorder)
         )
 
-        viewModel?.selectTitleProvider(.anthropic)
+        viewModel?.selectTitleProvider(.androidAICore)
         viewModel = nil
         await recorder.waitForFirstPersistenceStart()
         await recorder.releaseFirstPersistence()
 
         let selections = await recorder.waitForPersistedSelectionCount(1)
-        XCTAssertEqual(selections, [.anthropic])
+        XCTAssertEqual(selections, [.androidAICore])
     }
 }
 
@@ -77,11 +78,11 @@ private struct RecordingProviderSelectionResolver: NativeChatTitleProviderResolv
     let recorder: ProviderSelectionRecorder
 
     func defaultSelection() -> NativeChatTitleProviderKind {
-        .openAI
+        .appleFoundationModels
     }
 
     func provider(for kind: NativeChatTitleProviderKind) -> any NativeChatTitleProviding {
-        NativeChatHostedTitleProvider(kind: kind)
+        NativeChatUnavailableTitleProvider(id: kind.id)
     }
 
     func persistSelection(_ kind: NativeChatTitleProviderKind) async -> Bool {
@@ -92,11 +93,11 @@ private struct RecordingProviderSelectionResolver: NativeChatTitleProviderResolv
 
 private struct FailingProviderSelectionResolver: NativeChatTitleProviderResolving {
     func defaultSelection() -> NativeChatTitleProviderKind {
-        .openAI
+        .appleFoundationModels
     }
 
     func provider(for kind: NativeChatTitleProviderKind) -> any NativeChatTitleProviding {
-        NativeChatHostedTitleProvider(kind: kind)
+        NativeChatUnavailableTitleProvider(id: kind.id)
     }
 
     func persistSelection(_: NativeChatTitleProviderKind) async -> Bool {

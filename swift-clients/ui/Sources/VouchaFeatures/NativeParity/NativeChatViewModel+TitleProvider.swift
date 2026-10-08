@@ -47,27 +47,6 @@ extension NativeChatViewModel {
             logger.error("Unable to generate chat conversation title locally: \(error.localizedDescription)")
         }
 
-        if titleProviderSelection.isLocal {
-            return
-        }
-
-        await generateHostedTitleIfNeeded(conversationId: conversationId)
-    }
-
-    private func generateHostedTitleIfNeeded(conversationId: String) async {
-        guard shouldGenerateTitle(conversationId: conversationId), let client else { return }
-        do {
-            let response: ChatConversationResponse = try await client.send(
-                .myConversationTitle(conversationId: conversationId)
-            )
-            guard shouldGenerateTitle(conversationId: conversationId) else { return }
-            updateConversation(id: conversationId) { $0 = response.conversation }
-            if selectedConversationId == conversationId {
-                conversationTitleDraft = response.conversation.title
-            }
-        } catch {
-            logger.error("Unable to generate chat conversation title: \(error.localizedDescription)")
-        }
     }
 
     private func shouldGenerateTitle(conversationId: String) -> Bool {

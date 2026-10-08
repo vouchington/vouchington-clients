@@ -142,24 +142,6 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         )
     }
 
-    func testChatViewModelKeepsExistingConversationMessageWhenStreamFailsBeforeMetadata() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            NativeChatTestFixtures.errorData,
-            500
-        )
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
-        viewModel.titleProviderSelection = .openAI
-        viewModel.selectedConversationId = "conversation-1"
-        viewModel.draftMessage = "Hello"
-
-        await viewModel.sendDraftMessage()
-
-        XCTAssertEqual(viewModel.messages.map(\.content), ["Hello"])
-        XCTAssertNotNil(viewModel.streamErrorMessage)
-        XCTAssertFalse(viewModel.isStreaming)
-    }
-
     func testChatViewModelDoesNotOverwriteDraftWhenRenameFinishesAfterSelectionChanges() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/conversations/conversation-1"] = [
             (NativeChatTestFixtures.renamedConversationData, 200, 0.1)
@@ -244,76 +226,6 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         XCTAssertEqual(viewModel.selectedConversationId, "conversation-local")
     }
 
-    func testChatViewModelSkipsTitleGenerationAfterAbortedStream() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/conversations"] = (
-            NativeChatTestFixtures.createdConversationData,
-            201
-        )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/conversations/conversation-3/chat"] = [
-            (
-                Data(
-                    """
-                    event: done
-                    data: {}
-
-                    """.utf8
-                ),
-                200,
-                0.2
-            )
-        ]
-
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
-        viewModel.draftMessage = "Hello"
-
-        let send = Task { await viewModel.sendDraftMessage() }
-        try await Task.sleep(nanoseconds: 20_000_000)
-        viewModel.abortStreaming()
-        await send.value
-
-        XCTAssertFalse(viewModel.isStreaming)
-        XCTAssertNil(viewModel.streamingConversationId)
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.map(\.path)
-            .contains("/api/v1/my/conversations/conversation-3/title"))
-    }
-
-    func testChatViewModelGeneratesTitleAfterSuccessfulCreatedStreamWithDoneEvent() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-3/title"] = (
-            Self.generatedConversationThreeData,
-            200
-        )
-
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
-        viewModel.titleProviderSelection = .openAI
-        viewModel.conversations = try [
-            makeConversation(
-                id: "conversation-3",
-                title: "",
-                createdAt: "2026-01-01T00:07:00Z",
-                updatedAt: "2026-01-01T00:07:00Z"
-            )
-        ]
-        viewModel.selectedConversationId = "conversation-3"
-        viewModel.createdConversationIds.insert("conversation-3")
-        viewModel.beginStreaming(conversationId: "conversation-3", userMessageId: "local-user-1")
-        viewModel.apply(event: .done)
-
-        await viewModel.finishStream(
-            conversationId: "conversation-3",
-            userMessageId: "local-user-1",
-            createdConversation: true
-        )
-
-        XCTAssertEqual(viewModel.conversationTitleDraft, "Generated chat")
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.map(\.path)
-            .contains("/api/v1/my/conversations/conversation-3/title"))
-    }
-
-}
-
-private extension NativeChatViewModelRegressionTests {
     func makeConversation(
         id: String,
         title: String,
@@ -467,23 +379,6 @@ private extension NativeChatViewModelRegressionTests {
             "has_next_page": false,
             "start_cursor": "message-deep",
             "end_cursor": null
-          }
-        }
-        """.utf8
-    )
-
-    static let generatedConversationThreeData = Data(
-        """
-        {
-          "conversation": {
-            "id": "conversation-3",
-            "title": "Generated chat",
-            "created_at": "2026-01-01T00:07:00Z",
-            "created_by_id": "user-1",
-            "updated_at": "2026-01-01T00:08:00Z",
-            "updated_by_id": "user-1",
-            "deleted_at": null,
-            "deleted_by_id": null
           }
         }
         """.utf8

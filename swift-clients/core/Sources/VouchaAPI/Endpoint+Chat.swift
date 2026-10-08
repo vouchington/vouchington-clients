@@ -8,11 +8,6 @@ private struct UpdateConversationTitleBody: Encodable {
     let title: String
 }
 
-private struct SendConversationMessageBody: Encodable {
-    let message: String
-    let provider: String?
-}
-
 private struct ClientGeneratedChatBody: Encodable {
     let message: String
     let userMessageId: String
@@ -27,10 +22,6 @@ public extension Endpoint {
         Endpoint(.POST, path: "/api/v1/conversations", body: CreateConversationBody(title: title))
     }
 
-    static func myConversationTitle(conversationId: String) -> Endpoint {
-        Endpoint(.POST, path: "/api/v1/my/conversations/\(pathSegment(conversationId))/title")
-    }
-
     static func renameConversation(conversationId: String, title: String) -> Endpoint {
         Endpoint(
             .PATCH,
@@ -41,15 +32,6 @@ public extension Endpoint {
 
     static func deleteConversation(conversationId: String) -> Endpoint {
         Endpoint(.DELETE, path: "/api/v1/my/conversations/\(pathSegment(conversationId))")
-    }
-
-    static func chatConversationStream(conversationId: String, message: String, provider: String? = nil) -> Endpoint {
-        Endpoint(
-            .POST,
-            path: "/api/v1/conversations/\(pathSegment(conversationId))/chat",
-            headers: ["Accept": "text/event-stream"],
-            body: SendConversationMessageBody(message: message, provider: provider)
-        )
     }
 
     static func clientGeneratedChat(

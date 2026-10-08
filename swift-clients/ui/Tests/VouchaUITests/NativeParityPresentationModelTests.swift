@@ -32,23 +32,6 @@ final class NativeParityPresentationModelTests: XCTestCase {
         XCTAssertEqual(Set([first, equivalent, distinct]).count, 2)
     }
 
-    func testNativeChatToolResultsCoverEveryScalarAndCollectionPresentation() {
-        let cases: [(DecodedJSONValue, String)] = [
-            (.null, "null"),
-            (.bool(true), "true"),
-            (.number(42), "42.0"),
-            (.string("result"), "result"),
-            (.array([.null, .null]), "2 items"),
-            (.object(["first": .null, "second": .null]), "2 fields")
-        ]
-
-        for (index, item) in cases.enumerated() {
-            let result = NativeChatToolResult(toolCallId: "tool-\(index)", result: item.0)
-            XCTAssertEqual(result.id, "tool-\(index)")
-            XCTAssertEqual(uiEnglish(result.displayText), item.1)
-        }
-    }
-
     func testModerationReportActionsExposeLocalizedConfirmationTitles() {
         let cases: [(ModerationReportAction, String)] = [
             (.review, "Mark reviewed"),

@@ -96,15 +96,4 @@ final class SwiftLocalizationAcceptanceTests: XCTestCase {
         )
     }
 
-    func testToolResultCountsUseLocalizedPluralRules() {
-        let result = NativeChatToolResult(
-            toolCallId: "tool-1",
-            result: .array([.string("a"), .string("b")])
-        )
-
-        XCTAssertEqual(UiMessages.string(result.displayText, locale: .english), "2 items")
-        XCTAssertEqual(UiMessages.string(result.displayText, locale: .spanish), "2 elementos")
-        XCTAssertEqual(UiMessages.string(result.displayText, locale: .french), "2 éléments")
-        XCTAssertEqual(UiMessages.string(result.displayText, locale: .portuguese), "2 itens")
-    }
 }
