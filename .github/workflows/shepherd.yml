@@ -100,14 +100,17 @@ jobs:
             echo "Ignoring /shepherd from $UNTRUSTED_COMMENTER, who lacks write access."
             exit 0
           fi
+          REVIEW_AUTHORS="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews?per_page=100" |
+            jq -c 'if any(.[]; .user == null or .user.login == null or .user.type == null)
+              then error("review author metadata is unavailable; refusing to trust incomplete review set")
+              else map({login: .user.login, type: .user.type}) end')"
           {
             echo "$PR_JSON" | jq -c '[{login: .user.login, type: .user.type}]'
             gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
               --jq '[.[] | {login: .user.login, type: .user.type}]'
             gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/comments?per_page=100" \
               --jq '[.[] | {login: .user.login, type: .user.type}]'
-            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews?per_page=100" \
-              --jq '[.[] | select(.user != null) | {login: .user.login, type: .user.type}]'
+            echo "$REVIEW_AUTHORS"
           } | jq -s 'add' > "$RUNNER_TEMP/pr-authors.json"
           UNTRUSTED="$(pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
             --allow-bot 'github-actions[bot]' \

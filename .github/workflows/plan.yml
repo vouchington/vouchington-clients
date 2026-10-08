@@ -193,6 +193,9 @@ jobs:
     if: needs.gate.outputs.accepted == 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
     concurrency:
       group: harness-dispatch-fleet-admission
       queue: max
@@ -211,6 +214,45 @@ jobs:
           version: latest-12
       - name: Install pinned dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Capture trusted issue context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          MAX_COMMENT_CHARS=2000
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" > issue.json
+          comment_count="$(jq -er '.comments' issue.json)"
+          : > issue-comments.ndjson
+          if (( comment_count > 0 )); then
+            last_page="$(((comment_count + 99) / 100))"
+            first_page="$((last_page > 1 ? last_page - 1 : 1))"
+            for ((page = first_page; page <= last_page; page++)); do
+              gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100&page=$page" |
+                jq -c --argjson maxChars "$MAX_COMMENT_CHARS" \
+                  '.[] | {id, author: .user.login, authorType: .user.type,
+                    body: (.body // "" | .[0:$maxChars]), bodyTruncated: ((.body // "" | length) > $maxChars),
+                    created_at, updated_at}' >> issue-comments.ndjson
+            done
+          fi
+          jq -s 'sort_by(.created_at) | .[-100:]' issue-comments.ndjson > issue-comments.json
+          jq -e 'all(.[]; .author != null and .authorType != null)' issue-comments.json > /dev/null
+          jq '[.[] | {login: .author, type: .authorType}]' issue-comments.json > comment-authors.json
+          pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+            --allow-bot 'github-actions[bot]' < comment-authors.json > comment-author-trust.json
+          jq --slurpfile trust comment-author-trust.json \
+            '[.[] | select(.author as $author | $trust[0].trusted | index($author))]' \
+            issue-comments.json > trusted-issue-comments.json
+          jq --slurpfile comments trusted-issue-comments.json \
+            --slurpfile snapshot issue-comments.json \
+            --argjson commentCount "$comment_count" \
+            --argjson maxCommentChars "$MAX_COMMENT_CHARS" '{
+            body, labels: [.labels[].name], comments: $comments[0],
+            commentSnapshot: {total: $commentCount, included: ($comments[0] | length),
+              excludedNonCollaborator: (($snapshot[0] | length) - ($comments[0] | length)),
+              capped: ($commentCount > 100), maxCommentChars: $maxCommentChars}
+          }' issue.json > issue-context.json
 
       - name: Prepare prompt variables
         env:
@@ -233,6 +275,7 @@ jobs:
           var-files: |
             ISSUE_TITLE=issue-title.txt
             REQUEST_BODY=request-body.txt
+            ISSUE_CONTEXT=issue-context.json
 
   dispatch:
     name: Harness dispatch
