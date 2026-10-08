@@ -443,7 +443,6 @@
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Choose a local model.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Send a message to start the conversation.</value></data>
   <data name="native.dotnet.chatConversation.enterLocalResponsesEndpoint" xml:space="preserve"><value>Enter a local Responses API endpoint.</value></data>
-  <data name="native.dotnet.chatConversation.hosted" xml:space="preserve"><value>Hosted</value></data>
   <data name="native.dotnet.chatConversation.local" xml:space="preserve"><value>Local</value></data>
   <data name="native.dotnet.chatConversation.localChatUnavailable" xml:space="preserve"><value>Local chat is unavailable.</value></data>
   <data name="native.dotnet.chatConversation.localModelEmptyResponse" xml:space="preserve"><value>The local model returned an empty response.</value></data>
@@ -451,12 +450,8 @@
   <data name="native.dotnet.chatConversation.localModelsOffPlatform" xml:space="preserve"><value>Local models are off for this platform.</value></data>
   <data name="native.dotnet.chatConversation.messagePlaceholder" xml:space="preserve"><value>Type a message</value></data>
   <data name="native.dotnet.chatConversation.noMessages" xml:space="preserve"><value>No messages yet</value></data>
-  <data name="native.dotnet.chatConversation.openAiHosted" xml:space="preserve"><value>OpenAI hosted</value></data>
   <data name="native.dotnet.chatConversation.responseInterrupted" xml:space="preserve"><value>The response was interrupted. Please try again.</value></data>
   <data name="native.dotnet.chatConversation.setUpWindowsModel" xml:space="preserve"><value>Set up Windows model</value></data>
-  <data name="native.dotnet.chatConversation.subagentStep" xml:space="preserve"><value>Subagent step</value></data>
-  <data name="native.dotnet.chatConversation.toolCall" xml:space="preserve"><value>Tool call</value></data>
-  <data name="native.dotnet.chatConversation.toolResult" xml:space="preserve"><value>Tool result</value></data>
   <data name="native.dotnet.chatConversation.windowsModelDisabled" xml:space="preserve"><value>The Windows system language model is disabled.</value></data>
   <data name="native.dotnet.chatConversation.windowsModelReady" xml:space="preserve"><value>Ready.</value></data>
   <data name="native.dotnet.chatConversation.windowsModelSetupRequired" xml:space="preserve"><value>Download and setup are required.</value></data>
@@ -1344,7 +1339,6 @@
   <data name="native.swift.chat.conversationTitle" xml:space="preserve"><value>Conversation title</value></data>
   <data name="native.swift.chat.rename" xml:space="preserve"><value>Rename</value></data>
   <data name="native.swift.chat.stop" xml:space="preserve"><value>Stop</value></data>
-  <data name="native.swift.chatMessageBubble.subagentText" xml:space="preserve"><value>Subagent text</value></data>
   <data name="native.swift.commentThread.ancestorChain" xml:space="preserve"><value>Ancestor chain</value></data>
   <data name="native.swift.commentThread.comments" xml:space="preserve"><value>Comments</value></data>
   <data name="native.swift.commentThread.sort" xml:space="preserve"><value>Sort</value></data>
