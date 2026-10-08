@@ -5,6 +5,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:app="clr-namespace:Voucha.Client.App"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
     xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
     xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
     xmlns:landing="clr-namespace:Voucha.Client.Core.LandingPages;assembly=Voucha.Client.Core"
@@ -116,7 +117,7 @@
                                     <Button.IsEnabled>
                                         <MultiBinding>
                                             <MultiBinding.Converter>
-                                                <app:VoteClearEligibilityConverter />
+                                                <pages:VoteClearEligibilityConverter />
                                             </MultiBinding.Converter>
                                             <Binding Path="MyVote" />
                                             <Binding Source="{x:Reference PageRoot}" Path="BindingContext.CanClearUserTagVotes" />

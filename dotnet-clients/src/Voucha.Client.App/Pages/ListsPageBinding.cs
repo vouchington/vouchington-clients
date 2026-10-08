@@ -60,6 +60,8 @@ public sealed class ListsPageBinding : BindableObject
       OnPropertyChanged(nameof(HasMoreItems));
       OnPropertyChanged(nameof(IsLoadingListPage));
       OnPropertyChanged(nameof(IsLoadingItemPage));
+      OnPropertyChanged(nameof(HasListPaginationError));
+      OnPropertyChanged(nameof(HasItemPaginationError));
     };
   }
 
@@ -132,4 +134,6 @@ public sealed class ListsPageBinding : BindableObject
   public bool HasMoreItems => viewModel.HasMoreItems;
   public bool IsLoadingListPage => viewModel.IsLoadingListPage;
   public bool IsLoadingItemPage => viewModel.IsLoadingItemPage;
+  public bool HasListPaginationError => viewModel.HasListPaginationError;
+  public bool HasItemPaginationError => viewModel.HasItemPaginationError;
 }

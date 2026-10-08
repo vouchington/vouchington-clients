@@ -59,7 +59,7 @@ public sealed class ProfilePageVotingWiringTests
     var markup = AppSource("ProfilePage.xaml");
 
     Assert.Contains("CanCreateEntityRelationVote(isUserTag: true)", page, StringComparison.Ordinal);
-    Assert.Contains("<app:VoteClearEligibilityConverter />", markup, StringComparison.Ordinal);
+    Assert.Contains("<pages:VoteClearEligibilityConverter />", markup, StringComparison.Ordinal);
     Assert.Contains("<Binding Path=\"MyVote\" />", markup, StringComparison.Ordinal);
     Assert.Contains("Path=\"BindingContext.CanClearUserTagVotes\"", markup, StringComparison.Ordinal);
   }
