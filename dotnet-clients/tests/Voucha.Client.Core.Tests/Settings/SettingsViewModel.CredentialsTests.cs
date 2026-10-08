@@ -274,11 +274,12 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Theory]
-  [InlineData("financial_profile_read")]
-  [InlineData("financial_profile_write")]
-  [InlineData("spending_read")]
-  [InlineData("spending_write")]
-  public async Task SupportedOAuthDescriptionsDoNotDisableApiKeyCatalog(string descriptionKey)
+  [InlineData("financial_profile_read", "native.credentials.financialProfileRead")]
+  [InlineData("financial_profile_write", "native.credentials.financialProfileWrite")]
+  [InlineData("spending_read", "native.credentials.spendingRead")]
+  [InlineData("spending_write", "native.credentials.spendingWrite")]
+  public async Task SupportedOAuthDescriptionsStayLocalizedWithoutDisablingApiKeyCatalog(
+      string descriptionKey, string expectedMessageKey)
   {
     var oauthScope = new ScopeCatalogEntry("oauth-only:read", "user", "oauth-only", "read", ["oauth"], descriptionKey, null);
     var service = new FakeSettingsService
@@ -291,7 +292,8 @@ public sealed partial class SettingsViewModelTests
     await model.LoadAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal("rss:read", Assert.Single(model.ApiKeyScopes).Scope);
-    Assert.Equal(string.Empty, new SettingsScopeRow(oauthScope, false, UiLocalization.English).Description);
+    Assert.Equal(UiLocalization.English.Localize(new UiMessageKey(expectedMessageKey)),
+        new SettingsScopeRow(oauthScope, false, UiLocalization.English).Description);
     model.SetApiKeyScopeSelected("rss:read", true);
     Assert.True(model.CanCreateApiKey);
     Assert.Null(model.CredentialNotice);

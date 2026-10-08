@@ -41,6 +41,38 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(response.apiKey.type, .mcp)
     }
 
+    func testStagedFinancialScopesNeedExactSelectionAndTheirOwnReadPrerequisites() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self,
+            from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        let financialScopes = [
+            "financial-profile:read", "financial-profile:write", "spending:read", "spending:write"
+        ]
+        XCTAssertEqual(
+            Set(catalog.scopes.filter { financialScopes.contains($0.scope) }.map(\.scope)),
+            Set(financialScopes)
+        )
+        XCTAssertEqual(
+            catalog.scopes.first { $0.scope == "financial-profile:write" }?.requires,
+            "financial-profile:read"
+        )
+        XCTAssertEqual(catalog.scopes.first { $0.scope == "spending:write" }?.requires, "spending:read")
+
+        var selection = ApiKeyScopeSelection(scopes: catalog.scopes, type: .mcp)
+        XCTAssertTrue(selection.setSelected("mcp.user:read", selected: true))
+        XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+        XCTAssertTrue(selection.setSelected("financial-profile:write", selected: true))
+        XCTAssertEqual(
+            selection.permissions,
+            ["financial-profile:read", "financial-profile:write", "mcp.user:read"]
+        )
+        XCTAssertTrue(selection.setSelected("financial-profile:read", selected: false))
+        XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+        XCTAssertTrue(selection.setSelected("spending:write", selected: true))
+        XCTAssertEqual(selection.permissions, ["mcp.user:read", "spending:read", "spending:write"])
+    }
+
     func testStagedGrantsPreserveClientScopeAndActivityMetadata() throws {
         let grants = try makeVouchaDecoder().decode(
             Page<OAuthGrant>.self,
