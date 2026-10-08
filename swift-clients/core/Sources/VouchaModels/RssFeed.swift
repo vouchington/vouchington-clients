@@ -22,6 +22,7 @@ struct EmbeddedRssFeedSidecar: Decodable {
     let topic: RssFeedTopic?
     let publisherType: TopicReference?
     let podcastShow: RssFeedSource.PodcastShowInfo?
+    let provenance: PublicContentProvenance?
     let isDiscoverable: Bool?
     let isEnabled: Bool?
     let lastFetchedAt: Date?
@@ -29,7 +30,7 @@ struct EmbeddedRssFeedSidecar: Decodable {
     enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
         case id, title, feedType, rssFeedUrl, hostname, topic, publisherType, podcastShow
-        case isDiscoverable, isEnabled, lastFetchedAt
+        case isDiscoverable, isEnabled, lastFetchedAt, provenance
     }
 
     var resolvedSource: RssFeedSource? {
@@ -46,7 +47,8 @@ struct EmbeddedRssFeedSidecar: Decodable {
             hostname: hostname,
             topic: topic,
             publisherType: publisherType,
-            podcastShow: podcastShow
+            podcastShow: podcastShow,
+            provenance: provenance
         )
     }
 }
