@@ -68,7 +68,7 @@ public final class LocalizationValueCache: Observable, @unchecked Sendable {
         observation.withMutation(of: self, keyPath: \.overlayGeneration) {
             lock.lock()
             defer { lock.unlock() }
-            let byteCount = values.values.reduce(0) { $0 + $1.utf8.count }
+            let byteCount = values.reduce(0) { $0 + $1.key.utf8.count + $1.value.utf8.count }
             entries[locale] = Entry(
                 revision: revision,
                 ttlSeconds: ttlSeconds,

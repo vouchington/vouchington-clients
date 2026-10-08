@@ -74,4 +74,13 @@ final class LocalizationValueCacheTests: XCTestCase {
         cache.apply(locale: "en", revision: "a", ttlSeconds: 60, values: ["a": "12345"])
         XCTAssertNil(cache.value(for: "a", locale: "en"))
     }
+
+    func testLruCountsEmptyValueKeysTowardByteBound() {
+        let cache = LocalizationValueCache(maxBytes: 12)
+        cache.apply(locale: "en", revision: "a", ttlSeconds: 60, values: ["long-key-1": ""])
+        cache.apply(locale: "es", revision: "b", ttlSeconds: 60, values: ["long-key-2": ""])
+
+        XCTAssertNil(cache.value(for: "long-key-1", locale: "en"))
+        XCTAssertEqual(cache.value(for: "long-key-2", locale: "es"), "")
+    }
 }

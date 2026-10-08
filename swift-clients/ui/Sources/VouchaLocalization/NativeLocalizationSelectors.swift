@@ -7,7 +7,8 @@ public enum NativeLocalizationSelectors {
         "native.common.*",
         "native.auth.*",
         "native.navigation.*",
-        "native.swift.navigation.*"
+        "native.swift.navigation.*",
+        "native.swift.navigationTitles.*"
     ]
 
     public static let consumer = "swift"
