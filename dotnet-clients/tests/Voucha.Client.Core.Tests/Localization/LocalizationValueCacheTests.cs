@@ -6,6 +6,23 @@ namespace Voucha.Client.Core.Tests.Localization;
 public sealed class LocalizationValueCacheTests
 {
   [Fact]
+  public void NewRepresentationRemovesValuesMissingFromTheNewBatch()
+  {
+    var cache = new LocalizationValueCache();
+    cache.Apply("en", "old", 60,
+        new Dictionary<string, string> { ["common.cancel"] = "Abort", ["removed"] = "Stale" },
+        DateTimeOffset.UnixEpoch);
+
+    cache.Apply("en", "new", 60,
+        new Dictionary<string, string> { ["common.cancel"] = "Cancel now" },
+        DateTimeOffset.UnixEpoch.AddSeconds(60));
+
+    Assert.Null(cache.Value("removed", "en"));
+    Assert.Equal("Cancel now", cache.Value("common.cancel", "en"));
+    Assert.Equal("\"new\"", cache.Etag("en"));
+  }
+
+  [Fact]
   public void OverlayHonorsTtlAndKeepsStaleValues()
   {
     var cache = new LocalizationValueCache();

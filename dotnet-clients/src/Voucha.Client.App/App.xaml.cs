@@ -28,8 +28,15 @@ public partial class App : Application
         RefreshLocalizedResources();
     }
 
-    protected override Window CreateWindow(IActivationState? activationState) =>
-        new(serviceProvider.GetRequiredService<AppShell>());
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var window = new Window(serviceProvider.GetRequiredService<AppShell>());
+        window.Activated += OnWindowActivated;
+        return window;
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs eventArgs) =>
+        _ = serviceProvider.GetRequiredService<LocalizationRefreshService>().RefreshChromeAsync();
 
     protected override void OnAppLinkRequestReceived(Uri uri)
     {

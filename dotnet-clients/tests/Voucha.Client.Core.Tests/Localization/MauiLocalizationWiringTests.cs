@@ -41,8 +41,10 @@ public sealed class MauiLocalizationWiringTests
         "sp.GetRequiredService<IUiLocaleController>()",
         source,
         StringComparison.Ordinal);
-    Assert.Contains("AddSingleton<LocalizationValueCache>()", source, StringComparison.Ordinal);
-    Assert.Contains("AddSingleton<LocalizationRefreshService>()", source, StringComparison.Ordinal);
+    Assert.Contains("AddLocalizationServices(builder.Services);", source, StringComparison.Ordinal);
+    var registrations = ReadAppSource("MauiProgram.Localization.cs");
+    Assert.Contains("AddSingleton<LocalizationValueCache>()", registrations, StringComparison.Ordinal);
+    Assert.Contains("AddSingleton<LocalizationRefreshService>()", registrations, StringComparison.Ordinal);
     var navigation = ReadAppSource("MauiProgram.NavigationFeatureFlags.cs");
     Assert.Contains("RefreshChromeAsync()", navigation, StringComparison.Ordinal);
     Assert.Contains(

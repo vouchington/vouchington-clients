@@ -47,16 +47,13 @@ public sealed class LocalizationValueCache(int maxBytes = LocalizationValueCache
     ArgumentNullException.ThrowIfNull(values);
     lock (gate)
     {
-      var merged = entries.TryGetValue(locale, out var existing)
-          ? new Dictionary<string, string>(existing.Values, StringComparer.Ordinal)
-          : new Dictionary<string, string>(StringComparer.Ordinal);
-      foreach (var (key, value) in values) merged[key] = value;
+      var replacement = new Dictionary<string, string>(values, StringComparer.Ordinal);
       entries[locale] = new Entry(
           revision,
           ttlSeconds,
           now.AddSeconds(ttlSeconds),
-          merged,
-          merged.Values.Sum(static value => EncodingByteCount(value)));
+          replacement,
+          replacement.Values.Sum(static value => EncodingByteCount(value)));
       Touch(locale);
       Evict();
     }

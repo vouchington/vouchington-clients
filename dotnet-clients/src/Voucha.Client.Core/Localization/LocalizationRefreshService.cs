@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Http;
 using Voucha.Client.Core.Api;
 
@@ -8,12 +9,16 @@ public sealed class LocalizationRefreshService(
     IUiLocaleController localeController,
     LocalizationValueCache cache)
 {
+  private readonly ConcurrentDictionary<string, SemaphoreSlim> refreshGates = new(StringComparer.Ordinal);
+
   public async Task RefreshChromeAsync(CancellationToken cancellationToken = default)
   {
     var locale = localeController.EffectiveLocale;
-    if (!cache.IsExpired(locale, DateTimeOffset.UtcNow)) return;
+    var gate = refreshGates.GetOrAdd(locale, static _ => new SemaphoreSlim(1, 1));
+    await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
+      if (!cache.IsExpired(locale, DateTimeOffset.UtcNow)) return;
       var batch = await client.FetchLocalizationAsync(
           NativeLocalizationSelectors.Consumer,
           locale,
@@ -40,6 +45,10 @@ public sealed class LocalizationRefreshService(
     }
     catch (HttpRequestException)
     {
+    }
+    finally
+    {
+      gate.Release();
     }
   }
 }
