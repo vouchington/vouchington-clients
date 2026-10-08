@@ -145,28 +145,18 @@ public sealed class DirectMessagesViewModelConcurrencyTests
 
     service.CompleteCreateConversation(new DirectConversationResponse(
         Conversation("c1", "Thread one", Time(10, 0, 0), "Alice")));
-    for (var attempt = 0; attempt < 20 && service.SendRequests.Count == 0; attempt++)
-    {
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    }
-
+    await service.WaitForPendingSendRequestsAsync("c1", 1, TestContext.Current.CancellationToken);
     Assert.Single(service.SendRequests);
     service.CompleteSend("c1", new DirectMessageResponse(Message("sent-1", "c1", "hello", "me")));
-    for (var attempt = 0; attempt < 20 && service.ConversationFetchRequests.Count == 0; attempt++)
-    {
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    }
-
+    await service.WaitForPendingInboxRequestsAsync(1, TestContext.Current.CancellationToken);
     Assert.Single(service.ConversationFetchRequests);
     service.CompleteConversations(new DirectConversationsResponse(
         [Conversation("c1", "Thread one", Time(10, 5, 0), "Alice")],
         new PageInfo(null, false, null)));
-    for (var attempt = 0; attempt < 20 && service.MessageFetchRequests.Count == 0; attempt++)
-    {
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    }
-
+    await service.WaitForPendingThreadRequestsAsync("c1", 1, TestContext.Current.CancellationToken);
     Assert.Single(service.MessageFetchRequests);
+    Assert.Single(service.DirectConversationFetchRequests);
+    Assert.Single(service.ParticipantFetchRequests);
     service.CompleteConversation("c1", new DirectConversationResponse(
         Conversation("c1", "Thread one", Time(10, 5, 0), "Alice")));
     service.CompleteMessages("c1", new DirectMessagesResponse(
