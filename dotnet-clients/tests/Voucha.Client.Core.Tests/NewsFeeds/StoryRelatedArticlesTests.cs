@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
 
-public sealed class StoryRelatedArticlesTests
+public sealed partial class StoryRelatedArticlesTests
 {
   [Fact]
   public void ContinuationOnlyPreviewStillAllowsStoryDiscussion()
@@ -227,6 +227,51 @@ public sealed class StoryRelatedArticlesTests
     Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ReplacementIgnoresStaleContinuationFailureOrCancellation(bool cancel)
+  {
+    var group = Group(1);
+    var story = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var replacementPage = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = story.Task };
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    using var storyCancellation = new CancellationTokenSource();
+    var continuation = model.LoadMoreStoryArticlesAsync(model.Items[0], storyCancellation.Token);
+    Assert.True(group.IsLoading);
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    service.HeldPage = replacementPage.Task;
+    var replacement = model.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    if (cancel)
+    {
+      storyCancellation.Cancel();
+      Assert.True(story.TrySetCanceled(storyCancellation.Token));
+    }
+    else
+    {
+      Assert.True(story.TrySetException(new HttpRequestException("Offline")));
+    }
+
+    await continuation;
+    Assert.False(group.HasError);
+    Assert.False(group.IsLoading);
+    Assert.True(group.CanLoadMore);
+    Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+    Assert.Same(group, model.Items[0].StoryArticles);
+
+    replacementPage.SetResult(new([Item("fresh")], new(null, false, null)));
+    await replacement;
+    Assert.Equal(["fresh"], model.Items.Select(item => item.Id));
+    Assert.False(group.HasError);
+    Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+  }
+
   [Fact]
   public async Task HidingPeerInvalidatesDelayedContinuationAndPreservesCursorForRetry()
   {
@@ -256,110 +301,6 @@ public sealed class StoryRelatedArticlesTests
     await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
     Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
     Assert.Equal(["peer-2"], group.Items.Select(item => item.Id));
-  }
-
-  [Theory]
-  [InlineData(false)]
-  [InlineData(true)]
-  public async Task HiddenPeerStaysOutOfDelayedFeedPage(bool finishHideBeforePage)
-  {
-    var group = Group(1);
-    var feedPage = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
-    var bookmarkService = new PendingBookmarkService();
-    var service = new Service(new([Primary(group)], new("feed-after", true, null)));
-    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmarkService);
-    await model.LoadAsync(TestContext.Current.CancellationToken);
-    service.FeedResponse = feedPage.Task;
-
-    var pendingPage = model.LoadMoreAsync(TestContext.Current.CancellationToken);
-    var pendingHide = model.ToggleHideAsync(group.Items[0], TestContext.Current.CancellationToken);
-    try
-    {
-      Assert.Empty(group.Items);
-      if (finishHideBeforePage)
-      {
-        bookmarkService.Completion.TrySetResult();
-        await pendingHide;
-      }
-      feedPage.TrySetResult(new([
-        Item("peer-1") with { StoryId = "story-1" },
-        Item("peer-2") with { StoryId = "story-1" }
-      ], new(null, false, null)));
-      await pendingPage;
-      Assert.Equal(["peer-2"], group.Items.Select(item => item.Id));
-      bookmarkService.Completion.TrySetResult();
-      await pendingHide;
-      Assert.Equal(["peer-2"], group.Items.Select(item => item.Id));
-      Assert.Single(model.Items);
-    }
-    finally
-    {
-      feedPage.TrySetResult(new([], new(null, false, null)));
-      bookmarkService.Completion.TrySetResult();
-      await Task.WhenAll(pendingPage, pendingHide);
-    }
-  }
-
-  [Fact]
-  public async Task FailedHideRestoresPeerAfterDelayedFeedPage()
-  {
-    var group = Group(1);
-    var feedPage = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
-    var bookmarkService = new PendingBookmarkService();
-    var service = new Service(new([Primary(group)], new("feed-after", true, null)));
-    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmarkService);
-    await model.LoadAsync(TestContext.Current.CancellationToken);
-    service.FeedResponse = feedPage.Task;
-
-    var pendingPage = model.LoadMoreAsync(TestContext.Current.CancellationToken);
-    var pendingHide = model.ToggleHideAsync(group.Items[0], TestContext.Current.CancellationToken);
-    try
-    {
-      feedPage.TrySetResult(new([Item("peer-1") with { StoryId = "story-1" }], new(null, false, null)));
-      await pendingPage;
-      Assert.Empty(group.Items);
-      bookmarkService.Completion.TrySetException(new InvalidOperationException("Hide failed."));
-      await pendingHide;
-      Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
-      Assert.False(group.Items[0].IsHidden);
-    }
-    finally
-    {
-      feedPage.TrySetResult(new([], new(null, false, null)));
-      bookmarkService.Completion.TrySetException(new InvalidOperationException("Hide failed."));
-      await Task.WhenAll(pendingPage, pendingHide);
-    }
-  }
-
-  [Fact]
-  public async Task FailedPeerHideRestoresDetachedGroupBeforePrimaryRollback()
-  {
-    var group = Group(1);
-    var bookmarks = new SeparateBookmarkService();
-    var service = new Service(new([Primary(group)], new(null, false, null)));
-    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmarks);
-    await model.LoadAsync(TestContext.Current.CancellationToken);
-
-    var peerHide = model.ToggleHideAsync(group.Items[0], TestContext.Current.CancellationToken);
-    var primaryHide = model.ToggleHideAsync(model.Items[0], TestContext.Current.CancellationToken);
-    try
-    {
-      Assert.Empty(model.Items);
-      Assert.Empty(group.Items);
-      bookmarks.Peer.TrySetException(new InvalidOperationException("Peer hide failed."));
-      await peerHide;
-      Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
-      bookmarks.Primary.TrySetException(new InvalidOperationException("Primary hide failed."));
-      await primaryHide;
-      Assert.Same(group, Assert.Single(model.Items).StoryArticles);
-      Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
-    }
-    finally
-    {
-      bookmarks.Peer.TrySetException(new InvalidOperationException("Peer hide failed."));
-      bookmarks.Primary.TrySetException(new InvalidOperationException("Primary hide failed."));
-      await Task.WhenAll(peerHide, primaryHide);
-    }
   }
 
   [Fact]
@@ -417,6 +358,68 @@ public sealed class StoryRelatedArticlesTests
     Assert.Equal("1 related article", group.CountLabel);
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task FailedPrimaryHideRestoresRetryAfterDetachedContinuation(bool cancelStory)
+  {
+    var group = Group(1);
+    var story = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var bookmark = new HeldBookmarkService();
+    var service = new Service(new([Primary(group)], new(null, false, null))) { StoryResponse = story.Task };
+    var model = new NewsFeedsViewModel(service, NewsFeedScope.AllNews, bookmark);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    using var storyCancellation = new CancellationTokenSource();
+    var continuation = model.LoadMoreStoryArticlesAsync(model.Items[0], storyCancellation.Token);
+    var hide = model.ToggleHideAsync(model.Items[0], TestContext.Current.CancellationToken);
+    try
+    {
+      Assert.True(group.IsLoading);
+      Assert.Empty(model.Items);
+
+      if (cancelStory)
+      {
+        storyCancellation.Cancel();
+        story.TrySetCanceled(storyCancellation.Token);
+      }
+      else
+      {
+        story.TrySetException(new HttpRequestException("Offline"));
+      }
+      await continuation;
+      bookmark.Fail();
+      await hide;
+
+      Assert.Same(group, Assert.Single(model.Items).StoryArticles);
+      Assert.False(group.IsLoading);
+      Assert.False(group.HasError);
+      Assert.Equal(["peer-1"], group.Items.Select(item => item.Id));
+      Assert.True(group.CanLoadMore);
+      Assert.Equal(["opaque+/="], service.StoryCursors);
+      service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("peer-2")], new(null, false, null)));
+      await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+      Assert.Equal(["peer-1", "peer-2"], group.Items.Select(item => item.Id));
+      Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
+    }
+    finally
+    {
+      story.TrySetCanceled(TestContext.Current.CancellationToken);
+      bookmark.Fail();
+      await Task.WhenAll(continuation, hide);
+    }
+  }
+
+  private sealed class HeldBookmarkService : IBookmarkService
+  {
+    private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Task SetAsync(string entityType, string entityId, BookmarkPredicate predicate, bool active,
+        CancellationToken cancellationToken = default) => completion.Task;
+
+    public void Fail() => completion.TrySetException(new HttpRequestException("Hide failed"));
+  }
+
   private static StoryRelatedArticles Group(int count) =>
       new("story-1", "primary", Enumerable.Range(1, count).Select(index => Item($"peer-{index}")).ToArray(),
           new("opaque+/=", true, null), UiLocalization.English);
@@ -444,6 +447,7 @@ public sealed class StoryRelatedArticlesTests
     public Task<NewsFeedPage>? FeedResponse { get; set; }
     public List<string?> StoryCursors { get; } = [];
     public Task<NewsFeedPage> StoryResponse { get; set; } = Task.FromResult(new NewsFeedPage([], new(null, false, null)));
+    public Task<NewsFeedPage>? HeldPage { get; set; }
     public Task<NewsFeedPage> GetStoryRelatedArticlesPageAsync(string storyId, string primaryItemId, string? after, CancellationToken cancellationToken = default)
     {
       Assert.Equal("story-1", storyId);
@@ -452,7 +456,12 @@ public sealed class StoryRelatedArticlesTests
       return StoryResponse;
     }
     public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => FeedResponse ?? Task.FromResult(Feed);
-    public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, string? after = null, int limit = 20, CancellationToken cancellationToken = default) => FeedResponse ?? Task.FromResult(Feed);
+    public Task<NewsFeedPage> GetNewsFeedPageAsync(NewsFeedScope scope, string? after = null, int limit = 20, CancellationToken cancellationToken = default)
+    {
+      if (HeldPage is not { } held) return FeedResponse ?? Task.FromResult(Feed);
+      HeldPage = null;
+      return held;
+    }
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(NewsFeedScope scope, NewsFeedSourceType sourceFeedType, CancellationToken cancellationToken = default) => Task.FromResult(Feed.Items);
     public Task SetSourceFollowAsync(string sourceId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
