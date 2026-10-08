@@ -18,7 +18,8 @@ extension NativeRouteDestinationSurface {
             isAdministrator: isAdministrator,
             isSiteModerator: isSiteModerator,
             turnstileSiteKey: resolvedTurnstileSiteKey,
-            showSignIn: showSignIn
+            showSignIn: showSignIn,
+            onNavigate: onNavigateToTargetPath
         )
     }
 

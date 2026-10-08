@@ -74,6 +74,7 @@ public sealed partial class CommunityDetailViewModel
         await Task.WhenAll(
             statsTask,
             LoadModerationQueueAsync(cancellationToken),
+            LoadAutomodFlagsAsync(cancellationToken),
             LoadPendingReportsAsync(cancellationToken)).ConfigureAwait(true);
         Moderation = [
           .. (await statsTask.ConfigureAwait(true)).Stats.Select(stat => Summary(

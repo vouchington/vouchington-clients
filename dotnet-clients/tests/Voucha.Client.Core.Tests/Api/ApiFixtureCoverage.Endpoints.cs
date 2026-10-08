@@ -62,6 +62,14 @@ internal static partial class ApiFixtureCoverage
             25),
         ["web.communities.modlog.default"] = VouchaApiEndpoints.CommunityModlog("test-community"),
         ["web.communities.moderation-queue.default"] = VouchaApiEndpoints.CommunityModerationQueue("test-community"),
+        ["native.communities.moderation-queue.automod-flag.page-1"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", limit: 1, source: "automod_flag"),
+        ["native.communities.moderation-queue.automod-flag.page-2"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", ApiFixtureLoader.QueryValue("native.communities.moderation-queue.automod-flag.page-2", "after"), 1, "automod_flag"),
+        ["native.communities.moderation-queue.automod-flag.member"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", limit: 1, source: "automod_flag"),
+        ["native.communities.automod-flag.dismissal.default"] = VouchaApiEndpoints.DismissCommunityAutomodFlag(
+            "test-community", ApiFixtureLoader.RouteParameterValue("native.communities.automod-flag.dismissal.default", "postId")),
         ["native.community.pending-reports.paginated"] = VouchaApiEndpoints.CommunityPendingReports(
             "fixture-community",
             "fixture-community-role-and-sort-scoped-report-cursor",

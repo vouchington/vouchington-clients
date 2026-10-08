@@ -15,6 +15,23 @@
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} puntos</value></data>
   <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Mostrar respuestas anteriores</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" xml:space="preserve"><value>Acción de automod guardada</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodAction_83211784" xml:space="preserve"><value>Acción de automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694" xml:space="preserve"><value>Elige qué ocurre con una publicación publicada cuando uno de los prompts de agente de esta comunidad la marca. La marca siempre se registra y cambiar esto nunca vuelve a ejecutar un prompt.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5" xml:space="preserve"><value>No se pudo guardar la acción de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30" xml:space="preserve"><value>Mantén la publicación publicada y agrégala a la cola de revisión para que un moderador descarte la marca o elimine la publicación.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0" xml:space="preserve"><value>Mantén la publicación publicada. La marca solo aparece en la revisión de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.recordOnly_c9184072" xml:space="preserve"><value>Solo registrar</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5" xml:space="preserve"><value>Retira la publicación de la comunidad de inmediato. Un moderador puede restablecerla desde la revisión de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e" xml:space="preserve"><value>Guardar acción de automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saving_dc85af8f" xml:space="preserve"><value>Guardando...</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74" xml:space="preserve"><value>Enviar a la cola de revisión</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.unpublish_2db04a54" xml:space="preserve"><value>Dejar de Publicar</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46" xml:space="preserve"><value>Marca de automod descartada</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db" xml:space="preserve"><value>Marcas de automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff" xml:space="preserve"><value>Descartar</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68" xml:space="preserve"><value>Error al descartar la marca de automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619" xml:space="preserve"><value>Publicaciones que el automod marcó para revisión de los moderadores. Descarta una marca cuando no se necesite ninguna acción; editar una publicación elimina su marca.</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>Costos de IA</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Apelaciones</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Configuración dinámica</value></data>

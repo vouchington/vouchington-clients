@@ -31,6 +31,12 @@ public sealed partial class ApiCommunitiesService
   public Task<CommunityModerationQueueResponse> FetchModerationQueuePageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       client.FetchCommunityModerationQueueAsync(idOrSlug, after, limit, cancellationToken);
 
+  public Task<CommunityModerationQueueResponse> FetchAutomodFlagPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
+      client.FetchCommunityModerationQueueAsync(idOrSlug, after, limit, "automod_flag", cancellationToken);
+
+  public Task DismissAutomodFlagAsync(string idOrSlug, string postId, CancellationToken cancellationToken = default) =>
+      client.DismissCommunityAutomodFlagAsync(idOrSlug, postId, cancellationToken);
+
   public Task<CommunityPendingReportsResponse> FetchPendingReportsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       client.FetchCommunityPendingReportsAsync(idOrSlug, after, limit, cancellationToken: cancellationToken);
 }

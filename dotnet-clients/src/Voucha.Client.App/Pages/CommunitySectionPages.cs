@@ -10,6 +10,7 @@ public abstract partial class CommunitySectionPage : ContentPage
 {
   private readonly CommunityDetailViewModel viewModel;
   private readonly CommunityDetailSurfaceSection section;
+  private readonly IServiceProvider? serviceProvider;
   private readonly Label titleLabel = new() { FontAttributes = FontAttributes.Bold, FontSize = 20 };
   private readonly Label metaLabel = new();
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
@@ -32,10 +33,12 @@ public abstract partial class CommunitySectionPage : ContentPage
   protected CommunitySectionPage(
       CommunityDetailViewModel viewModel,
       CommunityDetailSurfaceSection section,
-      UiMessageKey title)
+      UiMessageKey title,
+      IServiceProvider? serviceProvider = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.section = section;
+    this.serviceProvider = serviceProvider;
     paginationControl = new HybridPaginationControl
     {
       PaginationId = $"community-{section.ToString().ToLowerInvariant()}",
@@ -54,6 +57,7 @@ public abstract partial class CommunitySectionPage : ContentPage
     };
     paginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
     InitializePendingReportsPagination();
+    InitializeAutomodFlags();
     rowsView.RemainingItemsThreshold = 2;
     rowsView.RemainingItemsThresholdReached += (_, _) =>
     {
@@ -79,6 +83,7 @@ public abstract partial class CommunitySectionPage : ContentPage
           transparencyRangeSelector,
           errorLabel,
           pendingReportsPanel,
+          automodFlagsView,
           rowsView,
           paginationControl,
           loadMoreButton,
@@ -133,6 +138,7 @@ public abstract partial class CommunitySectionPage : ContentPage
   private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
   {
     if (AffectsPendingReports(e.PropertyName)) RenderPendingReports();
+    if (AffectsAutomodFlags(e.PropertyName)) RenderAutomodFlags();
     if (AffectsRenderedSurface(e.PropertyName))
     {
       Render();
@@ -177,24 +183,11 @@ public abstract partial class CommunitySectionPage : ContentPage
     UpdateSettingsSwitches();
     rowsView.ItemsSource = Rows();
     RenderPendingReports();
+    RenderAutomodFlags();
     ConfigurePaginationControl();
     loadMoreButton.IsVisible = viewModel.HasMoreCommunityList &&
         !viewModel.CanAutomaticallyLoadCommunityList;
     loadMoreButton.IsEnabled = viewModel.CanLoadMoreCommunityList;
   }
 
-  private bool CanShowActionPanel() =>
-      section switch
-      {
-        CommunityDetailSurfaceSection.Settings => viewModel.CanModerateCommunity,
-        CommunityDetailSurfaceSection.Lists or CommunityDetailSurfaceSection.Applications or
-            CommunityDetailSurfaceSection.Invites or CommunityDetailSurfaceSection.PinnedPosts or
-            CommunityDetailSurfaceSection.Bans or CommunityDetailSurfaceSection.Restrictions or
-            CommunityDetailSurfaceSection.ModeratorVacation or CommunityDetailSurfaceSection.AiAgents or
-            CommunityDetailSurfaceSection.AgentPrompts or CommunityDetailSurfaceSection.Moderation or
-            CommunityDetailSurfaceSection.ModerationAnalytics => viewModel.CanModerateCommunity,
-        CommunityDetailSurfaceSection.Members => viewModel.CanManageMembers,
-        CommunityDetailSurfaceSection.Modmail => viewModel.CanUseModmail,
-        _ => false,
-      };
 }

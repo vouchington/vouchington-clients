@@ -13,6 +13,13 @@ private struct CommunityAutomodSettingsBody: Encodable {
 }
 
 public extension Endpoint {
+    static func dismissCommunityAutomodFlag(idOrSlug: String, postId: String) -> Endpoint {
+        Endpoint(
+            .POST,
+            path: "/api/v1/communities/\(pathSegment(idOrSlug))/posts/\(pathSegment(postId))/automod-flag/dismissal"
+        )
+    }
+
     static func updateCommunityAutomodSettings(
         idOrSlug: String,
         automodAction: CommunityAutomodActionSetting

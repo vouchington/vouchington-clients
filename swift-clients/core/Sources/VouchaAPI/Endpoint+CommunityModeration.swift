@@ -1,4 +1,5 @@
 import Foundation
+import VouchaModels
 
 private struct EmptyBody: Encodable {}
 
@@ -113,13 +114,19 @@ public extension Endpoint {
         Endpoint(.DELETE, path: "/api/v1/communities/\(pathSegment(idOrSlug))/saved-replies/\(pathSegment(replyId))")
     }
 
-    static func communityModerationQueue(idOrSlug: String, after: String? = nil, limit: Int? = nil) -> Endpoint {
+    static func communityModerationQueue(
+        idOrSlug: String, after: String? = nil, limit: Int? = nil,
+        source: CommunityModerationQueueSource? = nil
+    ) -> Endpoint {
         var items: [URLQueryItem] = []
         if let after {
             items.append(.init(name: "after", value: after))
         }
         if let limit {
             items.append(.init(name: "limit", value: "\(limit)"))
+        }
+        if let source {
+            items.append(.init(name: "source", value: source.rawValue))
         }
         return Endpoint(.GET, path: "/api/v1/communities/\(pathSegment(idOrSlug))/moderation-queue", queryItems: items)
     }

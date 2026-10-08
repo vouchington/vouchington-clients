@@ -5,6 +5,21 @@ namespace Voucha.Client.App.Pages;
 
 public abstract partial class CommunitySectionPage
 {
+  private bool CanShowActionPanel() =>
+      section switch
+      {
+        CommunityDetailSurfaceSection.Settings => viewModel.CanModerateCommunity,
+        CommunityDetailSurfaceSection.Lists or CommunityDetailSurfaceSection.Applications or
+            CommunityDetailSurfaceSection.Invites or CommunityDetailSurfaceSection.PinnedPosts or
+            CommunityDetailSurfaceSection.Bans or CommunityDetailSurfaceSection.Restrictions or
+            CommunityDetailSurfaceSection.ModeratorVacation or CommunityDetailSurfaceSection.AiAgents or
+            CommunityDetailSurfaceSection.AgentPrompts or CommunityDetailSurfaceSection.Moderation or
+            CommunityDetailSurfaceSection.ModerationAnalytics => viewModel.CanModerateCommunity,
+        CommunityDetailSurfaceSection.Members => viewModel.CanManageMembers,
+        CommunityDetailSurfaceSection.Modmail => viewModel.CanUseModmail,
+        _ => false,
+      };
+
   private View BuildActionPanel() => section switch
   {
     CommunityDetailSurfaceSection.Settings => BuildSettingsActions(),
