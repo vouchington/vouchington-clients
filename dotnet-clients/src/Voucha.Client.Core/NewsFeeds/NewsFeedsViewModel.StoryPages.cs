@@ -4,6 +4,9 @@ namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed partial class NewsFeedsViewModel
 {
+  private readonly Dictionary<string, SuppressedStoryPrimary> suppressedStoryPrimaries = new(StringComparer.Ordinal);
+  private int suppressionLoadRequestId = -1;
+
   public static void ToggleStoryArticles(NewsFeedItem item)
   {
     ArgumentNullException.ThrowIfNull(item);
@@ -50,6 +53,11 @@ public sealed partial class NewsFeedsViewModel
     var kept = new List<NewsFeedItem>();
     foreach (var item in incoming)
     {
+      if (IsStoryPrimarySuppressed(item.Id))
+      {
+        CaptureSuppressedStoryPrimaryRow(item);
+        continue;
+      }
       if (item.StoryId is not { } storyId)
       {
         kept.Add(item);
@@ -87,5 +95,67 @@ public sealed partial class NewsFeedsViewModel
         if (kept[index].Id == first.Id) kept[index] = first with { StoryArticles = promoted };
     }
     return [.. kept];
+  }
+
+  private void BeginStoryPrimarySuppression(string itemId, int generation)
+  {
+    EnsureSuppressionGeneration();
+    if (generation != suppressionLoadRequestId) return;
+    suppressedStoryPrimaries[itemId] = new();
+  }
+
+  private void CompleteStoryPrimarySuppression(string itemId, int generation)
+  {
+    if (!TryGetCurrentSuppression(itemId, generation, out var suppression)) return;
+    suppression.IsPending = false;
+    suppression.ReturnedRows.Clear();
+  }
+
+  private void ClearStoryPrimarySuppression(string itemId, int generation)
+  {
+    if (!TryGetCurrentSuppression(itemId, generation, out _)) return;
+    suppressedStoryPrimaries.Remove(itemId);
+  }
+
+  private IReadOnlyList<NewsFeedItem> ReleaseStoryPrimarySuppression(string itemId, int generation)
+  {
+    if (!TryGetCurrentSuppression(itemId, generation, out var suppression)) return [];
+    suppressedStoryPrimaries.Remove(itemId);
+    return [.. suppression.ReturnedRows];
+  }
+
+  private bool IsStoryPrimarySuppressed(string itemId)
+  {
+    EnsureSuppressionGeneration();
+    return suppressedStoryPrimaries.ContainsKey(itemId);
+  }
+
+  private void CaptureSuppressedStoryPrimaryRow(NewsFeedItem item)
+  {
+    EnsureSuppressionGeneration();
+    if (!suppressedStoryPrimaries.TryGetValue(item.Id, out var suppression) || !suppression.IsPending) return;
+    suppression.ReturnedRows.Add(item);
+  }
+
+  private bool TryGetCurrentSuppression(string itemId, int generation, out SuppressedStoryPrimary suppression)
+  {
+    EnsureSuppressionGeneration();
+    if (generation == suppressionLoadRequestId && suppressedStoryPrimaries.TryGetValue(itemId, out suppression!)) return true;
+    suppression = null!;
+    return false;
+  }
+
+  private void EnsureSuppressionGeneration()
+  {
+    var generation = Volatile.Read(ref loadRequestId);
+    if (generation == suppressionLoadRequestId) return;
+    suppressedStoryPrimaries.Clear();
+    suppressionLoadRequestId = generation;
+  }
+
+  private sealed class SuppressedStoryPrimary
+  {
+    public bool IsPending { get; set; } = true;
+    public List<NewsFeedItem> ReturnedRows { get; } = [];
   }
 }

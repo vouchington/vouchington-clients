@@ -38,10 +38,12 @@ public sealed partial class NewsFeedsViewModel
     var mutationLoadRequestId = loadRequestId;
     var active = predicate == BookmarkPredicate.Save ? !item.IsSaved : !item.IsHidden;
     var isStoryPrimaryHide = predicate == BookmarkPredicate.Hide && active && removeOnActivate && item.StoryId is not null;
+    var isStoryPrimaryUnhide = predicate == BookmarkPredicate.Hide && !active && item.StoryId is not null;
     var previousIndex = isStoryPrimaryHide
         ? previousItems.ToList().FindIndex(row => row.Id == item.Id)
         : -1;
     var restoreStoryPrimary = previousIndex >= 0;
+    if (isStoryPrimaryHide) BeginStoryPrimarySuppression(item.Id, mutationLoadRequestId);
     Items = ToggleArticleBookmark(previousItems, item.Id, predicate, active, removeOnActivate);
     var optimisticItems = Items;
     ErrorMessage = null;
@@ -50,16 +52,20 @@ public sealed partial class NewsFeedsViewModel
     {
       await bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, active, cancellationToken)
           .ConfigureAwait(true);
+      if (isStoryPrimaryHide) CompleteStoryPrimarySuppression(item.Id, mutationLoadRequestId);
+      else if (isStoryPrimaryUnhide) ClearStoryPrimarySuppression(item.Id, mutationLoadRequestId);
     }
     catch (OperationCanceledException)
     {
+      var suppressedRows = isStoryPrimaryHide ? ReleaseStoryPrimarySuppression(item.Id, mutationLoadRequestId) : [];
       RollbackArticleBookmark(
-          mutationScope, mutationLoadRequestId, optimisticItems, previousItems, item, previousIndex, restoreStoryPrimary, null);
+          mutationScope, mutationLoadRequestId, optimisticItems, previousItems, item, previousIndex, restoreStoryPrimary, null, suppressedRows);
     }
     catch (Exception ex)
     {
+      var suppressedRows = isStoryPrimaryHide ? ReleaseStoryPrimarySuppression(item.Id, mutationLoadRequestId) : [];
       RollbackArticleBookmark(
-          mutationScope, mutationLoadRequestId, optimisticItems, previousItems, item, previousIndex, restoreStoryPrimary, ex.Message);
+          mutationScope, mutationLoadRequestId, optimisticItems, previousItems, item, previousIndex, restoreStoryPrimary, ex.Message, suppressedRows);
     }
     finally
     {
@@ -75,7 +81,8 @@ public sealed partial class NewsFeedsViewModel
       NewsFeedItem originalItem,
       int previousIndex,
       bool restoreStoryPrimary,
-      string? rollbackErrorMessage)
+      string? rollbackErrorMessage,
+      IReadOnlyList<NewsFeedItem>? suppressedRows = null)
   {
     if (!restoreStoryPrimary)
     {
@@ -84,7 +91,7 @@ public sealed partial class NewsFeedsViewModel
     }
 
     RollbackRemovedStoryPrimary(
-        mutationScope, mutationLoadRequestId, originalItem, previousIndex, rollbackErrorMessage);
+        mutationScope, mutationLoadRequestId, originalItem, previousIndex, rollbackErrorMessage, suppressedRows);
   }
 
   private void RollbackRemovedStoryPrimary(
@@ -92,14 +99,17 @@ public sealed partial class NewsFeedsViewModel
       int mutationLoadRequestId,
       NewsFeedItem originalPrimary,
       int originalIndex,
-      string? rollbackErrorMessage)
+      string? rollbackErrorMessage,
+      IReadOnlyList<NewsFeedItem>? suppressedRows)
   {
     if (SelectedScope != mutationScope || loadRequestId != mutationLoadRequestId || originalPrimary.StoryId is not { } storyId)
     {
       return;
     }
 
-    var sameStoryRows = Items.Where(item => item.StoryId == storyId).ToArray();
+    var sameStoryRows = Items.Where(item => item.StoryId == storyId)
+        .Concat(suppressedRows?.Where(item => item.StoryId == storyId) ?? [])
+        .ToArray();
     var relatedGroups = sameStoryRows.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>().Distinct().ToArray();
     var originalGroup = originalPrimary.StoryArticles;
     StoryRelatedArticles? restoredGroup = originalGroup;
