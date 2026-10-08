@@ -4,6 +4,7 @@ using Voucha.Client.Core.LandingPages;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.ReferralLinks;
 using Voucha.Client.Core.Topics;
+using Voucha.Client.Core.TopicRecommendations;
 
 namespace Voucha.Client.App;
 

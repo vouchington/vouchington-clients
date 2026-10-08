@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.App.Pages;
 

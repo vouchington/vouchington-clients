@@ -10,8 +10,7 @@ public sealed partial class ModerationReportsPage
   {
     noticeLabel.Text = viewModel.Notice;
     errorLabel.Text = viewModel.ErrorMessage;
-    loadMoreButton.IsVisible = viewModel.HasNextPage;
-    loadMoreButton.IsEnabled = !viewModel.IsQueueInteractionBlocked;
+    paginationControl.IsEnabled = !viewModel.IsQueueInteractionBlocked;
     statusPicker.IsEnabled = !viewModel.IsQueueInteractionBlocked;
     modePicker.IsEnabled = !viewModel.IsQueueInteractionBlocked;
     sortPicker.IsEnabled = !viewModel.IsQueueInteractionBlocked;

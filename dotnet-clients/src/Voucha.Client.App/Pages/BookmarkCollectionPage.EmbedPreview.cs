@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Bookmarks;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
 

@@ -88,7 +88,7 @@ public sealed partial class TopicRecommendationsPage : ContentPage
     query.IsVisible = signedIn;
     mapping.IsVisible = signedIn;
     search.IsVisible = signedIn;
-    if (!signedIn) { rows.ItemsSource = []; more.IsVisible = false; return; }
+    if (!signedIn) { rows.ItemsSource = Array.Empty<object>(); more.IsVisible = false; return; }
     await hashtags.LoadAsync().ConfigureAwait(true);
     if (!IsCurrentTab(requestGeneration, true)) return;
     error.Text = hashtags.ErrorMessage;

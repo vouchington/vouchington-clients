@@ -67,7 +67,7 @@ public sealed partial class ModerationReportsPage
     AddLine(content, UiText.Localized(
         UiMessageKey.NativeDotnetModerationRebasedBanEvasionDetail,
         ("community", context.CommunitySlug),
-        ("score", UiCopy.CurrentLocalization.FormatPercent(context.Score)),
+        ("score", UiCopy.CurrentLocalization.FormatPercent((decimal)context.Score)),
         ("source", context.SourceUsername ?? context.SourceUserId)));
   }
 

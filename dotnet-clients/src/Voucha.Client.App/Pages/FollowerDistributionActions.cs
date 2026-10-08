@@ -36,10 +36,10 @@ internal static class FollowerDistributionActions
       try
       {
         if (!await state.ShareAsync().ConfigureAwait(true))
-          await page.DisplayAlert(
+          await page.DisplayAlertAsync(
               T(UiMessageKey.NativeSwiftFollowerDistributionActions),
               T(UiMessageKey.NativeSwiftFollowerDistributionUnableToShare),
-              UiCopy.Localize(new UiMessageKey("native.swift.common.oK")));
+              UiCopy.Localize(UiMessageKey.NativeDotnetCsharpOk));
       }
       finally { state.Dispose(); }
       return;

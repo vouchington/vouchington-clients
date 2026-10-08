@@ -515,7 +515,7 @@ jobs:
     name: Swift Android Skip
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 34
+    timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -823,7 +823,7 @@ jobs:
     name: .NET MAUI Mac Catalyst
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     env:
       UseArtifactsOutput: 'true'
     steps:
@@ -908,38 +908,8 @@ jobs:
           dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Release --no-build
       - name: Select compatible Xcode
-        id: xcode
-        shell: bash
-        run: |
-          set -euo pipefail
-          required_version=26.5
-          selected=$(xcode-select -p 2>/dev/null || true)
-          shopt -s nullglob
-          candidates=("$selected" /Applications/Xcode*.app/Contents/Developer)
-          for developer_dir in "${candidates[@]}"; do
-            [ -d "$developer_dir" ] || continue
-            version=$(DEVELOPER_DIR="$developer_dir" xcodebuild -version 2>/dev/null | awk 'NR == 1 { print $2 }')
-            xcodebuild_path="$developer_dir/usr/bin/xcodebuild"
-            macosx_sdk="$developer_dir/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
-            maccatalyst_sdk="$developer_dir/Platforms/MacCatalyst.platform/Developer/SDKs/MacCatalyst.sdk"
-            actool=""
-            find_status=1
-            if [ -x "$xcodebuild_path" ] && [ -f "$macosx_sdk/SDKSettings.plist" ] && [ -f "$maccatalyst_sdk/SDKSettings.plist" ]; then
-              set +e
-              actool=$(DEVELOPER_DIR="$developer_dir" "$xcodebuild_path" -sdk "$macosx_sdk" -find actool)
-              find_status=$?
-              set -e
-            fi
-            if [[ "$version" == "$required_version"* ]] && [ "$find_status" -eq 0 ] && [ -n "$actool" ] && [ -x "$actool" ]; then
-              echo "DEVELOPER_DIR=$developer_dir" >>"$GITHUB_ENV"
-              echo 'compatible=true' >>"$GITHUB_OUTPUT"
-              echo "Selected Xcode $version at $developer_dir"
-              exit 0
-            fi
-            echo "Skipping incomplete or incompatible Xcode ${version:-unknown} at $developer_dir"
-          done
-          echo "::notice::Complete Xcode $required_version toolchain not found; skipping MAUI Mac Catalyst smoke build on this runner"
-          echo 'compatible=false' >>"$GITHUB_OUTPUT"
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.5
       - name: Detect host Mac Catalyst RID
         id: rid
         shell: bash
@@ -951,7 +921,6 @@ jobs:
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
       - name: Restore the shared MAUI project-reference graph
-        if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
         env:
           ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
@@ -962,7 +931,6 @@ jobs:
           dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
             -p:Configuration=Release -p:TargetFramework=net10.0 --locked-mode
       - name: Build MAUI Mac Catalyst app
-        if: steps.xcode.outputs.compatible == 'true'
         working-directory: candidate-clients
         env:
           ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
@@ -977,7 +945,7 @@ jobs:
     needs:
       - dotnet-portable
       - test-swift-core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions: {}
     steps:
@@ -1009,7 +977,7 @@ jobs:
       - build-android-core
       - build-macos-app
       - dotnet-maui
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions: {}
     steps:

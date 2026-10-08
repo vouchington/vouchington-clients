@@ -64,7 +64,7 @@ public static class SemanticVoteActionSheet
       params ElectionVoteChoice[] allowedChoices)
   {
     var choices = allowedChoices.ToDictionary(Label, choice => choice, StringComparer.Ordinal);
-    var selected = await page.DisplayActionSheet(
+    var selected = await page.DisplayActionSheetAsync(
         UiCopy.Localize(UiMessageKey.ExtractedVotesSemanticVoteChoose),
         UiCopy.Localize(UiMessageKey.CommonCancel),
         null,

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Communities;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
 
@@ -19,12 +20,12 @@ public sealed partial class CommunityDetailPage
       {
         if (preview.ThumbnailUrl is { } thumbnail) content.Add(new Image { HeightRequest = 160, Aspect = Aspect.AspectFit, Source = thumbnail });
         if (preview.Provider is { } provider) content.Add(new Label { Text = provider, FontSize = 12 });
-        if (preview.Title is { } title) content.Add(new Label { Text = title, FontAttributes = FontAttributes.Bold });
+        if (preview.Title is { } previewTitle) content.Add(new Label { Text = previewTitle, FontAttributes = FontAttributes.Bold });
         if (preview.Description is { } description) content.Add(new Label { Text = description, FontSize = 12 });
-        if (preview.CanPlay && preview.PlayerUrl is { } playerUrl && preview.SourceUrl is { } sourceUrl)
+        if (preview.CanPlay && preview.PlayerUrl is { } playerUrl && preview.SourceUrl is { } playerSourceUrl)
         {
           var play = new Button { Text = UiCopy.Localize(UiMessageKey.NativeDotnetMediaPlaybackPlay) };
-          play.Clicked += async (_, _) => await Navigation.PushAsync(new EmbedPlayerPage(playerUrl, sourceUrl)).ConfigureAwait(true);
+          play.Clicked += async (_, _) => await Navigation.PushAsync(new EmbedPlayerPage(playerUrl, playerSourceUrl)).ConfigureAwait(true);
           content.Add(play);
         }
         if (preview.SourceUrl is { } sourceUrl)

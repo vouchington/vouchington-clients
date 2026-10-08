@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 
@@ -24,13 +25,13 @@ public sealed partial class ModerationReportsPage
     applyingPickerState = true;
     statusPicker.ItemsSource = Enum.GetValues<ModerationReportStatus>().Select(StatusLabel).ToArray();
     modePicker.ItemsSource = ModeOptions();
-    sortPicker.ItemsSource =
-    [
+    sortPicker.ItemsSource = new[]
+    {
       UiCopy.Localize(UiMessageKey.NativeSwiftModerationReportsSeverity),
       UiCopy.Localize(UiMessageKey.NativeSwiftModerationReportsMostReports),
       UiCopy.Localize(UiMessageKey.NativeSwiftModerationReportsOldest),
       UiCopy.Localize(UiMessageKey.NativeSwiftModerationReportsNewest),
-    ];
+    };
     statusPicker.SelectedIndex = (int)viewModel.Status;
     modePicker.SelectedIndex = ModeIndex(viewModel.Mode);
     sortPicker.SelectedIndex = SortIndex(viewModel.Sort);

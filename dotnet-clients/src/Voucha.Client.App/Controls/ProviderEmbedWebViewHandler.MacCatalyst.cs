@@ -20,8 +20,8 @@ public sealed class ProviderEmbedWebViewHandler : WebViewHandler
   protected override void DisconnectHandler(WKWebView platformView)
   {
     platformView.StopLoading();
-    platformView.NavigationDelegate = null;
-    platformView.UIDelegate = null;
+    platformView.NavigationDelegate = null!;
+    platformView.UIDelegate = null!;
     base.DisconnectHandler(platformView);
     platformView.Dispose();
   }
