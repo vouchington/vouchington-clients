@@ -20,7 +20,8 @@ final class NativeRouteLibraryPresentationTests: NativeRouteSurfaceViewModelTest
                     "created_at": "2026-01-01T00:00:00Z",
                     "updated_at": "2026-01-01T00:00:00Z"
                   }],
-                  "page_info": {"has_next_page": false, "end_cursor": null, "start_cursor": null}
+                  "page_info": {"has_next_page": false, "end_cursor": null, "start_cursor": null},
+                  "users": {"user-1": {"id": "user-1", "username": null, "display_name": "Deleted member", "account_type": null}}
                 }
                 """.utf8
             ),

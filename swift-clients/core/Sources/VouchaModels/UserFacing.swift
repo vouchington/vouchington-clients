@@ -98,7 +98,7 @@ public struct PrioritizedReferralLink: Codable, Identifiable, Sendable {
 
 public struct ReferralLinkUser: Decodable, Encodable, Identifiable, Sendable {
     public let id: String
-    public let username: String
+    public let username: String?
     public let displayName: String?
     public let profileImageId: String?
     @RequiredNullable public var accountType: AccountType?

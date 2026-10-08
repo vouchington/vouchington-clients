@@ -38,6 +38,11 @@ struct NativePostSummary: Decodable, Identifiable {
     let linguaRsDetectedLanguage: String?
     let createdById: String?
     let rootId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, slug, postType, title, markdown, declaredLanguage, linguaRsDetectedLanguage, createdById
+        case rootId = "rootPostId"
+    }
 }
 
 struct NativeLandingPagesResponse: Decodable {

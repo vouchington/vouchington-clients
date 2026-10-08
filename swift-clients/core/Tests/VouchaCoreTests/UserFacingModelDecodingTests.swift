@@ -3,6 +3,37 @@ import Foundation
 import XCTest
 
 final class UserFacingModelDecodingTests: XCTestCase {
+    func testReferralLinkSidecarsDecodeUsernameLessUsersWithoutDroppingPage() throws {
+        func usernameLess(_ fixtureId: String) throws -> Data {
+            var page = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: ApiFixtureLoader.data(fixtureId)) as? [String: Any]
+            )
+            var users = try XCTUnwrap(page["users"] as? [String: [String: Any]])
+            var user = try XCTUnwrap(users["user-1"])
+            user["username"] = NSNull()
+            users["user-1"] = user
+            page["users"] = users
+            return try JSONSerialization.data(withJSONObject: page)
+        }
+
+        let decoder = makeVouchaDecoder()
+        let feed = try decoder.decode(
+            ReferralLinkFeedResponse.self,
+            from: usernameLess("web.referral-links.feed.default")
+        )
+        XCTAssertEqual(feed.results.map(\.id), ["referral-link-1"])
+        XCTAssertNil(feed.users?["user-1"]?.username)
+        XCTAssertEqual(feed.users?["user-1"]?.displayName, "Test User")
+
+        let prioritized = try decoder.decode(
+            PrioritizedReferralLinksResponse.self,
+            from: usernameLess("web.referral-links.prioritized.default")
+        )
+        XCTAssertEqual(prioritized.links.map(\.id), ["referral-link-1"])
+        XCTAssertNil(prioritized.users["user-1"]?.username)
+        XCTAssertEqual(prioritized.users["user-1"]?.id, "user-1")
+    }
+
     func testDecodesDiscoveryAndAccountModels() throws {
         let decoder = makeVouchaDecoder()
 
