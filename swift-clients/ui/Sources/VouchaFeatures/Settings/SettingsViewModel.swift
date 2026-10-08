@@ -87,7 +87,7 @@ public final class SettingsViewModel {
 
     public var apiKeyLabel = ""
     public var apiKeyType: ApiKeyType = .rss {
-        didSet { apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator) }
+        didSet { apiKeyScopeSelection.configure(type: apiKeyType) }
     }
 
     public var deleteConfirmation = ""

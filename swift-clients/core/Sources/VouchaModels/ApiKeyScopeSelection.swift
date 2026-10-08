@@ -4,21 +4,19 @@ import Foundation
 public struct ApiKeyScopeSelection: Sendable {
     private var scopes: [CredentialScope]
     private var type: ApiKeyType
-    private var isAdministrator: Bool
     public private(set) var selectedScopes: Set<String> = []
 
-    public init(scopes: [CredentialScope] = [], type: ApiKeyType = .rss, isAdministrator: Bool = false) {
+    public init(scopes: [CredentialScope] = [], type: ApiKeyType = .rss) {
         self.scopes = scopes
         self.type = type
-        self.isAdministrator = isAdministrator
     }
 
     public var availableScopes: [CredentialScope] {
         guard catalogIsValid else { return [] }
         return scopes.filter { entry in
             entry.surfaces.contains(.apiKey) &&
-                (type == .rss ? entry.audience == .api :
-                    entry.audience == .user || (isAdministrator && entry.audience == .admin))
+                !entry.scope.lowercased().hasPrefix("mcp.admin:") &&
+                (type == .rss ? entry.audience == .api : entry.audience == .user)
         }.sorted { $0.scope < $1.scope }
     }
 
@@ -37,12 +35,11 @@ public struct ApiKeyScopeSelection: Sendable {
             entries.allSatisfy { $0.requires == nil || selectedScopes.contains($0.requires ?? "") }
     }
 
-    public mutating func configure(type: ApiKeyType, isAdministrator: Bool) {
-        if self.type != type || self.isAdministrator != isAdministrator {
+    public mutating func configure(type: ApiKeyType) {
+        if self.type != type {
             selectedScopes = []
         }
         self.type = type
-        self.isAdministrator = isAdministrator
     }
 
     public mutating func replaceCatalog(_ scopes: [CredentialScope]) {

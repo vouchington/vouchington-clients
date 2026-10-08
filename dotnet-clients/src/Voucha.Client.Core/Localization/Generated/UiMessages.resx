@@ -263,9 +263,7 @@
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ related articles</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Try Again</value></data>
   <data name="native.credentials.action" xml:space="preserve"><value>Action</value></data>
-  <data name="native.credentials.adminAudience" xml:space="preserve"><value>Administrator</value></data>
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
-  <data name="native.credentials.audience" xml:space="preserve"><value>Audience</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Failed to load credential settings</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choose scopes</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Connected Apps</value></data>

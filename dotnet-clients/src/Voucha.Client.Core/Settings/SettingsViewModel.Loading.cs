@@ -66,7 +66,6 @@ public sealed partial class SettingsViewModel
       loadedUser = user;
       PrivacySelections = BuildSelections(user);
       PrivacyToggles = BuildToggles(user);
-      OnPropertyChanged(nameof(CanSelectAdminApiKeyScopes));
     }
     finally
     {

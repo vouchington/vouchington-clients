@@ -49,9 +49,7 @@ extension SettingsSurface {
             LabeledContent(UiMessages.string(.nativeCredentialsAction, locale: nativeUiLocale)) {
                 Text(UiMessages.string(scope.action.titleKey, locale: nativeUiLocale))
             }
-            LabeledContent(UiMessages.string(.nativeCredentialsAudience, locale: nativeUiLocale)) {
-                Text(UiMessages.string(scope.audience.titleKey, locale: nativeUiLocale))
-            }
+            Text(UiMessages.string(scope.audience.titleKey, locale: nativeUiLocale))
         }
     }
 
@@ -142,7 +140,7 @@ private extension ScopeAudience {
         switch self {
         case .user: .nativeCredentialsUserAudience
         case .api: .nativeCredentialsApiAudience
-        case .admin: .nativeCredentialsAdminAudience
+        case .admin: .nativeCredentialsInvalidSelection
         }
     }
 }

@@ -82,7 +82,6 @@ public sealed partial class SettingsViewModelTests
       Assert.True(model.IsLoading);
       Assert.Equal("Hello, Voucha!", model.ProfileMarkdown);
       Assert.NotEmpty(model.ApiKeys);
-      Assert.False(model.CanSelectAdminApiKeyScopes);
       Assert.Empty(model.ApiKeyScopes);
       Assert.False(model.CanCreateApiKey);
       Assert.Empty(model.PrivacySelections);
@@ -93,7 +92,7 @@ public sealed partial class SettingsViewModelTests
       await load;
     }
 
-    Assert.True(model.CanSelectAdminApiKeyScopes);
+    Assert.All(model.ApiKeyScopes, scope => Assert.Equal("user", scope.ProtocolValue.Audience));
     Assert.NotEmpty(model.ApiKeyScopes);
     Assert.NotEmpty(model.PrivacySelections);
   }
@@ -180,7 +179,6 @@ public sealed partial class SettingsViewModelTests
       oldGrants.TrySetResult(new OAuthGrantListResponse([Grant("old-account")], new PageInfo(null, false, null)));
       await previousLoad;
 
-      Assert.False(model.CanSelectAdminApiKeyScopes);
       Assert.Equal(["mcp.user:read", "mcp.user:write"], model.ApiKeyScopes.Select(scope => scope.Scope));
       Assert.Empty(model.OAuthGrants);
     }
