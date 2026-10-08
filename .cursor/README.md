@@ -1,6 +1,6 @@
 # Cursor configuration
 
-Cursor is a supported local assistant for this repository. It reads the checked-in `CLAUDE.md`
+Cursor is a supported local assistant for this repository. It reads the checked-in `AGENTS.md`
 files and discovers shared skills from [`.agents/skills/`](../.agents/skills) (including the
 tracked Claude discovery links in [`.claude/skills/`](../.claude/skills)). Do not add copied
 `AGENTS.md` files, provider-specific skills, or Filaments web-agent configuration.

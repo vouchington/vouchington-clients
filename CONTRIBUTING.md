@@ -15,7 +15,7 @@ Bug reports and questions are welcome as issues.
 
 Start with the [README](README.md) for repository layout, the Filaments contract boundary, and the
 `pnpm clean` / `./dev/reset-worktree` tooling. Project principles and directory-scoped rules are in
-[CLAUDE.md](CLAUDE.md).
+[AGENTS.md](AGENTS.md).
 
 ## Native quality
 

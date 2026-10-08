@@ -1,5 +1,4 @@
-# Codex falls back to the shared checked-in instruction filename.
-project_doc_fallback_filenames = ["CLAUDE.md"]
+# Codex reads checked-in AGENTS.md files. Do not add a CLAUDE.md fallback.
 
 # The upstream plugin owns the Agent Blackboard skill and MCP registration.
 [plugins."agent-blackboard@agent-blackboard"]
