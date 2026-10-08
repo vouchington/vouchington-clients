@@ -8,6 +8,62 @@ namespace Voucha.Client.Core.Tests.Chat;
 public sealed class ChatLocalProviderSelectionTests
 {
   [Fact]
+  public async Task RemovedSelectedProviderDoesNotSilentlySendThroughAnotherLocalProvider()
+  {
+    var fallback = new TestLocalProvider("openai-compatible:actual", true);
+    var service = new FakeChatService();
+    var viewModel = new ChatConversationViewModel(service, new Resolver(fallback), fallback)
+    {
+      SelectedProviderStatus = new(ChatProviderKind.Local, "Removed", true, "Ready.", "openai-compatible:missing"),
+    };
+
+    var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
+
+    Assert.False(accepted);
+    Assert.Equal(0, service.CreateConversationCount);
+    Assert.Equal(0, fallback.GenerationCalls);
+    Assert.Empty(viewModel.Messages);
+  }
+
+  [Fact]
+  public async Task ProviderRemovedDuringConversationCreationDoesNotUseFallbackOrPersist()
+  {
+    var creationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var releaseCreation = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var selected = new TestLocalProvider("openai-compatible:selected", true);
+    var fallback = new TestLocalProvider("openai-compatible:fallback", true);
+    var resolver = new Resolver(selected);
+    var service = new FakeChatService
+    {
+      CreateConversationAsyncOverride = async (_, _) =>
+      {
+        creationStarted.SetResult();
+        await releaseCreation.Task;
+        return new(new ChatConversation("conversation-1", "", DateTimeOffset.UtcNow, "user-1", DateTimeOffset.UtcNow, null, null, null));
+      },
+    };
+    var viewModel = new ChatConversationViewModel(service, resolver, fallback);
+    var send = viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
+
+    try
+    {
+      await creationStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      resolver.IsPresent = false;
+      releaseCreation.SetResult();
+      Assert.False(await send);
+      Assert.Equal(0, selected.GenerationCalls);
+      Assert.Equal(0, fallback.GenerationCalls);
+      Assert.Null(service.LastClientGeneratedChatBody);
+      Assert.Empty(viewModel.Messages);
+    }
+    finally
+    {
+      releaseCreation.TrySetResult();
+      await send;
+    }
+  }
+
+  [Fact]
   public async Task SendingRefreshesTheExplicitDynamicProviderInsteadOfTheFallbackProvider()
   {
     var provider = new TestLocalProvider("openai-compatible:profile", true);
@@ -51,7 +107,7 @@ public sealed class ChatLocalProviderSelectionTests
   }
 
   [Fact]
-  public async Task ProviderPickerSelectionPersistsLocalAndHostedChoices()
+  public async Task ProviderPickerSelectionPersistsLocalChoice()
   {
     var provider = new TestLocalProvider("openai-compatible:profile", true);
     var resolver = new Resolver(provider);
@@ -59,9 +115,6 @@ public sealed class ChatLocalProviderSelectionTests
 
     await viewModel.PersistSelectedProviderAsync(TestContext.Current.CancellationToken);
     Assert.Equal(provider.Id, resolver.SavedProviderId);
-    viewModel.SelectedProviderStatus = resolver.GetProviderStatuses().First(status => status.Kind == ChatProviderKind.Hosted);
-    await viewModel.PersistSelectedProviderAsync(TestContext.Current.CancellationToken);
-    Assert.Null(resolver.SavedProviderId);
   }
 
   [Fact]
@@ -184,12 +237,12 @@ public sealed class ChatLocalProviderSelectionTests
 
   private sealed class Resolver(ILocalChatProvider provider) : IChatProviderResolver, ILocalChatProviderResolver, IChatProviderSelectionStore
   {
-    private static readonly ChatProviderStatus Hosted = new(ChatProviderKind.Hosted, "Hosted", true, "Hosted");
+    public bool IsPresent { get; set; } = true;
     public string? SavedProviderId { get; private set; }
     public Exception? SaveError { get; set; }
-    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [Hosted, provider.Status];
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [provider.Status];
     public ChatProviderStatus GetDefaultProviderStatus() => provider.Status;
-    public ILocalChatProvider? GetLocalProvider(string providerId) => providerId == provider.Id ? provider : null;
+    public ILocalChatProvider? GetLocalProvider(string providerId) => IsPresent && providerId == provider.Id ? provider : null;
     public void SaveSelectedProvider(string? providerId)
     {
       if (SaveError is not null) throw SaveError;

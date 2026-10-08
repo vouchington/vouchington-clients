@@ -35,12 +35,6 @@ public interface IChatService
 
   Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default);
 
-  IAsyncEnumerable<ChatStreamEvent> StreamConversationAsync(
-      string conversationId,
-      string message,
-      string? provider = null,
-      CancellationToken cancellationToken = default);
-
   Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(
       string conversationId,
       CreateClientGeneratedChatBody body,

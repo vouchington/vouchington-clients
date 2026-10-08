@@ -29,8 +29,6 @@ public sealed record ChatProviderStatus(
   {
   }
 
-  public bool IsLocal => Kind == ChatProviderKind.Local;
-
   public string DisplayName => Localization.Resolve(DisplayNameText);
 
   public string StatusText => Localization.Resolve(StatusTextValue);

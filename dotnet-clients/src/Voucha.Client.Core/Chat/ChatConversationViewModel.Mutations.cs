@@ -76,15 +76,9 @@ public sealed partial class ChatConversationViewModel
     var cts = Interlocked.Exchange(ref streamingCts, null);
     if (cts is not null) { cts.Cancel(); cts.Dispose(); }
     messages.Clear();
-    toolCalls.Clear();
-    toolResults.Clear();
-    subagentSteps.Clear();
-    subagentTextChunks.Clear();
-    streamingAssistantMessageId = null;
     ConversationId = null;
     Title = string.Empty;
     ErrorMessage = null;
-    StreamContent = null;
     HasMoreMessages = false;
     nextMessageCursor = null;
     _ = Interlocked.Increment(ref olderMessagesRequestId);
@@ -95,10 +89,6 @@ public sealed partial class ChatConversationViewModel
     State = LoadState.Idle;
     SelectedProviderStatus = providerResolver.GetDefaultProviderStatus();
     OnPropertyChanged(nameof(Messages));
-    OnPropertyChanged(nameof(ToolCalls));
-    OnPropertyChanged(nameof(ToolResults));
-    OnPropertyChanged(nameof(SubagentSteps));
-    OnPropertyChanged(nameof(SubagentTextChunks));
   }
 
   private int BeginMutation()
@@ -158,37 +148,6 @@ public sealed partial class ChatConversationViewModel
         }
       }
     }
-  }
-
-  private void UpdateStreamingAssistantMessage(string? assistantMessageId)
-  {
-    var content = StreamContent ?? string.Empty;
-    var nextMessageId = assistantMessageId ?? streamingAssistantMessageId ?? Guid.NewGuid().ToString("N");
-    var currentMessageId = streamingAssistantMessageId;
-    if (currentMessageId is not null)
-    {
-      var currentIndex = messages.FindLastIndex(row => row.Role == "assistant" && row.Id == currentMessageId);
-      if (currentIndex >= 0)
-      {
-        messages[currentIndex] = new ChatMessageRow(nextMessageId, "assistant", content, DateTimeOffset.UtcNow);
-        streamingAssistantMessageId = nextMessageId;
-        OnPropertyChanged(nameof(Messages));
-        return;
-      }
-    }
-
-    var existingIndex = messages.FindLastIndex(row => row.Role == "assistant" && row.Id == nextMessageId);
-    if (existingIndex >= 0)
-    {
-      messages[existingIndex] = messages[existingIndex] with { Content = content };
-    }
-    else
-    {
-      messages.Add(new ChatMessageRow(nextMessageId, "assistant", content, DateTimeOffset.UtcNow));
-    }
-
-    streamingAssistantMessageId = nextMessageId;
-    OnPropertyChanged(nameof(Messages));
   }
 
 }
