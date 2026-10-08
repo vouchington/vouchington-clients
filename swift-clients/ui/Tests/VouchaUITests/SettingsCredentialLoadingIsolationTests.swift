@@ -8,6 +8,54 @@ import XCTest
 @MainActor
 final class SettingsCredentialLoadingIsolationTests: NativeRouteSurfaceViewModelTestCase,
     CompleteSettingsResponseSeeding {
+    func testRevokedKeyStaysRemovedWhileUnrelatedMainSettingsFinishLoading() async throws {
+        seedSettingsResponses()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.load()
+        XCTAssertEqual(model.apiKeys.map(\.id), ["key-1"])
+        XCTAssertEqual(model.profileMarkdown, "Native bio")
+        XCTAssertEqual(model.profileLinks.map(\.id), ["link-1"])
+
+        CannedFeedURLProtocol.handlers["/api/v1/my/profile"] = (
+            Data(#"{"profile":{"id":"user-1","markdown":"Updated bio"}}"#.utf8), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/profile/links"] = (
+            Data(#"{"results":[],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#.utf8),
+            200
+        )
+
+        let linksPath = "/api/v1/my/profile/links"
+        let keysPath = "/api/v1/my/api-keys"
+        CannedFeedURLProtocol.suspendResponse(path: linksPath)
+        CannedFeedURLProtocol.suspendResponse(path: keysPath)
+        let linksRequest = CannedFeedURLProtocol.requestBarrier(path: linksPath, method: "GET")
+        let keysRequest = CannedFeedURLProtocol.requestBarrier(path: keysPath, method: "GET")
+        let reload = Task { await model.reload() }
+        do {
+            _ = try await linksRequest.wait()
+            _ = try await keysRequest.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: linksPath)
+            CannedFeedURLProtocol.releaseResponse(path: keysPath)
+            await reload.value
+            throw error
+        }
+
+        CannedFeedURLProtocol.handlers["/api/v1/my/api-keys/key-1"] = (Data(), 204)
+        await model.revokeApiKey(id: "key-1")
+        XCTAssertTrue(model.apiKeys.isEmpty)
+        XCTAssertTrue(model.isLoading, "The unrelated main settings requests are still held")
+
+        CannedFeedURLProtocol.releaseResponse(path: keysPath)
+        CannedFeedURLProtocol.releaseResponse(path: linksPath)
+        await reload.value
+
+        guard case .loaded = model.state else { return XCTFail("The main settings load must finish") }
+        XCTAssertEqual(model.profileMarkdown, "Updated bio")
+        XCTAssertTrue(model.profileLinks.isEmpty)
+        XCTAssertTrue(model.apiKeys.isEmpty, "The stale key response must not restore a revoked key")
+    }
+
     func testApiKeyCreationUsesLoadedCatalogWhileProfileLinksAreHeld() async throws {
         seedSettingsResponses()
         let linksPath = "/api/v1/my/profile/links"

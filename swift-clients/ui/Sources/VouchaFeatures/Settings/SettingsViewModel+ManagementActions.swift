@@ -40,6 +40,9 @@ public extension SettingsViewModel {
             reconcileRevokedApiKey(id: id)
             statusMessage = .message(.nativeSwiftSettingsApiKeyRevoked)
         }
+        if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
+            state = .loading
+        }
     }
 
     func requestDataExport() async {

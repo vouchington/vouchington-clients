@@ -8,12 +8,11 @@ final class SettingsPaginationRaceTests: XCTestCase {
     func testStalePageCannotRestoreARevokedApiKey() throws {
         let viewModel = SettingsViewModel(client: nil)
         let stalePage = try decodeApiKeyPage()
-        let staleGeneration = viewModel.beginSettingsLoad()
+        _ = viewModel.beginSettingsLoad()
 
         viewModel.reconcileRevokedApiKey(id: "key-1")
         viewModel.replaceApiKeyPage(stalePage)
 
-        XCTAssertFalse(viewModel.isCurrentSettingsLoad(staleGeneration))
         XCTAssertTrue(viewModel.apiKeys.isEmpty)
     }
 
