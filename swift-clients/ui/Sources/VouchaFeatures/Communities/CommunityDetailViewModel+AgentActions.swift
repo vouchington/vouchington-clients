@@ -3,6 +3,10 @@ import VouchaAPI
 import VouchaLocalization
 import VouchaModels
 
+private struct CommunityAgentPromptTestResult: Decodable {
+    let flagged: Bool
+}
+
 extension CommunityDetailViewModel {
     func enableCommunityAiAgent(agentSlug: String) async {
         let agentSlug = agentSlug.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -77,25 +81,34 @@ extension CommunityDetailViewModel {
         )
     }
 
+    @discardableResult
     func testCommunityAgentPrompt(
         promptId: String,
         text: String,
         saveForTraining: Bool? = nil,
         expectedFlagged: Bool? = nil
-    ) async {
+    ) async -> Bool? {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !promptId.isEmpty, !text.isEmpty else { return }
-        await perform(
-            .testCommunityAgentPrompt(
-                idOrSlug: slug,
-                promptId: promptId,
-                text: text,
-                saveForTraining: saveForTraining,
-                expectedFlagged: expectedFlagged
-            ),
-            success: UiMessage(.nativeSwiftCommunityStatusTestedAgentPrompt)
-        )
+        guard !promptId.isEmpty, !text.isEmpty, let client else { return nil }
+        state = .loading
+        do {
+            let result: CommunityAgentPromptTestResult = try await client.send(
+                .testCommunityAgentPrompt(
+                    idOrSlug: slug,
+                    promptId: promptId,
+                    text: text,
+                    saveForTraining: saveForTraining,
+                    expectedFlagged: expectedFlagged
+                )
+            )
+            statusMessage = UiMessage(.nativeSwiftCommunityStatusTestedAgentPrompt)
+            await load()
+            return result.flagged
+        } catch {
+            state = .error(UiMessage(.nativeSwiftCommunityStatusActionFailed))
+            return nil
+        }
     }
 
     func recordCommunityAutomodFeedback(

@@ -164,7 +164,7 @@ public sealed class ApiCommunitiesServiceTests
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
-        new RecordedResponse("""{"ok":true}"""),
+        new RecordedResponse("""{"flagged":false}"""),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
     ]);
@@ -214,6 +214,7 @@ public sealed class ApiCommunitiesServiceTests
     Assert.Equal("prompt-2", createdPrompt.Id);
     Assert.Equal("prompt-3", updatedPrompt.Id);
     Assert.Equal(System.Text.Json.JsonValueKind.Object, testRun.ValueKind);
+    Assert.False(testRun.GetProperty("flagged").GetBoolean());
     Assert.Collection(
         handler.Requests,
         request => Assert.Equal("/api/v1/communities/test%20community/modmail", request.PathAndQuery),
