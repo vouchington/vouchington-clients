@@ -80,11 +80,19 @@ public sealed partial class SettingsViewModel
     OnPropertyChanged(nameof(SelectedApiKeyAudienceOption));
   }
 
-  private async Task LoadCredentialsAsync(CancellationToken cancellationToken)
+  private async Task LoadCredentialsAsync(int generation, CancellationToken cancellationToken)
+  {
+    var catalogTask = LoadScopeCatalogAsync(generation, cancellationToken);
+    var grantsTask = LoadOAuthGrantsAsync(cancellationToken);
+    await Task.WhenAll(catalogTask, grantsTask).ConfigureAwait(true);
+  }
+
+  private async Task LoadScopeCatalogAsync(int generation, CancellationToken cancellationToken)
   {
     try
     {
       var response = await settingsService.FetchScopeCatalogAsync(cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentSettingsLoad(generation)) return;
       if (response.Scopes.Any(scope => !SettingsScopeRow.IsSupportedDescriptionKey(scope.DescriptionKey)))
         throw new InvalidOperationException("Unknown scope description.");
       scopeCatalog = response.Scopes;
@@ -97,11 +105,11 @@ public sealed partial class SettingsViewModel
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or ArgumentException or OperationCanceledException)
     {
+      if (!IsCurrentSettingsLoad(generation)) return;
       scopeCatalog = [];
       RebuildScopeSelection();
       SetCredentialNotice(UiMessageKey.NativeCredentialsCatalogLoadFailed);
     }
-    await LoadOAuthGrantsAsync(cancellationToken).ConfigureAwait(true);
   }
 
   private void SetCredentialNotice(UiMessageKey? key) =>
