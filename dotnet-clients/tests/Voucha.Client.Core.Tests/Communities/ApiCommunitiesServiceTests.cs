@@ -153,18 +153,18 @@ public sealed class ApiCommunitiesServiceTests
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"queue","activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Created","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"queue","activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Created","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"queue","activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
             """),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
-        new RecordedResponse("""{"ok":true}"""),
+        new RecordedResponse("""{"flagged":false}"""),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
     ]);
@@ -200,7 +200,7 @@ public sealed class ApiCommunitiesServiceTests
     var testRun = await service.TestAgentPromptAsync(
         "test community",
         "prompt-3",
-        new CommunityAgentPromptTestRunRequest("body", true, false, "spam"),
+        new CommunityAgentPromptTestRunRequest("body", true, false),
         TestContext.Current.CancellationToken);
     await service.ConfirmBanEvasionAsync("test community", "user-1", TestContext.Current.CancellationToken);
     await service.DismissBanEvasionAsync("test community", "user-1", TestContext.Current.CancellationToken);
@@ -214,6 +214,7 @@ public sealed class ApiCommunitiesServiceTests
     Assert.Equal("prompt-2", createdPrompt.Id);
     Assert.Equal("prompt-3", updatedPrompt.Id);
     Assert.Equal(System.Text.Json.JsonValueKind.Object, testRun.ValueKind);
+    Assert.False(testRun.GetProperty("flagged").GetBoolean());
     Assert.Collection(
         handler.Requests,
         request => Assert.Equal("/api/v1/communities/test%20community/modmail", request.PathAndQuery),

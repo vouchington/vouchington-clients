@@ -250,6 +250,9 @@ internal sealed partial class ScriptedCommunitiesService
               {
                 "agent_id": "agent-1",
                 "slug": "spam-filter",
+                "system_user_id": "user-agent-1",
+                "system_username": "spam-guardian",
+                "label_topic_slugs": ["spam", "quality"],
                 "name": "Spam Filter",
                 "description": "Filters spam",
                 "enabled": true,

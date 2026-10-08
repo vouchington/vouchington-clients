@@ -48,11 +48,11 @@ public sealed partial class CommunityDetailViewModel
         Moderation = AiAgents
             .Select(agent => Summary(
                 agent.AgentId,
-                UiText.Verbatim(agent.Slug),
+                UiText.Verbatim(agent.SystemUsername),
                 UiText.Localized(agent.Enabled
                     ? UiMessageKey.NativeDotnetCsharpCommunitiesEnabled
                     : UiMessageKey.NativeDotnetCsharpCommunitiesDisabled),
-                null))
+                UiText.Verbatim(string.Join(", ", agent.LabelTopicSlugs))))
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.AgentPrompts:

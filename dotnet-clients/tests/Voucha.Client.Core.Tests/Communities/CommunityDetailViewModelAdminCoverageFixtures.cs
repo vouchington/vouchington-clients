@@ -152,7 +152,7 @@ internal sealed partial class ScriptedCommunitiesService
   {
     MutationCalls.Add(("agent-prompt-test", idOrSlug));
     MutationDetails.Add($"{promptId}:{request.Text}");
-    return Task.FromResult(JsonDocument.Parse("""{"ok":true}""").RootElement.Clone());
+    return Task.FromResult(JsonDocument.Parse("""{"flagged":false}""").RootElement.Clone());
   }
 
   public Task ConfirmBanEvasionAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default)

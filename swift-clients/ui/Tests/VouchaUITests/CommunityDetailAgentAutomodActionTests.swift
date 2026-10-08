@@ -48,13 +48,17 @@ extension CommunityDetailActionTests {
         await viewModel.allocateCommunityAgentPrompt(promptId: "prompt-1")
         await viewModel.deallocateCommunityAgentPrompt(promptId: "prompt-1")
         await viewModel.deleteCommunityAgentPrompt(promptId: "prompt-1")
-        await viewModel.testCommunityAgentPrompt(
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/agent-prompts/prompt-1/test-runs"] = (
+            Data(#"{"flagged":false}"#.utf8),
+            200
+        )
+        let flagged = await viewModel.testCommunityAgentPrompt(
             promptId: "prompt-1",
             text: "Please review this post",
             saveForTraining: true,
-            expectedFlagged: false,
-            expectedReason: "Looks fine"
+            expectedFlagged: false
         )
+        XCTAssertEqual(flagged, false)
         await viewModel.recordCommunityAutomodFeedback(
             sourceKey: "source-1",
             outcome: .falsePositive,

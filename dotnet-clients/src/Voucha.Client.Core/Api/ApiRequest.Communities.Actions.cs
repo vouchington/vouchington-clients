@@ -51,8 +51,7 @@ public sealed record CommunityAgentPromptUpdateRequest(
 public sealed record CommunityAgentPromptTestRunRequest(
     [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("save_for_training")] bool? SaveForTraining = null,
-    [property: JsonPropertyName("expected_flagged")] bool? ExpectedFlagged = null,
-    [property: JsonPropertyName("expected_reason")] string? ExpectedReason = null);
+    [property: JsonPropertyName("expected_flagged")] bool? ExpectedFlagged = null);
 
 public sealed record CommunityAutomodSimulationRequest(
     [property: JsonPropertyName("prompt_id")] string PromptId,

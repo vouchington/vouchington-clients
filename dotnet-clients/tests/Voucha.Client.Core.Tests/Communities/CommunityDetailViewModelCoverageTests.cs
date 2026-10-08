@@ -351,8 +351,9 @@ public sealed class CommunityDetailViewModelCoverageTests
     Assert.NotNull(viewModel.ModeratorVacation);
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.AiAgents, TestContext.Current.CancellationToken);
-    Assert.Equal("spam-filter", viewModel.Moderation[0].Title);
+    Assert.Equal("spam-guardian", viewModel.Moderation[0].Title);
     Assert.Equal("Enabled", viewModel.Moderation[0].Subtitle);
+    Assert.Equal("spam, quality", viewModel.Moderation[0].Detail);
     Assert.Single(viewModel.AiAgents);
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.AgentPrompts, TestContext.Current.CancellationToken);
@@ -463,13 +464,13 @@ public sealed class CommunityDetailViewModelCoverageTests
         "Body",
         saveForTraining: true,
         expectedFlagged: false,
-        expectedReason: "spam",
         cancellationToken: TestContext.Current.CancellationToken);
     var results = await viewModel.LoadModerationResultsAsync("post-1", TestContext.Current.CancellationToken);
 
     Assert.NotNull(results);
     Assert.Equal(UiMessageKey.NativeDotnetModerationInReview, viewModel.Moderation[1].SubtitleText.Key);
     Assert.Equal(System.Text.Json.JsonValueKind.Object, testRun.ValueKind);
+    Assert.False(testRun.GetProperty("flagged").GetBoolean());
     Assert.Contains(("post-type-settings", "community-1"), service.MutationCalls);
     Assert.Contains(("warning", "community-1"), service.MutationCalls);
     Assert.Contains(("resolve-report", "community-1"), service.MutationCalls);

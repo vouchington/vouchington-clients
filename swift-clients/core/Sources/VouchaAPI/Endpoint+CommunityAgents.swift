@@ -14,7 +14,6 @@ private struct CommunityAgentPromptTestRunBody: Encodable {
     let text: String
     let saveForTraining: Bool?
     let expectedFlagged: Bool?
-    let expectedReason: String?
 }
 
 public extension Endpoint {
@@ -101,8 +100,7 @@ public extension Endpoint {
         promptId: String,
         text: String,
         saveForTraining: Bool? = nil,
-        expectedFlagged: Bool? = nil,
-        expectedReason: String? = nil
+        expectedFlagged: Bool? = nil
     ) -> Endpoint {
         Endpoint(
             .POST,
@@ -110,8 +108,7 @@ public extension Endpoint {
             body: CommunityAgentPromptTestRunBody(
                 text: text,
                 saveForTraining: saveForTraining,
-                expectedFlagged: expectedFlagged,
-                expectedReason: expectedReason
+                expectedFlagged: expectedFlagged
             )
         )
     }
