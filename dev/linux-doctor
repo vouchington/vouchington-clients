@@ -57,6 +57,25 @@ if [[ "$host_only" == false ]]; then
   (cd "$root" && VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
 fi
 if [[ "$setup_ready" == true ]]; then
+  restore_inputs=(
+    global.json package.json pnpm-lock.yaml pnpm-workspace.yaml .mise.toml
+    contracts/filaments.json dotnet-clients/NuGet.config
+    dotnet-clients/Voucha.DotNet.sln
+    dotnet-clients/Directory.Build.props dotnet-clients/Directory.Build.targets
+    dotnet-clients/Directory.Packages.props
+    dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+    dotnet-clients/src/Voucha.Client.Core/packages.lock.json
+    dotnet-clients/tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
+    dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
+  )
+  restore_status="$(git -C "$root" status --porcelain --untracked-files=all -- "${restore_inputs[@]}")" || {
+    echo 'Setup readiness requires a complete Git checkout.' >&2
+    exit 1
+  }
+  if [[ -n "$restore_status" ]]; then
+    echo 'Setup or portable .NET restore inputs changed locally; rerun dev/setup-linux with a fresh stage.' >&2
+    exit 1
+  fi
   if [[ ! -x "$root/node_modules/.bin/vouchington" ||
     ! -x "$root/node_modules/.bin/no-mistakes" ]] ||
     ! cmp -s "$root/pnpm-lock.yaml" "$root/node_modules/.pnpm/lock.yaml"; then

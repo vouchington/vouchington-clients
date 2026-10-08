@@ -40,9 +40,9 @@ the frozen pnpm lock installation, pinned mise tools, portable .NET restore asse
 Swift container images. The regular doctor checks only host compatibility and contract parity.
 Machine wrappers must also compare both client and explicit producer checkout revisions with the
 revisions they used for setup; the stage manifest does not record either Git revision. If either
-changed, or local edits changed .NET restore inputs, rerun setup with a fresh empty stage before
-using `--no-restore` tests. The readiness check verifies restore assets exist; it does not attest
-that they match changed project files.
+changed, rerun setup with a fresh empty stage before using `--no-restore` tests. The readiness
+check itself rejects dirty setup and portable .NET restore inputs; it also verifies restore assets
+exist. The wrapper's revision check covers committed project changes since setup.
 
 `linux-portable-tests` runs the CI-aligned Swift `test-support` and Core tests in the pinned
 container and .NET `Voucha.DotNet.sln` Core tests on the host. The Linux Swift Core invocation

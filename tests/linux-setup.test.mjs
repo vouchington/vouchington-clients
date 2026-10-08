@@ -80,6 +80,19 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
   )
   writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}')
   writeFileSync(join(checkout, 'pnpm-lock.yaml'), 'pinned-lock')
+  execFileSync('git', ['init', '-q', checkout])
+  execFileSync('git', ['-C', checkout, 'add', 'global.json', 'pnpm-lock.yaml'])
+  execFileSync('git', [
+    '-C',
+    checkout,
+    '-c',
+    'user.name=Setup Test',
+    '-c',
+    'user.email=setup-test@example.invalid',
+    'commit',
+    '-qm',
+    'initial setup inputs',
+  ])
   for (const [name, body] of [
     ['uname', 'printf "Linux\\n"'],
     ['pnpm', 'if [[ "$1" == --version ]]; then echo 12.0.0; fi'],
@@ -127,6 +140,10 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
   assert.match(missingImage.stderr, /Pinned Linux image is missing/u)
   const ready = doctor(environment)
   assert.equal(ready.status, 0, ready.stdout + ready.stderr)
+  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}\n')
+  const dirty = doctor(environment)
+  assert.equal(dirty.status, 1, dirty.stdout + dirty.stderr)
+  assert.match(dirty.stderr, /restore inputs changed locally/u)
 })
 
 test('Linux image pins match the reviewed CI images', () => {
