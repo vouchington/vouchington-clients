@@ -21,6 +21,11 @@ struct NativeUrlCrawlSummary: Decodable, Identifiable {
     let metaTags: [String: NativeJSONValue]?
     let lang: String?
 
+    private enum CodingKeys: String, CodingKey {
+        case id, responseStatusCode, completedAt, createdAt, title, markdown, metaTags
+        case lang = "language"
+    }
+
     var statusText: UiVerbatimText {
         if let code = responseStatusCode {
             return .message(
