@@ -18,58 +18,39 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testProviderSelectionDefaultsToLocalWhenFoundationModelsAreAvailable() {
-        XCTAssertEqual(NativeChatTitleProviderKind.defaultSelection(localIsAvailable: true), .appleFoundationModels)
-        XCTAssertEqual(NativeChatTitleProviderKind.defaultSelection(localIsAvailable: false), .openAI)
         XCTAssertEqual(NativeChatTitleProviderKind.appleFoundationModels.id, "apple_foundation")
         XCTAssertEqual(NativeChatTitleProviderKind.appleFoundationModels.displayName, .message(.nativeSwiftChatLocal))
-        XCTAssertEqual(NativeChatTitleProviderKind.openAI.displayName, .verbatim("OpenAI"))
-        XCTAssertEqual(NativeChatTitleProviderKind.anthropic.displayName, .verbatim("Anthropic"))
         XCTAssertEqual(
             NativeChatTitleProviderKind.appleFoundationModels.detailText,
             UiMessage(.nativeSwiftChatLocal)
         )
-        XCTAssertEqual(NativeChatTitleProviderKind.openAI.detailText, UiMessage(.nativeSwiftChatHostedUpgrade))
-        XCTAssertEqual(NativeChatTitleProviderKind.anthropic.detailText, UiMessage(.nativeSwiftChatHostedUpgrade))
-        XCTAssertNil(NativeChatTitleProviderKind.appleFoundationModels.hostedProviderValue)
-        XCTAssertEqual(NativeChatTitleProviderKind.openAI.hostedProviderValue, "openai")
-        XCTAssertEqual(NativeChatTitleProviderKind.anthropic.hostedProviderValue, "anthropic")
+        XCTAssertEqual(
+            NativeChatTitleProviderKind(persistedID: "missing-provider"),
+            .unavailable(id: "missing-provider")
+        )
     }
 
-    func testHostedProviderStatusAndFallbackGeneration() async throws {
-        let provider = NativeChatHostedTitleProvider(kind: .anthropic)
+    func testUnavailableProviderDoesNotGenerateLocally() async throws {
+        let provider = NativeChatUnavailableTitleProvider(id: "missing-provider")
 
-        XCTAssertEqual(provider.status, .init(
-            isAvailable: false,
-            detail: .message(
-                .nativeSwiftChatHostedTitleGenerationUnavailable,
-                textParameters: ["provider": .verbatim("Anthropic")]
-            )
-        ))
+        XCTAssertFalse(provider.status.isAvailable)
         let response = try await provider.generateAssistantResponse(to: "Hello", history: [])
         let title = try await provider.generateTitle(from: [])
         XCTAssertNil(response)
         XCTAssertNil(title)
     }
 
-    func testDefaultResolverReturnsHostedAndLocalProviders() {
+    func testDefaultResolverReturnsUnavailableLocalProviderWithoutHostedChoices() {
         let resolver = NativeChatLiveTitleProviderResolver(
             featurePolicy: LocalLLMFeaturePolicy(environment: ["VOUCHA_NATIVE_LOCAL_LLM_ENABLED": "false"])
         )
         let localProvider = resolver.provider(for: .appleFoundationModels)
-        let anthropicProvider = resolver.provider(for: .anthropic)
-
         XCTAssertFalse(localProvider.status.isAvailable)
         XCTAssertNotNil(localProvider.status.detail)
-        XCTAssertEqual(
-            anthropicProvider.status.detail,
-            .message(
-                .nativeSwiftChatHostedTitleGenerationUnavailable,
-                textParameters: ["provider": .verbatim("Anthropic")]
-            )
-        )
+        XCTAssertEqual(resolver.providerDescriptors().map(\.selection), [.appleFoundationModels])
     }
 
-    func testResolverDefaultsToHostedWhenConfiguredEndpointIsUnavailable() async {
+    func testResolverDefaultsToUnavailableLocalWhenConfiguredEndpointIsUnavailable() async {
         let endpointID = UUID()
         let store = await makeLocalLLMSettingsStore(
             configuration: makeLocalLLMConfiguration(endpointID: endpointID)
@@ -79,13 +60,13 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
             featurePolicy: LocalLLMFeaturePolicy(environment: ["VOUCHA_NATIVE_LOCAL_LLM_ENABLED": "false"])
         )
 
-        XCTAssertEqual(resolver.defaultSelection(), .openAI)
+        XCTAssertEqual(resolver.defaultSelection(), .appleFoundationModels)
 
         let emptyResolver = await NativeChatLiveTitleProviderResolver(
             settingsStore: makeLocalLLMSettingsStore(),
             featurePolicy: LocalLLMFeaturePolicy(environment: ["VOUCHA_NATIVE_LOCAL_LLM_ENABLED": "false"])
         )
-        XCTAssertEqual(emptyResolver.defaultSelection(), .openAI)
+        XCTAssertEqual(emptyResolver.defaultSelection(), .appleFoundationModels)
     }
 
     func testPersistedUnknownProviderRemainsAnUnavailableSelection() {
@@ -93,7 +74,6 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertEqual(provider, .unavailable(id: "custom-provider"))
         XCTAssertEqual(provider.id, "custom-provider")
-        XCTAssertTrue(provider.isLocal)
     }
 
     func testResolverUsesEndpointDisplayNameAndURLFallbackInDescriptors() async {
@@ -137,21 +117,21 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
 
     func testViewModelDefaultsTitleProviderSelectionFromResolver() {
         let provider = StubTitleProvider(
-            kind: .anthropic,
-            status: .init(isAvailable: true, detail: .verbatim("Anthropic stub")),
+            kind: .appleFoundationModels,
+            status: .init(isAvailable: true, detail: .verbatim("Local stub")),
             title: nil
         )
         let resolver = StubTitleProviderResolver(
-            defaultSelectionValue: .anthropic,
-            providers: [.anthropic: provider]
+            defaultSelectionValue: .appleFoundationModels,
+            providers: [.appleFoundationModels: provider]
         )
 
         let viewModel = NativeChatViewModel(client: nil, routeMatch: nil, titleProviderResolver: resolver)
 
-        XCTAssertEqual(viewModel.titleProviderSelection, .anthropic)
+        XCTAssertEqual(viewModel.titleProviderSelection, .appleFoundationModels)
         XCTAssertEqual(
-            viewModel.titleProviderResolver.provider(for: .anthropic).status.detail,
-            .verbatim("Anthropic stub")
+            viewModel.titleProviderResolver.provider(for: .appleFoundationModels).status.detail,
+            .verbatim("Local stub")
         )
     }
 
@@ -380,9 +360,9 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
             .init(isAvailable: true, detail: .verbatim("gpt-oss"))
         )
 
-        let didPersist = await resolver.persistSelection(.anthropic)
+        let didPersist = await resolver.persistSelection(.appleFoundationModels)
         XCTAssertTrue(didPersist)
-        XCTAssertEqual(store.load().selectedProviderID, "anthropic")
+        XCTAssertEqual(store.load().selectedProviderID, "apple_foundation")
     }
 
     func testResolverPreservesUnavailableDeletedEndpointSelectionWithoutFallback() async {
@@ -433,33 +413,4 @@ final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNil(viewModel.streamingUserMessageId)
     }
 
-    func testViewModelFallsBackToBackendForRemoteSelection() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-1/title"] = (
-            Self.generatedConversationData,
-            200
-        )
-
-        let provider = StubTitleProvider(kind: .openAI, title: nil)
-        let resolver = StubTitleProviderResolver(
-            defaultSelectionValue: .openAI,
-            providers: [.openAI: provider]
-        )
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil, titleProviderResolver: resolver)
-        viewModel.conversations = [makeConversation(id: "conversation-1", title: "", updatedAt: "2026-01-01T00:00:00Z")]
-        viewModel.selectedConversationId = "conversation-1"
-        viewModel.conversationTitleDraft = ""
-        viewModel.messages = [
-            .init(id: "message-1", role: .user, content: "Need a title", isStreaming: false)
-        ]
-
-        await viewModel.generateTitleIfNeeded(conversationId: "conversation-1")
-
-        XCTAssertEqual(provider.generateTitleCallCount, 1)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/my/conversations/conversation-1/title"
-        ])
-        XCTAssertEqual(viewModel.conversationTitleDraft, "Generated chat")
-        XCTAssertEqual(viewModel.conversations.first?.title, "Generated chat")
-    }
 }

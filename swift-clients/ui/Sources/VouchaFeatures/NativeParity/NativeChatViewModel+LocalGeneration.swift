@@ -166,10 +166,6 @@ extension NativeChatViewModel {
         isStreaming = false
         streamingConversationId = nil
         streamedContent = ""
-        toolCalls = []
-        toolResults = []
-        subagentSteps = []
-        subagentTextChunks = []
         streamTask = nil
     }
 

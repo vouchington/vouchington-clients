@@ -9,6 +9,12 @@ extension NativeChatViewModel {
         guard let client else { return }
         guard isLoadingDetail == false else { return }
         let providerSelection = titleProviderSelection
+        let provider = titleProviderResolver.provider(for: providerSelection)
+        guard provider.status.isAvailable else {
+            detailErrorMessage = nil
+            streamErrorMessage = provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
+            return
+        }
 
         detailErrorMessage = nil
         streamErrorMessage = nil
@@ -27,8 +33,8 @@ extension NativeChatViewModel {
         }
 
         streamTask?.cancel()
-        let localTurnIds = providerSelection.isLocal ? NativeChatMessageIDs.nextLocalTurn() : nil
-        let userMessageId = localTurnIds?.user ?? "local-user-\(UUID().uuidString)"
+        let localTurnIds = NativeChatMessageIDs.nextLocalTurn()
+        let userMessageId = localTurnIds.user
         messages.append(.init(
             id: userMessageId,
             role: .user,
@@ -44,7 +50,7 @@ extension NativeChatViewModel {
                     conversationId: conversationId,
                     text: text,
                     userMessageId: userMessageId,
-                    assistantMessageId: localTurnIds?.assistant,
+                    assistantMessageId: localTurnIds.assistant,
                     createdConversation: preparedConversation?.created == true,
                     providerSelection: providerSelection
                 )
@@ -131,56 +137,19 @@ extension NativeChatViewModel {
         }
     }
 
-    func apply(event: ChatStreamEvent) {
-        switch event {
-        case let .metadata(metadata):
-            streamingAssistantMessageId = metadata.assistantMessageId
-            ensureAssistantMessage(id: metadata.assistantMessageId)
-        case let .text(content), let .message(content):
-            streamedContent += content
-            updateStreamingAssistantMessage()
-        case let .toolCall(toolCall):
-            toolCalls.append(toolCall)
-            updateStreamingAssistantMessage()
-        case let .toolResult(toolCallId, result):
-            toolResults.append(.init(toolCallId: toolCallId, result: result))
-            updateStreamingAssistantMessage()
-        case let .subagentStep(step):
-            subagentSteps.append(step)
-            updateStreamingAssistantMessage()
-        case let .subagentText(chunk):
-            subagentTextChunks.append(chunk)
-            updateStreamingAssistantMessage()
-        case let .error(message):
-            failStreaming(message: message)
-        case .done:
-            updateStreamingAssistantMessage(isStreaming: false)
-            isStreaming = false
-        }
-    }
-
     func streamDraftMessage(
         client: APIClient,
         context: NativeChatDraftSendContext
     ) async {
         let provider = titleProviderResolver.provider(for: context.providerSelection)
-        if context.providerSelection.isLocal {
-            guard provider.status.isAvailable else {
-                failUnpersistedLocalGeneration(
-                    context: context,
-                    assistantMessageId: nil,
-                    message: provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
-                )
-                return
-            }
-            await generateLocalDraftMessage(
-                client: client,
-                provider: provider,
-                context: context
+        guard provider.status.isAvailable else {
+            failUnpersistedLocalGeneration(
+                context: context,
+                assistantMessageId: nil,
+                message: provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
             )
             return
         }
-
-        await streamHostedDraftMessage(client: client, context: context)
+        await generateLocalDraftMessage(client: client, provider: provider, context: context)
     }
 }

@@ -368,11 +368,6 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
             URLQueryItem(name: "after", value: "msg-1")
         ])
         assertEndpoint(
-            Endpoint.myConversationTitle(conversationId: "conv-1"),
-            method: .POST,
-            path: "/api/v1/my/conversations/conv-1/title"
-        )
-        assertEndpoint(
             Endpoint.renameConversation(conversationId: "conv-1", title: "Renamed"),
             method: .PATCH,
             path: "/api/v1/my/conversations/conv-1",
@@ -383,14 +378,6 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
             method: .DELETE,
             path: "/api/v1/my/conversations/conv-1"
         )
-        let streamEndpoint = Endpoint.chatConversationStream(conversationId: "conv-1", message: "Hello")
-        assertEndpoint(
-            streamEndpoint,
-            method: .POST,
-            path: "/api/v1/conversations/conv-1/chat",
-            body: ["message": "Hello"]
-        )
-        XCTAssertEqual(streamEndpoint.headers["Accept"], "text/event-stream")
 
         assertEndpoint(
             Endpoint.myConversationParticipants(conversationId: "conv-1"),

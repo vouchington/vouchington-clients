@@ -10,8 +10,6 @@ final class NativeChatAndroidAICoreProviderTests: XCTestCase {
         XCTAssertEqual(NativeChatTitleProviderKind.androidAICore.id, "android_aicore")
         XCTAssertEqual(NativeChatTitleProviderKind(persistedID: "android_aicore"), .androidAICore)
         XCTAssertEqual(NativeChatTitleProviderKind(persistedID: "aiCore"), .androidAICore)
-        XCTAssertTrue(NativeChatTitleProviderKind.androidAICore.isLocal)
-        XCTAssertNil(NativeChatTitleProviderKind.androidAICore.hostedProviderValue)
         XCTAssertEqual(
             NativeChatTitleProviderKind.androidAICore.displayName,
             .message(.nativeSwiftAndroidProviderAicore)

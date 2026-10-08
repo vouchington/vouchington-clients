@@ -29,7 +29,7 @@ final class StubTitleProvider: NativeChatTitleProviding, @unchecked Sendable {
         self.clientGeneratedModelName = clientGeneratedModelName ?? Self.defaultModelName(for: kind)
         self.generatedModelProvider = generatedModelProvider
         self.generatedModelName = generatedModelName
-        self.status = status ?? .init(isAvailable: kind.isLocal, detail: nil)
+        self.status = status ?? .init(isAvailable: true, detail: nil)
     }
 
     func generateAssistantResponse(
@@ -54,16 +54,14 @@ final class StubTitleProvider: NativeChatTitleProviding, @unchecked Sendable {
         return title
     }
 
-    /// Per-kind, not blanket-`isLocal`: `.openAICompatible` and `.androidAICore` are both
-    /// `isLocal == true` but must not silently default to Apple's identity.
+    /// Per-kind: compatible endpoints and Android AICore must not use Apple's identity.
     private static func defaultModelProvider(for kind: NativeChatTitleProviderKind) -> String? {
         switch kind {
         case .appleFoundationModels:
             "apple_foundation"
         case .androidAICore:
             "android_aicore"
-        case .openAICompatible, .openAI, .anthropic, .unavailable:
-            // Tombstone and hosted kinds never persist a client-generated identity.
+        case .openAICompatible, .unavailable:
             nil
         }
     }
@@ -74,7 +72,7 @@ final class StubTitleProvider: NativeChatTitleProviding, @unchecked Sendable {
             "apple-foundation-system"
         case .androidAICore:
             "android-aicore-system"
-        case .openAICompatible, .openAI, .anthropic, .unavailable:
+        case .openAICompatible, .unavailable:
             nil
         }
     }
@@ -89,6 +87,6 @@ struct StubTitleProviderResolver: NativeChatTitleProviderResolving, @unchecked S
     }
 
     func provider(for kind: NativeChatTitleProviderKind) -> any NativeChatTitleProviding {
-        providers[kind] ?? providers[defaultSelectionValue] ?? NativeChatHostedTitleProvider(kind: kind)
+        providers[kind] ?? providers[defaultSelectionValue] ?? NativeChatUnavailableTitleProvider(id: kind.id)
     }
 }

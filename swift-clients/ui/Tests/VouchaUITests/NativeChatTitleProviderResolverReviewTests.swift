@@ -45,7 +45,7 @@ final class NativeChatTitleProviderResolverReviewTests: XCTestCase {
         XCTAssertEqual(resolver.defaultSelection(), .openAICompatible(endpointID: validID))
     }
 
-    func testDefaultSelectionUsesHostedProviderWhenNoEndpointIsAvailable() async {
+    func testDefaultSelectionUsesUnavailableLocalProviderWhenNoEndpointIsAvailable() async {
         let configuration = LocalLLMConfiguration(
             isEnabled: true,
             endpoints: [LocalLLMEndpointProfile(
@@ -61,7 +61,8 @@ final class NativeChatTitleProviderResolverReviewTests: XCTestCase {
             appleProvider: unavailableAppleProvider()
         )
 
-        XCTAssertEqual(resolver.defaultSelection(), .openAI)
+        XCTAssertEqual(resolver.defaultSelection(), .appleFoundationModels)
+        XCTAssertFalse(resolver.provider(for: resolver.defaultSelection()).status.isAvailable)
     }
 
     func testPersistSelectionSynchronizesOpenAICompatibleEndpointSelection() async {

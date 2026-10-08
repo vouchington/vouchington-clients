@@ -72,10 +72,6 @@ final class NativeChatViewModel {
     var isStreaming = false
     var isGeneratingTitle = false
     var streamedContent = ""
-    var toolCalls: [ChatStreamToolCall] = []
-    var toolResults: [NativeChatToolResult] = []
-    var subagentSteps: [ChatStreamSubagentStep] = []
-    var subagentTextChunks: [ChatStreamSubagentText] = []
     var conversationTitleDraft = ""
     var titleProviderSelection: NativeChatTitleProviderKind
 

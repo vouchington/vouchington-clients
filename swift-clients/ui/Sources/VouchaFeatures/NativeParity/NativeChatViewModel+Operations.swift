@@ -79,10 +79,6 @@ extension NativeChatViewModel {
         pendingLocalAssistantMessageId = nil
         isStreaming = true
         streamedContent = ""
-        toolCalls = []
-        toolResults = []
-        subagentSteps = []
-        subagentTextChunks = []
     }
 
     func beginStreaming(conversationId: String, userMessageId: String) {
@@ -100,27 +96,8 @@ extension NativeChatViewModel {
         streamingAssistantMessageId = nil
         pendingLocalAssistantMessageId = nil
         streamedContent = ""
-        toolCalls = []
-        toolResults = []
-        subagentSteps = []
-        subagentTextChunks = []
         streamTask = nil
         return true
-    }
-
-    func failStreaming(message: String) {
-        failStreaming(message: .verbatim(message))
-    }
-
-    func failStreaming(message: UiVerbatimText) {
-        streamErrorMessage = message
-        updateStreamingAssistantMessage(error: message, isStreaming: false)
-        isStreaming = false
-        streamingConversationId = nil
-        streamingUserMessageId = nil
-        streamingAssistantMessageId = nil
-        pendingLocalAssistantMessageId = nil
-        streamTask = nil
     }
 
     func ensureAssistantMessage(id: String) {
@@ -137,10 +114,6 @@ extension NativeChatViewModel {
             message.role = .assistant
             message.content = streamedContent
             message.isStreaming = isStreaming
-            message.toolCalls = toolCalls
-            message.toolResults = toolResults
-            message.subagentSteps = subagentSteps
-            message.subagentTextChunks = subagentTextChunks
             message.error = error
         }
     }

@@ -33,69 +33,6 @@ struct NativeChatMessageBubbleView: View {
                     )
             }
 
-            if !message.toolCalls.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(UiMessages.string(.nativeSwiftChatMessageBubbleToolCalls, locale: nativeUiLocale))
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.secondaryLabel)
-                    ForEach(Array(message.toolCalls.enumerated()), id: \.offset) { _, toolCall in
-                        Text(verbatim: UiMessages.string(
-                            .protocolValue("\(toolCall.name): \(toolCall.arguments)"),
-                            locale: nativeUiLocale
-                        ))
-                        .font(Typography.caption)
-                    }
-                }
-            }
-
-            if !message.toolResults.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(UiMessages.string(.nativeSwiftChatMessageBubbleToolResults, locale: nativeUiLocale))
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.secondaryLabel)
-                    ForEach(message.toolResults) { result in
-                        Text(verbatim: UiMessages.string(
-                            .joined([
-                                .verbatim(result.toolCallId),
-                                result.displayText
-                            ], separator: ": "),
-                            locale: nativeUiLocale
-                        ))
-                        .font(Typography.caption)
-                    }
-                }
-            }
-
-            if !message.subagentSteps.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(UiMessages.string(.nativeSwiftChatMessageBubbleSubagentSteps, locale: nativeUiLocale))
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.secondaryLabel)
-                    ForEach(Array(message.subagentSteps.enumerated()), id: \.offset) { _, step in
-                        Text(verbatim: UiMessages.string(
-                            .protocolValue("\(step.agentName) • \(step.toolName)"),
-                            locale: nativeUiLocale
-                        ))
-                        .font(Typography.caption)
-                    }
-                }
-            }
-
-            if !message.subagentTextChunks.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(UiMessages.string(.nativeSwiftChatMessageBubbleSubagentText, locale: nativeUiLocale))
-                        .font(Typography.caption)
-                        .foregroundStyle(Colors.secondaryLabel)
-                    ForEach(Array(message.subagentTextChunks.enumerated()), id: \.offset) { _, chunk in
-                        Text(verbatim: UiMessages.string(
-                            .protocolValue("\(chunk.agentName): \(chunk.content)"),
-                            locale: nativeUiLocale
-                        ))
-                        .font(Typography.caption)
-                    }
-                }
-            }
-
             if let error = message.error {
                 Text(verbatim: UiMessages.string(error, locale: nativeUiLocale))
                     .font(Typography.caption)

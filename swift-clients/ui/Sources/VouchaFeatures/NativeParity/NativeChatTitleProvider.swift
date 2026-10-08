@@ -4,8 +4,6 @@ import VouchaLocalization
 enum NativeChatTitleProviderKind: Hashable, Identifiable {
     case appleFoundationModels
     case openAICompatible(endpointID: UUID)
-    case openAI
-    case anthropic
     /// On-device generation via Android's system AICore. Not reachable from `ui/`'s
     /// `VouchaFeatures` package today — see `NativeChatTitleProvider+AndroidAICore.swift` — but
     /// modeled as its own case so persisted selections and the backend's client-generated-chat
@@ -19,10 +17,6 @@ enum NativeChatTitleProviderKind: Hashable, Identifiable {
             "apple_foundation"
         case let .openAICompatible(endpointID):
             "openai_compatible:\(endpointID.uuidString.lowercased())"
-        case .openAI:
-            "openai"
-        case .anthropic:
-            "anthropic"
         case .androidAICore:
             "android_aicore"
         case let .unavailable(id):
@@ -34,10 +28,6 @@ enum NativeChatTitleProviderKind: Hashable, Identifiable {
         switch persistedID {
         case "apple_foundation":
             self = .appleFoundationModels
-        case "openai":
-            self = .openAI
-        case "anthropic":
-            self = .anthropic
         case "android_aicore", "aiCore":
             self = .androidAICore
         default:
@@ -61,10 +51,6 @@ enum NativeChatTitleProviderKind: Hashable, Identifiable {
             .message(.nativeSwiftChatLocal)
         case .androidAICore:
             .message(.nativeSwiftAndroidProviderAicore)
-        case .openAI:
-            .externalProvider("OpenAI")
-        case .anthropic:
-            .externalProvider("Anthropic")
         case let .unavailable(id):
             .message(.nativeSwiftRouteSurfaceProviderUnavailable, parameters: ["provider": id])
         }
@@ -80,36 +66,11 @@ enum NativeChatTitleProviderKind: Hashable, Identifiable {
             UiMessage(.nativeSwiftChatLocal)
         case .openAICompatible:
             UiMessage(.nativeSwiftChatOpenAiCompatibleResponsesApi)
-        case .openAI, .anthropic:
-            UiMessage(.nativeSwiftChatHostedUpgrade)
         case .androidAICore, .unavailable:
             UiMessage(.nativeSwiftChatLocalModelsUnavailablePlatform)
         }
     }
 
-    static func defaultSelection(localIsAvailable: Bool) -> Self {
-        localIsAvailable ? .appleFoundationModels : .openAI
-    }
-
-    var hostedProviderValue: String? {
-        switch self {
-        case .openAI:
-            "openai"
-        case .anthropic:
-            "anthropic"
-        case .appleFoundationModels, .openAICompatible, .androidAICore, .unavailable:
-            nil
-        }
-    }
-
-    var isLocal: Bool {
-        switch self {
-        case .appleFoundationModels, .openAICompatible, .androidAICore, .unavailable:
-            true
-        case .openAI, .anthropic:
-            false
-        }
-    }
 }
 
 struct NativeChatProviderDescriptor: Equatable, Identifiable {
