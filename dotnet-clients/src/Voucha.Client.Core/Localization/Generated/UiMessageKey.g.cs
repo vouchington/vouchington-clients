@@ -443,7 +443,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetChatConversationChooseLocalModel = new("native.dotnet.chatConversation.chooseLocalModel");
     public static readonly UiMessageKey NativeDotnetChatConversationEmpty = new("native.dotnet.chatConversation.empty");
     public static readonly UiMessageKey NativeDotnetChatConversationEnterLocalResponsesEndpoint = new("native.dotnet.chatConversation.enterLocalResponsesEndpoint");
-    public static readonly UiMessageKey NativeDotnetChatConversationHosted = new("native.dotnet.chatConversation.hosted");
     public static readonly UiMessageKey NativeDotnetChatConversationLocal = new("native.dotnet.chatConversation.local");
     public static readonly UiMessageKey NativeDotnetChatConversationLocalChatUnavailable = new("native.dotnet.chatConversation.localChatUnavailable");
     public static readonly UiMessageKey NativeDotnetChatConversationLocalModelEmptyResponse = new("native.dotnet.chatConversation.localModelEmptyResponse");
@@ -451,12 +450,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetChatConversationLocalModelsOffPlatform = new("native.dotnet.chatConversation.localModelsOffPlatform");
     public static readonly UiMessageKey NativeDotnetChatConversationMessagePlaceholder = new("native.dotnet.chatConversation.messagePlaceholder");
     public static readonly UiMessageKey NativeDotnetChatConversationNoMessages = new("native.dotnet.chatConversation.noMessages");
-    public static readonly UiMessageKey NativeDotnetChatConversationOpenAiHosted = new("native.dotnet.chatConversation.openAiHosted");
     public static readonly UiMessageKey NativeDotnetChatConversationResponseInterrupted = new("native.dotnet.chatConversation.responseInterrupted");
     public static readonly UiMessageKey NativeDotnetChatConversationSetUpWindowsModel = new("native.dotnet.chatConversation.setUpWindowsModel");
-    public static readonly UiMessageKey NativeDotnetChatConversationSubagentStep = new("native.dotnet.chatConversation.subagentStep");
-    public static readonly UiMessageKey NativeDotnetChatConversationToolCall = new("native.dotnet.chatConversation.toolCall");
-    public static readonly UiMessageKey NativeDotnetChatConversationToolResult = new("native.dotnet.chatConversation.toolResult");
     public static readonly UiMessageKey NativeDotnetChatConversationWindowsModelDisabled = new("native.dotnet.chatConversation.windowsModelDisabled");
     public static readonly UiMessageKey NativeDotnetChatConversationWindowsModelReady = new("native.dotnet.chatConversation.windowsModelReady");
     public static readonly UiMessageKey NativeDotnetChatConversationWindowsModelSetupRequired = new("native.dotnet.chatConversation.windowsModelSetupRequired");
@@ -1340,7 +1335,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftChatConversationTitle = new("native.swift.chat.conversationTitle");
     public static readonly UiMessageKey NativeSwiftChatRename = new("native.swift.chat.rename");
     public static readonly UiMessageKey NativeSwiftChatStop = new("native.swift.chat.stop");
-    public static readonly UiMessageKey NativeSwiftChatMessageBubbleSubagentText = new("native.swift.chatMessageBubble.subagentText");
     public static readonly UiMessageKey NativeSwiftCommentThreadAncestorChain = new("native.swift.commentThread.ancestorChain");
     public static readonly UiMessageKey NativeSwiftCommentThreadComments = new("native.swift.commentThread.comments");
     public static readonly UiMessageKey NativeSwiftCommentThreadSort = new("native.swift.commentThread.sort");
@@ -2442,7 +2436,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetChatConversationChooseLocalModel,
         NativeDotnetChatConversationEmpty,
         NativeDotnetChatConversationEnterLocalResponsesEndpoint,
-        NativeDotnetChatConversationHosted,
         NativeDotnetChatConversationLocal,
         NativeDotnetChatConversationLocalChatUnavailable,
         NativeDotnetChatConversationLocalModelEmptyResponse,
@@ -2450,12 +2443,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetChatConversationLocalModelsOffPlatform,
         NativeDotnetChatConversationMessagePlaceholder,
         NativeDotnetChatConversationNoMessages,
-        NativeDotnetChatConversationOpenAiHosted,
         NativeDotnetChatConversationResponseInterrupted,
         NativeDotnetChatConversationSetUpWindowsModel,
-        NativeDotnetChatConversationSubagentStep,
-        NativeDotnetChatConversationToolCall,
-        NativeDotnetChatConversationToolResult,
         NativeDotnetChatConversationWindowsModelDisabled,
         NativeDotnetChatConversationWindowsModelReady,
         NativeDotnetChatConversationWindowsModelSetupRequired,
@@ -3339,7 +3328,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftChatConversationTitle,
         NativeSwiftChatRename,
         NativeSwiftChatStop,
-        NativeSwiftChatMessageBubbleSubagentText,
         NativeSwiftCommentThreadAncestorChain,
         NativeSwiftCommentThreadComments,
         NativeSwiftCommentThreadSort,
