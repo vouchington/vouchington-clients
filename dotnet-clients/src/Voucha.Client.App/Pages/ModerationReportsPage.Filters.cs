@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 
