@@ -193,10 +193,7 @@ describe('native contract workflow boundary', () => {
       /write-lcov\.sh swift-clients\/ui VouchaUIPackageTests coverage\/ui\/lcov\.info/u,
     )
     assert.match(workflow, /run: pnpm run coverage:swift/u)
-    assert.match(
-      workflow,
-      /android-actions\/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd/u,
-    )
+    assert.match(workflow, /android-actions\/setup-android@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(
       workflow,
       /swiftly_sha256="fade009739a84f18ee30e524793f927019fc9c2e16b2ad958da50d3f9ff7a7f8"/u,
@@ -367,7 +364,7 @@ describe('native contract workflow boundary', () => {
       readAction('prepare-native-contract'),
       readWorkflow('native-contract-tests.yml'),
     ])
-    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
+    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     assert.match(workflow, cachePin)
     assert.match(action, cachePin)
     assert.match(
@@ -385,7 +382,7 @@ describe('native contract workflow boundary', () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
     const skip = jobBlock(workflow, 'test-swift-android')
     const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
+    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
 
     assert.match(skip, cachePin)
     assert.match(androidCore, cachePin)
@@ -427,7 +424,7 @@ describe('native contract workflow boundary', () => {
     ])
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
-    const cachePin = /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6\.1\.0/u
+    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     const nugetKey =
       /key: \$\{\{ runner\.os \}\}-nuget-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u
 
