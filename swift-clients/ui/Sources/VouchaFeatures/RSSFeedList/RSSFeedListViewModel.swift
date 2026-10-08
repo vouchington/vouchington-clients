@@ -53,6 +53,7 @@ public final class RSSFeedListViewModel {
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
     var bookmarkMutationGeneration = 0
+    @ObservationIgnored var skippedPendingHideDeliveriesByItemId: [String: [PendingHideDelivery]] = [:]
     var storyIdsByItemId: [String: String] = [:]
     var storyRelatedArticlesByStoryId: [String: StoryRelatedArticles] = [:]
     var storyPostIdsByStoryId: [String: String] = [:]
@@ -92,6 +93,7 @@ public final class RSSFeedListViewModel {
         savedItemIds = []
         hiddenItemIds = []
         inFlightBookmarkKeys = []
+        skippedPendingHideDeliveriesByItemId = [:]
         storyIdsByItemId = [:]
         storyRelatedArticlesByStoryId = [:]
         storyPostIdsByStoryId = [:]

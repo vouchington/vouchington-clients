@@ -57,15 +57,24 @@ extension RSSFeedListViewModel {
 
     private func mergeSidecarsAndBuildItems(page: RssFeedPage) -> [RssFeedListRow] {
         var newItems: [RssFeedListRow] = []
-        for result in page.results {
+        var skipped: [(index: Int, row: RssFeedListRow)] = []
+        for (index, result) in page.results.enumerated() {
             let itemId = result.entityId ?? result.id
-            guard let item = page.rssFeedItems[itemId], !hiddenItemIds.contains(itemId) else { continue }
+            guard let item = page.rssFeedItems[itemId] else { continue }
             let thumbnailURL = VouchaURLResolver.absoluteString(
                 for: page.rssFeedItemThumbnailUrl?[itemId],
                 relativeTo: apiBaseURL
             )
             let feedItem = item.replacingThumbnailURL(thumbnailURL)
             let showsStory = result.storyId != nil && result.deliveryType != "share"
+            if hiddenItemIds.contains(itemId) {
+                if inFlightBookmarkKeys.contains("\(itemId)|hide"), page.bookmarks?[itemId]?["hide"] != true {
+                    skipped.append((index, RssFeedListRow(
+                        deliveryId: result.id, item: feedItem, showsStory: showsStory
+                    )))
+                }
+                continue
+            }
             if let storyId = result.storyId, showsStory {
                 storyIdsByItemId[itemId] = storyId
                 if let existing = storyRelatedArticlesByStoryId[storyId], existing.primaryItemId != itemId {
@@ -89,6 +98,7 @@ extension RSSFeedListViewModel {
                 showsStory: showsStory
             ))
         }
+        bufferSkippedPendingHideDeliveries(page: page, visibleRows: newItems, skipped: skipped)
         applyPageSidecars(page)
         return newItems
     }
@@ -127,7 +137,7 @@ extension RSSFeedListViewModel {
         }
     }
 
-    private func mergeStoryPeer(_ item: RssFeedItem, into group: StoryRelatedArticles) {
+    func mergeStoryPeer(_ item: RssFeedItem, into group: StoryRelatedArticles) {
         guard !group.pagination.items.contains(where: { $0.id == item.id }) else { return }
         group.pagination.invalidateRequestsPreservingPage()
         group.pagination.replaceItems(group.pagination.items + [item])

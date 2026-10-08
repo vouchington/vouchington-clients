@@ -22,7 +22,14 @@ public extension RSSFeedListViewModel {
     }
 
     func toggleHide(rssFeedItemId: String) async {
+        guard !inFlightBookmarkKeys.contains("\(rssFeedItemId)|hide") else { return }
         let wasHidden = hiddenItemIds.contains(rssFeedItemId)
+        let generation = bookmarkMutationGeneration
+        defer {
+            if generation == bookmarkMutationGeneration {
+                skippedPendingHideDeliveriesByItemId.removeValue(forKey: rssFeedItemId)
+            }
+        }
         var removedItem: RemovedArticle?
         var removedStoryGroup: (id: String, group: StoryRelatedArticles)?
         await toggleBookmark(
@@ -48,8 +55,28 @@ public extension RSSFeedListViewModel {
                 if let removedStoryGroup {
                     self.restoreStoryGroup(removedStoryGroup)
                 }
+                self.restoreSkippedPendingHideDeliveries(for: rssFeedItemId)
             }
         )
+    }
+
+    private func restoreSkippedPendingHideDeliveries(for itemId: String) {
+        guard let skipped = skippedPendingHideDeliveriesByItemId.removeValue(forKey: itemId) else { return }
+        var rows = pagination.items
+        for delivery in skipped where !rows.contains(where: { $0.deliveryId == delivery.row.deliveryId }) {
+            if delivery.row.showsStory,
+               let storyId = storyIdsByItemId[itemId],
+               let group = storyRelatedArticlesByStoryId[storyId],
+               group.primaryItemId != itemId {
+                mergeStoryPeer(delivery.row.item, into: group)
+                continue
+            }
+            let offset = delivery.nextVisibleDeliveryId.flatMap { nextId in
+                rows.firstIndex(where: { $0.deliveryId == nextId })
+            } ?? rows.count
+            rows.insert(delivery.row, at: offset)
+        }
+        pagination.replaceItems(rows)
     }
 
     private func restoreStoryGroup(_ snapshot: (id: String, group: StoryRelatedArticles)) {
