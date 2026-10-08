@@ -55,11 +55,24 @@ public sealed class ContributionRequestIdentity
   public static string CanonicalIntent(object body)
   {
     var node = JsonNode.Parse(JsonSerializer.Serialize(body, Api.VouchaApiJson.Options))!.AsObject();
-    node.Remove("cf_turnstile_response");
-    node.Remove("recaptcha_token");
-    node.Remove("hp_website");
-    node.Remove("hp_phone");
+    RemoveTransientFields(node);
     return node.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+  }
+
+  private static void RemoveTransientFields(JsonNode? node)
+  {
+    if (node is JsonObject fields)
+    {
+      fields.Remove("cf_turnstile_response");
+      fields.Remove("recaptcha_token");
+      fields.Remove("hp_website");
+      fields.Remove("hp_phone");
+      foreach (var field in fields) RemoveTransientFields(field.Value);
+    }
+    else if (node is JsonArray items)
+    {
+      foreach (var item in items) RemoveTransientFields(item);
+    }
   }
 
   private sealed record CurrentIdentity(string Fingerprint, Guid Key);
