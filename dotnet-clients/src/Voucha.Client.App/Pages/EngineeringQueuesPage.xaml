@@ -24,10 +24,11 @@
 
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
                 <Label Text="{app:UiLocalizedValue Path=Stats.TotalWaiting, Format=message:native.dotnet.engineeringQueues.waitingCount|number}" Style="{StaticResource Metadata}" />
-                <Label Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.TotalActive, Format=message:native.dotnet.engineeringQueues.activeCount|number}" Style="{StaticResource Metadata}" />
-                <Label Grid.Row="1" Text="{app:UiLocalizedValue Path=Stats.TotalCompleted, Format=message:native.dotnet.engineeringQueues.completedCount|number}" Style="{StaticResource Metadata}" />
-                <Label Grid.Row="1" Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.TotalFailed, Format=message:native.dotnet.engineeringQueues.failedCount|number}" Style="{StaticResource Metadata}" />
-                <Label Grid.Row="2" Text="{app:UiLocalizedValue Path=Stats.QueueCount, Format=message:native.dotnet.engineeringQueues.queueCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Column="1" AutomationId="queue-total-delayed" Text="{app:UiLocalizedValue Path=Stats.TotalDelayed, Format=message:native.dotnet.engineeringQueues.delayedCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="1" Text="{app:UiLocalizedValue Path=Stats.TotalActive, Format=message:native.dotnet.engineeringQueues.activeCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="1" Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.TotalCompleted, Format=message:native.dotnet.engineeringQueues.completedCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="2" Text="{app:UiLocalizedValue Path=Stats.TotalFailed, Format=message:native.dotnet.engineeringQueues.failedCount|number}" Style="{StaticResource Metadata}" />
+                <Label Grid.Row="2" Grid.Column="1" Text="{app:UiLocalizedValue Path=Stats.QueueCount, Format=message:native.dotnet.engineeringQueues.queueCount|number}" Style="{StaticResource Metadata}" />
             </Grid>
 
             <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
@@ -36,7 +37,7 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="{DynamicResource native.dotnet.engineeringQueues.stats}" Style="{StaticResource Headline}" />
-                    <CollectionView ItemsSource="{Binding Queues}" SelectionMode="None">
+                    <CollectionView AutomationId="engineering-queues-list" ItemsSource="{Binding Queues}" SelectionMode="None">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="api:QueueStats">
                                 <Border Margin="0,0,0,10" Padding="12" Stroke="#E2E8F0" StrokeThickness="1">
@@ -46,6 +47,7 @@
                                     <VerticalStackLayout Spacing="6">
                                         <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
                                         <Label Text="{app:UiLocalizedValue Path=Waiting, Format=message:native.dotnet.engineeringQueues.waitingCount|number}" Style="{StaticResource Metadata}" />
+                                        <Label AutomationId="queue-row-delayed" Text="{app:UiLocalizedValue Path=Delayed, Format=message:native.dotnet.engineeringQueues.delayedCount|number}" Style="{StaticResource Metadata}" />
                                         <Label Text="{app:UiLocalizedValue Path=Active, Format=message:native.dotnet.engineeringQueues.activeCount|number}" Style="{StaticResource Metadata}" />
                                         <Label Text="{app:UiLocalizedValue Path=Completed, Format=message:native.dotnet.engineeringQueues.completedCount|number}" Style="{StaticResource Metadata}" />
                                         <Label Text="{app:UiLocalizedValue Path=Failed, Format=message:native.dotnet.engineeringQueues.failedCount|number}" Style="{StaticResource Metadata}" />

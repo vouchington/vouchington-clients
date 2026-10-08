@@ -124,9 +124,10 @@ extension CommunityAgentAndAutomodControls {
                     }
                 }
             }
-
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                CommunityAutomodActionStatusView(action: viewModel.communityDetail?.community.automodAction)
+                if viewModel.selectedTab != .moderation {
+                    CommunityAutomodActionStatusView(action: viewModel.communityDetail?.community.automodAction)
+                }
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesSourceKey, locale: nativeUiLocale),
                     text: $feedbackSourceKey

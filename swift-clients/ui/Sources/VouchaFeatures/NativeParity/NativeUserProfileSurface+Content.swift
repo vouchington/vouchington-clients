@@ -8,7 +8,7 @@ extension NativeUserProfileSurface {
     func profileHeader(_ profile: UserProfileResponse) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Avatar(
-                imageURL: AppConfig.shared.imageURL(forImageId: profile.user.profileImageId, width: 144),
+                imageURL: AppConfig.shared.imageURL(for: profile.user.profileImagePlacement, width: 144),
                 username: profile.user.username ?? "",
                 size: 72
             )
@@ -87,7 +87,7 @@ extension NativeUserProfileSurface {
             ForEach(group.users) { user in
                 UserRow(
                     user: user,
-                    avatarURL: AppConfig.shared.imageURL(forImageId: user.profileImageId, width: 96)
+                    avatarURL: AppConfig.shared.imageURL(for: user.profileImagePlacement, width: 96)
                 )
             }
         }
@@ -135,7 +135,8 @@ extension NativeUserProfileSurface {
         }
     }
 
-    @ViewBuilder var contextualTabs: some View {
+    @ViewBuilder
+    var contextualTabs: some View {
         if let scope = currentScope {
             HStack(spacing: Spacing.xs) {
                 ForEach(contextualTabs(for: scope, profile: viewModel.userProfile.header), id: \.title) { tab in

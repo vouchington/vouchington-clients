@@ -20,7 +20,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         CannedFeedURLProtocol.capturedBodies = []
     }
 
-    func testUploadAvatarOverridesStaleProfileImageId() async throws {
+    func testDecodeFailureAfterSuccessfulUploadKeepsImageIdAndUsesReturnedPlacement() async throws {
         let vm = try makeViewModel()
         let imageId = "avatar-image-1"
         let avatarURL = try makeImageFile(name: "avatar-image", extension: "jpg", data: Data("avatar-image".utf8))
@@ -34,15 +34,34 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: "old-avatar"
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
+        CannedFeedURLProtocol.suspendResponse(path: "/api/v1/images/upload-url")
+        defer { CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url") }
+        let uploadRequest = CannedFeedURLProtocol.requestBarrier(path: "/api/v1/images/upload-url", method: "POST")
+        let upload = Task { await vm.uploadAvatar(from: avatarURL) }
+        _ = try await uploadRequest.wait()
 
-        await vm.uploadAvatar(from: avatarURL)
+        XCTAssertEqual(vm.avatarPreviewData, Data("avatar-image".utf8))
+        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertTrue(vm.isUploadingAvatar)
+
+        CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url")
+        await upload.value
 
         XCTAssertEqual(vm.identity?.profileImageId, imageId)
-        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertEqual(
+            vm.avatarUploadErrorMessage,
+            .app(UiMessage(UiMessageKey.imagesUploadPreviewUnavailable))
+        )
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertEqual(
+            vm.avatarURL,
+            "https://images.voucha.ai/images/placements/placement-avatar-image-1/2/avatar-image-1?w=144"
+        )
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
             "/api/v1/images/upload-url",
             "/\(imageId)",
@@ -59,7 +78,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
     func testCompleteAvatarUploadWithoutReadyStillUpdatesIdentity() async throws {
         let vm = try makeViewModel()
         let imageId = "avatar-complete-not-ready"
-        let avatarURL = try makeImageFile(name: "complete-avatar", extension: "jpg", data: Data("complete-avatar".utf8))
+        let avatarURL = try makeImageFile(name: "complete-avatar", extension: "jpg", data: Self.validImageData)
         try registerImageUploadFlow(
             imageId: imageId,
             uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/\(imageId)")),
@@ -70,7 +89,8 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: "old-avatar"
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
@@ -115,7 +135,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
 
     func testRemoveAvatarIsIgnoredWhileAvatarUploadIsInFlight() async throws {
         let vm = try makeViewModel()
-        let avatarURL = try makeImageFile(name: "avatar-in-flight", extension: "jpg", data: Data("avatar".utf8))
+        let avatarURL = try makeImageFile(name: "avatar-in-flight", extension: "jpg", data: Self.validImageData)
         let imageId = "avatar-in-flight-1"
         try registerImageUploadFlow(
             imageId: imageId,
@@ -128,7 +148,8 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: imageId
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
@@ -233,6 +254,14 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             sessionManager: sessionManager,
             imageUploadProtocolClasses: [CannedFeedURLProtocol.self]
         )
+    }
+
+    private static let validImageData = Data(
+        base64Encoded: "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    )!
+
+    private static func placement(imageId: String) -> [String: Any] {
+        ["image_id": imageId, "placement_id": "placement-\(imageId)", "placement_revision": 2]
     }
 
     private func registerImageUploadFlow(

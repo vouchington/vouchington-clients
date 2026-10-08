@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -14,8 +15,9 @@ public extension SettingsViewModel {
         defer { apiKeyCreationInFlight = false }
         let permissions = apiKeyScopeSelection.permissions
         await mutate {
+            let lifetime: ApiKeyLifetimeChoice = apiKeyLifetimeDays.map { .days($0) } ?? .unlimited
             let response: SettingsApiKeyResponse = try await client.send(
-                .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions)
+                .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions, lifetime: lifetime)
             )
             if activeMainSettingsLoadGeneration == settingsLoadGeneration {
                 createdApiKeysDuringMainLoad.append(response.apiKey)
@@ -30,6 +32,59 @@ public extension SettingsViewModel {
         }
         if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
             state = .loading
+        }
+    }
+
+    func dismissRawApiKey() {
+        latestRawAPIKey = nil
+    }
+
+    func rotateApiKey(id: String) async {
+        guard let client, let key = apiKeys.first(where: { $0.id == id }),
+              canRotateApiKey(key) else { return }
+        let generation = settingsLoadGeneration
+        let ownerId = identity?.id
+        apiKeyRotationInFlight.insert(id)
+        latestRawAPIKey = nil
+        statusMessage = nil
+        defer {
+            if generation == settingsLoadGeneration, ownerId == identity?.id {
+                apiKeyRotationInFlight.remove(id)
+            }
+        }
+        do {
+            let response: SettingsApiKeyResponse = try await client.send(.rotateMyApiKey(id: id))
+            guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
+            latestRawAPIKey = response.rawKey
+            statusMessage = .message(.nativeApiKeysRotated)
+            if let page: SettingsListResponse<ApiKey> = try? await client.send(.myApiKeys()) {
+                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
+                replaceApiKeyPage(page)
+            } else {
+                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
+                apiKeyPagination.invalidateRequestsPreservingPage()
+                apiKeyPagination.replaceItems(
+                    [response.apiKey] + apiKeyPagination.items.filter { $0.id != id && $0.id != response.apiKey.id }
+                )
+            }
+        } catch {
+            guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
+            statusMessage = apiKeyRotationFailureMessage(error)
+            if let page: SettingsListResponse<ApiKey> = try? await client.send(.myApiKeys()) {
+                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
+                replaceApiKeyPage(page)
+            }
+        }
+    }
+
+    private func apiKeyRotationFailureMessage(_ error: Error) -> UiVerbatimText {
+        guard let apiError = error as? VouchaError else { return .verbatim(error.localizedDescription) }
+        switch apiError {
+        case .notFound, .api(statusCode: 404, _), .apiMessage(statusCode: 404, _, _):
+            return .message(.nativeApiKeysRotationNotFound)
+        case .api(statusCode: 409, _), .apiMessage(statusCode: 409, _, _):
+            return .message(.nativeApiKeysRotationConflict)
+        default: return .verbatim(apiError.localizedDescription)
         }
     }
 

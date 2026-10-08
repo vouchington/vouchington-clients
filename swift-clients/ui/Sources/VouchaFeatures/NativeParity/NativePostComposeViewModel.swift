@@ -45,8 +45,10 @@ public final class NativePostComposeViewModel {
     public var turnstileToken: String?
     var images: [NativePostComposeImageDraft] = []
     var isUploadingImages = false
+    var pendingImagePreviews: [NativePostComposePendingImagePreview] = []
     var imageUploadErrorMessage: UiVerbatimText?
-    private var activeImageUploadBatches = 0
+    var activeImageUploadBatches = 0
+    var imageUploadGeneration = 0
     public internal(set) var drafts: [NativeRouteDestinationRow] = []
     public internal(set) var publishedPostId: String?
     public internal(set) var state: NativePostComposeState = .idle
@@ -189,11 +191,4 @@ public final class NativePostComposeViewModel {
         )
     }
 
-}
-
-extension String {
-    var trimmedOrNil: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
 }

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import ViewInspector
+@testable import VouchaAPI
 import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaLocalization
@@ -9,6 +10,24 @@ import XCTest
 
 @MainActor
 final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testApiKeySectionRendersExpiryStatusAndRotateActionFromCanonicalFixture() throws {
+        let model = SettingsViewModel(client: nil)
+        let response = try APIClient.makeDecoder().decode(
+            SettingsApiKeyResponse.self,
+            from: ApiFixtureLoader.data("native.my.api-keys.rotate")
+        )
+        model.apiKeyPagination.reset(items: [response.apiKey])
+        let surface = SettingsSurface(viewModel: model)
+        let section = try surface.apiKeysSection.inspect()
+
+        XCTAssertNoThrow(try section.find(text: uiEnglish(.nativeApiKeysLifetimeLabel)))
+        XCTAssertNoThrow(try section.find(text: uiEnglish(.nativeApiKeysLifetime90)))
+        XCTAssertNoThrow(try section.find(button: uiEnglish(.nativeApiKeysRotate)))
+        XCTAssertNoThrow(try section.find(ViewType.Text.self, where: {
+            try $0.string().contains("Expires")
+        }))
+    }
+
     func testStagedCatalogRendersLocalizedUmbrellaMeaningWithoutSelectingResourceScopes() async throws {
         seedCredentials()
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (ApiFixtureLoader.data("shared.scopes.catalog"), 200)

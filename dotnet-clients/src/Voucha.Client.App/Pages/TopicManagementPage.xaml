@@ -13,13 +13,31 @@
             <controls:NativeMarkdownEditorView x:Name="MarkdownEditor" />
             <Entry x:Name="HostnameEntry" Placeholder="{DynamicResource native.swift.topicManagementFields.primaryHostname}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Entry x:Name="LogoImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.logoImageId}" />
+                <Entry x:Name="LogoImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.logoImageId}"
+                       TextChanged="OnImageIdChanged" />
                 <Button Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadLogoClicked" />
             </Grid>
+            <Grid HeightRequest="96">
+                <Image x:Name="LogoPersistedImage" Aspect="AspectFit" IsVisible="False"
+                       SemanticProperties.Description="{DynamicResource native.dotnet.topicManagement.logoImageId}" />
+                <Image x:Name="LogoLocalPreviewImage" Aspect="AspectFit" IsVisible="False"
+                       SemanticProperties.Description="{DynamicResource native.dotnet.topicManagement.logoImageId}" />
+            </Grid>
+            <Label x:Name="LogoPreviewUnavailableLabel" Text="{DynamicResource images.uploadPreviewUnavailable}"
+                   IsVisible="False" Style="{StaticResource Metadata}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Entry x:Name="HeroImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.heroImageId}" />
+                <Entry x:Name="HeroImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.heroImageId}"
+                       TextChanged="OnImageIdChanged" />
                 <Button Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadHeroClicked" />
             </Grid>
+            <Grid HeightRequest="120">
+                <Image x:Name="HeroPersistedImage" Aspect="AspectFit" IsVisible="False"
+                       SemanticProperties.Description="{DynamicResource native.dotnet.topicManagement.heroImageId}" />
+                <Image x:Name="HeroLocalPreviewImage" Aspect="AspectFit" IsVisible="False"
+                       SemanticProperties.Description="{DynamicResource native.dotnet.topicManagement.heroImageId}" />
+            </Grid>
+            <Label x:Name="HeroPreviewUnavailableLabel" Text="{DynamicResource images.uploadPreviewUnavailable}"
+                   IsVisible="False" Style="{StaticResource Metadata}" />
             <HorizontalStackLayout Spacing="8">
                 <CheckBox x:Name="NoindexCheckBox" />
                 <Label Text="{DynamicResource native.swift.topicManagementFields.noIndex}" VerticalOptions="Center" Style="{StaticResource Body}" />

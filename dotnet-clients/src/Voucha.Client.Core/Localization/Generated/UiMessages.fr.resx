@@ -15,6 +15,23 @@
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} points</value></data>
   <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Afficher les réponses précédentes</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" xml:space="preserve"><value>Action d&apos;automod enregistrée</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodAction_83211784" xml:space="preserve"><value>Action d&apos;automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694" xml:space="preserve"><value>Choisissez ce qui arrive à une publication publiée lorsqu&apos;un des prompts d&apos;agent de cette communauté la signale. Le signalement est toujours enregistré, et modifier ce réglage ne relance jamais un prompt.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5" xml:space="preserve"><value>Impossible d&apos;enregistrer l&apos;action d&apos;automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30" xml:space="preserve"><value>Laissez la publication en ligne et ajoutez-la à la file de révision afin qu&apos;un modérateur écarte le signalement ou supprime la publication.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0" xml:space="preserve"><value>Laissez la publication en ligne. Le signalement apparaît uniquement dans la revue d&apos;automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.recordOnly_c9184072" xml:space="preserve"><value>Enregistrer seulement</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5" xml:space="preserve"><value>Retirez immédiatement la publication de la communauté. Un modérateur peut la rétablir depuis la revue d&apos;automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e" xml:space="preserve"><value>Enregistrer l&apos;action d&apos;automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saving_dc85af8f" xml:space="preserve"><value>Enregistrement en cours...</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74" xml:space="preserve"><value>Envoyer à la file de révision</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.unpublish_2db04a54" xml:space="preserve"><value>Dépublier</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46" xml:space="preserve"><value>Signalement automod ignoré</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db" xml:space="preserve"><value>Signalements automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff" xml:space="preserve"><value>Ignorer</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68" xml:space="preserve"><value>Impossible d&apos;ignorer le signalement automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619" xml:space="preserve"><value>Publications que l&apos;automod a signalées pour examen par les modérateurs. Ignorez un signalement lorsqu&apos;aucune action n&apos;est nécessaire ; modifier une publication supprime son signalement.</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>Coûts de l&apos;IA</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Appels</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Configuration dynamique</value></data>
@@ -256,6 +273,22 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Soutenir</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Voter</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Appuyer</value></data>
+  <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Image téléversée. Aperçu indisponible.</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Cette clé administrateur est invalide. Renouvelez-la pour 30 ou 90 jours, ou révoquez-la.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirée</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Expire le {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 jours</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 jours</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 jours</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Durée de la clé</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>Sans expiration</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Remplacée</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Révoquée</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Renouveler la clé</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>Clé API renouvelée. Enregistrez la nouvelle clé maintenant ; elle n’est affichée qu’une fois.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>Cette clé ne peut pas être renouvelée. Actualisez son état ou révoquez-la.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>Cette clé n’est plus disponible. Actualisez vos clés.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Adresse e-mail</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} article associé</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} articles associés</value></data>
@@ -679,6 +712,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Actives : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Reprises historiques</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Terminées : {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Différées : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Échouées : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Files : {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Lancer la reprise historique</value></data>

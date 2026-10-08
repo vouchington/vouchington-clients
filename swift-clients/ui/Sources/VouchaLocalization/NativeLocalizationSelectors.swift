@@ -8,7 +8,8 @@ public enum NativeLocalizationSelectors {
         "native.auth.*",
         "native.navigation.*",
         "native.swift.navigation.*",
-        "native.swift.navigationTitles.*"
+        "native.swift.navigationTitles.*",
+        "images.uploadPreviewUnavailable"
     ]
 
     public static let consumer = "swift"

@@ -6,8 +6,12 @@
     xmlns:app="clr-namespace:Voucha.Client.App"
     xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
     xmlns:posts="clr-namespace:Voucha.Client.Core.Posts;assembly=Voucha.Client.Core"
+    xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
     x:DataType="posts:PostComposeViewModel"
     Title="{DynamicResource native.swift.routeMetadata.mainPostComposeComposeTitle}">
+    <ContentPage.Resources>
+        <pages:LocalImagePreviewSourceConverter x:Key="LocalImagePreviewSourceConverter" />
+    </ContentPage.Resources>
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Picker
@@ -111,12 +115,24 @@
                 Clicked="OnAddImageClicked"
                 IsEnabled="{Binding CanAddImages}" />
 
+            <Grid x:Name="PendingImagePreviewGrid" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8"
+                  IsVisible="{Binding HasPendingImagePreview}">
+                <Image x:Name="PendingImagePreview" HeightRequest="120" Aspect="AspectFit"
+                       IsVisible="{Binding HasPendingLocalPreview}"
+                       Source="{Binding PendingLocalPreviewBytes, Converter={StaticResource LocalImagePreviewSourceConverter}}"
+                       SemanticProperties.Description="{DynamicResource native.swift.postCompose.images}" />
+                <Button x:Name="RemovePendingPreviewButton" Grid.Column="1" Text="{DynamicResource native.swift.common.remove}"
+                        Clicked="OnRemovePendingPreviewClicked" />
+                <ActivityIndicator Grid.Row="1" Grid.ColumnSpan="2" IsRunning="{Binding HasPendingImagePreview}"
+                                   SemanticProperties.Description="{DynamicResource native.dotnet.residual.loading}" />
+            </Grid>
+
             <VerticalStackLayout
                 Spacing="12"
                 BindableLayout.ItemsSource="{Binding Images}">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="posts:PostComposeImageDraft">
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
                             <Label
                                 Text="{Binding DisplayLabel}"
                                 Style="{StaticResource Metadata}" />
@@ -126,8 +142,24 @@
                                 <Button Text="{DynamicResource native.swift.common.remove}" Clicked="OnRemoveImageClicked" />
                             </HorizontalStackLayout>
 
-                            <Entry
+                            <Image
                                 Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                HeightRequest="120"
+                                Aspect="AspectFit"
+                                IsVisible="{Binding HasLocalPreview}"
+                                Source="{Binding LocalPreviewBytes, Converter={StaticResource LocalImagePreviewSourceConverter}}"
+                                SemanticProperties.Description="{Binding DisplayLabel}" />
+
+                            <Label
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Text="{Binding PreviewUnavailableMessage}"
+                                IsVisible="{Binding HasUploadedPreviewUnavailable}"
+                                Style="{StaticResource Metadata}" />
+
+                            <Entry
+                                Grid.Row="3"
                                 Grid.ColumnSpan="2"
                                 Placeholder="{DynamicResource native.swift.postCompose.caption}"
                                 Text="{Binding Caption, Mode=OneWay}"
@@ -135,14 +167,14 @@
                                 TextChanged="OnImageCaptionTextChanged" />
 
                             <Label
-                                Grid.Row="2"
+                                Grid.Row="4"
                                 Grid.ColumnSpan="2"
                                 Text="{app:UiLocalizedValue Path=UploadProgress, Format=message:native.dotnet.postCompose.uploading|percent}"
                                 IsVisible="{Binding IsUploading}"
                                 Style="{StaticResource Metadata}" />
 
                             <Label
-                                Grid.Row="2"
+                                Grid.Row="4"
                                 Grid.ColumnSpan="2"
                                 Text="{Binding UploadError}"
                                 IsVisible="{Binding HasUploadError}"

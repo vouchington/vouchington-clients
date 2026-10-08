@@ -13,6 +13,10 @@ internal static partial class ApiFixtureCoverage
   /// <summary>Fixture id -> response DTO type used to decode + re-encode it.</summary>
   public static readonly IReadOnlyDictionary<string, Type> Registry = new Dictionary<string, Type>(StringComparer.Ordinal)
   {
+    ["entity-provenance.communities"] = typeof(CommunitySearchResponse),
+    ["entity-provenance.topics"] = typeof(TopicSearchResponse),
+    ["entity-provenance.lists"] = typeof(ListsSearchResponse),
+    ["entity-provenance.rss-feeds"] = typeof(RssFeedsResponse),
     ["shared.scopes.catalog"] = typeof(ScopeCatalogResponse),
     ["native.my.api-keys.create"] = typeof(ApiKeyCreationResponse),
     ["native.my.oauth-grants.paginated"] = typeof(OAuthGrantListResponse),
@@ -64,6 +68,9 @@ internal static partial class ApiFixtureCoverage
     ["web.communities.application-questions.default"] = typeof(CommunityApplicationQuestionsResponse),
     ["web.communities.pinned-posts.default"] = typeof(CommunityPinnedPostsResponse),
     ["web.communities.moderation-queue.default"] = typeof(CommunityModerationQueueResponse),
+    ["native.communities.moderation-queue.automod-flag.page-1"] = typeof(CommunityModerationQueueResponse),
+    ["native.communities.moderation-queue.automod-flag.page-2"] = typeof(CommunityModerationQueueResponse),
+    ["native.communities.moderation-queue.automod-flag.member"] = typeof(CommunityModerationQueueResponse),
     ["native.community.pending-reports.paginated"] = typeof(CommunityPendingReportsResponse),
     ["web.communities.moderation-analytics.default"] = typeof(CommunityModerationAnalyticsResponse),
     ["web.communities.modmail-messages.default"] = typeof(CommunityModmailMessageListResponse),

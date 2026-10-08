@@ -85,7 +85,9 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
 
   public string? ProfileImageId => Identity?.ProfileImageId ?? User?.ProfileImageId;
 
-  public Uri? AvatarUrl => config.ImageUrlForImageId(ProfileImageId, 144);
+  public Uri? AvatarUrl => (Identity is not null ? Identity.ProfileImagePlacement : User?.ProfileImagePlacement) is { } placement
+      ? config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, 144)
+      : null;
 
   public string BioMarkdown
   {

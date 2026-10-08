@@ -100,6 +100,7 @@ struct NativePostComposeSurface: View {
             client: client,
             gate: viewModel.emailVerificationGate
         )
+        .onDisappear { viewModel.clearImagePreviewsForNavigation() }
     }
 
     private func turnstileVerification(viewModel: NativePostComposeViewModel) -> some View {

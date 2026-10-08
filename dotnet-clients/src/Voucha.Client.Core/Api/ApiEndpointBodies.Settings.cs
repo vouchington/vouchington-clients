@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Voucha.Client.Core.Api;
@@ -40,7 +41,9 @@ public sealed record UpdateEmailPreferencesBody(
 public sealed record CreateApiKeyBody(
     [property: JsonPropertyName("label")] string Label,
     [property: JsonPropertyName("permissions")] IReadOnlyList<string> Permissions,
-    [property: JsonPropertyName("type")] string Type = "rss");
+    [property: JsonPropertyName("type")] string Type = "rss",
+    // A missing property keeps the server default; a present JSON null requests no expiry.
+    [property: JsonPropertyName("lifetime_days"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] JsonElement? LifetimeDays = null);
 
 public sealed record CreateProfileLinkBody(
     [property: JsonPropertyName("link_type")] string LinkType,

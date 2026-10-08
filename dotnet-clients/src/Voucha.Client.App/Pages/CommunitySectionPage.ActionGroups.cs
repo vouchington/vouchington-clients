@@ -12,7 +12,14 @@ public abstract partial class CommunitySectionPage
     var body = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesSavedReplyBody);
     settingsAllowReviewPostsSwitch = new Switch();
     settingsAllowDataPointPostsSwitch = new Switch();
-    settingsAutomodActionView = new CommunityAutomodActionView(viewModel.Community?.AutomodAction);
+    settingsAutomodActionView = new CommunityAutomodActionView(
+        viewModel.Community?.AutomodAction,
+        async action =>
+        {
+          var saved = await viewModel.UpdateAutomodActionAsync(action).ConfigureAwait(true);
+          Render();
+          return saved;
+        });
     UpdateSettingsSwitches();
 
     return new VerticalStackLayout

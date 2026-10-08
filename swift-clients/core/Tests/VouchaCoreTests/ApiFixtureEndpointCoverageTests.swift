@@ -14,6 +14,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
 
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
         .merging(entityProvenanceFixtureEndpoints) { _, replacement in replacement }
+        .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
         .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
@@ -154,6 +155,9 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.admin-ai-costs.empty": Endpoint.adminAiCosts(),
             "shared.currencies.list.default": Endpoint.currencies(),
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
+            "web.topics.mutation.default": Endpoint.createTopic(
+                body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic")
+            ),
             "native.topics.user-tags.default": Endpoint.userTags(),
             "web.topics.search.referral-programs.default": Endpoint.topics(
                 query: "test",

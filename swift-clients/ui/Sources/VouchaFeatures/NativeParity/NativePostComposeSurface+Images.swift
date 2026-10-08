@@ -10,6 +10,17 @@ extension NativePostComposeSurface {
             if !viewModel.images.isEmpty {
                 imageList(viewModel: viewModel)
             }
+            ForEach(viewModel.pendingImagePreviews) { preview in
+                HStack(spacing: Spacing.sm) {
+                    LocalImagePreview(data: preview.data, contentMode: .fit, uploadComplete: false)
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    ProgressView()
+                    Text(UiMessages.string(.nativeSwiftPostComposeImages, locale: nativeUiLocale))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.secondaryLabel)
+                }
+            }
         }
     }
 
@@ -61,6 +72,11 @@ extension NativePostComposeSurface {
         index: Int
     ) -> some View {
         HStack(spacing: Spacing.sm) {
+            if let previewData = image.localPreviewData {
+                LocalImagePreview(data: previewData)
+                    .frame(width: 52, height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
             Text(UiMessages.string(
                 .nativeSwiftPostComposeImageLabel,
                 parameters: ["index": UiMessages.number(index + 1, locale: nativeUiLocale)],

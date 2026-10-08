@@ -26,12 +26,14 @@ struct NativeTopicManagementAboutFields: View {
                 title: .nativeSwiftTopicManagementFieldsLogoImage,
                 previewWidth: 48,
                 imageId: $viewModel.logoImageId,
+                placement: $viewModel.logoImagePlacement,
                 client: client
             )
             NativeTopicImageField(
                 title: .nativeSwiftTopicManagementFieldsHeroImage,
                 previewWidth: 120,
                 imageId: $viewModel.heroImageId,
+                placement: $viewModel.heroImagePlacement,
                 client: client
             )
         }

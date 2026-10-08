@@ -18,6 +18,8 @@ public struct Topic: Codable, Identifiable, Sendable {
     public var logoImageId: String?
     @RequiredNullable
     public var heroImageId: String?
+    public var logoImagePlacement: ImagePlacement?
+    public var heroImagePlacement: ImagePlacement?
     @RequiredNullable
     public var homepageUrlId: String?
     @RequiredNullable
@@ -47,6 +49,8 @@ public struct Topic: Codable, Identifiable, Sendable {
         hostname: TopicHostname? = nil,
         logoImageId: String? = nil,
         heroImageId: String? = nil,
+        logoImagePlacement: ImagePlacement? = nil,
+        heroImagePlacement: ImagePlacement? = nil,
         createdAt: Date,
         createdBy: PublicUser? = nil,
         updatedBy: PublicUser? = nil,
@@ -66,6 +70,8 @@ public struct Topic: Codable, Identifiable, Sendable {
         self.hostname = hostname
         self.logoImageId = logoImageId
         self.heroImageId = heroImageId
+        self.logoImagePlacement = logoImagePlacement
+        self.heroImagePlacement = heroImagePlacement
         homepageUrlId = nil
         linguaRsDetectedLanguage = nil
         referralProgramId = nil
@@ -83,7 +89,8 @@ public struct Topic: Codable, Identifiable, Sendable {
         case id, name, slug, markdown, topicType, aliases, hostnameId, hostname
         case allowReviews = "shouldAllowReviews"
         case noindex = "isNoindexed"
-        case logoImageId, heroImageId, homepageUrlId, linguaRsDetectedLanguage, referralProgramId
+        case logoImageId, heroImageId, logoImagePlacement, heroImagePlacement
+        case homepageUrlId, linguaRsDetectedLanguage, referralProgramId
         case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy, election, provenance
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Posts;
@@ -96,6 +97,26 @@ public sealed class PostComposeImageDraftTests
           Assert.Equal(1, image.OrderIndex);
           Assert.Equal("Image 2", image.DisplayLabel);
         });
+  }
+
+  [Fact]
+  public void LocalSelectedBytesAreTransientAndRemovedWithDraft()
+  {
+    var viewModel = NewViewModel();
+    var bytes = new byte[] { 1, 2, 3 };
+    Assert.True(viewModel.TryAddImageDraft(new PostComposeImageDraft(
+        "image-1", 0, LocalPreviewBytes: bytes)));
+
+    Assert.True(Assert.Single(viewModel.Images).HasLocalPreview);
+    Assert.DoesNotContain(
+        "LocalPreviewBytes",
+        JsonSerializer.Serialize(new PostComposeImageDraft("image-1", 0, LocalPreviewBytes: bytes)),
+        StringComparison.Ordinal);
+
+    viewModel.EndLocalImagePreviewSession();
+    Assert.False(Assert.Single(viewModel.Images).HasLocalPreview);
+    viewModel.RemoveImage("image-1");
+    Assert.Empty(viewModel.Images);
   }
 
   private static PostComposeViewModel NewViewModel() =>

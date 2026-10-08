@@ -3,6 +3,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core;
 
 namespace Voucha.Client.App.Pages;
 
@@ -10,6 +11,13 @@ public partial class TopicManagementPage : ContentPage
 {
   private readonly ITopicsService topicsService;
   private readonly IImageUploadService imageUploadService;
+  private readonly AppConfig config;
+  private TopicImagePlacement? logoPlacement;
+  private TopicImagePlacement? heroPlacement;
+  private int logoPreviewGeneration;
+  private int heroPreviewGeneration;
+  private string? logoLocalImageId;
+  private string? heroLocalImageId;
   private string? topicIdOrSlug;
   private RssFeedSource? source;
 
@@ -17,15 +25,30 @@ public partial class TopicManagementPage : ContentPage
       ITopicsService topicsService,
       IImageUploadService imageUploadService,
       VouchaApiClient apiClient,
-      string? topicIdOrSlug = null)
+      string? topicIdOrSlug = null,
+      AppConfig? config = null)
   {
     InitializeComponent();
     this.topicsService = topicsService ?? throw new ArgumentNullException(nameof(topicsService));
     this.imageUploadService = imageUploadService ?? throw new ArgumentNullException(nameof(imageUploadService));
+    this.config = config ?? AppConfig.FromEnvironment();
     MarkdownEditor.ApiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
     this.topicIdOrSlug = topicIdOrSlug;
     SyncAliasesPaginationControl();
     SyncHostnamesPaginationControl();
+  }
+
+  protected override void OnDisappearing()
+  {
+    logoPreviewGeneration++;
+    heroPreviewGeneration++;
+    ClearLocalPreview(LogoLocalPreviewImage);
+    ClearLocalPreview(HeroLocalPreviewImage);
+    LogoPreviewUnavailableLabel.IsVisible = false;
+    HeroPreviewUnavailableLabel.IsVisible = false;
+    logoLocalImageId = null;
+    heroLocalImageId = null;
+    base.OnDisappearing();
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI lifecycle handlers must not throw.")]

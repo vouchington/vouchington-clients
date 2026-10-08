@@ -14,6 +14,10 @@ public sealed partial class SettingsViewModel
   public async Task LoadAsync(CancellationToken cancellationToken = default)
   {
     var generation = Interlocked.Increment(ref settingsLoadGeneration);
+    rotatingApiKeyIds.Clear();
+    ApiKeySecret = null;
+    apiKeyRotationNoticeKey = null;
+    OnPropertyChanged(nameof(ApiKeyRotationNotice));
     InvalidateSettingsPagination();
     oauthGrantPages.InvalidateRequestsPreservingPage();
     IsLoading = true;
@@ -64,6 +68,7 @@ public sealed partial class SettingsViewModel
       user = (await settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken).ConfigureAwait(true)).User;
       if (!IsCurrentSettingsLoad(generation)) return;
       loadedUser = user;
+      RefreshApiKeyLifetimeForUser(user);
       PrivacySelections = BuildSelections(user);
       PrivacyToggles = BuildToggles(user);
     }

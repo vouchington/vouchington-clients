@@ -74,6 +74,7 @@ public sealed partial class CommunityDetailViewModel
         Interlocked.Increment(ref communityContextRevision);
         InvalidateCommunityListRequests();
         InvalidatePendingReportRequests();
+        InvalidateAutomodFlagRequests();
       }
     }
   }

@@ -21,6 +21,8 @@ internal sealed class RecordingImageUploadService : IImageUploadService
 
   public bool BlockCreateUploadUrl { get; init; }
 
+  public bool BlockUpload { get; init; }
+
   public int CompleteTransientFailuresBeforeSuccess { get; init; }
 
   public int FetchTransientFailuresBeforeSuccess { get; init; }
@@ -29,6 +31,12 @@ internal sealed class RecordingImageUploadService : IImageUploadService
       new(TaskCreationOptions.RunContinuationsAsynchronously);
 
   public TaskCompletionSource<bool> ReleaseCreateUploadUrl { get; } =
+      new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+  public TaskCompletionSource<bool> UploadStarted { get; } =
+      new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+  public TaskCompletionSource<bool> ReleaseUpload { get; } =
       new(TaskCreationOptions.RunContinuationsAsynchronously);
 
   public string CompletedImageId { get; init; } = "image-1";
@@ -71,6 +79,8 @@ internal sealed class RecordingImageUploadService : IImageUploadService
       CancellationToken cancellationToken = default)
   {
     UploadCount++;
+    UploadStarted.TrySetResult(true);
+    if (BlockUpload) return ReleaseUpload.Task;
     return FailUpload
         ? Task.FromException(new HttpRequestException("Upload failed."))
         : Task.CompletedTask;

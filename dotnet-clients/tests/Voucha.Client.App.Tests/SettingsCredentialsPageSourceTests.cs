@@ -9,7 +9,7 @@ public sealed class SettingsCredentialsPageSourceTests
   [Fact]
   public void ApiKeyControlsBindCatalogueRowsAndValidatedCreationState()
   {
-    var document = SettingsDocument();
+    var document = SettingsApiKeyDocument();
     var scopeList = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding ApiKeyScopes}");
     var scopeTemplate = Assert.Single(scopeList.Descendants(), element => element.Name.LocalName == "DataTemplate");
     var checkBox = Assert.Single(scopeTemplate.Descendants(), element => element.Name.LocalName == "CheckBox");
@@ -58,5 +58,14 @@ public sealed class SettingsCredentialsPageSourceTests
     return XDocument.Load(Path.Combine(
         root?.FullName ?? throw new DirectoryNotFoundException(),
         "src", "Voucha.Client.App", "Pages", "SettingsPage.xaml"));
+  }
+
+  private static XDocument SettingsApiKeyDocument([CallerFilePath] string sourceFile = "")
+  {
+    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
+    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
+    return XDocument.Load(Path.Combine(
+        root?.FullName ?? throw new DirectoryNotFoundException(),
+        "src", "Voucha.Client.App", "Pages", "SettingsApiKeyLifecycleView.xaml"));
   }
 }

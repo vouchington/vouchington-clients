@@ -277,7 +277,7 @@ final class EngineeringOpsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                     queueCount: 5
                 )
             )),
-            "1 waiting, 2 active, 4 failed, 5 queues"
+            "1 waiting, 0 delayed, 2 active, 4 failed, 5 queues"
         )
         XCTAssertEqual(
             queuesSurface.queueActionKey(

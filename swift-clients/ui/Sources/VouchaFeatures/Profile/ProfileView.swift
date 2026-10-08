@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -61,6 +62,7 @@ public struct ProfileView: View {
                 try await viewModel.updateBio(markdown)
             }
         }
+        .onDisappear { viewModel.clearAvatarPreviewForNavigation() }
     }
 
     private var profileContent: some View {
@@ -78,11 +80,23 @@ public struct ProfileView: View {
 
     private var profileHeader: some View {
         VStack(spacing: Spacing.sm) {
-            Avatar(
-                imageURL: viewModel.avatarURL,
-                username: profileUsername,
-                size: 72
-            )
+            if let avatarPreviewData = viewModel.avatarPreviewData,
+               LocalImagePreview.canDecode(avatarPreviewData) {
+                LocalImagePreview(data: avatarPreviewData, uploadComplete: !viewModel.isUploadingAvatar)
+                    .frame(width: 72, height: 72)
+                    .clipShape(Circle())
+                    .accessibilityLabel(profileUsername)
+            } else if let avatarPreviewData = viewModel.avatarPreviewData {
+                LocalImagePreview(data: avatarPreviewData, uploadComplete: !viewModel.isUploadingAvatar)
+                    .frame(width: 72, height: 72)
+                    .clipShape(Circle())
+            } else {
+                Avatar(
+                    imageURL: viewModel.avatarURL,
+                    username: profileUsername,
+                    size: 72
+                )
+            }
             avatarActions
             VStack(spacing: Spacing.xs) {
                 Text(profileUsername)

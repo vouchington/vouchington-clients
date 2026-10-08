@@ -7,9 +7,23 @@ public sealed partial class VouchaApiClient
       string? after = null,
       int? limit = null,
       CancellationToken cancellationToken = default) =>
+      FetchCommunityModerationQueueAsync(idOrSlug, after, limit, null, cancellationToken);
+
+  public Task<CommunityModerationQueueResponse> FetchCommunityModerationQueueAsync(
+      string idOrSlug,
+      string? after,
+      int? limit,
+      string? source,
+      CancellationToken cancellationToken = default) =>
       SendAsync<CommunityModerationQueueResponse>(
-          VouchaApiEndpoints.CommunityModerationQueue(idOrSlug, after, limit),
+          VouchaApiEndpoints.CommunityModerationQueue(idOrSlug, after, limit, source),
           cancellationToken);
+
+  public Task DismissCommunityAutomodFlagAsync(
+      string idOrSlug,
+      string postId,
+      CancellationToken cancellationToken = default) =>
+      SendAsync(VouchaApiEndpoints.DismissCommunityAutomodFlag(idOrSlug, postId), cancellationToken);
 
   public Task<CommunityPendingReportsResponse> FetchCommunityPendingReportsAsync(
       string idOrSlug,

@@ -30,6 +30,7 @@ public sealed partial class PostComposeViewModel
   public void ResetDraft()
   {
     System.Threading.Interlocked.Increment(ref imageDraftGeneration);
+    SetPendingLocalPreview(null, false);
     PostType = PostComposeTypes.Discussion;
     Title = "";
     Slug = "";

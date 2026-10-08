@@ -15,6 +15,23 @@
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} points</value></data>
   <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Show earlier replies</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" xml:space="preserve"><value>Automod action saved</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodAction_83211784" xml:space="preserve"><value>Automod action</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694" xml:space="preserve"><value>Choose what happens to a published post when one of this community&apos;s agent prompts flags it. The flag is always recorded, and changing this never re-runs a prompt.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5" xml:space="preserve"><value>Could not save the automod action.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30" xml:space="preserve"><value>Keep the post published and add it to the review queue so a moderator can dismiss the flag or remove the post.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0" xml:space="preserve"><value>Keep the post published. The flag appears in Automod review only.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.recordOnly_c9184072" xml:space="preserve"><value>Record only</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5" xml:space="preserve"><value>Remove the post from the community right away. A moderator can reinstate it from Automod review.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e" xml:space="preserve"><value>Save automod action</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saving_dc85af8f" xml:space="preserve"><value>Saving...</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74" xml:space="preserve"><value>Send to review queue</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.unpublish_2db04a54" xml:space="preserve"><value>Unpublish</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46" xml:space="preserve"><value>Automod flag dismissed</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db" xml:space="preserve"><value>Automod flags</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68" xml:space="preserve"><value>Failed to dismiss the automod flag</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619" xml:space="preserve"><value>Posts automod flagged for moderator review. Dismiss a flag when no action is needed; editing a post clears its flag.</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>AI Costs</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Appeals</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Dynamic Config</value></data>
@@ -256,6 +273,22 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Support</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Vote</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Vouch</value></data>
+  <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Image uploaded. Preview unavailable.</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>This administrator key is invalid. Rotate with a 30- or 90-day lifetime, or revoke it.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Expires {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 days</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 days</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 days</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Key lifetime</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>No expiry</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Replaced</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Revoked</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Rotate key</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>API key rotated. Save the new key now; it is shown once.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>This key cannot be rotated. Refresh its state or revoke it.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>This key is no longer available. Refresh your keys.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Email address</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} related article</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} related articles</value></data>
@@ -679,6 +712,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Active: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Backfills</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Completed: {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Delayed: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Failed: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Queues: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Run backfill</value></data>

@@ -52,6 +52,17 @@ public partial interface ISettingsService
       IReadOnlyList<string> permissions,
       CancellationToken cancellationToken = default);
 
+  Task<ApiKeyCreationResponse> CreateApiKeyAsync(
+      string label,
+      string type,
+      IReadOnlyList<string> permissions,
+      int? lifetimeDays,
+      CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException("Explicit API-key lifetimes require a lifecycle-aware settings service.");
+
+  Task<ApiKeyCreationResponse> RotateApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
   Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default);
 
   Task<ProfileLinkListResponse> FetchProfileLinksAsync(CancellationToken cancellationToken = default);

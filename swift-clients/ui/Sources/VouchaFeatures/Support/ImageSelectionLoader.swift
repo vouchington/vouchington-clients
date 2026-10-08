@@ -36,6 +36,18 @@ enum ImageSelectionLoader {
         "image/tiff",
         "image/webp"
     ]
+    private static let fallbackContentTypesByExtension: [String: String] = [
+        "avif": "image/avif",
+        "gif": "image/gif",
+        "heic": "image/heic",
+        "heif": "image/heif",
+        "jpeg": "image/jpeg",
+        "jpg": "image/jpeg",
+        "png": "image/png",
+        "tif": "image/tiff",
+        "tiff": "image/tiff",
+        "webp": "image/webp"
+    ]
 
     static func load(from url: URL) async throws -> (Data, String) {
         try await Task.detached(priority: .userInitiated) {
@@ -61,11 +73,14 @@ enum ImageSelectionLoader {
     }
 
     private static func mimeType(for url: URL) throws -> String {
+        let pathExtension = url.pathExtension.lowercased()
+        let registeredType = UTType(filenameExtension: pathExtension)
+        let registeredContentType = registeredType?.preferredMIMEType?.lowercased()
+        let contentType = registeredContentType ?? fallbackContentTypesByExtension[pathExtension]
         guard
-            let type = UTType(filenameExtension: url.pathExtension),
-            type.conforms(to: .image),
-            let contentType = type.preferredMIMEType,
-            supportedContentTypes.contains(contentType.lowercased())
+            let contentType,
+            supportedContentTypes.contains(contentType),
+            registeredType?.conforms(to: .image) != false || registeredContentType == nil
         else {
             throw ImageSelectionError.unsupportedImageFormat(pathExtension: url.pathExtension)
         }

@@ -30,6 +30,9 @@ public sealed partial class SettingsViewModel
     OnPropertyChanged(nameof(SupportedUiLocaleCount));
     OnPropertyChanged(nameof(ApiKeyTypeOptions));
     OnPropertyChanged(nameof(SelectedApiKeyTypeOption));
+    OnPropertyChanged(nameof(ApiKeyLifetimeOptions));
+    OnPropertyChanged(nameof(SelectedApiKeyLifetimeOption));
+    OnPropertyChanged(nameof(ApiKeyRotationNotice));
     NotifyScopeSelection();
     OnPropertyChanged(nameof(LocalizedOAuthGrants));
     OnPropertyChanged(nameof(CredentialNotice));
@@ -84,7 +87,8 @@ public sealed partial class SettingsViewModel
           new SettingsApiKeyRow(
               apiKey,
               UiTaxonomy.ApiKeyType(apiKey.Type),
-              localization)).ToArray();
+              localization,
+              IsApiKeyAdministrator)).ToArray();
 
   public IReadOnlyList<SettingsLocalLLMEndpointRow> LocalizedLocalLLMEndpoints =>
       LocalLLMEndpoints.Select(profile =>

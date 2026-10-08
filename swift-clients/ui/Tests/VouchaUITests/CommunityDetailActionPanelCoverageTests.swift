@@ -44,7 +44,8 @@ final class CommunityDetailActionPanelCoverageTests: NativeRouteSurfaceViewModel
             isSignedIn: true,
             showSignIn: {}
         ))
-        XCTAssertEqual(moderationButtons.count, 29)
+        XCTAssertTrue(try CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+            .inspect().find(button: "Save automod action").isDisabled())
         XCTAssertNoThrow(try CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
             .inspect()
             .find(button: "Moderation summary"))
@@ -54,7 +55,7 @@ final class CommunityDetailActionPanelCoverageTests: NativeRouteSurfaceViewModel
         XCTAssertNoThrow(try CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
             .inspect()
             .find(button: "Load recent"))
-        for button in moderationButtons {
+        for button in moderationButtons where !button.isDisabled() {
             try button.tap()
         }
 

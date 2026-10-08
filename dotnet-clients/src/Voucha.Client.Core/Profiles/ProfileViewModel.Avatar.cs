@@ -32,20 +32,21 @@ public sealed partial class ProfileViewModel
     }
   }
 
-  public async Task UploadAvatarAsync(
+  public async Task<bool> UploadAvatarAsync(
       Stream content,
       string contentType,
       long contentLength,
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(content);
-    if (!CanEdit || IsUploadingAvatar) return;
+    if (!CanEdit) return false;
     if (contentLength <= 0 || contentLength > MaxAvatarUploadBytes)
     {
       ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetCsharpChooseImageUpTo50Mb);
-      return;
+      return false;
     }
 
+    var generation = Interlocked.Increment(ref avatarMutationGeneration);
     IsUploadingAvatar = true;
     ErrorMessage = null;
 
@@ -57,32 +58,41 @@ public sealed partial class ProfileViewModel
       await imageUploadService.UploadAsync(upload.Upload, content, contentLength, cancellationToken).ConfigureAwait(true);
       var completion = await imageUploadService.CompleteAsync(upload.Upload.ImageId, cancellationToken).ConfigureAwait(true);
       var uploadState = await WaitForAvatarUploadStateAsync(completion.Image.Id, cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentAvatarMutation(generation, cancellationToken)) return false;
       if (!IsReadyAvatarUploadState(uploadState))
       {
         ErrorMessage = uploadState.Blocked
             ? localization.Localize(UiMessageKey.NativeDotnetCsharpImageBlocked)
             : uploadState.UploadError ?? localization.Localize(UiMessageKey.NativeDotnetCsharpAvatarUploadFailed);
-        return;
+        return false;
       }
 
       var response = await settingsService.UpdateMyIdentityAsync(
           // The processing pipeline may return a canonical ready image id that differs from the original upload id.
           new UpdateMyIdentityBody(ProfileImageId: JsonNullableString.FromString(uploadState.Id)),
           cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentAvatarMutation(generation, cancellationToken)) return false;
       Identity = response.Identity;
-      if (User is not null) User = User with { ProfileImageId = response.Identity.ProfileImageId };
+      if (User is not null) User = User with
+      {
+        ProfileImageId = response.Identity.ProfileImageId,
+        ProfileImagePlacement = response.Identity.ProfileImagePlacement,
+      };
+      return true;
     }
     catch (TimeoutException ex)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      return false;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      return false;
     }
     finally
     {
-      IsUploadingAvatar = false;
+      if (Volatile.Read(ref avatarMutationGeneration) == generation) IsUploadingAvatar = false;
     }
   }
 
@@ -150,7 +160,8 @@ public sealed partial class ProfileViewModel
 
   public async Task RemoveAvatarAsync(CancellationToken cancellationToken = default)
   {
-    if (!CanEdit || IsUploadingAvatar) return;
+    if (!CanEdit) return;
+    var generation = Interlocked.Increment(ref avatarMutationGeneration);
     IsUploadingAvatar = true;
     ErrorMessage = null;
 
@@ -159,16 +170,17 @@ public sealed partial class ProfileViewModel
       var response = await settingsService.UpdateMyIdentityAsync(
           new UpdateMyIdentityBody(ProfileImageId: JsonNullableString.Null),
           cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentAvatarMutation(generation, cancellationToken)) return;
       Identity = response.Identity;
-      if (User is not null) User = User with { ProfileImageId = null };
+      if (User is not null) User = User with { ProfileImageId = null, ProfileImagePlacement = null };
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
     }
     finally
     {
-      IsUploadingAvatar = false;
+      if (Volatile.Read(ref avatarMutationGeneration) == generation) IsUploadingAvatar = false;
     }
   }
 

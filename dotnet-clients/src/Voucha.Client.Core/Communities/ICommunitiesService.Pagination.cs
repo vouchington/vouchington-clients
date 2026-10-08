@@ -31,6 +31,12 @@ public partial interface ICommunitiesService
   Task<CommunityModerationQueueResponse> FetchModerationQueuePageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       FetchModerationQueueAsync(idOrSlug, cancellationToken);
 
+  Task<CommunityModerationQueueResponse> FetchAutomodFlagPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
+      Task.FromResult(new CommunityModerationQueueResponse([], new PageInfo(null, false, null), "member"));
+
+  Task DismissAutomodFlagAsync(string idOrSlug, string postId, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
   Task<CommunityPendingReportsResponse> FetchPendingReportsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       Task.FromResult(new CommunityPendingReportsResponse([], new PageInfo(null, false, null)));
 }

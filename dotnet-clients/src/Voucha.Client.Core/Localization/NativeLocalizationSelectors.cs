@@ -8,11 +8,13 @@ public static class NativeLocalizationSelectors
   [
       "common.*",
       "extracted.*",
+      "images.uploadPreviewUnavailable",
       "nav.*",
       "settings.*",
       "shared.*",
       "native.common.*",
       "native.auth.*",
+      "native.apiKeys.*",
       "native.credentials.*",
       "native.dotnet.*",
       "native.language.*",

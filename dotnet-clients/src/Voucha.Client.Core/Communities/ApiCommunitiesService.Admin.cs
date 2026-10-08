@@ -91,6 +91,12 @@ public sealed partial class ApiCommunitiesService
       CancellationToken cancellationToken = default) =>
       client.UpdateCommunityPostTypeSettingsAsync(idOrSlug, request, cancellationToken);
 
+  public Task<CommunityResponse> UpdateAutomodActionAsync(
+      string idOrSlug,
+      UpdateCommunityAutomodSettingsRequest request,
+      CancellationToken cancellationToken = default) =>
+      client.UpdateCommunityAutomodSettingsAsync(idOrSlug, request, cancellationToken);
+
   public Task<CommunityWarningResponse> IssueWarningAsync(
       string idOrSlug,
       IssueCommunityWarningRequest request,

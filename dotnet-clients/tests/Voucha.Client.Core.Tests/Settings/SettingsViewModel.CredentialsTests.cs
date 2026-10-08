@@ -130,6 +130,7 @@ public sealed partial class SettingsViewModelTests
     Assert.Equal(["mcp.user:read"], model.SelectedApiKeyScopes);
     await model.CreateApiKeyAsync(TestContext.Current.CancellationToken);
     Assert.Equal(["mcp.user:read"], service.LastCreatedApiKeyPermissions);
+    Assert.Equal(30, service.LastCreatedApiKeyLifetimeDays);
   }
 
   [Fact]

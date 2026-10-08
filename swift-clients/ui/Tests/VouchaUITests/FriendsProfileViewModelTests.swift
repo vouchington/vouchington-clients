@@ -310,27 +310,6 @@ final class FriendsListViewModelTests: XCTestCase {
         XCTAssertNil(vm.avatarURL(for: user))
     }
 
-    func testAvatarURLBuildsURLForValidImageId() throws {
-        let config = try AppConfig(
-            baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
-            imageBaseURL: XCTUnwrap(URL(string: "https://images.voucha.ai")),
-            turnstileSiteKey: "test-site-key"
-        )
-        let apiClient = APIClient(
-            config: config,
-            cookieStorage: HTTPCookieStorage(),
-            protocolClasses: [CannedFeedURLProtocol.self]
-        )
-        let vm = FriendsListViewModel(client: apiClient, userId: "u", config: config)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let user = try decoder.decode(
-            PublicUser.self,
-            from: Data(#"{"id":"u1","username":"alice","roles":[],"profile_image_id":"img-abc"}"#.utf8)
-        )
-        XCTAssertEqual(vm.avatarURL(for: user), "https://images.voucha.ai/images/img-abc?w=96")
-    }
-
     func testLoadedListViewShowsLoadMoreButtonWhenMorePagesExist() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/users/user-abc/users/following"] = (
             makeUsersPage(ids: ["f1"], hasMore: true, endCursor: "cursor-1"),

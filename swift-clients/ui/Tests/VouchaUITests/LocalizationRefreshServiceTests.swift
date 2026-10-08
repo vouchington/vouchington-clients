@@ -73,6 +73,7 @@ final class LocalizationRefreshServiceTests: XCTestCase {
         XCTAssertTrue(selectors.split(separator: ",").contains("native.swift.navigationTitles.*"))
         XCTAssertTrue(selectors.split(separator: ",").contains("native.swift.navigation.*"))
         XCTAssertTrue(selectors.split(separator: ",").contains("native.navigation.*"))
+        XCTAssertTrue(selectors.split(separator: ",").contains("images.uploadPreviewUnavailable"))
         let navigationKey = UiMessageKey.nativeSwiftNavigationVoucha.rawValue
         XCTAssertTrue(selectors.split(separator: ",").contains { selector in
             selector.hasSuffix("*")

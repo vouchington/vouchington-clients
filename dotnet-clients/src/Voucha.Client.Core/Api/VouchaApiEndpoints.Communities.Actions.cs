@@ -92,8 +92,11 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest DeleteCommunitySavedReply(string idOrSlug, string replyId) =>
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/saved-replies/{Path(replyId)}");
 
-  public static ApiRequest CommunityModerationQueue(string idOrSlug, string? after = null, int? limit = null) =>
-      Get($"/api/v1/communities/{Path(idOrSlug)}/moderation-queue", Query(("after", after), ("limit", limit)));
+  public static ApiRequest CommunityModerationQueue(string idOrSlug, string? after = null, int? limit = null, string? source = null) =>
+      Get($"/api/v1/communities/{Path(idOrSlug)}/moderation-queue", Query(("after", after), ("limit", limit), ("source", source)));
+
+  public static ApiRequest DismissCommunityAutomodFlag(string idOrSlug, string postId) =>
+      new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/posts/{Path(postId)}/automod-flag/dismissal");
 
   public static ApiRequest CommunityPendingReports(
       string idOrSlug,

@@ -105,6 +105,7 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
             title: .nativeSwiftTopicManagementFieldsLogoImage,
             previewWidth: 64,
             imageId: .constant(""),
+            placement: .constant(nil),
             client: nil
         )
 
@@ -116,6 +117,7 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
             title: .nativeSwiftTopicManagementFieldsHeroImage,
             previewWidth: 96,
             imageId: .constant("hero-1"),
+            placement: .constant(nil),
             client: nil
         )
 

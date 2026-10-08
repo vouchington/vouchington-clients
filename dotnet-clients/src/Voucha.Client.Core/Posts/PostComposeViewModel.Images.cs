@@ -1,3 +1,6 @@
+using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
+
 namespace Voucha.Client.Core.Posts;
 
 public sealed partial class PostComposeViewModel
@@ -22,6 +25,16 @@ public sealed partial class PostComposeViewModel
     var index = IndexOfImage(imageId);
     if (index < 0) return;
     SetImages(Images.Where((_, candidate) => candidate != index).ToArray());
+  }
+
+  public void EndLocalImagePreviewSession()
+  {
+    Interlocked.Increment(ref imageDraftGeneration);
+    SetPendingLocalPreview(null, false);
+    SetImages(Images
+        .Where(image => !image.IsUploading)
+        .Select(image => image with { LocalPreviewBytes = null, PreviewUnavailable = false })
+        .ToArray());
   }
 
   public void MoveImage(int fromIndex, int toIndex)
@@ -86,4 +99,23 @@ public sealed partial class PostComposeViewModel
 
     return normalized[..MaxImageCaptionLength];
   }
+  private void ClearImageUploadError()
+  {
+    if (State == LoadState.Error)
+    {
+      State = LoadState.Idle;
+    }
+    ErrorMessage = null;
+  }
+
+  private void OnImageUploadInProgressChanged()
+  {
+    OnPropertyChanged(nameof(IsUploadingImages));
+    OnPropertyChanged(nameof(CanAddImages));
+    OnPropertyChanged(nameof(CanUploadMoreImagesInBatch));
+    OnValidationChanged();
+  }
+
+  private static bool IsAttachableImageUploadState(ImageUploadState state) =>
+      !state.Blocked && (state.Ready || string.Equals(state.UploadStatus, "complete", StringComparison.Ordinal));
 }

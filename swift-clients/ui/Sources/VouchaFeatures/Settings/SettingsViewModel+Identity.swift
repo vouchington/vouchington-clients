@@ -3,6 +3,9 @@ import VouchaModels
 
 extension SettingsViewModel {
     func apply(identity: PrivateUser) {
+        if self.identity?.roles.contains("administrator") != identity.roles.contains("administrator") {
+            apiKeyLifetimeDays = identity.roles.contains("administrator") ? 30 : 90
+        }
         self.identity = identity
         username = identity.username ?? ""
         displayNameSource = identity.useDisplayNameFrom ?? .username

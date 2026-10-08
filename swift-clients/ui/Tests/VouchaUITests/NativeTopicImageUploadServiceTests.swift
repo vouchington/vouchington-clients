@@ -19,7 +19,7 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
             uploadStatePollDelayNanoseconds: 0
         )
 
-        let imageId = try await service.uploadImage(at: imageURL)
+        let imageId = try await service.uploadImage(data: Data(contentsOf: imageURL), contentType: "image/png")
 
         XCTAssertEqual(imageId, "image-ready")
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST", "PUT", "POST", "GET"])
@@ -67,7 +67,10 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         defer { try? FileManager.default.removeItem(at: imageURL) }
 
         do {
-            _ = try await serviceWithoutClient.uploadImage(at: imageURL)
+            _ = try await serviceWithoutClient.uploadImage(
+                data: Data(contentsOf: imageURL),
+                contentType: "image/png"
+            )
             XCTFail("Expected missing client upload to throw")
         } catch {
             XCTAssertFalse(error.localizedDescription.isEmpty)
@@ -95,7 +98,10 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         )
 
         do {
-            _ = try await failingService.uploadImage(at: imageURL)
+            _ = try await failingService.uploadImage(
+                data: Data(contentsOf: imageURL),
+                contentType: "image/png"
+            )
             XCTFail("Expected failed upload response to throw")
         } catch {
             XCTAssertFalse(error.localizedDescription.isEmpty)
@@ -122,7 +128,10 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         )
 
         do {
-            _ = try await blockedService.uploadImage(at: imageURL)
+            _ = try await blockedService.uploadImage(
+                data: Data(contentsOf: imageURL),
+                contentType: "image/png"
+            )
             XCTFail("Expected blocked upload state to throw")
         } catch {
             XCTAssertFalse(error.localizedDescription.isEmpty)
@@ -143,7 +152,10 @@ final class NativeTopicImageUploadServiceTests: NativeRouteSurfaceViewModelTestC
         let service = try NativeTopicImageUploadService(client: makeClient())
 
         do {
-            _ = try await service.uploadImage(at: imageURL)
+            _ = try await service.uploadImage(
+                data: Data(repeating: 0, count: 50 * 1_024 * 1_024 + 1),
+                contentType: "image/png"
+            )
             XCTFail("Expected oversized image to be rejected")
         } catch let VouchaError.api(_, preconditionCode) {
             XCTAssertEqual(preconditionCode, "IMAGE_TOO_LARGE")

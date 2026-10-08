@@ -18,6 +18,23 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideHackerNews619f304a = new("extracted.asides.hnDiscussionsAside.hackerNews_619f304a");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = new("extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8");
     public static readonly UiMessageKey ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971 = new("extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1 = new("extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784 = new("extracted.communities.communityAutomodActionForm.automodAction_83211784");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormChooseWhatHappensToApublishedPostB2e29694 = new("extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5 = new("extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30 = new("extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0 = new("extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormRecordOnlyC9184072 = new("extracted.communities.communityAutomodActionForm.recordOnly_c9184072");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5 = new("extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e = new("extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f = new("extracted.communities.communityAutomodActionForm.saving_dc85af8f");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSendToReviewQueue1c3a1b74 = new("extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormUnpublish2db04a54 = new("extracted.communities.communityAutomodActionForm.unpublish_2db04a54");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46 = new("extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagsB5fc56db = new("extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelDismiss48845bff = new("extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68 = new("extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelPostsAutomodFlaggedForModeratorReview90005619 = new("extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619");
     public static readonly UiMessageKey ExtractedIntentsAdminAiCosts75cce222 = new("extracted.intents.admin.aiCosts_75cce222");
     public static readonly UiMessageKey ExtractedIntentsAdminAppeals03e8c5a5 = new("extracted.intents.admin.appeals_03e8c5a5");
     public static readonly UiMessageKey ExtractedIntentsAdminDynamicConfig59cf5829 = new("extracted.intents.admin.dynamicConfig_59cf5829");
@@ -259,6 +276,22 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteSupport = new("extracted.votes.semanticVote.support");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVote = new("extracted.votes.semanticVote.vote");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
+    public static readonly UiMessageKey ImagesUploadPreviewUnavailable = new("images.uploadPreviewUnavailable");
+    public static readonly UiMessageKey NativeApiKeysActive = new("native.apiKeys.active");
+    public static readonly UiMessageKey NativeApiKeysAdministratorInvalid = new("native.apiKeys.administratorInvalid");
+    public static readonly UiMessageKey NativeApiKeysExpired = new("native.apiKeys.expired");
+    public static readonly UiMessageKey NativeApiKeysExpiresAt = new("native.apiKeys.expiresAt");
+    public static readonly UiMessageKey NativeApiKeysLifetime30 = new("native.apiKeys.lifetime30");
+    public static readonly UiMessageKey NativeApiKeysLifetime365 = new("native.apiKeys.lifetime365");
+    public static readonly UiMessageKey NativeApiKeysLifetime90 = new("native.apiKeys.lifetime90");
+    public static readonly UiMessageKey NativeApiKeysLifetimeLabel = new("native.apiKeys.lifetimeLabel");
+    public static readonly UiMessageKey NativeApiKeysLifetimeNone = new("native.apiKeys.lifetimeNone");
+    public static readonly UiMessageKey NativeApiKeysReplaced = new("native.apiKeys.replaced");
+    public static readonly UiMessageKey NativeApiKeysRevoked = new("native.apiKeys.revoked");
+    public static readonly UiMessageKey NativeApiKeysRotate = new("native.apiKeys.rotate");
+    public static readonly UiMessageKey NativeApiKeysRotated = new("native.apiKeys.rotated");
+    public static readonly UiMessageKey NativeApiKeysRotationConflict = new("native.apiKeys.rotationConflict");
+    public static readonly UiMessageKey NativeApiKeysRotationNotFound = new("native.apiKeys.rotationNotFound");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
     public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
     public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
@@ -680,6 +713,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesActiveCount = new("native.dotnet.engineeringQueues.activeCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesBackfills = new("native.dotnet.engineeringQueues.backfills");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesCompletedCount = new("native.dotnet.engineeringQueues.completedCount");
+    public static readonly UiMessageKey NativeDotnetEngineeringQueuesDelayedCount = new("native.dotnet.engineeringQueues.delayedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesFailedCount = new("native.dotnet.engineeringQueues.failedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesQueueCount = new("native.dotnet.engineeringQueues.queueCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesRunBackfill = new("native.dotnet.engineeringQueues.runBackfill");
@@ -1924,6 +1958,23 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedAsidesHnDiscussionsAsideHackerNews619f304a,
         ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8,
         ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971,
+        ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1,
+        ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784,
+        ExtractedCommunitiesCommunityAutomodActionFormChooseWhatHappensToApublishedPostB2e29694,
+        ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5,
+        ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30,
+        ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0,
+        ExtractedCommunitiesCommunityAutomodActionFormRecordOnlyC9184072,
+        ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5,
+        ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e,
+        ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f,
+        ExtractedCommunitiesCommunityAutomodActionFormSendToReviewQueue1c3a1b74,
+        ExtractedCommunitiesCommunityAutomodActionFormUnpublish2db04a54,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagsB5fc56db,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelDismiss48845bff,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelPostsAutomodFlaggedForModeratorReview90005619,
         ExtractedIntentsAdminAiCosts75cce222,
         ExtractedIntentsAdminAppeals03e8c5a5,
         ExtractedIntentsAdminDynamicConfig59cf5829,
@@ -2165,6 +2216,22 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteSupport,
         ExtractedVotesSemanticVoteVote,
         ExtractedVotesSemanticVoteVouch,
+        ImagesUploadPreviewUnavailable,
+        NativeApiKeysActive,
+        NativeApiKeysAdministratorInvalid,
+        NativeApiKeysExpired,
+        NativeApiKeysExpiresAt,
+        NativeApiKeysLifetime30,
+        NativeApiKeysLifetime365,
+        NativeApiKeysLifetime90,
+        NativeApiKeysLifetimeLabel,
+        NativeApiKeysLifetimeNone,
+        NativeApiKeysReplaced,
+        NativeApiKeysRevoked,
+        NativeApiKeysRotate,
+        NativeApiKeysRotated,
+        NativeApiKeysRotationConflict,
+        NativeApiKeysRotationNotFound,
         NativeAuthEmailAddress,
         NativeCommonRelatedArticles,
         NativeCommonRelatedArticlesMore,
@@ -2586,6 +2653,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetEngineeringQueuesActiveCount,
         NativeDotnetEngineeringQueuesBackfills,
         NativeDotnetEngineeringQueuesCompletedCount,
+        NativeDotnetEngineeringQueuesDelayedCount,
         NativeDotnetEngineeringQueuesFailedCount,
         NativeDotnetEngineeringQueuesQueueCount,
         NativeDotnetEngineeringQueuesRunBackfill,

@@ -29,6 +29,8 @@ final class NativeTopicManagementViewModel {
     var hostname = ""
     var logoImageId = ""
     var heroImageId = ""
+    var logoImagePlacement: ImagePlacement?
+    var heroImagePlacement: ImagePlacement?
     var noindex = false
     var allowReviews = false
     var additionalHostname = ""
@@ -175,6 +177,9 @@ final class NativeTopicManagementViewModel {
         }
     }
 
+}
+
+extension NativeTopicManagementViewModel {
     func toggleSourceEnabled() async {
         guard let feed = sourceDetail else { return }
         await updateSource(enabled: !feed.isEnabled)
@@ -184,5 +189,4 @@ final class NativeTopicManagementViewModel {
         guard let feed = sourceDetail else { return }
         await updateSource(discoverable: !feed.isDiscoverable)
     }
-
 }

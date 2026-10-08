@@ -224,7 +224,7 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(uiEnglish(viewModel.statusMessage), "Account deletion requested")
     }
 
-    private func seedSettingsResponses(uiLocaleJSON: String = #""en""#) {
+    func seedSettingsResponses(uiLocaleJSON: String = #""en""#) {
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants([]), 200)
         let uiLocale: Any = uiLocaleJSON == "null"
@@ -392,7 +392,7 @@ final class SettingsViewModelActionCoverageTests: NativeRouteSurfaceViewModelTes
         )
     }
 
-    private func settingsOverrides(
+    func settingsOverrides(
         uiLocale: Any,
         followsVisibility: String,
         thirdPartyMarketing: Bool = true

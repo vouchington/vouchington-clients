@@ -27,13 +27,19 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="8" />
                     </Border.StrokeShape>
-                    <Image Source="{Binding AvatarUrl}" Aspect="AspectFill" />
+                    <Grid>
+                        <Image Source="{Binding AvatarUrl}" Aspect="AspectFill" />
+                        <Image x:Name="AvatarLocalPreviewImage" Aspect="AspectFill" IsVisible="False"
+                               SemanticProperties.Description="{DynamicResource native.dotnet.profile.uploadAvatar}" />
+                    </Grid>
                 </Border>
                 <VerticalStackLayout Grid.Column="1" Spacing="6">
                     <Label Text="{Binding DisplayName}" Style="{StaticResource Headline}" />
                     <Label Text="{Binding UsernameLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding AccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+                    <Label x:Name="AvatarPreviewUnavailableLabel" Text="{DynamicResource images.uploadPreviewUnavailable}"
+                           IsVisible="False" Style="{StaticResource Metadata}" />
                     <HorizontalStackLayout Spacing="8">
                         <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
                         <Button Text="{DynamicResource native.dotnet.dynamic.follow}" Clicked="OnFollowUserClicked" IsVisible="{Binding CanFollowUser}" />

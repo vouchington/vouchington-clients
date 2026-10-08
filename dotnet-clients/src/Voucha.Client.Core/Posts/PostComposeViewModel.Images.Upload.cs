@@ -13,10 +13,20 @@ public sealed partial class PostComposeViewModel
 
   public void ReportImageUploadFailure(string message) => CompleteError(message);
 
-  public async Task<bool> UploadImageAsync(
+  public Task<bool> UploadImageAsync(
       Stream content,
       string contentType,
       long contentLength,
+      string? caption = null,
+      CancellationToken cancellationToken = default) =>
+      UploadImageWithPreviewAsync(content, contentType, contentLength, null, false, caption, cancellationToken);
+
+  public async Task<bool> UploadImageWithPreviewAsync(
+      Stream content,
+      string contentType,
+      long contentLength,
+      ReadOnlyMemory<byte>? localPreviewBytes,
+      bool previewUnavailable,
       string? caption = null,
       CancellationToken cancellationToken = default)
   {
@@ -45,6 +55,7 @@ public sealed partial class PostComposeViewModel
       try
       {
         ClearImageUploadError();
+        SetPendingLocalPreview(localPreviewBytes, previewUnavailable);
         var upload = await imageUploadService.CreateUploadUrlAsync(
             new CreateImageUploadUrlBody(contentType, checked((int)contentLength)),
             cancellationToken).ConfigureAwait(true);
@@ -55,10 +66,13 @@ public sealed partial class PostComposeViewModel
                 Images.Count,
                 EmptyToNull(caption),
                 true,
-                0d)))
+                0d,
+                LocalPreviewBytes: localPreviewBytes,
+                PreviewUnavailable: previewUnavailable)))
         {
           return false;
         }
+        SetPendingLocalPreview(null, false);
 
         await imageUploadService.UploadAsync(upload.Upload, content, contentLength, cancellationToken).ConfigureAwait(true);
         if (!IsCurrentImageDraftGeneration(imageDraftGeneration)) return false;
@@ -116,6 +130,7 @@ public sealed partial class PostComposeViewModel
           UpdateImage(uploadedImageId, image => image with
           {
             IsUploading = false,
+            LocalPreviewBytes = null,
             UploadProgress = 0d,
             UploadError = state.Blocked
                 ? localization.Localize(UiMessageKey.NativeDotnetCsharpImageBlocked)
@@ -135,6 +150,7 @@ public sealed partial class PostComposeViewModel
           UpdateImage(uploadedImageId, image => image with
           {
             IsUploading = false,
+            LocalPreviewBytes = null,
             UploadProgress = 0d,
             UploadError = localization.Localize(UiMessageKey.NativeDotnetCsharpImageUploadCancelled),
           });
@@ -145,7 +161,7 @@ public sealed partial class PostComposeViewModel
       {
         if (uploadedImageId is not null)
         {
-          UpdateImage(uploadedImageId, image => image with { IsUploading = false, UploadProgress = 0d, UploadError = ex.Message });
+          UpdateImage(uploadedImageId, image => image with { IsUploading = false, UploadProgress = 0d, UploadError = ex.Message, LocalPreviewBytes = null });
         }
         else
         {
@@ -157,7 +173,7 @@ public sealed partial class PostComposeViewModel
       {
         if (uploadedImageId is not null)
         {
-          UpdateImage(uploadedImageId, image => image with { IsUploading = false, UploadProgress = 0d, UploadError = ex.Message });
+          UpdateImage(uploadedImageId, image => image with { IsUploading = false, UploadProgress = 0d, UploadError = ex.Message, LocalPreviewBytes = null });
         }
         else
         {
@@ -168,28 +184,11 @@ public sealed partial class PostComposeViewModel
     }
     finally
     {
+      SetPendingLocalPreview(null, false);
       Interlocked.Exchange(ref imageUploadInProgress, 0);
       OnImageUploadInProgressChanged();
     }
   }
 
-  private void ClearImageUploadError()
-  {
-    if (State == LoadState.Error)
-    {
-      State = LoadState.Idle;
-    }
-    ErrorMessage = null;
-  }
 
-  private void OnImageUploadInProgressChanged()
-  {
-    OnPropertyChanged(nameof(IsUploadingImages));
-    OnPropertyChanged(nameof(CanAddImages));
-    OnPropertyChanged(nameof(CanUploadMoreImagesInBatch));
-    OnValidationChanged();
-  }
-
-  private static bool IsAttachableImageUploadState(ImageUploadState state) =>
-      !state.Blocked && (state.Ready || string.Equals(state.UploadStatus, "complete", StringComparison.Ordinal));
 }
