@@ -19,7 +19,9 @@
     "contracts:check": "node scripts/contracts.mjs check",
     "contracts:sync": "node scripts/contracts.mjs sync",
     "coverage:dotnet-core": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --require-artifact lcov.info --fail-on-empty --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
+    "coverage:dotnet-core:local": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "coverage:swift": "node scripts/swift-coverage.mjs",
+    "coverage:swift:local": "coverage-check check --rules .coverage-rules.yml --artifacts coverage --aggregate-artifacts --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "lint": "pnpm run lint:portable && pnpm run lint:gitleaks && pnpm run lint:swift && pnpm run lint:dotnet",
     "lint:ast-grep": "vouchington ast-grep-examples --rules ast-grep-rules --config sgconfig.yml && ast-grep scan --error --no-ignore hidden -- swift-clients/ dotnet-clients/",
     "lint:dependencies": "knip --treat-config-hints-as-errors && depcruise --config dependency-cruiser.mjs scripts tests",
@@ -46,7 +48,7 @@
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
     "auto-harness-client": "0.6.0",
-    "coverage-check": "0.15.2",
+    "coverage-check": "0.16.0",
     "dependency-cruiser": "18.2.0",
     "husky": "9.1.7",
     "knip": "6.32.3",

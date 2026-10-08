@@ -1,4 +1,13 @@
 # First matching rule owns a changed path.
+#
+# No `scope:` block: coverage-check@0.16.0's scope.analyzer is typed to the literal "javascript"
+# only, and its executableLineNumbers() loader returns an empty line set for any extension other
+# than .ts/.tsx/.js/.jsx/.mts/.cts/.mjs/.cjs — so scope can never flag a changed .cs/.xaml/.swift
+# file as missing coverage, regardless of `include`. None of the paths this file gates are among
+# those extensions; this repo's only JS/TS surface (scripts/, tests/) uses Node's own
+# --experimental-test-coverage instead of this LCOV/coverage-check pipeline. A scope block here
+# would parse but never fire. Verified against coverage-check/dist/src/scope.mjs
+# (findMissingCoverage) and an --advisory --json - dry run against a real diff.
 rules:
   # Rendered MAUI pages are compiled and tested separately, but Coverlet cannot instrument the app shell.
   - paths: "dotnet-clients/src/Voucha.Client.App/**"

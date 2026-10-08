@@ -3,6 +3,7 @@ node_modules/
 .nuget/
 *.contracts-backup
 .contracts-stage-*
+coverage/
 
 # Agent worktree/runtime state
 .claude/worktrees/
