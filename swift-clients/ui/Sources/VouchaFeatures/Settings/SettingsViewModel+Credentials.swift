@@ -28,49 +28,6 @@ public extension SettingsViewModel {
         apiKeyScopeSelection.setSelected(scope, selected: selected)
     }
 
-    func loadCredentialSettings() async {
-        guard let client else { return }
-        credentialLoadGeneration += 1
-        let catalogGeneration = credentialLoadGeneration
-        oauthGrantLoadGeneration += 1
-        let grantGeneration = oauthGrantLoadGeneration
-        oauthGrantPagination.invalidateRequestsPreservingPage()
-        credentialState = .loading
-        oauthGrantState = .loading
-        async let catalogResponse: ScopeCatalogResponse = client.send(.scopeCatalog)
-        async let grantResponse: Page<OAuthGrant> = client.send(.myOAuthGrants())
-        do {
-            let catalog = try await catalogResponse
-            guard catalogGeneration == credentialLoadGeneration else { return }
-            try applyCredentialScopeCatalog(catalog)
-            credentialState = .loaded
-        } catch {
-            guard catalogGeneration == credentialLoadGeneration else { return }
-            if error is CancellationError || Task.isCancelled {
-                credentialState = .idle
-            } else {
-                credentialState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
-            }
-        }
-        do {
-            let grants = try await grantResponse
-            guard grantGeneration == oauthGrantLoadGeneration else { return }
-            if Task.isCancelled {
-                finishCancelledOAuthGrantLoad(catalogGeneration: catalogGeneration)
-                return
-            }
-            replaceOAuthGrantPage(grants)
-            oauthGrantState = .loaded
-        } catch {
-            guard grantGeneration == oauthGrantLoadGeneration else { return }
-            if error is CancellationError || Task.isCancelled {
-                finishCancelledOAuthGrantLoad(catalogGeneration: catalogGeneration)
-                return
-            }
-            oauthGrantState = .error(error as? VouchaError ?? .unexpected(error.localizedDescription))
-        }
-    }
-
     func loadMoreOAuthGrants() async {
         guard let client, let request = oauthGrantPagination.beginNextPage() else { return }
         do {
@@ -106,11 +63,6 @@ public extension SettingsViewModel {
 }
 
 extension SettingsViewModel {
-    private func finishCancelledOAuthGrantLoad(catalogGeneration: Int) {
-        if catalogGeneration == credentialLoadGeneration { credentialState = .idle }
-        oauthGrantState = .idle
-    }
-
     var isScopeAdministrator: Bool {
         identity?.roles.contains("administrator") == true
     }

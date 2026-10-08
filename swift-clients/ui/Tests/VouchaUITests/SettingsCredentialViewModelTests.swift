@@ -86,6 +86,59 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(model.oauthGrants.map(\.id), ["two"])
     }
 
+    func testOAuthGrantsBecomeAvailableWhileScopeCatalogIsStillLoading() async throws {
+        seedCredentials()
+        let scopePath = "/api/v1/scopes"
+        let scopeResponseSuspended = expectation(description: "Scope catalog response is held")
+        CannedFeedURLProtocol.suspendResponse(path: scopePath) {
+            scopeResponseSuspended.fulfill()
+        }
+        let model = try SettingsViewModel(client: makeClient())
+        let load = Task { await model.loadCredentialSettings() }
+        defer { CannedFeedURLProtocol.releaseResponse(path: scopePath) }
+
+        await fulfillment(of: [scopeResponseSuspended], timeout: 1)
+        await assertEventuallyLoaded(\.oauthGrantState, on: model)
+
+        guard case .loading = model.credentialState else {
+            CannedFeedURLProtocol.releaseResponse(path: scopePath)
+            await load.value
+            return XCTFail("Held scope catalog should not block the completed grant request")
+        }
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+
+        CannedFeedURLProtocol.releaseResponse(path: scopePath)
+        await load.value
+        guard case .loaded = model.credentialState else { return XCTFail("Released scope catalog should load") }
+    }
+
+    func testScopeCatalogBecomesAvailableWhileOAuthGrantsAreStillLoading() async throws {
+        seedCredentials()
+        let grantsPath = "/api/v1/my/oauth-grants"
+        let grantsResponseSuspended = expectation(description: "OAuth grants response is held")
+        CannedFeedURLProtocol.suspendResponse(path: grantsPath) {
+            grantsResponseSuspended.fulfill()
+        }
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        let load = Task { await model.loadCredentialSettings() }
+        defer { CannedFeedURLProtocol.releaseResponse(path: grantsPath) }
+
+        await fulfillment(of: [grantsResponseSuspended], timeout: 1)
+        await assertEventuallyLoaded(\.credentialState, on: model)
+
+        guard case .loading = model.oauthGrantState else {
+            CannedFeedURLProtocol.releaseResponse(path: grantsPath)
+            await load.value
+            return XCTFail("Held grants should not block the completed scope-catalog request")
+        }
+        XCTAssertTrue(model.apiKeyScopes.contains { $0.scope == "data:write" })
+
+        CannedFeedURLProtocol.releaseResponse(path: grantsPath)
+        await load.value
+        guard case .loaded = model.oauthGrantState else { return XCTFail("Released grants response should load") }
+    }
+
     func testGrantPaginationRetriesOpaqueCursorAndDeduplicatesPages() async throws {
         seedCredentials(hasMore: true)
         let model = try SettingsViewModel(client: makeClient())
@@ -233,9 +286,12 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         let loadBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
         let load = Task { await model.loadCredentialSettings() }
         _ = try await loadBarrier.wait()
+        await assertEventuallyLoaded(\.credentialState, on: model)
         load.cancel()
         await load.value
-        guard case .idle = model.credentialState else { return XCTFail("Canceled reload must end loading") }
+        guard case .loaded = model.credentialState else {
+            return XCTFail("Canceling grants must preserve the completed scope catalog")
+        }
         guard case .idle = model.oauthGrantState else { return XCTFail("Canceled grant reload must end loading") }
         XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
         let pageBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
@@ -263,5 +319,25 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertFalse(model.canCreateApiKey)
         XCTAssertTrue(model.apiKeyScopes.isEmpty)
         guard case .error = model.credentialState else { return XCTFail("Invalid graph must be reported") }
+    }
+
+    private func assertEventuallyLoaded(
+        _ keyPath: KeyPath<SettingsViewModel, LoadState>,
+        on model: SettingsViewModel
+    ) async {
+        let loaded = expectation(description: "Settings state becomes loaded")
+        func observe() {
+            if case .loaded = model[keyPath: keyPath] {
+                loaded.fulfill()
+                return
+            }
+            withObservationTracking {
+                _ = model[keyPath: keyPath]
+            } onChange: {
+                Task { @MainActor in observe() }
+            }
+        }
+        observe()
+        await fulfillment(of: [loaded], timeout: 1)
     }
 }
