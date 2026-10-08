@@ -13,6 +13,7 @@ extension NativeCommentThreadViewModel {
             rootId: mutationPost.rootId,
             createdById: mutationPost.createdById,
             createdAt: mutationPost.createdAt,
+            provenance: mutationPost.provenance,
             broadcast: mutationPost.broadcast,
             privacy: mutationPost.privacy,
             isAnonymous: mutationPost.isAnonymous,
