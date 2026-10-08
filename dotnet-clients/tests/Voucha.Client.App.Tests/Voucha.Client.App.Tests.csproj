@@ -69,6 +69,10 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPageInitialLoad.cs" Link="Pages/SettingsPageInitialLoad.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/SettingsApiKeyLifecycleView.xaml" Link="Pages/SettingsApiKeyLifecycleView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsApiKeyLifecycleView.xaml.cs" Link="Pages/SettingsApiKeyLifecycleView.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/SettingsPage.xaml" Link="Pages/SettingsPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPage.Credentials.cs" Link="Pages/SettingsPage.Credentials.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml" Link="Pages/EmailAddressManagerView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml.cs" Link="Pages/EmailAddressManagerView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionInitialRouteState.cs" Link="Pages/CommunitySectionInitialRouteState.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityModerationTransparencyControls.cs" Link="Pages/CommunityModerationTransparencyControls.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodActionView.cs" Link="Pages/CommunityAutomodActionView.cs" />
