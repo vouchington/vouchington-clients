@@ -69,34 +69,15 @@ extension RSSFeedListViewModel {
                 storyIdsByItemId[itemId] = storyId
                 if let existing = storyRelatedArticlesByStoryId[storyId], existing.primaryItemId != itemId {
                     mergeStoryPeer(feedItem, into: existing)
+                    mergeStoryPreview(storyId: storyId, page: page, into: existing)
                     continue
                 }
-                if storyRelatedArticlesByStoryId[storyId] == nil, let preview = page.storyMemberPages?[storyId] {
-                    let peers = hydrateStoryItems(
-                        ids: preview.itemIds,
-                        items: page.rssFeedItems,
-                        thumbnails: page.rssFeedItemThumbnailUrl
-                    )
-                    if preview.pageInfo.hasNextPage || peers.contains(where: { $0.id != itemId }) {
-                        let displayedMembers = (items + newItems).filter {
-                            storyIdsByItemId[$0.id] == storyId
-                        }
-                        let primaryItemId = displayedMembers.first {
-                            !hiddenItemIds.contains($0.id) && page.bookmarks?[$0.id]?["hide"] != true
-                        }?.id ?? itemId
-                        storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
-                            primaryItemId: primaryItemId,
-                            items: displayedMembers.filter { $0.id != primaryItemId } + peers + [feedItem],
-                            pageInfo: preview.pageInfo
-                        )
-                        pagination.remove {
-                            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
-                        }
-                        newItems.removeAll {
-                            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
-                        }
-                    }
+                if let existing = storyRelatedArticlesByStoryId[storyId] {
+                    mergeStoryPreview(storyId: storyId, page: page, into: existing)
                 }
+                promoteStoryGroupIfPossible(
+                    storyId: storyId, itemId: itemId, feedItem: feedItem, page: page, newItems: &newItems
+                )
                 if let group = storyRelatedArticlesByStoryId[storyId], group.primaryItemId != itemId {
                     continue
                 }
@@ -107,10 +88,67 @@ extension RSSFeedListViewModel {
         return newItems
     }
 
+    private func promoteStoryGroupIfPossible(
+        storyId: String,
+        itemId: String,
+        feedItem: RssFeedItem,
+        page: RssFeedPage,
+        newItems: inout [RssFeedItem]
+    ) {
+        guard storyRelatedArticlesByStoryId[storyId] == nil,
+              let preview = page.storyMemberPages?[storyId] else { return }
+        let peers = hydrateStoryItems(
+            ids: preview.itemIds,
+            items: page.rssFeedItems,
+            thumbnails: page.rssFeedItemThumbnailUrl
+        )
+        guard preview.pageInfo.hasNextPage || peers.contains(where: { $0.id != itemId }) else { return }
+        let displayedMembers = (items + newItems).filter {
+            storyIdsByItemId[$0.id] == storyId
+        }
+        let primaryItemId = displayedMembers.first {
+            !hiddenItemIds.contains($0.id) && page.bookmarks?[$0.id]?["hide"] != true
+        }?.id ?? itemId
+        storyRelatedArticlesByStoryId[storyId] = StoryRelatedArticles(
+            primaryItemId: primaryItemId,
+            items: displayedMembers.filter { $0.id != primaryItemId } + peers + [feedItem],
+            pageInfo: preview.pageInfo
+        )
+        pagination.remove {
+            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
+        }
+        newItems.removeAll {
+            $0.id != primaryItemId && storyIdsByItemId[$0.id] == storyId
+        }
+    }
+
     private func mergeStoryPeer(_ item: RssFeedItem, into group: StoryRelatedArticles) {
         guard !group.pagination.items.contains(where: { $0.id == item.id }) else { return }
         group.pagination.invalidateRequestsPreservingPage()
         group.pagination.replaceItems(group.pagination.items + [item])
+    }
+
+    private func mergeStoryPreview(storyId: String, page: RssFeedPage, into group: StoryRelatedArticles) {
+        guard let preview = page.storyMemberPages?[storyId] else { return }
+        let peers = hydrateStoryItems(
+            ids: preview.itemIds,
+            items: page.rssFeedItems,
+            thumbnails: page.rssFeedItemThumbnailUrl
+        ).filter {
+            $0.id != group.primaryItemId && !hiddenItemIds.contains($0.id) &&
+                page.bookmarks?[$0.id]?["hide"] != true
+        }
+        let existingIds = Set(group.pagination.items.map(\.id))
+        let newPeers = peers.filter { !existingIds.contains($0.id) }
+        let hasNewContinuation = !group.pagination.hasMore && preview.pageInfo.hasNextPage
+        guard !newPeers.isEmpty || hasNewContinuation else { return }
+        group.pagination.invalidateRequestsPreservingPage()
+        if !newPeers.isEmpty {
+            group.pagination.replaceItems(group.pagination.items + newPeers)
+        }
+        if hasNewContinuation {
+            group.pagination.restoreContinuation(endCursor: preview.pageInfo.endCursor, hasMore: true)
+        }
     }
 
     private func applyPageSidecars(_ page: RssFeedPage) {

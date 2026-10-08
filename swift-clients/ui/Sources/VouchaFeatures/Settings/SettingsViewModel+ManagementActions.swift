@@ -10,12 +10,16 @@ public extension SettingsViewModel {
             statusMessage = .message(.nativeCredentialsInvalidSelection)
             return
         }
+        apiKeyCreationInFlight = true
+        defer { apiKeyCreationInFlight = false }
         let permissions = apiKeyScopeSelection.permissions
         await mutate {
             let response: SettingsApiKeyResponse = try await client.send(
                 .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions)
             )
-            settingsLoadGeneration += 1
+            if activeMainSettingsLoadGeneration == settingsLoadGeneration {
+                createdApiKeysDuringMainLoad.append(response.apiKey)
+            }
             revokedApiKeyIds.remove(response.apiKey.id)
             apiKeyPagination.invalidateRequestsPreservingPage()
             apiKeyPagination.replaceItems([response.apiKey] + apiKeyPagination.items)
@@ -23,6 +27,9 @@ public extension SettingsViewModel {
             apiKeyLabel = ""
             apiKeyScopeSelection.clear()
             statusMessage = .message(.nativeSwiftSettingsApiKeyCreated)
+        }
+        if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
+            state = .loading
         }
     }
 

@@ -19,6 +19,11 @@ public final class SettingsViewModel {
     public internal(set) var apiKeyScopeSelection = ApiKeyScopeSelection()
     public internal(set) var credentialState: LoadState = .idle
     public internal(set) var oauthGrantState: LoadState = .idle
+    public internal(set) var apiKeyCreationInFlight = false
+    @ObservationIgnored
+    var activeMainSettingsLoadGeneration: Int?
+    @ObservationIgnored
+    var createdApiKeysDuringMainLoad: [ApiKey] = []
     @ObservationIgnored
     var credentialLoadGeneration = 0
     @ObservationIgnored
@@ -37,14 +42,6 @@ public final class SettingsViewModel {
     var revokedSessionIds: Set<String> = []
     @ObservationIgnored
     var revokedAllSessions = false
-    public var apiKeys: [ApiKey] {
-        apiKeyPagination.items
-    }
-
-    public var pushSubscriptions: [WebPushSubscription] {
-        pushSubscriptionPagination.items
-    }
-
     public internal(set) var membership: Membership?
     public internal(set) var membershipPlans: [String: [MembershipSkuSummary]] = [:]
     public internal(set) var membershipBenefitCatalog: MembershipBenefitCatalog?

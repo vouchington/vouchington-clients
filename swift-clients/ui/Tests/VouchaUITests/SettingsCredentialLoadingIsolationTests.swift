@@ -1,4 +1,5 @@
 import Foundation
+import ViewInspector
 @testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaModels
@@ -7,6 +8,87 @@ import XCTest
 @MainActor
 final class SettingsCredentialLoadingIsolationTests: NativeRouteSurfaceViewModelTestCase,
     CompleteSettingsResponseSeeding {
+    func testApiKeyCreationUsesLoadedCatalogWhileProfileLinksAreHeld() async throws {
+        seedSettingsResponses()
+        let linksPath = "/api/v1/my/profile/links"
+        let apiKeysPath = "/api/v1/my/api-keys"
+        CannedFeedURLProtocol.suspendResponse(path: linksPath)
+        CannedFeedURLProtocol.suspendResponse(path: apiKeysPath)
+        let linksRequest = CannedFeedURLProtocol.requestBarrier(path: linksPath, method: "GET")
+        let apiKeysRequest = CannedFeedURLProtocol.requestBarrier(path: apiKeysPath, method: "GET")
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
+        let load = Task { await model.load() }
+        do {
+            _ = try await linksRequest.wait()
+            _ = try await apiKeysRequest.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: linksPath)
+            CannedFeedURLProtocol.releaseResponse(path: apiKeysPath)
+            await load.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: apiKeysPath)
+        await assertEventuallySettingsState(model) {
+            if case .loaded = model.credentialState { return true }
+            return false
+        }
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertTrue(model.isLoading)
+        XCTAssertTrue(model.canCreateApiKey)
+        let surface = SettingsSurface(viewModel: model)
+        XCTAssertEqual(try? surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled(), false)
+
+        CannedFeedURLProtocol.handlers[apiKeysPath] = (ApiFixtureLoader.data("native.my.api-keys.create"), 201)
+        await model.createApiKey()
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path == "/api/v1/my/api-keys" && $0.method == "POST"
+        })
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+        XCTAssertTrue(model.isLoading, "The unrelated settings batch is still awaiting profile links")
+        CannedFeedURLProtocol.releaseResponse(path: linksPath)
+        await load.value
+        guard case .loaded = model.state else { return XCTFail("The main settings load must finish") }
+        XCTAssertEqual(model.profileMarkdown, "Native bio")
+        XCTAssertEqual(model.profileLinks.map(\.id), ["link-1"])
+        XCTAssertEqual(model.apiKeys.map(\.id), ["00000000-0000-7000-8000-000000000701", "key-1"])
+    }
+
+    func testApiKeyCreationDoesNotReopenMainLoadingWhileGrantsAreHeld() async throws {
+        seedSettingsResponses()
+        let grantsPath = "/api/v1/my/oauth-grants"
+        CannedFeedURLProtocol.suspendResponse(path: grantsPath)
+        let grantsRequest = CannedFeedURLProtocol.requestBarrier(path: grantsPath, method: "GET")
+        let model = try SettingsViewModel(client: makeClient())
+        model.apiKeyType = .mcp
+        model.apiKeyLabel = "Agent"
+        let load = Task { await model.load() }
+        do {
+            _ = try await grantsRequest.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: grantsPath)
+            await load.value
+            throw error
+        }
+        await assertEventuallySettingsState(model) {
+            if case .loaded = model.state, case .loaded = model.credentialState { return true }
+            return false
+        }
+        model.setApiKeyScope("data:write", selected: true)
+        XCTAssertTrue(model.canCreateApiKey)
+        CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (
+            ApiFixtureLoader.data("native.my.api-keys.create"), 201
+        )
+        await model.createApiKey()
+
+        if case .loaded = model.state {} else { XCTFail("Held grants must not reopen main loading") }
+        if case .loading = model.oauthGrantState {} else { XCTFail("Grants should remain held") }
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+        CannedFeedURLProtocol.releaseResponse(path: grantsPath)
+        await load.value
+    }
+
     func testUnrelatedSettingsFailuresStillLoadCredentialsForFreshIdentity() async throws {
         for failingPath in [
             "/api/v1/my/profile", "/api/v1/my/profile/links", "/api/v1/my/api-keys",
@@ -150,6 +232,7 @@ final class SettingsCredentialLoadingIsolationTests: NativeRouteSurfaceViewModel
             }
             withObservationTracking {
                 _ = model.state
+                _ = model.credentialState
             } onChange: {
                 Task { @MainActor in observe() }
             }

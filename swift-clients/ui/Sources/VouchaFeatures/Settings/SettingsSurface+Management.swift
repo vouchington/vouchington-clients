@@ -19,7 +19,7 @@ extension SettingsSurface {
                 Text(UiMessages.string(.nativeSwiftSettingsMcp, locale: nativeUiLocale)).tag(ApiKeyType.mcp)
             }
             .pickerStyle(.segmented)
-            .disabled(viewModel.isLoading)
+            .disabled(viewModel.apiKeyCreationInFlight)
             apiKeyScopePicker
             Button(UiMessages.string(.nativeSwiftSettingsCreateApiKey, locale: nativeUiLocale)) {
                 Task { await viewModel.createApiKey() }

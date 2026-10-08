@@ -21,7 +21,7 @@ public extension SettingsViewModel {
     var canCreateApiKey: Bool {
         guard case .loaded = credentialState else { return false }
         return apiKeyScopeSelection.isValid && !apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !isLoading
+            !apiKeyCreationInFlight
     }
 
     func setApiKeyScope(_ scope: String, selected: Bool) {

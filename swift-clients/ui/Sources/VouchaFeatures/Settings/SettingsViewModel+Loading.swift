@@ -26,6 +26,7 @@ public extension SettingsViewModel {
             let identityResponse: SettingsIdentityResponse = try await client.send(.myIdentity)
             guard isCurrentSettingsLoad(generation) else { return }
             apply(identity: identityResponse.identity)
+            activeMainSettingsLoadGeneration = generation
             await loadMainSettings(
                 client: client,
                 userIdOrSlug: identityResponse.identity.id,
@@ -89,6 +90,10 @@ public extension SettingsViewModel {
                     state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
                 }
             }
+        }
+        if activeMainSettingsLoadGeneration == generation {
+            activeMainSettingsLoadGeneration = nil
+            createdApiKeysDuringMainLoad = []
         }
         await credentialSettings
     }

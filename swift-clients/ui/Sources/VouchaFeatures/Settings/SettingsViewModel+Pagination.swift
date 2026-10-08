@@ -2,6 +2,16 @@ import VouchaAPI
 import VouchaCore
 import VouchaModels
 
+public extension SettingsViewModel {
+    var apiKeys: [ApiKey] {
+        apiKeyPagination.items
+    }
+
+    var pushSubscriptions: [WebPushSubscription] {
+        pushSubscriptionPagination.items
+    }
+}
+
 extension SettingsViewModel {
     func loadMoreApiKeys() async {
         guard let client, let request = apiKeyPagination.beginNextPage() else { return }
@@ -71,7 +81,8 @@ extension SettingsViewModel {
     }
 
     func replaceApiKeyPage(_ page: SettingsListResponse<ApiKey>) {
-        apiKeyPagination.reset(items: page.results.filter { !revokedApiKeyIds.contains($0.id) })
+        apiKeyPagination.reset(items: (createdApiKeysDuringMainLoad + page.results)
+            .filter { !revokedApiKeyIds.contains($0.id) })
         apiKeyPagination.restoreContinuation(endCursor: page.pageInfo.endCursor, hasMore: page.pageInfo.hasNextPage)
     }
 
@@ -96,6 +107,8 @@ extension SettingsViewModel {
 
     func beginSettingsLoad() -> Int {
         settingsLoadGeneration += 1
+        activeMainSettingsLoadGeneration = nil
+        createdApiKeysDuringMainLoad = []
         credentialLoadGeneration += 1
         oauthGrantLoadGeneration += 1
         identity = nil
@@ -114,7 +127,6 @@ extension SettingsViewModel {
     }
 
     func reconcileRevokedApiKey(id: String) {
-        settingsLoadGeneration += 1
         revokedApiKeyIds.insert(id)
         apiKeyPagination.invalidateRequestsPreservingPage()
         apiKeyPagination.remove { $0.id == id }

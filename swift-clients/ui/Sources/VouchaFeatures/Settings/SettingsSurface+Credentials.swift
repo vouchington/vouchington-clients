@@ -20,7 +20,9 @@ extension SettingsSurface {
                     )) {
                         Text(verbatim: UiMessages.string(.protocolValue(scope.scope), locale: nativeUiLocale))
                     }
-                    .disabled(!viewModel.apiKeyScopeSelection.canSelect(scope.scope) || viewModel.isLoading)
+                    .disabled(
+                        !viewModel.apiKeyScopeSelection.canSelect(scope.scope) || viewModel.apiKeyCreationInFlight
+                    )
                     .accessibilityIdentifier("api-key-scope-\(scope.scope)")
                     scopeMetadata(scope)
                     if let descriptionKey = scope.descriptionKey,
