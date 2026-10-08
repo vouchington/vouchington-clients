@@ -15,10 +15,10 @@ SWIFT_ANDROID_SDK_CHECKSUM="d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721
 ANDROID_NDK_VERSION="r27d"
 ANDROID_NDK_URL="https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-darwin.zip"
 ANDROID_NDK_SHA256="e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7bb7"
-SKIP_VERSION="1.9.8"
+SKIP_VERSION="1.9.11"
 SKIP_MACOS_ZIP_URL="https://source.skip.tools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
 SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
-SKIP_MACOS_ZIP_SHA256="b452f271deee9be0ef6211d99692f5061f190dcd5c5584914bc0472595bedbe7"
+SKIP_MACOS_ZIP_SHA256="b0c8864748a6b21f9376e8fbe79e44c1162f5f203c8f1e94c3c542b7ee0d5b33"
 
 if [[ -z "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   echo "VOUCHA_SKIP_SWIFT_HOME must be set to a job-scoped home." >&2
