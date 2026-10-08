@@ -59,7 +59,7 @@ extension RSSFeedListViewModel {
         var newItems: [RssFeedItem] = []
         for result in page.results {
             let itemId = result.entityId ?? result.id
-            guard let item = page.rssFeedItems[itemId] else { continue }
+            guard let item = page.rssFeedItems[itemId], !hiddenItemIds.contains(itemId) else { continue }
             let thumbnailURL = VouchaURLResolver.absoluteString(
                 for: page.rssFeedItemThumbnailUrl?[itemId],
                 relativeTo: apiBaseURL
