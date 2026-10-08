@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreFoundation)
+    import CoreFoundation
+#endif
 
 func jsonValue(from value: Any) throws -> CreatePostJSONValue {
     switch value {

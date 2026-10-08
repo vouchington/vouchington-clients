@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(CoreFoundation)
-    import CoreFoundation
-#endif
 import VouchaModels
 
 public enum CreatePostJSONValue: Encodable, Sendable {
