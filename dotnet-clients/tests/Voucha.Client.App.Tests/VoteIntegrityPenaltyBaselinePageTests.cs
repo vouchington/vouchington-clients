@@ -36,15 +36,16 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
         button.AutomationId == "vote-integrity-reconcile-flag-1"));
 
     Assert.Equal(1, service.FlagGets);
-    Assert.Equal(permitsRetry, Find<Button>(page, "vote-integrity-penalty-flag-1").IsEnabled);
     if (permitsRetry)
     {
+      Assert.True(Find<Button>(page, "vote-integrity-penalty-flag-1").IsEnabled);
       ConfirmPenalty(page);
       await WaitUntilAsync(() => service.PostCalls == 2);
     }
     else
     {
-      Find<Button>(page, "vote-integrity-penalty-flag-1").SendClicked();
+      Assert.DoesNotContain(Descendants<Button>(page), button =>
+          button.AutomationId == "vote-integrity-penalty-flag-1");
       Assert.Equal(1, service.PostCalls);
     }
   }
@@ -210,14 +211,21 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
       if (scenario == BaselineScenario.FlagGetFailure)
         return Task.FromException<VoteIntegrityFlagResponse>(
             new HttpRequestException("flag unavailable"));
-      var authoritative = scenario == BaselineScenario.ConcurrentlyResolved
-          ? flag with
-          {
-            Resolution = "dismissed",
-            ResolvedAt = DateTimeOffset.UtcNow,
-            ResolvedById = "admin-2",
-          }
-          : flag;
+      var authoritative = scenario switch
+      {
+        BaselineScenario.NewCommittedRow => flag with
+        {
+          Resolution = "penalized",
+          ResolvedAt = DateTimeOffset.UtcNow,
+        },
+        BaselineScenario.ConcurrentlyResolved => flag with
+        {
+          Resolution = "dismissed",
+          ResolvedAt = DateTimeOffset.UtcNow,
+          ResolvedById = "admin-2",
+        },
+        _ => flag,
+      };
       return Task.FromResult(new VoteIntegrityFlagResponse(authoritative));
     }
     public Task<ReportIntegrityFlagsResponse> FetchReportFlagsAsync(
