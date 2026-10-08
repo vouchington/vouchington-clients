@@ -12,6 +12,15 @@ the closed allowlist:
 Which native tests belong on each label, and when a second OS is forbidden, is documented in
 [native CI test placement](native-ci-test-placement.md).
 
+Public repositories automatically receive the public allocation for these labels: Linux
+`ubuntu-latest` has four vCPUs and 16 GB RAM, while `ubuntu-slim` remains single-CPU. Keep compiler
+parallelism adaptive to the host. Linux ARM migration requires measured benefit and native-tool
+compatibility; the current Android NDK compiler is x86_64-only. `macos-latest` already uses ARM.
+
+The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the macOS SDK with
+`xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
+required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
+
 Do not add `self-hosted`, `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. Windows remains
 out of scope until a hosted Windows job is actually needed.
 

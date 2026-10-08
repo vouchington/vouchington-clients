@@ -45,8 +45,8 @@ describe('native contract workflow boundary', () => {
     const combined = files.join('\n')
 
     assert.doesNotMatch(combined, /sparse-checkout/u)
-    assert.match(combined, /actions\/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a/u)
-    assert.match(combined, /actions\/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c/u)
+    assert.match(combined, /actions\/upload-artifact@[a-f0-9]{40}(?=\s|$)/u)
+    assert.match(combined, /actions\/download-artifact@[a-f0-9]{40}(?=\s|$)/u)
   })
 
   it('prepares the exact verified candidate for every native test job', async () => {
@@ -114,18 +114,13 @@ describe('native contract workflow boundary', () => {
       /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
     ])
       assert.match(workflow, command)
-    assert.match(workflow, /name: Select compatible Xcode[\s\S]*id: xcode[\s\S]*compatible=false/u)
+    assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.5/u)
+    assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
+    assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
+    assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
     assert.match(
-      workflow,
-      /xcodebuild_path="\$developer_dir\/usr\/bin\/xcodebuild"[\s\S]*MacOSX\.sdk[\s\S]*MacCatalyst\.sdk[\s\S]*macosx_sdk\/SDKSettings\.plist[\s\S]*maccatalyst_sdk\/SDKSettings\.plist[\s\S]*"\$xcodebuild_path" -sdk "\$macosx_sdk" -find actool[\s\S]*find_status=\$\?[\s\S]*\[ "\$find_status" -eq 0 \][\s\S]*\[ -n "\$actool" \][\s\S]*\[ -x "\$actool" \]/u,
-    )
-    assert.match(
-      workflow,
-      /name: Build MAUI Mac Catalyst app\n\s+if: steps\.xcode\.outputs\.compatible == 'true'/u,
-    )
-    assert.match(
-      workflow,
-      /name: Restore the shared MAUI project-reference graph\n\s+if: steps\.xcode\.outputs\.compatible == 'true'[\s\S]*?dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst \\\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0 --locked-mode\n\s+- name: Build MAUI Mac Catalyst app/u,
+      maui,
+      /dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst \\\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0 --locked-mode/u,
     )
     assert.ok(
       workflow.indexOf('name: Test rendered MAUI pages') <
