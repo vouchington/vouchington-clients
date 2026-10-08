@@ -41,8 +41,51 @@ public sealed partial class NewsFeedsViewModel
 
   private NewsFeedItem[] KeepDisplayedStoryPrimaries(IReadOnlyList<NewsFeedItem> incoming)
   {
-    var displayed = Items.Where(item => item.StoryArticles is not null)
-        .Select(item => item.StoryId!).ToHashSet(StringComparer.Ordinal);
-    return incoming.Where(item => item.StoryId is not { } storyId || displayed.Add(storyId)).ToArray();
+    var grouped = Items.Where(item => item.StoryId is not null && item.StoryArticles is not null)
+        .GroupBy(item => item.StoryId!, StringComparer.Ordinal)
+        .ToDictionary(group => group.Key, group => group.First().StoryArticles!, StringComparer.Ordinal);
+    var ungrouped = Items.Where(item => item.StoryId is not null && item.StoryArticles is null)
+        .GroupBy(item => item.StoryId!, StringComparer.Ordinal)
+        .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+    var kept = new List<NewsFeedItem>();
+    foreach (var item in incoming)
+    {
+      if (item.StoryId is not { } storyId)
+      {
+        kept.Add(item);
+        continue;
+      }
+      if (grouped.TryGetValue(storyId, out var existingGroup))
+      {
+        existingGroup.IncludePeers(item.StoryArticles is { } preview
+            ? [item, .. preview.Items]
+            : [item]);
+        continue;
+      }
+      if (item.StoryArticles is not { } incomingGroup)
+      {
+        kept.Add(item);
+        ungrouped.TryAdd(storyId, item);
+        continue;
+      }
+      if (!ungrouped.TryGetValue(storyId, out var first))
+      {
+        kept.Add(item);
+        grouped.Add(storyId, incomingGroup);
+        continue;
+      }
+
+      var priorPeers = Items.Concat(kept).Where(row => row.StoryId == storyId && row.Id != first.Id);
+      var promoted = incomingGroup.WithPrimary(first, [item, .. priorPeers]);
+      grouped.Add(storyId, promoted);
+      ungrouped.Remove(storyId);
+      if (Items.Any(row => row.Id == first.Id))
+        Items = Items.Where(row => row.StoryId != storyId || row.Id == first.Id || row.StoryArticles is not null)
+            .Select(row => row.Id == first.Id ? row with { StoryArticles = promoted } : row).ToArray();
+      kept.RemoveAll(row => row.StoryId == storyId && row.Id != first.Id);
+      for (var index = 0; index < kept.Count; index++)
+        if (kept[index].Id == first.Id) kept[index] = first with { StoryArticles = promoted };
+    }
+    return [.. kept];
   }
 }

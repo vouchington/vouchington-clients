@@ -89,10 +89,83 @@ public sealed class StoryRelatedArticlesTests
 
     Assert.Equal(["primary", "shared"], model.Items.Select(item => item.Id));
     Assert.Same(group, model.Items[0].StoryArticles);
-    Assert.Single(group.Items);
+    Assert.Equal(["peer-1", "later-primary", "peer-2", "peer-3"], group.Items.Select(item => item.Id));
     Assert.True(group.IsExpanded);
     await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
     Assert.Equal(["opaque+/="], service.StoryCursors);
+  }
+
+  [Fact]
+  public async Task ContinuationKeepsDistinctStoryMembersWithoutAUsablePreview()
+  {
+    var service = new Service(new([Item("other")], new("feed-after", true, null)));
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    service.Feed = new([Item("first") with { StoryId = "story-1" }, Item("second") with { StoryId = "story-1" }],
+        new(null, false, null));
+
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(["other", "first", "second"], model.Items.Select(item => item.Id));
+    Assert.All(model.Items.Skip(1), item => Assert.Null(item.StoryArticles));
+  }
+
+  [Fact]
+  public async Task LaterPreviewPromotesDisplayedMemberWithoutLosingStoryPeers()
+  {
+    var first = Item("first") with { StoryId = "story-1", IsSaved = true, VoteScoreNet = 2 };
+    var earlierPeer = Item("earlier") with { StoryId = "story-1" };
+    var service = new Service(new([first, earlierPeer], new("feed-after", true, null)));
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var laterGroup = new StoryRelatedArticles("story-1", "second", [Item("third")],
+        new("story-after", true, null), UiLocalization.English);
+    service.Feed = new([Item("second") with { StoryId = "story-1", StoryArticles = laterGroup }],
+        new("next-feed", true, null));
+
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(["first"], model.Items.Select(item => item.Id));
+    Assert.True(model.Items[0].IsSaved);
+    Assert.Equal(2, model.Items[0].VoteScoreNet);
+    var promoted = Assert.IsType<StoryRelatedArticles>(model.Items[0].StoryArticles);
+    Assert.Equal("first", promoted.PrimaryItemId);
+    Assert.Equal(["second", "earlier", "third"], promoted.Items.Select(item => item.Id));
+    Assert.True(promoted.HasMore);
+    service.Feed = new([Item("fourth") with { StoryId = "story-1" }], new(null, false, null));
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(["first"], model.Items.Select(item => item.Id));
+    Assert.Equal(["second", "earlier", "third", "fourth"], promoted.Items.Select(item => item.Id));
+  }
+
+  [Fact]
+  public async Task IncomingStoryMemberInvalidatesHeldRelatedPageAndRetainsCursor()
+  {
+    var group = Group(1);
+    var heldPage = new TaskCompletionSource<NewsFeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new Service(new([Primary(group)], new("feed-after", true, null))) { StoryResponse = heldPage.Task };
+    var model = new NewsFeedsViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var pending = model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    try
+    {
+      Assert.True(group.IsLoading);
+      service.Feed = new([Item("feed-peer") with { StoryId = "story-1" }], new(null, false, null));
+      await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+      Assert.False(group.IsLoading);
+      Assert.Equal(["peer-1", "feed-peer"], group.Items.Select(item => item.Id));
+    }
+    finally
+    {
+      heldPage.TrySetResult(new([Item("stale-peer")], new("stale-cursor", true, null)));
+      await pending;
+    }
+    Assert.Equal(["peer-1", "feed-peer"], group.Items.Select(item => item.Id));
+    Assert.True(group.HasMore);
+    service.StoryResponse = Task.FromResult(new NewsFeedPage([Item("fresh-peer")], new(null, false, null)));
+    await model.LoadMoreStoryArticlesAsync(model.Items[0], TestContext.Current.CancellationToken);
+    Assert.Equal(["opaque+/=", "opaque+/="], service.StoryCursors);
+    Assert.Equal(["peer-1", "feed-peer", "fresh-peer"], group.Items.Select(item => item.Id));
   }
 
   [Fact]

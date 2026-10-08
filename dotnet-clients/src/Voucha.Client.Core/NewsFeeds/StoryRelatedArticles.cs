@@ -61,6 +61,25 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
 
   internal void InvalidatePendingPage() => pages.InvalidateRequestsPreservingPage();
 
+  internal StoryRelatedArticles WithPrimary(NewsFeedItem primary, IEnumerable<NewsFeedItem> additionalPeers)
+  {
+    var peers = additionalPeers.Concat(Items).Where(item => item.Id != primary.Id)
+        .Select(item => item with { StoryArticles = null });
+    return new(StoryId, primary.Id, peers.ToArray(), new(pages.EndCursor, pages.HasMore, null), localization)
+    { IsExpanded = IsExpanded };
+  }
+
+  internal void IncludePeers(IEnumerable<NewsFeedItem> peers)
+  {
+    var known = Items.Select(item => item.Id).Append(PrimaryItemId).ToHashSet(StringComparer.Ordinal);
+    var additions = peers.Where(item => known.Add(item.Id)).Select(item => item with { StoryArticles = null }).ToArray();
+    if (additions.Length == 0) return;
+    pages.InvalidateRequestsPreservingPage();
+    foreach (var item in additions) Items.Add(item);
+    pages.ReplaceItems(Items);
+    Notify();
+  }
+
   internal void Complete(CursorPageRequest request, NewsFeedPage page)
   {
     if (!pages.Complete(request, page.Items.Where(item => item.Id != PrimaryItemId), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
