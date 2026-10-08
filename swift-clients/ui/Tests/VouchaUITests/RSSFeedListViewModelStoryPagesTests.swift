@@ -91,6 +91,93 @@ extension RSSFeedListViewModelTests {
         }
     }
 
+    func testLaterPreviewPromotesFirstDisplayedStoryMemberAndGroupsOtherDisplayedMembers() async throws {
+        let feedPath = "/api/v1/feeds/rss_feed_items/any"
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["primary", "earlier"], hasMore: true, endCursor: "feed-cursor",
+                storyIds: ["primary": "story-1", "earlier": "story-1"]
+            ), 200
+        )
+        let vm = makeViewModel()
+        await vm.load()
+        XCTAssertEqual(vm.items.map(\.id), ["primary", "earlier"])
+        XCTAssertNil(vm.relatedArticles(rssFeedItemId: "primary"))
+
+        CannedFeedURLProtocol.handlers[feedPath] = (
+            makeFeedPage(
+                ids: ["later"], hasMore: false, storyIds: ["later": "story-1"],
+                storyRelatedIds: ["story-1": ["primary", "earlier", "later"]]
+            ), 200
+        )
+        await vm.loadNextPage()
+
+        XCTAssertEqual(vm.items.map(\.id), ["primary"])
+        let related = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
+        XCTAssertEqual(related.pagination.items.map(\.id), ["earlier", "later"])
+        XCTAssertNil(vm.relatedArticles(rssFeedItemId: "later"))
+    }
+
+    func testLaterResultOnSamePagePromotesEarlierUngroupedStoryMember() async throws {
+        let basePage = makeFeedPage(
+            ids: ["primary", "later"], hasMore: false,
+            storyIds: ["primary": "story-1", "later": "story-1"],
+            storyRelatedIds: ["story-1": []]
+        )
+        var page = try XCTUnwrap(JSONSerialization.jsonObject(with: basePage) as? [String: Any])
+        var previews = try XCTUnwrap(page["story_member_pages"] as? [String: [String: Any]])
+        var preview = try XCTUnwrap(previews["story-1"])
+        preview["item_ids"] = ["primary"]
+        previews["story-1"] = preview
+        page["story_member_pages"] = previews
+        let encodedPage = try JSONSerialization.data(withJSONObject: page)
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (encodedPage, 200)
+        let vm = makeViewModel()
+        await vm.load()
+
+        XCTAssertEqual(vm.items.map(\.id), ["primary"])
+        XCTAssertEqual(vm.relatedArticles(rssFeedItemId: "primary")?.pagination.items.map(\.id), ["later"])
+    }
+
+    func testExistingStoryGroupKeepsLaterFeedMemberAndRejectsHeldStoryResponse() async throws {
+        let vm = await loadStoryPreview(peers: ["peer-3"], feedHasMore: true)
+        let related = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
+        let storyPath = "/api/v1/stories/story-1"
+        CannedFeedURLProtocol.handlers[storyPath] = (storyPage(ids: ["stale"]), 200)
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: storyPath, method: "GET")
+        CannedFeedURLProtocol.suspendResponse(path: storyPath)
+        defer { CannedFeedURLProtocol.discardPendingResponses() }
+
+        let pendingStory = Task { await vm.loadMoreStoryArticles(rssFeedItemId: "primary") }
+        do {
+            _ = try await barrier.wait()
+        } catch {
+            pendingStory.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: storyPath)
+            CannedFeedURLProtocol.discardPendingResponses()
+            await pendingStory.value
+            throw error
+        }
+        XCTAssertTrue(related.pagination.isLoading)
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
+            makeFeedPage(ids: ["later"], hasMore: false, storyIds: ["later": "story-1"]), 200
+        )
+        await vm.loadNextPage()
+
+        XCTAssertEqual(vm.items.map(\.id), ["primary"])
+        XCTAssertEqual(related.pagination.items.map(\.id), ["peer-3", "later"])
+        XCTAssertEqual(related.pagination.endCursor, "opaque+/=")
+        XCTAssertTrue(related.pagination.hasMore)
+        XCTAssertFalse(related.pagination.isLoading)
+        CannedFeedURLProtocol.releaseResponse(path: storyPath)
+        await pendingStory.value
+        XCTAssertEqual(related.pagination.items.map(\.id), ["peer-3", "later"])
+
+        CannedFeedURLProtocol.handlers[storyPath] = (storyPage(ids: ["fresh"]), 200)
+        await vm.loadMoreStoryArticles(rssFeedItemId: "primary")
+        XCTAssertEqual(related.pagination.items.map(\.id), ["peer-3", "later", "fresh"])
+    }
+
     func testEmptyStoryPreviewWithContinuationKeepsExpansionAvailable() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/feeds/rss_feed_items/any"] = (
             makeFeedPage(
@@ -164,7 +251,7 @@ extension RSSFeedListViewModelTests {
         XCTAssertTrue(vm.isHidden(rssFeedItemId: "peer-2"))
     }
 
-    func testRepeatedStoryDoesNotReplacePrimaryPreviewOrCursor() async throws {
+    func testRepeatedStoryAddsLaterFeedPeerWithoutReplacingPrimaryPreviewOrCursor() async throws {
         let vm = await loadStoryPreview(peers: ["peer-3"], feedHasMore: true)
         let original = try XCTUnwrap(vm.relatedArticles(rssFeedItemId: "primary"))
         original.isExpanded = true
@@ -180,7 +267,7 @@ extension RSSFeedListViewModelTests {
         await vm.loadNextPage()
         XCTAssertEqual(vm.items.map(\.id), ["primary", "shared"])
         XCTAssertTrue(vm.relatedArticles(rssFeedItemId: "primary") === original)
-        XCTAssertEqual(original.pagination.items.map(\.id), ["peer-3"])
+        XCTAssertEqual(original.pagination.items.map(\.id), ["peer-3", "later-primary"])
         XCTAssertEqual(original.pagination.endCursor, "opaque+/=")
         XCTAssertTrue(original.isExpanded)
         XCTAssertNil(vm.relatedArticles(rssFeedItemId: "shared"))
