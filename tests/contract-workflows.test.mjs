@@ -175,12 +175,9 @@ describe('native contract workflow boundary', () => {
       'build-macos-app:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
-    assert.match(validation, /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --quiet --verbose$/mu)
-    assert.doesNotMatch(validation, /swift-clients\/ --lint --verbose/u)
-    assert.match(validation, /"\$SWIFTLINT_IMAGE" --strict --cache-path/u)
     assert.match(
       validation,
-      /"\$SWIFTLINT_IMAGE" --strict --config \.swiftlint-tests\.yml --cache-path/u,
+      /bash swift-clients\/tooling\/harness\.sh --checks fmt,lint,lint-tests/u,
     )
     assert.match(workflow, /periphery scan --strict/u)
     assert.match(workflow, /--enable-code-coverage/u)
@@ -267,21 +264,24 @@ describe('native contract workflow boundary', () => {
   it('runs Swift lint on Linux without compiling Swift', async () => {
     const workflow = await readWorkflow('validate.yml')
     const lintJob = jobBlock(workflow, 'swift-lint')
+    const harness = await readFile(
+      new URL('../swift-clients/tooling/harness.sh', import.meta.url),
+      'utf8',
+    )
+    const images = await readFile(new URL('../dev/linux-native-images.sh', import.meta.url), 'utf8')
 
     assert.match(lintJob, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(lintJob, /DEVELOPER_DIR|setup-swift-native/u)
+    assert.match(lintJob, /bash swift-clients\/tooling\/harness\.sh --checks fmt,lint,lint-tests/u)
+    assert.match(harness, /--read-only --network none/u)
+    assert.match(harness, /swift-clients\/ --lint --quiet --verbose/u)
     assert.match(
-      lintJob,
-      /SWIFTFORMAT_IMAGE: ghcr\.io\/nicklockwood\/swiftformat:[^\s]+@sha256:[0-9a-f]{64}/u,
+      images,
+      /SWIFTFORMAT_LINUX_IMAGE='ghcr\.io\/nicklockwood\/swiftformat:[^']+@sha256:[0-9a-f]{64}'/u,
     )
-    assert.match(lintJob, /SWIFTLINT_IMAGE: ghcr\.io\/realm\/swiftlint:[^\s]+@sha256:[0-9a-f]{64}/u)
-    assert.equal(lintJob.split('docker run').length - 1, 3)
-    assert.equal(lintJob.split('"$SWIFTFORMAT_IMAGE"').length - 1, 1)
-    assert.equal(lintJob.split('"$SWIFTLINT_IMAGE"').length - 1, 2)
     assert.match(
-      lintJob,
-      /"\$SWIFTFORMAT_IMAGE" swift-clients\/ --lint --quiet --verbose/u,
-      'static Linux SwiftFormat needs quiet verbose execution to avoid swiftlang/swift#77841',
+      images,
+      /SWIFTLINT_LINUX_IMAGE='ghcr\.io\/realm\/swiftlint:[^']+@sha256:[0-9a-f]{64}'/u,
     )
     assert.doesNotMatch(lintJob, /swift (?:build|test)/u)
   })

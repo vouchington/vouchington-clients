@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run the canonical quality gate; its Swift harness uses pinned images on Linux.
+set -euo pipefail
+
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+[[ $# == 0 && "$(uname -s)" == Linux ]] || {
+  echo 'Usage: ./dev/linux-quality (Linux only)' >&2
+  exit 2
+}
+cd "$root"
+pnpm run quality:check

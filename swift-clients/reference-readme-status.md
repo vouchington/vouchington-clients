@@ -45,15 +45,12 @@ swift test --package-path apps/android
 cd apps/android && skip android build --android-api-level 28
 ```
 
-By default the native clients use `https://voucha.ai`. For a worktree-local backend, run
-`./dev/initialize web` from the repository root. It writes the ignored
-`swift-clients/apps/Voucha.local.xcconfig` with that worktree's backend port; generated Debug
-schemes reference it through `$(VOUCHA_API_BASE_URL)`, so an existing `.xcodeproj` picks up a
-port reallocation without regeneration. Run initialization again after allocation changes, and run
-`./swift-clients/tooling/generate.sh macOS` or `iOS` only after changing the project spec. Clean
-generation creates the production-default XCConfig when it is absent. See [web-mode resource
-allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
-for the saved-port contract. Set
+By default the native clients use `https://voucha.ai`. For a local backend, set
+`VOUCHA_API_BASE_URL` in the ignored `swift-clients/apps/Voucha.local.xcconfig` to that backend's
+URL. Generated Debug schemes reference the file, so changing the URL does not require project
+regeneration. Clean generation creates a production-default XCConfig when it is absent. See
+[web-mode resource allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
+for the backend port contract. Set
 `VOUCHA_TURNSTILE_SITE_KEY` (or shared `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`) when testing
 CAPTCHA-gated flows against an environment with a Cloudflare Turnstile widget — native clients
 intentionally do not keep a checked-in site-key fallback because Cloudflare registers staging and

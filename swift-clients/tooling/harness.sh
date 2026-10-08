@@ -14,6 +14,11 @@ SWIFT_DIR="$ROOT_DIR/swift-clients"
 IS_DARWIN=false
 if [[ "$(uname)" == "Darwin" ]]; then
   IS_DARWIN=true
+else
+  # shellcheck source=dev/linux-native-images.sh
+  # The path is resolved from the checkout at runtime.
+  # shellcheck disable=SC1091
+  source "$ROOT_DIR/dev/linux-native-images.sh"
 fi
 
 # Prefer Xcode.app toolchain for SourceKit-dependent tools (swiftlint and periphery).
@@ -164,6 +169,18 @@ run_in_directory() {
   (cd -- "$directory" && "$@")
 }
 
+run_linux_swift_lint() {
+  local image="$1"
+  local workdir="$2"
+  shift 2
+  docker run --rm --read-only --network none \
+    --user "$(id -u):$(id -g)" \
+    --volume "$ROOT_DIR:/workspace:ro" \
+    --tmpfs /tmp:rw,exec,mode=1777 \
+    --workdir "$workdir" --env HOME=/tmp \
+    "$image" "$@"
+}
+
 contains() {
   local needle="$1"
   for item in "${CHECKS[@]}"; do [[ "$item" == "$needle" ]] && return 0; done
@@ -171,7 +188,7 @@ contains() {
 }
 
 missing_periphery() {
-  echo 'periphery is not installed; provision it with vouchington-github-actions-runners; see docs/development/system-dependencies.md' >&2
+  echo 'periphery is not installed; provision it with vouchington-github-actions-runners; see swift-clients/reference-readme-status.md#requirements' >&2
   return 127
 }
 
@@ -209,17 +226,32 @@ echo "━━━━━━━━━━━━━━━━━━━━━"
 
 # ── fmt: swiftformat --lint ───────────────────────────────────────────────────
 if contains fmt; then
-  run_check "fmt" swiftformat --lint "$SWIFT_DIR/"
+  if [[ "$IS_DARWIN" == true ]]; then
+    run_check "fmt" swiftformat --lint "$SWIFT_DIR/"
+  else
+    run_check "fmt" run_linux_swift_lint "$SWIFTFORMAT_LINUX_IMAGE" /workspace \
+      swift-clients/ --lint --quiet --verbose
+  fi
 fi
 
 # ── lint: swiftlint --strict ──────────────────────────────────────────────────
 if contains lint; then
-  run_check "lint" run_in_directory "$SWIFT_DIR" swiftlint --strict --cache-path "$SWIFTLINT_CACHE_PATH"
+  if [[ "$IS_DARWIN" == true ]]; then
+    run_check "lint" run_in_directory "$SWIFT_DIR" swiftlint --strict --cache-path "$SWIFTLINT_CACHE_PATH"
+  else
+    run_check "lint" run_linux_swift_lint "$SWIFTLINT_LINUX_IMAGE" /workspace/swift-clients \
+      --strict --cache-path /tmp/voucha-swiftlint
+  fi
 fi
 
 # ── lint-tests: swiftlint test files with test-specific length cap ────────────
 if contains lint-tests; then
-  run_check "lint-tests" run_in_directory "$SWIFT_DIR" swiftlint --strict --config .swiftlint-tests.yml --cache-path "${SWIFTLINT_CACHE_PATH}-tests"
+  if [[ "$IS_DARWIN" == true ]]; then
+    run_check "lint-tests" run_in_directory "$SWIFT_DIR" swiftlint --strict --config .swiftlint-tests.yml --cache-path "${SWIFTLINT_CACHE_PATH}-tests"
+  else
+    run_check "lint-tests" run_linux_swift_lint "$SWIFTLINT_LINUX_IMAGE" /workspace/swift-clients \
+      --strict --config .swiftlint-tests.yml --cache-path /tmp/voucha-swiftlint-tests
+  fi
 fi
 
 # ── ast-grep: Swift boundary rules ────────────────────────────────────────────

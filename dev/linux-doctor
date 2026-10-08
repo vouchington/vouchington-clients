@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Verify the Linux tools and an explicitly staged native contract.
+set -euo pipefail
+
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+stage_root=''
+host_only=false
+usage() {
+  echo 'Usage: ./dev/linux-doctor --stage-root /absolute/complete/native-contract-stage' >&2
+  echo '       ./dev/linux-doctor --host-only' >&2
+}
+while (($#)); do
+  case "$1" in
+    --stage-root) (($# >= 2)) || { usage; exit 2; }; stage_root="$2"; shift 2 ;;
+    --host-only) host_only=true; shift ;;
+    *) usage; exit 2 ;;
+  esac
+done
+if [[ "$host_only" == true && -n "$stage_root" ]] || [[ "$host_only" == false && -z "$stage_root" ]]; then
+  usage
+  exit 2
+fi
+[[ "$(uname -s)" == Linux ]] || { echo 'Linux doctor requires a Linux host.' >&2; exit 1; }
+for tool in node pnpm dotnet docker mise; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "Missing required tool: $tool" >&2; exit 1; }
+done
+node_major="$(node -p 'Number(process.versions.node.split(".")[0])')"
+((node_major >= 26)) || { echo "Node.js 26+ required; found $(node --version)." >&2; exit 1; }
+pnpm_version="$(pnpm --version)"
+[[ "$pnpm_version" == 12.* ]] || { echo "pnpm 12 required; found $pnpm_version." >&2; exit 1; }
+required_sdk="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sdk.version' "$root/global.json")"
+actual_sdk="$(cd "$root" && dotnet --version)"
+# shellcheck disable=SC2016
+node -e '
+  const [required, actual] = process.argv.slice(1).map(value => value.split(".").map(Number));
+  if (required.length !== 3 || actual.length !== 3 ||
+      actual[0] !== required[0] || actual[1] !== required[1] ||
+      Math.floor(actual[2] / 100) !== Math.floor(required[2] / 100) ||
+      actual[2] < required[2]) {
+    console.error(`global.json requires ${process.argv[1]} with latestPatch; found ${process.argv[2]}.`);
+    process.exit(1);
+  }
+' "$required_sdk" "$actual_sdk"
+docker info --format '{{.OSType}}' | grep -Fxq linux || {
+  echo 'A working Linux Docker daemon is required for pinned Swift tools and portable tests.' >&2
+  exit 1
+}
+if [[ "$host_only" == false ]]; then
+  [[ "$stage_root" == /* && -d "$stage_root" ]] || {
+    echo '--stage-root must name an existing absolute complete native-contract stage.' >&2
+    exit 2
+  }
+  (cd "$root" && VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
+fi
+echo 'Linux native-client host and contract checks passed.'

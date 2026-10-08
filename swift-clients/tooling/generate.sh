@@ -15,9 +15,8 @@ fi
 
 LOCAL_XCCONFIG="apps/Voucha.local.xcconfig"
 
-# dev/initialize writes the worktree backend URL here. Preserve that local value
-# so port reallocations take effect in existing generated projects; clean clones
-# and CI get the production default until initialization creates the file.
+# Preserve a developer's ignored worktree-local backend URL here. Clean clones
+# and CI get the production default until the developer configures this file.
 if [[ ! -f "$LOCAL_XCCONFIG" ]]; then
     dollar='$'
     printf '%s\n' \

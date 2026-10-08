@@ -123,23 +123,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Check Swift formatting and lint
-        env:
-          SWIFTFORMAT_IMAGE: ghcr.io/nicklockwood/swiftformat:0.61.1@sha256:10f870fb7ae917d0373acb582ea87d60ffca92d75eee3260cbede710666f0fca
-          SWIFTLINT_IMAGE: ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e
-        run: |
-          set -euo pipefail
-          container_args=(
-            --rm
-            --read-only
-            --network none
-            --tmpfs "/tmp:rw,exec,mode=1777"
-            --volume "$PWD:/workspace:ro"
-            --env HOME=/tmp
-          )
-          # Verbose execution avoids swiftlang/swift#77841; quiet keeps successful logs bounded.
-          docker run "${container_args[@]}" --workdir /workspace "$SWIFTFORMAT_IMAGE" swift-clients/ --lint --quiet --verbose
-          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --cache-path /tmp/swiftlint
-          docker run "${container_args[@]}" --workdir /workspace/swift-clients "$SWIFTLINT_IMAGE" --strict --config .swiftlint-tests.yml --cache-path /tmp/swiftlint-tests
+        run: bash swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests
 
   swift-core:
     name: Swift manifest

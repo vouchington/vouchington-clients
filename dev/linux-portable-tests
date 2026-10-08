@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Run the Linux-capable native Core tests with the same pinned Swift image as CI.
+set -euo pipefail
+
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+# shellcheck source=dev/linux-native-images.sh
+source "$root/dev/linux-native-images.sh"
+if [[ $# != 2 || "$1" != --stage-root || "$2" != /* ]]; then
+  echo 'Usage: ./dev/linux-portable-tests --stage-root /absolute/complete/native-contract-stage' >&2
+  exit 2
+fi
+stage_root="$2"
+cd "$root"
+bash dev/linux-doctor --stage-root "$stage_root"
+bash swift-clients/tooling/with-build-lock.sh docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --volume "$root:/workspace" \
+  --volume "$stage_root:/contract:ro" \
+  --tmpfs /tmp:rw,exec,mode=1777 \
+  --workdir /workspace --env HOME=/tmp --env TMPDIR=/tmp \
+  --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract \
+  "$SWIFT_LINUX_IMAGE" /bin/bash -c '
+    set -euo pipefail
+    swift test --package-path swift-clients/test-support --force-resolved-versions \
+      --build-path /tmp/voucha-test-support-build --no-parallel
+    swift test --package-path swift-clients/core --force-resolved-versions \
+      --build-path /tmp/voucha-core-build --no-parallel \
+      --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"
+  '
+VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" \
+  bash dotnet-clients/tooling/with-build-lock.sh \
+  bash dotnet-clients/tooling/harness.sh --exec dotnet test Voucha.DotNet.sln \
+    --no-restore -p:UseSharedCompilation=false

@@ -12,7 +12,7 @@ check_version() {
     local actual
 
     if ! command -v "$tool" >/dev/null 2>&1; then
-        echo "✗ $tool not found — provision it with vouchington-github-actions-runners; see docs/development/system-dependencies.md"
+        echo "✗ $tool not found — provision it with vouchington-github-actions-runners; see swift-clients/reference-readme-status.md#requirements"
         return 1
     fi
 
