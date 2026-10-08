@@ -44,8 +44,15 @@ public sealed partial class UiLocalization : IUiLocalization
       typeof(UiLocalization).Assembly);
   private readonly IUiLocaleController localeController;
 
-  public UiLocalization(IUiLocaleController localeController) =>
-      this.localeController = localeController ?? throw new ArgumentNullException(nameof(localeController));
+  public UiLocalization(
+      IUiLocaleController localeController,
+      LocalizationValueCache? overlay = null)
+  {
+    this.localeController = localeController ?? throw new ArgumentNullException(nameof(localeController));
+    this.overlay = overlay;
+  }
+
+  private readonly LocalizationValueCache? overlay;
 
   public CultureInfo Culture => localeController.Culture;
 
@@ -179,7 +186,8 @@ public sealed partial class UiLocalization : IUiLocalization
               nameof(values));
 
   private string Resource(string key) =>
-      Resources.GetString(key, localeController.Culture)
+      overlay?.Value(key, localeController.EffectiveLocale)
+      ?? Resources.GetString(key, localeController.Culture)
       ?? Resources.GetString(key, CultureInfo.GetCultureInfo("en"))
       ?? key;
 

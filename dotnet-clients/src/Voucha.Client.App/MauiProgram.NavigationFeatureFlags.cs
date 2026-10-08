@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.FeatureFlags;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Navigation;
 
 namespace Voucha.Client.App;
@@ -53,10 +54,12 @@ public static partial class MauiProgram
     provider.SetViewer(NavigationCatalog.FromIdentity(sessionStore.Current.Identity));
     _ = featureFlags.InitializeAsync();
     QueueFeatureFlagRefresh();
+    _ = sp.GetRequiredService<LocalizationRefreshService>().RefreshChromeAsync();
     sessionStore.SessionChanged += (_, args) =>
     {
       provider.SetViewer(NavigationCatalog.FromIdentity(args.Snapshot.Identity, provider.CurrentViewer.FeatureFlags));
       QueueFeatureFlagRefresh();
+      _ = sp.GetRequiredService<LocalizationRefreshService>().RefreshChromeAsync();
     };
     return provider;
   }

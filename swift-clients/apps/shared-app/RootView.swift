@@ -56,6 +56,8 @@ public struct RootView: View {
     var podcastPlaybackController: PodcastPlaybackController
     @Environment(\.openURL)
     var openURL
+    @Environment(\.scenePhase)
+    var scenePhase
     #if !os(macOS)
         @Environment(\.horizontalSizeClass)
         var horizontalSizeClass
@@ -94,12 +96,18 @@ public struct RootView: View {
             }
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
+                await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
                 handleNativeOAuthAuthorizationResult(nativeOAuthCoordinator.result)
             }
             .onChange(of: viewModelFactory.sessionManager.uiLocale) { _, uiLocale in
                 viewModelFactory.uiLocaleController.update(savedUiLocale: uiLocale)
+                Task { await refreshLocalization() }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await refreshLocalization() }
             }
             .onChange(of: viewModelFactory.nativeOAuthAuthorizationCoordinator.result) { _, result in
                 handleNativeOAuthAuthorizationResult(result)

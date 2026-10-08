@@ -188,6 +188,9 @@ public enum UiMessages {
     }
 
     static func localizedString(_ key: String, locale: UiLocale) -> String {
+        if let overlay = LocalizationValueCache.shared.value(for: key, locale: locale.rawValue) {
+            return overlay
+        }
         guard let bundle = localizedBundles[locale] else { return key }
         return bundle.localizedString(forKey: key, value: key, table: nil)
     }
