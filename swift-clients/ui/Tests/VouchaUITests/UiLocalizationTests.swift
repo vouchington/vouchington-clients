@@ -213,6 +213,26 @@ final class UiLocalizationTests: XCTestCase {
         XCTAssertEqual(controller.locale, .english)
     }
 
+    func testStaticLocalizedStringObservesOverlayRefresh() {
+        let notification = expectation(description: "localized string overlay refresh")
+        withObservationTracking {
+            _ = UiMessages.string(.commonCancel, locale: .english)
+        } onChange: {
+            _ = UiMessages.string(.commonCancel, locale: .english)
+            notification.fulfill()
+        }
+
+        LocalizationValueCache.shared.apply(
+            locale: "en",
+            revision: "refresh-1",
+            ttlSeconds: 60,
+            values: ["common.cancel": "Abort"]
+        )
+
+        wait(for: [notification], timeout: 1)
+        XCTAssertEqual(UiMessages.string(.commonCancel, locale: .english), "Abort")
+    }
+
     func testTokenReplacementIsSinglePassAndIndependentOfDictionaryOrder() {
         let message = UiMessage(
             .nativeSwiftEngineeringPostgresqlCompletedSummary,

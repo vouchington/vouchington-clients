@@ -1,28 +1,42 @@
 import Foundation
+import Observation
 
 /// Byte-bounded overlay of live catalog values. Bundled resources remain the
 /// structural fallback; expired entries still serve until a refresh succeeds.
-public final class LocalizationValueCache: @unchecked Sendable {
+public final class LocalizationValueCache: Observable, @unchecked Sendable {
     public static let defaultMaxBytes = 524_288
     public static let shared = LocalizationValueCache()
 
     private let lock = NSLock()
+    private let observation = ObservationRegistrar()
     private let maxBytes: Int
     private var entries: [String: Entry] = [:]
     private var order: [String] = []
+    private var generation = 0
+
+    public var overlayGeneration: Int {
+        observation.access(self, keyPath: \.overlayGeneration)
+        lock.lock()
+        defer { lock.unlock() }
+        return generation
+    }
 
     public init(maxBytes: Int = LocalizationValueCache.defaultMaxBytes) {
         self.maxBytes = maxBytes
     }
 
     public func reset() {
-        lock.lock()
-        defer { lock.unlock() }
-        entries.removeAll()
-        order.removeAll()
+        observation.withMutation(of: self, keyPath: \.overlayGeneration) {
+            lock.lock()
+            defer { lock.unlock() }
+            entries.removeAll()
+            order.removeAll()
+            generation &+= 1
+        }
     }
 
     public func value(for key: String, locale: String) -> String? {
+        _ = overlayGeneration
         lock.lock()
         defer { lock.unlock() }
         guard let entry = entries[locale] else { return nil }
@@ -51,22 +65,21 @@ public final class LocalizationValueCache: @unchecked Sendable {
         values: [String: String],
         now: Date = Date()
     ) {
-        lock.lock()
-        defer { lock.unlock() }
-        var merged = entries[locale]?.values ?? [:]
-        for (key, value) in values {
-            merged[key] = value
+        observation.withMutation(of: self, keyPath: \.overlayGeneration) {
+            lock.lock()
+            defer { lock.unlock() }
+            let byteCount = values.values.reduce(0) { $0 + $1.utf8.count }
+            entries[locale] = Entry(
+                revision: revision,
+                ttlSeconds: ttlSeconds,
+                expiresAt: now.addingTimeInterval(TimeInterval(ttlSeconds)),
+                values: values,
+                byteCount: byteCount
+            )
+            touchLocked(locale)
+            evictLocked()
+            generation &+= 1
         }
-        let byteCount = merged.values.reduce(0) { $0 + $1.utf8.count }
-        entries[locale] = Entry(
-            revision: revision,
-            ttlSeconds: ttlSeconds,
-            expiresAt: now.addingTimeInterval(TimeInterval(ttlSeconds)),
-            values: merged,
-            byteCount: byteCount
-        )
-        touchLocked(locale)
-        evictLocked()
     }
 
     public func rememberNotModified(locale: String, now: Date = Date()) {

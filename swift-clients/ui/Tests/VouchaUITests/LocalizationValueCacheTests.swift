@@ -40,6 +40,27 @@ final class LocalizationValueCacheTests: XCTestCase {
         XCTAssertEqual(cache.value(for: "common.cancel", locale: "en"), "Abort")
     }
 
+    func testNewRevisionRemovesOmittedOverrideAndRetainsBundledFallback() {
+        let cache = LocalizationValueCache()
+        cache.apply(
+            locale: "en",
+            revision: "rev-1",
+            ttlSeconds: 60,
+            values: ["common.cancel": "Abort", "common.done": "Finish"]
+        )
+
+        cache.apply(
+            locale: "en",
+            revision: "rev-2",
+            ttlSeconds: 60,
+            values: ["common.done": "Complete"]
+        )
+
+        XCTAssertNil(cache.value(for: "common.cancel", locale: "en"))
+        XCTAssertEqual(cache.value(for: "common.done", locale: "en"), "Complete")
+        XCTAssertEqual(cache.etag(for: "en"), "\"rev-2\"")
+    }
+
     func testLruEvictsOldestLocaleWhenByteBoundIsExceeded() {
         let cache = LocalizationValueCache(maxBytes: 8)
         cache.apply(locale: "en", revision: "a", ttlSeconds: 60, values: ["a": "12345"])
