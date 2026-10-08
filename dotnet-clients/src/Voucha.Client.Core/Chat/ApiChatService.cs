@@ -46,13 +46,6 @@ public sealed class ApiChatService : IChatService
   public Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default) =>
       client.DeleteChatConversationAsync(conversationId, cancellationToken);
 
-  public IAsyncEnumerable<ChatStreamEvent> StreamConversationAsync(
-      string conversationId,
-      string message,
-      string? provider = null,
-      CancellationToken cancellationToken = default) =>
-      client.StreamChatConversationAsync(conversationId, message, provider, cancellationToken);
-
   public Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(
       string conversationId,
       CreateClientGeneratedChatBody body,

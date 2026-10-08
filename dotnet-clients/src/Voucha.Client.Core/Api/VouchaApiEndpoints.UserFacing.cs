@@ -179,12 +179,6 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest DeleteChatConversation(string conversationId) =>
       new(HttpMethod.Delete, $"/api/v1/my/conversations/{Path(conversationId)}");
 
-  public static ApiRequest StreamChatConversationMessage(string conversationId, string message, string? provider = null) =>
-      new(HttpMethod.Post, $"/api/v1/conversations/{Path(conversationId)}/chat")
-      {
-        Body = provider is null ? new { message } : new { message, provider },
-      };
-
   public static ApiRequest CreateClientGeneratedChat(string conversationId, CreateClientGeneratedChatBody body) =>
       new(HttpMethod.Post, $"/api/v1/conversations/{Path(conversationId)}/client-generated-chat") { Body = body };
 

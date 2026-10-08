@@ -33,7 +33,7 @@ public sealed class LocalLLMProviderSelectionTests
   }
 
   [Fact]
-  public void HostedSelectionClearsTheExplicitProvider()
+  public void ClearingTheSelectionClearsTheExplicitProvider()
   {
     var store = new InMemoryLocalLLMConfigurationStore(new([], null, LocalChatProviderIds.WindowsSystemLanguageModel));
 
@@ -89,7 +89,7 @@ public sealed class LocalLLMProviderSelectionTests
   [Theory]
   [InlineData("endpoint")]
   [InlineData("windows")]
-  [InlineData("hosted")]
+  [InlineData("unavailable")]
   public void FreshViewModelUsesThePersistedProviderSelection(string selection)
   {
     var endpoint = new LocalLLMEndpointProfile(Guid.NewGuid(), "Local", true, "http://127.0.0.1:11434", ["model"], "model");
@@ -108,12 +108,12 @@ public sealed class LocalLLMProviderSelectionTests
     {
       "endpoint" => endpointId,
       "windows" => LocalChatProviderIds.WindowsSystemLanguageModel,
-      _ => "hosted",
-    }, viewModel.SelectedProviderStatus.ModelProvider ?? "hosted");
+      _ => "unavailable-local",
+    }, viewModel.SelectedProviderStatus.ModelProvider);
   }
 
   [Fact]
-  public void FreshViewModelUsesHostedWhenTheOnlyEndpointIsDisabled()
+  public void FreshViewModelUsesUnavailableLocalWhenTheOnlyEndpointIsDisabled()
   {
     var endpoint = new LocalLLMEndpointProfile(Guid.NewGuid(), "Local", false, "http://127.0.0.1:11434", ["model"], "model");
     var store = new InMemoryLocalLLMConfigurationStore(new([endpoint], null, null));
@@ -121,20 +121,21 @@ public sealed class LocalLLMProviderSelectionTests
 
     var viewModel = new ChatConversationViewModel(new FakeChatService(), new ConfigurationResolver(store, endpointId), new StaticProvider("fallback"));
 
-    Assert.Equal("hosted", viewModel.SelectedProviderStatus.ModelProvider ?? "hosted");
+    Assert.Equal("unavailable-local", viewModel.SelectedProviderStatus.ModelProvider);
+    Assert.False(viewModel.SelectedProviderStatus.IsAvailable);
   }
 
   private sealed class ConfigurationResolver(ILocalLLMConfigurationStore store, string endpointId) : IChatProviderResolver
   {
-    private static readonly ChatProviderStatus Hosted = new(ChatProviderKind.Hosted, "Hosted", true, "Hosted");
+    private static readonly ChatProviderStatus Unavailable = new(ChatProviderKind.Local, "Local", false, "Unavailable", "unavailable-local");
     private static readonly ChatProviderStatus Windows = new(ChatProviderKind.Local, "Windows", true, "Ready.", LocalChatProviderIds.WindowsSystemLanguageModel);
     private ChatProviderStatus Endpoint => new(ChatProviderKind.Local, "Endpoint", true, "Ready.", endpointId);
-    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [Hosted, Windows, Endpoint];
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [Unavailable, Windows, Endpoint];
     public ChatProviderStatus GetDefaultProviderStatus() => store.Load().SelectedProviderId switch
     {
       LocalChatProviderIds.WindowsSystemLanguageModel => Windows,
       var id when id == endpointId => Endpoint,
-      _ => Hosted,
+      _ => Unavailable,
     };
   }
 

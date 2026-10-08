@@ -3,7 +3,6 @@
     x:Class="Voucha.Client.App.Pages.ChatConversationPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:api="clr-namespace:Voucha.Client.Core.Api;assembly=Voucha.Client.Core"
     xmlns:chat="clr-namespace:Voucha.Client.Core.Chat;assembly=Voucha.Client.Core"
     x:DataType="chat:ChatConversationViewModel"
     Title="{DynamicResource native.swift.routeMetadata.mainChatChatTitle}">
@@ -91,53 +90,6 @@
                     Clicked="OnLoadOlderMessagesClicked"
                     IsVisible="{Binding HasOlderMessagesError}"
                     IsEnabled="{Binding CanLoadOlderMessages}" />
-                <CollectionView ItemsSource="{Binding ToolCalls}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="api:ChatStreamToolCallEvent">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{DynamicResource native.dotnet.chatConversation.toolCall}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding Name}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding Arguments}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <CollectionView ItemsSource="{Binding ToolResults}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="api:ChatStreamToolResultEvent">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{DynamicResource native.dotnet.chatConversation.toolResult}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding ToolCallId}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding DisplayResult}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <CollectionView ItemsSource="{Binding SubagentSteps}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="api:ChatStreamSubagentStepEvent">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{DynamicResource native.dotnet.chatConversation.subagentStep}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding AgentName}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding ToolName}" Style="{StaticResource Body}" />
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <CollectionView ItemsSource="{Binding SubagentTextChunks}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="api:ChatStreamSubagentTextEvent">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{DynamicResource native.swift.chatMessageBubble.subagentText}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding AgentName}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding Content}" Style="{StaticResource Body}" LineBreakMode="WordWrap" />
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
             </VerticalStackLayout>
         </Grid>
 

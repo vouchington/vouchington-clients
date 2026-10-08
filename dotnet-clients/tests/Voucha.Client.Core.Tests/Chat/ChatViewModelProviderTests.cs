@@ -8,6 +8,21 @@ namespace Voucha.Client.Core.Tests.Chat;
 public sealed class ChatViewModelProviderTests
 {
   [Fact]
+  public async Task UnconfiguredChatDoesNotCreateAConversationOrCallTheRetiredHostedRoute()
+  {
+    var service = new FakeChatService();
+    var viewModel = new ChatConversationViewModel(service);
+
+    var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
+
+    Assert.False(accepted);
+    Assert.False(viewModel.SelectedProviderStatus.IsAvailable);
+    Assert.Equal(0, service.CreateConversationCount);
+    Assert.Null(service.LastChatPath);
+    Assert.Empty(viewModel.Messages);
+  }
+
+  [Fact]
   public async Task ChatConversationViewModelRejectsUnavailableLocalProviderBeforeSending()
   {
     var service = new FakeChatService();
@@ -22,7 +37,7 @@ public sealed class ChatViewModelProviderTests
         (_, _, _) => Task.FromResult(new LocalChatGenerationResult("unused", "windows_foundry", "windows-system-language-model")));
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: false),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider)
     {
       SelectedProviderStatus = localProvider.Status,
@@ -34,6 +49,7 @@ public sealed class ChatViewModelProviderTests
     Assert.Equal(LoadState.Error, viewModel.State);
     Assert.Equal("Windows local chat is unavailable.", viewModel.ErrorMessage);
     Assert.Empty(viewModel.Messages);
+    Assert.Equal(0, service.CreateConversationCount);
     Assert.Null(service.LastChatPath);
   }
 
@@ -43,7 +59,7 @@ public sealed class ChatViewModelProviderTests
     var status = new ChatProviderStatus(ChatProviderKind.Local, "Windows local", true, "Ready.", "windows_foundry", "windows-system-language-model");
     var viewModel = new ChatConversationViewModel(
         new FakeChatService(),
-        new TestChatProviderResolver(status, defaultToLocal: true),
+        new TestChatProviderResolver(status),
         new FailingStatusLocalProvider());
 
     var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -69,7 +85,7 @@ public sealed class ChatViewModelProviderTests
     var localProvider = AvailableLocalProvider("Local reply");
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -129,7 +145,7 @@ public sealed class ChatViewModelProviderTests
         (_, _, _) => Task.FromResult(new LocalChatGenerationResult("Local reply", "openai_compatible", "local-model")));
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: false),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider)
     {
       SelectedProviderStatus = unavailable,
@@ -170,7 +186,7 @@ public sealed class ChatViewModelProviderTests
     });
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     await viewModel.LoadAsync("conversation-1", cancellationToken: TestContext.Current.CancellationToken);
@@ -204,7 +220,7 @@ public sealed class ChatViewModelProviderTests
     var localProvider = AvailableLocalProvider("Local reply");
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -225,7 +241,7 @@ public sealed class ChatViewModelProviderTests
         Task.FromException<LocalChatGenerationResult>(new InvalidOperationException("Windows system language model operation failed.")));
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -250,7 +266,7 @@ public sealed class ChatViewModelProviderTests
     });
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var sendTask = viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -285,7 +301,7 @@ public sealed class ChatViewModelProviderTests
     var localProvider = AvailableLocalProvider("Local reply");
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var sendTask = viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -313,7 +329,7 @@ public sealed class ChatViewModelProviderTests
     var localProvider = AvailableLocalProvider("Local reply");
     var viewModel = new ChatConversationViewModel(
         service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: true),
+        new TestChatProviderResolver(localProvider.Status),
         localProvider);
 
     var accepted = await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
@@ -324,44 +340,6 @@ public sealed class ChatViewModelProviderTests
     Assert.Equal(2, viewModel.Messages.Count);
     Assert.Equal("Hello", viewModel.Messages[0].Content);
     Assert.Equal("Local reply", viewModel.Messages[1].Content);
-  }
-
-  [Fact]
-  public async Task ChatConversationViewModelClearsHostedSidecarsBeforeLocalTurn()
-  {
-    var service = new FakeChatService
-    {
-      ConversationMessagesResult = new ChatMessagesResponse([], new PageInfo(null, false, null)),
-    };
-    service.StreamEvents.Enqueue(new ChatStreamMetadataEvent("conversation-1", "message-user", "message-assistant", "job-1"));
-    service.StreamEvents.Enqueue(new ChatStreamToolCallEvent("tool-1", "search", "{}"));
-    service.StreamEvents.Enqueue(new ChatStreamToolResultEvent(
-        "tool-1",
-        System.Text.Json.JsonDocument.Parse("\"done\"").RootElement.Clone()));
-    service.StreamEvents.Enqueue(new ChatStreamSubagentStepEvent("helper", "search", "tool-1"));
-    service.StreamEvents.Enqueue(new ChatStreamSubagentTextEvent("helper", "Working", "tool-1"));
-    service.StreamEvents.Enqueue(new ChatStreamDoneEvent());
-    var localProvider = AvailableLocalProvider("Local reply");
-    var viewModel = new ChatConversationViewModel(
-        service,
-        new TestChatProviderResolver(localProvider.Status, defaultToLocal: false),
-        localProvider);
-
-    await viewModel.SendAsync("Hosted", TestContext.Current.CancellationToken);
-
-    Assert.Single(viewModel.ToolCalls);
-    Assert.Single(viewModel.ToolResults);
-    Assert.Single(viewModel.SubagentSteps);
-    Assert.Single(viewModel.SubagentTextChunks);
-
-    viewModel.SelectedProviderStatus = localProvider.Status;
-    var accepted = await viewModel.TrySendAsync("Local", TestContext.Current.CancellationToken);
-
-    Assert.True(accepted);
-    Assert.Empty(viewModel.ToolCalls);
-    Assert.Empty(viewModel.ToolResults);
-    Assert.Empty(viewModel.SubagentSteps);
-    Assert.Empty(viewModel.SubagentTextChunks);
   }
 
   private static TestLocalChatProvider AvailableLocalProvider(string assistantContent) =>
@@ -398,25 +376,13 @@ public sealed class ChatViewModelProviderTests
 
   private sealed class TestChatProviderResolver : IChatProviderResolver
   {
-    private static readonly ChatProviderStatus HostedProvider = new(
-        ChatProviderKind.Hosted,
-        "Hosted",
-        true,
-        "OpenAI hosted");
-
     private readonly ChatProviderStatus localProvider;
-    private readonly bool defaultToLocal;
 
-    public TestChatProviderResolver(ChatProviderStatus localProvider, bool defaultToLocal)
-    {
-      this.localProvider = localProvider;
-      this.defaultToLocal = defaultToLocal;
-    }
+    public TestChatProviderResolver(ChatProviderStatus localProvider) => this.localProvider = localProvider;
 
-    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [HostedProvider, localProvider];
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [localProvider];
 
-    public ChatProviderStatus GetDefaultProviderStatus() =>
-        defaultToLocal ? localProvider : HostedProvider;
+    public ChatProviderStatus GetDefaultProviderStatus() => localProvider;
   }
 
   private sealed class TestLocalChatProvider : ILocalChatProvider
