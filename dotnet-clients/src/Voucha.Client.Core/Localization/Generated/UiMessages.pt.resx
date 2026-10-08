@@ -256,6 +256,21 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Apoiar</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Endossar</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Ativa</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Esta chave de administrador é inválida. Renove-a por 30 ou 90 dias, ou revogue-a.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirada</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Expira em {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 dias</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 dias</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 dias</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Duração da chave</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>Sem expiração</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Substituída</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Revogada</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Renovar chave</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>Chave de API renovada. Guarde a nova chave agora; ela é exibida apenas uma vez.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>Esta chave não pode ser renovada. Atualize seu estado ou revogue-a.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>Esta chave não está mais disponível. Atualize suas chaves.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Endereço de e-mail</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} artigo relacionado</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} artigos relacionados</value></data>

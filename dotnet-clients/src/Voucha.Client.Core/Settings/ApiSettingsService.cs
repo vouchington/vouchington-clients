@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.Settings;
@@ -88,12 +89,27 @@ public sealed partial class ApiSettingsService : ISettingsService, INotification
       string type,
       IReadOnlyList<string> permissions,
       CancellationToken cancellationToken = default) =>
+      client.CreateApiKeyAsync(new CreateApiKeyBody(
+          (label ?? throw new ArgumentNullException(nameof(label))).Trim(),
+          permissions ?? throw new ArgumentNullException(nameof(permissions)),
+          type), cancellationToken);
+
+  public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
+      string label,
+      string type,
+      IReadOnlyList<string> permissions,
+      int? lifetimeDays,
+      CancellationToken cancellationToken = default) =>
       client.CreateApiKeyAsync(
           new CreateApiKeyBody(
               (label ?? throw new ArgumentNullException(nameof(label))).Trim(),
               permissions ?? throw new ArgumentNullException(nameof(permissions)),
-              type),
+              type,
+              JsonSerializer.SerializeToElement(lifetimeDays)),
           cancellationToken);
+
+  public Task<ApiKeyCreationResponse> RotateApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
+      client.RotateApiKeyAsync(id, cancellationToken);
 
   public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default) =>
       client.DeleteApiKeyAsync(id, cancellationToken);

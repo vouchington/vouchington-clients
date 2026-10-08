@@ -259,6 +259,21 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteSupport = new("extracted.votes.semanticVote.support");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVote = new("extracted.votes.semanticVote.vote");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
+    public static readonly UiMessageKey NativeApiKeysActive = new("native.apiKeys.active");
+    public static readonly UiMessageKey NativeApiKeysAdministratorInvalid = new("native.apiKeys.administratorInvalid");
+    public static readonly UiMessageKey NativeApiKeysExpired = new("native.apiKeys.expired");
+    public static readonly UiMessageKey NativeApiKeysExpiresAt = new("native.apiKeys.expiresAt");
+    public static readonly UiMessageKey NativeApiKeysLifetime30 = new("native.apiKeys.lifetime30");
+    public static readonly UiMessageKey NativeApiKeysLifetime365 = new("native.apiKeys.lifetime365");
+    public static readonly UiMessageKey NativeApiKeysLifetime90 = new("native.apiKeys.lifetime90");
+    public static readonly UiMessageKey NativeApiKeysLifetimeLabel = new("native.apiKeys.lifetimeLabel");
+    public static readonly UiMessageKey NativeApiKeysLifetimeNone = new("native.apiKeys.lifetimeNone");
+    public static readonly UiMessageKey NativeApiKeysReplaced = new("native.apiKeys.replaced");
+    public static readonly UiMessageKey NativeApiKeysRevoked = new("native.apiKeys.revoked");
+    public static readonly UiMessageKey NativeApiKeysRotate = new("native.apiKeys.rotate");
+    public static readonly UiMessageKey NativeApiKeysRotated = new("native.apiKeys.rotated");
+    public static readonly UiMessageKey NativeApiKeysRotationConflict = new("native.apiKeys.rotationConflict");
+    public static readonly UiMessageKey NativeApiKeysRotationNotFound = new("native.apiKeys.rotationNotFound");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
     public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
     public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
@@ -2165,6 +2180,21 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteSupport,
         ExtractedVotesSemanticVoteVote,
         ExtractedVotesSemanticVoteVouch,
+        NativeApiKeysActive,
+        NativeApiKeysAdministratorInvalid,
+        NativeApiKeysExpired,
+        NativeApiKeysExpiresAt,
+        NativeApiKeysLifetime30,
+        NativeApiKeysLifetime365,
+        NativeApiKeysLifetime90,
+        NativeApiKeysLifetimeLabel,
+        NativeApiKeysLifetimeNone,
+        NativeApiKeysReplaced,
+        NativeApiKeysRevoked,
+        NativeApiKeysRotate,
+        NativeApiKeysRotated,
+        NativeApiKeysRotationConflict,
+        NativeApiKeysRotationNotFound,
         NativeAuthEmailAddress,
         NativeCommonRelatedArticles,
         NativeCommonRelatedArticlesMore,

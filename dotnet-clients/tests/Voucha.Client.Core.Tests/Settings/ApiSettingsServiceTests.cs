@@ -45,6 +45,32 @@ public sealed class ApiSettingsServiceTests
   }
 
   [Fact]
+  public async Task CreateApiKeyAsyncForwardsExplicitLifetimeIncludingUnlimited()
+  {
+    var (service, handler) = CreateService(
+        new RecordedResponse(CreateApiKeyResponseJson()),
+        new RecordedResponse(CreateApiKeyResponseJson()));
+
+    await service.CreateApiKeyAsync("Reader", "rss", ["rss:read"], 30, TestContext.Current.CancellationToken);
+    await service.CreateApiKeyAsync("Reader", "rss", ["rss:read"], null, TestContext.Current.CancellationToken);
+
+    Assert.Contains("\"lifetime_days\":30", handler.Requests[0].Body, StringComparison.Ordinal);
+    Assert.Contains("\"lifetime_days\":null", handler.Requests[1].Body, StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public async Task RotateApiKeyAsyncUsesOwnerRouteAndDecodesOneTimeSecret()
+  {
+    var (service, handler) = CreateService(new RecordedResponse(CreateApiKeyResponseJson()));
+
+    var result = await service.RotateApiKeyAsync("key 1", TestContext.Current.CancellationToken);
+
+    Assert.Equal(HttpMethod.Post, handler.Method);
+    Assert.Equal("/api/v1/my/api-keys/key%201/rotate", handler.PathAndQuery);
+    Assert.False(string.IsNullOrWhiteSpace(result.RawKey));
+  }
+
+  [Fact]
   public async Task FetchAuthSessionsAsyncUsesTheAuthSessionsRoute()
   {
     var responseJson = """

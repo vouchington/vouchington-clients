@@ -256,6 +256,21 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Support</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Vote</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Vouch</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>This administrator key is invalid. Rotate with a 30- or 90-day lifetime, or revoke it.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Expires {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 days</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 days</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 days</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Key lifetime</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>No expiry</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Replaced</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Revoked</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Rotate key</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>API key rotated. Save the new key now; it is shown once.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>This key cannot be rotated. Refresh its state or revoke it.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>This key is no longer available. Refresh your keys.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Email address</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} related article</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} related articles</value></data>

@@ -22,6 +22,11 @@ extension SettingsSurface {
                 Text(rawKey)
                     .font(Typography.caption.monospaced())
                     .textSelection(.enabled)
+                    .accessibilityHidden(true)
+                Button(UiMessages.string(.nativeCommonDone, locale: nativeUiLocale)) {
+                    viewModel.dismissRawApiKey()
+                }
+                .accessibilityIdentifier("dismiss-api-key-secret")
             }
         }
     }

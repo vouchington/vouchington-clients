@@ -256,6 +256,21 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Soutenir</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Voter</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Appuyer</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Cette clé administrateur est invalide. Renouvelez-la pour 30 ou 90 jours, ou révoquez-la.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirée</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Expire le {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 jours</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 jours</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 jours</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Durée de la clé</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>Sans expiration</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Remplacée</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Révoquée</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Renouveler la clé</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>Clé API renouvelée. Enregistrez la nouvelle clé maintenant ; elle n’est affichée qu’une fois.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>Cette clé ne peut pas être renouvelée. Actualisez son état ou révoquez-la.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>Cette clé n’est plus disponible. Actualisez vos clés.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Adresse e-mail</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} article associé</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} articles associés</value></data>

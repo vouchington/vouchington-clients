@@ -4,60 +4,6 @@ import VouchaLocalization
 import VouchaModels
 
 extension SettingsSurface {
-    var apiKeysSection: some View {
-        section(.nativeSwiftSettingsApiKeys, systemImage: "key") {
-            TextField(
-                UiMessages.string(.nativeSwiftReferralLinksManagementLabel, locale: nativeUiLocale),
-                text: $viewModel.apiKeyLabel
-            )
-            .textFieldStyle(.roundedBorder)
-            Picker(
-                UiMessages.string(.nativeSwiftPresentationType, locale: nativeUiLocale),
-                selection: $viewModel.apiKeyType
-            ) {
-                Text(UiMessages.string(.nativeSwiftSettingsRss, locale: nativeUiLocale)).tag(ApiKeyType.rss)
-                Text(UiMessages.string(.nativeSwiftSettingsMcp, locale: nativeUiLocale)).tag(ApiKeyType.mcp)
-            }
-            .pickerStyle(.segmented)
-            .disabled(viewModel.apiKeyCreationInFlight)
-            apiKeyScopePicker
-            Button(UiMessages.string(.nativeSwiftSettingsCreateApiKey, locale: nativeUiLocale)) {
-                Task { await viewModel.createApiKey() }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!viewModel.canCreateApiKey)
-
-            LazyVStack(alignment: .leading, spacing: Spacing.sm) {
-                ForEach(viewModel.apiKeys) { key in
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(key.label)
-                            Text(key.prefix)
-                                .font(Typography.caption.monospaced())
-                                .foregroundStyle(Colors.secondaryLabel)
-                        }
-                        Spacer(minLength: 0)
-                        Button(
-                            UiMessages.string(.nativeSwiftSettingsRevoke, locale: nativeUiLocale),
-                            role: .destructive
-                        ) {
-                            Task { await viewModel.revokeApiKey(id: key.id) }
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-                HybridPaginationControl(
-                    hasMore: viewModel.apiKeyPagination.hasMore,
-                    isLoading: viewModel.apiKeyPagination.isLoading,
-                    hasError: viewModel.apiKeyPagination.lastError != nil,
-                    accessibilityIdentifier: "api-keys-pagination"
-                ) {
-                    await viewModel.loadMoreApiKeys()
-                }
-            }
-        }
-    }
-
     var pushSubscriptionsSection: some View {
         section(.nativeSwiftSettingsPushSubscriptions, systemImage: "bell") {
             LazyVStack(alignment: .leading, spacing: Spacing.sm) {

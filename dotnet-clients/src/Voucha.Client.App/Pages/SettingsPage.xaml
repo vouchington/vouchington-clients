@@ -208,64 +208,7 @@
             <pages:NotificationPreferencesView x:Name="NotificationPreferencesSection" IsVisible="False" />
 
             <VerticalStackLayout x:Name="ApiKeysSection" Spacing="12">
-                <Label Text="{DynamicResource native.swift.settings.apiKeys}" Style="{StaticResource Headline}" />
-                <Entry Text="{Binding ApiKeyLabel}" Placeholder="{DynamicResource native.dotnet.settings.keyLabel}" />
-                <Picker
-                    ItemsSource="{Binding ApiKeyTypeOptions}"
-                    ItemDisplayBinding="{Binding DisplayLabel}"
-                    SelectedItem="{Binding SelectedApiKeyTypeOption}"
-                    Title="{DynamicResource native.dotnet.settings.keyType}" />
-                <Label Text="{DynamicResource native.credentials.chooseScopes}" Style="{StaticResource Metadata}" />
-                <Label Text="{Binding CredentialNotice}" Style="{StaticResource Metadata}" />
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding ApiKeyScopes}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="settings:SettingsScopeRow">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Padding="0,4">
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}" CheckedChanged="OnApiKeyScopeChanged" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="{Binding Scope}" Style="{StaticResource Body}" />
-                                    <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{DynamicResource native.credentials.resource}" Style="{StaticResource Metadata}" />
-                                        <Label Text="{Binding Resource}" Style="{StaticResource Metadata}" />
-                                    </HorizontalStackLayout>
-                                    <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{DynamicResource native.credentials.action}" Style="{StaticResource Metadata}" />
-                                        <Label Text="{Binding Action}" Style="{StaticResource Metadata}" />
-                                    </HorizontalStackLayout>
-                                    <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{Binding Audience}" Style="{StaticResource Metadata}" />
-                                    </HorizontalStackLayout>
-                                    <Label Text="{Binding Requires}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Description}" Style="{StaticResource Metadata}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-                <Button Text="{DynamicResource native.dotnet.settings.createApiKey}" Clicked="OnCreateApiKeyClicked" IsEnabled="{Binding CanCreateApiKey}" />
-                <Label Text="{Binding ApiKeySecretDisplay}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
-                <Button Text="{DynamicResource native.dotnet.settings.copyApiKey}" Clicked="OnCopyApiKeyClicked" IsEnabled="{Binding HasApiKeySecret}" />
-                <CollectionView ItemsSource="{Binding LocalizedApiKeys}" SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="settings:SettingsApiKeyRow">
-                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8" />
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
-                                    <VerticalStackLayout Spacing="2">
-                                        <Label Text="{Binding Label}" Style="{StaticResource Body}" />
-                                        <Label Text="{Binding Prefix}" Style="{StaticResource Metadata}" />
-                                        <Label Text="{Binding LocalizedApiKeyType}" Style="{StaticResource Metadata}" />
-                                        <Label Text="{DynamicResource native.credentials.scopes}" Style="{StaticResource Metadata}" />
-                                        <Label Text="{Binding Permissions}" Style="{StaticResource Metadata}" />
-                                    </VerticalStackLayout>
-                                    <Button Grid.Column="1" Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokeApiKeyClicked" CommandParameter="{Binding .}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                <pages:SettingsApiKeyLifecycleView />
                 <controls:HybridPaginationControl
                     PaginationId="settings-api-keys"
                     HasMore="{Binding HasMoreApiKeys}"
