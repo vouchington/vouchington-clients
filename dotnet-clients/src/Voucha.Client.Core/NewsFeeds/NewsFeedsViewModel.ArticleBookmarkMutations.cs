@@ -91,12 +91,13 @@ public sealed partial class NewsFeedsViewModel
     }
 
     RollbackRemovedStoryPrimary(
-        mutationScope, mutationLoadRequestId, originalItem, previousIndex, rollbackErrorMessage, suppressedRows);
+        mutationScope, mutationLoadRequestId, previousItems, originalItem, previousIndex, rollbackErrorMessage, suppressedRows);
   }
 
   private void RollbackRemovedStoryPrimary(
       NewsFeedScope mutationScope,
       int mutationLoadRequestId,
+      IReadOnlyList<NewsFeedItem> previousItems,
       NewsFeedItem originalPrimary,
       int originalIndex,
       string? rollbackErrorMessage,
@@ -140,7 +141,18 @@ public sealed partial class NewsFeedsViewModel
 
     var restoredPrimary = originalPrimary with { StoryArticles = restoredGroup };
     var restoredItems = Items.Where(item => item.StoryId != storyId).ToList();
-    restoredItems.Insert(Math.Clamp(originalIndex, 0, restoredItems.Count), restoredPrimary);
+    var removedDeliveries = previousItems.Select((item, index) => (item, index))
+        .Where(entry => entry.item.Id == originalPrimary.Id).ToArray();
+    foreach (var (item, index) in removedDeliveries)
+    {
+      if (restoredItems.Any(existing => existing.FeedRowId == item.FeedRowId)) continue;
+      restoredItems.Insert(Math.Clamp(index, 0, restoredItems.Count),
+          item.FeedRowId == originalPrimary.FeedRowId ? restoredPrimary : item);
+    }
+    if (removedDeliveries.Length == 0)
+      restoredItems.Insert(Math.Clamp(originalIndex, 0, restoredItems.Count), restoredPrimary);
+    foreach (var item in suppressedRows?.Where(item => item.Id == originalPrimary.Id) ?? [])
+      if (!restoredItems.Any(existing => existing.FeedRowId == item.FeedRowId)) restoredItems.Add(item);
     Items = restoredItems;
     ErrorMessage = rollbackErrorMessage;
 

@@ -4,7 +4,7 @@ using Voucha.Client.Core.NewsFeeds;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
 
-internal sealed class HeldContinuationFeedService(NewsFeedItem primary) : INewsFeedService, IStoryRelatedArticlesService
+internal sealed class HeldContinuationFeedService(NewsFeedItem primary, params NewsFeedItem[] otherRows) : INewsFeedService, IStoryRelatedArticlesService
 {
   private readonly TaskCompletionSource<NewsFeedPage> continuation = new(TaskCreationOptions.RunContinuationsAsynchronously);
   private bool initialReturned;
@@ -24,7 +24,7 @@ internal sealed class HeldContinuationFeedService(NewsFeedItem primary) : INewsF
     if (!initialReturned)
     {
       initialReturned = true;
-      return Task.FromResult(new NewsFeedPage([primary], new("cursor-1", true, null)));
+      return Task.FromResult(new NewsFeedPage([primary, .. otherRows], new("cursor-1", true, null)));
     }
 
     ContinuationStarted.TrySetResult();

@@ -9,6 +9,39 @@ namespace Voucha.Client.Core.Tests.NewsFeeds;
 public sealed class NewsFeedsViewModelHideRollbackRaceTests
 {
   [Fact]
+  public async Task FailedPrimaryHideRestoresInterleavedShareDeliveries()
+  {
+    var primary = Item("article", "story-1") with { DeliveryId = "direct" };
+    var firstShare = Item("article", null) with { DeliveryId = "share-1" };
+    var secondShare = Item("article", null) with { DeliveryId = "share-2" };
+    var feed = new HeldContinuationFeedService(primary, firstShare, Item("other", null), secondShare);
+    var bookmarks = new HeldBookmarkService();
+    var model = new NewsFeedsViewModel(feed, NewsFeedScope.AllNews, bookmarks);
+    using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    Task? hide = null;
+    try
+    {
+      await model.LoadAsync(cancellation.Token);
+      Assert.Equal(["direct", "share-1", "other", "share-2"], model.Items.Select(item => item.FeedRowId));
+
+      hide = model.ToggleHideAsync(model.Items[0], cancellation.Token);
+      await bookmarks.RequestStarted.Task.WaitAsync(cancellation.Token);
+      Assert.Equal(["other"], model.Items.Select(item => item.FeedRowId));
+
+      bookmarks.FailHide(new InvalidOperationException("Hide failed."));
+      await hide;
+      Assert.Equal(["direct", "share-1", "other", "share-2"], model.Items.Select(item => item.FeedRowId));
+      Assert.Equal("Hide failed.", model.ErrorMessage);
+    }
+    finally
+    {
+      cancellation.Cancel();
+      bookmarks.FailHide(new OperationCanceledException("Test cleanup."));
+      await CompleteWhenStarted(hide);
+    }
+  }
+
+  [Fact]
   public void StoryRollbackUsesIncomingContinuationOnlyWhenOriginalGroupIsExhausted()
   {
     var localization = UiLocalization.English;
