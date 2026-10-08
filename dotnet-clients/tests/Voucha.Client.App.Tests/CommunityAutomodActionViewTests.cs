@@ -21,6 +21,14 @@ public sealed class CommunityAutomodActionViewTests
     Assert.True(view.IsVisible);
     Assert.Contains(view.Children.OfType<Label>(), label => label.Text == "Automod");
     Assert.Equal(action, view.SelectedAction);
+    var descriptionKey = action switch
+    {
+      "record_only" => UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0,
+      "review_queue" => UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30,
+      _ => UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5,
+    };
+    Assert.Equal(UiCopy.Localize(descriptionKey), Assert.Single(view.Children.OfType<Label>(),
+        label => label.AutomationId == "community-automod-action-description").Text);
     Assert.Equal(["Record only", "Send to review queue", "Unpublish"],
         Assert.Single(view.Children.OfType<Picker>()).ItemsSource.Cast<string>());
   }
@@ -75,8 +83,8 @@ public sealed class CommunityAutomodActionViewTests
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSendToReviewQueue1c3a1b74.Value] = "Send to review queue",
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormUnpublish2db04a54.Value] = "Unpublish",
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e.Value] = "Save action",
-      [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30.Value] = "Keep published, add flag",
-      [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0.Value] = "Keep published, review queue",
+      [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30.Value] = "Keep published, review queue",
+      [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0.Value] = "Keep published, add flag",
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5.Value] = "Remove post",
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f.Value] = "Saving",
       [UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1.Value] = "Saved",

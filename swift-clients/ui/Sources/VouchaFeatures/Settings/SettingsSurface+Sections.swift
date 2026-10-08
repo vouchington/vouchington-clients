@@ -23,7 +23,7 @@ extension SettingsSurface {
                 Text(rawKey)
                     .font(Typography.caption.monospaced())
                     .textSelection(.enabled)
-                    .accessibilityHidden(true)
+                    .accessibilityHidden(false)
                 Button(UiMessages.string(.nativeCommonDone, locale: nativeUiLocale)) {
                     viewModel.dismissRawApiKey()
                 }

@@ -8,7 +8,7 @@ namespace Voucha.Client.App.Pages;
 public partial class ProfilePage
 {
   private int avatarPreviewGeneration;
-  private CancellationTokenSource? avatarPreviewCancellation;
+  private readonly AvatarPreviewCancellation avatarPreviewCancellation = new();
 
   private void ClearLocalAvatarPreview()
   {
@@ -25,8 +25,7 @@ public partial class ProfilePage
   {
     var generation = ++avatarPreviewGeneration;
     using var cancellation = new CancellationTokenSource();
-    avatarPreviewCancellation?.Cancel();
-    avatarPreviewCancellation = cancellation;
+    avatarPreviewCancellation.Replace(cancellation);
     ClearLocalAvatarPreview();
     try
     {
@@ -61,11 +60,11 @@ public partial class ProfilePage
     }
     finally
     {
+      avatarPreviewCancellation.Complete(cancellation);
       if (generation == avatarPreviewGeneration)
       {
         AvatarLocalPreviewImage.Source = null;
         AvatarLocalPreviewImage.IsVisible = false;
-        avatarPreviewCancellation = null;
       }
     }
   }
@@ -73,7 +72,7 @@ public partial class ProfilePage
   private async void OnRemoveAvatarClicked(object? sender, EventArgs e)
   {
     avatarPreviewGeneration++;
-    avatarPreviewCancellation?.Cancel();
+    avatarPreviewCancellation.CancelCurrent();
     ClearLocalAvatarPreview();
     await viewModel.RemoveAvatarAsync();
   }

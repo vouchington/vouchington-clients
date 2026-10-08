@@ -13,8 +13,8 @@ public sealed class CommunityAutomodActionView : VerticalStackLayout
   ];
   private static readonly UiMessageKey[] DescriptionKeys =
   [
-    UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30,
     UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0,
+    UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30,
     UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5,
   ];
   private readonly Picker actionPicker = new() { AutomationId = "community-automod-action-picker" };

@@ -87,7 +87,7 @@ public partial class ProfilePage : ContentPage
   protected override void OnDisappearing()
   {
     avatarPreviewGeneration++;
-    avatarPreviewCancellation?.Cancel();
+    avatarPreviewCancellation.CancelCurrent();
     ClearLocalAvatarPreview();
     base.OnDisappearing();
   }

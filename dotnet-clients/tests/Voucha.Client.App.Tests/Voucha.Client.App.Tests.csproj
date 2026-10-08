@@ -23,6 +23,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.Pagination.cs" Link="Pages/TopicManagementPage.Pagination.cs" />
     <Compile Include="../../src/Voucha.Client.App/Support/ImageSelectionLoader.cs" Link="Support/ImageSelectionLoader.cs" />
     <Compile Include="../../src/Voucha.Client.App/Support/LocalImagePreview.cs" Link="Support/LocalImagePreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Support/AvatarPreviewCancellation.cs" Link="Support/AvatarPreviewCancellation.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostComposePage.xaml" Link="Pages/PostComposePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostComposePage.xaml.cs" Link="Pages/PostComposePage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostComposePage.ImagePreview.cs" Link="Pages/PostComposePage.ImagePreview.cs" />
