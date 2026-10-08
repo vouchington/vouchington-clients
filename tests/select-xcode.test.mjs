@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import test from 'node:test'
 
 const exec = promisify(execFile)
-const script = new URL('../dotnet-clients/tooling/select-xcode.sh', import.meta.url).pathname
+const script = fileURLToPath(new URL('../dotnet-clients/tooling/select-xcode.sh', import.meta.url))
 
 async function executable(path, contents) {
   await writeFile(path, `#!/bin/bash\n${contents}\n`)
@@ -28,7 +29,7 @@ async function fixture(t) {
   '--sdk macosx --show-sdk-path')
     [[ ! -f "$DEVELOPER_DIR/reject-sdk" ]] || exit 1
     printf '%s\\n' "$DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" ;;
-  '--sdk macosx --find actool') printf '%s\\n' "$DEVELOPER_DIR/usr/bin/actool" ;;
+  "--sdk $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk --find actool") printf '%s\\n' "$DEVELOPER_DIR/usr/bin/actool" ;;
   *) exit 2 ;;
 esac`,
   )
@@ -60,7 +61,10 @@ test('selects the required Xcode using Mac Catalyst support inside the macOS SDK
   await f.xcode('Xcode_26.6.app', '26.6')
   const developer = await f.xcode('Xcode_26.5.app', '26.5')
   await f.run()
-  assert.equal(await readFile(f.environmentFile, 'utf8'), `DEVELOPER_DIR=${developer}\n`)
+  assert.equal(
+    await readFile(f.environmentFile, 'utf8'),
+    `DEVELOPER_DIR=${await realpath(developer)}\n`,
+  )
 })
 
 test('fails the job when the required Xcode is unavailable instead of skipping its build', async t => {
@@ -95,5 +99,19 @@ test('continues past an incomplete installation and accepts a matching patch ver
   await f.xcode('Xcode_26.5.app', '26.5', { catalyst: false })
   const developer = await f.xcode('Xcode_26.5.1.app', '26.5.1')
   await f.run()
-  assert.equal(await readFile(f.environmentFile, 'utf8'), `DEVELOPER_DIR=${developer}\n`)
+  assert.equal(
+    await readFile(f.environmentFile, 'utf8'),
+    `DEVELOPER_DIR=${await realpath(developer)}\n`,
+  )
+})
+
+test('resolves hosted Xcode aliases before exporting the toolchain path', async t => {
+  const f = await fixture(t)
+  const developer = await f.xcode('Toolchain.app', '26.5')
+  await symlink(join(f.applications, 'Toolchain.app'), join(f.applications, 'Xcode_26.5.0.app'))
+  await f.run()
+  assert.equal(
+    await readFile(f.environmentFile, 'utf8'),
+    `DEVELOPER_DIR=${await realpath(developer)}\n`,
+  )
 })
