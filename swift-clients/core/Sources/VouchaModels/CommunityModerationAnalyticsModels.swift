@@ -39,6 +39,11 @@ public struct CommunityModWorkloadRow: Codable, Sendable {
     public let total: Int
     public let counts: [String: Int]
     public let weeklyCounts: [CommunityModDailyTypeCount]
+
+    private enum CodingKeys: String, CodingKey {
+        case actorId = "actorUserId"
+        case total, counts, weeklyCounts
+    }
 }
 
 public struct CommunityModerationAnalyticsScope: Codable, Sendable {
