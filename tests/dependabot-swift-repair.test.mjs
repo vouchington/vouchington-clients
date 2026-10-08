@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 import {
   parseRawGitDiff,
@@ -57,6 +61,42 @@ function candidateResolved(version = candidateSkipVersion) {
 }
 
 describe('Swift Android Dependabot repair validation', () => {
+  it('skips Android lock changes from a non-Android Swift update directory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'swift-repair-classifier-'))
+    try {
+      const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
+      git('init', '--quiet')
+      await mkdir(join(root, 'swift-clients/apps/android'), { recursive: true })
+      await writeFile(join(root, 'swift-clients/apps/android/Package.resolved'), 'trusted\n')
+      git('add', '.')
+      git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'base')
+      const baseSha = git('rev-parse', 'HEAD')
+      await writeFile(join(root, 'swift-clients/apps/android/Package.resolved'), 'updated\n')
+      git('add', '.')
+      git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'update')
+      const headSha = git('rev-parse', 'HEAD')
+      const outputPath = join(root, 'github-output')
+      const classifier = new URL(
+        '../scripts/classify-dependabot-swift-android-repair.mjs',
+        import.meta.url,
+      )
+
+      execFileSync(process.execPath, [fileURLToPath(classifier), baseSha, headSha, outputPath], {
+        cwd: root,
+        env: {
+          ...process.env,
+          PACKAGE_ECOSYSTEM: 'swift',
+          DIRECTORY: '/swift-clients/core',
+          UPDATED_DEPENDENCIES_JSON: JSON.stringify([{ dependencyName: 'org.swift.swift-crypto' }]),
+        },
+      })
+
+      assert.equal(await readFile(outputPath, 'utf8'), 'repair-kind=none\n')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('parses NUL-delimited raw git records and rejects symlinks, additions, and renames', () => {
     const raw = `:100644 100644 ${sha} ${'b'.repeat(40)} M\0swift-clients/apps/android/Package.swift\0`
     assert.deepEqual(parseRawGitDiff(raw)[0].path, 'swift-clients/apps/android/Package.swift')

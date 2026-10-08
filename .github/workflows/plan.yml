@@ -45,6 +45,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: latest-12
       - name: Extract /plan request
         id: extract-plan
         env:
@@ -121,7 +124,7 @@ jobs:
             exit 1
           fi
 
-          npx --yes pnpm@11.13.1 dlx vouchington-tooling@0.18.1 gha-output plan_request < "$REQUEST_FILE"
+          pnpm dlx vouchington-tooling@0.18.1 gha-output plan_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge with eyes reaction and run link
@@ -166,8 +169,11 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: latest-12
       - name: Install pinned dependencies
-        run: npx --yes pnpm@11.13.1 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Prepare prompt variables
         env:

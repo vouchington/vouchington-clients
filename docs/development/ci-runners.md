@@ -24,6 +24,35 @@ archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
 
+## pnpm
+
+pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
+`engines.pnpm`. Under such a pin, pnpm 12 writes `pnpm-lock.yaml` as two YAML documents, and
+single-document readers such as Dependabot
+([dependabot/dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904))
+misread it. Unpinned, the lockfile stays one document.
+
+- Locally, install any pnpm 12 release and run `pnpm` from `PATH`.
+- In CI, every job or composite action that runs pnpm adds `pnpm/action-setup` directly after
+  `actions/setup-node`. Its only input is `version: latest-12`, so the action runs
+  `pnpm self-update latest-12` and CI uses the newest pnpm 12 release that is at least one day old.
+  `self-update` honors pnpm's default one-day `minimumReleaseAge`: when the newest 12.x release is
+  younger than that, it installs the newest mature one instead. New 12.x releases reach CI without
+  a pull request; moving to pnpm 13 needs one.
+- Do not pass a bare `version: 12`. That range matches the pnpm the action bundles (12.3.4 in
+  v6.1.0), so the action skips `self-update` and keeps it. pnpm 12.3.0 through 12.4.2 make
+  `pnpm dlx` exit 1 with `ERR_PNPM_IGNORED_BUILDS` for packages with build scripts, such as
+  `wrangler`; 12.5.0 fixed it.
+- The `/plan` and `/fix` gate jobs stay checkout-free: the action needs no `package.json`, and
+  those jobs only run `pnpm dlx`.
+- Workflows, scripts, and the native lock wrappers run `pnpm` from `PATH`. Nothing bootstraps pnpm
+  through Corepack or a versioned `npx pnpm@<version>` call.
+- Dependabot runs the pnpm bundled with its updater image.
+
+[`tests/pnpm-setup.test.mjs`](../../tests/pnpm-setup.test.mjs) enforces these rules, including one
+action release and one `latest-<major>` across every call site. To change the major, update every
+`pnpm/action-setup` call in the same change.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do

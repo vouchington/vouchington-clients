@@ -4,6 +4,9 @@ Use `pnpm clean` (or `./dev/clean`) to remove Swift, Xcode, .NET, coverage, and 
 
 This repository contains the Swift and .NET native clients for Voucha.
 
+The Node tooling needs Node.js 26 or later and any pnpm 12 release on `PATH`. pnpm is deliberately
+unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
+
 ## Vouchington contracts
 
 The native clients consume a deliberately narrow contract from

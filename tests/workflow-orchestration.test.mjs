@@ -20,10 +20,7 @@ describe('event-driven CI orchestration', () => {
 
       assert.match(
         workflow,
-        new RegExp(
-          `npx --yes pnpm@11\\.13\\.1 dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`,
-          'u',
-        ),
+        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.18\\.1 gha-output ${outputName}\\b`, 'u'),
       )
     }
   })
@@ -45,6 +42,24 @@ describe('event-driven CI orchestration', () => {
       )
       assert.match(prompt, /`OWNER`, `COLLABORATOR`, or `MEMBER`/u)
     }
+  })
+
+  it('classifies Swift Android repairs through the trusted classifier script', async () => {
+    const [workflow, classifier] = await Promise.all([
+      readWorkflow('dependabot-automerge.yml'),
+      readFile(
+        new URL('../scripts/classify-dependabot-swift-android-repair.mjs', import.meta.url),
+        'utf8',
+      ),
+    ])
+
+    assert.match(
+      workflow,
+      /- name: Classify trusted Swift Android repair[\s\S]*?node scripts\/classify-dependabot-swift-android-repair\.mjs/u,
+    )
+    assert.match(workflow, /if: steps\.classify\.outputs\.repair-kind == 'swift-android'/u)
+    assert.match(classifier, /validate-dependabot-swift-repair\.mjs/u)
+    assert.match(classifier, /repairKind = 'swift-android'/u)
   })
 
   it('runs native contract tests on the pull request with one aggregate gate', async () => {

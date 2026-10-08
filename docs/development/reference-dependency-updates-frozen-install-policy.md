@@ -4,6 +4,12 @@ Dependency changes are complete only when their authoritative manifest, every de
 pinned toolchain agree. Review the manifest and lock diff together, then run the corresponding
 frozen verification before merging.
 
+## pnpm
+
+`pnpm-lock.yaml` is canonical for the Node tooling. Verify it with
+`pnpm install --frozen-lockfile` under any pnpm 12 release; the lockfile must not change. pnpm
+itself is deliberately unpinned. See [pnpm](ci-runners.md#pnpm).
+
 ## SwiftPM
 
 Each package's `Package.resolved` is canonical for `swift-clients/core`, `swift-clients/ui`, and

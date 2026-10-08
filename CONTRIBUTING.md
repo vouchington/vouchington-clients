@@ -15,7 +15,8 @@ Bug reports and questions are welcome as issues.
 
 Start with the [README](README.md) for repository layout, the Filaments contract boundary, and the
 `pnpm clean` / `./dev/reset-worktree` tooling. Project principles and directory-scoped rules are in
-[AGENTS.md](AGENTS.md).
+[AGENTS.md](AGENTS.md). The Node tooling runs on any pnpm 12 release, which is deliberately
+unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
 
 ## Native quality
 
