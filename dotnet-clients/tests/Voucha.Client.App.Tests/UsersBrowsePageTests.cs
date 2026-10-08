@@ -116,6 +116,40 @@ public sealed class UsersBrowsePageTests
     page.Dispose();
   }
 
+  [Theory]
+  [InlineData(AccountType.Official, "Official", "shared.accountType.official")]
+  [InlineData(AccountType.System, "System", "shared.accountType.system")]
+  [InlineData(AccountType.AiAgent, "AI Agent", "shared.accountType.aiAgent")]
+  [InlineData(null, null, null)]
+  public void ShowsAccountClassificationAndClearsItWhenRowIsReused(
+      AccountType? accountType, string? expected, string? messageKey)
+  {
+    var (page, row) = CreatePageWithRow(
+        administrator: false,
+        new UserSearchResult("user-1", "alice", AccountType: accountType));
+
+    var badge = Find<Label>(row, "user-card-account-type");
+    Assert.Equal(expected, badge.Text);
+    Assert.Equal(expected is not null, badge.IsVisible);
+
+    if (messageKey is not null)
+    {
+      row.Resources[messageKey] = "Translated classification";
+      Assert.Equal("Translated classification", badge.Text);
+    }
+
+    row.BindingContext = new UserSearchResult("user-2", "bob");
+    Assert.Null(badge.Text);
+    Assert.False(badge.IsVisible);
+    if (accountType is not null)
+    {
+      row.BindingContext = new UserSearchResult("user-3", "charlie", AccountType: accountType);
+      Assert.Equal("Translated classification", badge.Text);
+      Assert.True(badge.IsVisible);
+    }
+    page.Dispose();
+  }
+
   [Fact]
   public void HidesAdminFieldsWhenViewerLosesAdministratorRole()
   {
@@ -174,6 +208,11 @@ public sealed class UsersBrowsePageTests
 
     var content = Assert.IsAssignableFrom<View>(
         Assert.Single(Descendants<CollectionView>(page)).ItemTemplate.CreateContent());
+    foreach (var type in new[] { AccountType.Official, AccountType.System, AccountType.AiAgent })
+    {
+      var key = AccountTypeLabels.MessageKey(type)!.Value;
+      content.Resources[key.Value] = localization.Localize(key);
+    }
     content.BindingContext = user ?? new UserSearchResult("user-1", "alice");
     return (page, content);
   }
