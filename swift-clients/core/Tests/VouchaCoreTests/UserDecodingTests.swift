@@ -136,7 +136,7 @@ final class UserDecodingTests: XCTestCase {
           "__entity_type": "user",
           "id": "user-1",
           \(usernameField)  "roles": ["member"],
-          "is_official_account": false,
+          "account_type": null,
           "use_display_name_from": null,
           "email_address": null,
           "individual_id": null,
