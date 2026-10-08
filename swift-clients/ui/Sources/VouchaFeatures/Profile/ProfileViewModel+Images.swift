@@ -17,11 +17,7 @@ extension ProfileViewModel {
         avatarPreviewData = nil
         avatarPreviewDecodeFailed = false
         isUploadingAvatar = true
-        defer {
-            if generation == avatarUploadGeneration {
-                isUploadingAvatar = false
-            }
-        }
+        defer { isUploadingAvatar = false }
 
         do {
             let (data, contentType) = try await ImageSelectionLoader.load(from: url)
@@ -59,11 +55,7 @@ extension ProfileViewModel {
         avatarPreviewData = nil
         avatarPreviewDecodeFailed = false
         isUploadingAvatar = true
-        defer {
-            if generation == avatarUploadGeneration {
-                isUploadingAvatar = false
-            }
-        }
+        defer { isUploadingAvatar = false }
 
         do {
             let response: IdentityResponse = try await client.send(.updateIdentity(profileImageId: .null))

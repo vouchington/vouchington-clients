@@ -5,6 +5,7 @@ public enum NativeLocalizationSelectors {
         "settings.*",
         "shared.*",
         "native.common.*",
+        "native.apiKeys.*",
         "native.auth.*",
         "native.navigation.*",
         "native.swift.navigation.*",

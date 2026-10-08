@@ -45,7 +45,7 @@ public final class ProfileViewModel {
         avatarPreviewData = nil
         avatarPreviewDecodeFailed = false
         avatarUploadErrorMessage = nil
-        isUploadingAvatar = false
+        // An identity mutation may already be on the server; keep it serialized until it returns.
     }
 
     let client: APIClient

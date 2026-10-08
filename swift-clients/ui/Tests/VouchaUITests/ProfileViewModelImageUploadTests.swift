@@ -173,6 +173,68 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
     }
 
+    func testNavigationKeepsAvatarUploadBusyUntilIdentityPatchFinishes() async throws {
+        try await assertNavigationKeepsAvatarMutationBusy(removing: false)
+    }
+
+    func testNavigationKeepsAvatarRemovalBusyUntilIdentityPatchFinishes() async throws {
+        try await assertNavigationKeepsAvatarMutationBusy(removing: true)
+    }
+
+    private func assertNavigationKeepsAvatarMutationBusy(removing: Bool) async throws {
+        let vm = try makeViewModel()
+        let imageId = "navigation-avatar"
+        let avatarURL = try makeImageFile(name: imageId, extension: "jpg", data: Self.validImageData)
+        defer { try? FileManager.default.removeItem(at: avatarURL) }
+        try registerImageUploadFlow(
+            imageId: imageId,
+            uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/\(imageId)")),
+            contentType: "image/jpeg",
+            stateBody: #"{"upload_state":{"id":"\#(imageId)","upload_status":"complete","upload_error":null,"ready":true,"blocked":false}}"#
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            PrivateUserTestFixture.identityEnvelope(
+                membershipPlan: "free", roles: ["user"], profileImageId: imageId
+            ), 200
+        )
+        let identityPath = "/api/v1/my/identity"
+        CannedFeedURLProtocol.suspendResponse(path: identityPath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: identityPath) }
+        let patch = CannedFeedURLProtocol.requestBarrier(path: identityPath, method: "PATCH")
+        let mutation = Task {
+            if removing {
+                await vm.removeAvatar()
+            } else {
+                await vm.uploadAvatar(from: avatarURL)
+            }
+        }
+        do {
+            _ = try await patch.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await mutation.value
+            throw error
+        }
+        vm.clearAvatarPreviewForNavigation()
+        guard vm.isUploadingAvatar else {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await mutation.value
+            XCTFail("Navigation allowed a new avatar mutation while the identity PATCH was still held")
+            return
+        }
+        XCTAssertNil(vm.avatarPreviewData)
+        await vm.uploadAvatar(from: avatarURL)
+        await vm.removeAvatar()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
+        CannedFeedURLProtocol.releaseResponse(path: identityPath)
+        await mutation.value
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertNil(vm.identity)
+        await vm.removeAvatar()
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 2)
+    }
+
     func testRemoveAvatarOverridesStaleProfileImageId() async throws {
         let vm = try makeViewModel()
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (

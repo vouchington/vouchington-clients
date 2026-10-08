@@ -7,6 +7,34 @@ import XCTest
 
 @MainActor
 final class CommunityAutomodRenderedControlsTests: NativeRouteSurfaceViewModelTestCase {
+    func testFlagCardsShowExplicitReasonOrAutomodFallbackBeforeDismiss() async throws {
+        let fixture = ApiFixtureLoader.data("native.communities.moderation-queue.automod-flag.page-1")
+        var response = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any])
+        let original = try XCTUnwrap((response["entries"] as? [[String: Any]])?.first)
+        var explicitReason = original
+        explicitReason["id"] = "00000000-0000-7000-8000-000000000903"
+        explicitReason["reason"] = "Moderator review reason"
+        explicitReason["flagged_reason"] = "Superseded automod reason"
+        var fallbackReason = original
+        fallbackReason["id"] = "00000000-0000-7000-8000-000000000904"
+        fallbackReason["reason"] = NSNull()
+        fallbackReason["flagged_reason"] = "Automod rule matched"
+        response["entries"] = [explicitReason, fallbackReason]
+        CannedFeedURLProtocol.handlers["/api/v1/communities/test-community/moderation-queue"] = try (
+            JSONSerialization.data(withJSONObject: response), 200
+        )
+
+        let model = try makeModel()
+        await model.loadNextPage()
+        let view = CommunityAutomodWorkspaceView(viewModel: model)
+        try await ViewHosting.host(view) {
+            XCTAssertNoThrow(try view.inspect().find(text: "Moderator review reason"))
+            XCTAssertNoThrow(try view.inspect().find(text: "Automod rule matched"))
+            XCTAssertThrowsError(try view.inspect().find(text: "Superseded automod reason"))
+            XCTAssertNoThrow(try view.inspect().find(button: "Dismiss"))
+        }
+    }
+
     func testRenderedFlagNavigatesNativelyAndDisablesDismissUntilResponse() async throws {
         let queuePath = "/api/v1/communities/test-community/moderation-queue"
         CannedFeedURLProtocol.handlers[queuePath] = (

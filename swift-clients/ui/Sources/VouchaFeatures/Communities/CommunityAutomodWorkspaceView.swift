@@ -79,6 +79,9 @@ struct CommunityAutomodWorkspaceView: View {
                         detected: content.linguaRsDetectedLanguage
                     )
             }
+            if let reason = entry.reason ?? entry.flaggedReason, !reason.isEmpty {
+                Text(verbatim: UiMessages.string(.userContent(reason), locale: locale))
+            }
             Button(UiMessages.string(.extractedCommunitiesCommunityAutomodFlagsPanelDismiss48845bff, locale: locale)) {
                 Task { await viewModel.dismiss(entry) }
             }

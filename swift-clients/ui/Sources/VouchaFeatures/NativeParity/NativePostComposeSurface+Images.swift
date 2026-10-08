@@ -72,11 +72,9 @@ extension NativePostComposeSurface {
         index: Int
     ) -> some View {
         HStack(spacing: Spacing.sm) {
-            if let previewData = image.localPreviewData {
-                LocalImagePreview(data: previewData)
-                    .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            }
+            LocalImagePreview(data: image.localPreviewData)
+                .frame(width: 52, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             Text(UiMessages.string(
                 .nativeSwiftPostComposeImageLabel,
                 parameters: ["index": UiMessages.number(index + 1, locale: nativeUiLocale)],

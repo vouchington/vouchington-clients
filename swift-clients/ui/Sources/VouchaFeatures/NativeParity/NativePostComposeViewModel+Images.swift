@@ -114,7 +114,7 @@ extension NativePostComposeViewModel {
                 reportImageUploadError(.app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
                 return false
             }
-            images.append(.init(imageId: state.id, localPreviewData: data))
+            images.append(.init(imageId: state.id, localPreviewData: LocalImagePreview.thumbnailData(from: data)))
         } catch let error as ImageSelectionError {
             guard generation == imageUploadGeneration else { return false }
             pendingImagePreviews.removeAll()
