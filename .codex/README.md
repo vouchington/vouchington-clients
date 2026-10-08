@@ -1,7 +1,8 @@
 # Codex configuration
 
-Codex reads the checked-in `AGENTS.md` files through the fallback configured in
-[`config.toml`](config.toml), and discovers local overlays under [`.agents/skills/`](../.agents/skills).
+Codex reads the checked-in `AGENTS.md` files directly. [`config.toml`](config.toml) configures
+plugins; it does not need a fallback filename for `AGENTS.md`. Local skill overlays live under
+[`.agents/skills/`](../.agents/skills).
 Install the focused public plugins once in the Codex environment:
 
 ```sh

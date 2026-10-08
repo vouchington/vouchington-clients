@@ -5,6 +5,12 @@ Claude Code uses the project-scoped [`../.mcp.json`](../.mcp.json) registration,
 `agent-blackboard@0.5.0` version. Export `AGENT_BLACKBOARD_URL` and `AGENT_BLACKBOARD_TOKEN` before
 starting Claude Code.
 
+Use Claude Code v2.1.281 or later for this repository's `AGENTS.md` instructions. Direct
+`AGENTS.md` loading began in v2.1.277, but earlier versions could miss it in some sessions,
+including Amazon Bedrock or sessions with telemetry disabled. Check `claude --version` and confirm
+the repository's `AGENTS.md` appears in `/context` before working. See the
+[Claude Code instruction-file guide](https://code.claude.com/docs/en/memory#when-agents-md-support-is-unavailable).
+
 ## Workflow plugins
 
 The checked-in settings enable the portable workflow and testing plugins plus pr-shepherd. Install
