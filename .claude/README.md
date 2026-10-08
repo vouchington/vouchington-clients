@@ -11,6 +11,11 @@ including Amazon Bedrock or sessions with telemetry disabled. Check `claude --ve
 the repository's `AGENTS.md` appears in `/context` before working. See the
 [Claude Code instruction-file guide](https://code.claude.com/docs/en/memory#when-agents-md-support-is-unavailable).
 
+If you keep a local `CLAUDE.local.md`, Claude Code's default instruction setting loads that file
+instead of `AGENTS.md`. Remove the local file or set Project instructions to
+`claude-md-and-agents-md` in `/config`, then confirm that `/context` includes the root and scoped
+native-client `AGENTS.md` files as you work in those directories.
+
 ## Workflow plugins
 
 The checked-in settings enable the portable workflow and testing plugins plus pr-shepherd. Install
