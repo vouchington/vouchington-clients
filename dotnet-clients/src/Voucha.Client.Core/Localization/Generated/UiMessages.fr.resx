@@ -1316,7 +1316,6 @@
   <data name="native.swift.communityRows.transparencyCategories.spam" xml:space="preserve"><value>Spam</value></data>
   <data name="native.swift.communityRows.transparencyCategories.spamDetection" xml:space="preserve"><value>Détection du spam</value></data>
   <data name="native.swift.communityRows.transparencyCategories.suspend" xml:space="preserve"><value>Suspendre</value></data>
-  <data name="native.swift.communityRows.transparencyCategories.tag" xml:space="preserve"><value>Étiqueter</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unlock" xml:space="preserve"><value>Déverrouiller</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unpin" xml:space="preserve"><value>Désépingler</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unsuspend" xml:space="preserve"><value>Réactiver</value></data>

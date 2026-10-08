@@ -1313,7 +1313,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesSpam = new("native.swift.communityRows.transparencyCategories.spam");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesSpamDetection = new("native.swift.communityRows.transparencyCategories.spamDetection");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesSuspend = new("native.swift.communityRows.transparencyCategories.suspend");
-    public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesTag = new("native.swift.communityRows.transparencyCategories.tag");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesUnlock = new("native.swift.communityRows.transparencyCategories.unlock");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesUnpin = new("native.swift.communityRows.transparencyCategories.unpin");
     public static readonly UiMessageKey NativeSwiftCommunityRowsTransparencyCategoriesUnsuspend = new("native.swift.communityRows.transparencyCategories.unsuspend");
@@ -3222,7 +3221,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftCommunityRowsTransparencyCategoriesSpam,
         NativeSwiftCommunityRowsTransparencyCategoriesSpamDetection,
         NativeSwiftCommunityRowsTransparencyCategoriesSuspend,
-        NativeSwiftCommunityRowsTransparencyCategoriesTag,
         NativeSwiftCommunityRowsTransparencyCategoriesUnlock,
         NativeSwiftCommunityRowsTransparencyCategoriesUnpin,
         NativeSwiftCommunityRowsTransparencyCategoriesUnsuspend,

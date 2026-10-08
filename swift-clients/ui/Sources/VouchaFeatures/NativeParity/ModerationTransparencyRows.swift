@@ -93,7 +93,6 @@ private let moderationTransparencyCategoryTitles: [String: UiMessageKey] = [
     "spam": .nativeSwiftCommunityRowsTransparencyCategoriesSpam,
     "spam_detection": .nativeSwiftCommunityRowsTransparencyCategoriesSpamDetection,
     "suspend": .nativeSwiftCommunityRowsTransparencyCategoriesSuspend,
-    "tag": .nativeSwiftCommunityRowsTransparencyCategoriesTag,
     "unlock": .nativeSwiftCommunityRowsTransparencyCategoriesUnlock,
     "unpin": .nativeSwiftCommunityRowsTransparencyCategoriesUnpin,
     "unsuspend": .nativeSwiftCommunityRowsTransparencyCategoriesUnsuspend,
