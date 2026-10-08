@@ -16,6 +16,7 @@ extension VoteIntegrityViewModel {
         do {
             penaltyBaselineIdsByFlagId[flag.id] = try await service.penaltyIds(flagId: flag.id)
             let response = try await service.applyPenalty(flagId: flag.id)
+            confirm(response.flag)
             penalizedUserCounts[flag.id] = response.penalizedUserCount
             confirmedPenaltyFlagIds.insert(flag.id)
             penaltyBaselineIdsByFlagId[flag.id] = nil
@@ -58,11 +59,10 @@ extension VoteIntegrityViewModel {
                     throw IntegrityReviewServiceError.incompleteVotePenaltySnapshot
                 }
                 let currentIds = try await service.penaltyIds(flagId: flagId)
-                if currentIds.subtracting(baselineIds).isEmpty {
-                    try await confirm(service.flag(id: flagId))
-                } else {
+                if !currentIds.subtracting(baselineIds).isEmpty {
                     confirmedPenaltyFlagIds.insert(flagId)
                 }
+                try await confirm(service.flag(id: flagId))
                 penaltyBaselineIdsByFlagId[flagId] = nil
                 ambiguousPenaltyFlagIds.remove(flagId)
                 reconciliationRequiredFlagIds.remove(flagId)

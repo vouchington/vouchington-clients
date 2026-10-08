@@ -88,6 +88,7 @@ final class IntegrityMutationReconciliationTests: NativeRouteSurfaceViewModelTes
     func testAmbiguousVotePenaltyConfirmsOnlyNewScopedPenalty() async throws {
         let flag = try IntegrityTestSupport.voteFlag()
         let service = VoteIntegrityServiceDouble()
+        service.exactResults = try [.success(IntegrityTestSupport.voteFlag(resolution: "penalized"))]
         service.penaltyResults = [.failure(VouchaError.network(URLError(.timedOut)))]
         service.penaltyIdResults = [
             .success(["old-revoked"]),
@@ -101,7 +102,8 @@ final class IntegrityMutationReconciliationTests: NativeRouteSurfaceViewModelTes
 
         XCTAssertEqual(service.penaltyCalls, [flag.id])
         XCTAssertEqual(service.penaltyIdCalls, [flag.id, flag.id])
-        XCTAssertTrue(service.exactCalls.isEmpty)
+        XCTAssertEqual(service.exactCalls, [flag.id])
+        XCTAssertTrue(viewModel.flags.isEmpty)
         XCTAssertTrue(viewModel.confirmedPenaltyFlagIds.contains(flag.id))
         XCTAssertFalse(viewModel.ambiguousPenaltyFlagIds.contains(flag.id))
         XCTAssertFalse(viewModel.reconciliationRequiredFlagIds.contains(flag.id))
@@ -224,6 +226,7 @@ final class IntegrityMutationReconciliationTests: NativeRouteSurfaceViewModelTes
     func testFailedVotePenaltyConfirmationRetriesGetConcurrentlyWithoutAnotherPost() async throws {
         let flag = try IntegrityTestSupport.voteFlag()
         let service = VoteIntegrityServiceDouble()
+        service.exactResults = try [.success(IntegrityTestSupport.voteFlag(resolution: "penalized"))]
         service.penaltyResults = [.failure(serverFailure)]
         service.penaltyIdResults = [
             .success(["old-revoked"]),
@@ -242,7 +245,8 @@ final class IntegrityMutationReconciliationTests: NativeRouteSurfaceViewModelTes
 
         XCTAssertEqual(service.penaltyCalls, [flag.id])
         XCTAssertEqual(service.penaltyIdCalls, [flag.id, flag.id, flag.id])
-        XCTAssertTrue(service.exactCalls.isEmpty)
+        XCTAssertEqual(service.exactCalls, [flag.id])
+        XCTAssertTrue(viewModel.flags.isEmpty)
         XCTAssertTrue(viewModel.confirmedPenaltyFlagIds.contains(flag.id))
         XCTAssertFalse(viewModel.ambiguousPenaltyFlagIds.contains(flag.id))
         XCTAssertFalse(viewModel.reconciliationRequiredFlagIds.contains(flag.id))

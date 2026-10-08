@@ -309,6 +309,11 @@ public sealed class VoteIntegrityViewModelTests
     var snapshots = 0;
     var service = new ModerationIntegrityTestService
     {
+      FetchVote = (_, _) => Task.FromResult(new VoteIntegrityFlagResponse(flag with
+      {
+        Resolution = "penalized",
+        ResolvedAt = DateTimeOffset.UtcNow,
+      })),
       FetchVotes = (_, _, _) => Task.FromResult(ModerationIntegrityTestService.VotePage([flag])),
       PenalizeVotes = (_, _) => Task.FromException<VoteIntegrityPenaltyApplicationResponse>(
           new HttpRequestException("uncertain")),

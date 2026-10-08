@@ -75,6 +75,7 @@ public sealed class VoteIntegrityViewModel
     {
       var response = await service.ApplyVoteRingPenaltyAsync(flagId, cancellationToken)
           .ConfigureAwait(true);
+      Replace(response.Flag);
       penaltyCounts[flagId] = response.PenalizedUserCount;
       penaltyBaselineIds.Remove(flagId);
       CompleteAction(flagId);
@@ -104,13 +105,11 @@ public sealed class VoteIntegrityViewModel
     {
       var authoritative = await FetchVotePenaltyIdsAsync(flagId, CancellationToken.None)
           .ConfigureAwait(true);
-      if (!authoritative.Except(baseline).Any())
-      {
-        var flag = await service.FetchVoteFlagAsync(flagId, CancellationToken.None)
-            .ConfigureAwait(true);
-        Replace(flag.Flag);
-        penaltySuppressedIds.Remove(flagId);
-      }
+      var hasNewPenalty = authoritative.Except(baseline).Any();
+      var flag = await service.FetchVoteFlagAsync(flagId, CancellationToken.None)
+          .ConfigureAwait(true);
+      Replace(flag.Flag);
+      if (!hasNewPenalty) penaltySuppressedIds.Remove(flagId);
       penaltyBaselineIds.Remove(flagId);
       CompletePenaltyReconciliation(flagId);
     }

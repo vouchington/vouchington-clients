@@ -90,8 +90,11 @@ enum IntegrityTestSupport {
         """)
     }
 
-    static func votePenalty(count: Int = 2) throws -> VoteIntegrityPenaltyResponse {
-        let flag = try voteFlag()
+    static func votePenalty(
+        count: Int = 2,
+        flag: VoteIntegrityFlag? = nil
+    ) throws -> VoteIntegrityPenaltyResponse {
+        let flag = try flag ?? voteFlag()
         let flagObject = try jsonObject(flag)
         return try decode(#"{"penalized_user_count":\#(count),"flag":\#(flagObject)}"#)
     }
