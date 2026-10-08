@@ -99,9 +99,9 @@ final class NativeRouteEntitySurfaceViewModelTests: NativeRouteSurfaceViewModelT
                     "id": "domain-1",
                     "hostname": "example.com",
                     "topic_id": "topic-1",
-                    "blocked": false,
-                    "crawlable": true,
-                    "link_rel_follow": true
+                    "is_blocked": false,
+                    "is_crawlable": true,
+                    "should_follow_link_rel": true
                   },
                   "hostname_election": {
                     "votes_score_net": 10,
@@ -326,7 +326,7 @@ final class NativeRouteEntitySurfaceViewModelTests: NativeRouteSurfaceViewModelT
             ),
             "/api/v1/urls/url-1/crawls/crawl-1": (
                 Data(
-                    #"{"crawl":{"id":"crawl-1","title":"Fetched page","created_at":"2026-06-01T12:00:00Z","completed_at":null,"response_status_code":404,"lang":"en","markdown":"Body","meta_tags":{"og:title":"Native"}},"og_image_sideload":"/sideload/image"}"#
+                    #"{"crawl":{"id":"crawl-1","title":"Fetched page","created_at":"2026-06-01T12:00:00Z","completed_at":null,"response_status_code":404,"language":"en","markdown":"Body","meta_tags":{"og:title":"Native"}},"og_image_sideload":"/sideload/image"}"#
                         .utf8
                 ),
                 200
@@ -365,9 +365,9 @@ final class NativeRouteEntitySurfaceViewModelTests: NativeRouteSurfaceViewModelT
                   "hostname": {
                     "id": "domain-1",
                     "hostname": "example.org",
-                    "blocked": true,
-                    "crawlable": false,
-                    "link_rel_follow": false
+                    "is_blocked": true,
+                    "is_crawlable": false,
+                    "should_follow_link_rel": false
                   },
                   "hostname_election": {
                     "votes_score_net": 4,

@@ -238,14 +238,14 @@ final class NativeDetailReportingTests: NativeRouteSurfaceViewModelTestCase {
 
     private static func domainData(blocked: Bool = false) -> Data {
         Data("""
-        {"hostname":{"id":"hostname-1","hostname":"example.com","blocked":\(blocked)},
+        {"hostname":{"id":"hostname-1","hostname":"example.com","is_blocked":\(blocked)},
         "hostname_election":null,"election_vote":null,"rss_feeds":[],"top_urls":[],"topic":null}
         """.utf8)
     }
 
     private static func urlData(includeHostname: Bool = true) -> Data {
         let hostname = includeHostname
-            ? #", "hostname":{"id":"hostname-1","hostname":"example.com","blocked":false}"#
+            ? #", "hostname":{"id":"hostname-1","hostname":"example.com","is_blocked":false}"#
             : ""
         return Data("""
         {"can_trigger_crawl":false,"can_view_crawl_history":true,"can_view_latest_crawl":false,
