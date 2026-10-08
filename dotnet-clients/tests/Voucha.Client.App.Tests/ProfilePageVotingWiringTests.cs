@@ -1,10 +1,25 @@
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
 
 public sealed class ProfilePageVotingWiringTests
 {
+  [Fact]
+  public void ProfileHistoryRendersProvenanceOnlyWhenThePostHasIt()
+  {
+    var markup = XDocument.Parse(AppSource("ProfilePage.xaml"));
+    XNamespace maui = "http://schemas.microsoft.com/dotnet/2021/maui";
+    var history = Assert.Single(markup.Descendants(maui + "CollectionView"),
+        element => (string?)element.Attribute("ItemsSource") == "{Binding HistoryItems}");
+    var template = Assert.Single(history.Descendants(maui + "DataTemplate"));
+    var provenance = Assert.Single(template.Descendants(maui + "Label"),
+        element => (string?)element.Attribute("Text") == "{Binding LocalizedProvenanceLabel}");
+
+    Assert.Equal("{Binding HasProvenance}", (string?)provenance.Attribute("IsVisible"));
+  }
+
   [Fact]
   public void ProfileUserTrustVotesHandOffVerificationRecoveryAfterBothMutations()
   {
