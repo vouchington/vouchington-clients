@@ -59,12 +59,28 @@ build.
 
 Before `--exec` and any selected restore, format, RESX-path, or build check, the harness resolves
 the first `dotnet` host on `PATH` and validates it once from the repository root. The same absolute
-host then runs direct .NET commands, and its directory leads `PATH` for child scripts. If the host
-is missing or cannot satisfy the root `global.json`, the harness replays the resolver output,
-preserves its exit status, and stops before a command or build lock starts. Install a compatible
-SDK selected by [`global.json`](../global.json) and put that installation first on `PATH`; the harness does not search other install
-roots or install SDKs. An ast-grep-only run remains SDK-independent. The external RESX fixture
-receives a runtime copy of the root policy so its temporary project cannot escape SDK selection.
+host then runs direct .NET commands, and that directory leads `PATH` for child scripts. Its
+directory is exported as `DOTNET_ROOT` only when it has SDK-root shape (an `sdk/` or `shared/`
+subdirectory); a wrapper script's directory leaves any pre-existing `DOTNET_ROOT` untouched rather
+than masking the real SDK root. If that host is missing or cannot satisfy the root `global.json`,
+the harness replays each resolver output, preserves the failing exit status, and stops before a
+command or build lock starts.
+
+Outside GitHub Actions, a failed PATH host may fall back to `$DOTNET_ROOT/dotnet` when that
+variable was already set, then `$HOME/.dotnet/dotnet` (the Microsoft user-local layout). Those extra
+roots are skipped when `GITHUB_ACTIONS` is set so a persistent runner cannot hide a broken
+job-scoped install behind a leftover `$HOME` SDK. When a fallback host is selected instead of the
+PATH-first candidate, the harness prints a single stderr warning naming the failed or absent PATH
+host and the host actually used; it stays silent when the PATH-first host is selected. The harness
+does not walk the rest of `PATH`, search Homebrew prefixes, or install SDKs.
+
+Homebrew's `/opt/homebrew/bin/dotnet` only sees SDKs registered in that install. A Microsoft
+user-local `10.0.3xx` SDK at `$HOME/.dotnet` is invisible to it, and non-interactive shells often
+omit `$HOME/.dotnet` from `PATH` because they do not load `~/.zshrc`. Put a compatible SDK selected
+by [`global.json`](../global.json) first on `PATH`, or keep the official installer at
+`$HOME/.dotnet` for the local fallback. An ast-grep-only run remains SDK-independent. The external
+RESX fixture receives a runtime copy of the root policy so its temporary project cannot escape SDK
+selection.
 
 ## Dependency-aware test planning
 
