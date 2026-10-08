@@ -82,4 +82,3 @@ public partial class ProfilePage : ContentPage
   private void OnProfileScrolled(object? sender, EventArgs args) { }
   private void OnPostClicked(object? sender, EventArgs args) { }
 }
-
