@@ -359,8 +359,6 @@
 "native.swift.chat.conversationTitle" = "Título da conversa";
 "native.swift.chat.enterLocalResponsesEndpoint" = "Introduza um endpoint local da API Responses nas Definições.";
 "native.swift.chat.generateTitle" = "Gerar título";
-"native.swift.chat.hostedTitleGenerationUnavailable" = "A geração alojada de títulos não está disponível.";
-"native.swift.chat.hostedUpgrade" = "Alojado (atualizar plano)";
 "native.swift.chat.local" = "Local";
 "native.swift.chat.localModelSettingsOff" = "Ative as respostas do modelo local nas Definições.";
 "native.swift.chat.localModelsUnavailablePlatform" = "Os modelos locais não estão disponíveis nesta plataforma.";
@@ -374,12 +372,7 @@
 "native.swift.chat.stop" = "Parar";
 "native.swift.chat.unableToCreateConversation" = "Não foi possível criar a conversa.";
 "native.swift.chat.unableToPersistOnDeviceResponse" = "Não foi possível guardar a resposta no dispositivo.";
-"native.swift.chat.unableToSendMessage" = "Não foi possível enviar a mensagem.";
 "native.swift.chat.you" = "Você";
-"native.swift.chatMessageBubble.subagentSteps" = "Passos do subagente";
-"native.swift.chatMessageBubble.subagentText" = "Texto do subagente";
-"native.swift.chatMessageBubble.toolCalls" = "Chamadas de ferramentas";
-"native.swift.chatMessageBubble.toolResults" = "Resultados das ferramentas";
 "native.swift.commentThread.ancestorChain" = "Cadeia de antecessores";
 "native.swift.commentThread.best" = "Melhor";
 "native.swift.commentThread.comments" = "Comentários";
