@@ -38,7 +38,7 @@ jobs:
       queue: max
       cancel-in-progress: false
     outputs:
-      accepted: ${{ steps.extract-fix.outputs.accepted }}
+      accepted: ${{ steps.authorize.outputs.accepted }}
       fix_request: ${{ steps.extract-fix.outputs.fix_request }}
     steps:
       # This job deliberately has no checkout -- it validates an untrusted comment
@@ -125,11 +125,48 @@ jobs:
             exit 1
           fi
 
-          pnpm dlx vouchington-tooling@0.18.1 gha-output fix_request < "$REQUEST_FILE"
+          pnpm dlx vouchington-tooling@0.28.0 gha-output fix_request < "$REQUEST_FILE"
+          echo "accepted=true" >> "$GITHUB_OUTPUT"
+
+      # The agent reads the issue title and body, so both the commenter and the issue author
+      # must hold write access. Lookup errors fail the job closed.
+      - name: Require collaborator commenter and issue author
+        id: authorize
+        if: steps.extract-fix.outputs.accepted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_USER: ${{ toJSON(github.event.comment.user) }}
+          ISSUE_USER: ${{ toJSON(github.event.issue.user) }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          echo "accepted=false" >> "$GITHUB_OUTPUT"
+          untrusted() {
+            jq -c '[.]' <<< "$1" |
+              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+                --allow-bot 'github-actions[bot]' |
+              jq -r '.untrusted | join(", ")'
+          }
+
+          UNTRUSTED_COMMENTER="$(untrusted "$COMMENT_USER")"
+          if [[ -n "$UNTRUSTED_COMMENTER" ]]; then
+            echo "Ignoring /fix from $UNTRUSTED_COMMENTER, who lacks write access."
+            exit 0
+          fi
+
+          UNTRUSTED_ISSUE_AUTHOR="$(untrusted "$ISSUE_USER")"
+          if [[ -n "$UNTRUSTED_ISSUE_AUTHOR" ]]; then
+            gh issue comment "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "\`/fix\` only runs on issues opened by collaborators with write access. Open a new issue that restates this request, then comment \`/fix\` there."
+            echo "Refusing /fix on issue opened by $UNTRUSTED_ISSUE_AUTHOR."
+            exit 0
+          fi
+
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge with eyes reaction and run link
-        if: steps.extract-fix.outputs.accepted == 'true'
+        if: steps.authorize.outputs.accepted == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMENT_ID: ${{ github.event.comment.id }}
@@ -202,16 +239,27 @@ jobs:
             for ((page = first_page; page <= last_page; page++)); do
               gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100&page=$page" |
                 jq -c --argjson maxChars "$MAX_COMMENT_CHARS" \
-                  '.[] | {id, author: .user.login,
+                  '.[] | {id, author: .user.login, authorType: .user.type,
                     body: (.body // "" | .[0:$maxChars]), bodyTruncated: ((.body // "" | length) > $maxChars),
                     created_at, updated_at}' >> issue-comments.ndjson
             done
           fi
           jq -s 'sort_by(.created_at) | .[-100:]' issue-comments.ndjson > issue-comments.json
-          jq --slurpfile comments issue-comments.json --argjson commentCount "$comment_count" \
+          # Only collaborators with write access (and this repository's own Actions bot) may shape
+          # the prompt.
+          jq '[.[] | {login: .author, type: .authorType}]' issue-comments.json > comment-authors.json
+          pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+            --allow-bot 'github-actions[bot]' < comment-authors.json > comment-author-trust.json
+          jq --slurpfile trust comment-author-trust.json \
+            '[.[] | select(.author as $author | $trust[0].trusted | index($author))]' \
+            issue-comments.json > trusted-issue-comments.json
+          jq --slurpfile comments trusted-issue-comments.json \
+            --slurpfile snapshot issue-comments.json \
+            --argjson commentCount "$comment_count" \
             --argjson maxCommentChars "$MAX_COMMENT_CHARS" '{
             body, labels: [.labels[].name], comments: $comments[0],
             commentSnapshot: {total: $commentCount, included: ($comments[0] | length),
+              excludedNonCollaborator: (($snapshot[0] | length) - ($comments[0] | length)),
               capped: ($commentCount > 100), maxCommentChars: $maxCommentChars}
           }' issue.json > issue-context.json
 
@@ -300,9 +348,11 @@ jobs:
           COMMENT_JSON="$(gh api "repos/$GITHUB_REPOSITORY/issues/comments/$TRIGGER_COMMENT_ID")"
           jq -e \
             'select((.id | tostring) == env.TRIGGER_COMMENT_ID and
-              (.issue_url | endswith("/issues/" + env.ISSUE_NUMBER)) and
-              (.author_association == "OWNER" or .author_association == "COLLABORATOR" or .author_association == "MEMBER"))' \
+              (.issue_url | endswith("/issues/" + env.ISSUE_NUMBER)))' \
             <<< "$COMMENT_JSON" > /dev/null
+          COMMENT_AUTHOR="$(jq -er '.user.login' <<< "$COMMENT_JSON")"
+          gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENT_AUTHOR/permission" --jq '.permission' |
+            grep -qxE 'admin|write'
           COMMAND="$(jq -r '.body | split("\n")[0]' <<< "$COMMENT_JSON" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           if [[ "$COMMAND" != "/fix" ]]; then
             echo "Suppressing failure comment because the triggering /fix command is no longer valid."
