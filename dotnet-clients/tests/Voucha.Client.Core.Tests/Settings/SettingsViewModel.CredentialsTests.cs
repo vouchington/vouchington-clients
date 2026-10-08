@@ -28,20 +28,20 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
-  public async Task FailedUserReloadCannotRetainPreviousAdministratorScopes()
+  public async Task FailedUserReloadCannotRetainPreviousApiKeyScopes()
   {
     var service = new FakeSettingsService { Roles = ["administrator"] };
     using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader", ApiKeyType = "mcp" };
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    model.SelectedApiKeyAudienceOption = model.ApiKeyAudienceOptions.Single(option => option.ProtocolValue == "admin");
-    Assert.Equal("mcp.admin:read", Assert.Single(model.ApiKeyScopes).Scope);
+    Assert.All(model.ApiKeyScopes, scope => Assert.Equal("user", scope.ProtocolValue.Audience));
+    model.SetApiKeyScopeSelected("mcp.user:read", true);
+    Assert.Equal(["mcp.user:read"], model.SelectedApiKeyScopes);
     service.UserFailure = new HttpRequestException("user offline");
     service.ProfileMarkdown = "Refreshed while user settings are unavailable";
 
     await model.LoadAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal("Refreshed while user settings are unavailable", model.ProfileMarkdown);
-    Assert.False(model.CanSelectAdminApiKeyScopes);
     Assert.Empty(model.ApiKeyScopes);
     Assert.False(model.CanCreateApiKey);
     Assert.Empty(model.PrivacySelections);
@@ -60,14 +60,11 @@ public sealed partial class SettingsViewModelTests
     Assert.False(model.CanCreateApiKey);
     model.SetApiKeyScopeSelected("rss:read", true);
     Assert.True(model.CanCreateApiKey);
-    var currentAudience = model.SelectedApiKeyAudienceOption;
-    model.SelectedApiKeyAudienceOption = currentAudience;
     Assert.Equal(["rss:read"], model.SelectedApiKeyScopes);
     model.ApiKeyType = "mcp";
     Assert.Empty(model.SelectedApiKeyScopes);
     Assert.Equal(["mcp.user:read", "mcp.user:write"], model.ApiKeyScopes.Select(scope => scope.Scope));
-    Assert.False(model.CanSelectAdminApiKeyScopes);
-    Assert.Equal("user", Assert.Single(model.ApiKeyAudienceOptions).ProtocolValue);
+    Assert.All(model.ApiKeyScopes, scope => Assert.Equal("user", scope.ProtocolValue.Audience));
   }
 
   [Fact]
@@ -96,22 +93,43 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
-  public async Task AdminScopesRequireTheAdministratorRoleAndExplicitAudienceSelection()
+  public async Task AdministratorRoleDoesNotExposeAdminApiKeyScopes()
   {
     var service = new FakeSettingsService { Roles = ["administrator"] };
     using var model = new SettingsViewModel(service) { ApiKeyType = "mcp" };
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    Assert.True(model.CanSelectAdminApiKeyScopes);
-    Assert.DoesNotContain(model.ApiKeyScopes, scope => scope.ProtocolValue.Audience == "admin");
-
-    model.SelectedApiKeyAudienceOption = model.ApiKeyAudienceOptions.Single(option => option.ProtocolValue == "admin");
-
-    Assert.Equal("mcp.admin:read", Assert.Single(model.ApiKeyScopes).Scope);
+    Assert.Equal(["mcp.user:read", "mcp.user:write"], model.ApiKeyScopes.Select(scope => scope.Scope));
     Assert.Empty(model.SelectedApiKeyScopes);
     service.Roles = [];
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    Assert.False(model.CanSelectAdminApiKeyScopes);
     Assert.All(model.ApiKeyScopes, scope => Assert.Equal("user", scope.ProtocolValue.Audience));
+  }
+
+  [Fact]
+  public async Task AdministratorCannotSelectAdminMcpScopesFromIncorrectCatalogueMetadata()
+  {
+    var service = new FakeSettingsService
+    {
+      Roles = ["administrator"],
+      Catalog = new ScopeCatalogResponse([
+        new("mcp.user:read", "user", "mcp", "read", ["api-key"], null, null),
+        new("mcp.admin:read", "admin", "mcp", "read", ["api-key"], null, null),
+        new("mcp.admin:write", "user", "mcp", "write", ["api-key"], null, null),
+      ]),
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyType = "mcp", ApiKeyLabel = "Reader" };
+
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal("mcp.user:read", Assert.Single(model.ApiKeyScopes).Scope);
+    model.SetApiKeyScopeSelected("mcp.admin:read", true);
+    model.SetApiKeyScopeSelected("mcp.admin:write", true);
+    Assert.Empty(model.SelectedApiKeyScopes);
+    Assert.False(model.CanCreateApiKey);
+    model.SetApiKeyScopeSelected("mcp.user:read", true);
+    Assert.Equal(["mcp.user:read"], model.SelectedApiKeyScopes);
+    await model.CreateApiKeyAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(["mcp.user:read"], service.LastCreatedApiKeyPermissions);
   }
 
   [Fact]

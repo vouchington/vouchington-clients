@@ -133,9 +133,7 @@
 "native.common.retry" = "Réessayer";
 "native.common.somethingWentWrong" = "Un problème est survenu";
 "native.credentials.action" = "Action";
-"native.credentials.adminAudience" = "Administrateur";
 "native.credentials.apiAudience" = "API";
-"native.credentials.audience" = "Audience";
 "native.credentials.catalogLoadFailed" = "Impossible de charger les paramètres des identifiants";
 "native.credentials.chooseScopes" = "Choisir les portées";
 "native.credentials.connectedApps" = "Applications connectées";
@@ -517,7 +515,6 @@
 "native.swift.communityRows.transparencyCategories.spam" = "Spam";
 "native.swift.communityRows.transparencyCategories.spamDetection" = "Détection du spam";
 "native.swift.communityRows.transparencyCategories.suspend" = "Suspendre";
-"native.swift.communityRows.transparencyCategories.tag" = "Étiqueter";
 "native.swift.communityRows.transparencyCategories.unlock" = "Déverrouiller";
 "native.swift.communityRows.transparencyCategories.unpin" = "Désépingler";
 "native.swift.communityRows.transparencyCategories.unsuspend" = "Réactiver";

@@ -13,6 +13,7 @@ public enum ListItemType: String, Codable, Sendable {
 
 public struct UserList: Codable, Identifiable, Sendable {
     public let id: String
+    public let entityType: String?
     public let ownerUserId: String
     public let name: String
     public let description: String?
@@ -21,6 +22,25 @@ public struct UserList: Codable, Identifiable, Sendable {
     public let updatedAt: Date
     public let removedAt: Date?
     public let provenance: PublicContentProvenance?
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(entityType, forKey: .entityType)
+        try container.encode(ownerUserId, forKey: .ownerUserId)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(visibility, forKey: .visibility)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(removedAt, forKey: .removedAt)
+        try container.encodeIfPresent(provenance, forKey: .provenance)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, ownerUserId, name, description, visibility, createdAt, updatedAt, removedAt, provenance
+        case entityType = "__entityType"
+    }
 }
 
 public struct ListItem: Codable, Identifiable, Sendable {
@@ -35,6 +55,12 @@ public struct ListItem: Codable, Identifiable, Sendable {
 
 public struct ListReference: Codable, Identifiable, Sendable {
     public let id: String
+    public let entityType: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case entityType = "__entityType"
+    }
 }
 
 public struct ListItemReference: Codable, Identifiable, Sendable {

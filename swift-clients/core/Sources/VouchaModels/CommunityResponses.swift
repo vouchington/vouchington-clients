@@ -11,10 +11,28 @@ public struct CommunityResponse: Codable, Sendable {
 public struct CommunityOwner: Codable, Identifiable, Sendable {
     public let id: String
     public let username: String?
+    public let accountType: AccountType?
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(username, forKey: .username)
+        try container.encode(accountType, forKey: .accountType)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, username, accountType
+    }
 }
 
 public struct CommunitiesSearchResult: Codable, Identifiable, Sendable {
     public let id: String
+    public let entityType: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case entityType = "__entityType"
+    }
 }
 
 public struct CommunitiesSearchResponse: Codable, Sendable {

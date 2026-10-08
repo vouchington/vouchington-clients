@@ -263,9 +263,7 @@
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ articles associés</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Réessayer</value></data>
   <data name="native.credentials.action" xml:space="preserve"><value>Action</value></data>
-  <data name="native.credentials.adminAudience" xml:space="preserve"><value>Administrateur</value></data>
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
-  <data name="native.credentials.audience" xml:space="preserve"><value>Audience</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Impossible de charger les paramètres des identifiants</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choisir les portées</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Applications connectées</value></data>
@@ -1316,7 +1314,6 @@
   <data name="native.swift.communityRows.transparencyCategories.spam" xml:space="preserve"><value>Spam</value></data>
   <data name="native.swift.communityRows.transparencyCategories.spamDetection" xml:space="preserve"><value>Détection du spam</value></data>
   <data name="native.swift.communityRows.transparencyCategories.suspend" xml:space="preserve"><value>Suspendre</value></data>
-  <data name="native.swift.communityRows.transparencyCategories.tag" xml:space="preserve"><value>Étiqueter</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unlock" xml:space="preserve"><value>Déverrouiller</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unpin" xml:space="preserve"><value>Désépingler</value></data>
   <data name="native.swift.communityRows.transparencyCategories.unsuspend" xml:space="preserve"><value>Réactiver</value></data>

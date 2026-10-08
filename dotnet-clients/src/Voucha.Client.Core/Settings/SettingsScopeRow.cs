@@ -20,7 +20,6 @@ public sealed record SettingsScopeRow(
   {
     "user" => UiMessageKey.NativeCredentialsUserAudience,
     "api" => UiMessageKey.NativeCredentialsApiAudience,
-    "admin" => UiMessageKey.NativeCredentialsAdminAudience,
     _ => UiMessageKey.NativeCredentialsInvalidSelection,
   }));
   public string Requires => ProtocolValue.Requires is { } scope
