@@ -133,9 +133,7 @@
 "native.common.retry" = "Intentar de nuevo";
 "native.common.somethingWentWrong" = "Algo salió mal";
 "native.credentials.action" = "Acción";
-"native.credentials.adminAudience" = "Administrador";
 "native.credentials.apiAudience" = "API";
-"native.credentials.audience" = "Audiencia";
 "native.credentials.catalogLoadFailed" = "No se pudo cargar la configuración de credenciales";
 "native.credentials.chooseScopes" = "Elegir ámbitos";
 "native.credentials.connectedApps" = "Aplicaciones conectadas";

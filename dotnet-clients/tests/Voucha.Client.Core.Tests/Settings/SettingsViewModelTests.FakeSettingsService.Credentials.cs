@@ -15,6 +15,7 @@ public sealed partial class SettingsViewModelTests
     public Func<Task>? RevokeGrant { get; set; }
     public string? LastGrantCursor { get; private set; }
     public string? LastRevokedGrant { get; private set; }
+    public IReadOnlyList<string>? LastCreatedApiKeyPermissions { get; set; }
     public Task<ScopeCatalogResponse> FetchScopeCatalogAsync(CancellationToken cancellationToken = default) =>
         CatalogFailure is { } error ? Task.FromException<ScopeCatalogResponse>(error) : CatalogTask ?? Task.FromResult(Catalog);
     public Task<OAuthGrantListResponse> FetchOAuthGrantsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default)

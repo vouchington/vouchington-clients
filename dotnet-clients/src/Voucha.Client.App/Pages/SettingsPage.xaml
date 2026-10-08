@@ -215,9 +215,6 @@
                     ItemDisplayBinding="{Binding DisplayLabel}"
                     SelectedItem="{Binding SelectedApiKeyTypeOption}"
                     Title="{DynamicResource native.dotnet.settings.keyType}" />
-                <Picker ItemsSource="{Binding ApiKeyAudienceOptions}" ItemDisplayBinding="{Binding DisplayLabel}"
-                        SelectedItem="{Binding SelectedApiKeyAudienceOption}" IsVisible="{Binding ShowsApiKeyAudience}"
-                        Title="{DynamicResource native.credentials.audience}" />
                 <Label Text="{DynamicResource native.credentials.chooseScopes}" Style="{StaticResource Metadata}" />
                 <Label Text="{Binding CredentialNotice}" Style="{StaticResource Metadata}" />
                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding ApiKeyScopes}">
@@ -236,7 +233,6 @@
                                         <Label Text="{Binding Action}" Style="{StaticResource Metadata}" />
                                     </HorizontalStackLayout>
                                     <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{DynamicResource native.credentials.audience}" Style="{StaticResource Metadata}" />
                                         <Label Text="{Binding Audience}" Style="{StaticResource Metadata}" />
                                     </HorizontalStackLayout>
                                     <Label Text="{Binding Requires}" Style="{StaticResource Metadata}" />

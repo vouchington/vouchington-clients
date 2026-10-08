@@ -63,12 +63,8 @@ public extension SettingsViewModel {
 }
 
 extension SettingsViewModel {
-    var isScopeAdministrator: Bool {
-        identity?.roles.contains("administrator") == true
-    }
-
     func applyCredentialScopeCatalog(_ catalog: ScopeCatalogResponse) throws {
-        apiKeyScopeSelection.configure(type: apiKeyType, isAdministrator: isScopeAdministrator)
+        apiKeyScopeSelection.configure(type: apiKeyType)
         apiKeyScopeSelection.replaceCatalog(catalog.scopes)
         guard !apiKeyScopeSelection.availableScopes.isEmpty else {
             throw VouchaError.unexpected(localized(.nativeCredentialsCatalogLoadFailed))

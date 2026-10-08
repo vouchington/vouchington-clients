@@ -18,9 +18,11 @@ public sealed class SettingsCredentialsPageSourceTests
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Audience}");
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Requires}");
     Assert.Contains(scopeTemplate.Descendants(), element => Attribute(element, "Text") == "{Binding Description}");
-    foreach (var key in new[] { "resource", "action", "audience" })
+    foreach (var key in new[] { "resource", "action" })
       Assert.Contains(scopeTemplate.Descendants(), element =>
           Attribute(element, "Text") == $"{{DynamicResource native.credentials.{key}}}");
+    Assert.DoesNotContain(document.Descendants(), element =>
+        Attribute(element, "ItemsSource") == "{Binding ApiKeyAudienceOptions}");
     var create = document.Descendants().Single(element =>
         Attribute(element, "Clicked") == "OnCreateApiKeyClicked");
     Assert.Equal("{Binding CanCreateApiKey}", Attribute(create, "IsEnabled"));

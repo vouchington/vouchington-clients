@@ -225,6 +225,7 @@ public sealed partial class SettingsViewModelTests
         IReadOnlyList<string> permissions,
         CancellationToken cancellationToken = default)
     {
+      LastCreatedApiKeyPermissions = permissions;
       ApiKeyCreationStarted?.TrySetResult();
       var response = ApiKeyCreationTask is { } task
           ? await task
