@@ -416,8 +416,8 @@ private final class DelayedStreamURLProtocol: URLProtocol {
     private func send(response: DelayedStreamResponse, path: String) async {
         for chunk in response.chunks {
             guard !Task.isCancelled else { return }
-            client?.urlProtocol(self, didLoad: chunk)
             Self.recordChunk(path: path)
+            client?.urlProtocol(self, didLoad: chunk)
             guard response.delayNanoseconds > 0 else { continue }
             try? await Task.sleep(nanoseconds: response.delayNanoseconds)
         }

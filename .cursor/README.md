@@ -9,9 +9,13 @@ tracked Claude discovery links in [`.claude/skills/`](../.claude/skills)). Do no
   server and environment-only credentials.
 - The exact eight-tool Agent Blackboard allowlist is repeated in [`cli.json`](cli.json) and
   [`permissions.json`](permissions.json). Keep it finite; never replace it with a wildcard.
-- [`sandbox.json`](sandbox.json) is the portable `workspace_readwrite` profile. Native compilers
-  and package managers may use the listed user caches, while credentials and unrelated home files
-  remain outside the project policy.
+- Keep command approvals limited to native-client project tools and repository checks. Generic
+  shell defaults and sandbox paths belong in the host setup described by the [agent configuration
+  ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).
+- Host credential-path guards are managed by `vouchington-machines` in user configuration. Run
+  its `configure-agents.sh` before using this checkout; Cursor guards derive from the shared Claude policy.
+- Sandbox profiles and machine-specific writable paths belong in the host setup described by the
+  [agent configuration ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).
 - Cursor does not install repository hooks here. Run native checks from the documented Swift or
   .NET harnesses and use the [pr-shepherd plugin](../.claude/README.md#review-workflow) for PR
   iteration when requested.
