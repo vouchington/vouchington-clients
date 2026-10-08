@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Install checkout-local dependencies and stage explicitly supplied producer contracts.
+set -euo pipefail
+
+root="$(CDPATH='' cd -P -- "$(dirname -- "$0")/.." && pwd -P)"
+producer_root=''
+stage_root=''
+usage() {
+  echo 'Usage: ./dev/setup-linux --producer-root /absolute/vouchington --stage-root /absolute/empty/stage' >&2
+}
+while (($#)); do
+  case "$1" in
+    --producer-root) (($# >= 2)) || { usage; exit 2; }; producer_root="$2"; shift 2 ;;
+    --stage-root) (($# >= 2)) || { usage; exit 2; }; stage_root="$2"; shift 2 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+if [[ "$producer_root" != /* || ! -d "$producer_root" || "$stage_root" != /* || -z "$stage_root" ]]; then
+  usage
+  exit 2
+fi
+producer_root="$(cd -- "$producer_root" && pwd -P)"
+if [[ -L "$stage_root" ]] || { [[ -e "$stage_root" ]] && [[ ! -d "$stage_root" || -n "$(ls -A "$stage_root")" ]]; }; then
+  echo '--stage-root must be absent or an empty directory.' >&2
+  exit 2
+fi
+stage_parent="$(dirname -- "$stage_root")"
+if [[ ! -d "$stage_parent" ]]; then
+  echo '--stage-root parent must be an existing directory.' >&2
+  exit 2
+fi
+stage_root="$(cd -P -- "$stage_parent" && pwd -P)/$(basename -- "$stage_root")"
+case "$stage_root/" in
+  "$root/"*|"$producer_root/"*)
+    echo '--stage-root must be outside the client and producer checkouts.' >&2
+    exit 2
+    ;;
+esac
+[[ -d "$producer_root/api-fixtures/v1" && -f "$producer_root/dev/native-localization.mts" ]] || {
+  echo '--producer-root must name a complete Vouchington checkout with fixtures and exporter.' >&2
+  exit 2
+}
+[[ "$(git -C "$producer_root" rev-parse --show-toplevel 2>/dev/null || true)" == "$producer_root" ]] || {
+  echo '--producer-root must be the root of an explicitly supplied full Git checkout.' >&2
+  exit 2
+}
+cd "$root"
+bash dev/linux-doctor --host-only
+pnpm install --frozen-lockfile
+mise trust "$root/.mise.toml"
+mise install
+bash dotnet-clients/tooling/harness.sh --checks restore
+# shellcheck source=dev/linux-native-images.sh
+# shellcheck disable=SC1091
+source "$root/dev/linux-native-images.sh"
+for image in "$SWIFT_LINUX_IMAGE" "$SWIFTFORMAT_LINUX_IMAGE" "$SWIFTLINT_LINUX_IMAGE"; do
+  docker pull "$image"
+done
+docker run --rm --read-only --network none "$SWIFT_LINUX_IMAGE" swift --version
+mkdir -p -- "$stage_root"
+if ! node scripts/stage-native-contract.mjs \
+  --filaments-root "$producer_root" --output-root "$stage_root" --consumer-root "$root"; then
+  echo 'Contract exporter failed. If it reported a missing module, run the producer checkout frozen install explicitly, then retry with a new empty stage.' >&2
+  exit 1
+fi
+VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check
+printf 'Ready. Set VOUCHA_FILAMENTS_CONTRACT_ROOT=%q for portable tests.\n' "$stage_root"

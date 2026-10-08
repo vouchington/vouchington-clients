@@ -6,6 +6,7 @@ This repository contains the Swift and .NET native clients for Voucha.
 
 The Node tooling needs Node.js 26 or later and any pnpm 12 release on `PATH`. pnpm is deliberately
 unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
+For a Linux coding agent, use the [Linux setup and portable test guide](docs/development/linux-agent-setup.md).
 
 ## Vouchington contracts
 

@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# Verify the Linux tools and an explicitly staged native contract.
+set -euo pipefail
+
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+stage_root=''
+host_only=false
+setup_ready=false
+usage() {
+  echo 'Usage: ./dev/linux-doctor --stage-root /absolute/complete/native-contract-stage' >&2
+  echo '       ./dev/linux-doctor --stage-root /absolute/complete/native-contract-stage --setup-ready' >&2
+  echo '       ./dev/linux-doctor --host-only' >&2
+}
+while (($#)); do
+  case "$1" in
+    --stage-root) (($# >= 2)) || { usage; exit 2; }; stage_root="$2"; shift 2 ;;
+    --setup-ready) setup_ready=true; shift ;;
+    --host-only) host_only=true; shift ;;
+    *) usage; exit 2 ;;
+  esac
+done
+if [[ "$host_only" == true && ( -n "$stage_root" || "$setup_ready" == true ) ]] ||
+  [[ "$host_only" == false && -z "$stage_root" ]]; then
+  usage
+  exit 2
+fi
+[[ "$(uname -s)" == Linux ]] || { echo 'Linux doctor requires a Linux host.' >&2; exit 1; }
+for tool in node pnpm dotnet docker mise; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "Missing required tool: $tool" >&2; exit 1; }
+done
+node_major="$(node -p 'Number(process.versions.node.split(".")[0])')"
+((node_major >= 26)) || { echo "Node.js 26+ required; found $(node --version)." >&2; exit 1; }
+pnpm_version="$(pnpm --version)"
+[[ "$pnpm_version" == 12.* ]] || { echo "pnpm 12 required; found $pnpm_version." >&2; exit 1; }
+required_sdk="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sdk.version' "$root/global.json")"
+actual_sdk="$(cd "$root" && dotnet --version)"
+# shellcheck disable=SC2016
+node -e '
+  const [required, actual] = process.argv.slice(1).map(value => value.split(".").map(Number));
+  if (required.length !== 3 || actual.length !== 3 ||
+      actual[0] !== required[0] || actual[1] !== required[1] ||
+      Math.floor(actual[2] / 100) !== Math.floor(required[2] / 100) ||
+      actual[2] < required[2]) {
+    console.error(`global.json requires ${process.argv[1]} with latestPatch; found ${process.argv[2]}.`);
+    process.exit(1);
+  }
+' "$required_sdk" "$actual_sdk"
+docker info --format '{{.OSType}}' | grep -Fxq linux || {
+  echo 'A working Linux Docker daemon is required for pinned Swift tools and portable tests.' >&2
+  exit 1
+}
+if [[ "$host_only" == false ]]; then
+  [[ "$stage_root" == /* && -d "$stage_root" ]] || {
+    echo '--stage-root must name an existing absolute complete native-contract stage.' >&2
+    exit 2
+  }
+  (cd "$root" && VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
+fi
+if [[ "$setup_ready" == true ]]; then
+  restore_inputs=(
+    global.json package.json pnpm-lock.yaml pnpm-workspace.yaml .mise.toml
+    contracts/filaments.json dotnet-clients/NuGet.config
+    dotnet-clients/Voucha.DotNet.sln
+    dotnet-clients/Directory.Build.props dotnet-clients/Directory.Build.targets
+    dotnet-clients/Directory.Packages.props
+    dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+    dotnet-clients/src/Voucha.Client.Core/packages.lock.json
+    dotnet-clients/tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
+    dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
+  )
+  restore_status="$(git -C "$root" status --porcelain --untracked-files=all -- "${restore_inputs[@]}")" || {
+    echo 'Setup readiness requires a complete Git checkout.' >&2
+    exit 1
+  }
+  if [[ -n "$restore_status" ]]; then
+    echo 'Setup or portable .NET restore inputs changed locally; rerun dev/setup-linux with a fresh stage.' >&2
+    exit 1
+  fi
+  if ! cmp -s "$root/pnpm-lock.yaml" "$root/node_modules/.pnpm/lock.yaml" ||
+    ! node - "$root" <<'NODE'
+const fs = require('node:fs')
+const path = require('node:path')
+const root = process.argv[2]
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const dependencies = { ...manifest.dependencies, ...manifest.devDependencies }
+for (const name of Object.keys(dependencies)) {
+  const packageRoot = path.join(root, 'node_modules', name)
+  let dependency
+  try {
+    dependency = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'))
+  } catch {
+    process.exit(1)
+  }
+  const bins = typeof dependency.bin === 'string'
+    ? [name.split('/').at(-1)]
+    : Object.keys(dependency.bin ?? {})
+  for (const bin of bins) {
+    try {
+      const mode = fs.statSync(path.join(root, 'node_modules', '.bin', bin)).mode
+      if ((mode & 0o111) === 0) process.exit(1)
+    } catch {
+      process.exit(1)
+    }
+  }
+}
+NODE
+  then
+    echo 'Checkout dependencies are absent or stale; rerun dev/setup-linux with a fresh stage.' >&2
+    exit 1
+  fi
+  (cd "$root" && mise ls --missing --json | node -e '
+    let text = "";
+    process.stdin.on("data", chunk => { text += chunk; });
+    process.stdin.on("end", () => {
+      if (Object.keys(JSON.parse(text)).length > 0) process.exit(1);
+    });
+  ') || {
+    echo 'Pinned mise tools are missing; rerun dev/setup-linux.' >&2
+    exit 1
+  }
+  for assets in \
+    "$root/dotnet-clients/src/Voucha.Client.Core/obj/project.assets.json" \
+    "$root/dotnet-clients/tests/Voucha.Client.Core.Tests/obj/project.assets.json"; do
+    [[ -s "$assets" ]] || {
+      echo 'Portable .NET restore assets are missing; rerun dev/setup-linux.' >&2
+      exit 1
+    }
+  done
+  # shellcheck source=dev/linux-native-images.sh
+  # shellcheck disable=SC1091
+  source "$root/dev/linux-native-images.sh"
+  for image in "$SWIFT_LINUX_IMAGE" "$SWIFTFORMAT_LINUX_IMAGE" "$SWIFTLINT_LINUX_IMAGE"; do
+    docker image inspect "$image" >/dev/null 2>&1 || {
+      echo "Pinned Linux image is missing: $image; rerun dev/setup-linux." >&2
+      exit 1
+    }
+  done
+fi
+echo 'Linux native-client host and contract checks passed.'
