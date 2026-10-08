@@ -7,7 +7,7 @@ namespace Voucha.Client.Core.Settings;
 public sealed partial class SettingsViewModel
 {
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Settings load failures surface in view state.")]
-  private async Task LoadSettingsContentAsync(User user, string userIdOrSlug, int generation, CancellationToken cancellationToken)
+  private async Task LoadSettingsContentAsync(string userIdOrSlug, int generation, CancellationToken cancellationToken)
   {
     try
     {
@@ -30,9 +30,6 @@ public sealed partial class SettingsViewModel
           pushSubscriptionsTask,
           dataRequestTask).ConfigureAwait(true);
       if (!IsCurrentSettingsLoad(generation)) return;
-
-      PrivacySelections = BuildSelections(user);
-      PrivacyToggles = BuildToggles(user);
 
       var profile = (await profileTask.ConfigureAwait(true)).Profile;
       ProfileMarkdown = profile.Markdown ?? string.Empty;
@@ -65,7 +62,11 @@ public sealed partial class SettingsViewModel
     }
     finally
     {
-      if (IsCurrentSettingsLoad(generation)) IsLoading = false;
+      if (IsCurrentSettingsLoad(generation))
+      {
+        settingsContentLoadCompleted = true;
+        UpdateSettingsLoadingState();
+      }
     }
   }
 }

@@ -36,12 +36,16 @@ public sealed partial class SettingsViewModelTests
     model.SelectedApiKeyAudienceOption = model.ApiKeyAudienceOptions.Single(option => option.ProtocolValue == "admin");
     Assert.Equal("mcp.admin:read", Assert.Single(model.ApiKeyScopes).Scope);
     service.UserFailure = new HttpRequestException("user offline");
+    service.ProfileMarkdown = "Refreshed while user settings are unavailable";
 
     await model.LoadAsync(TestContext.Current.CancellationToken);
 
+    Assert.Equal("Refreshed while user settings are unavailable", model.ProfileMarkdown);
     Assert.False(model.CanSelectAdminApiKeyScopes);
     Assert.Empty(model.ApiKeyScopes);
     Assert.False(model.CanCreateApiKey);
+    Assert.Empty(model.PrivacySelections);
+    Assert.Empty(model.PrivacyToggles);
   }
 
   [Fact]

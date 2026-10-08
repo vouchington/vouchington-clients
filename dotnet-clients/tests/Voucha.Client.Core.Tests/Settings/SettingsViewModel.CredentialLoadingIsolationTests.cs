@@ -59,6 +59,46 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
+  public async Task HeldUserDoesNotDelayIndependentSettingsContentOrExposeAuthorization()
+  {
+    var user = new TaskCompletionSource<UserResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var userStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var profileStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new FakeSettingsService
+    {
+      UserTask = user.Task,
+      UserFetchStarted = userStarted,
+      ProfileFetchStarted = profileStarted,
+      Roles = ["administrator"],
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyType = "mcp", ApiKeyLabel = "Reader" };
+    var load = model.LoadAsync(TestContext.Current.CancellationToken);
+    try
+    {
+      await userStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      Assert.True(profileStarted.Task.IsCompleted);
+
+      Assert.False(load.IsCompleted);
+      Assert.True(model.IsLoading);
+      Assert.Equal("Hello, Voucha!", model.ProfileMarkdown);
+      Assert.NotEmpty(model.ApiKeys);
+      Assert.False(model.CanSelectAdminApiKeyScopes);
+      Assert.Empty(model.ApiKeyScopes);
+      Assert.False(model.CanCreateApiKey);
+      Assert.Empty(model.PrivacySelections);
+    }
+    finally
+    {
+      user.TrySetResult(new UserResponse(new User("user-1", "alice")));
+      await load;
+    }
+
+    Assert.True(model.CanSelectAdminApiKeyScopes);
+    Assert.NotEmpty(model.ApiKeyScopes);
+    Assert.NotEmpty(model.PrivacySelections);
+  }
+
+  [Fact]
   public async Task ApiKeyCanBeCreatedWhileUnrelatedSettingsContentIsStillLoading()
   {
     var heldApiKeys = new TaskCompletionSource<ApiKeyListResponse>(TaskCreationOptions.RunContinuationsAsynchronously);

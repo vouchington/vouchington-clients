@@ -23,6 +23,10 @@ public sealed partial class SettingsViewModelTests
 
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
     public Exception? UserFailure { get; set; }
+    public Task<UserResponse>? UserTask { get; set; }
+    public TaskCompletionSource? UserFetchStarted { get; set; }
+    public TaskCompletionSource? ProfileFetchStarted { get; set; }
+    public string ProfileMarkdown { get; set; } = "Hello, Voucha!";
     public Exception? MembershipPlansFailure { get; set; }
     public Task<ApiKeyCreationResponse>? ApiKeyCreationTask { get; set; }
     public Task<ApiKeyListResponse>? FirstApiKeysPageTask { get; set; }
@@ -122,8 +126,11 @@ public sealed partial class SettingsViewModelTests
       return Task.FromResult(CreateIdentity());
     }
 
-    public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateProfile());
+    public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default)
+    {
+      ProfileFetchStarted?.TrySetResult();
+      return Task.FromResult(new MyProfileResponse(new MyProfile("profile-1", ProfileMarkdown)));
+    }
 
     public Task<MyProfileResponse> UpdateMyProfileAsync(
         string markdown,
@@ -139,15 +146,16 @@ public sealed partial class SettingsViewModelTests
     public Task RevokeAuthSessionsAsync(CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 
-    public Task<UserResponse> FetchUserAsync(
+    public async Task<UserResponse> FetchUserAsync(
         string idOrSlug,
         bool includeBio = false,
         CancellationToken cancellationToken = default)
     {
       LastFetchedUserIdOrSlug = idOrSlug;
-      if (UserFailure is { } failure) return Task.FromException<UserResponse>(failure);
-      var response = CreateUser();
-      return Task.FromResult(response with { User = response.User with { Roles = Roles } });
+      UserFetchStarted?.TrySetResult();
+      if (UserFailure is { } failure) throw failure;
+      var response = UserTask is { } task ? await task : CreateUser();
+      return response with { User = response.User with { Roles = Roles } };
     }
 
     public Task<UserResponse> UpdateUserAsync(

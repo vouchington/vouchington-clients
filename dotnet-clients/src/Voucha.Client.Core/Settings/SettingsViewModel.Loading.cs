@@ -7,6 +7,8 @@ namespace Voucha.Client.Core.Settings;
 public sealed partial class SettingsViewModel
 {
   private int settingsLoadGeneration;
+  private bool settingsContentLoadCompleted;
+  private bool settingsUserLoadCompleted;
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Settings mutations should surface failures in view state.")]
   public async Task LoadAsync(CancellationToken cancellationToken = default)
@@ -15,8 +17,12 @@ public sealed partial class SettingsViewModel
     InvalidateSettingsPagination();
     oauthGrantPages.InvalidateRequestsPreservingPage();
     IsLoading = true;
+    settingsContentLoadCompleted = false;
+    settingsUserLoadCompleted = false;
     ErrorMessage = null;
     ResetCredentialAuthorization();
+    PrivacySelections = [];
+    PrivacyToggles = [];
 
     try
     {
@@ -34,12 +40,9 @@ public sealed partial class SettingsViewModel
           ? $"{Username} · {email}"
           : Username;
 
-      var user = (await settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken).ConfigureAwait(true)).User;
-      if (!IsCurrentSettingsLoad(generation)) return;
-      loadedUser = user;
-      var credentialsTask = LoadCredentialsAsync(generation, cancellationToken);
-      var contentTask = LoadSettingsContentAsync(user, userIdOrSlug, generation, cancellationToken);
-      await Task.WhenAll(credentialsTask, contentTask).ConfigureAwait(true);
+      var contentTask = LoadSettingsContentAsync(userIdOrSlug, generation, cancellationToken);
+      var userTask = LoadSettingsUserAsync(userIdOrSlug, generation, cancellationToken);
+      await Task.WhenAll(contentTask, userTask).ConfigureAwait(true);
     }
     catch (Exception ex)
     {
@@ -52,6 +55,35 @@ public sealed partial class SettingsViewModel
   }
 
   private bool IsCurrentSettingsLoad(int generation) => generation == Volatile.Read(ref settingsLoadGeneration);
+
+  private async Task LoadSettingsUserAsync(string userIdOrSlug, int generation, CancellationToken cancellationToken)
+  {
+    User user;
+    try
+    {
+      user = (await settingsService.FetchUserAsync(userIdOrSlug, cancellationToken: cancellationToken).ConfigureAwait(true)).User;
+      if (!IsCurrentSettingsLoad(generation)) return;
+      loadedUser = user;
+      PrivacySelections = BuildSelections(user);
+      PrivacyToggles = BuildToggles(user);
+      OnPropertyChanged(nameof(CanSelectAdminApiKeyScopes));
+    }
+    finally
+    {
+      if (IsCurrentSettingsLoad(generation))
+      {
+        settingsUserLoadCompleted = true;
+        UpdateSettingsLoadingState();
+      }
+    }
+
+    if (IsCurrentSettingsLoad(generation)) await LoadCredentialsAsync(generation, cancellationToken).ConfigureAwait(true);
+  }
+
+  private void UpdateSettingsLoadingState()
+  {
+    IsLoading = !(settingsContentLoadCompleted && settingsUserLoadCompleted);
+  }
 
   private string DisplayMembershipStatus(string status) => status.ToUpperInvariant() switch
   {
