@@ -92,12 +92,12 @@ public sealed partial class NewsFeedsViewModel
       var promoted = incomingGroup.WithPrimary(first, [item, .. priorPeers]);
       grouped.Add(storyId, promoted);
       ungrouped.Remove(storyId);
-      if (Items.Any(row => row.Id == first.Id))
+      if (Items.Any(row => row.FeedRowId == first.FeedRowId))
         Items = Items.Where(row => row.StoryId != storyId || row.Id == first.Id || row.StoryArticles is not null)
-            .Select(row => row.Id == first.Id ? row with { StoryArticles = promoted } : row).ToArray();
+            .Select(row => row.FeedRowId == first.FeedRowId ? row with { StoryArticles = promoted } : row).ToArray();
       kept.RemoveAll(row => row.StoryId == storyId && row.Id != first.Id);
       for (var index = 0; index < kept.Count; index++)
-        if (kept[index].Id == first.Id) kept[index] = first with { StoryArticles = promoted };
+        if (kept[index].FeedRowId == first.FeedRowId) kept[index] = kept[index] with { StoryArticles = promoted };
     }
     return [.. kept];
   }

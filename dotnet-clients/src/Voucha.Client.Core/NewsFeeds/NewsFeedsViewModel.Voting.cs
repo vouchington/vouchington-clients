@@ -32,7 +32,7 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       await EmailVerificationGate.RunAsync(
-          () => SubmitVoteAsync(item, choice, cancellationToken),
+          SubmitAndProjectAsync,
           ex =>
           {
             RollbackVote(mutationLoadRequestId, item, previousTargetItems, ex.Message);
@@ -49,6 +49,12 @@ public sealed partial class NewsFeedsViewModel
     finally
     {
       votingArticleIds.Remove(voteKey);
+    }
+
+    async Task SubmitAndProjectAsync()
+    {
+      await SubmitVoteAsync(item, choice, cancellationToken).ConfigureAwait(true);
+      if (loadRequestId == mutationLoadRequestId) Items = UpdateVote(Items, item, choice);
     }
   }
 

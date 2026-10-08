@@ -42,13 +42,21 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       if (verifyEmail)
-        await EmailVerificationGate.RunAsync(submit, ex => Restore(ex.Message)).ConfigureAwait(true);
+        await EmailVerificationGate.RunAsync(SubmitAndProjectAsync, ex => Restore(ex.Message)).ConfigureAwait(true);
       else
-        await submit().ConfigureAwait(true);
+        await SubmitAndProjectAsync().ConfigureAwait(true);
     }
     catch (OperationCanceledException) { Restore(null); }
     catch (Exception ex) { Restore(ex.Message); }
     finally { togglingArticleIds.Remove(original.Id); }
+
+    async Task SubmitAndProjectAsync()
+    {
+      await submit().ConfigureAwait(true);
+      if (generation != loadRequestId) return;
+      Items = Items.Where(item => !remove || item.Id != original.Id)
+          .Select(item => item.Id == original.Id ? project(item) : item).ToArray();
+    }
 
     void Restore(string? message)
     {

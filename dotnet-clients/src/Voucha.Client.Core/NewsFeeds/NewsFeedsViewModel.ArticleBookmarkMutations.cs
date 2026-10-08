@@ -52,6 +52,8 @@ public sealed partial class NewsFeedsViewModel
     {
       await bookmarkService.SetAsync("rss_feed_item", item.Id, predicate, active, cancellationToken)
           .ConfigureAwait(true);
+      if (SelectedScope == mutationScope && loadRequestId == mutationLoadRequestId)
+        Items = ToggleArticleBookmark(Items, item.Id, predicate, active, removeOnActivate);
       if (isStoryPrimaryHide) CompleteStoryPrimarySuppression(item.Id, mutationLoadRequestId);
       else if (isStoryPrimaryUnhide) ClearStoryPrimarySuppression(item.Id, mutationLoadRequestId);
     }

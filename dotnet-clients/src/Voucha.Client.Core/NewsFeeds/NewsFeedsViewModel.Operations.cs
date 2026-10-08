@@ -102,6 +102,8 @@ public sealed partial class NewsFeedsViewModel
     try
     {
       await newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken).ConfigureAwait(true);
+      if (SelectedScope == mutationScope && loadRequestId == mutationLoadRequestId)
+        Items = ToggleRead(Items, item.Id, isRead);
     }
     catch (OperationCanceledException)
     {
