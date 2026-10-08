@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
@@ -152,27 +151,6 @@ public partial class SettingsPage : ContentPage
       {
         await forced.RefreshAsync(force: true);
       }
-    }
-  }
-
-  private async void OnCreateApiKeyClicked(object? sender, EventArgs e)
-  {
-    await viewModel.CreateApiKeyAsync();
-  }
-
-  private async void OnCopyApiKeyClicked(object? sender, EventArgs e)
-  {
-    if (!string.IsNullOrWhiteSpace(viewModel.ApiKeySecret))
-    {
-      await Clipboard.SetTextAsync(viewModel.ApiKeySecret);
-    }
-  }
-
-  private async void OnRevokeApiKeyClicked(object? sender, EventArgs e)
-  {
-    if (sender is Button { CommandParameter: SettingsApiKeyRow row })
-    {
-      await viewModel.RevokeApiKeyAsync(row.ProtocolValue);
     }
   }
 

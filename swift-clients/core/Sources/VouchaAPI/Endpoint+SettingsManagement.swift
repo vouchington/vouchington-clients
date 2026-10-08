@@ -1,12 +1,6 @@
 import Foundation
 import VouchaModels
 
-private struct CreateApiKeyBody: Encodable {
-    let label: String
-    let type: ApiKeyType
-    let permissions: [String]
-}
-
 private struct CheckoutSessionBody: Encodable {
     let priceId: String
     let successUrl: String
@@ -107,11 +101,14 @@ public extension Endpoint {
         settingsPage(path: "/api/v1/my/api-keys", after: after, limit: limit)
     }
 
-    static func createMyApiKey(label: String, type: ApiKeyType = .rss, permissions: [String]) -> Endpoint {
+    static func createMyApiKey(
+        label: String, type: ApiKeyType = .rss, permissions: [String],
+        lifetime: ApiKeyLifetimeChoice = .serverDefault
+    ) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/my/api-keys",
-            body: CreateApiKeyBody(label: label, type: type, permissions: permissions)
+            body: CreateApiKeyBody(label: label, type: type, permissions: permissions, lifetime: lifetime)
         )
     }
 

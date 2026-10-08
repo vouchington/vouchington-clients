@@ -20,6 +20,7 @@ public final class SettingsViewModel {
     public internal(set) var credentialState: LoadState = .idle
     public internal(set) var oauthGrantState: LoadState = .idle
     public internal(set) var apiKeyCreationInFlight = false
+    public internal(set) var apiKeyRotationInFlight: Set<String> = []
     @ObservationIgnored
     var activeMainSettingsLoadGeneration: Int?
     @ObservationIgnored
@@ -47,6 +48,7 @@ public final class SettingsViewModel {
     public internal(set) var membershipBenefitCatalog: MembershipBenefitCatalog?
     public internal(set) var dataRequest: UserDataRequest?
     public internal(set) var latestRawAPIKey: String?
+    public internal(set) var apiKeyLifetimeDays: Int? = 90
     public internal(set) var membershipCheckoutURL: String?
     public internal(set) var membershipPortalURL: String?
     public internal(set) var statusMessage: UiVerbatimText?

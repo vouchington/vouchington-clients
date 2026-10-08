@@ -26,6 +26,7 @@ public sealed partial class SettingsViewModelActionsTests
             FollowsVisibility: "followers",
             LikesVisibility: "nobody",
             DefaultPostPrivacy: "private",
+            Roles: UserRoles,
             UiLocale: UserUiLocale,
             ProcessingRestrictedAt: DateTimeOffset.Parse("2026-07-01T22:00:00Z"),
             ThirdPartyMarketing: true));

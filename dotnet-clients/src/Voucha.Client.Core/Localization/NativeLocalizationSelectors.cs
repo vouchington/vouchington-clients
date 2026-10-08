@@ -13,6 +13,7 @@ public static class NativeLocalizationSelectors
       "shared.*",
       "native.common.*",
       "native.auth.*",
+      "native.apiKeys.*",
       "native.credentials.*",
       "native.dotnet.*",
       "native.language.*",

@@ -161,6 +161,23 @@ final class SettingsEndpointCoverageTests: XCTestCase {
             method: .DELETE,
             path: "/api/v1/my/api-keys/key%201"
         )
+        assertEndpoint(
+            Endpoint.createMyApiKey(label: "Admin", permissions: ["rss:read"], lifetime: .days(30)),
+            method: .POST,
+            path: "/api/v1/my/api-keys",
+            body: ["label": "Admin", "type": "rss", "permissions": ["rss:read"], "lifetime_days": 30]
+        )
+        assertEndpoint(
+            Endpoint.createMyApiKey(label: "Unlimited", permissions: ["rss:read"], lifetime: .unlimited),
+            method: .POST,
+            path: "/api/v1/my/api-keys",
+            body: ["label": "Unlimited", "type": "rss", "permissions": ["rss:read"], "lifetime_days": NSNull()]
+        )
+        assertEndpoint(
+            Endpoint.rotateMyApiKey(id: "key 1"),
+            method: .POST,
+            path: "/api/v1/my/api-keys/key%201/rotate"
+        )
         assertEndpoint(Endpoint.membershipPlans, path: "/api/v1/memberships/plans")
         assertEndpoint(Endpoint.membershipMe, path: "/api/v1/memberships/me")
         assertEndpoint(
