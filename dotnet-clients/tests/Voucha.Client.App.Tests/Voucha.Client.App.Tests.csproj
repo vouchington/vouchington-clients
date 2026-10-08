@@ -15,6 +15,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml" Link="Pages/PostsPage.xaml" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostDetailPage.xaml" Link="Pages/PostDetailPage.xaml" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ProfilePage.xaml" Link="Pages/ProfilePage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostsPageBinding.cs" Link="Pages/PostsPageBinding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/LoadablePageBinding.cs" Link="Pages/LoadablePageBinding.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.cs" Link="Pages/PostDetailPageBinding.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Rows.cs" Link="Pages/PostDetailPageBinding.Rows.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Pagination.cs" Link="Pages/PostDetailPageBinding.Pagination.cs" />
