@@ -9,6 +9,7 @@ struct CommunitySurface: View {
     private let isAdministrator: Bool
     private let isSiteModerator: Bool
     private let showSignIn: () -> Void
+    private let onNavigate: (String) -> Void
     private let turnstileSiteKey: String?
 
     init(
@@ -18,13 +19,15 @@ struct CommunitySurface: View {
         isAdministrator: Bool = false,
         isSiteModerator: Bool = false,
         turnstileSiteKey: String?,
-        showSignIn: @escaping () -> Void = {}
+        showSignIn: @escaping () -> Void = {},
+        onNavigate: @escaping (String) -> Void = { _ in }
     ) {
         self.client = client
         self.isSignedIn = isSignedIn
         self.isAdministrator = isAdministrator
         self.isSiteModerator = isSiteModerator
         self.showSignIn = showSignIn
+        self.onNavigate = onNavigate
         mode = CommunitySurfaceMode.mode(for: routeMatch)
         self.turnstileSiteKey = turnstileSiteKey
     }
@@ -67,7 +70,8 @@ struct CommunitySurface: View {
                     modmailThreadId: modmailThreadId
                 ),
                 isSignedIn: isSignedIn,
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                onNavigate: onNavigate
             )
         }
     }

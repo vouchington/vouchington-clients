@@ -7,6 +7,7 @@ struct CommunityDetailActionPanel: View {
     var viewModel: CommunityDetailViewModel
     let isSignedIn: Bool
     let showSignIn: () -> Void
+    var onNavigate: (String) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -50,6 +51,29 @@ struct CommunityDetailActionPanel: View {
                     canModerate: viewModel.canModerateCommunity,
                     showSignIn: showSignIn
                 )
+            }
+
+            if isSignedIn, viewModel.canModerateCommunity, viewModel.selectedTab == .settings {
+                CommunityAutomodSettingsView(
+                    viewModel: CommunityAutomodWorkspaceViewModel(
+                        client: viewModel.client, slug: viewModel.slug,
+                        action: viewModel.communityDetail?.community.automodAction,
+                        canModerate: true
+                    )
+                )
+                .id(viewModel.communityLoadRevision)
+            }
+
+            if isSignedIn, viewModel.canModerateCommunity, viewModel.selectedTab == .moderation {
+                CommunityAutomodWorkspaceView(
+                    viewModel: CommunityAutomodWorkspaceViewModel(
+                        client: viewModel.client, slug: viewModel.slug,
+                        action: viewModel.communityDetail?.community.automodAction,
+                        canModerate: true
+                    ),
+                    onNavigate: onNavigate
+                )
+                .id(viewModel.communityLoadRevision)
             }
 
             if viewModel.selectedTab != .modmail,
