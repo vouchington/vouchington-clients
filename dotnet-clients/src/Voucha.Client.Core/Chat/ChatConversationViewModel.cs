@@ -87,8 +87,13 @@ public sealed partial class ChatConversationViewModel :
     get => selectedProviderStatus ?? providerResolver.GetDefaultProviderStatus();
     set
     {
+      ArgumentNullException.ThrowIfNull(value);
       if (SetProperty(ref selectedProviderStatus, value))
       {
+        if (pendingLocalTurn is { } pending && !SameProviderIdentity(pending.Provider, value))
+        {
+          pendingLocalTurn = null;
+        }
         OnPropertyChanged(nameof(ProviderStatusText));
         OnPropertyChanged(nameof(CanSetUpSelectedWindowsSystemLanguageModel));
       }

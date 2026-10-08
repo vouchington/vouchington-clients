@@ -21,6 +21,9 @@ extension NativeChatViewModel {
         ensureAssistantMessage(id: assistantMessageId)
 
         do {
+            if try await persistPendingLocalTurnIfAny(
+                client: client, context: context, assistantMessageId: assistantMessageId
+            ) { return }
             guard let response = try await provider.generateAssistantResponse(
                 to: context.text,
                 history: history
@@ -62,12 +65,13 @@ extension NativeChatViewModel {
         }
     }
 
-    private func persistLocalGenerationResponse(
+    func persistLocalGenerationResponse(
         client: APIClient,
         context: NativeChatDraftSendContext,
         assistantMessageId: String,
         response: NativeChatAssistantResponse
     ) async throws {
+        pendingLocalTurn = .init(context: context, response: response)
         let persistedResponse: ClientGeneratedChatResponse = try await client.send(.clientGeneratedChat(
             conversationId: context.conversationId,
             message: context.text,
@@ -81,6 +85,9 @@ extension NativeChatViewModel {
                 assistantMessageId: assistantMessageId
             )
             return
+        }
+        if pendingLocalTurn?.context.userMessageId == context.userMessageId {
+            pendingLocalTurn = nil
         }
         reconcileClientGeneratedMessages(
             userMessageId: context.userMessageId,

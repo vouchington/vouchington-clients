@@ -54,9 +54,10 @@ public sealed partial class ChatConversationViewModel
 
     var currentRequest = BeginMutation();
     var conversationId = ConversationId;
+    var retry = RetryableTurn(conversationId, trimmed, selectedProvider);
     var messageTime = DateTimeOffset.UtcNow;
-    var localUserMessageId = Guid.CreateVersion7(messageTime).ToString();
-    var localAssistantMessageId = Guid.CreateVersion7(messageTime.AddMilliseconds(1)).ToString();
+    var localUserMessageId = retry?.Body.UserMessageId ?? Guid.CreateVersion7(messageTime).ToString();
+    var localAssistantMessageId = retry?.Body.AssistantMessageId ?? Guid.CreateVersion7(messageTime.AddMilliseconds(1)).ToString();
     LocalLLMResponseInput[] localHistory = LocalLLMHistory();
     var userMessageInserted = false;
     var assistantMessageInserted = false;
@@ -104,6 +105,8 @@ public sealed partial class ChatConversationViewModel
           localAssistantMessageId,
           localHistory,
           selectedLocalProvider,
+          selectedProvider,
+          retry,
           currentRequest,
           cancellationToken).ConfigureAwait(true);
       localChatPersisted = true;
