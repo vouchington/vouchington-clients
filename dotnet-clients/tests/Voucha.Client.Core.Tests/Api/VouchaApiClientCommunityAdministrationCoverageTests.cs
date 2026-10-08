@@ -55,7 +55,7 @@ public sealed partial class VouchaApiClientTests
     await client.TestCommunityAgentPromptAsync(
         "test community",
         "prompt 1",
-        new CommunityAgentPromptTestRunRequest("body", true, false, "spam"),
+        new CommunityAgentPromptTestRunRequest("body", true, false),
         token);
     await client.FetchCommunityAgentPromptHistoryAsync("test community", "prompt 1", "cursor-8", token);
     await client.RecordCommunityAutomodFeedbackAsync(
@@ -92,6 +92,8 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(HttpMethod.Put, handler.Requests[20].Method);
     Assert.Equal("/api/v1/communities/test%20community/agent-prompts/prompt%201/test-runs", handler.Requests[29].PathAndQuery);
     Assert.Contains("\"save_for_training\":true", handler.Requests[29].Body!, StringComparison.Ordinal);
+    Assert.Contains("\"expected_flagged\":false", handler.Requests[29].Body!, StringComparison.Ordinal);
+    Assert.DoesNotContain("expected_reason", handler.Requests[29].Body!, StringComparison.Ordinal);
     Assert.Equal("/api/v1/communities/test%20community/automod/simulate", handler.Requests[32].PathAndQuery);
     Assert.Contains("\"prompt_id\":\"prompt-1\"", handler.Requests[32].Body!, StringComparison.Ordinal);
     Assert.Equal("/api/v1/communities/test%20community/reports/report%201/escalation", handler.Requests[40].PathAndQuery);
@@ -181,13 +183,13 @@ public sealed partial class VouchaApiClientTests
             {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_mod_id":"moderator-1","resolved_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"none","activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"none","activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"on_flag_action":"none","activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
             """),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });

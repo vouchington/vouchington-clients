@@ -463,7 +463,6 @@ public sealed class CommunityDetailViewModelCoverageTests
         "Body",
         saveForTraining: true,
         expectedFlagged: false,
-        expectedReason: "spam",
         cancellationToken: TestContext.Current.CancellationToken);
     var results = await viewModel.LoadModerationResultsAsync("post-1", TestContext.Current.CancellationToken);
 

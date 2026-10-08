@@ -52,8 +52,7 @@ extension CommunityDetailActionTests {
             promptId: "prompt-1",
             text: "Please review this post",
             saveForTraining: true,
-            expectedFlagged: false,
-            expectedReason: "Looks fine"
+            expectedFlagged: false
         )
         await viewModel.recordCommunityAutomodFeedback(
             sourceKey: "source-1",

@@ -146,12 +146,11 @@ public sealed partial class CommunityDetailViewModel
       string text,
       bool? saveForTraining = null,
       bool? expectedFlagged = null,
-      string? expectedReason = null,
       CancellationToken cancellationToken = default) =>
       service.TestAgentPromptAsync(
           communityIdOrSlug,
           promptId,
-          new CommunityAgentPromptTestRunRequest(text, saveForTraining, expectedFlagged, expectedReason),
+          new CommunityAgentPromptTestRunRequest(text, saveForTraining, expectedFlagged),
           cancellationToken);
 
   private Func<CancellationToken, Task>? ReloadModmailThreadSurface(string? routedThreadId) =>

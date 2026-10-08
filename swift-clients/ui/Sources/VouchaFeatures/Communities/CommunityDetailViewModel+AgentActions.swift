@@ -81,8 +81,7 @@ extension CommunityDetailViewModel {
         promptId: String,
         text: String,
         saveForTraining: Bool? = nil,
-        expectedFlagged: Bool? = nil,
-        expectedReason: String? = nil
+        expectedFlagged: Bool? = nil
     ) async {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -93,8 +92,7 @@ extension CommunityDetailViewModel {
                 promptId: promptId,
                 text: text,
                 saveForTraining: saveForTraining,
-                expectedFlagged: expectedFlagged,
-                expectedReason: expectedReason?.trimmedOrNil
+                expectedFlagged: expectedFlagged
             ),
             success: UiMessage(.nativeSwiftCommunityStatusTestedAgentPrompt)
         )

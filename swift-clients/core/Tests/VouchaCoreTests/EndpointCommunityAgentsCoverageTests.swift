@@ -85,16 +85,14 @@ final class EndpointCommunityAgentsCoverageTests: XCTestCase {
                 promptId: "prompt-1",
                 text: "Please review this post",
                 saveForTraining: true,
-                expectedFlagged: false,
-                expectedReason: "Looks fine"
+                expectedFlagged: false
             ),
             method: .POST,
             path: "/api/v1/communities/test%20community/agent-prompts/prompt-1/test-runs",
             body: [
                 "text": "Please review this post",
                 "save_for_training": true,
-                "expected_flagged": false,
-                "expected_reason": "Looks fine"
+                "expected_flagged": false
             ]
         )
     }
