@@ -21,9 +21,22 @@ investigate and work toward a fix.
 
 ## Supported Versions
 
-This repository doesn't publish versioned packages to any registry: there's
-no Swift Package Registry, CocoaPods, NuGet, or npm release, and no tagged
-releases exist. What's here is the native application source for Voucha's
-macOS, iOS, Android, and Windows clients, built directly from `main`. There's
-no older supported version to patch separately — security fixes land on
-`main` and ship in the next build of each client.
+Security fixes land on `main` and ship in the next build of each native client.
+Use the latest available client build. We do not maintain separate security
+patch branches for older store or downloaded builds; update to the fixed build
+when it becomes available.
+
+## Not Vulnerabilities
+
+The synthetic cookie values in
+[`SessionCookieJarTests.cs`](dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/SessionCookieJarTests.cs)
+and [`AuthCoverageTests.cs`](dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/AuthCoverageTests.cs)
+are test inputs, not production credentials. They belong to the portable test
+project and are not packaged into the application. The development cookie
+bootstrap in
+[`SessionCookieJar.Development.cs`](dotnet-clients/src/Voucha.Client.Core/Auth/SessionCookieJar.Development.cs)
+is additionally compiled only under `DEBUG`.
+
+These exceptions apply only to those synthetic test inputs. An exposed real
+session cookie, API key, signing key, or a way to use a test credential in
+production should be reported privately through the channel above.

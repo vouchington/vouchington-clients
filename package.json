@@ -27,7 +27,7 @@
     "lint:dependencies": "knip --treat-config-hints-as-errors && depcruise --config dependency-cruiser.mjs scripts tests",
     "lint:diff": "git diff --check && git diff --cached --check",
     "lint:dotnet": "bash dotnet-clients/tooling/harness.sh --checks fmt",
-    "lint:format": "oxfmt --check scripts tests package.json pnpm-workspace.yaml .github .claude .codex .cursor .grok docs README.md AGENTS.md CONTRIBUTING.md",
+    "lint:format": "oxfmt --check scripts tests package.json pnpm-workspace.yaml .github .claude .codex .cursor .grok docs README.md AGENTS.md CONTRIBUTING.md SECURITY.md",
     "lint:gitleaks": "mise exec -- vouchington gitleaks-directory-scan --config .gitleaks.toml",
     "lint:github-actions": "mise exec -- actionlint -ignore 'unexpected key \"queue\" for \"concurrency\" section' && mise exec -- zizmor --offline --min-severity high --min-confidence high . && vouchington gha-workspace-policy",
     "lint:js": "oxlint --deny-warnings scripts tests",
