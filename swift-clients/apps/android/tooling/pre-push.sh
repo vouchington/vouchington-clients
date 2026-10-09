@@ -169,6 +169,15 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
 fi
 
+# Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
+# https://github.com/skiptools/skipstone/issues/244
+# Build the actual Android test runner first, then verify its compatibility link.
+skip android build \
+  --package-path "$ANDROID_PACKAGE_DIR" \
+  --arch aarch64 \
+  --build-tests
+bash "$SCRIPT_DIR/link-swift64-android-test-runner.sh" "$ANDROID_PACKAGE_DIR"
+
 skip android test \
   --package-path "$ANDROID_PACKAGE_DIR" \
   --build-test-libs "$TEST_LIBRARIES_DIR"
