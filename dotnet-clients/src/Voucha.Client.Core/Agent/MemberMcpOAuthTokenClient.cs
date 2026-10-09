@@ -11,6 +11,10 @@ public sealed class MemberMcpOAuthTokenClient : IDisposable
   private readonly Uri clientId;
   private readonly Uri resource;
 
+  internal MemberMcpOAuthTokenScope ScopeFor(string accountId) =>
+      new(accountId, issuerIdentifier, resource, clientId);
+  private readonly string issuerIdentifier;
+
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "HttpClient owns and disposes the handler.")]
   public MemberMcpOAuthTokenClient(
       MemberMcpOAuthMetadata metadata,
@@ -29,7 +33,8 @@ public sealed class MemberMcpOAuthTokenClient : IDisposable
     revocationEndpoint = metadata.RevocationEndpoint;
     this.clientId = clientId;
     this.resource = resource;
-    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false });
+    issuerIdentifier = metadata.IssuerIdentifier;
+    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false });
   }
 
   public Task<MemberMcpOAuthTokens> RedeemAsync(

@@ -53,6 +53,53 @@ final class MemberMCPClientTests: XCTestCase {
         }
     }
 
+    func testSSEWaitsForCorrelatedResultAfterNotifications() async throws {
+        let events = """
+        : heartbeat
+
+        data: {"jsonrpc":"2.0","method":"notifications/progress"}
+
+        data: {"jsonrpc":"2.0","id":"other","result":{}}
+
+        data: {"jsonrpc":"2.0","id":"1","result":{"tools":[{"name":"read_post"}]}}
+
+        """
+        MCPTestURLProtocol.configure(data: Data(events.utf8), status: 200, contentType: "text/event-stream")
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self]
+        )
+
+        let result = try await client.listTools(accessToken: "access-1")
+
+        if case let .object(fields) = result,
+           case let .array(tools)? = fields["tools"],
+           case let .object(tool)? = tools.first,
+           case let .string(name)? = tool["name"] {
+            XCTAssertEqual(name, "read_post")
+        } else {
+            XCTFail("The matching SSE result was not decoded")
+        }
+    }
+
+    func testSSEIgnoresUnmatchedResultWithDifferentToolShape() async throws {
+        let events = """
+        data: {"jsonrpc":"2.0","id":"other","result":{"unrelated":true}}
+
+        data: {"jsonrpc":"2.0","id":"1","result":{"content":[],"isError":false}}
+
+        """
+        MCPTestURLProtocol.configure(data: Data(events.utf8), status: 200, contentType: "text/event-stream")
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self]
+        )
+
+        let result = try await client.callTool(name: "read_post", arguments: [:], accessToken: "access-1")
+        XCTAssertTrue(result.content.isEmpty)
+        XCTAssertEqual(result.isError, false)
+    }
+
     func testHttpRateLimitKeepsRetryAfter() async throws {
         MCPTestURLProtocol.configure(data: Data(), status: 429, retryAfter: "45")
         let client = try MemberMCPClient(
@@ -187,16 +234,21 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var data = Data()
     private static var status = 200
     private static var retryAfter: String?
+    private static var contentType = "application/json"
     private static var captured: URLRequest?
     private static var capturedBody: Data?
     private static var metadata: [String: Data] = [:]
     private static var requestedPaths: [String] = []
 
-    static func configure(data: Data, status: Int, retryAfter: String? = nil) {
+    static func configure(
+        data: Data, status: Int, retryAfter: String? = nil,
+        contentType: String = "application/json"
+    ) {
         lock.lock()
         self.data = data
         self.status = status
         self.retryAfter = retryAfter
+        self.contentType = contentType
         captured = nil
         capturedBody = nil
         metadata = [:]
@@ -253,8 +305,9 @@ private final class MCPTestURLProtocol: URLProtocol {
         let selected = Self.metadata[path] ?? data
         let status = Self.status
         let retryAfter = Self.retryAfter
+        let contentType = Self.contentType
         Self.lock.unlock()
-        var headers = ["Content-Type": "application/json"]
+        var headers = ["Content-Type": contentType]
         if let retryAfter { headers["Retry-After"] = retryAfter }
         let response = HTTPURLResponse(
             url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers

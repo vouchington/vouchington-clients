@@ -56,7 +56,7 @@ final class MemberMCPAuthorizedClientTests: XCTestCase {
         XCTAssertEqual(snapshot.bearers, [
             "Bearer old-access", "Bearer old-access", "Bearer new-access", "Bearer new-access"
         ])
-        let saved = try await store.load(accountId: "member-1")
+        let saved = try await store.load(scope: testMCPScope)
         XCTAssertEqual(saved?.refreshToken, "new-refresh")
     }
 
@@ -98,7 +98,7 @@ final class MemberMCPAuthorizedClientTests: XCTestCase {
             XCTAssertEqual(snapshot.mcpCalls, 2)
             XCTAssertEqual(snapshot.refreshCalls, 1)
             XCTAssertEqual(snapshot.bearers, ["Bearer old-access", "Bearer new-access"])
-            let saved = try await store.load(accountId: "member-1")
+            let saved = try await store.load(scope: testMCPScope)
             XCTAssertEqual(saved?.refreshToken, secondUnauthorized ? nil : "new-refresh")
         }
     }
@@ -212,15 +212,15 @@ private actor AuthorizedMCPTokenStore: MemberMCPOAuthTokenStore {
         accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
         scope: "mcp.user:read", tokenType: "Bearer"
     )
-    func load(accountId _: String) async throws -> MemberMCPOAuthTokens? {
+    func load(scope _: MemberMCPOAuthTokenScope) async throws -> MemberMCPOAuthTokens? {
         tokens
     }
 
-    func save(_ tokens: MemberMCPOAuthTokens, accountId _: String) async throws {
+    func save(_ tokens: MemberMCPOAuthTokens, scope _: MemberMCPOAuthTokenScope) async throws {
         self.tokens = tokens
     }
 
-    func clear(accountId _: String) async throws {
+    func clear(scope _: MemberMCPOAuthTokenScope) async throws {
         tokens = nil
     }
 }
@@ -285,3 +285,9 @@ private final class AuthorizedMCPURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 }
+
+private let testMCPScope = MemberMCPOAuthTokenScope(
+    accountId: "member-1", issuerIdentifier: "https://example.test",
+    resource: URL(string: "https://example.test/api/v1/mcp")!,
+    clientId: URL(string: "https://example.test/api/v1/oauth/native-clients/macos")!
+)

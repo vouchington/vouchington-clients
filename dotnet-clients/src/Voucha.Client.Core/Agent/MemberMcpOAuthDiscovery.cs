@@ -35,7 +35,7 @@ public sealed class MemberMcpOAuthDiscovery : IDisposable
         !string.IsNullOrEmpty(siteOrigin.Query) || !string.IsNullOrEmpty(siteOrigin.Fragment))
       throw new ArgumentException("A HTTPS site origin is required.", nameof(siteOrigin));
     this.siteOrigin = siteOrigin;
-    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false });
+    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false });
   }
 
   public async Task<MemberMcpOAuthMetadata> DiscoverAsync(CancellationToken cancellationToken = default)

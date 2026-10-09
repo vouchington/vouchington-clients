@@ -4,7 +4,7 @@ import Foundation
 #endif
 import VouchaModels
 
-private struct MCPRPCReply<Result: Decodable>: Decodable {
+struct MCPRPCReply<Result: Decodable & Sendable>: Decodable {
     struct RPCError: Decodable {
         let code: Int
         let message: String
@@ -12,6 +12,7 @@ private struct MCPRPCReply<Result: Decodable>: Decodable {
 
     let jsonrpc: String
     let id: String?
+    let method: String?
     let result: Result?
     let error: RPCError?
 }
@@ -34,7 +35,7 @@ public actor MemberMCPClient {
     }
 
     private let endpoint: URL
-    private let session: URLSession
+    private let configuration: URLSessionConfiguration
     private var nextRequestId = 0
 
     public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil) throws {
@@ -50,7 +51,7 @@ public actor MemberMCPClient {
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
         if let protocolClasses { config.protocolClasses = protocolClasses }
-        session = URLSession(configuration: config)
+        configuration = config
     }
 
     public func listTools(accessToken: String) async throws -> DecodedJSONValue {
@@ -86,7 +87,7 @@ public actor MemberMCPClient {
         return result
     }
 
-    private func send<Result: Decodable>(
+    private func send<Result: Decodable & Sendable>(
         method: String,
         params: DecodedJSONValue,
         token: String
@@ -103,7 +104,10 @@ public actor MemberMCPClient {
         request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONEncoder().encode(body)
-        let (data, response) = try await session.data(for: request)
+        let transport = ResponseLinesTransport(followRedirects: false)
+        defer { transport.cancel() }
+        let responseLines = try await transport.start(request: request, configuration: configuration)
+        let response = responseLines.response
         guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
         if http.statusCode == 401 { throw Failure.unauthorized }
         if http.statusCode == 429 {
@@ -112,11 +116,10 @@ public actor MemberMCPClient {
             ))
         }
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
-        let reply = try JSONDecoder().decode(MCPRPCReply<Result>.self, from: data)
-        guard reply.jsonrpc == "2.0", reply.id == id else { throw Failure.invalidResponse }
-        if let error = reply.error { throw Failure.rpc(code: error.code, message: error.message) }
-        guard let result = reply.result else { throw Failure.invalidResponse }
-        return result
+        return try await MCPResponseReader.read(
+            responseLines.lines,
+            contentType: http.value(forHTTPHeaderField: "Content-Type"), id: id
+        )
     }
 
     private static func retryDelay(_ value: String?) -> Int? {

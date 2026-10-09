@@ -147,9 +147,9 @@ public sealed class MemberMcpTokenManagerTests
     public TaskCompletionSource SaveEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource ReleaseSave { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public Task<MemberMcpOAuthTokens?> LoadAsync(string accountId) => Task.FromResult(Current);
+    public Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope) => Task.FromResult(Current);
 
-    public async Task SaveAsync(string accountId, MemberMcpOAuthTokens tokens)
+    public async Task SaveAsync(MemberMcpOAuthTokenScope scope, MemberMcpOAuthTokens tokens)
     {
       SaveEntered.TrySetResult();
       await ReleaseSave.Task;
@@ -157,7 +157,7 @@ public sealed class MemberMcpTokenManagerTests
       SaveCount++;
     }
 
-    public Task ClearAsync(string accountId)
+    public Task ClearAsync(MemberMcpOAuthTokenScope scope)
     {
       Current = null;
       return Task.CompletedTask;
