@@ -11,15 +11,15 @@ actor FinancialMCPTokenStore: MemberMCPOAuthTokenStore {
         scope: "financial-profile:read", tokenType: "Bearer"
     )
 
-    func load(accountId _: String) async throws -> MemberMCPOAuthTokens? {
+    func load(scope _: MemberMCPOAuthTokenScope) async throws -> MemberMCPOAuthTokens? {
         tokens
     }
 
-    func save(_ tokens: MemberMCPOAuthTokens, accountId _: String) async throws {
+    func save(_ tokens: MemberMCPOAuthTokens, scope _: MemberMCPOAuthTokenScope) async throws {
         self.tokens = tokens
     }
 
-    func clear(accountId _: String) async throws {
+    func clear(scope _: MemberMCPOAuthTokenScope) async throws {
         tokens = nil
     }
 }

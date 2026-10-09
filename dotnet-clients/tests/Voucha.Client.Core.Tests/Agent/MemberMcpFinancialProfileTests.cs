@@ -132,11 +132,11 @@ public sealed class MemberMcpFinancialProfileTests
 
   private sealed class TokenStore : IMemberMcpOAuthTokenStore
   {
-    public Task<MemberMcpOAuthTokens?> LoadAsync(string accountId) =>
+    public Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope) =>
         Task.FromResult<MemberMcpOAuthTokens?>(new(
             "known-access", "known-refresh", 3600, "financial-profile:read", "Bearer"));
-    public Task SaveAsync(string accountId, MemberMcpOAuthTokens tokens) => Task.CompletedTask;
-    public Task ClearAsync(string accountId) => Task.CompletedTask;
+    public Task SaveAsync(MemberMcpOAuthTokenScope scope, MemberMcpOAuthTokens tokens) => Task.CompletedTask;
+    public Task ClearAsync(MemberMcpOAuthTokenScope scope) => Task.CompletedTask;
   }
 
   private sealed class FinancialToolHandler(JsonElement? structuredContent, bool isError = false) : HttpMessageHandler
