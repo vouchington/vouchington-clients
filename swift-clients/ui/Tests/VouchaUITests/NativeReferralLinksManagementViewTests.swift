@@ -44,7 +44,7 @@ final class NativeReferralLinksManagementViewTests: NativeRouteSurfaceViewModelT
         )
         XCTAssertNoThrow(try sut.inspect().find(button: "Rename"))
         try sut.inspect().find(button: "Rename").tap()
-        try sut.inspect().find(button: "Deactivate").tap()
+        XCTAssertNoThrow(try sut.inspect().find(button: "Deactivate"))
         try sut.inspect().find(button: "Delete").tap()
     }
 
