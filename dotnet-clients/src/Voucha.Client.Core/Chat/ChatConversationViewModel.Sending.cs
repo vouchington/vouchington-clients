@@ -38,12 +38,6 @@ public sealed partial class ChatConversationViewModel
       }
       selectedProvider = selectedLocalProvider.Status;
       SelectedProviderStatus = selectedProvider;
-      if (!selectedProvider.IsAvailable)
-      {
-        ErrorMessage = selectedProvider.StatusText;
-        State = LoadState.Error;
-        return false;
-      }
     }
     catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
     {
@@ -52,9 +46,15 @@ public sealed partial class ChatConversationViewModel
       return false;
     }
 
-    var currentRequest = BeginMutation();
     var conversationId = ConversationId;
     var retry = RetryableTurn(conversationId, trimmed, selectedProvider);
+    if (retry is null && !selectedProvider.IsAvailable)
+    {
+      ErrorMessage = selectedProvider.StatusText;
+      State = LoadState.Error;
+      return false;
+    }
+    var currentRequest = BeginMutation();
     var messageTime = DateTimeOffset.UtcNow;
     var localUserMessageId = retry?.Body.UserMessageId ?? Guid.CreateVersion7(messageTime).ToString();
     var localAssistantMessageId = retry?.Body.AssistantMessageId ?? Guid.CreateVersion7(messageTime.AddMilliseconds(1)).ToString();
@@ -83,7 +83,7 @@ public sealed partial class ChatConversationViewModel
       }
       selectedProvider = selectedLocalProvider.Status;
       SelectedProviderStatus = selectedProvider;
-      if (!selectedProvider.IsAvailable)
+      if (retry is null && !selectedProvider.IsAvailable)
       {
         ErrorMessage = selectedProvider.StatusText;
         State = LoadState.Error;

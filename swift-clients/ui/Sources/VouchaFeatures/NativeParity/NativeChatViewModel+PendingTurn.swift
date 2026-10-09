@@ -2,13 +2,20 @@ import VouchaAPI
 
 extension NativeChatViewModel {
     func pendingTurn(
-        for text: String, providerSelection: NativeChatTitleProviderKind
+        for text: String,
+        providerSelection: NativeChatTitleProviderKind,
+        provider: any NativeChatTitleProviding
     ) -> NativeChatPendingLocalTurn? {
         guard let pendingLocalTurn,
               pendingLocalTurn.context.text == text,
               pendingLocalTurn.context.conversationId == selectedConversationId,
               pendingLocalTurn.context.providerSelection == providerSelection
         else { return nil }
+        if case .openAICompatible = providerSelection {
+            guard let currentModel = provider.retryModelIdentity,
+                  pendingLocalTurn.response.modelName == currentModel
+            else { return nil }
+        }
         return pendingLocalTurn
     }
 

@@ -42,6 +42,10 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
         return .init(isAvailable: endpoint.isEnabled, detail: .verbatim(model))
     }
 
+    var retryModelIdentity: String? {
+        selectedEndpoint?.selectedModel
+    }
+
     func generateAssistantResponse(
         to message: String,
         history: [NativeChatTimelineMessage]
