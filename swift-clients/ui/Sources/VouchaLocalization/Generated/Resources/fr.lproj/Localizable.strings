@@ -228,6 +228,7 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Impossible de charger les paramètres des identifiants";
 "native.credentials.chooseScopes" = "Choisir les portées";
+"native.credentials.confirmRevokeGrant" = "Révoquer l’accès à {app} ?";
 "native.credentials.connectedApps" = "Applications connectées";
 "native.credentials.grantActivity" = "Autorisée le {consentedAt} · Dernière utilisation : {lastUsedAt}";
 "native.credentials.grantRevoked" = "Accès révoqué";

@@ -228,6 +228,7 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Failed to load credential settings";
 "native.credentials.chooseScopes" = "Choose scopes";
+"native.credentials.confirmRevokeGrant" = "Revoke access to {app}?";
 "native.credentials.connectedApps" = "Connected Apps";
 "native.credentials.grantActivity" = "Authorized {consentedAt} · Last used {lastUsedAt}";
 "native.credentials.grantRevoked" = "Access revoked";

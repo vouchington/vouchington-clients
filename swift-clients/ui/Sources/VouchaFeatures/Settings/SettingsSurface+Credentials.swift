@@ -89,15 +89,14 @@ extension SettingsSurface {
                             Text(grantActivity(grant))
                         }
                         Spacer(minLength: 0)
-                        Button(
-                            UiMessages.string(.nativeSwiftSettingsRevoke, locale: nativeUiLocale),
-                            role: .destructive
+                        OAuthGrantRevokeButton(
+                            grant: grant,
+                            locale: nativeUiLocale,
+                            isDisabled: viewModel.isLoading,
+                            interactionState: .init()
                         ) {
-                            Task { await viewModel.revokeOAuthGrant(id: grant.id) }
+                            await viewModel.revokeOAuthGrant(id: grant.id)
                         }
-                        .disabled(viewModel.isLoading)
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("oauth-grant-revoke-\(grant.id)")
                     }
                     .font(Typography.caption)
                 }
