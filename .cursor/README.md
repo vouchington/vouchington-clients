@@ -5,10 +5,8 @@ files and discovers shared skills from [`.agents/skills/`](../.agents/skills) (i
 tracked Claude discovery links in [`.claude/skills/`](../.claude/skills)). Do not add copied
 `AGENTS.md` files, provider-specific skills, or Filaments web-agent configuration.
 
-- MCP uses the native [`.cursor/mcp.json`](mcp.json) registration with the pinned Agent Blackboard
-  server and environment-only credentials.
-- The exact eight-tool Agent Blackboard allowlist is repeated in [`cli.json`](cli.json) and
-  [`permissions.json`](permissions.json). Keep it finite; never replace it with a wildcard.
+- No repository file registers an MCP server or grants an MCP tool. vouchington-machines registers
+  the `vouchington-tooling` server and pre-approves its tools in user configuration.
 - Keep command approvals limited to native-client project tools and repository checks. Generic
   shell defaults and sandbox paths belong in the host setup described by the [agent configuration
   ownership contract](https://github.com/vouchington/vouchington-machines/blob/main/docs/agent-config.md).
