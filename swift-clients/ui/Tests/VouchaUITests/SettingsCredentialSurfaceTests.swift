@@ -239,6 +239,34 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertTrue(model.oauthGrants.isEmpty)
     }
 
+    func testConnectedAppsProductControlWiresOwnedGrantRevoke() async throws {
+        seedCredentials()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.loadCredentialSettings()
+        let section = SettingsSurface(viewModel: model).connectedAppsSection
+        XCTAssertNoThrow(try section.inspect().find(text: "Agent one"))
+        let control = try section.inspect().find(ViewType.View<OAuthGrantRevokeButton>.self).actualView()
+        XCTAssertEqual(control.grant.id, "one")
+
+        let path = "/api/v1/my/oauth-grants/one"
+        CannedFeedURLProtocol.handlers[path] = (Data(), 204)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "DELETE")
+        let revoke = Task { await control.revoke() }
+        do {
+            _ = try await barrier.wait(timeout: .seconds(5))
+            XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await revoke.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await revoke.value
+        XCTAssertTrue(model.oauthGrants.isEmpty)
+    }
+
     private func seedCredentials() {
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (SettingsCredentialsTestData.catalog, 200)
         CannedFeedURLProtocol.handlers["/api/v1/my/oauth-grants"] = (SettingsCredentialsTestData.grants(["one"]), 200)
