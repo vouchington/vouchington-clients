@@ -14,7 +14,10 @@ extension NativeChatViewModel {
         if case .openAICompatible = providerSelection {
             guard let currentModel = provider.retryModelIdentity,
                   pendingLocalTurn.response.modelName == currentModel
-            else { return nil }
+            else {
+                self.pendingLocalTurn = nil
+                return nil
+            }
         }
         return pendingLocalTurn
     }

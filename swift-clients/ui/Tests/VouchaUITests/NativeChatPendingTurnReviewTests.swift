@@ -37,6 +37,58 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         ) as? NSDictionary)
         XCTAssertEqual(secondPayload, thirdPayload)
         XCTAssertEqual(provider.generationCount, 2)
+
+        provider.model = "model-c"
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(provider.generationCount, 2)
+        provider.model = "model-b"
+        provider.available = true
+        await viewModel.sendDraftMessage()
+        let afterRestoringOldModel = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        let restoredPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(afterRestoringOldModel.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        XCTAssertNotEqual(restoredPayload, secondPayload)
+        XCTAssertEqual(provider.generationCount, 3)
+    }
+
+    func testTypingNextDraftDuringHeldPersistenceKeepsTheSubmittedTurnForRetry() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Hello"
+
+        let requestBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        let send = Task { await viewModel.sendDraftMessage() }
+        let first: CannedFeedURLProtocol.CapturedRequest
+        do {
+            first = try await requestBarrier.wait(timeout: .seconds(10))
+            viewModel.draftMessage = "Next draft"
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await send.value
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await send.value
+            throw error
+        }
+
+        XCTAssertEqual(viewModel.draftMessage, "Hello")
+        await viewModel.sendDraftMessage()
+        let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(first.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(retried.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        XCTAssertEqual(retriedPayload, firstPayload)
+        XCTAssertEqual(provider.generationCount, 1)
     }
 }
 
