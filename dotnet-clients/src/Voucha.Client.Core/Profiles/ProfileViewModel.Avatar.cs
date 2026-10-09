@@ -1,5 +1,5 @@
-using System.Net;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -115,7 +115,7 @@ public sealed partial class ProfileViewModel
           return state;
         }
       }
-      catch (Exception ex) when (IsTransientAvatarUploadFailure(ex))
+      catch (Exception ex) when (ImageUploadPolling.IsTransientFailure(ex))
       {
         if (attempt + 1 >= AvatarUploadPollAttempts)
         {
@@ -138,24 +138,6 @@ public sealed partial class ProfileViewModel
   private static bool IsTerminalAvatarUploadState(string uploadStatus) =>
       string.Equals(uploadStatus, "failed", StringComparison.Ordinal) ||
       string.Equals(uploadStatus, "error", StringComparison.Ordinal);
-
-  private static bool IsTransientAvatarUploadFailure(Exception exception) =>
-      exception switch
-      {
-        OperationCanceledException => false,
-        VouchaApiException apiException when apiException.StatusCode is HttpStatusCode statusCode =>
-            IsTransientHttpStatusCode(statusCode),
-        HttpRequestException requestException when requestException.StatusCode is null => true,
-        HttpRequestException requestException when requestException.StatusCode is HttpStatusCode statusCode =>
-            IsTransientHttpStatusCode(statusCode),
-        _ => false,
-      };
-
-  private static bool IsTransientHttpStatusCode(HttpStatusCode statusCode)
-  {
-    var status = (int)statusCode;
-    return status == 429 || status is >= 500 and <= 599;
-  }
 
   public async Task RefreshAsync(CancellationToken cancellationToken = default)
   {
