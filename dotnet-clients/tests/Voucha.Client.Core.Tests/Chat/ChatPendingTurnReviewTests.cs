@@ -61,6 +61,7 @@ public sealed partial class ChatViewModelProviderTests
     var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
 
     Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    viewModel.SelectedProviderStatus = null!; // Picker can clear its selection while ItemsSource refreshes.
     provider.Status = provider.Status with { IsAvailable = false };
     viewModel.SelectedProviderStatus = provider.Status;
     Assert.True(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));

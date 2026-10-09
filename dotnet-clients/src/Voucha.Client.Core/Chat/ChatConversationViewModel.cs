@@ -87,7 +87,7 @@ public sealed partial class ChatConversationViewModel :
     get => selectedProviderStatus ?? providerResolver.GetDefaultProviderStatus();
     set
     {
-      ArgumentNullException.ThrowIfNull(value);
+      if (value is null) return;
       if (SetProperty(ref selectedProviderStatus, value))
       {
         if (pendingLocalTurn is { } pending && !SameProviderIdentity(pending.Provider, value))

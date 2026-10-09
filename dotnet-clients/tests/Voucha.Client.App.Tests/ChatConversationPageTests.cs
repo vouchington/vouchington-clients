@@ -12,6 +12,32 @@ namespace Voucha.Client.App.Tests;
 public sealed class ChatConversationPageTests
 {
   [Fact]
+  public void PickerTransientNullDoesNotDiscardTheSelectedProvider()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+
+    var viewModel = new ChatConversationViewModel(new UnusedChatService());
+    var page = new ChatConversationPage(viewModel, new UnusedChatService());
+    var picker = Assert.Single(Descendants<Picker>(page));
+    var selected = viewModel.SelectedProviderStatus;
+    Assert.NotNull(picker.SelectedItem);
+
+    picker.SelectedItem = null;
+
+    Assert.Same(selected, viewModel.SelectedProviderStatus);
+  }
+
+  [Fact]
   public void IncompleteAssistantRendersFailureWithoutEmptyContentLabel()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
