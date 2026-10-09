@@ -880,7 +880,7 @@ jobs:
         run: >-
           dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
-      - name: Verify all seven committed NuGet locks
+      - name: Verify all eight committed NuGet locks
         working-directory: candidate-clients
         run: >-
           bash dotnet-clients/tooling/restore-locks.sh verify
