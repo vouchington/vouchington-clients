@@ -8,7 +8,7 @@ namespace Voucha.Client.Core.Tests.Settings;
 public sealed partial class SettingsViewModelTests
 {
   [Fact]
-  public async Task SavingTheFirstEndpointProfilePreservesHostedSelectionAndPersistsItsSecret()
+  public async Task SavingTheFirstEndpointProfilePreservesNoExplicitSelectionAndPersistsItsSecret()
   {
     var configurationStore = new InMemoryLocalLLMConfigurationStore(); var secretStore = new InMemoryLocalLLMSecretStore();
     var viewModel = Create(configurationStore, secretStore);
@@ -47,7 +47,7 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
-  public async Task SavingAnEndpointProfilePreservesAnExistingHostedSelection()
+  public async Task SavingAnEndpointProfilePreservesNoExplicitSelection()
   {
     var profile = new LocalLLMEndpointProfile(Guid.NewGuid(), "one", true, "http://127.0.0.1:11434", ["one"], "one");
     var configurations = new InMemoryLocalLLMConfigurationStore(new([profile], profile.Id));
@@ -364,7 +364,7 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
-  public async Task SavingADisabledSelectedEndpointReturnsSelectionToHosted()
+  public async Task SavingADisabledSelectedEndpointClearsSelection()
   {
     var profile = new LocalLLMEndpointProfile(Guid.NewGuid(), "one", true, "http://127.0.0.1:11434", ["one"], "one");
     var configurations = new InMemoryLocalLLMConfigurationStore(new([profile], profile.Id, LocalChatProviderIds.OpenAICompatible(profile.Id)));

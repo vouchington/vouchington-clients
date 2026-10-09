@@ -50,6 +50,7 @@ final class ResponseLineBuffer {
 }
 
 final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    static let maximumDiagnosticBytes = 64 * 1_024
     let lock = NSLock()
     private let delegateQueue: OperationQueue
     var response: URLResponse?
@@ -118,7 +119,7 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
         lock.lock()
         let mode = mode
         if mode != .streaming {
-            guard bufferedBody.count + data.count <= ResponseBodyLimit.maximumDiagnosticBytes else {
+            guard bufferedBody.count + data.count <= Self.maximumDiagnosticBytes else {
                 lock.unlock()
                 failStreaming(ResponseLineBufferError.bodyTooLarge)
                 return

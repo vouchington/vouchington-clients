@@ -1,18 +1,4 @@
-import VouchaModels
-
 extension NativeChatViewModel {
-    func applyStreamEvent(
-        _ event: ChatStreamEvent,
-        conversationId: String,
-        userMessageId: String
-    ) async {
-        await MainActor.run {
-            guard streamingConversationId == conversationId else { return }
-            guard streamingUserMessageId == userMessageId else { return }
-            apply(event: event)
-        }
-    }
-
     func finishStream(
         conversationId: String,
         userMessageId: String,

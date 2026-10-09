@@ -108,7 +108,7 @@ final class ResponseLinesStreamingTests: XCTestCase {
         let path = "/api/v1/oversized-error"
         DelayedStreamURLProtocol.handlers[path] = DelayedStreamResponse(
             chunks: [
-                Data(repeating: 0x61, count: ResponseBodyLimit.maximumDiagnosticBytes),
+                Data(repeating: 0x61, count: ResponseLinesTransport.maximumDiagnosticBytes),
                 Data([0x62])
             ],
             status: 500,

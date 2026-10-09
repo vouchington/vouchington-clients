@@ -153,11 +153,11 @@ public sealed class ChatConversationLoadTests
 
   private sealed class TestProviderResolver : IChatProviderResolver
   {
-    private static readonly ChatProviderStatus Hosted = new(ChatProviderKind.Hosted, "Hosted", true, "Ready.");
+    private static readonly ChatProviderStatus Unavailable = new(ChatProviderKind.Local, "Local", false, "Unavailable.");
 
-    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [Hosted];
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [Unavailable];
 
-    public ChatProviderStatus GetDefaultProviderStatus() => Hosted;
+    public ChatProviderStatus GetDefaultProviderStatus() => Unavailable;
   }
 
   private sealed class TestLocalProvider : ILocalChatProvider

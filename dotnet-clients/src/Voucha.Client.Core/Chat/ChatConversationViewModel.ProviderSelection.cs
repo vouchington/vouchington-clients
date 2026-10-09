@@ -10,9 +10,7 @@ public sealed partial class ChatConversationViewModel
     if (providerResolver is not IChatProviderSelectionStore selectionStore) return Task.CompletedTask;
     try
     {
-      selectionStore.SaveSelectedProvider(SelectedProviderStatus.Kind == ChatProviderKind.Local
-          ? SelectedProviderStatus.ModelProvider
-          : null);
+      selectionStore.SaveSelectedProvider(SelectedProviderStatus.ModelProvider);
       ErrorMessage = null;
       State = ConversationId is { Length: > 0 } ? LoadState.Loaded : LoadState.Idle;
     }

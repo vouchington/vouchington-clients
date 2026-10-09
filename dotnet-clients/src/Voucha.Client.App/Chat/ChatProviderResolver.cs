@@ -10,7 +10,6 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   private readonly OpenAICompatibleResponsesClient responsesClient;
   private readonly LocalLLMFeaturePolicy featurePolicy;
   private readonly IUiLocalization localization;
-  private readonly ChatProviderStatus hostedProvider;
 #if WINDOWS
   private readonly IWindowsSystemLanguageModelRuntime windowsRuntime;
 #endif
@@ -27,16 +26,17 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
 #if WINDOWS
     this.windowsRuntime = windowsRuntime;
 #endif
-    hostedProvider = new(ChatProviderKind.Hosted, UiText.Localized(UiMessageKey.NativeDotnetChatConversationHosted), true,
-        UiText.Localized(UiMessageKey.NativeDotnetChatConversationOpenAiHosted), localization);
   }
 
-  public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() =>
-      [hostedProvider
+  public IReadOnlyList<ChatProviderStatus> GetProviderStatuses()
+  {
+    var configured = configurationStore.Load().Profiles.Select(Create).Select(provider => provider.Status).ToArray();
 #if WINDOWS
-      , new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status
+    return [new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status, .. configured];
+#else
+    return [UnavailableStatus(), .. configured];
 #endif
-      , .. configurationStore.Load().Profiles.Select(Create).Select(provider => provider.Status)];
+  }
 
   public ChatProviderStatus GetDefaultProviderStatus()
   {
@@ -44,8 +44,24 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
     if (configuration.SelectedProviderId is { } id) return GetLocalProvider(id)?.Status ?? new(ChatProviderKind.Local,
         UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocal), false,
         UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocalModelSettingsOff), localization, id);
-    return hostedProvider;
+    var platform = PlatformDefaultStatus();
+    if (platform.IsAvailable) return platform;
+    return configuration.Profiles.Select(Create).Select(provider => provider.Status)
+        .FirstOrDefault(status => status.IsAvailable) ?? platform;
   }
+
+  private ChatProviderStatus PlatformDefaultStatus()
+  {
+#if WINDOWS
+    return new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status;
+#else
+    return UnavailableStatus();
+#endif
+  }
+
+  private ChatProviderStatus UnavailableStatus() => new(ChatProviderKind.Local,
+      UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocal), false,
+      UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable), localization);
 
   public ILocalChatProvider? GetLocalProvider(string providerId)
   {

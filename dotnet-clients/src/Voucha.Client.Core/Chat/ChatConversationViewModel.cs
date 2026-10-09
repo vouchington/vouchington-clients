@@ -14,16 +14,10 @@ public sealed partial class ChatConversationViewModel :
   private readonly ILocalChatProvider localChatProvider;
   private IReadOnlyList<ChatProviderStatus> providerStatuses;
   private readonly List<ChatMessageRow> messages = [];
-  private readonly List<ChatStreamToolCallEvent> toolCalls = [];
-  private readonly List<ChatStreamToolResultEvent> toolResults = [];
-  private readonly List<ChatStreamSubagentStepEvent> subagentSteps = [];
-  private readonly List<ChatStreamSubagentTextEvent> subagentTextChunks = [];
   private CancellationTokenSource? streamingCts;
-  private string? streamingAssistantMessageId;
   private string? conversationId;
   private string? title;
   private string? errorMessage;
-  private string? streamContent;
   private bool hasMoreMessages;
   private string? nextMessageCursor;
   private bool isDeleted;
@@ -35,7 +29,7 @@ public sealed partial class ChatConversationViewModel :
   private readonly IDisposable? localeSubscription;
 
   public ChatConversationViewModel(IChatService chatService)
-      : this(chatService, HostedOnlyChatProviderResolver.Instance, UnavailableLocalChatProvider.Instance)
+      : this(chatService, UnavailableOnlyChatProviderResolver.Instance, UnavailableLocalChatProvider.Instance)
   {
   }
 
@@ -58,14 +52,6 @@ public sealed partial class ChatConversationViewModel :
   public IReadOnlyList<ChatMessageRow> Messages => messages;
 
   public IReadOnlyList<ChatProviderStatus> ProviderStatuses => providerStatuses;
-
-  public IReadOnlyList<ChatStreamToolCallEvent> ToolCalls => toolCalls;
-
-  public IReadOnlyList<ChatStreamToolResultEvent> ToolResults => toolResults;
-
-  public IReadOnlyList<ChatStreamSubagentStepEvent> SubagentSteps => subagentSteps;
-
-  public IReadOnlyList<ChatStreamSubagentTextEvent> SubagentTextChunks => subagentTextChunks;
 
   public string? ConversationId
   {
@@ -103,14 +89,11 @@ public sealed partial class ChatConversationViewModel :
     {
       if (SetProperty(ref selectedProviderStatus, value))
       {
-        OnPropertyChanged(nameof(SelectedProviderKind));
         OnPropertyChanged(nameof(ProviderStatusText));
         OnPropertyChanged(nameof(CanSetUpSelectedWindowsSystemLanguageModel));
       }
     }
   }
-
-  public ChatProviderKind SelectedProviderKind => SelectedProviderStatus.Kind;
 
   public string ProviderStatusText => SelectedProviderStatus.StatusText;
 
@@ -181,12 +164,6 @@ public sealed partial class ChatConversationViewModel :
         OnPropertyChanged(nameof(CanRename));
       }
     }
-  }
-
-  public string? StreamContent
-  {
-    get => streamContent;
-    private set => SetProperty(ref streamContent, value);
   }
 
   public bool CanSend => !IsStreaming && !IsDeleted && State != LoadState.Loading;

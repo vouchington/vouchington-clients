@@ -218,30 +218,7 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout x:Name="ConnectedAppsSection" Spacing="12">
-                <Label Text="{DynamicResource native.credentials.connectedApps}" Style="{StaticResource Headline}" />
-                <Label Text="{DynamicResource native.credentials.noConnectedApps}" IsVisible="{Binding HasNoOAuthGrants}" Style="{StaticResource Metadata}" />
-                <Label Text="{Binding OAuthGrantNotice}" Style="{StaticResource Metadata}" />
-                <VerticalStackLayout BindableLayout.ItemsSource="{Binding LocalizedOAuthGrants}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="settings:SettingsOAuthGrantRow">
-                            <Border Margin="0,0,0,10" Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="{Binding ClientName}" Style="{StaticResource Body}" />
-                                    <Label Text="{Binding Verification}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{DynamicResource native.credentials.resource}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Resource}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{DynamicResource native.credentials.scopes}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Scopes}" Style="{StaticResource Metadata}" />
-                                    <Label Text="{Binding Activity}" Style="{StaticResource Metadata}" />
-                                    <Button Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokeOAuthGrantClicked" CommandParameter="{Binding .}" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-                <controls:HybridPaginationControl PaginationId="settings-oauth-grants"
-                    HasMore="{Binding HasMoreOAuthGrants}" IsLoading="{Binding IsLoadingMoreOAuthGrants}"
-                    HasError="{Binding HasOAuthGrantPaginationError}" LoadNextPageRequested="OnLoadMoreOAuthGrantsRequested" />
+                <pages:SettingsOAuthGrantsView LoadNextPageRequested="OnLoadMoreOAuthGrantsRequested" />
             </VerticalStackLayout>
 
             <VerticalStackLayout x:Name="LocalLLMSection" Spacing="12" IsVisible="{Binding LocalLLMSettingsAvailable}">

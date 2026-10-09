@@ -6,154 +6,6 @@ import XCTest
 
 @MainActor
 final class NativeChatViewModelMutationTests: NativeRouteSurfaceViewModelTestCase {
-    func testChatViewModelStreamsHostedDraftMessage() async {
-        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
-        viewModel.messages = [
-            .init(id: "local-user", role: .user, content: "Hi", isStreaming: false)
-        ]
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user")
-        let events = AsyncThrowingStream<ChatStreamEvent, Error> { continuation in
-            continuation.yield(.metadata(.init(
-                conversationId: "conversation-1",
-                userMessageId: "user-1",
-                assistantMessageId: "assistant-1",
-                jobId: "job-1"
-            )))
-            continuation.yield(.text("Hello"))
-            continuation.yield(.done)
-            continuation.finish()
-        }
-
-        await viewModel.streamHostedDraftMessage(
-            events: events,
-            context: .init(
-                conversationId: "conversation-1",
-                text: "Hi",
-                userMessageId: "local-user",
-                createdConversation: false,
-                providerSelection: .anthropic
-            )
-        )
-
-        XCTAssertNil(viewModel.streamErrorMessage)
-        XCTAssertEqual(viewModel.messages.map(\.content), ["Hi", "Hello"])
-        XCTAssertFalse(viewModel.isStreaming)
-    }
-
-    func testChatViewModelSendsHostedProviderUpgradeRequest() async throws {
-        CannedFeedURLProtocol.contentTypes["/api/v1/conversations/conversation-1/chat"] = "text/event-stream"
-        CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            Data("event: done\ndata: {}\n\n".utf8),
-            200
-        )
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
-        viewModel.titleProviderSelection = .anthropic
-        viewModel.messages = [
-            .init(id: "local-user", role: .user, content: "Hi", isStreaming: false)
-        ]
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user")
-
-        await viewModel.streamHostedDraftMessage(
-            client: client,
-            context: .init(
-                conversationId: "conversation-1",
-                text: "Hi",
-                userMessageId: "local-user",
-                createdConversation: false,
-                providerSelection: .anthropic
-            )
-        )
-
-        XCTAssertNil(viewModel.streamErrorMessage)
-        XCTAssertFalse(viewModel.isStreaming)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/conversations/conversation-1/chat")
-        XCTAssertEqual(
-            CannedFeedURLProtocol.capturedBodies.first??.contains(#""provider":"anthropic""#),
-            true
-        )
-    }
-
-    func testChatViewModelSurfacesHostedVouchaErrors() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/chat"] = (
-            NativeChatTestFixtures.errorData,
-            500
-        )
-        let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
-        viewModel.titleProviderSelection = .openAI
-        viewModel.messages = [
-            .init(id: "local-user", role: .user, content: "Hi", isStreaming: false)
-        ]
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user")
-
-        await viewModel.streamHostedDraftMessage(
-            client: client,
-            context: .init(
-                conversationId: "conversation-1",
-                text: "Hi",
-                userMessageId: "local-user",
-                createdConversation: false
-            )
-        )
-
-        XCTAssertEqual(viewModel.streamErrorMessage, .verbatim("An error occurred."))
-        XCTAssertFalse(viewModel.isStreaming)
-        XCTAssertEqual(viewModel.messages.map(\.content), ["Hi"])
-    }
-
-    func testChatViewModelSurfacesHostedStreamVouchaErrors() async {
-        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
-        viewModel.messages = [
-            .init(id: "local-user", role: .user, content: "Hi", isStreaming: false)
-        ]
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user")
-        let events = AsyncThrowingStream<ChatStreamEvent, Error> { continuation in
-            continuation.finish(throwing: VouchaError.apiMessage(
-                statusCode: 400,
-                preconditionCode: nil,
-                message: "Hosted failed"
-            ))
-        }
-
-        await viewModel.streamHostedDraftMessage(
-            events: events,
-            context: .init(
-                conversationId: "conversation-1",
-                text: "Hi",
-                userMessageId: "local-user",
-                createdConversation: false
-            )
-        )
-
-        XCTAssertEqual(viewModel.streamErrorMessage, .verbatim("Hosted failed"))
-        XCTAssertFalse(viewModel.isStreaming)
-    }
-
-    func testChatViewModelSurfacesHostedStreamGenericErrors() async {
-        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
-        viewModel.messages = [
-            .init(id: "local-user", role: .user, content: "Hi", isStreaming: false)
-        ]
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user")
-        let events = AsyncThrowingStream<ChatStreamEvent, Error> { continuation in
-            continuation.finish(throwing: ChatMutationTestError(message: "Transport failed"))
-        }
-
-        await viewModel.streamHostedDraftMessage(
-            events: events,
-            context: .init(
-                conversationId: "conversation-1",
-                text: "Hi",
-                userMessageId: "local-user",
-                createdConversation: false
-            )
-        )
-
-        XCTAssertEqual(viewModel.streamErrorMessage, .message(.nativeSwiftChatUnableToSendMessage))
-        XCTAssertFalse(viewModel.isStreaming)
-    }
-
     func testChatViewModelSurfacesMissingLocalResponse() async throws {
         let client = try makeClient()
         let provider = LocalDraftProvider(
@@ -295,18 +147,18 @@ final class NativeChatViewModelMutationTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertTrue(viewModel.isStreaming)
     }
 
-    func testChatViewModelDoesNotDeleteHostedUserWhenPreviousLocalAssistantIdIsStale() {
+    func testChatViewModelDoesNotDeleteExistingUserWhenPreviousLocalAssistantIdIsStale() {
         let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
         viewModel.messages = [
-            .init(id: "hosted-user", role: .user, content: "Hosted", isStreaming: false),
+            .init(id: "existing-user", role: .user, content: "Existing", isStreaming: false),
             .init(id: "local-assistant-stale", role: .assistant, content: "", isStreaming: false)
         ]
         viewModel.streamingAssistantMessageId = "local-assistant-stale"
 
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "hosted-user")
+        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "existing-user")
         viewModel.abortStreaming()
 
-        XCTAssertEqual(viewModel.messages.map(\.id), ["hosted-user", "local-assistant-stale"])
+        XCTAssertEqual(viewModel.messages.map(\.id), ["existing-user", "local-assistant-stale"])
         XCTAssertNil(viewModel.streamingUserMessageId)
         XCTAssertNil(viewModel.streamingAssistantMessageId)
         XCTAssertFalse(viewModel.isStreaming)
@@ -338,65 +190,6 @@ final class NativeChatViewModelMutationTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertTrue(viewModel.messages.isEmpty)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["DELETE"])
     }
-
-    func testChatViewModelIgnoresStaleSameConversationStreamCallbacksAfterResend() async {
-        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
-        viewModel.messages = [
-            .init(id: "local-user-new", role: .user, content: "Second", isStreaming: false)
-        ]
-
-        viewModel.beginStreaming(conversationId: "conversation-1", userMessageId: "local-user-new")
-        await viewModel.applyStreamEvent(
-            .metadata(
-                .init(
-                    conversationId: "conversation-1",
-                    userMessageId: "user-message-1",
-                    assistantMessageId: "assistant-new",
-                    jobId: "job-1"
-                )
-            ),
-            conversationId: "conversation-1",
-            userMessageId: "local-user-new"
-        )
-        await viewModel.applyStreamEvent(
-            .text("fresh"),
-            conversationId: "conversation-1",
-            userMessageId: "local-user-new"
-        )
-
-        XCTAssertTrue(viewModel.isStreaming)
-        XCTAssertEqual(viewModel.messages.count, 2)
-        XCTAssertEqual(viewModel.messages.last?.content, "fresh")
-
-        await viewModel.applyStreamEvent(
-            .text("stale"),
-            conversationId: "conversation-1",
-            userMessageId: "local-user-old"
-        )
-        await viewModel.finishStream(
-            conversationId: "conversation-1",
-            userMessageId: "local-user-old",
-            createdConversation: false
-        )
-
-        XCTAssertTrue(viewModel.isStreaming)
-        XCTAssertEqual(viewModel.messages.count, 2)
-        XCTAssertEqual(viewModel.messages.last?.content, "fresh")
-        XCTAssertEqual(viewModel.streamingConversationId, "conversation-1")
-        XCTAssertEqual(viewModel.streamingUserMessageId, "local-user-new")
-        XCTAssertEqual(viewModel.streamingAssistantMessageId, "assistant-new")
-
-        await viewModel.finishStream(
-            conversationId: "conversation-1",
-            userMessageId: "local-user-new",
-            createdConversation: false
-        )
-
-        XCTAssertFalse(viewModel.isStreaming)
-        XCTAssertNil(viewModel.streamingConversationId)
-        XCTAssertNil(viewModel.streamingUserMessageId)
-        XCTAssertNil(viewModel.streamingAssistantMessageId)
-    }
 }
 
 private struct ChatMutationTestError: LocalizedError {
@@ -412,11 +205,7 @@ private struct LocalDraftProvider: NativeChatTitleProviding {
     let response: String?
     let error: Error?
 
-    init(
-        status: NativeChatTitleProviderStatus,
-        response: String?,
-        error: Error? = nil
-    ) {
+    init(status: NativeChatTitleProviderStatus, response: String?, error: Error? = nil) {
         self.status = status
         self.response = response
         self.error = error

@@ -228,6 +228,7 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Failed to load credential settings";
 "native.credentials.chooseScopes" = "Choose scopes";
+"native.credentials.confirmRevokeGrant" = "Revoke access to {app}?";
 "native.credentials.connectedApps" = "Connected Apps";
 "native.credentials.grantActivity" = "Authorized {consentedAt} · Last used {lastUsedAt}";
 "native.credentials.grantRevoked" = "Access revoked";
@@ -358,8 +359,6 @@
 "native.swift.chat.conversationTitle" = "Conversation title";
 "native.swift.chat.enterLocalResponsesEndpoint" = "Enter a local Responses API endpoint in Settings.";
 "native.swift.chat.generateTitle" = "Generate title";
-"native.swift.chat.hostedTitleGenerationUnavailable" = "Hosted title generation is unavailable.";
-"native.swift.chat.hostedUpgrade" = "Hosted (upgrade)";
 "native.swift.chat.local" = "Local";
 "native.swift.chat.localModelSettingsOff" = "Turn on local model responses in Settings.";
 "native.swift.chat.localModelsUnavailablePlatform" = "Local models are unavailable on this platform.";
@@ -373,12 +372,7 @@
 "native.swift.chat.stop" = "Stop";
 "native.swift.chat.unableToCreateConversation" = "Unable to create the conversation.";
 "native.swift.chat.unableToPersistOnDeviceResponse" = "Unable to save the on-device response.";
-"native.swift.chat.unableToSendMessage" = "Unable to send the message.";
 "native.swift.chat.you" = "You";
-"native.swift.chatMessageBubble.subagentSteps" = "Subagent steps";
-"native.swift.chatMessageBubble.subagentText" = "Subagent text";
-"native.swift.chatMessageBubble.toolCalls" = "Tool calls";
-"native.swift.chatMessageBubble.toolResults" = "Tool results";
 "native.swift.commentThread.ancestorChain" = "Ancestor chain";
 "native.swift.commentThread.best" = "Best";
 "native.swift.commentThread.comments" = "Comments";

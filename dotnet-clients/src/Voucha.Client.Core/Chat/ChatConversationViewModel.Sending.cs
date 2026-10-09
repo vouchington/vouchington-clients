@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Chat;
@@ -17,16 +18,27 @@ public sealed partial class ChatConversationViewModel
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
 
     var selectedProvider = SelectedProviderStatus;
+    ILocalChatProvider selectedLocalProvider;
     try
     {
-      if (selectedProvider.Kind == ChatProviderKind.Local)
+      if (providerResolver is ILocalChatProviderResolver localResolver)
       {
-        selectedProvider = providerResolver is ILocalChatProviderResolver localResolver
-            ? localResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty)?.Status ?? selectedProvider
-            : localChatProvider.Status;
-        SelectedProviderStatus = selectedProvider;
+        var resolvedProvider = localResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty);
+        if (resolvedProvider is null)
+        {
+          ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
+          State = LoadState.Error;
+          return false;
+        }
+        selectedLocalProvider = resolvedProvider;
       }
-      if (selectedProvider.Kind == ChatProviderKind.Local && !selectedProvider.IsAvailable)
+      else
+      {
+        selectedLocalProvider = localChatProvider;
+      }
+      selectedProvider = selectedLocalProvider.Status;
+      SelectedProviderStatus = selectedProvider;
+      if (!selectedProvider.IsAvailable)
       {
         ErrorMessage = selectedProvider.StatusText;
         State = LoadState.Error;
@@ -45,9 +57,7 @@ public sealed partial class ChatConversationViewModel
     var messageTime = DateTimeOffset.UtcNow;
     var localUserMessageId = Guid.CreateVersion7(messageTime).ToString();
     var localAssistantMessageId = Guid.CreateVersion7(messageTime.AddMilliseconds(1)).ToString();
-    LocalLLMResponseInput[] localHistory = selectedProvider.Kind == ChatProviderKind.Local ? LocalLLMHistory() : [];
-    var streamAccepted = false;
-    var streamFailed = false;
+    LocalLLMResponseInput[] localHistory = LocalLLMHistory();
     var userMessageInserted = false;
     var assistantMessageInserted = false;
     var localChatPersisted = false;
@@ -64,6 +74,21 @@ public sealed partial class ChatConversationViewModel
         Title = created.Conversation.Title;
       }
 
+      if (providerResolver is ILocalChatProviderResolver refreshedResolver)
+      {
+        selectedLocalProvider = refreshedResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty)
+            ?? throw new InvalidOperationException(
+                localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable));
+      }
+      selectedProvider = selectedLocalProvider.Status;
+      SelectedProviderStatus = selectedProvider;
+      if (!selectedProvider.IsAvailable)
+      {
+        ErrorMessage = selectedProvider.StatusText;
+        State = LoadState.Error;
+        return false;
+      }
+
       messages.Add(new ChatMessageRow(
           localUserMessageId,
           "user",
@@ -72,40 +97,16 @@ public sealed partial class ChatConversationViewModel
       userMessageInserted = true;
       OnPropertyChanged(nameof(Messages));
 
-      if (selectedProvider.Kind == ChatProviderKind.Local)
-      {
-        assistantMessageInserted = await SendLocalTurnAsync(
-            trimmed,
-            conversationId,
-            localUserMessageId,
-            localAssistantMessageId,
-            localHistory,
-            selectedProvider,
-            currentRequest,
-            cancellationToken).ConfigureAwait(true);
-        localChatPersisted = true;
-      }
-      else
-      {
-        var hostedResult = await SendHostedTurnAsync(
-            trimmed,
-            conversationId,
-            selectedProvider,
-            currentRequest,
-            () => streamAccepted = true,
-            cancellationToken).ConfigureAwait(true);
-        streamAccepted = hostedResult.StreamAccepted;
-        streamFailed = hostedResult.StreamFailed;
-        if (!hostedResult.Accepted) return streamAccepted;
-      }
-
-      if (currentRequest != Volatile.Read(ref requestId)) return false;
-      if (selectedProvider.Kind != ChatProviderKind.Local &&
-          string.IsNullOrWhiteSpace(Title) &&
-          ConversationId is { Length: > 0 })
-      {
-        await GenerateTitleAsyncCore(currentRequest, suppressErrors: true, cancellationToken).ConfigureAwait(true);
-      }
+      assistantMessageInserted = await SendLocalTurnAsync(
+          trimmed,
+          conversationId,
+          localUserMessageId,
+          localAssistantMessageId,
+          localHistory,
+          selectedLocalProvider,
+          currentRequest,
+          cancellationToken).ConfigureAwait(true);
+      localChatPersisted = true;
 
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       if (ConversationId is { Length: > 0 })
@@ -113,8 +114,6 @@ public sealed partial class ChatConversationViewModel
         await ReloadMessagesAsync(ConversationId, currentRequest, cancellationToken).ConfigureAwait(true);
       }
       if (currentRequest != Volatile.Read(ref requestId)) return false;
-      StreamContent = null;
-      streamingAssistantMessageId = null;
       State = LoadState.Loaded;
       return true;
     }
@@ -122,36 +121,19 @@ public sealed partial class ChatConversationViewModel
     {
       if (currentRequest == Volatile.Read(ref requestId))
       {
-        if (selectedProvider.Kind == ChatProviderKind.Local)
+        if (!localChatPersisted)
         {
-          if (!localChatPersisted)
+          if (assistantMessageInserted)
           {
-            if (assistantMessageInserted)
-            {
-              RemoveLocalMessage(localAssistantMessageId);
-            }
-            if (userMessageInserted)
-            {
-              RemoveLocalMessage(localUserMessageId);
-            }
+            RemoveLocalMessage(localAssistantMessageId);
           }
-          State = ConversationId is { Length: > 0 } ? LoadState.Loaded : LoadState.Idle;
-          return localChatPersisted;
-        }
-
-        if (ConversationId is { Length: > 0 })
-        {
-          if (!await ReloadMessagesAsync(ConversationId, currentRequest, CancellationToken.None)
-              .ConfigureAwait(true))
+          if (userMessageInserted)
           {
-            return false;
+            RemoveLocalMessage(localUserMessageId);
           }
         }
-
-        StreamContent = null;
-        streamingAssistantMessageId = null;
         State = ConversationId is { Length: > 0 } ? LoadState.Loaded : LoadState.Idle;
-        return streamAccepted;
+        return localChatPersisted;
       }
 
       return false;
@@ -160,36 +142,25 @@ public sealed partial class ChatConversationViewModel
     {
       if (currentRequest == Volatile.Read(ref requestId))
       {
-        if (selectedProvider.Kind == ChatProviderKind.Local)
+        if (!localChatPersisted)
         {
-          if (!localChatPersisted)
+          if (assistantMessageInserted)
           {
-            if (assistantMessageInserted)
-            {
-              RemoveLocalMessage(localAssistantMessageId);
-            }
-            if (userMessageInserted)
-            {
-              RemoveLocalMessage(localUserMessageId);
-            }
+            RemoveLocalMessage(localAssistantMessageId);
           }
+          if (userMessageInserted) RemoveLocalMessage(localUserMessageId);
         }
-        else if (!streamAccepted)
-        {
-          RemoveLocalMessage(localUserMessageId);
-        }
-
-        ApplySendFailure(ex, selectedProvider, streamAccepted);
+        ErrorMessage = ex.Message;
+        State = LoadState.Error;
       }
 
-      return selectedProvider.Kind == ChatProviderKind.Local ? localChatPersisted : streamAccepted;
+      return localChatPersisted;
     }
     finally
     {
       if (currentRequest == Volatile.Read(ref requestId))
       {
         IsStreaming = false;
-        if (streamFailed) State = LoadState.Error;
         var streamingTokenSource = Interlocked.Exchange(ref streamingCts, null);
         streamingTokenSource?.Dispose();
       }

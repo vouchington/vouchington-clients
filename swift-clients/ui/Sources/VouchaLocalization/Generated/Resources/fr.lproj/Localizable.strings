@@ -228,6 +228,7 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Impossible de charger les paramètres des identifiants";
 "native.credentials.chooseScopes" = "Choisir les portées";
+"native.credentials.confirmRevokeGrant" = "Révoquer l’accès à {app} ?";
 "native.credentials.connectedApps" = "Applications connectées";
 "native.credentials.grantActivity" = "Autorisée le {consentedAt} · Dernière utilisation : {lastUsedAt}";
 "native.credentials.grantRevoked" = "Accès révoqué";
@@ -358,8 +359,6 @@
 "native.swift.chat.conversationTitle" = "Titre de la conversation";
 "native.swift.chat.enterLocalResponsesEndpoint" = "Saisissez un point de terminaison local de l’API Responses dans les réglages.";
 "native.swift.chat.generateTitle" = "Générer le titre";
-"native.swift.chat.hostedTitleGenerationUnavailable" = "La génération hébergée de titres est indisponible.";
-"native.swift.chat.hostedUpgrade" = "Hébergé (mise à niveau)";
 "native.swift.chat.local" = "Local";
 "native.swift.chat.localModelSettingsOff" = "Activez les réponses du modèle local dans les réglages.";
 "native.swift.chat.localModelsUnavailablePlatform" = "Les modèles locaux sont indisponibles sur cette plateforme.";
@@ -373,12 +372,7 @@
 "native.swift.chat.stop" = "Arrêter";
 "native.swift.chat.unableToCreateConversation" = "Impossible de créer la conversation.";
 "native.swift.chat.unableToPersistOnDeviceResponse" = "Impossible d’enregistrer la réponse sur l’appareil.";
-"native.swift.chat.unableToSendMessage" = "Impossible d’envoyer le message.";
 "native.swift.chat.you" = "Vous";
-"native.swift.chatMessageBubble.subagentSteps" = "Étapes du sous-agent";
-"native.swift.chatMessageBubble.subagentText" = "Texte du sous-agent";
-"native.swift.chatMessageBubble.toolCalls" = "Appels d’outils";
-"native.swift.chatMessageBubble.toolResults" = "Résultats des outils";
 "native.swift.commentThread.ancestorChain" = "Chaîne des ancêtres";
 "native.swift.commentThread.best" = "Meilleur";
 "native.swift.commentThread.comments" = "Commentaires";

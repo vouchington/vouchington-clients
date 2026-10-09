@@ -358,6 +358,7 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>No se pudo cargar la configuración de credenciales</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Elegir ámbitos</value></data>
+  <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>¿Revocar el acceso a {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicaciones conectadas</value></data>
   <data name="native.credentials.grantActivity" xml:space="preserve"><value>Autorizada el {consentedAt} · Último uso: {lastUsedAt}</value></data>
   <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Acceso revocado</value></data>
@@ -442,7 +443,6 @@
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Elige un modelo local.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Envía un mensaje para iniciar la conversación.</value></data>
   <data name="native.dotnet.chatConversation.enterLocalResponsesEndpoint" xml:space="preserve"><value>Introduce un punto de conexión local de la API Responses.</value></data>
-  <data name="native.dotnet.chatConversation.hosted" xml:space="preserve"><value>Alojado</value></data>
   <data name="native.dotnet.chatConversation.local" xml:space="preserve"><value>Local</value></data>
   <data name="native.dotnet.chatConversation.localChatUnavailable" xml:space="preserve"><value>El chat local no está disponible.</value></data>
   <data name="native.dotnet.chatConversation.localModelEmptyResponse" xml:space="preserve"><value>El modelo local devolvió una respuesta vacía.</value></data>
@@ -450,12 +450,8 @@
   <data name="native.dotnet.chatConversation.localModelsOffPlatform" xml:space="preserve"><value>Los modelos locales están desactivados para esta plataforma.</value></data>
   <data name="native.dotnet.chatConversation.messagePlaceholder" xml:space="preserve"><value>Escribe un mensaje</value></data>
   <data name="native.dotnet.chatConversation.noMessages" xml:space="preserve"><value>Aún no hay mensajes</value></data>
-  <data name="native.dotnet.chatConversation.openAiHosted" xml:space="preserve"><value>Alojado por OpenAI</value></data>
   <data name="native.dotnet.chatConversation.responseInterrupted" xml:space="preserve"><value>La respuesta se interrumpió. Inténtalo de nuevo.</value></data>
   <data name="native.dotnet.chatConversation.setUpWindowsModel" xml:space="preserve"><value>Configurar el modelo de Windows</value></data>
-  <data name="native.dotnet.chatConversation.subagentStep" xml:space="preserve"><value>Paso del subagente</value></data>
-  <data name="native.dotnet.chatConversation.toolCall" xml:space="preserve"><value>Llamada a herramienta</value></data>
-  <data name="native.dotnet.chatConversation.toolResult" xml:space="preserve"><value>Resultado de herramienta</value></data>
   <data name="native.dotnet.chatConversation.windowsModelDisabled" xml:space="preserve"><value>El modelo de lenguaje del sistema Windows está desactivado.</value></data>
   <data name="native.dotnet.chatConversation.windowsModelReady" xml:space="preserve"><value>Listo.</value></data>
   <data name="native.dotnet.chatConversation.windowsModelSetupRequired" xml:space="preserve"><value>Se requiere descargar y configurar el modelo.</value></data>
@@ -1343,7 +1339,6 @@
   <data name="native.swift.chat.conversationTitle" xml:space="preserve"><value>Título de la conversación</value></data>
   <data name="native.swift.chat.rename" xml:space="preserve"><value>Renombrar</value></data>
   <data name="native.swift.chat.stop" xml:space="preserve"><value>Detener</value></data>
-  <data name="native.swift.chatMessageBubble.subagentText" xml:space="preserve"><value>Texto del subagente</value></data>
   <data name="native.swift.commentThread.ancestorChain" xml:space="preserve"><value>Cadena de antecesores</value></data>
   <data name="native.swift.commentThread.comments" xml:space="preserve"><value>Comentarios</value></data>
   <data name="native.swift.commentThread.sort" xml:space="preserve"><value>Ordenar</value></data>

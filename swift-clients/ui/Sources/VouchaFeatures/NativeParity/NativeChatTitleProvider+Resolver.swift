@@ -38,7 +38,7 @@ struct NativeChatLiveTitleProviderResolver: NativeChatTitleProviderResolving {
         }) {
             return .openAICompatible(endpointID: endpoint.id)
         }
-        return .openAI
+        return .appleFoundationModels
     }
 
     func provider(for kind: NativeChatTitleProviderKind) -> any NativeChatTitleProviding {
@@ -52,8 +52,6 @@ struct NativeChatLiveTitleProviderResolver: NativeChatTitleProviderResolving {
                 featurePolicy: featurePolicy,
                 responsesClient: responsesClient
             )
-        case .openAI, .anthropic:
-            NativeChatHostedTitleProvider(kind: kind)
         case .androidAICore:
             NativeChatAndroidAICoreProvider()
         case let .unavailable(id):
@@ -72,7 +70,6 @@ struct NativeChatLiveTitleProviderResolver: NativeChatTitleProviderResolving {
         descriptors += configuration.endpoints.map { endpoint in
             descriptor(for: .openAICompatible(endpointID: endpoint.id), endpoint: endpoint)
         }
-        descriptors += [descriptor(for: .openAI), descriptor(for: .anthropic)]
 
         if let selectedProviderID = configuration.selectedProviderID,
            descriptors.contains(where: { $0.id == selectedProviderID }) == false {

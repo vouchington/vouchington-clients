@@ -4,20 +4,20 @@ namespace Voucha.Client.Core.Chat;
 
 public sealed partial class ChatConversationViewModel
 {
-  private sealed class HostedOnlyChatProviderResolver : IChatProviderResolver
+  private sealed class UnavailableOnlyChatProviderResolver : IChatProviderResolver
   {
-    internal static readonly HostedOnlyChatProviderResolver Instance = new();
+    internal static readonly UnavailableOnlyChatProviderResolver Instance = new();
 
-    private static readonly ChatProviderStatus HostedProvider = new(
-        ChatProviderKind.Hosted,
-        UiText.Localized(UiMessageKey.NativeDotnetChatConversationHosted),
-        true,
-        UiText.Localized(UiMessageKey.NativeDotnetChatConversationOpenAiHosted),
+    private static readonly ChatProviderStatus UnavailableProvider = new(
+        ChatProviderKind.Local,
+        UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocal),
+        false,
+        UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable),
         UiLocalization.English);
 
-    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [HostedProvider];
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [UnavailableProvider];
 
-    public ChatProviderStatus GetDefaultProviderStatus() => HostedProvider;
+    public ChatProviderStatus GetDefaultProviderStatus() => UnavailableProvider;
   }
 
   private sealed class UnavailableLocalChatProvider : ILocalChatProvider

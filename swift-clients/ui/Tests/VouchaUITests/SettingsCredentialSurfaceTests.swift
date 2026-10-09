@@ -194,7 +194,7 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertTrue(model.apiKeyScopes.contains { $0.scope == "data:write" })
     }
 
-    func testConnectedGrantRevokeButtonCallsOwnedEndpointAndRemovesAfterCompletion() async throws {
+    func testConnectedGrantRevokeRequiresNamedConfirmationAndCancelMakesNoRequest() async throws {
         seedCredentials()
         let model = try SettingsViewModel(client: makeClient())
         await model.loadCredentialSettings()
@@ -203,8 +203,29 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         CannedFeedURLProtocol.suspendResponse(path: path)
         defer { CannedFeedURLProtocol.releaseResponse(path: path) }
         let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "DELETE")
-        let surface = SettingsSurface(viewModel: model)
-        try surface.connectedAppsSection.inspect().find(button: "Revoke").tap()
+        let grant = try XCTUnwrap(model.oauthGrants.first)
+        let state = OAuthGrantRevokeInteractionState()
+        let control = OAuthGrantRevokeButton(
+            grant: grant,
+            locale: Locale(identifier: "en_US"),
+            isDisabled: false,
+            interactionState: state
+        ) { await model.revokeOAuthGrant(id: grant.id) }
+        try control.inspect().find(button: "Revoke").tap()
+        XCTAssertTrue(state.confirming)
+        let dialog = try control.inspect().find(ViewType.Button.self).confirmationDialog()
+        XCTAssertEqual(try dialog.title().string(), "Revoke access to Agent one?")
+        try dialog.actions().find(button: "Cancel").tap()
+        XCTAssertFalse(state.confirming)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path == path && $0.method == "DELETE"
+        })
+        XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+
+        try control.inspect().find(button: "Revoke").tap()
+        XCTAssertTrue(state.confirming)
+        let confirmation = try control.inspect().find(ViewType.Button.self).confirmationDialog()
+        try confirmation.actions().find(button: "Revoke").tap()
         _ = try await barrier.wait()
         XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
         let completed = expectation(description: "Successful revoke updates the observed list")
@@ -215,6 +236,34 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         }
         CannedFeedURLProtocol.releaseResponse(path: path)
         await fulfillment(of: [completed], timeout: 2)
+        XCTAssertTrue(model.oauthGrants.isEmpty)
+    }
+
+    func testConnectedAppsProductControlWiresOwnedGrantRevoke() async throws {
+        seedCredentials()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.loadCredentialSettings()
+        let section = SettingsSurface(viewModel: model).connectedAppsSection
+        XCTAssertNoThrow(try section.inspect().find(text: "Agent one"))
+        let control = try section.inspect().find(ViewType.View<OAuthGrantRevokeButton>.self).actualView()
+        XCTAssertEqual(control.grant.id, "one")
+
+        let path = "/api/v1/my/oauth-grants/one"
+        CannedFeedURLProtocol.handlers[path] = (Data(), 204)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "DELETE")
+        let revoke = Task { await control.revoke() }
+        do {
+            _ = try await barrier.wait(timeout: .seconds(5))
+            XCTAssertEqual(model.oauthGrants.map(\.id), ["one"])
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await revoke.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await revoke.value
         XCTAssertTrue(model.oauthGrants.isEmpty)
     }
 

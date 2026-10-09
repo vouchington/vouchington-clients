@@ -10,16 +10,13 @@ public sealed partial class ChatConversationViewModel
       string localUserMessageId,
       string localAssistantMessageId,
       IReadOnlyList<LocalLLMResponseInput> history,
-      ChatProviderStatus selectedProvider,
+      ILocalChatProvider provider,
       int currentRequest,
       CancellationToken cancellationToken)
   {
     ResetStreamingState();
     var streamingTokenSource = await ResetStreamingTokenAsync(cancellationToken).ConfigureAwait(true);
 
-    var provider = providerResolver is ILocalChatProviderResolver localResolver
-        ? localResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty) ?? localChatProvider
-        : localChatProvider;
     var generation = await provider.GenerateAssistantContentAsync(
         trimmed,
         history,
@@ -53,5 +50,27 @@ public sealed partial class ChatConversationViewModel
     }
 
     return true;
+  }
+
+  private void ResetStreamingState() => IsStreaming = true;
+
+  private async Task<CancellationTokenSource> ResetStreamingTokenAsync(CancellationToken cancellationToken)
+  {
+    var previous = Interlocked.Exchange(ref streamingCts, null);
+    if (previous is not null)
+    {
+      await previous.CancelAsync().ConfigureAwait(true);
+      previous.Dispose();
+    }
+
+    var next = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    var replaced = Interlocked.Exchange(ref streamingCts, next);
+    if (replaced is not null)
+    {
+      await replaced.CancelAsync().ConfigureAwait(true);
+      replaced.Dispose();
+    }
+
+    return next;
   }
 }

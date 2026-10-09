@@ -74,8 +74,6 @@ public sealed class ChatConversationPageTests
 
     public Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-    public IAsyncEnumerable<ChatStreamEvent> StreamConversationAsync(string conversationId, string message, string? provider = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
     public Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(string conversationId, CreateClientGeneratedChatBody body, CancellationToken cancellationToken = default) => throw new NotImplementedException();
   }
 
