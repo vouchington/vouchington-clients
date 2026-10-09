@@ -84,8 +84,8 @@ pnpm exec no-mistakes tests plan dotnet --base origin/main --head HEAD --format 
 ```
 
 The planner traces `Directory.Packages.props`, project `PackageReference` and `ProjectReference`
-edges across Core, App, Core.Tests, and App.Tests, plus all seven committed generic and
-Mac Catalyst RID-specific package locks.
+edges across Core, App, Core.Tests, and App.Tests, plus all eight committed generic,
+framework-only Mac Catalyst, and Mac Catalyst RID-specific package locks.
 Inspect causal `reasons` separately from the `sample` group. If JSON reports a missing baseline or
 unsupported MSBuild/dependency form, follow the configured conservative policy rather than treating
 an empty causal group as proof that no tests are affected. App.Tests is outside
@@ -133,10 +133,10 @@ lines. `host-timeout` and `lock-timeout` require exact `expensive-build` or
 diagnostics remain `check-failure`. See
 [Host Locks](../docs/development/host-locks.md#native-harness-timeout-classification).
 
-When changing a MAUI dependency, regenerate both app and Core Mac Catalyst locks for `maccatalyst-arm64` and `maccatalyst-x64` with `dotnet restore --force-evaluate` and the corresponding `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
+When changing a MAUI dependency, regenerate the framework-only Core Mac Catalyst lock and both app and Core locks for `maccatalyst-arm64` and `maccatalyst-x64`. Use the matrix helper below so every restore receives the correct `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 
 Follow the repository [frozen-install policy](../docs/development/reference-dependency-updates-frozen-install-policy.md#nuget)
-for dependency review and audit evidence. For the complete seven-lock matrix, use
+for dependency review and audit evidence. For the complete eight-lock matrix, use
 `bash dotnet-clients/tooling/restore-locks.sh update` followed by
 `bash dotnet-clients/tooling/restore-locks.sh verify` with isolated `NUGET_PACKAGES` and
 `NUGET_HTTP_CACHE_PATH`, `NUGET_PLUGINS_CACHE_PATH`, and `NUGET_SCRATCH`, while keeping lock-restore

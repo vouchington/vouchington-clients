@@ -12,6 +12,8 @@
     <DisableImplicitLibraryPacksFolder>true</DisableImplicitLibraryPacksFolder>
     <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
     <NuGetLockFilePath Condition="'$(RuntimeIdentifier)' != ''">$(MSBuildProjectDirectory)/packages.$(TargetFramework).$(RuntimeIdentifier).lock.json</NuGetLockFilePath>
+    <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Voucha.Client.Core' and '$(TargetFramework)' == 'net10.0-maccatalyst' and '$(RuntimeIdentifier)' == ''">$(MSBuildProjectDirectory)/packages.net10.0-maccatalyst.lock.json</NuGetLockFilePath>
+    <RestorePackagesWithLockFile Condition="'$(MSBuildProjectName)' == 'Voucha.Client.Core' and '$(TargetFramework)' == 'net10.0-maccatalyst' and '$(RuntimeIdentifier)' == ''">true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectName)' != 'Voucha.Client.App' and '$(RuntimeIdentifier)' == ''">

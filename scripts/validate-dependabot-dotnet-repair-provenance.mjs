@@ -46,7 +46,7 @@ export function validateDotnetRepairProvenance(
   requireExact(provenance.headSha, expectedHeadSha, 'repair provenance head SHA')
   requireSha256(provenance.manifestSha256, 'repair provenance manifest hash')
   if (!Array.isArray(provenance.locks) || provenance.locks.length !== NUGET_LOCK_PATHS.length) {
-    fail('repair provenance must declare exactly seven NuGet locks')
+    fail('repair provenance must declare exactly eight NuGet locks')
   }
   provenance.locks.forEach((lock, index) => {
     requireExactKeys(lock, ['path', 'sha256'], `repair provenance lock ${index + 1}`)
@@ -68,7 +68,7 @@ export function validateDotnetRepairPublishedPaths(rawPaths) {
   }
   const allowed = new Set(SORTED_NUGET_LOCK_PATHS)
   if (paths.some(path => !allowed.has(path))) {
-    fail('repair publish may change only the seven committed NuGet lock files')
+    fail('repair publish may change only the eight committed NuGet lock files')
   }
   return [...paths]
 }

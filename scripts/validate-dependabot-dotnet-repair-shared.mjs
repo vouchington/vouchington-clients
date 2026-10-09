@@ -2,6 +2,7 @@ export const NUGET_LOCK_PATHS = Object.freeze([
   'dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json',
   'dotnet-clients/src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json',
   'dotnet-clients/src/Voucha.Client.Core/packages.lock.json',
+  'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.lock.json',
   'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json',
   'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json',
   'dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json',

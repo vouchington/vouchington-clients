@@ -101,6 +101,28 @@ describe('trusted Dependabot .NET repair validation', () => {
     )
   })
 
+  it('accepts the no-RID Mac Catalyst Core lock through the exact diff and publish allowlists', () => {
+    const noRidCoreLock =
+      'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.lock.json'
+    assert.ok(NUGET_LOCK_PATHS.includes(noRidCoreLock))
+    const changedPaths = ['dotnet-clients/Directory.Packages.props', ...NUGET_LOCK_PATHS]
+    const rawDiff = changedPaths.map(path => `:100644 100644 aaaaaaa bbbbbbb M\0${path}\0`).join('')
+    assert.deepEqual(validateDotnetRepairRawDiff(rawDiff), changedPaths)
+    assert.deepEqual(
+      validateDotnetRepairPullRequest(
+        livePullRequest({ changed_files: changedPaths.length }),
+        rawDiff,
+        defaultBranch,
+        repository,
+        headRef,
+        baseSha,
+        headSha,
+      ).changedPaths,
+      changedPaths,
+    )
+    assert.deepEqual(validateDotnetRepairPublishedPaths(`${noRidCoreLock}\0`), [noRidCoreLock])
+  })
+
   it('rejects spoofed PR identities, stale SHAs, and non-open PRs', () => {
     const cases = [
       [livePullRequest({ user: { login: 'dependabot' } }), /author/u],
@@ -157,7 +179,7 @@ describe('trusted Dependabot .NET repair validation', () => {
     }
   })
 
-  it('validates the exact seven-lock provenance shape and trusted context', () => {
+  it('validates the exact eight-lock provenance shape and trusted context', () => {
     const locks = validateDotnetRepairProvenance(
       provenance(),
       repository,
@@ -177,7 +199,7 @@ describe('trusted Dependabot .NET repair validation', () => {
       [provenance({ headSha: 'c'.repeat(40) }), /head SHA/u],
       [provenance({ manifestSha256: 'F'.repeat(64) }), /manifest hash/u],
       [provenance({ extra: true }), /unexpected fields/u],
-      [provenance({ locks: provenance().locks.slice(0, -1) }), /exactly seven/u],
+      [provenance({ locks: provenance().locks.slice(0, -1) }), /exactly eight/u],
       [
         provenance({
           locks: [
@@ -217,7 +239,7 @@ describe('trusted Dependabot .NET repair validation', () => {
     ]) {
       assert.throws(
         () => validateDotnetRepairPublishedPaths(invalidPaths),
-        /only the seven|unique|NUL-delimited/u,
+        /only the eight|unique|NUL-delimited/u,
       )
     }
   })

@@ -62,7 +62,7 @@ describe('Dependabot repair workflow contracts', () => {
     assert.match(automerge, /published-paths/u)
     assert.match(automerge, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 2/u)
     assert.match(dotnet, /published-paths/u)
-    assert.match(dotnet, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 8/u)
+    assert.match(dotnet, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 9/u)
     assert.match(
       dotnet,
       /group: dependabot-dotnet-lock-repair-\$\{\{ github\.event\.pull_request\.number \}\}/u,
