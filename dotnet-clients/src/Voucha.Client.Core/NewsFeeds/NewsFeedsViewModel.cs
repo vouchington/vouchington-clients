@@ -159,7 +159,7 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   public void OnUiLocaleChanged()
   {
     foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
-    OnPropertyChanged(nameof(Items));
+    Items = Items.Select(Localized).ToArray();
   }
 
   private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
