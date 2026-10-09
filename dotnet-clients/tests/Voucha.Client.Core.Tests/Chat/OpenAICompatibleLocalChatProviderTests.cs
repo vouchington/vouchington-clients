@@ -21,6 +21,19 @@ public sealed class OpenAICompatibleLocalChatProviderTests
   {
     var missing = Guid.NewGuid(); var provider = Provider(Profile("other", "model"), profileId: missing);
     Assert.False(provider.Status.IsAvailable); Assert.Equal(LocalChatProviderIds.OpenAICompatible(missing), provider.Id);
+    Assert.Null(provider.Status.ModelName);
+  }
+
+  [Fact]
+  public void DisabledProfileRetainsItsConfiguredModelForExactPersistenceRetry()
+  {
+    var profile = Profile("one", "model-a") with { IsEnabled = false };
+    var unavailable = Provider(profile).Status;
+
+    Assert.False(unavailable.IsAvailable);
+    Assert.Equal("model-a", unavailable.ModelName);
+    Assert.Equal(LocalChatProviderIds.OpenAICompatible(profile.Id), unavailable.ModelProvider);
+    Assert.Equal("model-b", Provider(profile with { SelectedModelName = "model-b" }).Status.ModelName);
   }
 
   [Fact]
