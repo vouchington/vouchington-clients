@@ -70,4 +70,44 @@ public sealed partial class ChatViewModelProviderTests
     Assert.Equal(2, bodies.Count);
     Assert.Equal(bodies[0], bodies[1]);
   }
+
+  [Fact]
+  public async Task ReloadingTheSameConversationRetainsAmbiguousTurnUntilServerReconcilesItsIds()
+  {
+    var bodies = new List<CreateClientGeneratedChatBody>();
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
+      {
+        bodies.Add(body);
+        return Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+      },
+    };
+    var generations = 0;
+    var provider = AvailableLocalProvider((_, _, _) =>
+        Task.FromResult(new LocalChatGenerationResult(
+            $"Reply {++generations}", "windows_foundry", "windows-system-language-model")));
+    var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+    await viewModel.LoadAsync("conversation-1", cancellationToken: TestContext.Current.CancellationToken);
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+
+    service.FetchConversationMessagesAsyncOverride = (_, _) =>
+        Task.FromException<ChatMessagesResponse>(new HttpRequestException("Refresh failed."));
+    await viewModel.LoadAsync("conversation-1", cancellationToken: TestContext.Current.CancellationToken);
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    Assert.Equal(1, generations);
+    Assert.Equal(bodies[0], bodies[1]);
+
+    service.FetchConversationMessagesAsyncOverride = (_, _) => Task.FromResult(new ChatMessagesResponse(
+        [
+          NewChatMessage(bodies[0].UserMessageId, "user", "Hello", "2026-07-01T10:00:01Z"),
+          NewChatMessage(bodies[0].AssistantMessageId, "assistant", "Reply 1", "2026-07-01T10:00:02Z"),
+        ],
+        new PageInfo(null, false, null)));
+    await viewModel.LoadAsync("conversation-1", cancellationToken: TestContext.Current.CancellationToken);
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+
+    Assert.Equal(2, generations);
+    Assert.NotEqual(bodies[0].UserMessageId, bodies[2].UserMessageId);
+  }
 }
