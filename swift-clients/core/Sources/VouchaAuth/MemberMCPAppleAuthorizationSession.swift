@@ -16,9 +16,8 @@
         private var continuation: CheckedContinuation<URL, Error>?
         private var authorizationId: UUID?
 
-        override public init() {
-            browserFactory = MemberMCPBrowserSession.systemBrowser
-            super.init()
+        override public convenience init() {
+            self.init(browserFactory: MemberMCPBrowserSession.systemBrowser)
         }
 
         init(browserFactory: @escaping MemberMCPBrowserSession.Factory) {
