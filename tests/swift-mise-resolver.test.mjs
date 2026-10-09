@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,30 +20,42 @@ test('selects only an installed Swift binary inside the active mise root', async
   const bin = join(root, 'bin')
   const toolchain = join(root, 'installs/swift/6.4.0')
   const swift = join(toolchain, 'usr/bin/swift')
+  const swiftDriver = join(toolchain, 'usr/bin/swift-driver')
+  const linkedSwift = join(toolchain, 'bin/swift')
+  const llvmCov = join(toolchain, 'usr/bin/llvm-cov')
   const systemSwift = join(bin, 'swift')
   const mise = join(bin, 'mise')
   await mkdir(bin, { recursive: true })
   await mkdir(dirname(swift), { recursive: true })
-  await writeFile(swift, "#!/bin/sh\nprintf 'Apple Swift version 6.4 (swiftlang-6.4)\\n'\n")
-  await chmod(swift, 0o755)
+  await mkdir(dirname(linkedSwift), { recursive: true })
+  await writeFile(swiftDriver, "#!/bin/sh\nprintf 'Apple Swift version 6.4 (swiftlang-6.4)\\n'\n")
+  await chmod(swiftDriver, 0o755)
+  await symlink('swift-driver', swift)
+  await symlink('../usr/bin/swift', linkedSwift)
+  await writeFile(llvmCov, '#!/bin/sh\nexit 0\n')
+  await chmod(llvmCov, 0o755)
   await writeFile(systemSwift, '#!/bin/sh\nexit 0\n')
   await chmod(systemSwift, 0o755)
 
-  async function run(selectedRoot, selectedSwift) {
+  async function run(selectedRoot, selectedSwift, args = []) {
     await writeFile(
       mise,
       `#!/bin/bash\nif [[ "$1" == where && "$2" == swift ]]; then printf '%s\\n' '${selectedRoot}'; exit 0; fi\nif [[ "$1" == which && "$2" == swift ]]; then printf '%s\\n' '${selectedSwift}'; exit 0; fi\nexit 2\n`,
     )
     await chmod(mise, 0o755)
-    return spawnSync('bash', [resolver], {
+    return spawnSync('bash', [resolver, ...args], {
       encoding: 'utf8',
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
     })
   }
 
-  const installed = await run(toolchain, swift)
+  const installed = await run(toolchain, linkedSwift)
   assert.equal(installed.status, 0, installed.stderr)
-  assert.equal(installed.stdout.trim(), await realpath(swift))
+  const resolvedToolchain = await realpath(toolchain)
+  assert.equal(installed.stdout.trim(), join(resolvedToolchain, 'bin/swift'))
+  const matchingCoverageTool = await run(toolchain, linkedSwift, ['--llvm-cov'])
+  assert.equal(matchingCoverageTool.status, 0, matchingCoverageTool.stderr)
+  assert.equal(matchingCoverageTool.stdout.trim(), join(resolvedToolchain, 'usr/bin/llvm-cov'))
 
   const missing = await run(join(root, 'installs/swift/missing'), systemSwift)
   assert.notEqual(missing.status, 0)
@@ -64,8 +76,14 @@ test('selects only an installed Swift binary inside the active mise root', async
   assert.notEqual(outside.status, 0)
   assert.match(outside.stderr, /outside its pinned installation root/u)
 
-  await writeFile(swift, "#!/bin/sh\nprintf 'Swift version 6.3.3 (swiftlang-6.3.3)\\n'\n")
+  await writeFile(swiftDriver, "#!/bin/sh\nprintf 'Swift version 6.3.3 (swiftlang-6.3.3)\\n'\n")
   const wrongVersion = await run(toolchain, swift)
   assert.notEqual(wrongVersion.status, 0)
   assert.match(wrongVersion.stderr, /requires Swift 6\.4\.0/u)
+
+  await rm(swift)
+  await symlink(systemSwift, swift)
+  const escapedLink = await run(toolchain, linkedSwift)
+  assert.notEqual(escapedLink.status, 0)
+  assert.match(escapedLink.stderr, /target is outside its pinned installation root/u)
 })

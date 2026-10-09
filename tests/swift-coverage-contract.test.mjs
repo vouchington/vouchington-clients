@@ -103,6 +103,32 @@ test('writes normalized LCOV with the intended .build ignore regex', async t => 
   ])
 })
 
+test('exports mise-built core coverage with an explicitly selected matching llvm-cov', async t => {
+  const fixture = await lcovFixture(t)
+  const outputPath = join(fixture.fixtureRoot, 'coverage/mise-lcov.info')
+  const llvmCov = join(fixture.fixtureRoot, 'mise/swift/usr/bin/llvm-cov')
+  const argumentsPath = join(fixture.fixtureRoot, 'mise-llvm-cov-arguments.txt')
+  await mkdir(dirname(llvmCov), { recursive: true })
+  await writeExecutable(
+    llvmCov,
+    '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$MANAGED_LLVM_COV_ARGUMENTS_PATH"\ncat "$LCOV_FIXTURE_PATH"\n',
+  )
+  await execFileAsync(
+    'bash',
+    [fixture.writeLcov, fixture.packagePath, fixture.bundleName, outputPath, llvmCov],
+    {
+      cwd: repositoryRoot,
+      env: { ...fixture.environment, MANAGED_LLVM_COV_ARGUMENTS_PATH: argumentsPath },
+    },
+  )
+  assert.equal(
+    await readFile(outputPath, 'utf8'),
+    'SF:swift-clients/core/Sources/VouchaCore/Example.swift\nDA:1,1\nend_of_record\n',
+  )
+  assert.equal((await readFile(argumentsPath, 'utf8')).split('\n')[0], 'export')
+  await assert.rejects(readFile(fixture.argumentsPath, 'utf8'), { code: 'ENOENT' })
+})
+
 test('normalizes source paths literally when the repository root contains metacharacters', async t => {
   const fixture = await lcovFixture(t, { isolatedRepositoryRoot: true })
   const outputPath = join(fixture.fixtureRoot, 'coverage/lcov.info')

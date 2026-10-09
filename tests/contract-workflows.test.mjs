@@ -176,6 +176,10 @@ describe('native contract workflow boundary', () => {
       /write-lcov\.sh swift-clients\/core VouchaCoreTests coverage\/core\/lcov\.info/u,
     )
     assert.match(
+      jobBlock(workflow, 'test-swift-core'),
+      /llvm_cov="\$\(bash swift-clients\/tooling\/resolve-mise-swift\.sh --llvm-cov\)"[\s\S]*write-lcov\.sh swift-clients\/core VouchaCoreTests coverage\/core\/lcov\.info "\$llvm_cov"/u,
+    )
+    assert.match(
       workflow,
       /write-lcov\.sh swift-clients\/ui VouchaUIPackageTests coverage\/ui\/lcov\.info/u,
     )

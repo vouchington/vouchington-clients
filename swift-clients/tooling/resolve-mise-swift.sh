@@ -35,6 +35,14 @@ case "$swift_bin" in
     exit 1
     ;;
 esac
+swift_target="$(realpath "$swift_bin")"
+case "$swift_target" in
+  "$toolchain_root"/*) ;;
+  *)
+    echo "mise selected Swift whose target is outside its pinned installation root: $swift_target" >&2
+    exit 1
+    ;;
+esac
 
 swift_version="$("$swift_bin" --version | sed -n -E '1s/^(Apple )?Swift version ([^ (]+).*/\2/p')"
 case "$swift_version" in
@@ -45,4 +53,18 @@ case "$swift_version" in
     ;;
 esac
 
-printf '%s\n' "$swift_bin"
+case "${1:-}" in
+  '') printf '%s\n' "$swift_bin" ;;
+  --llvm-cov)
+    llvm_cov="$toolchain_root/usr/bin/llvm-cov"
+    [[ -x "$llvm_cov" ]] || {
+      echo "The repository-pinned Swift installation has no executable llvm-cov at $llvm_cov." >&2
+      exit 1
+    }
+    printf '%s\n' "$llvm_cov"
+    ;;
+  *)
+    echo "Unsupported Swift toolchain selection: $1" >&2
+    exit 1
+    ;;
+esac
