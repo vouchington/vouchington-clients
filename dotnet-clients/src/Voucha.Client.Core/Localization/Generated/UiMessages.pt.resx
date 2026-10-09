@@ -358,6 +358,7 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Não foi possível carregar as configurações de credenciais</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Escolher escopos</value></data>
+  <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Revogar o acesso a {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicativos conectados</value></data>
   <data name="native.credentials.grantActivity" xml:space="preserve"><value>Autorizado em {consentedAt} · Último uso: {lastUsedAt}</value></data>
   <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Acesso revogado</value></data>
