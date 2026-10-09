@@ -28,23 +28,11 @@ public sealed partial class TagManagementPage
     if (height <= 0) return;
     var candidates = new[]
     {
-      (Control: paginationControl, Top: VerticalOffset(paginationControl, content), Height: height),
+      (Control: paginationControl, Top: ViewportPagination.VerticalOffset(paginationControl, content), Height: height),
     };
     foreach (var control in paginationVisibility.EnteredViewport(
         candidates,
         scrollY,
         pageScroll.Height)) control.TryLoadAutomatically();
-  }
-
-  private static double VerticalOffset(VisualElement control, VisualElement content)
-  {
-    var offset = 0d;
-    Element? current = control;
-    while (current is VisualElement visual && !ReferenceEquals(current, content))
-    {
-      offset += visual.Y;
-      current = visual.Parent;
-    }
-    return ReferenceEquals(current, content) ? offset : double.PositiveInfinity;
   }
 }

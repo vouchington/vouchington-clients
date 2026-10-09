@@ -21,3 +21,19 @@ internal sealed class ViewportPaginationTrigger<T> where T : notnull
     return enteredControls;
   }
 }
+
+internal static class ViewportPagination
+{
+  internal static double VerticalOffset(VisualElement control, VisualElement content)
+  {
+    var offset = 0d;
+    Element? current = control;
+    while (current is VisualElement visual && !ReferenceEquals(current, content))
+    {
+      offset += visual.Y;
+      current = visual.Parent;
+    }
+
+    return ReferenceEquals(current, content) ? offset : double.PositiveInfinity;
+  }
+}

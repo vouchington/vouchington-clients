@@ -32,23 +32,11 @@ public partial class PostDetailPage
     if (height <= 0) return;
     var candidate = (
         Control: DescendantsPagination,
-        Top: VerticalOffset(DescendantsPagination, content),
+        Top: ViewportPagination.VerticalOffset(DescendantsPagination, content),
         Height: height);
     foreach (var control in descendantPaginationVisibility.EnteredViewport(
         [candidate],
         scrollY,
         PostDetailScroll.Height)) control.TryLoadAutomatically();
-  }
-
-  private static double VerticalOffset(VisualElement control, VisualElement content)
-  {
-    var offset = 0d;
-    Element? current = control;
-    while (current is VisualElement visual && !ReferenceEquals(current, content))
-    {
-      offset += visual.Y;
-      current = visual.Parent;
-    }
-    return ReferenceEquals(current, content) ? offset : double.PositiveInfinity;
   }
 }
