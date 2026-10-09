@@ -12,15 +12,16 @@ public sealed partial class CommunityDetailViewModel
   private readonly Dictionary<string, long> dismissingAutomodPosts = new(StringComparer.Ordinal);
   private long automodDismissalSequence;
   private bool automodFlagAccessGranted;
-  private string? automodFlagActionError;
-  private string? automodFlagNotice;
+  private UiText? automodFlagActionError;
+  private UiText? automodFlagNotice;
 
   public IReadOnlyList<CommunityModerationQueueEntry> AutomodFlags =>
       automodFlagAccessGranted && CanModerateCommunity ? automodFlagPages.Items : [];
   public bool HasMoreAutomodFlags => automodFlagAccessGranted && automodFlagPages.HasMore;
   public bool IsLoadingAutomodFlags => automodFlagPages.IsLoading;
-  public string? AutomodFlagError => automodFlagPages.LastError ?? automodFlagActionError;
-  public string? AutomodFlagNotice => automodFlagNotice;
+  public string? AutomodFlagError => automodFlagPages.LastError ??
+      (automodFlagActionError is { } error ? localization.Resolve(error) : null);
+  public string? AutomodFlagNotice => automodFlagNotice is { } notice ? localization.Resolve(notice) : null;
   public bool CanAutomaticallyLoadAutomodFlags =>
       SelectedSection == CommunityDetailSurfaceSection.Moderation &&
       automodFlagAccessGranted && CanModerateCommunity && automodFlagPages.CanAutomaticallyLoad;
@@ -101,7 +102,7 @@ public sealed partial class CommunityDetailViewModel
         Moderation = Moderation.Where(row => !dismissedIds.Contains(row.Id)).ToArray();
         OnPropertyChanged(nameof(ModerationRows));
         OnPropertyChanged(nameof(Moderation));
-        automodFlagNotice = localization.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46);
+        automodFlagNotice = UiText.Localized(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46);
       }
     }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -112,7 +113,7 @@ public sealed partial class CommunityDetailViewModel
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException)
     {
       if (IsCurrentAutomodContext(community, revision))
-        automodFlagActionError = localization.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68);
+        automodFlagActionError = UiText.Localized(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68);
     }
     finally
     {

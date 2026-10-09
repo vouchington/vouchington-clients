@@ -39,6 +39,33 @@ public sealed class CommunityModerationPageAutomodNavigationTests
     Assert.True(button.IsVisible);
   }
 
+  [Theory]
+  [InlineData(false, "Automod flag dismissed", "Marca de automod descartada", "community-automod-flags-notice")]
+  [InlineData(true, "Failed to dismiss the automod flag", "Error al descartar la marca de automod", "community-automod-flags-error")]
+  public async Task MountedDismissalMessageChangesWithLocale(
+      bool fail, string english, string spanish, string labelId)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
+    using var locale = new UiLocaleController(new EnglishLanguages());
+    var service = DispatchProxy.Create<ICommunitiesService, CommunityServiceProxy>();
+    ((CommunityServiceProxy)service).DismissFailure = fail;
+    var session = new SessionStore(new SessionSnapshot(new User(
+        Id: "moderator-1", Username: "moderator", Roles: [],
+        EmailAddress: "moderator@example.com", MembershipPlan: "free")));
+    using var model = new CommunityDetailViewModel(service, session, new UiLocalization(locale), locale);
+    var page = new CommunityModerationPage(model, new ServiceCollection().BuildServiceProvider());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
+
+    await model.DismissAutomodFlagAsync("post-1", TestContext.Current.CancellationToken);
+    var label = Find<Label>(page, labelId);
+    Assert.True(label.IsVisible);
+    Assert.Equal(english, label.Text);
+
+    locale.ApplySavedLocale("es");
+    Assert.Equal(spanish, label.Text);
+  }
+
   private static T Find<T>(Element root, string id) where T : Element =>
       Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
 
@@ -61,6 +88,8 @@ public sealed class CommunityModerationPageAutomodNavigationTests
 
   public class CommunityServiceProxy : DispatchProxy
   {
+    public bool DismissFailure { get; set; }
+
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => targetMethod?.Name switch
     {
       nameof(ICommunitiesService.FetchDetailAsync) => Task.FromResult(Detail()),
@@ -73,6 +102,8 @@ public sealed class CommunityModerationPageAutomodNavigationTests
       nameof(ICommunitiesService.FetchModerationQueuePageAsync) => Task.FromResult(new CommunityModerationQueueResponse([], EmptyPage(), "moderator")),
       nameof(ICommunitiesService.FetchPendingReportsPageAsync) => Task.FromResult(new CommunityPendingReportsResponse([], EmptyPage())),
       nameof(ICommunitiesService.FetchAutomodFlagPageAsync) => Task.FromResult(new CommunityModerationQueueResponse([Flag()], EmptyPage(), "moderator")),
+      nameof(ICommunitiesService.DismissAutomodFlagAsync) => DismissFailure
+          ? Task.FromException(new HttpRequestException("offline")) : Task.CompletedTask,
       _ => throw new InvalidOperationException($"Unexpected service call: {targetMethod?.Name}"),
     };
 
@@ -100,6 +131,11 @@ public sealed class CommunityModerationPageAutomodNavigationTests
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider
   {
     public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance;
+  }
+
+  private sealed class EnglishLanguages : IDeviceLanguageProvider
+  {
+    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 
   private sealed class ImmediateDispatcher : IDispatcher

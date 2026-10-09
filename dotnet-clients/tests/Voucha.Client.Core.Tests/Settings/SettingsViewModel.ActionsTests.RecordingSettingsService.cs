@@ -40,6 +40,8 @@ public sealed partial class SettingsViewModelActionsTests
 
     public int RotateApiKeyCount { get; private set; }
 
+    public Func<Task<ApiKeyCreationResponse>>? CreateApiKeyOverride { get; set; }
+
     public ApiKey? RotatedApiKey { get; private set; }
 
     public Func<int, Task<ApiKeyListResponse>>? FetchApiKeysOverride { get; set; }
@@ -157,6 +159,7 @@ public sealed partial class SettingsViewModelActionsTests
       LastCreatedApiKeyLabel = label;
       LastCreatedApiKeyType = type;
       LastCreatedApiKeyPermissions = permissions;
+      if (CreateApiKeyOverride is { } create) return create();
       return Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
     }
 

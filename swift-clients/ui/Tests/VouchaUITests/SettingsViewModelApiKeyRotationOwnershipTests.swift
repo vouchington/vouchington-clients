@@ -47,6 +47,7 @@ extension SettingsViewModelActionCoverageTests {
         CannedFeedURLProtocol.releaseResponse(path: rotationPath)
         await rotation.value
         XCTAssertNil(model.latestRawAPIKey)
+        XCTAssertTrue(model.apiKeyRotationInFlight.isEmpty)
 
         CannedFeedURLProtocol.releaseOldestResponse(path: identityPath)
         await latestLoad.value

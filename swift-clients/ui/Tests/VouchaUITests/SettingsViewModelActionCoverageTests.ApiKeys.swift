@@ -133,4 +133,39 @@ extension SettingsViewModelActionCoverageTests {
         XCTAssertNotNil(model.statusMessage)
     }
 
+    func testSameOwnerReloadKeepsHeldRotationExclusiveUntilItFinishes() async throws {
+        seedSettingsResponses()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.load()
+        let path = "/api/v1/my/api-keys/key-1/rotate"
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("native.my.api-keys.rotate"), 201)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        let rotation = Task { await model.rotateApiKey(id: "key-1") }
+        do {
+            _ = try await barrier.wait()
+            await model.load()
+            XCTAssertEqual(model.identity?.id, "user-1")
+            let key = try XCTUnwrap(model.apiKeys.first)
+            XCTAssertEqual(key.id, "key-1")
+            XCTAssertFalse(model.canRotateApiKey(key))
+
+            await model.rotateApiKey(id: "key-1")
+            XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.count {
+                $0.method == "POST" && $0.url.path == path
+            }, 1)
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await rotation.value
+            throw error
+        }
+
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await rotation.value
+        XCTAssertTrue(model.apiKeyRotationInFlight.isEmpty)
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+    }
+
 }

@@ -19,6 +19,11 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
 
         model.setApiKeyScope("data:write", selected: true)
         XCTAssertEqual(model.apiKeyScopeSelection.permissions, ["data:read", "data:write"])
+        XCTAssertFalse(model.canCreateApiKey, "A catalogue alone cannot authorize a secret-bearing request")
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertTrue(model.canCreateApiKey)
         await model.createApiKey()
 
@@ -43,6 +48,10 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         await model.createApiKey()
         XCTAssertFalse(CannedFeedURLProtocol.capturedMethods.contains("POST"))
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         CannedFeedURLProtocol.handlers["/api/v1/my/api-keys"] = (Data(#"{"error":"denied"}"#.utf8), 403)
         await model.createApiKey()
         XCTAssertEqual(model.apiKeyLabel, "Keep draft")
@@ -77,6 +86,10 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         guard case .loaded = model.credentialState else { return XCTFail("Usable catalogue must remain loaded") }
         guard case .error = model.oauthGrantState else { return XCTFail("Grant authorization failure must be visible") }
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertTrue(model.canCreateApiKey)
         await model.createApiKey()
         XCTAssertTrue(CannedFeedURLProtocol.capturedRequests.contains { $0.method == "POST" })
@@ -264,6 +277,10 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
         guard case .loaded = model.oauthGrantState else { return XCTFail("Grant revoke must remain loaded") }
         XCTAssertTrue(model.apiKeyScopes.contains { $0.scope == "data:write" })
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertTrue(model.canCreateApiKey)
         XCTAssertTrue(model.oauthGrants.isEmpty, "Stale grant response must not restore revoked access")
     }

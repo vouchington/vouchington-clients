@@ -11,50 +11,64 @@ public extension SettingsViewModel {
             statusMessage = .message(.nativeCredentialsInvalidSelection)
             return
         }
+        guard let ownerId = identity?.id else { return }
+        let invalidationGeneration = apiKeyRotationOwnerState.invalidationGeneration
+        let secretOperationGeneration = beginApiKeySecretOperation()
         apiKeyCreationInFlight = true
         defer { apiKeyCreationInFlight = false }
-        apiKeyRotationOwnerState.pendingSecret = nil
         let permissions = apiKeyScopeSelection.permissions
-        await mutate {
+        state = .loading
+        statusMessage = nil
+        do {
             let lifetime: ApiKeyLifetimeChoice = apiKeyLifetimeDays.map { .days($0) } ?? .unlimited
             let response: SettingsApiKeyResponse = try await client.send(
                 .createMyApiKey(label: apiKeyLabel, type: apiKeyType, permissions: permissions, lifetime: lifetime)
             )
-            if activeMainSettingsLoadGeneration == settingsLoadGeneration {
-                createdApiKeysDuringMainLoad.append(response.apiKey)
+            guard invalidationGeneration == apiKeyRotationOwnerState.invalidationGeneration,
+                  secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration else { return }
+            guard identity?.id == ownerId else {
+                if identity == nil, apiKeyRotationOwnerState.lastConfirmedOwnerId == ownerId {
+                    apiKeyRotationOwnerState.pendingCreation = PendingApiKeyCreation(
+                        ownerId: ownerId, response: response, operationGeneration: secretOperationGeneration
+                    )
+                }
+                return
             }
-            revokedApiKeyIds.remove(response.apiKey.id)
-            apiKeyPagination.invalidateRequestsPreservingPage()
-            apiKeyPagination.replaceItems([response.apiKey] + apiKeyPagination.items)
-            latestRawAPIKey = response.rawKey
-            apiKeyLabel = ""
-            apiKeyScopeSelection.clear()
-            statusMessage = .message(.nativeSwiftSettingsApiKeyCreated)
-        }
-        if activeMainSettingsLoadGeneration == settingsLoadGeneration, case .loaded = state {
-            state = .loading
+            reconcileCreatedApiKey(
+                response,
+                preserveDuringMainLoad: activeMainSettingsLoadGeneration == settingsLoadGeneration
+            )
+            state = .loaded
+            if activeMainSettingsLoadGeneration == settingsLoadGeneration { state = .loading }
+        } catch {
+            handleApiKeyCreationFailure(
+                error,
+                ownerId: ownerId,
+                invalidationGeneration: invalidationGeneration,
+                secretOperationGeneration: secretOperationGeneration
+            )
         }
     }
 
     func dismissRawApiKey() {
-        latestRawAPIKey = nil
-        apiKeyRotationOwnerState.pendingSecret = nil
+        _ = beginApiKeySecretOperation()
     }
 
     func rotateApiKey(id: String) async {
         guard apiKeyRotationOwnerState.identityConfirmed,
               let client, let ownerId = identity?.id, let key = apiKeys.first(where: { $0.id == id }),
               canRotateApiKey(key) else { return }
+        let secretOperationGeneration = beginApiKeySecretOperation()
         let context = ApiKeyRotationContext(
             ownerId: ownerId,
             loadGeneration: settingsLoadGeneration,
-            invalidationGeneration: apiKeyRotationOwnerState.invalidationGeneration
+            invalidationGeneration: apiKeyRotationOwnerState.invalidationGeneration,
+            secretOperationGeneration: secretOperationGeneration
         )
         apiKeyRotationInFlight.insert(id)
-        latestRawAPIKey = nil
         statusMessage = nil
         defer {
-            if context.loadGeneration == settingsLoadGeneration, context.ownerId == identity?.id {
+            if context.invalidationGeneration == apiKeyRotationOwnerState.invalidationGeneration {
                 apiKeyRotationInFlight.remove(id)
             }
         }
@@ -63,7 +77,8 @@ public extension SettingsViewModel {
             guard publishOrHoldApiKeyRotationSecret(
                 response.rawKey,
                 ownerId: context.ownerId,
-                invalidationGeneration: context.invalidationGeneration
+                invalidationGeneration: context.invalidationGeneration,
+                secretOperationGeneration: context.secretOperationGeneration
             ) else { return }
             statusMessage = .message(.nativeApiKeysRotated)
             await refreshApiKeysAfterRotation(

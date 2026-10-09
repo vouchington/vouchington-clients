@@ -10,7 +10,10 @@ public sealed partial class SettingsViewModel
   private bool isCreatingApiKey;
   private UiMessageKey? credentialNoticeKey;
 
-  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && loadedUser is not null && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
+  public bool CanCreateApiKey => Volatile.Read(ref settingsViewModelDisposed) == 0 &&
+      currentUserIdOrSlug is not null &&
+      Volatile.Read(ref settingsIdentityLoadGeneration) == Volatile.Read(ref settingsLoadGeneration) &&
+      ApiKeyType is "rss" or "mcp" && loadedUser is not null && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
       SelectedApiKeyScopes.Count > 0 && (ApiKeyType != "rss" || SelectedApiKeyScopes.Count == 1) &&
       (!IsApiKeyAdministrator || apiKeyLifetime is "30" or "90");
   public string? CredentialNotice => credentialNoticeKey is { } key ? localization.Localize(key) : null;

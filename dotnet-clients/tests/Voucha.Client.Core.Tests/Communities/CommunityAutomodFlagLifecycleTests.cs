@@ -3,6 +3,7 @@ using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Tests.Api;
 using Xunit;
 using static Voucha.Client.Core.Tests.Communities.CommunityDetailViewModelCoverageFixtures;
@@ -114,6 +115,31 @@ public sealed class CommunityAutomodFlagLifecycleTests
     Assert.Contains(model.ModerationRows, row => row.Id == "report-1");
   }
 
+  [Theory]
+  [InlineData(false, "Automod flag dismissed", "Marca de automod descartada")]
+  [InlineData(true, "Failed to dismiss the automod flag", "Error al descartar la marca de automod")]
+  public async Task VisibleDismissalMessageTracksLocaleAfterAction(bool fail, string english, string spanish)
+  {
+    using var locale = new UiLocaleController(new EnglishLanguages());
+    var (model, service) = await ModeratorAsync(new UiLocalization(locale), locale);
+    service.AutomodFlagResponses.Enqueue(Page([Entry("flag-1", "automod_flag")], null, false));
+    await model.LoadAutomodFlagsAsync(TestContext.Current.CancellationToken);
+    if (fail)
+      service.DismissAutomodFlagHandler = (_, _) => Task.FromException(new HttpRequestException("offline"));
+    var changed = new List<string?>();
+    model.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+    await model.DismissAutomodFlagAsync("post-1", TestContext.Current.CancellationToken);
+    Assert.Equal(english, fail ? model.AutomodFlagError : model.AutomodFlagNotice);
+    changed.Clear();
+
+    locale.ApplySavedLocale("es");
+
+    Assert.Equal(spanish, fail ? model.AutomodFlagError : model.AutomodFlagNotice);
+    Assert.Contains(fail ? nameof(model.AutomodFlagError) : nameof(model.AutomodFlagNotice), changed);
+    model.Dispose();
+  }
+
   [Fact]
   public async Task SettingsActionChangesOnlyAfterCommittedResponse()
   {
@@ -133,11 +159,13 @@ public sealed class CommunityAutomodFlagLifecycleTests
     Assert.Equal("unpublish", service.SavedAutomodAction);
   }
 
-  private static async Task<(CommunityDetailViewModel Model, ScriptedCommunitiesService Service)> ModeratorAsync()
+  private static async Task<(CommunityDetailViewModel Model, ScriptedCommunitiesService Service)> ModeratorAsync(
+      IUiLocalization? localization = null, IUiLocaleController? localeController = null)
   {
     var service = new ScriptedCommunitiesService();
     SeedLoadResponseSet(service, CreateDetailResponse(true, false, membershipRole: "moderator"));
-    var model = new CommunityDetailViewModel(service, new TestSessionStore(SessionSnapshotForTests.Authenticated));
+    var model = new CommunityDetailViewModel(service, new TestSessionStore(SessionSnapshotForTests.Authenticated),
+        localization, localeController);
     await model.LoadAsync("community-1", TestContext.Current.CancellationToken);
     await model.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
     service.AutomodFlagCursors.Clear();
@@ -153,6 +181,11 @@ public sealed class CommunityAutomodFlagLifecycleTests
           DateTimeOffset.Parse("2026-07-01T00:00:00Z"), DateTimeOffset.Parse("2026-07-01T00:00:00Z"),
           "Flagged post", "/posts/post-1", true, false, false, null, null, null, null, null,
           null, "/posts/post-1", null, null, false, null, null, null);
+
+  private sealed class EnglishLanguages : IDeviceLanguageProvider
+  {
+    public IReadOnlyList<string> PreferredLanguages => ["en"];
+  }
 }
 
 internal sealed partial class ScriptedCommunitiesService

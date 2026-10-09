@@ -19,7 +19,8 @@ public extension SettingsViewModel {
     }
 
     var canCreateApiKey: Bool {
-        guard case .loaded = credentialState else { return false }
+        guard case .loaded = credentialState,
+              apiKeyRotationOwnerState.identityConfirmed, identity?.id != nil else { return false }
         return apiKeyScopeSelection.isValid && !apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !apiKeyCreationInFlight && (!isApiKeyAdministrator || apiKeyLifetimeDays == 30 || apiKeyLifetimeDays == 90)
     }

@@ -66,6 +66,11 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         })
         try toggle.tap()
         XCTAssertEqual(model.apiKeyScopeSelection.permissions, ["data:read", "data:write"])
+        XCTAssertTrue(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
     }
 
@@ -117,6 +122,10 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: "data:write"))
         XCTAssertThrowsError(try surface.apiKeyScopePicker.inspect().find(text: "Sign in to continue."))
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
     }
 
@@ -128,6 +137,10 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         model.apiKeyLabel = "Agent"
         await model.loadCredentialSettings()
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertTrue(model.canCreateApiKey)
         let scopeRequests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == "/api/v1/scopes" }.count
 

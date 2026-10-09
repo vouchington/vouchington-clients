@@ -14,6 +14,8 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(Applications));
     OnPropertyChanged(nameof(Invites));
     OnPropertyChanged(nameof(Moderation));
+    OnPropertyChanged(nameof(AutomodFlagError));
+    OnPropertyChanged(nameof(AutomodFlagNotice));
   }
 
   public void Dispose() => localeSubscription?.Dispose();

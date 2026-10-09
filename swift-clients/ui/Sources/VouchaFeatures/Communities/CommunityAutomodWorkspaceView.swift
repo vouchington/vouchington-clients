@@ -63,11 +63,11 @@ struct CommunityAutomodWorkspaceView: View {
 
     private func flagCard(_ entry: CommunityModerationQueueEntry) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            if let label = entry.targetLabel {
+            if entry.targetPath != nil {
                 Button {
                     if let path = entry.targetPath { onNavigate(path) }
                 } label: {
-                    Text(verbatim: UiMessages.string(.userContent(label), locale: locale))
+                    Text(verbatim: UiMessages.string(.userContent(entry.targetLabel ?? entry.entityId), locale: locale))
                 }
                 .disabled(entry.targetPath == nil || !entry.targetAvailable)
                 .accessibilityIdentifier("community-automod-post-\(entry.id)")

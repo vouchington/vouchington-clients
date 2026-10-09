@@ -13,15 +13,20 @@ extension SettingsViewModel {
     ) async {
         do {
             let page: SettingsListResponse<ApiKey> = try await client.send(.myApiKeys())
-            guard context.loadGeneration == settingsLoadGeneration, context.ownerId == identity?.id else { return }
+            guard context.loadGeneration == settingsLoadGeneration,
+                  context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration,
+                  context.ownerId == identity?.id else { return }
             replaceApiKeyPage(page)
         } catch {
             if isUnauthorized(error) {
-                invalidateApiKeyRotationOwner(ifGenerationMatches: context.invalidationGeneration)
+                guard context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration
+                else { return }
+                failCurrentApiKeyCredentialAsUnauthorized(ifGenerationMatches: context.invalidationGeneration)
                 return
             }
             guard !Task.isCancelled,
                   context.loadGeneration == settingsLoadGeneration,
+                  context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration,
                   context.ownerId == identity?.id else { return }
             apiKeyPagination.invalidateRequestsPreservingPage()
             apiKeyPagination.replaceItems(
@@ -32,19 +37,27 @@ extension SettingsViewModel {
 
     func recoverApiKeysAfterRotationFailure(_ error: Error, context: ApiKeyRotationContext) async {
         if isUnauthorized(error) {
-            invalidateApiKeyRotationOwner(ifGenerationMatches: context.invalidationGeneration)
+            guard context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration
+            else { return }
+            failCurrentApiKeyCredentialAsUnauthorized(ifGenerationMatches: context.invalidationGeneration)
             return
         }
-        guard context.loadGeneration == settingsLoadGeneration, context.ownerId == identity?.id,
+        guard context.loadGeneration == settingsLoadGeneration,
+              context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration,
+              context.ownerId == identity?.id,
               let client else { return }
         statusMessage = apiKeyRotationFailureMessage(error)
         do {
             let page: SettingsListResponse<ApiKey> = try await client.send(.myApiKeys())
-            guard context.loadGeneration == settingsLoadGeneration, context.ownerId == identity?.id else { return }
+            guard context.loadGeneration == settingsLoadGeneration,
+                  context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration,
+                  context.ownerId == identity?.id else { return }
             replaceApiKeyPage(page)
         } catch {
             if isUnauthorized(error) {
-                invalidateApiKeyRotationOwner(ifGenerationMatches: context.invalidationGeneration)
+                guard context.secretOperationGeneration == apiKeyRotationOwnerState.secretOperationGeneration
+                else { return }
+                failCurrentApiKeyCredentialAsUnauthorized(ifGenerationMatches: context.invalidationGeneration)
             }
         }
     }

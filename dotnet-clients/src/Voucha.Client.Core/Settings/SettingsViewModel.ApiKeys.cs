@@ -12,22 +12,30 @@ public sealed partial class SettingsViewModel
       SetCredentialNotice(Localization.UiMessageKey.NativeCredentialsInvalidSelection);
       return;
     }
+    var ownerId = currentUserIdOrSlug;
+    var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
+    if (ownerId is null || Volatile.Read(ref settingsIdentityLoadGeneration) != Volatile.Read(ref settingsLoadGeneration)) return;
     isCreatingApiKey = true;
     OnPropertyChanged(nameof(CanCreateApiKey));
-    ClearPendingApiKeyRotationSecret();
-    ApiKeySecret = null;
+    var secretOperation = BeginApiKeySecretOperation();
     try
     {
       var response = await settingsService.CreateApiKeyAsync(
           ApiKeyLabel, ApiKeyType, SelectedApiKeyScopes, ApiKeyLifetimeDays, cancellationToken)
           .ConfigureAwait(true);
+      if (!IsCurrentApiKeyOwner(ownerId, ownerInvalidationGeneration) ||
+          !IsCurrentApiKeySecretOperation(secretOperation)) return;
       ApiKeyLabel = string.Empty;
       await LoadAsync(cancellationToken).ConfigureAwait(true);
-      ApiKeySecret = response.RawKey;
+      PublishOrHoldCreatedApiKeySecret(ownerId, response.RawKey, ownerInvalidationGeneration, secretOperation);
     }
     catch (Exception ex)
     {
-      ErrorMessage = ex.Message;
+      if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized } &&
+          IsCurrentApiKeySecretOperation(secretOperation))
+        InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+      else if (IsCurrentApiKeyOwner(ownerId, ownerInvalidationGeneration) &&
+               IsCurrentApiKeySecretOperation(secretOperation)) ErrorMessage = ex.Message;
     }
     finally
     {
@@ -42,7 +50,8 @@ public sealed partial class SettingsViewModel
 
   public string? ApiKeyRotationNotice => apiKeyRotationNoticeKey is { } key ? localization.Localize(key) : null;
 
-  private readonly HashSet<string> rotatingApiKeyIds = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, long> rotatingApiKeyIds = new(StringComparer.Ordinal);
+  private long apiKeyRotationSequence;
 
   public async Task RotateApiKeyAsync(ApiKey apiKey, CancellationToken cancellationToken = default)
   {
@@ -52,36 +61,43 @@ public sealed partial class SettingsViewModel
     var ownerId = currentUserIdOrSlug;
     if (ownerId is null || Volatile.Read(ref settingsIdentityLoadGeneration) != generation) return;
     if (apiKey.RevokedAt is not null || apiKey.ReplacedByApiKeyId is not null ||
-        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || !rotatingApiKeyIds.Add(apiKey.Id)) return;
+        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || rotatingApiKeyIds.ContainsKey(apiKey.Id)) return;
+    var rotation = unchecked(++apiKeyRotationSequence);
+    rotatingApiKeyIds.Add(apiKey.Id, rotation);
     var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
-    ApiKeySecret = null;
+    var secretOperation = BeginApiKeySecretOperation();
     apiKeyRotationNoticeKey = null;
     OnPropertyChanged(nameof(ApiKeyRotationNotice));
     try
     {
       var response = await settingsService.RotateApiKeyAsync(apiKey.Id, cancellationToken).ConfigureAwait(true);
-      if (!PublishOrHoldRotatedApiKeySecret(ownerId, response.RawKey, ownerInvalidationGeneration)) return;
+      if (!PublishOrHoldRotatedApiKeySecret(ownerId, response.RawKey,
+              ownerInvalidationGeneration, secretOperation)) return;
       apiKeyRotationNoticeKey = Localization.UiMessageKey.NativeApiKeysRotated;
       OnPropertyChanged(nameof(ApiKeyRotationNotice));
       try
       {
         var page = await settingsService.FetchApiKeysAsync(cancellationToken).ConfigureAwait(true);
-        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ReplaceApiKeyPage(page);
+        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug &&
+            IsCurrentApiKeySecretOperation(secretOperation)) ReplaceApiKeyPage(page);
       }
       catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
       {
         if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
         {
-          InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+          if (IsCurrentApiKeySecretOperation(secretOperation))
+            InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
           return;
         }
-        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug)
+        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug &&
+            IsCurrentApiKeySecretOperation(secretOperation))
           ApiKeys = [response.ApiKey, .. ApiKeys.Where(key => key.Id != apiKey.Id && key.Id != response.ApiKey.Id)];
       }
     }
     catch (VouchaApiException ex) when (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Conflict)
     {
-      if (!IsCurrentSettingsLoad(generation) || ownerId != currentUserIdOrSlug) return;
+      if (!IsCurrentSettingsLoad(generation) || ownerId != currentUserIdOrSlug ||
+          !IsCurrentApiKeySecretOperation(secretOperation)) return;
       apiKeyRotationNoticeKey = ex.StatusCode == System.Net.HttpStatusCode.NotFound
           ? Localization.UiMessageKey.NativeApiKeysRotationNotFound
           : Localization.UiMessageKey.NativeApiKeysRotationConflict;
@@ -89,25 +105,32 @@ public sealed partial class SettingsViewModel
       try
       {
         var page = await settingsService.FetchApiKeysAsync(cancellationToken).ConfigureAwait(true);
-        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ReplaceApiKeyPage(page);
+        if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug &&
+            IsCurrentApiKeySecretOperation(secretOperation)) ReplaceApiKeyPage(page);
       }
       catch (Exception fetchException) when (!cancellationToken.IsCancellationRequested)
       {
         if (fetchException is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
-          InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+        {
+          if (IsCurrentApiKeySecretOperation(secretOperation))
+            InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+        }
       }
     }
     catch (Exception ex)
     {
       if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
       {
-        InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+        if (IsCurrentApiKeySecretOperation(secretOperation))
+          InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
       }
-      if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ErrorMessage = ex.Message;
+      if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug &&
+          IsCurrentApiKeySecretOperation(secretOperation)) ErrorMessage = ex.Message;
     }
     finally
     {
-      if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) rotatingApiKeyIds.Remove(apiKey.Id);
+      if (rotatingApiKeyIds.TryGetValue(apiKey.Id, out var active) && active == rotation)
+        rotatingApiKeyIds.Remove(apiKey.Id);
     }
   }
 

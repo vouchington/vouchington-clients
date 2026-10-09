@@ -35,6 +35,27 @@ final class CommunityAutomodRenderedControlsTests: NativeRouteSurfaceViewModelTe
         }
     }
 
+    func testFlagWithoutOptionalLabelStillOpensAvailablePost() async throws {
+        let fixture = ApiFixtureLoader.data("native.communities.moderation-queue.automod-flag.page-1")
+        var response = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any])
+        var entry = try XCTUnwrap((response["entries"] as? [[String: Any]])?.first)
+        entry["target_label"] = NSNull()
+        response["entries"] = [entry]
+        CannedFeedURLProtocol.handlers["/api/v1/communities/test-community/moderation-queue"] = try (
+            JSONSerialization.data(withJSONObject: response), 200
+        )
+
+        let model = try makeModel()
+        await model.loadNextPage()
+        let post = try XCTUnwrap(model.pagination.items.first)
+        var navigatedPaths: [String] = []
+        let view = CommunityAutomodWorkspaceView(viewModel: model, onNavigate: { navigatedPaths.append($0) })
+        try await ViewHosting.host(view) {
+            try view.inspect().find(button: post.entityId).tap()
+            XCTAssertEqual(navigatedPaths, ["/discussion/flagged-post"])
+        }
+    }
+
     func testRenderedFlagNavigatesNativelyAndDisablesDismissUntilResponse() async throws {
         let queuePath = "/api/v1/communities/test-community/moderation-queue"
         CannedFeedURLProtocol.handlers[queuePath] = (
