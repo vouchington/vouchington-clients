@@ -47,9 +47,24 @@ public struct MemberMCPOAuthTokens: Codable, Sendable {
     }
 }
 
+/// One member's credentials for one OAuth issuer, resource, and native client.
+public struct MemberMCPOAuthTokenScope: Codable, Hashable, Sendable {
+    public let accountId: String
+    public let issuerIdentifier: String
+    public let resource: URL
+    public let clientId: URL
+
+    public init(accountId: String, issuerIdentifier: String, resource: URL, clientId: URL) {
+        self.accountId = accountId
+        self.issuerIdentifier = issuerIdentifier
+        self.resource = resource
+        self.clientId = clientId
+    }
+}
+
 /// Platform adapters must persist this through Keychain (Apple) or the user's Windows credential store.
 public protocol MemberMCPOAuthTokenStore: Sendable {
-    func load(accountId: String) async throws -> MemberMCPOAuthTokens?
-    func save(_ tokens: MemberMCPOAuthTokens, accountId: String) async throws
-    func clear(accountId: String) async throws
+    func load(scope: MemberMCPOAuthTokenScope) async throws -> MemberMCPOAuthTokens?
+    func save(_ tokens: MemberMCPOAuthTokens, scope: MemberMCPOAuthTokenScope) async throws
+    func clear(scope: MemberMCPOAuthTokenScope) async throws
 }

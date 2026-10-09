@@ -54,7 +54,7 @@ public actor MemberMCPOAuthDiscovery {
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
         if let protocolClasses { config.protocolClasses = protocolClasses }
-        session = URLSession(configuration: config)
+        session = URLSession(configuration: config, delegate: MCPNoRedirectDelegate.shared, delegateQueue: nil)
     }
 
     public func discover() async throws -> MemberMCPOAuthMetadata {

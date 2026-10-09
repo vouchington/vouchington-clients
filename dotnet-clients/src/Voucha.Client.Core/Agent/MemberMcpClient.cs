@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace Voucha.Client.Core.Agent;
 
 /// <summary>A bearer-only member MCP transport with no application session cookies.</summary>
-public sealed class MemberMcpClient : IDisposable
+public sealed partial class MemberMcpClient : IDisposable
 {
   private readonly HttpClient client;
   private readonly Uri endpoint;
@@ -22,7 +22,7 @@ public sealed class MemberMcpClient : IDisposable
       throw new ArgumentException("A HTTPS site origin is required.", nameof(siteOrigin));
 
     endpoint = new Uri(siteOrigin, "/api/v1/mcp");
-    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false });
+    client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false });
   }
 
   public Task<JsonElement> ListToolsAsync(string accessToken, CancellationToken cancellationToken = default) =>
@@ -83,7 +83,8 @@ public sealed class MemberMcpClient : IDisposable
     };
     request.Headers.Accept.ParseAdd("application/json, text/event-stream");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-    using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+    using var response = await client.SendAsync(
+        request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
     if (response.StatusCode == HttpStatusCode.TooManyRequests)
     {
@@ -94,17 +95,7 @@ public sealed class MemberMcpClient : IDisposable
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 
-    using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-    using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-    var root = document.RootElement;
-    if (!root.TryGetProperty("jsonrpc", out var version) || version.GetString() != "2.0" ||
-        !root.TryGetProperty("id", out var responseId) || responseId.GetString() != id)
-      throw new InvalidDataException("MCP response does not match the request.");
-    if (root.TryGetProperty("error", out var error))
-      throw new McpRpcException(error.GetProperty("code").GetInt32(), error.GetProperty("message").GetString() ?? "");
-    if (!root.TryGetProperty("result", out var result))
-      throw new InvalidDataException("MCP response has no result.");
-    return result.Clone();
+    return await ReadReplyAsync(response.Content, id, cancellationToken).ConfigureAwait(false);
   }
 
   public void Dispose() => client.Dispose();

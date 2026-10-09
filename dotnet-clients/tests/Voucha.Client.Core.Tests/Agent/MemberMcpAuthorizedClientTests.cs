@@ -130,13 +130,13 @@ public sealed class MemberMcpAuthorizedClientTests
   {
     public MemberMcpOAuthTokens? Current { get; private set; } =
         new("old-access", "old-refresh", 3600, "mcp.user:read", "Bearer");
-    public Task<MemberMcpOAuthTokens?> LoadAsync(string accountId) => Task.FromResult(Current);
-    public Task SaveAsync(string accountId, MemberMcpOAuthTokens tokens)
+    public Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope) => Task.FromResult(Current);
+    public Task SaveAsync(MemberMcpOAuthTokenScope scope, MemberMcpOAuthTokens tokens)
     {
       Current = tokens;
       return Task.CompletedTask;
     }
-    public Task ClearAsync(string accountId)
+    public Task ClearAsync(MemberMcpOAuthTokenScope scope)
     {
       Current = null;
       return Task.CompletedTask;

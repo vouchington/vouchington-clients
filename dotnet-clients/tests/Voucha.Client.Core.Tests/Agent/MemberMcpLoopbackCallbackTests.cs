@@ -39,7 +39,7 @@ public sealed class MemberMcpLoopbackCallbackTests
   }
 
   [Fact]
-  public async Task InvalidPathIsRejectedAndListenerCloses()
+  public async Task UnrelatedRequestDoesNotConsumeTheRealCallback()
   {
     await using var callback = MemberMcpLoopbackCallback.Start();
     using var browser = new HttpClient();
@@ -50,11 +50,15 @@ public sealed class MemberMcpLoopbackCallbackTests
     {
       using var response = await request;
       Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-      await Assert.ThrowsAsync<InvalidDataException>(() => receive);
+      Assert.False(receive.IsCompleted);
+      using var valid = await browser.GetAsync(
+          new Uri(callback.RedirectUri + "?code=real&state=expected"), TestContext.Current.CancellationToken);
+      Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+      Assert.Contains("code=real", (await receive).Query, StringComparison.Ordinal);
     }
     finally
     {
-      try { await receive; } catch (InvalidDataException) { }
+      try { await receive; } catch (OperationCanceledException) { }
       try { using var response = await request; } catch (Exception) { }
     }
   }

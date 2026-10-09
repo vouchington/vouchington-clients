@@ -84,6 +84,34 @@ public sealed class MemberMcpClientTests
     Assert.InRange(error.RetryAfter!.Value.TotalSeconds, 60, 120);
   }
 
+  [Fact]
+  public async Task SseSkipsNotificationsAndUnmatchedIdsUntilTheRequestedResult()
+  {
+    var events = ": heartbeat\n\n" +
+        "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\"}\n\n" +
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"other\",\"result\":{}}\n\n" +
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"tools\":[{\"name\":\"read_post\"}]}}\n\n";
+    using var client = new MemberMcpClient(new Uri("https://example.test"),
+        new StubHandler(HttpStatusCode.OK, events) { ContentType = "text/event-stream" });
+
+    var result = await client.ListToolsAsync("access-1", TestContext.Current.CancellationToken);
+
+    Assert.Equal("read_post", result.GetProperty("tools")[0].GetProperty("name").GetString());
+  }
+
+  [Theory]
+  [InlineData("[]")]
+  [InlineData("{\"jsonrpc\":2,\"id\":\"1\",\"result\":{}}")]
+  [InlineData("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}")]
+  [InlineData("{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"error\":{\"code\":\"bad\"}}")]
+  public async Task MalformedJsonRpcUsesInvalidDataContract(string body)
+  {
+    using var client = new MemberMcpClient(new Uri("https://example.test"),
+        new StubHandler(HttpStatusCode.OK, body));
+    await Assert.ThrowsAsync<InvalidDataException>(
+        () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
+  }
+
   private sealed class StubHandler(HttpStatusCode status, string responseBody) : HttpMessageHandler
   {
     public string? Url { get; private set; }
@@ -93,6 +121,7 @@ public sealed class MemberMcpClientTests
     public string? Body { get; private set; }
     public int? RetryAfterSeconds { get; init; }
     public DateTimeOffset? RetryAfterDate { get; init; }
+    public string ContentType { get; init; } = "application/json";
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
@@ -104,7 +133,7 @@ public sealed class MemberMcpClientTests
       Body = await request.Content!.ReadAsStringAsync(cancellationToken);
       var response = new HttpResponseMessage(status)
       {
-        Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+        Content = new StringContent(responseBody, Encoding.UTF8, ContentType)
       };
       if (RetryAfterSeconds is { } seconds)
         response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(seconds));

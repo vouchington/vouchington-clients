@@ -14,10 +14,14 @@ public sealed record MemberMcpOAuthTokens(
   public DateTimeOffset AcquiredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>One member's credentials for one OAuth issuer, resource, and native client.</summary>
+public sealed record MemberMcpOAuthTokenScope(
+    string AccountId, string IssuerIdentifier, Uri Resource, Uri ClientId);
+
 /// <summary>Windows adapter must use Credential Locker or current-user DPAPI; never settings files.</summary>
 public interface IMemberMcpOAuthTokenStore
 {
-  Task<MemberMcpOAuthTokens?> LoadAsync(string accountId);
-  Task SaveAsync(string accountId, MemberMcpOAuthTokens tokens);
-  Task ClearAsync(string accountId);
+  Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope);
+  Task SaveAsync(MemberMcpOAuthTokenScope scope, MemberMcpOAuthTokens tokens);
+  Task ClearAsync(MemberMcpOAuthTokenScope scope);
 }

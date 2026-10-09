@@ -13,6 +13,13 @@ public actor MemberMCPOAuthTokenClient {
     private let clientId: URL
     private let resource: URL
     private let session: URLSession
+    private let issuerIdentifier: String
+
+    nonisolated func scope(for accountId: String) -> MemberMCPOAuthTokenScope {
+        MemberMCPOAuthTokenScope(
+            accountId: accountId, issuerIdentifier: issuerIdentifier, resource: resource, clientId: clientId
+        )
+    }
 
     public init(
         metadata: MemberMCPOAuthMetadata,
@@ -27,12 +34,13 @@ public actor MemberMCPOAuthTokenClient {
         revocationEndpoint = metadata.revocationEndpoint
         self.clientId = clientId
         self.resource = resource
+        issuerIdentifier = metadata.issuerIdentifier
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
         if let protocolClasses { config.protocolClasses = protocolClasses }
-        session = URLSession(configuration: config)
+        session = URLSession(configuration: config, delegate: MCPNoRedirectDelegate.shared, delegateQueue: nil)
     }
 
     public func redeem(code: String, verifier: String, redirectURI: URL) async throws -> MemberMCPOAuthTokens {
