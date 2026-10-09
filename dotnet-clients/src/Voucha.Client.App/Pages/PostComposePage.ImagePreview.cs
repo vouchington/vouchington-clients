@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Maui.Storage;
 using Voucha.Client.App.Support;
 using Voucha.Client.Core.Localization;
 
@@ -12,12 +13,19 @@ public partial class PostComposePage
     viewModel.CancelPendingImagePreview();
   }
 
+  private async void OnAddImageClicked(object? sender, EventArgs e)
+      => await AddImagesAsync();
+
   [SuppressMessage(
       "Design",
       "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void event handlers must not let picker or upload failures escape.")]
-  private async void OnAddImageClicked(object? sender, EventArgs e)
+      Justification = "The picker and upload helper converts recoverable failures to visible page state.")]
+  internal async Task AddImagesAsync(
+      Func<Task<IReadOnlyList<FileResult>?>>? pickImages = null,
+      Func<FileResult, CancellationToken, Task<ImageSelection>>? loadImage = null)
   {
+    pickImages ??= ImageSelectionLoader.PickImagesAsync;
+    loadImage ??= ImageSelectionLoader.LoadAsync;
     CancellationTokenSource? batchCancellationSource = null;
     try
     {
@@ -29,7 +37,7 @@ public partial class PostComposePage
           batchCancellationSource);
       previousBatchCancellationSource?.Cancel();
 
-      var results = await ImageSelectionLoader.PickImagesAsync();
+      var results = await pickImages();
       if (results is null || results.Count == 0) return;
       if (batchCancellationSource.IsCancellationRequested) return;
 
@@ -41,25 +49,27 @@ public partial class PostComposePage
 
         try
         {
-          await using var selection = await ImageSelectionLoader.LoadAsync(result, batchCancellationSource.Token);
+          await using var selection = await loadImage(result, batchCancellationSource.Token);
           if (batchCancellationSource.IsCancellationRequested) break;
           if (!viewModel.CanUploadMoreImagesInBatch) break;
 
           var preview = await LocalImagePreview.ReadSelectedBytesAsync(
               selection.Content, batchCancellationSource.Token);
-          var retainedThumbnail = preview.CanPreview
-              ? LocalImagePreview.RetainedThumbnailFromBytes(preview.Bytes)
-              : null;
+          var retainedThumbnail = preview.PreviewBytes;
           using var uploadContent = new MemoryStream(preview.Bytes, writable: false);
           var uploaded = await viewModel.UploadImageWithPreviewAsync(
               uploadContent,
               selection.ContentType,
               preview.Bytes.Length,
-              preview.CanPreview ? preview.Bytes : null,
+              preview.PreviewBytes,
               !preview.CanPreview,
               cancellationToken: batchCancellationSource.Token,
               completedPreviewBytes: retainedThumbnail);
           if (!uploaded) break;
+        }
+        catch (OperationCanceledException) when (batchCancellationSource.IsCancellationRequested)
+        {
+          break;
         }
         catch (Exception ex)
         {
@@ -71,6 +81,10 @@ public partial class PostComposePage
           break;
         }
       }
+    }
+    catch (OperationCanceledException) when (batchCancellationSource?.IsCancellationRequested == true)
+    {
+      // Leaving the page or replacing the selection intentionally ends this batch.
     }
     catch (Exception ex)
     {

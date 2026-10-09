@@ -93,6 +93,28 @@ public sealed class CommunityAutomodFlagLifecycleTests
   }
 
   [Fact]
+  public async Task DismissedFlagAlsoLeavesUnfilteredModerationRows()
+  {
+    var service = new ScriptedCommunitiesService();
+    SeedLoadResponseSet(service, CreateDetailResponse(true, false, membershipRole: "moderator"));
+    service.ModerationQueueResponses.Enqueue(Page([
+      Entry("flag-1", "automod_flag"), Entry("report-1", "report")], null, false));
+    service.AutomodFlagResponses.Enqueue(Page([Entry("flag-1", "automod_flag")], null, false));
+    var model = new CommunityDetailViewModel(service, new TestSessionStore(SessionSnapshotForTests.Authenticated));
+    await model.LoadAsync("community-1", TestContext.Current.CancellationToken);
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
+
+    Assert.Contains(model.ModerationRows, row => row.Id == "flag-1");
+    Assert.Contains(model.Moderation, row => row.Id == "flag-1");
+    await model.DismissAutomodFlagAsync("post-1", TestContext.Current.CancellationToken);
+
+    Assert.Empty(model.AutomodFlags);
+    Assert.DoesNotContain(model.ModerationRows, row => row.Id == "flag-1");
+    Assert.DoesNotContain(model.Moderation, row => row.Id == "flag-1");
+    Assert.Contains(model.ModerationRows, row => row.Id == "report-1");
+  }
+
+  [Fact]
   public async Task SettingsActionChangesOnlyAfterCommittedResponse()
   {
     var (model, service) = await ModeratorAsync();

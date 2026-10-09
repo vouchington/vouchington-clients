@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
+using Microsoft.Maui.Storage;
 using Voucha.Client.App;
 using Voucha.Client.App.Pages;
 using Voucha.Client.App.Support;
@@ -18,39 +19,59 @@ namespace Voucha.Client.App.Tests;
 public sealed class PostComposeLocalPreviewPageTests
 {
   [Fact]
-  public void UndecodableBytesDoNotBecomeRetainedThumbnail()
+  public async Task UndecodableBytesDoNotBecomeRetainedThumbnail()
   {
-    Assert.Null(LocalImagePreview.RetainedThumbnailFromBytes([1, 2, 3]));
+    using var content = new MemoryStream([1, 2, 3]);
+    var selection = await LocalImagePreview.ReadSelectedBytesAsync(content, TestContext.Current.CancellationToken);
+    Assert.Null(selection.PreviewBytes);
+    Assert.Equal([1, 2, 3], selection.Bytes);
+  }
+
+  [Fact]
+  public async Task RemovingSelectionDuringFileLoadDoesNotShowUploadFailure()
+  {
+    var (page, viewModel, locale) = CreatePage(new HeldUploadService());
+    using var localeScope = locale;
+    var loadStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var add = page.AddImagesAsync(
+        () => Task.FromResult<IReadOnlyList<FileResult>?>([new FileResult("selected.png")]),
+        async (_, cancellationToken) =>
+        {
+          loadStarted.TrySetResult();
+          await Task.Delay(Timeout.Infinite, cancellationToken);
+          throw new InvalidOperationException("Canceled file load unexpectedly completed.");
+        });
+    await loadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+    typeof(PostComposePage).GetMethod("OnRemovePendingPreviewClicked", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(page, [null, EventArgs.Empty]);
+    await add.WaitAsync(TestContext.Current.CancellationToken);
+
+    Assert.Null(viewModel.ErrorMessage);
+    Assert.Empty(viewModel.Images);
+    Assert.Null(viewModel.PendingLocalPreviewBytes);
+  }
+
+  [Fact]
+  public async Task CanceledFileOpenDisposesStreamReturnedAfterCancellation()
+  {
+    using var cancellation = new CancellationTokenSource();
+    var returnedStream = new TrackingStream();
+    var releaseOpen = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var load = ImageSelectionLoader.LoadAsync(
+        new FileResult("selected.png", "image/png"), () => releaseOpen.Task, cancellation.Token);
+    cancellation.Cancel();
+    releaseOpen.TrySetResult(returnedStream);
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => load);
+    Assert.True(returnedStream.WasDisposed);
   }
 
   [Fact]
   public async Task MountedPageShowsSelectedBytesBeforeUploadUrlAndRemovesPendingSelection()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    using var locale = new UiLocaleController(new EnglishLanguages());
-    _ = new Application
-    {
-      Resources =
-      {
-        ["UiLocaleVersion"] = new UiLocaleVersion(locale),
-        ["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English),
-        ["Body"] = new Style(typeof(Label)),
-        ["Metadata"] = new Style(typeof(Label)),
-      },
-    };
     var uploads = new HeldUploadService();
-    var viewModel = new PostComposeViewModel(
-        DispatchProxy.Create<IPostsService, UnusedService>(),
-        new AppConfig(new Uri("https://api.test"), "site-key"),
-        imageUploadService: uploads);
-    var page = new PostComposePage(
-        viewModel,
-        DispatchProxy.Create<ITurnstileTokenProvider, UnusedService>(),
-        new VouchaApiClient(new HttpClient { BaseAddress = new Uri("https://api.test") }),
-        new EmailVerificationRecoveryCoordinator(
-            DispatchProxy.Create<IEmailAddressService, UnusedService>(),
-            UiLocalization.English,
-            locale));
+    var (page, viewModel, locale) = CreatePage(uploads);
+    using var _ = locale;
     using var content = new MemoryStream([1, 2, 3]);
     var upload = viewModel.UploadImageWithPreviewAsync(
         content, "image/png", content.Length, new byte[] { 1, 2, 3 }, false,
@@ -79,6 +100,36 @@ public sealed class PostComposeLocalPreviewPageTests
         label => label.Text == "Image uploaded. Preview unavailable." && label.IsVisible);
   }
 
+  private static (PostComposePage Page, PostComposeViewModel ViewModel, UiLocaleController Locale) CreatePage(
+      IImageUploadService? uploads = null)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    var locale = new UiLocaleController(new EnglishLanguages());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["UiLocaleVersion"] = new UiLocaleVersion(locale),
+        ["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English),
+        ["Body"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+      },
+    };
+    var viewModel = new PostComposeViewModel(
+        DispatchProxy.Create<IPostsService, UnusedService>(),
+        new AppConfig(new Uri("https://api.test"), "site-key"),
+        imageUploadService: uploads);
+    var page = new PostComposePage(
+        viewModel,
+        DispatchProxy.Create<ITurnstileTokenProvider, UnusedService>(),
+        new VouchaApiClient(new HttpClient { BaseAddress = new Uri("https://api.test") }),
+        new EmailVerificationRecoveryCoordinator(
+            DispatchProxy.Create<IEmailAddressService, UnusedService>(),
+            UiLocalization.English,
+            locale));
+    return (page, viewModel, locale);
+  }
+
   private sealed class HeldUploadService : IImageUploadService
   {
     public TaskCompletionSource<bool> CreateStarted { get; } =
@@ -101,6 +152,17 @@ public sealed class PostComposeLocalPreviewPageTests
         string imageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ImageUploadStateResponse> FetchUploadStateAsync(
         string imageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+  }
+
+  private sealed class TrackingStream : MemoryStream
+  {
+    public bool WasDisposed { get; private set; }
+
+    public override ValueTask DisposeAsync()
+    {
+      WasDisposed = true;
+      return base.DisposeAsync();
+    }
   }
 
   public class UnusedService : DispatchProxy

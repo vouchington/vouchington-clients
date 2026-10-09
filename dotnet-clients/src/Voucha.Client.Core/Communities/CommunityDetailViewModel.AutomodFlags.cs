@@ -92,7 +92,15 @@ public sealed partial class CommunityDetailViewModel
       await service.DismissAutomodFlagAsync(community, postId, cancellationToken).ConfigureAwait(true);
       if (IsCurrentAutomodContext(community, revision))
       {
-        automodFlagPages.Remove(entry => string.Equals(CommunityAutomodFlagTarget.PostId(entry), postId, StringComparison.Ordinal));
+        var dismissedIds = automodFlagPages.Items
+            .Where(entry => string.Equals(CommunityAutomodFlagTarget.PostId(entry), postId, StringComparison.Ordinal))
+            .Select(entry => entry.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        automodFlagPages.Remove(entry => dismissedIds.Contains(entry.Id));
+        ModerationRows = ModerationRows.Where(row => !dismissedIds.Contains(row.Id)).ToArray();
+        Moderation = Moderation.Where(row => !dismissedIds.Contains(row.Id)).ToArray();
+        OnPropertyChanged(nameof(ModerationRows));
+        OnPropertyChanged(nameof(Moderation));
         automodFlagNotice = localization.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46);
       }
     }

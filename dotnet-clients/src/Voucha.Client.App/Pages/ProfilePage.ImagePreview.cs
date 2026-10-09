@@ -37,7 +37,8 @@ public partial class ProfilePage
       await using var selection = await ImageSelectionLoader.LoadAsync(result, cancellation.Token);
       var preview = await LocalImagePreview.ReadSelectedBytesAsync(selection.Content, cancellation.Token);
       if (generation != avatarPreviewGeneration) return;
-      AvatarLocalPreviewImage.Source = preview.CanPreview ? LocalImagePreview.SourceFromBytes(preview.Bytes) : null;
+      AvatarLocalPreviewImage.Source = preview.PreviewBytes is { } thumbnail
+          ? LocalImagePreview.SourceFromBytes(thumbnail) : null;
       AvatarLocalPreviewImage.IsVisible = preview.CanPreview;
       using var uploadContent = new MemoryStream(preview.Bytes, writable: false);
       var uploaded = await viewModel.UploadAvatarAsync(

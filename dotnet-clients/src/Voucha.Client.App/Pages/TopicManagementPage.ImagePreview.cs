@@ -84,7 +84,8 @@ public partial class TopicManagementPage
     {
       var preview = await LocalImagePreview.ReadSelectedBytesAsync(selectedBytes, cancellationToken).ConfigureAwait(true);
       if (!IsCurrent()) return;
-      localPreview.Source = preview.CanPreview ? LocalImagePreview.SourceFromBytes(preview.Bytes) : null;
+      localPreview.Source = preview.PreviewBytes is { } selectedThumbnail
+          ? LocalImagePreview.SourceFromBytes(selectedThumbnail) : null;
       localPreview.IsVisible = preview.CanPreview;
       using var stream = new MemoryStream(preview.Bytes, writable: false);
       var upload = await imageUploadService
@@ -100,7 +101,7 @@ public partial class TopicManagementPage
       if (isLogo) logoLocalImageId = ready.Id;
       else heroLocalImageId = ready.Id;
       target.Text = ready.Id;
-      var thumbnail = preview.CanPreview ? LocalImagePreview.RetainedThumbnailFromBytes(preview.Bytes) : null;
+      var thumbnail = preview.PreviewBytes;
       localPreview.Source = thumbnail is null ? null : LocalImagePreview.SourceFromBytes(thumbnail);
       localPreview.IsVisible = thumbnail is not null;
       unavailableLabel.IsVisible = thumbnail is null;
