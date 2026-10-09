@@ -147,7 +147,8 @@ LCOV artifacts). To get the same signal locally before pushing, export per-packa
 the advisory variant from the repository root:
 
 ```sh
-bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+llvm_cov="$(bash swift-clients/tooling/resolve-mise-swift.sh --llvm-cov)"
+bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCoreTests coverage/core/lcov.info "$llvm_cov"
 bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
 pnpm run coverage:swift:local
 ```
