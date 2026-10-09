@@ -71,7 +71,7 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's seven lockfiles, while
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's eight lockfiles, while
 `dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
 enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
 base and fetch candidate dependency files as inert API data. They never check out or execute the
