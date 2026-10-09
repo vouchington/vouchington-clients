@@ -10,9 +10,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
         let provider = MutableRetryDraftProvider()
         let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
-        let viewModel = try NativeChatViewModel(
-            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
-        )
+        let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil, titleProviderResolver: resolver)
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Hello"
 
@@ -29,12 +27,8 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         provider.available = false
         await viewModel.sendDraftMessage()
         let third = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
-        let secondPayload = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: XCTUnwrap(second.body?.data(using: .utf8))
-        ) as? NSDictionary)
-        let thirdPayload = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: XCTUnwrap(third.body?.data(using: .utf8))
-        ) as? NSDictionary)
+        let secondPayload = try payload(second)
+        let thirdPayload = try payload(third)
         XCTAssertEqual(secondPayload, thirdPayload)
         XCTAssertEqual(provider.generationCount, 2)
 
@@ -45,9 +39,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         provider.available = true
         await viewModel.sendDraftMessage()
         let afterRestoringOldModel = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
-        let restoredPayload = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: XCTUnwrap(afterRestoringOldModel.body?.data(using: .utf8))
-        ) as? NSDictionary)
+        let restoredPayload = try payload(afterRestoringOldModel)
         XCTAssertNotEqual(restoredPayload, secondPayload)
         XCTAssertEqual(provider.generationCount, 3)
     }
@@ -57,9 +49,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
         let provider = MutableRetryDraftProvider()
         let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
-        let viewModel = try NativeChatViewModel(
-            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
-        )
+        let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil, titleProviderResolver: resolver)
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Hello"
 
@@ -81,12 +71,8 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(viewModel.draftMessage, "Hello")
         await viewModel.sendDraftMessage()
         let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
-        let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: XCTUnwrap(first.body?.data(using: .utf8))
-        ) as? NSDictionary)
-        let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: XCTUnwrap(retried.body?.data(using: .utf8))
-        ) as? NSDictionary)
+        let firstPayload = try payload(first)
+        let retriedPayload = try payload(retried)
         XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generationCount, 1)
     }
@@ -96,9 +82,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
         let provider = MutableRetryDraftProvider()
         let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
-        let viewModel = try NativeChatViewModel(
-            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
-        )
+        let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil, titleProviderResolver: resolver)
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Hello"
 
@@ -121,9 +105,52 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
 
         await viewModel.sendDraftMessage()
         let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
-        XCTAssertEqual(retried.body, first.body)
+        let firstPayload = try payload(first)
+        let retriedPayload = try payload(retried)
+        XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generationCount, 1)
     }
+
+    func testChangingProviderDuringHeldFirstConversationCreateKeepsTheSubmittedTurnForRetry() async throws {
+        let createPath = "/api/v1/conversations"
+        let persistPath = "/api/v1/conversations/conversation-3/client-generated-chat"
+        CannedFeedURLProtocol.handlers[createPath] = (NativeChatTestFixtures.createdConversationData, 201)
+        CannedFeedURLProtocol.handlers[persistPath] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
+        let viewModel = try NativeChatViewModel(client: makeClient(), routeMatch: nil, titleProviderResolver: resolver)
+        viewModel.draftMessage = "Hello"
+        let createRequest = CannedFeedURLProtocol.requestBarrier(path: createPath, method: "POST")
+        CannedFeedURLProtocol.suspendResponse(path: createPath)
+        let send = Task { await viewModel.sendDraftMessage() }
+        do {
+            _ = try await createRequest.wait(timeout: .seconds(10))
+            XCTAssertTrue(viewModel.isSendingDraft)
+            let originalSelection = viewModel.titleProviderSelection
+            viewModel.selectTitleProvider(.appleFoundationModels)
+            XCTAssertEqual(viewModel.titleProviderSelection, originalSelection)
+            CannedFeedURLProtocol.releaseResponse(path: createPath)
+            await send.value
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: createPath)
+            await send.value
+            throw error
+        }
+        XCTAssertFalse(viewModel.isSendingDraft)
+        let first = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == persistPath })
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == persistPath }.count, 2)
+        let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == persistPath })
+        let firstPayload = try payload(first)
+        let retriedPayload = try payload(retried)
+        XCTAssertEqual(retriedPayload, firstPayload)
+        XCTAssertEqual(provider.generationCount, 1)
+    }
+}
+
+private func payload(_ request: CannedFeedURLProtocol.CapturedRequest) throws -> NSDictionary {
+    let data = try XCTUnwrap(request.body?.data(using: .utf8))
+    return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? NSDictionary)
 }
 
 private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
