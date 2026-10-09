@@ -80,14 +80,13 @@ public struct ProfileView: View {
 
     private var profileHeader: some View {
         VStack(spacing: Spacing.sm) {
-            if let avatarPreviewData = viewModel.avatarPreviewData,
-               LocalImagePreview.canDecode(avatarPreviewData) {
+            if let avatarPreviewData = viewModel.avatarPreviewData {
                 LocalImagePreview(data: avatarPreviewData, uploadComplete: !viewModel.isUploadingAvatar)
                     .frame(width: 72, height: 72)
                     .clipShape(Circle())
                     .accessibilityLabel(profileUsername)
-            } else if let avatarPreviewData = viewModel.avatarPreviewData {
-                LocalImagePreview(data: avatarPreviewData, uploadComplete: !viewModel.isUploadingAvatar)
+            } else if viewModel.avatarPreviewDecodeFailed, viewModel.isUploadingAvatar {
+                LocalImagePreview(data: nil, uploadComplete: false)
                     .frame(width: 72, height: 72)
                     .clipShape(Circle())
             } else {

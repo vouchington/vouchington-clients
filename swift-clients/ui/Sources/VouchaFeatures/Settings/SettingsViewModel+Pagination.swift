@@ -106,7 +106,7 @@ extension SettingsViewModel {
     }
 
     func beginSettingsLoad() -> Int {
-        latestRawAPIKey = nil
+        holdDisplayedApiKeySecretForReload()
         settingsLoadGeneration += 1
         activeMainSettingsLoadGeneration = nil
         createdApiKeysDuringMainLoad = []

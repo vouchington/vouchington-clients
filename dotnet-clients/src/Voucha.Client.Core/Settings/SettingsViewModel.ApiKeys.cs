@@ -7,6 +7,7 @@ public sealed partial class SettingsViewModel
 {
   public async Task CreateApiKeyAsync(CancellationToken cancellationToken = default)
   {
+    if (IsApiKeySecretOperationBusy) return;
     if (!CanCreateApiKey)
     {
       SetCredentialNotice(Localization.UiMessageKey.NativeCredentialsInvalidSelection);
@@ -15,9 +16,7 @@ public sealed partial class SettingsViewModel
     var ownerId = currentUserIdOrSlug;
     var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
     if (ownerId is null || Volatile.Read(ref settingsIdentityLoadGeneration) != Volatile.Read(ref settingsLoadGeneration)) return;
-    isCreatingApiKey = true;
-    OnPropertyChanged(nameof(CanCreateApiKey));
-    var secretOperation = BeginApiKeySecretOperation();
+    if (!TryBeginApiKeySecretOperation(out var secretOperation)) return;
     try
     {
       var response = await settingsService.CreateApiKeyAsync(
@@ -39,12 +38,17 @@ public sealed partial class SettingsViewModel
     }
     finally
     {
-      isCreatingApiKey = false;
-      OnPropertyChanged(nameof(CanCreateApiKey));
+      CompleteApiKeySecretOperation(secretOperation);
     }
   }
 
-  public void DismissApiKeySecret() => ClearApiKeyRotationSecrets();
+  public void DismissApiKeySecret()
+  {
+    if (ApiKeySecret is null) return;
+    retainedApiKeyDisclosure = null;
+    ApiKeySecret = null;
+    NotifyApiKeySecretAdmission();
+  }
 
   private Localization.UiMessageKey? apiKeyRotationNoticeKey;
 
@@ -61,11 +65,11 @@ public sealed partial class SettingsViewModel
     var ownerId = currentUserIdOrSlug;
     if (ownerId is null || Volatile.Read(ref settingsIdentityLoadGeneration) != generation) return;
     if (apiKey.RevokedAt is not null || apiKey.ReplacedByApiKeyId is not null ||
-        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || rotatingApiKeyIds.ContainsKey(apiKey.Id)) return;
+        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || rotatingApiKeyIds.ContainsKey(apiKey.Id) ||
+        !TryBeginApiKeySecretOperation(out var secretOperation)) return;
     var rotation = unchecked(++apiKeyRotationSequence);
     rotatingApiKeyIds.Add(apiKey.Id, rotation);
     var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
-    var secretOperation = BeginApiKeySecretOperation();
     apiKeyRotationNoticeKey = null;
     OnPropertyChanged(nameof(ApiKeyRotationNotice));
     try
@@ -131,6 +135,7 @@ public sealed partial class SettingsViewModel
     {
       if (rotatingApiKeyIds.TryGetValue(apiKey.Id, out var active) && active == rotation)
         rotatingApiKeyIds.Remove(apiKey.Id);
+      CompleteApiKeySecretOperation(secretOperation);
     }
   }
 

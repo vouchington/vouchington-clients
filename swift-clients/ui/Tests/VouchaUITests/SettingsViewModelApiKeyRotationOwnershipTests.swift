@@ -48,6 +48,12 @@ extension SettingsViewModelActionCoverageTests {
         await rotation.value
         XCTAssertNil(model.latestRawAPIKey)
         XCTAssertTrue(model.apiKeyRotationInFlight.isEmpty)
+        XCTAssertTrue(model.apiKeySecretOperationInFlight)
+        model.dismissRawApiKey()
+        XCTAssertTrue(
+            model.apiKeySecretOperationInFlight,
+            "Dismiss without a visible secret cannot drop the held rotation"
+        )
 
         CannedFeedURLProtocol.releaseOldestResponse(path: identityPath)
         await latestLoad.value

@@ -22,10 +22,8 @@ extension ProfileViewModel {
         do {
             let (data, contentType) = try await ImageSelectionLoader.load(from: url)
             guard generation == avatarUploadGeneration else { return }
-            avatarPreviewData = data
-            if !LocalImagePreview.canDecode(data) {
-                avatarPreviewDecodeFailed = true
-            }
+            avatarPreviewData = LocalImagePreview.thumbnailData(from: data)
+            avatarPreviewDecodeFailed = avatarPreviewData == nil
             try await applyAvatarUpload(
                 data: data,
                 contentType: contentType,

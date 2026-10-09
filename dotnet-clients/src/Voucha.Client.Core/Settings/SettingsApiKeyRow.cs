@@ -7,7 +7,8 @@ public sealed record SettingsApiKeyRow(
     ApiKey ProtocolValue,
     UiText TypeText,
     IUiLocalization Localization,
-    bool IsAdministrator)
+    bool IsAdministrator,
+    bool IsSecretOperationBusy = false)
 {
   public string Label => ProtocolValue.Label;
 
@@ -22,6 +23,8 @@ public sealed record SettingsApiKeyRow(
 
   public bool CanRotate => ProtocolValue.RevokedAt is null && ProtocolValue.ReplacedByApiKeyId is null &&
       (ProtocolValue.ExpiresAt is null || ProtocolValue.ExpiresAt > DateTimeOffset.UtcNow);
+
+  public bool CanRotateNow => CanRotate && !IsSecretOperationBusy;
 
   public string LocalizedStatus => Localization.Localize(ProtocolValue.RevokedAt is not null
       ? UiMessageKey.NativeApiKeysRevoked

@@ -121,8 +121,9 @@ extension NativePostComposeViewModel {
         do {
             let (data, contentType) = try await ImageSelectionLoader.load(from: url)
             guard generation == imageUploadGeneration else { return false }
+            let thumbnail = LocalImagePreview.thumbnailData(from: data)
             let pendingPreviewId = UUID()
-            pendingImagePreviews.append(.init(id: pendingPreviewId, data: data))
+            pendingImagePreviews.append(.init(id: pendingPreviewId, data: thumbnail))
             let state = try await service.uploadImage(data: data, contentType: contentType)
             guard generation == imageUploadGeneration else { return false }
             pendingImagePreviews.removeAll { $0.id == pendingPreviewId }
@@ -138,7 +139,7 @@ extension NativePostComposeViewModel {
                 reportImageUploadError(.app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
                 return false
             }
-            images.append(.init(imageId: state.id, localPreviewData: LocalImagePreview.thumbnailData(from: data)))
+            images.append(.init(imageId: state.id, localPreviewData: thumbnail))
         } catch let error as ImageSelectionError {
             guard generation == imageUploadGeneration else { return false }
             pendingImagePreviews.removeAll()

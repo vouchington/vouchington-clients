@@ -2,7 +2,7 @@ import Foundation
 
 struct NativePostComposePendingImagePreview: Identifiable, Equatable {
     let id: UUID
-    let data: Data
+    let data: Data?
 }
 
 struct NativePostComposeImageDraft: Identifiable, Equatable {

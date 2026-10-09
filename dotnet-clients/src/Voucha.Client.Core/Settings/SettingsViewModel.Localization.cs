@@ -89,7 +89,8 @@ public sealed partial class SettingsViewModel
               apiKey,
               UiTaxonomy.ApiKeyType(apiKey.Type),
               localization,
-              IsApiKeyAdministrator)).ToArray();
+              IsApiKeyAdministrator,
+              !CanStartApiKeySecretOperation)).ToArray();
 
   public IReadOnlyList<SettingsLocalLLMEndpointRow> LocalizedLocalLLMEndpoints =>
       LocalLLMEndpoints.Select(profile =>

@@ -16,6 +16,7 @@ public sealed partial class SettingsViewModel
     var generation = Interlocked.Increment(ref settingsLoadGeneration);
     var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
     BeginApiKeyOwnerIdentityLoad();
+    RetainVisibleApiKeyDisclosureForRefresh();
     ApiKeySecret = null;
     apiKeyRotationNoticeKey = null;
     OnPropertyChanged(nameof(ApiKeyRotationNotice));

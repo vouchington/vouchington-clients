@@ -45,7 +45,8 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         let upload = Task { await vm.uploadAvatar(from: avatarURL) }
         _ = try await uploadRequest.wait()
 
-        XCTAssertEqual(vm.avatarPreviewData, Data("avatar-image".utf8))
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertTrue(vm.avatarPreviewDecodeFailed)
         XCTAssertNil(vm.avatarUploadErrorMessage)
         XCTAssertTrue(vm.isUploadingAvatar)
 

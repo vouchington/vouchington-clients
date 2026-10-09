@@ -48,10 +48,11 @@ extension NativeTopicImageField {
             let (data, contentType) = try await ImageSelectionLoader.load(from: url)
             try Task.checkCancellation()
             guard generation == uploadState.generation else { return }
-            uploadState.localPreviewData = data
+            let thumbnail = LocalImagePreview.thumbnailData(from: data)
+            uploadState.localPreviewData = thumbnail
             let uploadedImageId = try await imageUploadService.uploadImage(data: data, contentType: contentType)
             guard generation == uploadState.generation else { return }
-            uploadState.localPreviewData = LocalImagePreview.thumbnailData(from: data)
+            uploadState.localPreviewData = thumbnail
             uploadState.previewImageId = uploadedImageId
             imageId = uploadedImageId
         } catch {

@@ -6,6 +6,7 @@ public sealed partial class SettingsViewModel
   private int apiKeyOwnerInvalidationGeneration;
   private int settingsViewModelDisposed;
   private long apiKeySecretOperationSequence;
+  private long activeApiKeySecretOperation;
   private string? pendingRotatedApiKeyOwnerId;
   private string? pendingRotatedApiKeySecret;
   private long pendingRotatedApiKeyOperation;
@@ -19,29 +20,34 @@ public sealed partial class SettingsViewModel
       InvalidateApiKeyOwnerIdentity();
     currentUserIdOrSlug = ownerId;
     Volatile.Write(ref settingsIdentityLoadGeneration, generation);
-    OnPropertyChanged(nameof(CanCreateApiKey));
+    NotifyApiKeySecretAdmission();
+    RestoreVisibleApiKeyDisclosureForOwner(ownerId);
     if (pendingCreatedApiKeySecret is { } createdSecret)
     {
       var createdOwnerId = pendingCreatedApiKeyOwnerId;
       var pendingCreatedOperation = pendingCreatedApiKeyOperation;
       ClearPendingCreatedApiKeySecret();
-      if (createdOwnerId == ownerId && pendingCreatedOperation == Volatile.Read(ref apiKeySecretOperationSequence))
+      if (createdOwnerId == ownerId && IsCurrentApiKeySecretOperation(pendingCreatedOperation))
+      {
         ApiKeySecret = createdSecret;
+        CompleteApiKeySecretOperation(pendingCreatedOperation);
+      }
     }
     if (pendingRotatedApiKeySecret is not { } secret) return;
     var pendingOwnerId = pendingRotatedApiKeyOwnerId;
     var pendingOperation = pendingRotatedApiKeyOperation;
     ClearPendingApiKeyRotationSecret();
-    if (pendingOwnerId != ownerId || pendingOperation != Volatile.Read(ref apiKeySecretOperationSequence)) return;
+    if (pendingOwnerId != ownerId || !IsCurrentApiKeySecretOperation(pendingOperation)) return;
     ApiKeySecret = secret;
     apiKeyRotationNoticeKey = Localization.UiMessageKey.NativeApiKeysRotated;
     OnPropertyChanged(nameof(ApiKeyRotationNotice));
+    CompleteApiKeySecretOperation(pendingOperation);
   }
 
   private void BeginApiKeyOwnerIdentityLoad()
   {
     Volatile.Write(ref settingsIdentityLoadGeneration, 0);
-    OnPropertyChanged(nameof(CanCreateApiKey));
+    NotifyApiKeySecretAdmission();
   }
 
   private bool IsCurrentApiKeyOwner(string ownerId, int expectedGeneration) =>
@@ -49,17 +55,49 @@ public sealed partial class SettingsViewModel
       expectedGeneration == Volatile.Read(ref apiKeyOwnerInvalidationGeneration) &&
       string.Equals(ownerId, currentUserIdOrSlug, StringComparison.Ordinal);
 
-  private long BeginApiKeySecretOperation()
+  private bool IsApiKeySecretOperationBusy => Volatile.Read(ref activeApiKeySecretOperation) != 0 ||
+      ApiKeySecret is { Length: > 0 } || retainedApiKeyDisclosure is not null;
+
+  private bool CanStartApiKeySecretOperation => Volatile.Read(ref settingsViewModelDisposed) == 0 &&
+      currentUserIdOrSlug is not null &&
+      Volatile.Read(ref settingsIdentityLoadGeneration) == Volatile.Read(ref settingsLoadGeneration) &&
+      !IsApiKeySecretOperationBusy;
+
+  private bool TryBeginApiKeySecretOperation(out long operation)
   {
-    var operation = Interlocked.Increment(ref apiKeySecretOperationSequence);
+    operation = 0;
+    if (IsApiKeySecretOperationBusy) return false;
+    var ticket = Interlocked.Increment(ref apiKeySecretOperationSequence);
+    if (Interlocked.CompareExchange(ref activeApiKeySecretOperation, ticket, 0) != 0) return false;
+    if (ApiKeySecret is { Length: > 0 } || retainedApiKeyDisclosure is not null)
+    {
+      Interlocked.CompareExchange(ref activeApiKeySecretOperation, 0, ticket);
+      return false;
+    }
+    operation = ticket;
     ClearPendingApiKeyRotationSecret();
     ClearPendingCreatedApiKeySecret();
     ApiKeySecret = null;
-    return operation;
+    NotifyApiKeySecretAdmission();
+    return true;
+  }
+
+  private void CompleteApiKeySecretOperation(long operation)
+  {
+    if (Volatile.Read(ref activeApiKeySecretOperation) != operation ||
+        pendingCreatedApiKeyOperation == operation || pendingRotatedApiKeyOperation == operation) return;
+    Interlocked.CompareExchange(ref activeApiKeySecretOperation, 0, operation);
+    NotifyApiKeySecretAdmission();
+  }
+
+  private void NotifyApiKeySecretAdmission()
+  {
+    OnPropertyChanged(nameof(CanCreateApiKey));
+    OnPropertyChanged(nameof(LocalizedApiKeys));
   }
 
   private bool IsCurrentApiKeySecretOperation(long operation) =>
-      operation == Volatile.Read(ref apiKeySecretOperationSequence);
+      operation != 0 && operation == Volatile.Read(ref activeApiKeySecretOperation);
 
   private void InvalidateApiKeyOwnerIdentity()
   {
@@ -106,10 +144,12 @@ public sealed partial class SettingsViewModel
 
   internal void ClearApiKeyRotationSecrets()
   {
-    Interlocked.Increment(ref apiKeySecretOperationSequence);
+    Volatile.Write(ref activeApiKeySecretOperation, 0);
     ClearPendingApiKeyRotationSecret();
     ClearPendingCreatedApiKeySecret();
+    retainedApiKeyDisclosure = null;
     ApiKeySecret = null;
+    NotifyApiKeySecretAdmission();
   }
 
   internal void DisposeApiKeyRotationState()

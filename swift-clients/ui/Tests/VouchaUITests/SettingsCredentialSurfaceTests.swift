@@ -17,6 +17,10 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
             from: ApiFixtureLoader.data("native.my.api-keys.rotate")
         )
         model.apiKeyPagination.reset(items: [response.apiKey])
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         let surface = SettingsSurface(viewModel: model)
         let section = try surface.apiKeysSection.inspect()
 

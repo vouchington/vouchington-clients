@@ -124,17 +124,28 @@ final class NativePostComposePendingImagePreviewTests: NativeRouteSurfaceViewMod
         }
 
         XCTAssertTrue(vm.images.isEmpty)
-        XCTAssertEqual(vm.pendingImagePreviews.map(\.data), [selectedData])
+        #if !SKIP && canImport(ImageIO) && canImport(CoreGraphics)
+            let pendingThumbnail = try XCTUnwrap(vm.pendingImagePreviews.first?.data)
+            XCTAssertNotEqual(pendingThumbnail, selectedData)
+            XCTAssertLessThanOrEqual(pendingThumbnail.count, 256 * 1_024)
+            let pendingSource = try XCTUnwrap(CGImageSourceCreateWithData(pendingThumbnail as CFData, nil))
+            let pendingImage = try XCTUnwrap(CGImageSourceCreateImageAtIndex(pendingSource, 0, nil))
+            XCTAssertEqual(pendingImage.width, 128)
+            XCTAssertEqual(pendingImage.height, 32)
+        #else
+            XCTAssertEqual(vm.pendingImagePreviews.count, 1)
+            XCTAssertNil(vm.pendingImagePreviews.first?.data)
+        #endif
 
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url")
         await upload.value
         XCTAssertTrue(vm.pendingImagePreviews.isEmpty)
         XCTAssertEqual(vm.images.map(\.imageId), ["pending-image"])
-        #if SKIP || canImport(ImageIO)
+        #if !SKIP && canImport(ImageIO) && canImport(CoreGraphics)
             let thumbnail = try XCTUnwrap(vm.images.first?.localPreviewData)
             XCTAssertLessThanOrEqual(thumbnail.count, 256 * 1_024)
             XCTAssertNotEqual(thumbnail, selectedData)
-            XCTAssertTrue(LocalImagePreview.canDecode(thumbnail))
+            XCTAssertEqual(thumbnail, pendingThumbnail)
         #else
             XCTAssertNil(vm.images.first?.localPreviewData)
         #endif
@@ -150,21 +161,20 @@ final class NativePostComposePendingImagePreviewTests: NativeRouteSurfaceViewMod
             XCTAssertEqual(image.width, 128)
             XCTAssertEqual(image.height, 32)
             XCTAssertLessThanOrEqual(thumbnail.count, 256 * 1_024)
-            XCTAssertTrue(LocalImagePreview.canDecode(thumbnail))
         }
 
         private func makeWidePNG() throws -> Data {
             let context = try XCTUnwrap(CGContext(
                 data: nil,
-                width: 256,
-                height: 64,
+                width: 2_048,
+                height: 512,
                 bitsPerComponent: 8,
                 bytesPerRow: 0,
                 space: CGColorSpaceCreateDeviceRGB(),
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             ))
             context.setFillColor(CGColor(red: 0.2, green: 0.4, blue: 0.6, alpha: 1))
-            context.fill(CGRect(x: 0, y: 0, width: 256, height: 64))
+            context.fill(CGRect(x: 0, y: 0, width: 2_048, height: 512))
             let image = try XCTUnwrap(context.makeImage())
             let encoded = try XCTUnwrap(CFDataCreateMutable(kCFAllocatorDefault, 0))
             let destination = try XCTUnwrap(CGImageDestinationCreateWithData(

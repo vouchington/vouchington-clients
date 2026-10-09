@@ -155,11 +155,8 @@ final class NativeTopicHeldImageUploadTests: NativeRouteSurfaceViewModelTestCase
             let upload = Task { await sut.uploadImage(at: url) }
             _ = try await request.wait()
             XCTAssertTrue(uploadState.isUploading)
-            XCTAssertEqual(uploadState.localPreviewData, Data("selected-bytes".utf8))
-            XCTAssertEqual(
-                try sut.inspect().find(LocalImagePreview.self).actualView().data,
-                Data("selected-bytes".utf8)
-            )
+            XCTAssertNil(uploadState.localPreviewData)
+            XCTAssertNil(try sut.inspect().find(LocalImagePreview.self).actualView().data)
 
             imageId = "manual-image"
             sut.handleImageIdChange(imageId)

@@ -46,7 +46,7 @@
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
-                <Button Text="{DynamicResource native.dotnet.settings.createApiKey}" Clicked="OnCreateApiKeyClicked" IsEnabled="{Binding CanCreateApiKey}" />
+                <Button AutomationId="api-key-create" Text="{DynamicResource native.dotnet.settings.createApiKey}" Clicked="OnCreateApiKeyClicked" IsEnabled="{Binding CanCreateApiKey}" />
                 <Label AutomationId="api-key-secret" Text="{Binding ApiKeySecretDisplay}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
                 <Button Text="{DynamicResource native.dotnet.settings.copyApiKey}" Clicked="OnCopyApiKeyClicked" IsEnabled="{Binding HasApiKeySecret}" />
                 <Button AutomationId="api-key-secret-dismiss" Text="{DynamicResource native.dotnet.csharp.close}" Clicked="OnDismissApiKeySecretClicked" IsVisible="{Binding HasApiKeySecret}" />
@@ -70,7 +70,7 @@
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="1" Spacing="4">
                                         <Button AutomationId="api-key-rotate" Text="{DynamicResource native.apiKeys.rotate}" Clicked="OnRotateApiKeyClicked"
-                                            CommandParameter="{Binding .}" IsVisible="{Binding CanRotate}" />
+                                            CommandParameter="{Binding .}" IsVisible="{Binding CanRotate}" IsEnabled="{Binding CanRotateNow}" />
                                         <Button Text="{DynamicResource native.swift.settings.revoke}" Clicked="OnRevokeApiKeyClicked" CommandParameter="{Binding .}" />
                                     </VerticalStackLayout>
                                 </Grid>

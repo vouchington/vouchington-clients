@@ -1,11 +1,72 @@
 import Foundation
+import ViewInspector
 @testable import VouchaAPI
 @testable import VouchaCore
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 @MainActor
 extension SettingsViewModelActionCoverageTests {
+    func testHeldRotationOfOneKeyBlocksAnotherUntilItsSecretIsDismissed() async throws {
+        seedSettingsResponses()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.load()
+        let listPath = "/api/v1/my/api-keys"
+        let firstPath = "/api/v1/my/api-keys/key-1/rotate"
+        let secondPath = "/api/v1/my/api-keys/key-2/rotate"
+        let originalPage = try XCTUnwrap(CannedFeedURLProtocol.handlers[listPath]).0
+        var pageObject = try XCTUnwrap(JSONSerialization.jsonObject(with: originalPage) as? [String: Any])
+        var results = try XCTUnwrap(pageObject["results"] as? [[String: Any]])
+        var secondRow = try XCTUnwrap(results.first)
+        secondRow["id"] = "key-2"
+        results.append(secondRow)
+        pageObject["results"] = results
+        let twoKeyPage = try JSONSerialization.data(withJSONObject: pageObject)
+        let decoded = try APIClient.makeDecoder().decode(SettingsListResponse<ApiKey>.self, from: twoKeyPage)
+        model.apiKeyPagination.reset(items: decoded.results)
+        let surface = SettingsSurface(viewModel: model)
+        XCTAssertNoThrow(try surface.apiKeysSection.inspect().find(button: uiEnglish(.nativeApiKeysRotate)))
+        CannedFeedURLProtocol.handlers[listPath] = (twoKeyPage, 200)
+        CannedFeedURLProtocol.handlers[firstPath] = (ApiFixtureLoader.data("native.my.api-keys.rotate"), 201)
+        CannedFeedURLProtocol.handlers[secondPath] = (ApiFixtureLoader.data("native.my.api-keys.rotate"), 201)
+        CannedFeedURLProtocol.suspendResponse(path: firstPath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: firstPath) }
+
+        let firstRequest = CannedFeedURLProtocol.requestBarrier(path: firstPath, method: "POST")
+        let firstRotation = Task { await model.rotateApiKey(id: "key-1") }
+        do {
+            _ = try await firstRequest.wait()
+            let secondKey = try XCTUnwrap(model.apiKeys.first { $0.id == "key-2" })
+            XCTAssertTrue(model.apiKeySecretOperationInFlight)
+            XCTAssertFalse(model.canRotateApiKey(secondKey))
+            XCTAssertThrowsError(try surface.apiKeysSection.inspect().find(button: uiEnglish(.nativeApiKeysRotate)))
+            await model.rotateApiKey(id: secondKey.id)
+            XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+                $0.method == "POST" && $0.url.path == secondPath
+            })
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: firstPath)
+            await firstRotation.value
+            throw error
+        }
+
+        CannedFeedURLProtocol.releaseResponse(path: firstPath)
+        await firstRotation.value
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+        let secondKey = try XCTUnwrap(model.apiKeys.first { $0.id == "key-2" })
+        XCTAssertFalse(model.canRotateApiKey(secondKey))
+        XCTAssertThrowsError(try surface.apiKeysSection.inspect().find(button: uiEnglish(.nativeApiKeysRotate)))
+        model.dismissRawApiKey()
+        XCTAssertTrue(model.canRotateApiKey(secondKey))
+        XCTAssertNoThrow(try surface.apiKeysSection.inspect().find(button: uiEnglish(.nativeApiKeysRotate)))
+        await model.rotateApiKey(id: secondKey.id)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.count {
+            $0.method == "POST" && $0.url.path == secondPath
+        }, 1)
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+    }
+
     func testApiKeyLifetimeDefaultsAndAdministratorCannotChooseUnlimited() async throws {
         seedSettingsResponses()
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
@@ -104,8 +165,8 @@ extension SettingsViewModelActionCoverageTests {
         CannedFeedURLProtocol.releaseOldestResponse(path: path)
         await rotation.value
         XCTAssertEqual(model.apiKeys.map(\.id), ["fresh-key"])
-        XCTAssertNil(model.latestRawAPIKey)
-        XCTAssertNil(model.statusMessage)
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+        XCTAssertEqual(model.statusMessage, .message(.nativeApiKeysRotated))
     }
 
     func testLateRotationPostShowsSecretAfterSameOwnerReload() async throws {

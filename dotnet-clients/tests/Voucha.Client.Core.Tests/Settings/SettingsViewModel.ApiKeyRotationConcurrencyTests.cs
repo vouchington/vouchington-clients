@@ -118,6 +118,7 @@ public sealed partial class SettingsViewModelActionsTests
     {
       await started.Task.WaitAsync(cancellation.Token);
       Assert.False(viewModel.CanCreateApiKey);
+      Assert.False(Assert.Single(viewModel.LocalizedApiKeys).CanRotateNow);
     }
     finally
     {
@@ -127,6 +128,7 @@ public sealed partial class SettingsViewModelActionsTests
 
     viewModel.SetApiKeyScopeSelected("mcp.user:write", true);
     Assert.True(viewModel.CanCreateApiKey);
+    Assert.True(Assert.Single(viewModel.LocalizedApiKeys).CanRotateNow);
     viewModel.Dispose();
     Assert.False(viewModel.CanCreateApiKey);
     Assert.Contains(nameof(viewModel.CanCreateApiKey), notifications);
@@ -164,7 +166,7 @@ public sealed partial class SettingsViewModelActionsTests
   }
 
   [Fact]
-  public async Task OlderHeldCreateCannotOverwriteNewerRotatedSecret()
+  public async Task HeldCreateMustFinishAndBeDismissedBeforeRotation()
   {
     using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(20));
     var service = new RecordingSettingsService();
@@ -185,7 +187,8 @@ public sealed partial class SettingsViewModelActionsTests
     {
       await started.Task.WaitAsync(cancellation.Token);
       await viewModel.RotateApiKeyAsync(key, cancellation.Token);
-      Assert.Equal("replacement-raw", viewModel.ApiKeySecret);
+      Assert.Equal(0, service.RotateApiKeyCount);
+      Assert.Null(viewModel.ApiKeySecret);
     }
     finally
     {
@@ -193,6 +196,11 @@ public sealed partial class SettingsViewModelActionsTests
       await create;
     }
 
+    Assert.Equal("older-created-raw", viewModel.ApiKeySecret);
+    await viewModel.RotateApiKeyAsync(key, cancellation.Token);
+    Assert.Equal(0, service.RotateApiKeyCount);
+    viewModel.DismissApiKeySecret();
+    await viewModel.RotateApiKeyAsync(key, cancellation.Token);
     Assert.Equal("replacement-raw", viewModel.ApiKeySecret);
     Assert.NotNull(viewModel.ApiKeyRotationNotice);
   }
@@ -242,6 +250,10 @@ public sealed partial class SettingsViewModelActionsTests
       await first;
     }
 
+    await viewModel.RotateApiKeyAsync(key, cancellation.Token);
+    Assert.Equal(1, service.RotateApiKeyCount);
+    Assert.Equal("replacement-raw", viewModel.ApiKeySecret);
+    viewModel.DismissApiKeySecret();
     await viewModel.RotateApiKeyAsync(key, cancellation.Token);
     Assert.Equal(2, service.RotateApiKeyCount);
   }

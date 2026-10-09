@@ -44,27 +44,13 @@ struct LocalImagePreview: View {
         }
     }
 
-    static func canDecode(_ data: Data) -> Bool {
-        decode(data) != nil
-    }
-
     static func thumbnailData(from data: Data) -> Data? {
         let maxPixelSize = 128
         let maxBytes = 256 * 1_024
 
         #if SKIP
-            guard let image = UIImage(data: data) else { return nil }
-            let largestDimension = max(image.size.width, image.size.height)
-            guard largestDimension.isFinite, largestDimension > 0 else { return nil }
-            let scale = min(1, CGFloat(maxPixelSize) / largestDimension)
-            let size = CGSize(
-                width: max(1, (image.size.width * scale).rounded(.down)),
-                height: max(1, (image.size.height * scale).rounded(.down))
-            )
-            guard let thumbnail = image.preparingThumbnail(of: size),
-                  let bytes = thumbnail.pngData(),
-                  bytes.count <= maxBytes else { return nil }
-            return bytes
+            // SKIP has no verified bounded source decoder; use the typed preview fallback.
+            return nil
         #elseif canImport(ImageIO)
             let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
             guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions as CFDictionary)

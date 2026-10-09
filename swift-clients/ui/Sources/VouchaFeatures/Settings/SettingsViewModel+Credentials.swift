@@ -22,7 +22,8 @@ public extension SettingsViewModel {
         guard case .loaded = credentialState,
               apiKeyRotationOwnerState.identityConfirmed, identity?.id != nil else { return false }
         return apiKeyScopeSelection.isValid && !apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !apiKeyCreationInFlight && (!isApiKeyAdministrator || apiKeyLifetimeDays == 30 || apiKeyLifetimeDays == 90)
+            !apiKeySecretOperationInFlight && latestRawAPIKey == nil &&
+            (!isApiKeyAdministrator || apiKeyLifetimeDays == 30 || apiKeyLifetimeDays == 90)
     }
 
     var isApiKeyAdministrator: Bool {
@@ -44,7 +45,9 @@ public extension SettingsViewModel {
     }
 
     func canRotateApiKey(_ key: ApiKey, now: Date = Date()) -> Bool {
-        key.revokedAt == nil && key.replacedByApiKeyId == nil &&
+        apiKeyRotationOwnerState.identityConfirmed && identity?.id != nil &&
+            !apiKeySecretOperationInFlight && latestRawAPIKey == nil &&
+            key.revokedAt == nil && key.replacedByApiKeyId == nil &&
             key.expiresAt.map { $0 > now } != false && !apiKeyRotationInFlight.contains(key.id)
     }
 

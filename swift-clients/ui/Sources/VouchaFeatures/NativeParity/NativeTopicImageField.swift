@@ -61,10 +61,13 @@ struct NativeTopicImageField: View {
             Text(UiMessages.string(title, locale: nativeUiLocale))
                 .font(Typography.subheadline)
             HStack(alignment: .center, spacing: Spacing.sm) {
-                if let localPreviewData = uploadState.localPreviewData {
-                    LocalImagePreview(data: localPreviewData, uploadComplete: uploadState.previewImageId != nil)
-                        .frame(width: previewWidth, height: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                if uploadState.isUploading || uploadState.localPreviewData != nil {
+                    LocalImagePreview(
+                        data: uploadState.localPreviewData,
+                        uploadComplete: uploadState.previewImageId != nil
+                    )
+                    .frame(width: previewWidth, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 } else if placement?.imageId == imageId.trimmed,
                           let url = imageURL(forPlacement: placement) {
                     AsyncImageView(urlString: url, baseURL: imageBaseURL, contentMode: .fill)

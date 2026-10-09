@@ -60,6 +60,56 @@ public sealed class SettingsApiKeyLifecycleViewTests
     Assert.Null(model.ApiKeySecret);
   }
 
+  [Fact]
+  public async Task MountedCreateAndOtherRotateButtonsStayDisabledThroughOneTimeSecretDisclosure()
+  {
+    PrepareMaui();
+    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    var service = DispatchProxy.Create<ISettingsService, LifecycleSettingsService>();
+    var fake = (LifecycleSettingsService)service;
+    var firstKey = Key("key-a", DateTimeOffset.UtcNow.AddDays(30));
+    var secondKey = Key("key-b", DateTimeOffset.UtcNow.AddDays(30));
+    fake.Keys = [firstKey, secondKey];
+    var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var response = new TaskCompletionSource<ApiKeyCreationResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    fake.RotateOverride = id =>
+    {
+      if (id != firstKey.Id) throw new InvalidOperationException("Second key dispatched while the first secret is pending.");
+      started.TrySetResult(true);
+      return response.Task;
+    };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+    await model.LoadAsync(cancellation.Token);
+    model.SetApiKeyScopeSelected("rss:read", true);
+    var view = new SettingsApiKeyLifecycleView { BindingContext = model };
+    _ = new ContentPage { Content = view };
+    var create = Find<Button>(view, "api-key-create");
+    var rows = Find<CollectionView>(view, "api-key-lifecycle-rows");
+    Assert.True(create.IsEnabled);
+    Assert.True(Find<Button>(RenderRow(rows, model.LocalizedApiKeys[1]), "api-key-rotate").IsEnabled);
+
+    var first = model.RotateApiKeyAsync(firstKey, cancellation.Token);
+    try
+    {
+      await started.Task.WaitAsync(cancellation.Token);
+      Assert.False(create.IsEnabled);
+      Assert.False(Find<Button>(RenderRow(rows, model.LocalizedApiKeys[1]), "api-key-rotate").IsEnabled);
+      Assert.Equal(1, fake.RotateCount);
+    }
+    finally
+    {
+      response.TrySetResult(new ApiKeyCreationResponse(firstKey, "raw-a"));
+      await first;
+    }
+
+    Assert.Equal("raw-a", model.ApiKeySecret);
+    Assert.False(create.IsEnabled);
+    Assert.False(Find<Button>(RenderRow(rows, model.LocalizedApiKeys[1]), "api-key-rotate").IsEnabled);
+    Find<Button>(view, "api-key-secret-dismiss").SendClicked();
+    Assert.True(create.IsEnabled);
+    Assert.True(Find<Button>(RenderRow(rows, model.LocalizedApiKeys[1]), "api-key-rotate").IsEnabled);
+  }
+
   private static ApiKey Key(string id, DateTimeOffset? expiresAt) => new(
       id, "user-1", "rk_key", "rss", "Reader", ["rss:read"],
       DateTimeOffset.UtcNow.AddDays(-1), null, null, DateTimeOffset.UtcNow.AddDays(-1),
@@ -104,6 +154,8 @@ public sealed class SettingsApiKeyLifecycleViewTests
   {
     public IReadOnlyList<string> Roles { get; set; } = ["member"];
     public IReadOnlyList<ApiKey> Keys { get; set; } = [];
+    public Func<string, Task<ApiKeyCreationResponse>>? RotateOverride { get; set; }
+    public int RotateCount { get; private set; }
 
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => targetMethod?.Name switch
     {
@@ -117,14 +169,18 @@ public sealed class SettingsApiKeyLifecycleViewTests
       nameof(ISettingsService.FetchMembershipAsync) => Task.FromResult<MembershipResponse?>(null),
       nameof(ISettingsService.FetchPushSubscriptionsAsync) => Task.FromResult(new WebPushSubscriptionListResponse([], new PageInfo(null, false, null))),
       nameof(ISettingsService.FetchUserDataRequestAsync) => Task.FromResult<UserDataRequestResponse?>(null),
-      nameof(ISettingsService.FetchScopeCatalogAsync) => Task.FromResult(new ScopeCatalogResponse([])),
+      nameof(ISettingsService.FetchScopeCatalogAsync) => Task.FromResult(new ScopeCatalogResponse([
+          new ScopeCatalogEntry("rss:read", "api", "rss", "read", ["api-key"], null, null),
+      ])),
       nameof(ISettingsService.FetchOAuthGrantsAsync) => Task.FromResult(new OAuthGrantListResponse([], new PageInfo(null, false, null))),
-      nameof(ISettingsService.RotateApiKeyAsync) => Rotate(),
+      nameof(ISettingsService.RotateApiKeyAsync) => Rotate((string)args![0]!),
       _ => throw new NotSupportedException(targetMethod?.Name),
     };
 
-    private Task<ApiKeyCreationResponse> Rotate()
+    private Task<ApiKeyCreationResponse> Rotate(string id)
     {
+      RotateCount++;
+      if (RotateOverride is { } rotate) return rotate(id);
       var replacement = Keys[0] with { Id = "replacement" };
       Keys = [replacement];
       return Task.FromResult(new ApiKeyCreationResponse(replacement, "rotated-secret"));

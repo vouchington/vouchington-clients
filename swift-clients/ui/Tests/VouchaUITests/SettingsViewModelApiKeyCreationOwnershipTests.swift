@@ -75,6 +75,12 @@ extension SettingsViewModelActionCoverageTests {
         CannedFeedURLProtocol.releaseResponse(path: keyPath)
         await creation.value
         XCTAssertNil(model.latestRawAPIKey)
+        XCTAssertTrue(model.apiKeySecretOperationInFlight)
+        model.dismissRawApiKey()
+        XCTAssertTrue(
+            model.apiKeySecretOperationInFlight,
+            "Dismiss without a visible secret cannot drop the held creation"
+        )
         CannedFeedURLProtocol.handlers[keyPath] = (emptyApiKeyPage(), 200)
         CannedFeedURLProtocol.releaseResponse(path: identityPath)
         await reload.value
@@ -128,7 +134,7 @@ extension SettingsViewModelActionCoverageTests {
         XCTAssertNil(model.latestRawAPIKey)
     }
 
-    func testOlderHeldCreationCannotReplaceNewerRotationSecret() async throws {
+    func testHeldCreationBlocksRotationUntilItsOneTimeSecretIsDismissed() async throws {
         seedSettingsResponses()
         let model = try SettingsViewModel(client: makeClient())
         await model.load()
@@ -137,7 +143,6 @@ extension SettingsViewModelActionCoverageTests {
 
         let keyPath = "/api/v1/my/api-keys"
         let rotatePath = "/api/v1/my/api-keys/key-1/rotate"
-        let keyPage = try XCTUnwrap(CannedFeedURLProtocol.handlers[keyPath])
         CannedFeedURLProtocol.handlers[keyPath] = (ApiFixtureLoader.data("native.my.api-keys.create"), 201)
         CannedFeedURLProtocol.suspendResponse(path: keyPath)
         defer { CannedFeedURLProtocol.releaseResponse(path: keyPath) }
@@ -146,21 +151,108 @@ extension SettingsViewModelActionCoverageTests {
         let creation = Task { await model.createApiKey() }
         _ = try await creationBarrier.wait()
 
-        CannedFeedURLProtocol.handlers[keyPath] = keyPage
         CannedFeedURLProtocol.handlers[rotatePath] = (
             ApiFixtureLoader.data("native.my.api-keys.rotate"), 201
         )
-        let rotationPageBarrier = CannedFeedURLProtocol.requestBarrier(path: keyPath, method: "GET")
-        let rotation = Task { await model.rotateApiKey(id: "key-1") }
-        _ = try await rotationPageBarrier.wait()
-        CannedFeedURLProtocol.releaseNewestResponse(path: keyPath)
-        await rotation.value
-        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+        let key = try XCTUnwrap(model.apiKeys.first)
+        XCTAssertTrue(model.apiKeySecretOperationInFlight)
+        XCTAssertFalse(model.canRotateApiKey(key))
+        await model.rotateApiKey(id: key.id)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.method == "POST" && $0.url.path == rotatePath
+        })
 
-        CannedFeedURLProtocol.releaseOldestResponse(path: keyPath)
+        CannedFeedURLProtocol.releaseResponse(path: keyPath)
         await creation.value
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+        XCTAssertFalse(model.apiKeySecretOperationInFlight)
+        XCTAssertFalse(model.canRotateApiKey(key), "The visible one-time secret must be dismissed first")
+
+        model.dismissRawApiKey()
+        XCTAssertTrue(model.canRotateApiKey(key))
+        await model.rotateApiKey(id: key.id)
         XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
-        XCTAssertEqual(model.apiKeyLabel, "Agent", "The older completion cannot clear the newer draft")
+    }
+
+    func testDisplayedCreationSecretIsPrivateDuringReloadAndRestoredOnlyForSameOwner() async throws {
+        seedSettingsResponses()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.load()
+        model.apiKeyLabel = "Agent"
+        model.setApiKeyScope("feed:read", selected: true)
+        let keyPath = "/api/v1/my/api-keys"
+        let identityPath = "/api/v1/my/identity"
+        let keyPage = try XCTUnwrap(CannedFeedURLProtocol.handlers[keyPath])
+        CannedFeedURLProtocol.handlers[keyPath] = (ApiFixtureLoader.data("native.my.api-keys.create"), 201)
+        await model.createApiKey()
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+        XCTAssertEqual(model.statusMessage, .message(.nativeSwiftSettingsApiKeyCreated))
+
+        CannedFeedURLProtocol.handlers[keyPath] = keyPage
+        CannedFeedURLProtocol.suspendResponse(path: identityPath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: identityPath) }
+        let identityRequest = CannedFeedURLProtocol.requestBarrier(path: identityPath, method: "GET")
+        let reload = Task { await model.load() }
+        do {
+            _ = try await identityRequest.wait()
+            XCTAssertNil(model.latestRawAPIKey)
+            XCTAssertTrue(model.apiKeySecretOperationInFlight)
+            XCTAssertFalse(try model.canRotateApiKey(XCTUnwrap(model.apiKeys.first)))
+            model.dismissRawApiKey()
+            XCTAssertTrue(model.apiKeySecretOperationInFlight, "A stale dismiss cannot discard the hidden secret")
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await reload.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: identityPath)
+        await reload.value
+
+        XCTAssertEqual(model.identity?.id, "user-1")
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+        XCTAssertEqual(model.statusMessage, .message(.nativeSwiftSettingsApiKeyCreated))
+        XCTAssertFalse(model.apiKeySecretOperationInFlight)
+        model.dismissRawApiKey()
+        XCTAssertNil(model.latestRawAPIKey)
+    }
+
+    func testDisplayedCreationSecretIsDiscardedWhenReloadConfirmsAnotherOwner() async throws {
+        seedSettingsResponses()
+        let model = try SettingsViewModel(client: makeClient())
+        await model.load()
+        model.apiKeyLabel = "Agent"
+        model.setApiKeyScope("feed:read", selected: true)
+        let keyPath = "/api/v1/my/api-keys"
+        let identityPath = "/api/v1/my/identity"
+        CannedFeedURLProtocol.handlers[keyPath] = (ApiFixtureLoader.data("native.my.api-keys.create"), 201)
+        await model.createApiKey()
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-raw-api-key")
+
+        CannedFeedURLProtocol.handlers[keyPath] = (emptyApiKeyPage(), 200)
+        CannedFeedURLProtocol.handlers[identityPath] = (
+            PrivateUserTestFixture.identityEnvelope(id: "user-2", username: "bob"), 200
+        )
+        seedSecondOwnerDataRequest()
+        CannedFeedURLProtocol.suspendResponse(path: identityPath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: identityPath) }
+        let identityRequest = CannedFeedURLProtocol.requestBarrier(path: identityPath, method: "GET")
+        let reload = Task { await model.load() }
+        do {
+            _ = try await identityRequest.wait()
+            XCTAssertNil(model.latestRawAPIKey)
+            XCTAssertTrue(model.apiKeySecretOperationInFlight)
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await reload.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: identityPath)
+        await reload.value
+
+        XCTAssertEqual(model.identity?.id, "user-2")
+        XCTAssertNil(model.latestRawAPIKey)
+        XCTAssertFalse(model.apiKeySecretOperationInFlight)
+        XCTAssertNil(model.statusMessage)
     }
 
     func testOldOwnersHeldUnauthorizedCreationCannotInvalidateNewOwner() async throws {

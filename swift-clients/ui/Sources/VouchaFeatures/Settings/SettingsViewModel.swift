@@ -19,6 +19,7 @@ public final class SettingsViewModel {
     public internal(set) var credentialState: LoadState = .idle
     public internal(set) var oauthGrantState: LoadState = .idle
     public internal(set) var apiKeyCreationInFlight = false
+    public internal(set) var apiKeySecretOperationInFlight = false
     public internal(set) var apiKeyRotationInFlight: Set<String> = []
     @ObservationIgnored var apiKeyRotationOwnerState = ApiKeyRotationOwnerState()
     @ObservationIgnored
@@ -134,23 +135,7 @@ public final class SettingsViewModel {
         self.localLLMResponsesClient = localLLMResponsesClient
         self.blueskyLinkStore = blueskyLinkStore
         self.now = now
-        if let result = blueskyLinkStore.takeResult() {
-            blueskyLinkState = Self.state(for: result)
-        } else {
-            do {
-                switch try blueskyLinkStore.pendingStatus(now: now()) {
-                case let .active(pending):
-                    blueskyLinkExpiresAt = pending.expiresAt
-                    blueskyLinkState = pending.isFinalizing ? .finalizing : .awaitingCallback
-                case .expired:
-                    blueskyLinkState = .expired
-                case .none:
-                    blueskyLinkState = .idle
-                }
-            } catch {
-                blueskyLinkState = .error(.message(.nativeSwiftSettingsBlueskyLinkFailed))
-            }
-        }
+        initializeBlueskyLinkState()
         blueskyResultObserver = NotificationCenter.default.addObserver(
             forName: .blueskyLinkResultDidChange,
             object: nil,

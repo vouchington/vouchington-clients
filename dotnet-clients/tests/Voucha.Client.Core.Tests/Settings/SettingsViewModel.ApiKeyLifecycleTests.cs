@@ -116,8 +116,8 @@ public sealed partial class SettingsViewModelActionsTests
       await rotation;
     }
     Assert.Equal("fresh-key", Assert.Single(model.ApiKeys).Id);
-    Assert.Null(model.ApiKeySecret);
-    Assert.Null(model.ApiKeyRotationNotice);
+    Assert.Equal("replacement-raw", model.ApiKeySecret);
+    Assert.NotNull(model.ApiKeyRotationNotice);
   }
 
   [Fact]
