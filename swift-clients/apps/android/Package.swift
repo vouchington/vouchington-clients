@@ -15,6 +15,8 @@ let package = Package(
         .package(path: "../../test-support"),
         .package(url: "https://source.skip.tools/skip.git", exact: "1.9.13"),
         .package(url: "https://source.skip.tools/skip-fuse-ui.git", from: "1.0.0"),
+        // Skip 1.9.13's generated async bridges use BridgedJob from SkipBridge 0.18.0.
+        .package(url: "https://source.skip.tools/skip-bridge.git", from: "0.18.0"),
         .package(url: "https://source.skip.tools/skip-keychain.git", exact: "0.3.2")
     ],
     targets: [
