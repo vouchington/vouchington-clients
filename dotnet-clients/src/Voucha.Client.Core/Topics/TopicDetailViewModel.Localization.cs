@@ -22,6 +22,10 @@ public sealed partial class TopicDetailViewModel
       ? UiMessageKey.NativeDotnetDynamicUnmuteSource
       : UiMessageKey.NativeDotnetDynamicMuteSource);
 
+  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Topic?.Provenance, localization);
+
+  public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
   public void Dispose() => localeSubscription?.Dispose();
 
   public void OnUiLocaleChanged()
@@ -34,5 +38,6 @@ public sealed partial class TopicDetailViewModel
     OnPropertyChanged(nameof(SourceCrawlHistoryAccessErrorMessage));
     OnPropertyChanged(nameof(SourceCrawlHistoryRequestErrorMessage));
     OnPropertyChanged(nameof(LocalizedTopicType));
+    OnPropertyChanged(nameof(LocalizedProvenanceLabel));
   }
 }

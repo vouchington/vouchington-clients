@@ -12,6 +12,7 @@ public sealed partial class CommunityDetailPage : ContentPage
   private readonly Entry slugEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunitySlug);
   private readonly Label titleLabel = new() { FontSize = 24, FontAttributes = FontAttributes.Bold };
   private readonly Label statusLabel = new();
+  private readonly Label provenanceLabel = new();
   private readonly Label metricsLabel = new();
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
   private readonly Button loadButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpLoad);
@@ -47,6 +48,7 @@ public sealed partial class CommunityDetailPage : ContentPage
           slugEntry,
           loadButton,
           titleLabel,
+          provenanceLabel,
           statusLabel,
           metricsLabel,
           errorLabel,
@@ -108,6 +110,8 @@ public sealed partial class CommunityDetailPage : ContentPage
   private void Render()
   {
     titleLabel.Text = viewModel.Community?.Name ?? UiCopy.Localize(UiMessageKey.NativeDotnetResidualCommunity);
+    provenanceLabel.Text = PublicProvenanceLabels.Resolve(viewModel.Community?.Provenance, UiCopy.CurrentLocalization);
+    provenanceLabel.IsVisible = provenanceLabel.Text is not null;
     statusLabel.Text = viewModel.IsLoading
         ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualLoading)
         : viewModel.IsArchived

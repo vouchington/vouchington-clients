@@ -34,7 +34,7 @@
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="8" />
             </Border.StrokeShape>
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10" ColumnSpacing="12">
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="10" ColumnSpacing="12">
                 <Entry
                     Grid.Row="0"
                     Grid.Column="0"
@@ -52,6 +52,7 @@
                     Text="{Binding SelectedListDescription, Mode=TwoWay}"
                     Placeholder="{DynamicResource native.dotnet.lists.description}"
                     HeightRequest="72" />
+                <Label Grid.Row="2" Grid.Column="0" Text="{Binding SelectedList.LocalizedProvenanceLabel}" IsVisible="{Binding SelectedList.HasProvenance}" Style="{StaticResource Metadata}" />
             </Grid>
         </Border>
 
@@ -94,6 +95,7 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedVisibility}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Description}" Style="{StaticResource Body}" />
                             </VerticalStackLayout>

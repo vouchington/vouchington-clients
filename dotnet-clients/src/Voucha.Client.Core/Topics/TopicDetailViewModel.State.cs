@@ -17,6 +17,8 @@ public sealed partial class TopicDetailViewModel
       OnPropertyChanged(nameof(CanViewSourceCrawlHistory));
       OnPropertyChanged(nameof(CanMuteTopic));
       OnPropertyChanged(nameof(LocalizedTopicType));
+      OnPropertyChanged(nameof(LocalizedProvenanceLabel));
+      OnPropertyChanged(nameof(HasProvenance));
     }
   }
 
