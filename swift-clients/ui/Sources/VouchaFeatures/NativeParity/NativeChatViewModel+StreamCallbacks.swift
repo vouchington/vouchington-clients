@@ -1,5 +1,3 @@
-import VouchaModels
-
 extension NativeChatViewModel {
     func finishStream(
         conversationId: String,

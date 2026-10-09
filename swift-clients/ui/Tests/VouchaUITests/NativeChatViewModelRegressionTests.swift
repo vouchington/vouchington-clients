@@ -75,8 +75,9 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
     }
 
     func testChatViewModelSkipsCreateResultWhenSelectionChangesBeforeSendStarts() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/conversations"] = [
-            (NativeChatTestFixtures.createdConversationData, 201, 0.1)
+        let createPath = "/api/v1/conversations"
+        CannedFeedURLProtocol.queuedHandlers[createPath] = [
+            (NativeChatTestFixtures.createdConversationData, 201, 0)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/conversations/conversation-1/messages"] = (
             NativeChatTestFixtures.chatMessagesData,
@@ -95,10 +96,19 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         ]
         viewModel.draftMessage = "Hello"
 
+        let createRequest = CannedFeedURLProtocol.requestBarrier(path: createPath, method: "POST")
+        CannedFeedURLProtocol.suspendResponse(path: createPath)
         let send = Task { await viewModel.sendDraftMessage() }
-        try await Task.sleep(nanoseconds: 10_000_000)
-        await viewModel.selectConversation(id: "conversation-1")
-        await send.value
+        do {
+            _ = try await createRequest.wait()
+            await viewModel.selectConversation(id: "conversation-1")
+            CannedFeedURLProtocol.releaseResponse(path: createPath)
+            await send.value
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: createPath)
+            await send.value
+            throw error
+        }
 
         XCTAssertEqual(viewModel.selectedConversationId, "conversation-1")
         XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1"])
