@@ -96,7 +96,7 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   assert.doesNotMatch(qualityAction, /mise install swift/u)
   assert.match(qualityAction, /mise install aqua:peripheryapp\/periphery@3\.7\.4/u)
   const setupAction = read('.github/actions/setup-mise-toolchain/action.yml')
-  assert.match(setupAction, /case "\$MISE_TOOL" in[\s\S]*?dotnet\|swift/u)
+  assert.match(setupAction, /case "\$MISE_TOOL" in[\s\S]*?dotnet\)[\s\S]*?swift\)/u)
   assert.match(setupAction, /mise_data_dir="\$RUNNER_TEMP\/mise-data"/u)
   assert.match(setupAction, /mise ls --current --json[\s\S]*?mise exec -- swift --version/u)
   assert.doesNotMatch(setupAction, /resolve-mise-swift-toolchain\.sh/u)
@@ -166,12 +166,27 @@ test('Periphery scans the index store produced by its selected Swift compiler', 
   assert.match(uiPeripheryJob, /periphery-scan\.sh ui/u)
 })
 
-test('Linux mise jobs install the Swift runtime libraries they require', () => {
+test('native mise setup selects only its requested SDK and Swift runtime libraries', () => {
   const action = read('.github/actions/setup-mise-toolchain/action.yml')
   const validation = read('.github/workflows/validate.yml')
   assert.match(
     action,
-    /if: runner\.os == 'Linux'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?mise-action/u,
+    /if: runner\.os == 'Linux' && inputs\.tool == 'swift'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?mise-action/u,
+  )
+  const configuredTools = [...read('.mise.toml').matchAll(/^(?:"([^"]+)"|([a-z-]+))\s*=/gmu)].map(
+    match => match[1] ?? match[2],
+  )
+  for (const tool of ['dotnet', 'swift']) {
+    const disabled = action.match(new RegExp(`${tool}\\)\\s+disabled_tools='([^']+)'`, 'u'))?.[1]
+    assert.ok(disabled, `${tool} has a scoped mise selection`)
+    assert.deepEqual(
+      disabled.split(',').sort(),
+      configuredTools.filter(name => name !== tool).sort(),
+    )
+  }
+  assert.match(
+    action,
+    /export MISE_DISABLE_TOOLS="\$disabled_tools"[\s\S]*?echo "MISE_DISABLE_TOOLS=\$MISE_DISABLE_TOOLS" >> "\$GITHUB_ENV"[\s\S]*?mise install "\$MISE_TOOL"/u,
   )
   const swiftLintJob = jobBlock(validation, 'swift-lint')
   assert.match(swiftLintJob, /apt-get install --yes --no-install-recommends libncurses6/u)

@@ -13,7 +13,7 @@ runs:
   using: composite
   steps:
     - name: Install mise Swift runtime libraries
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && inputs.tool == 'swift'
       shell: bash
       run: |
         set -euo pipefail
@@ -32,9 +32,16 @@ runs:
       run: |
         set -euo pipefail
         case "$MISE_TOOL" in
-          dotnet|swift) ;;
+          dotnet)
+            disabled_tools='actionlint,swift,shellcheck,github:boyter/scc,zizmor,aqua:gitleaks/gitleaks,aqua:lycheeverse/lychee,swiftformat'
+            ;;
+          swift)
+            disabled_tools='actionlint,dotnet,shellcheck,github:boyter/scc,zizmor,aqua:gitleaks/gitleaks,aqua:lycheeverse/lychee,swiftformat'
+            ;;
           *) echo "unsupported mise tool: $MISE_TOOL" >&2; exit 2 ;;
         esac
+        export MISE_DISABLE_TOOLS="$disabled_tools"
+        echo "MISE_DISABLE_TOOLS=$MISE_DISABLE_TOOLS" >> "$GITHUB_ENV"
         client_root="$GITHUB_WORKSPACE/$CLIENT_ROOT"
         [[ -f "$client_root/.mise.toml" && -f "$client_root/global.json" ]]
         mise_data_dir="$RUNNER_TEMP/mise-data"
