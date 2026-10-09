@@ -31,7 +31,7 @@ public sealed class SettingsCredentialsPageSourceTests
   [Fact]
   public void ConnectedAppsRenderGrantIdentityMetadataRevocationAndPagination()
   {
-    var document = SettingsDocument();
+    var document = SettingsOAuthGrantsDocument();
     var list = ElementWithBinding(document, "BindableLayout.ItemsSource", "{Binding LocalizedOAuthGrants}");
     var template = Assert.Single(list.Descendants(), element => element.Name.LocalName == "DataTemplate");
     foreach (var binding in new[] { "ClientName", "Verification", "Resource", "Scopes", "Activity" })
@@ -42,7 +42,10 @@ public sealed class SettingsCredentialsPageSourceTests
     var pagination = document.Descendants().Single(element =>
         Attribute(element, "PaginationId") == "settings-oauth-grants");
     Assert.Equal("{Binding HasOAuthGrantPaginationError}", Attribute(pagination, "HasError"));
-    Assert.Equal("OnLoadMoreOAuthGrantsRequested", Attribute(pagination, "LoadNextPageRequested"));
+    Assert.Equal("OnLoadNextPageRequested", Attribute(pagination, "LoadNextPageRequested"));
+    Assert.Contains(SettingsPageDocument().Descendants(), element =>
+        element.Name.LocalName == "SettingsOAuthGrantsView" &&
+        Attribute(element, "LoadNextPageRequested") == "OnLoadMoreOAuthGrantsRequested");
   }
 
   private static XElement ElementWithBinding(XDocument document, string attribute, string value) =>
@@ -51,7 +54,16 @@ public sealed class SettingsCredentialsPageSourceTests
   private static string? Attribute(XElement element, string name) =>
       element.Attributes().SingleOrDefault(attribute => attribute.Name.LocalName == name)?.Value;
 
-  private static XDocument SettingsDocument([CallerFilePath] string sourceFile = "")
+  private static XDocument SettingsOAuthGrantsDocument([CallerFilePath] string sourceFile = "")
+  {
+    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
+    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
+    return XDocument.Load(Path.Combine(
+        root?.FullName ?? throw new DirectoryNotFoundException(),
+        "src", "Voucha.Client.App", "Pages", "SettingsOAuthGrantsView.xaml"));
+  }
+
+  private static XDocument SettingsPageDocument([CallerFilePath] string sourceFile = "")
   {
     var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
     while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
