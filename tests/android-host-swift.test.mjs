@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,6 +8,9 @@ import test from 'node:test'
 
 const script = fileURLToPath(
   new URL('../swift-clients/apps/android/tooling/verify-android-host-swift.sh', import.meta.url),
+)
+const managedResolver = fileURLToPath(
+  new URL('../swift-clients/apps/android/tooling/resolve-mise-swift-toolchain.sh', import.meta.url),
 )
 const workflowPath = fileURLToPath(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -102,4 +105,46 @@ test('rejects xcrun resolving Swift outside the selected Xcode', async t => {
   const result = await f.run()
   assert.equal(result.code, 1)
   assert.match(result.stderr, /outside selected Xcode/u)
+})
+
+test('accepts both Apple and swift.org mise Swift 6.4 banners and rejects another version', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-managed-android-swift-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const bin = join(root, 'bin')
+  const miseData = join(root, 'mise')
+  const toolchain = join(miseData, 'installs/swift/6.4.0')
+  const swiftPath = join(toolchain, 'usr/bin/swift')
+  await mkdir(bin, { recursive: true })
+  await mkdir(dirname(swiftPath), { recursive: true })
+  await writeFile(join(toolchain, 'Info.plist'), '')
+  await executable(
+    join(bin, 'mise'),
+    `if [[ "$1" == which && "$2" == swift ]]; then printf '%s\\n' '${swiftPath}'; exit 0; fi\nif [[ "$1" == where && "$2" == swift ]]; then printf '%s\\n' '${toolchain}'; exit 0; fi\nexit 2`,
+  )
+
+  for (const [banner, expectedCode] of [
+    ['Apple Swift version 6.4 (swift-6.4-RELEASE)', 0],
+    ['Swift version 6.4 (swift-6.4-RELEASE)', 0],
+    ['Swift version 6.3.3 (swift-6.3.3-RELEASE)', 1],
+  ]) {
+    await executable(swiftPath, `printf '%s\\n' '${banner}'`)
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn('/bin/bash', [managedResolver], {
+        env: {
+          ...process.env,
+          MISE_DATA_DIR: miseData,
+          RUNNER_TEMP: root,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
+      })
+      let stdout = ''
+      let stderr = ''
+      child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
+      child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
+      child.on('error', reject)
+      child.on('close', code => resolve({ code, stdout, stderr }))
+    })
+    assert.equal(result.code, expectedCode, `${banner}: ${result.stderr}`)
+    if (expectedCode === 0) assert.equal(result.stdout.trim(), await realpath(toolchain))
+  }
 })

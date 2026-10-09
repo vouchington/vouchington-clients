@@ -41,7 +41,7 @@ if [[ "$toolchain_root" != "$expected_root" || \
   exit 1
 fi
 
-swift_version="$("$swift_bin" --version | awk 'NR == 1 { print $4 }')"
+swift_version="$("$swift_bin" --version | sed -n -E '1s/^(Apple )?Swift version ([^ (]+).*/\2/p')"
 if [[ "$swift_version" != 6.4 && "$swift_version" != 6.4.0 ]]; then
   echo "Swift 6.4.0 managed by mise is required; found ${swift_version:-no Swift version}." >&2
   exit 1
