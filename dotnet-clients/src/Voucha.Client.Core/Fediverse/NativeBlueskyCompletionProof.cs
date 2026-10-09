@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -7,13 +8,10 @@ public sealed record NativeBlueskyCompletionProof(string Verifier, string Challe
 {
   public static NativeBlueskyCompletionProof Create()
   {
-    var verifier = Base64Url(RandomNumberGenerator.GetBytes(64));
-    return new(verifier, Base64Url(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
+    var verifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(64));
+    return new(verifier, Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
   }
 
   public static NativeBlueskyCompletionProof FromVerifier(string verifier) =>
-      new(verifier, Base64Url(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
-
-  private static string Base64Url(byte[] bytes) =>
-      Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+      new(verifier, Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(verifier))));
 }

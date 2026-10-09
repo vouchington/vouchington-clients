@@ -20,6 +20,16 @@ public sealed class NativeBlueskyLinkCoordinatorTests
   }
 
   [Fact]
+  public void CompletionProofsMatchRfc7636S256Vector()
+  {
+    const string verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+    const string challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+    Assert.Equal(challenge, NativeBlueskyCompletionProof.FromVerifier(verifier).Challenge);
+    Assert.Equal(challenge, NativeAuthorizationCompletionProof.FromVerifier(verifier).Challenge);
+  }
+
+  [Fact]
   public async Task StartPersistsFlowAndOpensSystemBrowser()
   {
     var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse("native.auth.bluesky.link.native"));
