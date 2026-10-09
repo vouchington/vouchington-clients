@@ -57,9 +57,9 @@ shared artifacts cache and runs
 `swift package resolve --force-resolved-versions` so unlocked `swift test` does not live-fetch
 Skip's CDN. Gradle uses
 `$HOME/.cache/voucha/gradle` so job-scoped `HOME` remapping does not throw away the
-dependency cache. Its non-default toolchain directory makes Swiftly verify and extract the signed
-package without macOS Installer writing to the runner account. Local runs continue to use the
-developer's existing Skip and Swiftly installations. Skip's Gradle bridge lists
+dependency cache. Mise installs the pinned Swift toolchain into the job-scoped directory without
+macOS Installer writing to the runner account. Local runs use the developer's installed Skip and
+the repository-pinned mise Swift toolchain. Skip's Gradle bridge lists
 `$HOME/Library/Developer/Toolchains`; that path stays a real job-scoped directory and the wrapper
 links only the verified `.xctoolchain` into it because Foundation rejects a directory-level
 symlink (NSPOSIX Code 20).

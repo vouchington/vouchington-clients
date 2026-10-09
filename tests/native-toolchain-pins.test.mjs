@@ -126,7 +126,11 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
     workflow.indexOf('\n  # iOS simulator smoke', workflow.indexOf('  build-macos-app:')),
   )
 
-  assert.match(harness, /SWIFT_COMMAND=\(mise exec -- swift\)/u)
+  assert.match(harness, /SWIFT_BIN="\$\(bash "\$SWIFT_DIR\/tooling\/resolve-mise-swift\.sh"\)"/u)
+  assert.match(
+    harness,
+    /SWIFT_COMMAND=\(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "\$SWIFT_BIN"\)/u,
+  )
   assert.match(harness, /XCODE_SWIFT_COMMAND=\(xcrun swift\)/u)
   assert.match(workflow, /mise exec -- swift test --package-path swift-clients\/core/u)
   assert.match(uiJob, /select-xcode\.sh 26\.6/u)
@@ -153,7 +157,11 @@ test('Periphery scans the index store produced by its selected Swift compiler', 
   assert.match(scan, /INDEX_STORE="\$BIN_PATH\/index\/store"/u)
   assert.match(scan, /outside the scoped build path/u)
   assert.match(scan, /periphery scan --strict --skip-build --index-store-path "\$INDEX_STORE"/u)
-  assert.match(scan, /mise\)\s+SWIFT_COMMAND=\(mise exec -- swift\)/u)
+  assert.match(scan, /mise\)\s+SWIFT_BIN="\$\(bash "\$SCRIPT_DIR\/resolve-mise-swift\.sh"\)"/u)
+  assert.match(
+    scan,
+    /SWIFT_COMMAND=\(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "\$SWIFT_BIN"\)/u,
+  )
   assert.match(scan, /xcode\)\s+SWIFT_COMMAND=\(xcrun swift\)/u)
   assert.match(harness, /periphery-scan\.sh" core/u)
   assert.match(harness, /periphery-scan\.sh" ui/u)

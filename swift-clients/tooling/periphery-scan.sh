@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ROOT_DIR="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
 if [[ $# -ne 1 || ( "$1" != 'core' && "$1" != 'ui' ) ]]; then
   echo 'Usage: periphery-scan.sh <core|ui>' >&2
@@ -16,7 +16,8 @@ SWIFT_TOOLCHAIN="${VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN:-mise}"
 
 case "$SWIFT_TOOLCHAIN" in
   mise)
-    SWIFT_COMMAND=(mise exec -- swift)
+    SWIFT_BIN="$(bash "$SCRIPT_DIR/resolve-mise-swift.sh")" || exit 1
+    SWIFT_COMMAND=(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "$SWIFT_BIN")
     ;;
   xcode)
     SWIFT_COMMAND=(xcrun swift)

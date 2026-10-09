@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SWIFT_DIR="$ROOT_DIR/swift-clients"
-SWIFT_COMMAND=(mise exec -- swift)
+SWIFT_COMMAND=()
 XCODE_SWIFT_COMMAND=(xcrun swift)
 IS_DARWIN=false
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -188,6 +188,11 @@ contains() {
   for item in "${CHECKS[@]}"; do [[ "$item" == "$needle" ]] && return 0; done
   return 1
 }
+
+if contains build || contains test; then
+  SWIFT_BIN="$(bash "$SWIFT_DIR/tooling/resolve-mise-swift.sh")" || exit 1
+  SWIFT_COMMAND=(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "$SWIFT_BIN")
+fi
 
 missing_periphery() {
   echo 'periphery is not installed; provision it with vouchington-github-actions-runners; see swift-clients/reference-readme-status.md#requirements' >&2
