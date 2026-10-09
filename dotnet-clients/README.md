@@ -5,7 +5,8 @@ This workspace contains the .NET client stack for Voucha. The product target is 
 ## Current Status
 
 - .NET SDK and workload set: the repository-root [`global.json`](../global.json) is the sole
-  policy source; it uses `rollForward: latestPatch` and pins the workload set too.
+  policy source; it requires SDK `10.0.401`, uses `rollForward: latestPatch`, and pins workload
+  set `10.0.401` for the Xcode 26.6-compatible MAUI toolchain.
 - Portable solution: `Voucha.DotNet.sln`.
 - MAUI app targets: `net10.0-maccatalyst` and `net10.0-windows10.0.26100.0`.
 - Rendered capability areas include authentication and account settings with household and
@@ -30,22 +31,24 @@ This workspace contains the .NET client stack for Voucha. The product target is 
 
 ## Local checks
 
-Run the local .NET harness from the repo root:
+Run the local .NET harness through mise from the repo root. It selects the exact SDK from the
+root `global.json` and keeps the installed SDK separate from Homebrew or other host installations:
 
 ```sh
-./dotnet-clients/tooling/harness.sh
+mise install
+mise exec -- ./dotnet-clients/tooling/harness.sh
 ```
 
 For individual checks, run from the repository root:
 
 ```sh
-dotnet restore --locked-mode dotnet-clients/Voucha.DotNet.sln
-./dotnet-clients/tooling/harness.sh --checks build
-dotnet test dotnet-clients/Voucha.DotNet.sln --configuration Release --no-build
-dotnet format dotnet-clients/Voucha.DotNet.sln --verify-no-changes --no-restore
-./dotnet-clients/tooling/with-build-lock.sh dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj --configuration Release --framework net10.0-maccatalyst --no-restore
-./dotnet-clients/tooling/harness.sh --checks ast-grep
-./dotnet-clients/tooling/harness.sh --checks resx-path
+mise exec -- dotnet restore --locked-mode dotnet-clients/Voucha.DotNet.sln
+mise exec -- ./dotnet-clients/tooling/harness.sh --checks build
+mise exec -- dotnet test dotnet-clients/Voucha.DotNet.sln --configuration Release --no-build
+mise exec -- dotnet format dotnet-clients/Voucha.DotNet.sln --verify-no-changes --no-restore
+mise exec -- ./dotnet-clients/tooling/with-build-lock.sh dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj --configuration Release --framework net10.0-maccatalyst --no-restore
+mise exec -- ./dotnet-clients/tooling/harness.sh --checks ast-grep
+mise exec -- ./dotnet-clients/tooling/harness.sh --checks resx-path
 ```
 
 The harness restores the portable solution in locked mode, verifies formatting, runs the ast-grep
@@ -57,28 +60,17 @@ builds remain in CI. The rendered page tests require the pinned MAUI workload, r
 the portable solution, and do not require the exact Xcode version used by the Mac Catalyst smoke
 build.
 
-Before `--exec` and any selected restore, format, RESX-path, or build check, the harness resolves
-the first `dotnet` host on `PATH` and validates it once from the repository root. The same absolute
-host then runs direct .NET commands, and that directory leads `PATH` for child scripts. Its
-directory is exported as `DOTNET_ROOT` only when it has SDK-root shape (an `sdk/` or `shared/`
-subdirectory); a wrapper script's directory leaves any pre-existing `DOTNET_ROOT` untouched rather
-than masking the real SDK root. If that host is missing or cannot satisfy the root `global.json`,
-the harness replays each resolver output, preserves the failing exit status, and stops before a
-command or build lock starts.
+Before `--exec` and any selected restore, format, RESX-path, or build check, the harness selects
+the repository-pinned .NET SDK with `mise where dotnet` and `mise which dotnet`. It requires an
+installed executable inside that mise installation root, checks its version against `global.json`,
+and then uses the selected absolute host for commands. It exports that installation root as
+`DOTNET_ROOT` and places it first on `PATH` for child scripts. Missing or mismatched SDKs stop the
+check before a build lock or .NET command starts; the harness does not install SDKs or fall back to
+an unrelated host on `PATH`.
 
-Outside GitHub Actions, a failed PATH host may fall back to `$DOTNET_ROOT/dotnet` when that
-variable was already set, then `$HOME/.dotnet/dotnet` (the Microsoft user-local layout). Those extra
-roots are skipped when `GITHUB_ACTIONS` is set so a persistent runner cannot hide a broken
-job-scoped install behind a leftover `$HOME` SDK. When a fallback host is selected instead of the
-PATH-first candidate, the harness prints a single stderr warning naming the failed or absent PATH
-host and the host actually used; it stays silent when the PATH-first host is selected. The harness
-does not walk the rest of `PATH`, search Homebrew prefixes, or install SDKs.
-
-Homebrew's `/opt/homebrew/bin/dotnet` only sees SDKs registered in that install. A Microsoft
-user-local `10.0.3xx` SDK at `$HOME/.dotnet` is invisible to it, and non-interactive shells often
-omit `$HOME/.dotnet` from `PATH` because they do not load `~/.zshrc`. Put a compatible SDK selected
-by [`global.json`](../global.json) first on `PATH`, or keep the official installer at
-`$HOME/.dotnet` for the local fallback. An ast-grep-only run remains SDK-independent. The external
+The repo-local mise environment avoids choosing an unrelated Homebrew or user-local SDK. Run
+`mise install` after changing toolchain pins, then use `mise exec --` for direct .NET commands. An
+ast-grep-only run remains SDK-independent. The external
 RESX fixture receives a runtime copy of the root policy so its temporary project cannot escape SDK
 selection.
 

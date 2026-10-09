@@ -4,11 +4,11 @@ This setup supports editing both clients and running their portable Core tests o
 Xcode generation, Periphery, MAUI App tests, Mac Catalyst smoke, and Darwin/Security tests still
 require macOS. The [CI placement policy](native-ci-test-placement.md) explains the split.
 
-The host or machine profile must first provide Node.js 26+, pnpm 12, Docker, mise, and a .NET SDK
-satisfying the root [global.json](../../global.json) (currently 10.0.301 with latest-patch roll
-forward). Docker runs the same pinned Swift 6.3.3, SwiftFormat, and SwiftLint images as CI, so a
-host Swift installation is unnecessary for these portable checks. Use an x86_64 Linux host if you
-also need the opt-in Android Core cross-compile: its NDK path is currently
+The host or machine profile must first provide Node.js 26+, pnpm 12, Docker, and mise. The
+repository's mise configuration selects .NET SDK 10.0.401 and Swift 6.4.0; `mise install` installs
+both. The root [global.json](../../global.json) remains the .NET SDK and workload policy source.
+Docker runs the same pinned Swift 6.4.0, SwiftFormat, and SwiftLint images as CI. Use an x86_64
+Linux host if you also need the opt-in Android Core cross-compile: its NDK path is currently
 `toolchains/llvm/prebuilt/linux-x86_64/bin/clang`.
 
 Supply the path to a **complete** Vouchington checkout explicitly. The repository scripts do not
@@ -23,8 +23,9 @@ mkdir -p "$HOME/.cache/voucha-native"
   --stage-root "$HOME/.cache/voucha-native/native-contract-stage"
 ```
 
-Setup verifies host versions and Docker, runs `pnpm install --frozen-lockfile`, installs the
-checkout's pinned mise tools, restores the portable .NET solution in locked mode, stages the
+Setup installs the checkout's mise-managed .NET and Swift toolchains, verifies host versions and
+Docker, runs `pnpm install --frozen-lockfile`, installs the remaining pinned mise tools, restores
+the portable .NET solution in locked mode, stages the
 producer's native exporter against this client checkout, and runs `contracts:check`. It never
 rewrites generated localization. If the exporter reports a missing package, install the producer
 checkout's frozen dependencies there explicitly and rerun setup with a new empty stage. The stage

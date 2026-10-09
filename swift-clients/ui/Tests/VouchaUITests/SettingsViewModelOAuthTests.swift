@@ -343,7 +343,10 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             client: client,
             sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
             store: NativeOAuthAuthorizationStore(
-                defaults: XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+                secureState: UserDefaultsNativePendingState(
+                    key: "nativeOAuthPendingAuthorization",
+                    defaults: XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+                )
             )
         )
         return (

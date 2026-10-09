@@ -106,7 +106,7 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
     join(checkout, 'dev/linux-native-images.sh'),
     readFileSync(join(root, 'dev/linux-native-images.sh')),
   )
-  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}')
+  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.401"}}')
   writeFileSync(
     join(checkout, 'package.json'),
     JSON.stringify({
@@ -130,18 +130,19 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
   for (const [name, body] of [
     ['uname', 'printf "Linux\\n"'],
     ['pnpm', 'if [[ "$1" == --version ]]; then echo 12.0.0; fi'],
-    ['dotnet', 'echo 10.0.301'],
+    ['dotnet', 'echo 10.0.401'],
+    ['swift', 'echo "Swift version 6.4.0"'],
     [
       'docker',
       'if [[ "$1" == info ]]; then echo linux; elif [[ -n "${FAIL_IMAGE:-}" ]]; then exit 1; fi',
     ],
-    ['mise', 'echo "{}"'],
+    ['mise', 'if [[ "$1" == which ]]; then echo "$FAKE_BIN/$2"; else echo "{}"; fi'],
   ]) {
     const path = join(bin, name)
     writeFileSync(path, `#!/bin/bash\n${body}\n`)
     chmodSync(path, 0o755)
   }
-  const environment = { ...process.env, PATH: `${bin}:${process.env.PATH}` }
+  const environment = { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_BIN: bin }
   const doctor = env =>
     spawnSync(
       'bash',
@@ -192,7 +193,7 @@ test('setup-ready requires checkout dependencies, restore assets, and pinned ima
   assert.match(missingImage.stderr, /Pinned Linux image is missing/u)
   const ready = doctor(environment)
   assert.equal(ready.status, 0, ready.stdout + ready.stderr)
-  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.301"}}\n')
+  writeFileSync(join(checkout, 'global.json'), '{"sdk":{"version":"10.0.401"}}\n')
   const dirty = doctor(environment)
   assert.equal(dirty.status, 1, dirty.stdout + dirty.stderr)
   assert.match(dirty.stderr, /restore inputs changed locally/u)

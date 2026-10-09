@@ -1,6 +1,6 @@
 # Voucha Android
 
-The Android client is a Skip Fuse 1.9+ app targeting Android API 28 and newer. Skip's Swift Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
+The Android client is a Skip Fuse 1.9.13 app targeting Android API 28 and newer. Its pinned Swift 6.4.0 Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
 Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the SwiftUI shell.
 
 ## Local models
@@ -19,10 +19,15 @@ Play Integrity, Play Store signing, and release packaging remain tracked by #662
 ## Checks
 
 ```sh
-skip android sdk install
-skip checkup --native
-swift test --package-path swift-clients/apps/android
-bash swift-clients/apps/android/tooling/pre-push.sh
+mise install
+mise install swift@6.3.3
+mise exec -- skip android sdk install --version swift-6.4.0-RELEASE_android
+mise exec -- skip checkup --native
+# Point this shell at an installed Xcode 26.6; adjust the app name if needed.
+export DEVELOPER_DIR="/Applications/Xcode_26.6.app/Contents/Developer"
+bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
+mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
+mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
 ```
 
 Despite its historical filename, `pre-push.sh` is a manually and CI-invoked validation wrapper; it
@@ -35,9 +40,16 @@ same checksum) into SwiftPM's artifact cache so the build does not live-fetch th
 both aliases also protects Android Studio and other direct Gradle callers from whichever canonical
 artifact URL their SwiftPM resolution uses.
 It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
-CI provisions checksum-verified Swiftly plus Swift in `RUNNER_TEMP`; the wrapper keeps
-that toolchain and SwiftPM SDK state job-scoped. Host archives, including `skip-macos.zip`, are
-reused from `$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
+CI installs the pinned Swift 6.4.0 toolchain with mise into `RUNNER_TEMP`; the wrapper exposes that
+verified toolchain to Skip's Xcode-style discovery path and keeps SwiftPM SDK state job-scoped.
+For local host-side SwiftPM tests, set `DEVELOPER_DIR` to an installed Xcode 26.6 developer
+directory; the verification script checks both Xcode and `xcrun` compiler paths without changing
+the machine's global Xcode selection. The Android package's host-side SwiftPM tests use mise Swift
+6.3.3, matched to the selected Xcode 26.6 compiler; SwiftPM 6.4 rejects duplicate static products
+in Skip's non-bridge macOS test graph.
+The Swift 6.4 compiler still builds the Android SDK and Gradle application. Host archives,
+including the Swift Android SDK, NDK, and `skip-macos.zip`, are reused from
+`$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
 `cached-archive.sh`. Only these immutable, checksum-verified archives persist across jobs;
 each job materializes the Swift toolchain, SDK, and NDK into job-scoped `$RUNNER_TEMP` before
 use, so an untrusted job cannot leave those extracted executables for a later trusted job. CI then seeds SwiftPM's
@@ -45,9 +57,9 @@ shared artifacts cache and runs
 `swift package resolve --force-resolved-versions` so unlocked `swift test` does not live-fetch
 Skip's CDN. Gradle uses
 `$HOME/.cache/voucha/gradle` so job-scoped `HOME` remapping does not throw away the
-dependency cache. Its non-default toolchain directory makes Swiftly verify and extract the signed
-package without macOS Installer writing to the runner account. Local runs continue to use the
-developer's existing Skip and Swiftly installations. Skip's Gradle bridge lists
+dependency cache. Mise installs the pinned Swift toolchain into the job-scoped directory without
+macOS Installer writing to the runner account. Local runs use the developer's installed Skip and
+the repository-pinned mise Swift toolchain. Skip's Gradle bridge lists
 `$HOME/Library/Developer/Toolchains`; that path stays a real job-scoped directory and the wrapper
 links only the verified `.xctoolchain` into it because Foundation rejects a directory-level
 symlink (NSPOSIX Code 20).

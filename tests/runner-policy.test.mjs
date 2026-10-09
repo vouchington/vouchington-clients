@@ -82,7 +82,7 @@ describe('GitHub-hosted runner policy', () => {
     assert.match(swiftManifest, /--network none/u)
     assert.match(swiftManifest, /--volume "\$PWD:\/workspace:ro"/u)
     assert.match(swiftManifest, /--workdir \/workspace/u)
-    assert.match(swiftManifest, /swift:6\.3\.3-noble@sha256:[0-9a-f]{64}/u)
+    assert.match(swiftManifest, /swift:6\.4\.0-noble@sha256:[0-9a-f]{64}/u)
     assert.match(swiftManifest, /swift package --package-path swift-clients\/core dump-package/u)
     assert.doesNotMatch(swiftManifest, /swift (?:build|test)/u)
   })
@@ -95,11 +95,6 @@ describe('GitHub-hosted runner policy', () => {
         source,
         /with-build-lock/u,
         `${name} still wraps a shared-host build lock`,
-      )
-      assert.doesNotMatch(
-        source,
-        /MISE_DATA_DIR/u,
-        `${name} still jails mise against a shared home`,
       )
       assert.doesNotMatch(source, /clean: false/u, `${name} still preserves a persistent checkout`)
     }

@@ -24,6 +24,23 @@ final class EmailOTPViewTests: XCTestCase {
         XCTAssertNoThrow(try sut.inspect().find(button: "Verified"))
     }
 
+    func testFailedCodeRequestShowsErrorAndKeepsSendCodeRetryable() async throws {
+        let viewModel = makeViewModel()
+        viewModel.email = "alice@example.com"
+        viewModel.turnstileToken = "token"
+
+        await viewModel.requestCode()
+
+        XCTAssertEqual(viewModel.step, .enterEmail)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertTrue(viewModel.canRequestCode)
+        let error = try XCTUnwrap(uiEnglish(viewModel.errorMessage))
+        XCTAssertFalse(error.isEmpty)
+        let sut = EmailOTPEmailStep(viewModel: viewModel, showingTurnstile: .constant(false))
+        XCTAssertEqual(try sut.inspect().find(text: error).string(), error)
+        XCTAssertFalse(try sut.inspect().find(button: "Send Code").isDisabled())
+    }
+
     func testCodeStepRendersVerificationControls() throws {
         let viewModel = makeViewModel()
         viewModel.email = "alice@example.com"
@@ -89,20 +106,4 @@ final class EmailOTPViewTests: XCTestCase {
         )
         return SignInService(client: client, sessionManager: SessionManager(client: client, cookieStorage: storage))
     }
-}
-
-private final class EmailOTPViewFailingURLProtocol: URLProtocol {
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
-    }
-
-    override func stopLoading() {}
 }

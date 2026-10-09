@@ -4,10 +4,11 @@
 
 ## Code-quality harness
 
-Run all local checks in one shot from the **repo root**:
+Install the pinned Swift toolchain, then run checks through mise from the **repo root**:
 
 ```sh
-./swift-clients/tooling/harness.sh
+mise install
+mise exec -- ./swift-clients/tooling/harness.sh
 ```
 
 The default invocation runs all checks including `test` (`swift test` for `test-support/`, `core/`,
@@ -17,9 +18,9 @@ cross-compiles `core/` with the Swift Android SDK. Select specific checks with
 `--checks <comma-list>`:
 
 ```sh
-./swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests # format + lint only
-./swift-clients/tooling/harness.sh --checks periphery           # dead-code scan only
-./swift-clients/tooling/harness.sh --checks build-android        # Android core compile only
+mise exec -- ./swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests # format + lint only
+mise exec -- ./swift-clients/tooling/harness.sh --checks periphery           # dead-code scan only
+mise exec -- ./swift-clients/tooling/harness.sh --checks build-android        # Android core compile only
 ```
 
 | Check           | Tool                                 | Tier | What it enforces                                                                         |
@@ -38,7 +39,11 @@ cross-compiles `core/` with the Swift Android SDK. Select specific checks with
 generated iOS/iPadOS shell is outside the package scan and Android UI integration remains future
 work. Periphery is the sole unused declaration/import gate across indexed `core/` and `ui/` targets
 locally and in CI; imports of external modules that Periphery cannot index have no separate
-analyzer.
+analyzer. Both commands first build with SwiftPM's explicit `.build/periphery-index` path and then
+pass its `out/Products/Debug/index/store` to Periphery. The macOS UI package uses Xcode's bundled
+Swift compiler because the target needs Apple SwiftUI overlays absent from mise's standalone
+toolchain; CI selects Xcode 26.6, while mise remains the pinned Swift 6.4 compiler for Core,
+Linux, and Android.
 
 CI runs pinned SwiftFormat and SwiftLint containers on Linux, while the macOS runner image owns
 Periphery installation and native compiler checks. Linux owns portable core and `test-support`

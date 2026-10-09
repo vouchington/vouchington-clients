@@ -13,7 +13,9 @@ not be reintroduced in GitHub Actions.
 Use the client wrapper only for local compiler-heavy commands:
 
 ```sh
-bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/core --force-resolved-versions
+mise install swift
+swift_bin="$(bash swift-clients/tooling/resolve-mise-swift.sh)"
+bash swift-clients/tooling/with-build-lock.sh env MISE_EXEC_AUTO_INSTALL=false mise exec -- "$swift_bin" test --package-path swift-clients/core --force-resolved-versions
 bash dotnet-clients/tooling/with-build-lock.sh dotnet build dotnet-clients/Voucha.DotNet.sln --no-restore
 ```
 

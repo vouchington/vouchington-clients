@@ -5,7 +5,7 @@ extension NativeCommentThreadSurface {
     func composerSheet(for composer: NativeCommentThreadComposerState) -> some View {
         NativeCommentThreadComposerSheet(
             composer: composer,
-            showingTurnstile: $showingTurnstile,
+            showingTurnstile: showingTurnstileBinding,
             viewModel: viewModel,
             client: client,
             turnstileSiteKey: turnstileSiteKey,

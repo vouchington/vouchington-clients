@@ -14,7 +14,8 @@ if [[ -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then
-  swift test \
+  bash "$SCRIPT_DIR/verify-android-host-swift.sh"
+  mise exec swift@6.3.3 -- swift test \
     --package-path "$ANDROID_PACKAGE_DIR" \
     --force-resolved-versions \
     --disable-dependency-cache \
@@ -82,35 +83,24 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   rm -rf -- "$job_swiftpm_cache"
   ln -s -- "$runner_swiftpm_cache" "$job_swiftpm_cache"
 
-  if [[ "${SWIFTLY_HOME_DIR:-}" != "$HOME/.swiftly" || \
-    "${SWIFTLY_TOOLCHAINS_DIR:-}" != "$HOME/toolchains" ]]; then
-    echo "Swiftly state and toolchains must remain inside VOUCHA_SKIP_SWIFT_HOME." >&2
-    exit 1
-  fi
-  if [[ -z "${SWIFTLY_BIN_DIR:-}" || -z "${RUNNER_TEMP:-}" || \
-    "$SWIFTLY_BIN_DIR" != "$RUNNER_TEMP"/* || ! -x "$SWIFTLY_BIN_DIR/swiftly" ]]; then
-    echo "Pinned Swiftly must be executable from a job-scoped RUNNER_TEMP directory." >&2
-    exit 1
-  fi
-  SWIFTLY_EXECUTABLE="$(command -v swiftly || true)"
-  if [[ "$SWIFTLY_EXECUTABLE" != "$SWIFTLY_BIN_DIR/swiftly" ]]; then
-    echo "Pinned Swiftly is unavailable at the expected PATH location." >&2
-    exit 1
-  fi
-  if [[ "$(swiftly --version)" != "1.1.3" ]]; then
-    echo "Pinned Swiftly 1.1.3 is required." >&2
-    exit 1
+  MISE_SWIFT_TOOLCHAIN_ROOT="$(bash "$SCRIPT_DIR/resolve-mise-swift-toolchain.sh")"
+  SKIP_SWIFT_TOOLCHAIN="$HOME/toolchains/swift-6.4.0-RELEASE.xctoolchain"
+  if [[ -e "$SKIP_SWIFT_TOOLCHAIN" || -L "$SKIP_SWIFT_TOOLCHAIN" ]]; then
+    if [[ ! -L "$SKIP_SWIFT_TOOLCHAIN" || \
+      "$(CDPATH='' cd -- "$SKIP_SWIFT_TOOLCHAIN" && pwd -P)" != "$MISE_SWIFT_TOOLCHAIN_ROOT" ]]; then
+      echo "Skip toolchain alias must point to the mise-managed Swift install: $SKIP_SWIFT_TOOLCHAIN" >&2
+      exit 1
+    fi
   fi
 
-  SWIFTLY_TMP="${RUNNER_TEMP}/swiftly-tmp"
-  mkdir -p -- "$SWIFTLY_TMP"
-  TMPDIR="$SWIFTLY_TMP"
+  SWIFT_TMP="${RUNNER_TEMP}/swift-tmp"
+  mkdir -p -- "$SWIFT_TMP"
+  TMPDIR="$SWIFT_TMP"
   export TMPDIR
 
-  SKIP_SWIFT_TOOLCHAIN="$HOME/toolchains/swift-6.3.3-RELEASE.xctoolchain"
-  SKIP_SWIFT_SDK_INFO="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.3.3-RELEASE_android.artifactbundle/info.json"
-  SKIP_NDK_SENTINEL="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.3.3-RELEASE_android.artifactbundle/swift-android/android-ndk-r27d/.extraction-complete"
-  SKIP_NDK_SYSROOT="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.3.3-RELEASE_android.artifactbundle/swift-android/ndk-sysroot/usr/lib/aarch64-linux-android"
+  SKIP_SWIFT_SDK_INFO="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/info.json"
+  SKIP_NDK_SENTINEL="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30/.extraction-complete"
+  SKIP_NDK_SYSROOT="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/ndk-sysroot/usr/lib/aarch64-linux-android"
   if [[ ! -x "$SKIP_SWIFT_TOOLCHAIN/usr/bin/swift" || \
     ! -f "$SKIP_SWIFT_SDK_INFO" || \
     ! -f "$SKIP_NDK_SENTINEL" || \
@@ -133,6 +123,12 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
     echo "Skip Android NDK sysroot is missing: $SKIP_NDK_SYSROOT" >&2
     exit 1
   fi
+
+  # Swift Build otherwise discovers the runner's Android SDK NDK, which may be
+  # older than the NDK used to build this Swift Android SDK's runtime libraries.
+  ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"
+  ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+  export ANDROID_NDK_ROOT ANDROID_NDK_HOME
 
   # Skip's Gradle bridge discovers host toolchains only through the conventional
   # macOS path. Keep that path as a real directory and link only the verified
@@ -172,6 +168,15 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
   } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
 fi
+
+# Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
+# https://github.com/skiptools/skipstone/issues/244
+# Build the actual Android test runner first, then verify its compatibility link.
+skip android build \
+  --package-path "$ANDROID_PACKAGE_DIR" \
+  --arch aarch64 \
+  --build-tests
+bash "$SCRIPT_DIR/link-swift64-android-test-runner.sh" "$ANDROID_PACKAGE_DIR"
 
 skip android test \
   --package-path "$ANDROID_PACKAGE_DIR" \

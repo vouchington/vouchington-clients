@@ -318,20 +318,11 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-      - name: Read exact .NET SDK version
-        id: dotnet-sdk
-        working-directory: candidate-clients
-        run: |
-          set -euo pipefail
-          sdk_version="$(jq -er '.sdk.version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' global.json)" || {
-            echo "global.json must define a numeric sdk.version"
-            exit 1
-          }
-          printf 'version=%s\n' "$sdk_version" >> "$GITHUB_OUTPUT"
-      - name: Set up exact .NET SDK
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
         with:
-          dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}
+          client-root: candidate-clients
+          tool: dotnet
       - name: Restore, format, analyze, validate RESX, and build
         working-directory: candidate-clients
         run: ./dotnet-clients/tooling/harness.sh
@@ -393,13 +384,21 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Select Xcode 26.6 Apple SDK and Swift compiler
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
       - uses: ./.github/actions/setup-swift-native
         with: { tools: periphery }
       - name: Find unused declarations in core
         working-directory: candidate-clients
         run: >-
           mise exec aqua:peripheryapp/periphery@3.7.4 --
-          bash -c 'cd swift-clients/core && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
+          bash swift-clients/tooling/periphery-scan.sh core
   periphery-swift-ui:
     name: Swift Periphery (UI)
     needs: verify
@@ -407,6 +406,7 @@ jobs:
     timeout-minutes: 15
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN: xcode
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -421,13 +421,16 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Select Xcode 26.6 Apple SDK and Swift compiler
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - uses: ./.github/actions/setup-swift-native
         with: { tools: periphery }
       - name: Find unused declarations in UI
         working-directory: candidate-clients
         run: >-
           mise exec aqua:peripheryapp/periphery@3.7.4 --
-          bash -c 'cd swift-clients/ui && periphery scan --strict -- --force-resolved-versions --disable-dependency-cache'
+          bash swift-clients/tooling/periphery-scan.sh ui
   test-swift-core-linux:
     name: Swift core tests (Linux)
     needs: verify
@@ -457,7 +460,7 @@ jobs:
           --tmpfs /tmp:rw,exec,mode=1777
           --workdir /workspace --env HOME=/tmp --env TMPDIR=/tmp
           --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract
-          swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
+          swift:6.4.0-noble@sha256:31d14d727f4451f25e29bac9c42563a098c39ac66415e8bad970f48038e38aca
           /bin/bash -c 'swift test --package-path swift-clients/test-support --force-resolved-versions
           --build-path /tmp/voucha-test-support-build --no-parallel
           && swift test --package-path swift-clients/core --force-resolved-versions
@@ -486,15 +489,22 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
       - name: Test core package with coverage
         working-directory: candidate-clients
         run: >-
-          swift test --package-path swift-clients/core
+          mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
       - name: Export deterministic core LCOV
         working-directory: candidate-clients
-        run: bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+        run: |
+          llvm_cov="$(bash swift-clients/tooling/resolve-mise-swift.sh --llvm-cov)"
+          bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCoreTests coverage/core/lcov.info "$llvm_cov"
       - name: Upload core LCOV
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
@@ -508,16 +518,14 @@ jobs:
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
-          swift test --package-path swift-clients/core
+          mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
   test-swift-android:
     name: Swift Android Skip
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 30
-    env:
-      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -566,33 +574,16 @@ jobs:
             platform-tools
             platforms;android-36
             build-tools;36.0.0
-      - name: Provision pinned job-scoped Swiftly
-        shell: bash
-        timeout-minutes: 7
-        run: |
-          set -euo pipefail
-          swiftly_version="1.1.3"
-          swiftly_sha256="fade009739a84f18ee30e524793f927019fc9c2e16b2ad958da50d3f9ff7a7f8"
-          swiftly_cache_dir="$HOME/.cache/voucha/swift-android/downloads"; mkdir -p -- "$swiftly_cache_dir"
-          swiftly_archive="$swiftly_cache_dir/swiftly-$swiftly_version.pkg"
-          swiftly_root="$RUNNER_TEMP/swiftly-$swiftly_version"; rm -rf -- "$swiftly_root"; mkdir -p -- "$swiftly_root"
-          swiftly_expanded="$swiftly_root/expanded"; swiftly_bin_dir="$swiftly_root/bin"; skip_swift_home="$RUNNER_TEMP/skip-swift-home"
-          rm -rf -- "$skip_swift_home"; mkdir -p -- "$skip_swift_home"
-          if [[ ! -f "$swiftly_archive" ]] || ! printf '%s  %s\n' "$swiftly_sha256" "$swiftly_archive" | shasum -a 256 -c -; then
-            rm -f -- "$swiftly_archive"
-            curl --fail --location --retry 2 --retry-all-errors --silent --show-error "https://download.swift.org/swiftly/darwin/swiftly-$swiftly_version.pkg" --output "$swiftly_archive"
-            printf '%s  %s\n' "$swiftly_sha256" "$swiftly_archive" | shasum -a 256 -c -
-          fi
-          pkgutil --check-signature "$swiftly_archive" 2>&1 | tee "$swiftly_root/signature.txt"
-          grep -Fq 'Developer ID Installer: Swift Open Source (V9AUD2URP3)' "$swiftly_root/signature.txt"
-          pkgutil --expand-full "$swiftly_archive" "$swiftly_expanded"
-          swiftly_source="$swiftly_expanded/swiftly-$swiftly_version.pkg/Payload/bin/swiftly"; test -x "$swiftly_source"
-          mkdir -p -- "$swiftly_bin_dir"; cp "$swiftly_source" "$swiftly_bin_dir/swiftly"; chmod 0755 "$swiftly_bin_dir/swiftly"
-          export SWIFTLY_HOME_DIR="$skip_swift_home/.swiftly"; export SWIFTLY_BIN_DIR="$swiftly_bin_dir"; export SWIFTLY_TOOLCHAINS_DIR="$skip_swift_home/toolchains"
-          "$swiftly_bin_dir/swiftly" init --no-modify-profile --skip-install --quiet-shell-followup --assume-yes
-          [[ "$("$swiftly_bin_dir/swiftly" --version)" == "$swiftly_version" ]]
-          { echo "SWIFTLY_HOME_DIR=$SWIFTLY_HOME_DIR"; echo "SWIFTLY_BIN_DIR=$SWIFTLY_BIN_DIR"; echo "SWIFTLY_TOOLCHAINS_DIR=$SWIFTLY_TOOLCHAINS_DIR"; } >> "$GITHUB_ENV"
-          echo "$swiftly_bin_dir" >> "$GITHUB_PATH"
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
+      - name: Select Xcode 26.6 for Android host SwiftPM tests
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
@@ -605,18 +596,20 @@ jobs:
         timeout-minutes: 12
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          export VOUCHA_SKIP_SWIFT_HOME="$RUNNER_TEMP/skip-swift-home"
-          bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+          mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
-          swift package resolve --package-path swift-clients/apps/android --force-resolved-versions --disable-keychain --disable-netrc 2>&1 | tee "$resolve_log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Verify Android host test compiler
+        working-directory: candidate-clients
+        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
       - name: Test Android Swift package
         working-directory: candidate-clients
         run: >-
-          swift test --package-path swift-clients/apps/android
+          mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -631,7 +624,7 @@ jobs:
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          bash swift-clients/apps/android/tooling/pre-push.sh
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
   test-swift-ui:
     name: Swift UI tests and coverage
     needs: verify
@@ -653,6 +646,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Select Xcode 26.6 Apple SDK and Swift compiler
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Record swift test start marker
         run: |
           mkdir -p "$RUNNER_TEMP"
@@ -660,7 +656,7 @@ jobs:
       - name: Test UI package with coverage
         working-directory: candidate-clients
         run: >-
-          swift test --package-path swift-clients/ui
+          xcrun swift test --package-path swift-clients/ui
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
       - name: Collect xctest crash reports
         if: ${{ failure() }}
@@ -770,7 +766,7 @@ jobs:
           --volume "$HOME/.cache/voucha/swift-android/downloads:/opt/swift-android-downloads:ro"
           --workdir /workspace --env HOME=/root --env RUNNER_TEMP=/tmp --env TMPDIR=/tmp
           --env VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR=/opt/swift-android-downloads --env VOUCHA_SWIFT_ANDROID_OFFLINE=1
-          swift:6.3.3-noble@sha256:66520bcba471018a34fd54ba09be97ba4abebd950a96ff5cb8c2bf50a2d33259
+          swift:6.4.0-noble@sha256:31d14d727f4451f25e29bac9c42563a098c39ac66415e8bad970f48038e38aca
           /bin/bash -c 'bash swift-clients/tooling/build-android-core.sh'
   build-macos-app:
     name: Swift macOS app smoke
@@ -861,20 +857,11 @@ jobs:
             echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
             echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
           } >>"$GITHUB_ENV"
-      - name: Read exact .NET SDK version
-        id: dotnet-sdk
-        working-directory: candidate-clients
-        run: |
-          set -euo pipefail
-          sdk_version="$(jq -er '.sdk.version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' global.json)" || {
-            echo "global.json must define a numeric sdk.version"
-            exit 1
-          }
-          printf 'version=%s\n' "$sdk_version" >> "$GITHUB_OUTPUT"
-      - name: Set up exact .NET SDK
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
         with:
-          dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}
+          client-root: candidate-clients
+          tool: dotnet
       - name: Detect pinned MAUI workload
         id: workload
         working-directory: candidate-clients
@@ -909,7 +896,7 @@ jobs:
           --configuration Release --no-build
       - name: Select compatible Xcode
         working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.5
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Detect host Mac Catalyst RID
         id: rid
         shell: bash

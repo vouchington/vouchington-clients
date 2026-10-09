@@ -1,22 +1,13 @@
 {
-  "originHash" : "ee78131ff59fc73914eb8b24c5b87f49a636a921e10c9ed2ad7978c89e5b53d2",
+  "originHash" : "e96ea0f7f2ae6e94a3742c041763763bb715f6dcea45af7b5c0049711797051c",
   "pins" : [
-    {
-      "identity" : "opencombine",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/OpenSwiftUIProject/OpenCombine.git",
-      "state" : {
-        "revision" : "619bbc8d09c42921745f38659aebc0fb9a9ccde3",
-        "version" : "0.16.0"
-      }
-    },
     {
       "identity" : "skip",
       "kind" : "remoteSourceControl",
       "location" : "https://source.skip.tools/skip.git",
       "state" : {
-        "revision" : "211ad40b5828e418ecb1c033d6a502a900f1be31",
-        "version" : "1.9.11"
+        "revision" : "c3958e7f0f49e256907aee7646fc1f444ba759a7",
+        "version" : "1.9.13"
       }
     },
     {
@@ -33,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://source.skip.tools/skip-bridge.git",
       "state" : {
-        "revision" : "72b7b1d4734332cfdc4b519539b5beec0fb3ac00",
-        "version" : "0.17.2"
+        "revision" : "83866d718c09ca508f499744fc8896a891074a3f",
+        "version" : "0.18.0"
       }
     },
     {
@@ -42,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://source.skip.tools/skip-foundation.git",
       "state" : {
-        "revision" : "94d47aeed3bb8027ef3ad8e07a8771b52529c238",
-        "version" : "1.4.2"
+        "revision" : "79b422dc6612b1a392ae0b6b6ac4724a6ffdb7af",
+        "version" : "1.4.6"
       }
     },
     {
@@ -76,10 +67,10 @@
     {
       "identity" : "skip-lib",
       "kind" : "remoteSourceControl",
-      "location" : "https://source.skip.tools/skip-lib.git",
+      "location" : "https://github.com/skiptools/skip-lib.git",
       "state" : {
-        "revision" : "76e7da8a870b5b66ea0c3264f648b58b73bcdc0d",
-        "version" : "1.4.0"
+        "revision" : "21a1c7c8f97730b3a3d88058daf8c9d78a9c7c43",
+        "version" : "1.4.3"
       }
     },
     {
@@ -103,10 +94,10 @@
     {
       "identity" : "skip-unit",
       "kind" : "remoteSourceControl",
-      "location" : "https://source.skip.tools/skip-unit.git",
+      "location" : "https://github.com/skiptools/skip-unit.git",
       "state" : {
-        "revision" : "c89af47fd645e04db863e938ade39f91e1bb62b8",
-        "version" : "1.7.0"
+        "revision" : "fc58e058f3d25675e047a758281c39dba5d52570",
+        "version" : "1.7.2"
       }
     },
     {
@@ -139,7 +130,7 @@
     {
       "identity" : "swift-jni",
       "kind" : "remoteSourceControl",
-      "location" : "https://source.skip.tools/swift-jni.git",
+      "location" : "https://github.com/skiptools/swift-jni.git",
       "state" : {
         "revision" : "fe76ac21aca639976833b5ea3e875dc072519ac4",
         "version" : "0.5.0"

@@ -54,14 +54,21 @@ public struct EmailOTPView: View {
                 onSuccess()
             }
         }
-        .emailOTPTurnstileSheet(siteKey: turnstileSiteKey, isPresented: $showingTurnstile, viewModel: viewModel)
+        .emailOTPTurnstileSheet(siteKey: turnstileSiteKey, isPresented: showingTurnstileBinding, viewModel: viewModel)
     }
 
     private var emailStep: some View {
-        EmailOTPEmailStep(viewModel: viewModel, showingTurnstile: $showingTurnstile)
+        EmailOTPEmailStep(viewModel: viewModel, showingTurnstile: showingTurnstileBinding)
     }
 
     private var codeStep: some View {
         EmailOTPCodeStep(viewModel: viewModel)
+    }
+
+    private var showingTurnstileBinding: Binding<Bool> {
+        Binding(
+            get: { showingTurnstile },
+            set: { showingTurnstile = $0 }
+        )
     }
 }

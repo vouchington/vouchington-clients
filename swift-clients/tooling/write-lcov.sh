@@ -6,6 +6,7 @@ repository_root="$(CDPATH='' cd -- "$script_dir/../.." && pwd)"
 package_path="$1"
 test_bundle_name="$2"
 output_path="$3"
+llvm_cov_binary="${4:-}"
 package_directory="$repository_root/$package_path"
 build_directory="$package_directory/.build"
 
@@ -48,7 +49,16 @@ case "$output_path" in
   *) output_path="$repository_root/$output_path" ;;
 esac
 mkdir -p "$(dirname "$output_path")"
-xcrun llvm-cov export -format=lcov "$test_binary" -instr-profile "$profdata" \
+if [[ -n "$llvm_cov_binary" ]]; then
+  [[ "$llvm_cov_binary" = /* && -x "$llvm_cov_binary" ]] || {
+    printf 'Expected an absolute executable llvm-cov path, got %s.\n' "$llvm_cov_binary" >&2
+    exit 1
+  }
+  llvm_cov_command=("$llvm_cov_binary")
+else
+  llvm_cov_command=(xcrun llvm-cov)
+fi
+"${llvm_cov_command[@]}" export -format=lcov "$test_binary" -instr-profile "$profdata" \
   -ignore-filename-regex='\.build' \
   | while IFS= read -r line || [[ -n "$line" ]]; do
     source_prefix="SF:$repository_root/"

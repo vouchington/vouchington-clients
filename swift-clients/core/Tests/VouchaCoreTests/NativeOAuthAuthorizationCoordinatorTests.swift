@@ -358,7 +358,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             protocolClasses: [OAuthCoordinatorURLProtocol.self],
             bootstrapSession: false
         )
-        let store = NativeOAuthAuthorizationStore(defaults: defaults)
+        let store = makeStore(defaults: defaults)
         let sessionManager = SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make())
         return CoordinatorFixture(
             coordinator: NativeOAuthAuthorizationCoordinator(
@@ -371,6 +371,13 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             store: store,
             now: now
         )
+    }
+
+    private func makeStore(defaults: UserDefaults) -> NativeOAuthAuthorizationStore {
+        NativeOAuthAuthorizationStore(secureState: UserDefaultsNativePendingState(
+            key: "nativeOAuthPendingAuthorization",
+            defaults: defaults
+        ))
     }
 
     private func claim(

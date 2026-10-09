@@ -84,7 +84,7 @@ contains() {
 }
 
 print_dotnet_install_policy() {
-  echo 'Install the SDK required by the repository root global.json policy, ensure its dotnet host appears first on PATH, and see dotnet-clients/README.md.' >&2
+  echo 'Install mise and the SDK required by the repository root .mise.toml/global.json policy, then run this harness through mise exec. See dotnet-clients/README.md.' >&2
 }
 
 resolve_dotnet_host_path() {
@@ -112,30 +112,6 @@ is_executable_file() {
   [[ -f "$1" && -x "$1" ]]
 }
 
-append_preflight_replay() {
-  local host="$1"
-  local status="$2"
-  local output_file="$3"
-  local log_file="$4"
-  local last_byte
-
-  {
-    printf 'dotnet host: %s (exit %s)\n' "$host" "$status"
-    cat "$output_file"
-    if [[ -s "$output_file" ]]; then
-      last_byte="$(tail -c 1 "$output_file" | od -An -t x1)"
-      [[ "$last_byte" == *0a* ]] || printf '\n'
-    fi
-  } >>"$log_file"
-}
-
-is_homebrew_dotnet_host() {
-  case "$1" in
-    /opt/homebrew/* | /usr/local/Homebrew/* | /usr/local/Cellar/* | /usr/local/opt/dotnet/*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 VOUCHA_DOTNET_HOST=''
 needs_dotnet=false
 if [[ "$MODE" == 'exec' ]] || contains restore || contains fmt || contains resx-path || contains build; then
@@ -143,104 +119,49 @@ if [[ "$MODE" == 'exec' ]] || contains restore || contains fmt || contains resx-
 fi
 
 if [[ "$needs_dotnet" == true ]]; then
-  requested_dotnet_root="${DOTNET_ROOT:-}"
-  path_dotnet="$(type -P dotnet 2>/dev/null || true)"
-  candidates=()
-  seen_hosts='|'
-
-  add_dotnet_candidate() {
-    local raw="$1"
-    local resolved
-    is_executable_file "$raw" || return 0
-    resolved="$(resolve_dotnet_host_path "$raw")" || return 0
-    is_executable_file "$resolved" || return 0
-    case "$seen_hosts" in
-      *"|$resolved|"*) return 0 ;;
-    esac
-    seen_hosts+="$resolved|"
-    candidates+=("$resolved")
-  }
-
-  if [[ -n "$path_dotnet" ]]; then
-    add_dotnet_candidate "$path_dotnet"
-  fi
-  path_candidate=''
-  if [[ ${#candidates[@]} -gt 0 ]]; then
-    path_candidate="${candidates[0]}"
-  fi
-  if [[ -z "${GITHUB_ACTIONS:-}" ]]; then
-    if [[ -n "$requested_dotnet_root" ]]; then
-      add_dotnet_candidate "${requested_dotnet_root%/}/dotnet"
-    fi
-    if [[ -n "${HOME:-}" ]]; then
-      add_dotnet_candidate "$HOME/.dotnet/dotnet"
-    fi
-  fi
-
-  if [[ ${#candidates[@]} -eq 0 ]]; then
-    echo 'Error: no dotnet host was found on PATH or in any fallback location.' >&2
+  if ! command -v mise >/dev/null 2>&1; then
+    echo 'Error: mise is required to select the repository .NET SDK.' >&2
     print_dotnet_install_policy
     exit 127
   fi
 
-  preflight_output="$(mktemp "${TMPDIR:-/tmp}/voucha-dotnet-preflight.XXXXXX")" || {
-    echo 'Error: cannot create .NET SDK preflight output file' >&2
-    exit 2
-  }
-  preflight_log="$(mktemp "${TMPDIR:-/tmp}/voucha-dotnet-preflight-log.XXXXXX")" || {
-    rm -f -- "$preflight_output"
-    echo 'Error: cannot create .NET SDK preflight log file' >&2
-    exit 2
-  }
-  selected_host=''
-  last_preflight_status=0
-  homebrew_failed=false
-  for candidate in "${candidates[@]}"; do
-    if (cd "$ROOT_DIR" && "$candidate" --version) >"$preflight_output" 2>&1; then
-      selected_host="$candidate"
-      break
-    else
-      last_preflight_status=$?
-      append_preflight_replay "$candidate" "$last_preflight_status" "$preflight_output" "$preflight_log"
-      if is_homebrew_dotnet_host "$candidate"; then
-        homebrew_failed=true
-      fi
-    fi
-  done
-  rm -f -- "$preflight_output"
-
-  if [[ -z "$selected_host" ]]; then
-    cat "$preflight_log"
-    rm -f -- "$preflight_log"
-    echo 'No dotnet host on PATH or in any fallback location can satisfy the repository root global.json policy.' >&2
+  selected_root="$(cd "$ROOT_DIR" && mise where dotnet 2>/dev/null)" || {
+    echo 'Error: the repository mise configuration has no installed .NET SDK.' >&2
     print_dotnet_install_policy
-    if [[ "$homebrew_failed" == true ]]; then
-      echo "Homebrew's dotnet host only sees SDKs registered in its own install; it cannot use $HOME/.dotnet." >&2
-    fi
-    if [[ "$last_preflight_status" -eq 0 ]]; then
-      last_preflight_status=1
-    fi
-    exit "$last_preflight_status"
+    exit 127
+  }
+  selected_root="$(cd -P -- "$selected_root" && pwd)" || {
+    echo 'Error: mise returned an invalid .NET SDK installation directory.' >&2
+    exit 1
+  }
+  selected_host="$(cd "$ROOT_DIR" && mise which dotnet 2>/dev/null)" || {
+    echo 'Error: mise could not resolve the repository .NET SDK host.' >&2
+    print_dotnet_install_policy
+    exit 127
+  }
+  selected_host="$(resolve_dotnet_host_path "$selected_host")" || {
+    echo 'Error: mise resolved a missing or non-executable .NET host.' >&2
+    exit 127
+  }
+  if [[ "$selected_host" != "$selected_root/dotnet" ]]; then
+    echo "Error: mise selected .NET outside its pinned installation root: $selected_host" >&2
+    exit 1
   fi
-  rm -f -- "$preflight_log"
 
-  if [[ "$selected_host" != "$path_candidate" ]]; then
-    if [[ -n "$path_candidate" ]]; then
-      printf 'Warning: the PATH-first dotnet host %s could not satisfy the repository root global.json policy; using %s instead. Put a compatible SDK selected by global.json first on PATH, or see dotnet-clients/README.md.\n' \
-        "$path_candidate" "$selected_host" >&2
-    else
-      printf 'Warning: no dotnet host was found on PATH; using %s instead. Put a compatible SDK selected by global.json first on PATH, or see dotnet-clients/README.md.\n' \
-        "$selected_host" >&2
-    fi
+  expected_version="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sdk.version' "$ROOT_DIR/global.json")"
+  actual_version="$(cd "$ROOT_DIR" && mise exec -- dotnet --version)" || {
+    echo 'Error: mise could not run the repository .NET SDK.' >&2
+    exit 127
+  }
+  if [[ "$actual_version" != "$expected_version" ]]; then
+    echo "Error: mise selected .NET SDK $actual_version; global.json requires $expected_version." >&2
+    print_dotnet_install_policy
+    exit 1
   fi
 
   VOUCHA_DOTNET_HOST="$selected_host"
-  dotnet_host_dir="${VOUCHA_DOTNET_HOST%/*}"
-  export VOUCHA_DOTNET_HOST
-  if [[ -d "$dotnet_host_dir/sdk" || -d "$dotnet_host_dir/shared" ]]; then
-    export DOTNET_ROOT="$dotnet_host_dir"
-  fi
-  export PATH="$dotnet_host_dir:$PATH"
+  export VOUCHA_DOTNET_HOST DOTNET_ROOT="$selected_root"
+  export PATH="$selected_root:$PATH"
 fi
 
 if [[ "$MODE" == 'exec' ]]; then

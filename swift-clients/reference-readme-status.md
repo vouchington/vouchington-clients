@@ -75,8 +75,8 @@ fail PRs; the iOS launch-smoke target is wired in `project.yml` for later enable
 Run lock-aware package and app checks from the repository root:
 
 ```sh
-./swift-clients/tooling/harness.sh --checks build
-./swift-clients/tooling/harness.sh --checks test
+mise exec -- ./swift-clients/tooling/harness.sh --checks build
+mise exec -- ./swift-clients/tooling/harness.sh --checks test
 ./swift-clients/tooling/generate.sh macOS
 (
   XCODE_BUILD_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/voucha-xcode-build.XXXXXX")"
@@ -147,7 +147,8 @@ LCOV artifacts). To get the same signal locally before pushing, export per-packa
 the advisory variant from the repository root:
 
 ```sh
-bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCorePackageTests coverage/core/lcov.info
+llvm_cov="$(bash swift-clients/tooling/resolve-mise-swift.sh --llvm-cov)"
+bash swift-clients/tooling/write-lcov.sh swift-clients/core VouchaCoreTests coverage/core/lcov.info "$llvm_cov"
 bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
 pnpm run coverage:swift:local
 ```

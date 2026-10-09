@@ -18,6 +18,13 @@ struct NativeCommentThreadSurface: View {
     var composer: NativeCommentThreadComposerState?
     @State var showingTurnstile = false
 
+    var showingTurnstileBinding: Binding<Bool> {
+        Binding(
+            get: { showingTurnstile },
+            set: { showingTurnstile = $0 }
+        )
+    }
+
     init(
         client: APIClient?,
         routeMatch: NativeRouteMatch?,

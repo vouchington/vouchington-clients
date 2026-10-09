@@ -37,7 +37,6 @@ jobs:
       base-sha: ${{ steps.live.outputs.base-sha }}
       head-sha: ${{ steps.live.outputs.head-sha }}
     env:
-      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet/sdk
       VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT: ${{ github.workspace }}/.nuget/lock-artifacts
       VOUCHA_DOTNET_LOCK_SCRATCH_ROOT: ${{ github.workspace }}/.nuget/scratch
     steps:
@@ -120,16 +119,11 @@ jobs:
           node scripts/validate-dependabot-nuget-update.mjs \
             dotnet-clients/Directory.Packages.props "$RUNNER_TEMP/candidate.props" \
             "$RUNNER_TEMP/nuget-metadata.json" "$RUNNER_TEMP/validated.props"
-      - name: Read exact .NET SDK version
-        id: dotnet-sdk
-        run: |
-          set -euo pipefail
-          version="$(jq -er '.sdk.version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' global.json)"
-          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
-      - name: Set up exact .NET SDK
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
         with:
-          dotnet-version: ${{ steps.dotnet-sdk.outputs.version }}
+          client-root: .
+          tool: dotnet
       - name: Reset isolated native restore state
         run: |
           set -euo pipefail
@@ -141,6 +135,7 @@ jobs:
       - name: Install pinned MAUI workload
         run: >-
           dotnet workload install maui-maccatalyst
+          --version "$(jq -er '.sdk.workloadVersion' global.json)"
           --configfile dotnet-clients/NuGet.config
       - name: Regenerate all seven locks without credentials
         env:

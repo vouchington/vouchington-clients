@@ -25,7 +25,7 @@ if [[ "$host_only" == true && ( -n "$stage_root" || "$setup_ready" == true ) ]] 
   exit 2
 fi
 [[ "$(uname -s)" == Linux ]] || { echo 'Linux doctor requires a Linux host.' >&2; exit 1; }
-for tool in node pnpm dotnet docker mise; do
+for tool in node pnpm docker mise; do
   command -v "$tool" >/dev/null 2>&1 || { echo "Missing required tool: $tool" >&2; exit 1; }
 done
 node_major="$(node -p 'Number(process.versions.node.split(".")[0])')"
@@ -33,7 +33,23 @@ node_major="$(node -p 'Number(process.versions.node.split(".")[0])')"
 pnpm_version="$(pnpm --version)"
 [[ "$pnpm_version" == 12.* ]] || { echo "pnpm 12 required; found $pnpm_version." >&2; exit 1; }
 required_sdk="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sdk.version' "$root/global.json")"
-actual_sdk="$(cd "$root" && dotnet --version)"
+docker info --format '{{.OSType}}' | grep -Fxq linux || {
+  echo 'A working Linux Docker daemon is required for pinned Swift tools and portable tests.' >&2
+  exit 1
+}
+if [[ "$host_only" == true ]]; then
+  echo 'Linux native-client host prerequisites passed.'
+  exit 0
+fi
+dotnet_bin="$(cd "$root" && mise which dotnet)" || {
+  echo 'The mise-managed .NET SDK is missing; run mise install from the repository root.' >&2
+  exit 1
+}
+swift_bin="$(cd "$root" && mise which swift)" || {
+  echo 'The mise-managed Swift toolchain is missing; run mise install from the repository root.' >&2
+  exit 1
+}
+actual_sdk="$("$dotnet_bin" --version)"
 # shellcheck disable=SC2016
 node -e '
   const [required, actual] = process.argv.slice(1).map(value => value.split(".").map(Number));
@@ -45,8 +61,9 @@ node -e '
     process.exit(1);
   }
 ' "$required_sdk" "$actual_sdk"
-docker info --format '{{.OSType}}' | grep -Fxq linux || {
-  echo 'A working Linux Docker daemon is required for pinned Swift tools and portable tests.' >&2
+actual_swift="$("$swift_bin" --version | awk 'NR == 1 { print $3 }')"
+[[ "$actual_swift" == 6.4 || "$actual_swift" == 6.4.0 ]] || {
+  echo "Swift 6.4.0 managed by mise is required; found ${actual_swift:-no Swift version}." >&2
   exit 1
 }
 if [[ "$host_only" == false ]]; then
