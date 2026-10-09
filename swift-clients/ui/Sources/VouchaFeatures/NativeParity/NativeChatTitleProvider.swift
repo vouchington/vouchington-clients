@@ -96,6 +96,7 @@ struct NativeChatAssistantResponse: Equatable {
 
 protocol NativeChatTitleProviding: Sendable {
     var status: NativeChatTitleProviderStatus { get }
+    var retryModelIdentity: String? { get }
 
     func generateAssistantResponse(
         to message: String,
@@ -103,6 +104,12 @@ protocol NativeChatTitleProviding: Sendable {
     ) async throws -> NativeChatAssistantResponse?
 
     func generateTitle(from messages: [NativeChatTimelineMessage]) async throws -> String?
+}
+
+extension NativeChatTitleProviding {
+    var retryModelIdentity: String? {
+        nil
+    }
 }
 
 protocol NativeChatTitleProviderResolving: Sendable {

@@ -17,9 +17,9 @@ public partial class ChatConversationPage : ContentPage
 
   public ChatConversationPage(ChatConversationViewModel viewModel, IChatService chatService)
   {
-    InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+    InitializeComponent();
     BindingContext = viewModel;
   }
 
@@ -136,6 +136,9 @@ public partial class ChatConversationPage : ContentPage
       System.Diagnostics.Debug.WriteLine(ex);
     }
   }
+
+  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e) =>
+      viewModel.NotifyDraftEdited(e.NewTextValue);
 
   private async void OnStopClicked(object? sender, EventArgs e) => await viewModel.StopStreamingAsync();
 

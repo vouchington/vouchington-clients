@@ -10,13 +10,12 @@ extension NativeChatViewModel {
         guard isLoadingDetail == false else { return }
         let providerSelection = titleProviderSelection
         let provider = titleProviderResolver.provider(for: providerSelection)
-        guard provider.status.isAvailable else {
+        let retry = pendingTurn(for: text, providerSelection: providerSelection, provider: provider)
+        guard retry != nil || provider.status.isAvailable else {
             detailErrorMessage = nil
             streamErrorMessage = provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
             return
         }
-
-        let retry = pendingTurn(for: text, providerSelection: providerSelection)
 
         detailErrorMessage = nil
         streamErrorMessage = nil
@@ -145,7 +144,7 @@ extension NativeChatViewModel {
         context: NativeChatDraftSendContext
     ) async {
         let provider = titleProviderResolver.provider(for: context.providerSelection)
-        guard provider.status.isAvailable else {
+        guard pendingLocalTurn?.context.userMessageId == context.userMessageId || provider.status.isAvailable else {
             failUnpersistedLocalGeneration(
                 context: context,
                 assistantMessageId: nil,

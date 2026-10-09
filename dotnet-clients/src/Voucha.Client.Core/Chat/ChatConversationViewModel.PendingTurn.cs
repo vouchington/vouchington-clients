@@ -25,6 +25,15 @@ public sealed partial class ChatConversationViewModel
     return null;
   }
 
+  public void NotifyDraftEdited(string? text)
+  {
+    if (pendingLocalTurn is { } pending &&
+        !string.Equals(text?.Trim(), pending.Body.Message, StringComparison.Ordinal))
+    {
+      pendingLocalTurn = null;
+    }
+  }
+
   private static bool SameProviderIdentity(ChatProviderStatus left, ChatProviderStatus right) =>
       left.Kind == right.Kind &&
       left.ModelProvider == right.ModelProvider &&

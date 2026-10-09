@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Chat;
 
-public sealed class ChatViewModelProviderTests
+public sealed partial class ChatViewModelProviderTests
 {
   [Fact]
   public async Task UnconfiguredChatDoesNotCreateAConversationOrCallTheRetiredHostedRoute()

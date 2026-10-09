@@ -67,7 +67,13 @@ final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModel
         CannedFeedURLProtocol.handlers[path] = (Self.clientGeneratedChatData, 200)
         await viewModel.sendDraftMessage()
         let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
-        XCTAssertEqual(retried.body, first.body)
+        let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(first.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(retried.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generateAssistantResponseCallCount, 1)
 
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
