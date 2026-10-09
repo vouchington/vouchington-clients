@@ -22,7 +22,7 @@ final class VoteIntegrityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.query, "limit=25")
     }
 
-    func testAPIServiceUsesFixtureBackedListResolutionAndPenaltyEndpoints() async throws {
+    func testAPIServiceConsumesCommittedPenaltyAndEvictsPendingFlag() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/vote-integrity/flags"] = (
             ApiFixtureLoader.data("native.moderation.vote-integrity.pending"),
             200
@@ -50,7 +50,7 @@ final class VoteIntegrityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.resolve(flag, as: .suspended)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.query, "limit=25&status=pending")
-        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET", "GET", "POST", "PATCH"])
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET", "GET", "POST"])
         XCTAssertEqual(viewModel.penalizedUserCounts[flag.id], 2)
         XCTAssertTrue(viewModel.flags.isEmpty)
     }

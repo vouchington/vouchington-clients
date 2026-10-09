@@ -107,7 +107,7 @@ public sealed class VoteIntegrityPenaltyFlagReconciliationTests
   }
 
   [Fact]
-  public async Task NewPenaltyCompletesWithoutFetchingFlagOrPermittingRetry()
+  public async Task NewPenaltyFetchesCommittedFlagWithoutPermittingRetry()
   {
     var initial = ModerationIntegrityTestService.VoteFlag("flag-1");
     var snapshots = 0;
@@ -117,7 +117,11 @@ public sealed class VoteIntegrityPenaltyFlagReconciliationTests
     var service = Service([initial], (_, _) =>
     {
       exactGets++;
-      throw new InvalidOperationException("Unexpected exact flag GET.");
+      return Task.FromResult(new VoteIntegrityFlagResponse(initial with
+      {
+        Resolution = "penalized",
+        ResolvedAt = DateTimeOffset.UtcNow,
+      }));
     });
     service.FetchVotePenalties = (_, _, sourceFlagId, _) => Task.FromResult(
         ++snapshots == 1
@@ -127,10 +131,10 @@ public sealed class VoteIntegrityPenaltyFlagReconciliationTests
 
     await AmbiguousPenaltyAndReconcile(viewModel, initial.Id);
 
-    Assert.Equal(0, exactGets);
+    Assert.Equal(1, exactGets);
     Assert.False(viewModel.NeedsReconciliation(initial.Id));
     Assert.False(viewModel.CanApplyVoteRingPenalty(initial.Id));
-    Assert.Same(initial, viewModel.Items.Single().Flag);
+    Assert.Empty(viewModel.Items);
   }
 
   private static ModerationIntegrityTestService Service(

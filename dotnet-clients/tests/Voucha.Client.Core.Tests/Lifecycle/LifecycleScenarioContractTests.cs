@@ -127,17 +127,25 @@ public sealed class LifecycleScenarioContractTests
           .EnumerateArray().Select(item => item.GetString()!).ToHashSet();
       var exact = input.GetProperty("serverOutcome").GetProperty("exactReadPenaltyIds")
           .EnumerateArray().Select(item => item.GetString()!).ToHashSet();
+      var hasNewPenalty = exact.Except(baseline).Any();
       var reads = 0;
       service.FetchVotes = (_, _, _) => Task.FromResult(ModerationIntegrityTestService.VotePage([
           ModerationIntegrityTestService.VoteFlag(flagId)]));
       service.FetchVotePenalties = (_, _, _, _) => Task.FromResult(VotePenaltyPage(
           ++reads == 1 ? baseline : exact, flagId));
+      service.FetchVote = (_, _) => Task.FromResult(new VoteIntegrityFlagResponse(
+          hasNewPenalty
+              ? ModerationIntegrityTestService.VoteFlag(
+                  flagId, resolution: "penalized", resolvedAt: DateTimeOffset.UtcNow)
+              : ModerationIntegrityTestService.VoteFlag(flagId)));
       service.PenalizeVotes = (_, _) => Task.FromException<VoteIntegrityPenaltyApplicationResponse>(
           new HttpRequestException("ambiguous", null, HttpStatusCode.InternalServerError));
       var model = new VoteIntegrityViewModel(service, new NavigationViewer(true, ["administrator"]));
       await model.LoadAsync(cancellationToken);
       await model.ApplyVoteRingPenaltyAsync(flagId, cancellationToken);
       await model.ReconcileVotePenaltyAsync(flagId);
+      if (hasNewPenalty)
+        Assert.DoesNotContain(model.Items, item => item.Flag.Id == flagId);
       var committed = !model.CanApplyVoteRingPenalty(flagId) && !model.NeedsReconciliation(flagId);
       return IntegrityObservation("penaltyApplied", committed, committed,
           committed ? ["revoke"] : ["apply-penalty"], new { strategy = "exact-read", comparison = committed ? "new-row" : "unchanged-baseline" });
