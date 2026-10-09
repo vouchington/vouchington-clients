@@ -1,4 +1,3 @@
-using System.Net;
 using System.Threading;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
@@ -30,7 +29,7 @@ public sealed partial class PostComposeViewModel
           return state;
         }
       }
-      catch (Exception ex) when (IsTransientImageUploadFailure(ex))
+      catch (Exception ex) when (ImageUploadPolling.IsTransientFailure(ex))
       {
         if (attempt + 1 >= imageUploadPollAttempts)
         {
@@ -64,24 +63,6 @@ public sealed partial class PostComposeViewModel
 #pragma warning disable CA2007
     await Task.Yield();
 #pragma warning restore CA2007
-  }
-
-  private static bool IsTransientImageUploadFailure(Exception exception) =>
-      exception switch
-      {
-        OperationCanceledException => false,
-        VouchaApiException apiException when apiException.StatusCode is HttpStatusCode statusCode =>
-            IsTransientHttpStatusCode(statusCode),
-        HttpRequestException requestException when requestException.StatusCode is null => true,
-        HttpRequestException requestException when requestException.StatusCode is HttpStatusCode statusCode =>
-            IsTransientHttpStatusCode(statusCode),
-        _ => false,
-      };
-
-  private static bool IsTransientHttpStatusCode(HttpStatusCode statusCode)
-  {
-    var status = (int)statusCode;
-    return status == 429 || status is >= 500 and <= 599;
   }
 
   private static bool IsTerminalImageUploadState(string uploadStatus) =>
