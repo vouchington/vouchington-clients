@@ -44,6 +44,14 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
     if (configuration.SelectedProviderId is { } id) return GetLocalProvider(id)?.Status ?? new(ChatProviderKind.Local,
         UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocal), false,
         UiText.Localized(UiMessageKey.NativeDotnetChatConversationLocalModelSettingsOff), localization, id);
+    var platform = PlatformDefaultStatus();
+    if (platform.IsAvailable) return platform;
+    return configuration.Profiles.Select(Create).Select(provider => provider.Status)
+        .FirstOrDefault(status => status.IsAvailable) ?? platform;
+  }
+
+  private ChatProviderStatus PlatformDefaultStatus()
+  {
 #if WINDOWS
     return new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status;
 #else
