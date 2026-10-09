@@ -13,6 +13,7 @@ public extension SettingsViewModel {
         }
         apiKeyCreationInFlight = true
         defer { apiKeyCreationInFlight = false }
+        apiKeyRotationOwnerState.pendingSecret = nil
         let permissions = apiKeyScopeSelection.permissions
         await mutate {
             let lifetime: ApiKeyLifetimeChoice = apiKeyLifetimeDays.map { .days($0) } ?? .unlimited
@@ -37,54 +38,42 @@ public extension SettingsViewModel {
 
     func dismissRawApiKey() {
         latestRawAPIKey = nil
+        apiKeyRotationOwnerState.pendingSecret = nil
     }
 
     func rotateApiKey(id: String) async {
-        guard let client, let key = apiKeys.first(where: { $0.id == id }),
+        guard apiKeyRotationOwnerState.identityConfirmed,
+              let client, let ownerId = identity?.id, let key = apiKeys.first(where: { $0.id == id }),
               canRotateApiKey(key) else { return }
-        let generation = settingsLoadGeneration
-        let ownerId = identity?.id
+        let context = ApiKeyRotationContext(
+            ownerId: ownerId,
+            loadGeneration: settingsLoadGeneration,
+            invalidationGeneration: apiKeyRotationOwnerState.invalidationGeneration
+        )
         apiKeyRotationInFlight.insert(id)
         latestRawAPIKey = nil
         statusMessage = nil
         defer {
-            if generation == settingsLoadGeneration, ownerId == identity?.id {
+            if context.loadGeneration == settingsLoadGeneration, context.ownerId == identity?.id {
                 apiKeyRotationInFlight.remove(id)
             }
         }
         do {
             let response: SettingsApiKeyResponse = try await client.send(.rotateMyApiKey(id: id))
-            guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
-            latestRawAPIKey = response.rawKey
+            guard publishOrHoldApiKeyRotationSecret(
+                response.rawKey,
+                ownerId: context.ownerId,
+                invalidationGeneration: context.invalidationGeneration
+            ) else { return }
             statusMessage = .message(.nativeApiKeysRotated)
-            if let page: SettingsListResponse<ApiKey> = try? await client.send(.myApiKeys()) {
-                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
-                replaceApiKeyPage(page)
-            } else {
-                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
-                apiKeyPagination.invalidateRequestsPreservingPage()
-                apiKeyPagination.replaceItems(
-                    [response.apiKey] + apiKeyPagination.items.filter { $0.id != id && $0.id != response.apiKey.id }
-                )
-            }
+            await refreshApiKeysAfterRotation(
+                response,
+                originalId: id,
+                context: context,
+                client: client
+            )
         } catch {
-            guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
-            statusMessage = apiKeyRotationFailureMessage(error)
-            if let page: SettingsListResponse<ApiKey> = try? await client.send(.myApiKeys()) {
-                guard generation == settingsLoadGeneration, ownerId == identity?.id else { return }
-                replaceApiKeyPage(page)
-            }
-        }
-    }
-
-    private func apiKeyRotationFailureMessage(_ error: Error) -> UiVerbatimText {
-        guard let apiError = error as? VouchaError else { return .verbatim(error.localizedDescription) }
-        switch apiError {
-        case .notFound, .api(statusCode: 404, _), .apiMessage(statusCode: 404, _, _):
-            return .message(.nativeApiKeysRotationNotFound)
-        case .api(statusCode: 409, _), .apiMessage(statusCode: 409, _, _):
-            return .message(.nativeApiKeysRotationConflict)
-        default: return .verbatim(apiError.localizedDescription)
+            await recoverApiKeysAfterRotationFailure(error, context: context)
         }
     }
 
@@ -111,6 +100,7 @@ public extension SettingsViewModel {
 
     func deleteAccount() async {
         guard let client, let userIdOrSlug else { return }
+        let invalidationGeneration = apiKeyRotationOwnerState.invalidationGeneration
         guard deleteConfirmation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "delete my account"
         else {
             statusMessage = .message(.nativeSwiftSettingsTypeDeleteToConfirm)
@@ -119,12 +109,14 @@ public extension SettingsViewModel {
 
         await mutate {
             let response: DeleteAccountResponse = try await client.send(.deleteUser(idOrSlug: userIdOrSlug))
+            guard invalidationGeneration == apiKeyRotationOwnerState.invalidationGeneration else { return }
             statusMessage = .message(
                 response.logout
                     ? .nativeSwiftSettingsAccountDeleted
                     : .nativeSwiftSettingsAccountDeletionRequested
             )
             if response.logout {
+                invalidateApiKeyRotationOwner(ifGenerationMatches: invalidationGeneration)
                 onLogoutRequired()
             }
         }

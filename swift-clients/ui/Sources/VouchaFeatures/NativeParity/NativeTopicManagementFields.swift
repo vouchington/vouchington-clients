@@ -9,6 +9,9 @@ struct NativeTopicManagementAboutFields: View {
     @Bindable
     var viewModel: NativeTopicManagementViewModel
     let client: APIClient?
+    var logoUploadState = NativeTopicImageFieldUploadState()
+    var heroUploadState = NativeTopicImageFieldUploadState()
+    var isImageEditingDisabled: () -> Bool = { false }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -27,14 +30,18 @@ struct NativeTopicManagementAboutFields: View {
                 previewWidth: 48,
                 imageId: $viewModel.logoImageId,
                 placement: $viewModel.logoImagePlacement,
-                client: client
+                client: client,
+                isEditingDisabled: isImageEditingDisabled,
+                uploadState: logoUploadState
             )
             NativeTopicImageField(
                 title: .nativeSwiftTopicManagementFieldsHeroImage,
                 previewWidth: 120,
                 imageId: $viewModel.heroImageId,
                 placement: $viewModel.heroImagePlacement,
-                client: client
+                client: client,
+                isEditingDisabled: isImageEditingDisabled,
+                uploadState: heroUploadState
             )
         }
     }

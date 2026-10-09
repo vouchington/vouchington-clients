@@ -14,6 +14,8 @@ public sealed partial class SettingsViewModel
   public async Task LoadAsync(CancellationToken cancellationToken = default)
   {
     var generation = Interlocked.Increment(ref settingsLoadGeneration);
+    var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
+    BeginApiKeyOwnerIdentityLoad();
     rotatingApiKeyIds.Clear();
     ApiKeySecret = null;
     apiKeyRotationNoticeKey = null;
@@ -31,12 +33,15 @@ public sealed partial class SettingsViewModel
     try
     {
       await LoadLocalLLMSettingsAsync(cancellationToken).ConfigureAwait(true);
-      if (!IsCurrentSettingsLoad(generation)) return;
+      if (!IsCurrentSettingsLoad(generation) ||
+          ownerInvalidationGeneration != Volatile.Read(ref apiKeyOwnerInvalidationGeneration)) return;
 
       var identity = await settingsService.FetchMyIdentityAsync(cancellationToken).ConfigureAwait(true);
-      if (!IsCurrentSettingsLoad(generation)) return;
+      if (!IsCurrentSettingsLoad(generation) ||
+          ownerInvalidationGeneration != Volatile.Read(ref apiKeyOwnerInvalidationGeneration)) return;
       var userIdOrSlug = identity.Identity.Id;
-      currentUserIdOrSlug = userIdOrSlug;
+      ConfirmApiKeyOwnerIdentity(generation, userIdOrSlug);
+      ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
       Username = identity.Identity.Username ?? string.Empty;
       DisplayNameSource = identity.Identity.DisplayNameSource ?? "username";
       ProfileImageId = identity.Identity.ProfileImageId;
@@ -50,7 +55,13 @@ public sealed partial class SettingsViewModel
     }
     catch (Exception ex)
     {
-      if (IsCurrentSettingsLoad(generation)) ErrorMessage = ex.Message;
+      if (IsCurrentSettingsLoad(generation) &&
+          ownerInvalidationGeneration == Volatile.Read(ref apiKeyOwnerInvalidationGeneration))
+      {
+        if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
+          InvalidateApiKeyOwnerIdentity();
+        ErrorMessage = ex.Message;
+      }
     }
     finally
     {

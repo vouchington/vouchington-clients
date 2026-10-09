@@ -1,18 +1,40 @@
+import Observation
 import SwiftUI
 import VouchaAPI
 import VouchaDesignSystem
 import VouchaLocalization
+
+@Observable
+@MainActor
+final class NativeTopicManagementOperationState {
+    var isSavePending = false
+}
 
 struct NativeTopicManagementSurface: View {
     @Environment(\.locale)
     private var nativeUiLocale
     @State
     private var viewModel: NativeTopicManagementViewModel
+    @State
+    private var logoUploadState: NativeTopicImageFieldUploadState
+    @State
+    private var heroUploadState: NativeTopicImageFieldUploadState
+    @State
+    private var operationState: NativeTopicManagementOperationState
     private let client: APIClient?
 
-    init(client: APIClient?, routeMatch: NativeRouteMatch?) {
+    init(
+        client: APIClient?,
+        routeMatch: NativeRouteMatch?,
+        logoUploadState: NativeTopicImageFieldUploadState? = nil,
+        heroUploadState: NativeTopicImageFieldUploadState? = nil,
+        operationState: NativeTopicManagementOperationState? = nil
+    ) {
         self.client = client
         _viewModel = State(initialValue: NativeTopicManagementViewModel(client: client, routeMatch: routeMatch))
+        _logoUploadState = State(initialValue: logoUploadState ?? NativeTopicImageFieldUploadState())
+        _heroUploadState = State(initialValue: heroUploadState ?? NativeTopicImageFieldUploadState())
+        _operationState = State(initialValue: operationState ?? NativeTopicManagementOperationState())
     }
 
     var body: some View {
@@ -23,10 +45,18 @@ struct NativeTopicManagementSurface: View {
             header(viewModel: bindableModel)
             switch bindableModel.section {
             case .create:
-                NativeTopicManagementAboutFields(viewModel: bindableModel, client: client)
+                NativeTopicManagementAboutFields(
+                    viewModel: bindableModel, client: client,
+                    logoUploadState: logoUploadState, heroUploadState: heroUploadState,
+                    isImageEditingDisabled: { operationState.isSavePending || bindableModel.isLoading }
+                )
                 NativeTopicManagementBehaviorFields(viewModel: bindableModel)
             case .about:
-                NativeTopicManagementAboutFields(viewModel: bindableModel, client: client)
+                NativeTopicManagementAboutFields(
+                    viewModel: bindableModel, client: client,
+                    logoUploadState: logoUploadState, heroUploadState: heroUploadState,
+                    isImageEditingDisabled: { operationState.isSavePending || bindableModel.isLoading }
+                )
             case .behavior:
                 NativeTopicManagementBehaviorFields(viewModel: bindableModel)
             case .domains:
@@ -40,16 +70,27 @@ struct NativeTopicManagementSurface: View {
             }
             if let primaryActionTitle = primaryActionTitle(for: bindableModel.section) {
                 Button(UiMessages.string(primaryActionTitle, locale: nativeUiLocale)) {
-                    Task { await bindableModel.save() }
+                    guard !operationState.isSavePending, !bindableModel.isLoading, !isImageUploadPending else { return }
+                    operationState.isSavePending = true
+                    Task {
+                        defer { operationState.isSavePending = false }
+                        guard !isImageUploadPending else { return }
+                        await bindableModel.save()
+                    }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(bindableModel.isLoading)
+                .disabled(operationState.isSavePending || bindableModel.isLoading || isImageUploadPending)
             }
             status(viewModel: bindableModel)
         }
         .task {
             await viewModel.load()
         }
+    }
+
+    private var isImageUploadPending: Bool {
+        logoUploadState.isUploading || logoUploadState.uploadTask != nil
+            || heroUploadState.isUploading || heroUploadState.uploadTask != nil
     }
 
     private func header(viewModel: NativeTopicManagementViewModel) -> some View {

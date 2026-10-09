@@ -34,8 +34,7 @@ extension NativePostComposeViewModel {
 
     func clearImagePreviewsForNavigation() {
         imageUploadGeneration += 1
-        activeImageUploadBatches = 0
-        isUploadingImages = false
+        imageUploadTask?.cancel()
         for index in images.indices {
             images[index].localPreviewData = nil
         }
@@ -62,7 +61,32 @@ extension NativePostComposeViewModel {
         images[index].updateCaption(caption)
     }
 
+    func startImageUploadBatch(from urls: [URL]) {
+        guard imageUploadTask == nil, !isUploadingImages else { return }
+        guard !isLoading else {
+            imageUploadErrorMessage = .app(UiMessage(.nativeSwiftPostComposeImageWaitForPublishing))
+            return
+        }
+        guard let imageUploadService else {
+            imageUploadErrorMessage = .app(UiMessage(.nativeSwiftImageSelectionRequiresSignedInSession))
+            return
+        }
+
+        imageUploadErrorMessage = nil
+        imageUploadGeneration += 1
+        let generation = imageUploadGeneration
+        beginImageUploadBatch()
+        imageUploadTask = Task {
+            defer {
+                endImageUploadBatch()
+                imageUploadTask = nil
+            }
+            await performImageUploads(from: urls, generation: generation, service: imageUploadService)
+        }
+    }
+
     func uploadImages(from urls: [URL]) async {
+        guard !isUploadingImages, imageUploadTask == nil else { return }
         guard !isLoading else {
             imageUploadErrorMessage = .app(UiMessage(.nativeSwiftPostComposeImageWaitForPublishing))
             return
@@ -77,19 +101,19 @@ extension NativePostComposeViewModel {
         imageUploadGeneration += 1
         let generation = imageUploadGeneration
         beginImageUploadBatch()
-        defer {
-            if generation == imageUploadGeneration {
-                endImageUploadBatch()
-            }
-        }
+        defer { endImageUploadBatch() }
 
+        await performImageUploads(from: urls, generation: generation, service: imageUploadService)
+    }
+
+    private func performImageUploads(from urls: [URL], generation: Int, service: ImageUploadService) async {
         for url in urls {
-            guard !Task.isCancelled else { break }
+            guard !Task.isCancelled, generation == imageUploadGeneration else { break }
             guard canAddMoreImages else {
                 reportImageUploadError(.app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
                 break
             }
-            guard await uploadImage(from: url, generation: generation, service: imageUploadService) else { break }
+            guard await uploadImage(from: url, generation: generation, service: service) else { break }
         }
     }
 

@@ -9,7 +9,6 @@ import VouchaModels
 @Observable
 @MainActor
 public final class SettingsViewModel {
-    static let siteDefaultUiLocale = "site_default"
 
     public internal(set) var state: LoadState = .idle
     public internal(set) var identity: PrivateUser?
@@ -21,6 +20,7 @@ public final class SettingsViewModel {
     public internal(set) var oauthGrantState: LoadState = .idle
     public internal(set) var apiKeyCreationInFlight = false
     public internal(set) var apiKeyRotationInFlight: Set<String> = []
+    @ObservationIgnored var apiKeyRotationOwnerState = ApiKeyRotationOwnerState()
     @ObservationIgnored
     var activeMainSettingsLoadGeneration: Int?
     @ObservationIgnored

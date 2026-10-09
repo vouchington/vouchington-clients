@@ -11,6 +11,68 @@ import XCTest
 
 @MainActor
 final class NativePostComposePendingImagePreviewTests: NativeRouteSurfaceViewModelTestCase {
+    func testNavigationCancelsRetainedBatchAndReleasesBusyOnlyAfterTaskExits() async throws {
+        let vm = try NativePostComposeViewModel(
+            client: makeClient(), imageUploadProtocolClasses: [CannedFeedURLProtocol.self]
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("abandoned-compose-\(UUID().uuidString).png")
+        try Data("selected-bytes".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let path = "/api/v1/images/upload-url"
+        CannedFeedURLProtocol.handlers[path] = (
+            Data(
+                #"{"upload":{"image_id":"abandoned","upload_url":"https://upload.example.test/abandoned","content_type":"image/png","expires_at":null}}"#
+                    .utf8
+            ), 201
+        )
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+
+        let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        vm.startImageUploadBatch(from: [url])
+        let upload = try XCTUnwrap(vm.imageUploadTask)
+        do {
+            _ = try await request.wait()
+            XCTAssertTrue(vm.isUploadingImages)
+            vm.clearImagePreviewsForNavigation()
+            XCTAssertTrue(upload.isCancelled)
+            XCTAssertTrue(vm.images.isEmpty)
+            if vm.imageUploadTask != nil {
+                XCTAssertTrue(vm.isUploadingImages)
+                vm.startImageUploadBatch(from: [url])
+                XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+            }
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await upload.value
+            throw error
+        }
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await upload.value
+        XCTAssertNil(vm.imageUploadTask)
+        XCTAssertFalse(vm.isUploadingImages)
+        XCTAssertTrue(vm.pendingImagePreviews.isEmpty)
+        XCTAssertTrue(vm.images.isEmpty)
+    }
+
+    func testNavigationBeforeScheduledBatchStartsDoesNotReadSelectedFile() async throws {
+        let vm = try NativePostComposeViewModel(
+            client: makeClient(), imageUploadProtocolClasses: [CannedFeedURLProtocol.self]
+        )
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("not-read-\(UUID().uuidString).png")
+        vm.startImageUploadBatch(from: [missingURL])
+        let upload = try XCTUnwrap(vm.imageUploadTask)
+        XCTAssertTrue(vm.isUploadingImages)
+        vm.clearImagePreviewsForNavigation()
+        await upload.value
+        XCTAssertNil(vm.imageUploadTask)
+        XCTAssertFalse(vm.isUploadingImages)
+        XCTAssertNil(vm.imageUploadErrorMessage)
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests.isEmpty)
+    }
+
     func testSelectedBytesPreviewWhileFirstUploadRequestIsHeld() async throws {
         let vm = try NativePostComposeViewModel(
             client: makeClient(),

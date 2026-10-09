@@ -14,6 +14,7 @@ public sealed partial class SettingsViewModel
     }
     isCreatingApiKey = true;
     OnPropertyChanged(nameof(CanCreateApiKey));
+    ClearPendingApiKeyRotationSecret();
     ApiKeySecret = null;
     try
     {
@@ -35,7 +36,7 @@ public sealed partial class SettingsViewModel
     }
   }
 
-  public void DismissApiKeySecret() => ApiKeySecret = null;
+  public void DismissApiKeySecret() => ClearApiKeyRotationSecrets();
 
   private Localization.UiMessageKey? apiKeyRotationNoticeKey;
 
@@ -46,18 +47,20 @@ public sealed partial class SettingsViewModel
   public async Task RotateApiKeyAsync(ApiKey apiKey, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(apiKey);
-    if (apiKey.RevokedAt is not null || apiKey.ReplacedByApiKeyId is not null ||
-        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || !rotatingApiKeyIds.Add(apiKey.Id)) return;
+    if (Volatile.Read(ref settingsViewModelDisposed) != 0) return;
     var generation = Volatile.Read(ref settingsLoadGeneration);
     var ownerId = currentUserIdOrSlug;
+    if (ownerId is null || Volatile.Read(ref settingsIdentityLoadGeneration) != generation) return;
+    if (apiKey.RevokedAt is not null || apiKey.ReplacedByApiKeyId is not null ||
+        apiKey.ExpiresAt <= DateTimeOffset.UtcNow || !rotatingApiKeyIds.Add(apiKey.Id)) return;
+    var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
     ApiKeySecret = null;
     apiKeyRotationNoticeKey = null;
     OnPropertyChanged(nameof(ApiKeyRotationNotice));
     try
     {
       var response = await settingsService.RotateApiKeyAsync(apiKey.Id, cancellationToken).ConfigureAwait(true);
-      if (!IsCurrentSettingsLoad(generation) || ownerId != currentUserIdOrSlug) return;
-      ApiKeySecret = response.RawKey;
+      if (!PublishOrHoldRotatedApiKeySecret(ownerId, response.RawKey, ownerInvalidationGeneration)) return;
       apiKeyRotationNoticeKey = Localization.UiMessageKey.NativeApiKeysRotated;
       OnPropertyChanged(nameof(ApiKeyRotationNotice));
       try
@@ -65,8 +68,13 @@ public sealed partial class SettingsViewModel
         var page = await settingsService.FetchApiKeysAsync(cancellationToken).ConfigureAwait(true);
         if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ReplaceApiKeyPage(page);
       }
-      catch (Exception) when (!cancellationToken.IsCancellationRequested)
+      catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
       {
+        if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
+        {
+          InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+          return;
+        }
         if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug)
           ApiKeys = [response.ApiKey, .. ApiKeys.Where(key => key.Id != apiKey.Id && key.Id != response.ApiKey.Id)];
       }
@@ -83,10 +91,18 @@ public sealed partial class SettingsViewModel
         var page = await settingsService.FetchApiKeysAsync(cancellationToken).ConfigureAwait(true);
         if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ReplaceApiKeyPage(page);
       }
-      catch (Exception) when (!cancellationToken.IsCancellationRequested) { }
+      catch (Exception fetchException) when (!cancellationToken.IsCancellationRequested)
+      {
+        if (fetchException is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
+          InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+      }
     }
     catch (Exception ex)
     {
+      if (ex is VouchaApiException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
+      {
+        InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
+      }
       if (IsCurrentSettingsLoad(generation) && ownerId == currentUserIdOrSlug) ErrorMessage = ex.Message;
     }
     finally

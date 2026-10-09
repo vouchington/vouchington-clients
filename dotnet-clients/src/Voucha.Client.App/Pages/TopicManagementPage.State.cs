@@ -8,6 +8,8 @@ public partial class TopicManagementPage
   {
     logoPreviewGeneration++;
     heroPreviewGeneration++;
+    CancelImageUpload(isLogo: true);
+    CancelImageUpload(isLogo: false);
     NameEntry.Text = topic.Name;
     SlugEntry.Text = topic.Slug;
     TypeEntry.Text = topic.TopicType;
@@ -34,6 +36,7 @@ public partial class TopicManagementPage
         !string.Equals(e.NewTextValue, logoLocalImageId, StringComparison.Ordinal))
     {
       logoPreviewGeneration++;
+      CancelImageUpload(isLogo: true);
       ClearLocalPreview(LogoLocalPreviewImage);
       LogoPreviewUnavailableLabel.IsVisible = false;
       logoLocalImageId = null;
@@ -42,6 +45,7 @@ public partial class TopicManagementPage
         !string.Equals(e.NewTextValue, heroLocalImageId, StringComparison.Ordinal))
     {
       heroPreviewGeneration++;
+      CancelImageUpload(isLogo: false);
       ClearLocalPreview(HeroLocalPreviewImage);
       HeroPreviewUnavailableLabel.IsVisible = false;
       heroLocalImageId = null;

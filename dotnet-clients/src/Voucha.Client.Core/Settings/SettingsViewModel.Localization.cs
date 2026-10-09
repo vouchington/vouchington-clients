@@ -21,6 +21,7 @@ public sealed partial class SettingsViewModel
 
   public void Dispose()
   {
+    DisposeApiKeyRotationState();
     localeSubscription?.Dispose();
     if (ownsLocalLLMResponsesClient) localLLMResponsesClient.Dispose();
   }

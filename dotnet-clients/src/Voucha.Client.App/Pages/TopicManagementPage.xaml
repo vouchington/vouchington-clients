@@ -15,7 +15,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry x:Name="LogoImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.logoImageId}"
                        TextChanged="OnImageIdChanged" />
-                <Button Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadLogoClicked" />
+                <Button x:Name="UploadLogoButton" Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadLogoClicked" />
             </Grid>
             <Grid HeightRequest="96">
                 <Image x:Name="LogoPersistedImage" Aspect="AspectFit" IsVisible="False"
@@ -28,7 +28,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry x:Name="HeroImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.heroImageId}"
                        TextChanged="OnImageIdChanged" />
-                <Button Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadHeroClicked" />
+                <Button x:Name="UploadHeroButton" Grid.Column="1" Text="{DynamicResource native.dotnet.topicManagement.upload}" Clicked="OnUploadHeroClicked" />
             </Grid>
             <Grid HeightRequest="120">
                 <Image x:Name="HeroPersistedImage" Aspect="AspectFit" IsVisible="False"
@@ -44,7 +44,7 @@
                 <CheckBox x:Name="AllowReviewsCheckBox" />
                 <Label Text="{DynamicResource native.swift.topicManagementFields.allowReviews}" VerticalOptions="Center" Style="{StaticResource Body}" />
             </HorizontalStackLayout>
-            <Button Text="{DynamicResource common.save}" Clicked="OnSaveClicked" />
+            <Button x:Name="SaveButton" Text="{DynamicResource common.save}" Clicked="OnSaveClicked" />
             <Entry x:Name="AliasEntry" Placeholder="{DynamicResource native.swift.topicManagementFields.alias}" />
             <Button Text="{DynamicResource native.swift.topicManagementFields.addAlias}" Clicked="OnAddAliasClicked" />
             <Label x:Name="AliasesLabel" Style="{StaticResource Metadata}" />

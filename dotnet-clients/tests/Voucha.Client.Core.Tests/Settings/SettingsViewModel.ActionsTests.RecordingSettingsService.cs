@@ -8,11 +8,21 @@ public sealed partial class SettingsViewModelActionsTests
   {
     public int FetchMyIdentityCount { get; private set; }
 
+    public Func<int, Task<MyIdentityResponse>>? FetchMyIdentityOverride { get; set; }
+
     public int FetchApiKeysCount { get; private set; }
+
+    public string? LastFetchedUserId { get; private set; }
 
     public int CancelMembershipCount { get; private set; }
 
     public int RevokeAuthSessionsCount { get; private set; }
+
+    public Func<Task>? DeleteAuthSessionOverride { get; set; }
+
+    public Func<Task>? RevokeAuthSessionsOverride { get; set; }
+
+    public Func<Task<DeleteUserResponse>>? DeleteUserOverride { get; set; }
 
     public string? LastCreatedUserDataRequestUserId { get; private set; }
 
@@ -27,6 +37,8 @@ public sealed partial class SettingsViewModelActionsTests
     public System.Net.HttpStatusCode? RotateStatus { get; set; }
 
     public string? LastRotatedApiKeyId { get; private set; }
+
+    public int RotateApiKeyCount { get; private set; }
 
     public ApiKey? RotatedApiKey { get; private set; }
 
@@ -54,6 +66,7 @@ public sealed partial class SettingsViewModelActionsTests
     public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default)
     {
       FetchMyIdentityCount++;
+      if (FetchMyIdentityOverride is { } fetch) return fetch(FetchMyIdentityCount);
       return Task.FromResult(CreateIdentity());
     }
 
@@ -76,20 +89,23 @@ public sealed partial class SettingsViewModelActionsTests
     public Task DeleteAuthSessionAsync(string id, CancellationToken cancellationToken = default)
     {
       LastDeletedAuthSessionId = id;
-      return Task.CompletedTask;
+      return DeleteAuthSessionOverride?.Invoke() ?? Task.CompletedTask;
     }
 
     public Task RevokeAuthSessionsAsync(CancellationToken cancellationToken = default)
     {
       RevokeAuthSessionsCount++;
-      return Task.CompletedTask;
+      return RevokeAuthSessionsOverride?.Invoke() ?? Task.CompletedTask;
     }
 
     public Task<UserResponse> FetchUserAsync(
         string idOrSlug,
         bool includeBio = false,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateUser());
+        CancellationToken cancellationToken = default)
+    {
+      LastFetchedUserId = idOrSlug;
+      return Task.FromResult(CreateUser());
+    }
 
     public Task<UserResponse> UpdateUserAsync(
         string idOrSlug,
@@ -122,7 +138,7 @@ public sealed partial class SettingsViewModelActionsTests
         CancellationToken cancellationToken = default)
     {
       DeleteUserCallCount++;
-      return Task.FromResult(new DeleteUserResponse(true));
+      return DeleteUserOverride?.Invoke() ?? Task.FromResult(new DeleteUserResponse(true));
     }
 
     public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default)
@@ -154,6 +170,7 @@ public sealed partial class SettingsViewModelActionsTests
 
     public Task<ApiKeyCreationResponse> RotateApiKeyAsync(string id, CancellationToken cancellationToken = default)
     {
+      RotateApiKeyCount++;
       LastRotatedApiKeyId = id;
       if (RotateApiKeyOverride is { } rotate) return rotate(id);
       if (RotateStatus is { } status)

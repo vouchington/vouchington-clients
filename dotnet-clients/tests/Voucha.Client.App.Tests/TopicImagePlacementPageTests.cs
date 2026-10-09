@@ -109,6 +109,9 @@ public sealed class TopicImagePlacementPageTests
       Assert.False(page.FindByName<Label>("HeroPreviewUnavailableLabel").IsVisible);
       uploads.ReleaseHero.TrySetResult(true);
       await hero;
+      Assert.False(page.FindByName<Button>("SaveButton").IsEnabled);
+      Assert.False(page.FindByName<Button>("UploadLogoButton").IsEnabled);
+      Assert.True(page.FindByName<Button>("UploadHeroButton").IsEnabled);
     }
     finally
     {
@@ -120,6 +123,151 @@ public sealed class TopicImagePlacementPageTests
     Assert.True(page.FindByName<Label>("HeroPreviewUnavailableLabel").IsVisible);
     Assert.Equal("image-1", page.FindByName<Entry>("LogoImageEntry").Text);
     Assert.True(page.FindByName<Label>("LogoPreviewUnavailableLabel").IsVisible);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+  }
+
+  [Fact]
+  public async Task ReadyStateUsesServerCanonicalImageId()
+  {
+    var uploads = new HeldTopicUploadService { LogoState = HeldTopicUploadService.ReadyState("canonical-logo") };
+    var page = CreateUploadPage(uploads);
+    using var bytes = new MemoryStream([1, 2, 3]);
+    var upload = page.UploadSelectedImageAsync(true, bytes, "image/png");
+    uploads.ReleaseLogo.TrySetResult(true);
+    await upload;
+
+    Assert.Equal("canonical-logo", page.FindByName<Entry>("LogoImageEntry").Text);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+  }
+
+  [Fact]
+  public async Task SameFieldReentryCannotReleaseSaveWhileCancelledUploadIsStillHeld()
+  {
+    var uploads = new HeldTopicUploadService();
+    var page = CreateUploadPage(uploads);
+    using var originalBytes = new MemoryStream([1, 2, 3]);
+    using var replacementBytes = new MemoryStream([4, 5, 6]);
+    var original = page.UploadSelectedImageAsync(true, originalBytes, "image/png");
+    try
+    {
+      await uploads.LogoStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      await page.UploadSelectedImageAsync(true, replacementBytes, "image/png");
+      Assert.Equal(1, uploads.CreatedCount);
+      page.FindByName<Entry>("LogoImageEntry").Text = "manual-id";
+      Assert.True(uploads.LogoPutToken.IsCancellationRequested);
+      Assert.False(page.FindByName<Button>("SaveButton").IsEnabled);
+      Assert.False(page.FindByName<Button>("UploadLogoButton").IsEnabled);
+    }
+    finally
+    {
+      uploads.ReleaseLogo.TrySetResult(true);
+      await original;
+    }
+    Assert.Equal("manual-id", page.FindByName<Entry>("LogoImageEntry").Text);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+    Assert.True(page.FindByName<Button>("UploadLogoButton").IsEnabled);
+  }
+
+  [Fact]
+  public async Task UploadCannotBeginWhileSaveIsInFlight()
+  {
+    var uploads = new HeldTopicUploadService();
+    var topics = DispatchProxy.Create<ITopicsService, HeldSaveTopicService>();
+    var page = CreateUploadPage(uploads, topics);
+    var save = page.SaveTopicAsync();
+    try
+    {
+      await ((HeldSaveTopicService)topics).Started.Task.WaitAsync(TestContext.Current.CancellationToken);
+      Assert.False(page.FindByName<Button>("SaveButton").IsEnabled);
+      Assert.False(page.FindByName<Button>("UploadLogoButton").IsEnabled);
+      Assert.False(page.FindByName<Button>("UploadHeroButton").IsEnabled);
+      using var bytes = new MemoryStream([1, 2, 3]);
+      await page.UploadSelectedImageAsync(true, bytes, "image/png");
+      Assert.Equal(0, uploads.CreatedCount);
+    }
+    finally
+    {
+      ((HeldSaveTopicService)topics).ReleaseCreate.TrySetException(new InvalidOperationException("save failed"));
+      await save;
+    }
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+    Assert.True(page.FindByName<Button>("UploadLogoButton").IsEnabled);
+  }
+
+  [Fact]
+  public async Task HeldReadyCheckKeepsSaveDisabledAndImageIdUnavailable()
+  {
+    var uploads = new HeldTopicUploadService { HoldLogoState = true };
+    var topics = DispatchProxy.Create<ITopicsService, CountingTopicService>();
+    var page = CreateUploadPage(uploads, topics);
+    using var bytes = new MemoryStream([1, 2, 3]);
+    var upload = page.UploadSelectedImageAsync(true, bytes, "image/png");
+    try
+    {
+      await uploads.LogoStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      uploads.ReleaseLogo.TrySetResult(true);
+      await uploads.LogoStateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      Assert.False(page.FindByName<Button>("SaveButton").IsEnabled);
+      Assert.Null(page.FindByName<Entry>("LogoImageEntry").Text);
+      typeof(TopicManagementPage).GetMethod("OnSaveClicked", BindingFlags.Instance | BindingFlags.NonPublic)!
+          .Invoke(page, [null, EventArgs.Empty]);
+      Assert.Equal(0, ((CountingTopicService)topics).Calls);
+    }
+    finally
+    {
+      uploads.ReleaseLogo.TrySetResult(true);
+      uploads.ReleaseLogoState.TrySetResult(HeldTopicUploadService.ReadyState("image-1"));
+      await upload;
+    }
+    Assert.Equal("image-1", page.FindByName<Entry>("LogoImageEntry").Text);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+  }
+
+  [Theory]
+  [InlineData("failed", false)]
+  [InlineData("complete", true)]
+  public async Task TerminalOrBlockedImageIsNeverAssigned(string status, bool blocked)
+  {
+    var uploads = new HeldTopicUploadService
+    {
+      LogoState = new ImageUploadState("image-1", status, "Upload rejected", Ready: false, Blocked: blocked),
+    };
+    var page = CreateUploadPage(uploads);
+    using var bytes = new MemoryStream([1, 2, 3]);
+    var upload = page.UploadSelectedImageAsync(true, bytes, "image/png");
+    uploads.ReleaseLogo.TrySetResult(true);
+    await upload;
+
+    Assert.Null(page.FindByName<Entry>("LogoImageEntry").Text);
+    Assert.Equal("Upload rejected", page.FindByName<Label>("StatusLabel").Text);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
+  }
+
+  [Fact]
+  public async Task NavigationCancelsHeldReadyCheckWithoutReleasingSaveEarly()
+  {
+    var uploads = new HeldTopicUploadService { HoldLogoState = true };
+    var page = CreateUploadPage(uploads);
+    using var bytes = new MemoryStream([1, 2, 3]);
+    var upload = page.UploadSelectedImageAsync(true, bytes, "image/png");
+    try
+    {
+      await uploads.LogoStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      uploads.ReleaseLogo.TrySetResult(true);
+      await uploads.LogoStateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      typeof(TopicManagementPage).GetMethod("OnDisappearing", BindingFlags.Instance | BindingFlags.NonPublic)!
+          .Invoke(page, null);
+      Assert.True(uploads.LogoPollToken.IsCancellationRequested);
+      Assert.False(page.FindByName<Button>("SaveButton").IsEnabled);
+    }
+    finally
+    {
+      uploads.ReleaseLogo.TrySetResult(true);
+      uploads.ReleaseLogoState.TrySetResult(HeldTopicUploadService.ReadyState("image-1"));
+      await upload;
+    }
+    Assert.Null(page.FindByName<Entry>("LogoImageEntry").Text);
+    Assert.True(page.FindByName<Button>("SaveButton").IsEnabled);
   }
 
   [Fact]
@@ -167,7 +315,7 @@ public sealed class TopicImagePlacementPageTests
     Assert.False(page.FindByName<Label>("LogoPreviewUnavailableLabel").IsVisible);
   }
 
-  private static TopicManagementPage CreateUploadPage(IImageUploadService uploads)
+  private static TopicManagementPage CreateUploadPage(IImageUploadService uploads, ITopicsService? topics = null)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application
@@ -180,7 +328,7 @@ public sealed class TopicImagePlacementPageTests
       },
     };
     return new TopicManagementPage(
-        DispatchProxy.Create<ITopicsService, UnusedService>(),
+        topics ?? DispatchProxy.Create<ITopicsService, UnusedService>(),
         uploads,
         new VouchaApiClient(new HttpClient { BaseAddress = new Uri("https://api.test") }));
   }
@@ -188,10 +336,20 @@ public sealed class TopicImagePlacementPageTests
   private sealed class HeldTopicUploadService : IImageUploadService
   {
     private int created;
+    public int CreatedCount => created;
     public TaskCompletionSource<bool> LogoStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource<bool> HeroStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource<bool> ReleaseLogo { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource<bool> ReleaseHero { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<bool> LogoStateStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<ImageUploadState> ReleaseLogoState { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public bool HoldLogoState { get; set; }
+    public ImageUploadState? LogoState { get; set; }
+    public CancellationToken LogoPollToken { get; private set; }
+    public CancellationToken LogoPutToken { get; private set; }
+
+    public static ImageUploadState ReadyState(string imageId) =>
+        new(imageId, "complete", null, Ready: true, Blocked: false);
 
     public Task<ImageUploadUrlResponse> CreateUploadUrlAsync(
         CreateImageUploadUrlBody body, CancellationToken cancellationToken = default)
@@ -206,6 +364,7 @@ public sealed class TopicImagePlacementPageTests
     {
       if (upload.ImageId == "image-1")
       {
+        LogoPutToken = cancellationToken;
         LogoStarted.TrySetResult(true);
         return ReleaseLogo.Task;
       }
@@ -217,9 +376,43 @@ public sealed class TopicImagePlacementPageTests
         string imageId, CancellationToken cancellationToken = default) =>
         Task.FromResult(new CompleteImageUploadResponse(new ImageUpload(imageId, "complete")));
 
-    public Task<ImageUploadStateResponse> FetchUploadStateAsync(
-        string imageId, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public async Task<ImageUploadStateResponse> FetchUploadStateAsync(
+        string imageId, CancellationToken cancellationToken = default)
+    {
+      if (imageId == "image-1")
+      {
+        LogoPollToken = cancellationToken;
+        if (HoldLogoState)
+        {
+          LogoStateStarted.TrySetResult(true);
+          return new ImageUploadStateResponse(await ReleaseLogoState.Task.ConfigureAwait(true));
+        }
+        return new ImageUploadStateResponse(LogoState ?? ReadyState(imageId));
+      }
+      return new ImageUploadStateResponse(ReadyState(imageId));
+    }
+  }
+
+  public class CountingTopicService : DispatchProxy
+  {
+    public int Calls { get; private set; }
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+    {
+      Calls++;
+      throw new InvalidOperationException($"Unexpected call: {targetMethod?.Name}");
+    }
+  }
+
+  public class HeldSaveTopicService : DispatchProxy
+  {
+    public TaskCompletionSource<bool> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<TopicMutationResponse> ReleaseCreate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+    {
+      if (targetMethod?.Name != "CreateTopicAsync") throw new InvalidOperationException($"Unexpected call: {targetMethod?.Name}");
+      Started.TrySetResult(true);
+      return ReleaseCreate.Task;
+    }
   }
 
   public class UnusedService : DispatchProxy

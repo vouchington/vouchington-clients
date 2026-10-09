@@ -16,6 +16,9 @@ public partial class TopicManagementPage : ContentPage
   private TopicImagePlacement? heroPlacement;
   private int logoPreviewGeneration;
   private int heroPreviewGeneration;
+  private CancellationTokenSource? logoUploadCancellation;
+  private CancellationTokenSource? heroUploadCancellation;
+  private bool isSaving;
   private string? logoLocalImageId;
   private string? heroLocalImageId;
   private string? topicIdOrSlug;
@@ -42,6 +45,8 @@ public partial class TopicManagementPage : ContentPage
   {
     logoPreviewGeneration++;
     heroPreviewGeneration++;
+    CancelImageUpload(isLogo: true);
+    CancelImageUpload(isLogo: false);
     ClearLocalPreview(LogoLocalPreviewImage);
     ClearLocalPreview(HeroLocalPreviewImage);
     LogoPreviewUnavailableLabel.IsVisible = false;
@@ -69,8 +74,14 @@ public partial class TopicManagementPage : ContentPage
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI async event handlers display API failures inline.")]
-  private async void OnSaveClicked(object? sender, EventArgs e)
+  private async void OnSaveClicked(object? sender, EventArgs e) => await SaveTopicAsync().ConfigureAwait(true);
+
+  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI save failures are displayed inline.")]
+  internal async Task SaveTopicAsync()
   {
+    if (isSaving || logoUploadCancellation is not null || heroUploadCancellation is not null) return;
+    isSaving = true;
+    UpdateImageActionState();
     try
     {
       var response = topicIdOrSlug is null
@@ -91,6 +102,11 @@ public partial class TopicManagementPage : ContentPage
     catch (Exception ex)
     {
       StatusLabel.Text = ex.Message;
+    }
+    finally
+    {
+      isSaving = false;
+      UpdateImageActionState();
     }
   }
 

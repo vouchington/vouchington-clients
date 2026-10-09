@@ -71,8 +71,8 @@ extension SettingsViewModelActionCoverageTests {
         await model.load()
         let path = "/api/v1/my/api-keys"
         let oldPage = try XCTUnwrap(CannedFeedURLProtocol.handlers[path]).0
-        let freshPage = Data(String(decoding: oldPage, as: UTF8.self)
-            .replacingOccurrences(of: "key-1", with: "fresh-key").utf8)
+        let oldPageText = try XCTUnwrap(String(data: oldPage, encoding: .utf8))
+        let freshPage = Data(oldPageText.replacingOccurrences(of: "key-1", with: "fresh-key").utf8)
         CannedFeedURLProtocol.handlers["/api/v1/my/api-keys/key-1/rotate"] = (
             ApiFixtureLoader.data("native.my.api-keys.rotate"), 201
         )
@@ -108,7 +108,7 @@ extension SettingsViewModelActionCoverageTests {
         XCTAssertNil(model.statusMessage)
     }
 
-    func testLateRotationPostCannotShowPreviousOwnerSecretAfterReload() async throws {
+    func testLateRotationPostShowsSecretAfterSameOwnerReload() async throws {
         seedSettingsResponses()
         let model = try SettingsViewModel(client: makeClient())
         await model.load()
@@ -129,8 +129,8 @@ extension SettingsViewModelActionCoverageTests {
         CannedFeedURLProtocol.releaseResponse(path: path)
         await rotation.value
         XCTAssertEqual(model.apiKeys.map(\.id), ["key-1"])
-        XCTAssertNil(model.latestRawAPIKey)
-        XCTAssertNil(model.statusMessage)
+        XCTAssertEqual(model.latestRawAPIKey, "fixture-rotated-api-key")
+        XCTAssertNotNil(model.statusMessage)
     }
 
 }

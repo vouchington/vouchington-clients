@@ -93,7 +93,7 @@ struct NativePostComposeSurface: View {
             allowsMultipleSelection: true
         ) { result in
             if case let .success(urls) = result {
-                Task { await viewModel.uploadImages(from: urls) }
+                viewModel.startImageUploadBatch(from: urls)
             }
         }
         .emailVerificationRecovery(

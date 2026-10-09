@@ -6,9 +6,9 @@ public sealed partial class SettingsViewModelActionsTests
 {
   private sealed partial class RecordingSettingsService
   {
-    private static MyIdentityResponse CreateIdentity() =>
+    public static MyIdentityResponse CreateIdentity(string id = "user-1") =>
         new(new User(
-            "user-1",
+            id,
             "alice",
             Roles: ["member"],
             EmailAddress: "alice@example.com",

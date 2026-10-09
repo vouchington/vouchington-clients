@@ -34,7 +34,7 @@ public sealed partial class SettingsViewModelActionsTests
     Assert.Empty(viewModel.Sessions);
   }
 
-  private static AuthSession CreateSession() =>
+  public static AuthSession CreateSession() =>
       new(
           "session-1",
           "device-1",

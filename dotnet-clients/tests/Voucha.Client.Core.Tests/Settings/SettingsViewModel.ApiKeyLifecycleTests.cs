@@ -121,7 +121,7 @@ public sealed partial class SettingsViewModelActionsTests
   }
 
   [Fact]
-  public async Task LateRotationPostCannotExposeOldOwnerSecretAfterReload()
+  public async Task LateRotationPostPreservesSecretAfterSameOwnerReload()
   {
     var heldPost = new TaskCompletionSource<ApiKeyCreationResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
     var postStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -145,8 +145,8 @@ public sealed partial class SettingsViewModelActionsTests
       heldPost.TrySetResult(new ApiKeyCreationResponse(original with { Id = "old-owner-replacement" }, "old-owner-secret"));
       await rotation;
     }
-    Assert.Null(model.ApiKeySecret);
-    Assert.Null(model.ApiKeyRotationNotice);
+    Assert.Equal("old-owner-secret", model.ApiKeySecret);
+    Assert.NotNull(model.ApiKeyRotationNotice);
     Assert.Equal(original.Id, Assert.Single(model.ApiKeys).Id);
   }
 }

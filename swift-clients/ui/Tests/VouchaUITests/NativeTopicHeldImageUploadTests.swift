@@ -9,6 +9,89 @@ import XCTest
 
 @MainActor
 final class NativeTopicHeldImageUploadTests: NativeRouteSurfaceViewModelTestCase {
+    func testMountedTopicSaveWaitsForHeldLogoAndHeroImageWorkflows() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("topic-save-held-\(UUID().uuidString).png")
+        try Data("selected-bytes".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let path = "/api/v1/images/upload-url"
+        CannedFeedURLProtocol.handlers[path] = (
+            Data(
+                #"{"upload":{"image_id":"new-logo","upload_url":"https://upload.example.test/new-logo","content_type":"image/png","expires_at":null}}"#
+                    .utf8
+            ), 201
+        )
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let logoState = NativeTopicImageFieldUploadState()
+        let heroState = NativeTopicImageFieldUploadState()
+        let createMatch = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topics/create")?.match)
+        let sut = try NativeTopicManagementSurface(
+            client: makeClient(), routeMatch: createMatch,
+            logoUploadState: logoState, heroUploadState: heroState
+        )
+
+        try await ViewHosting.host(sut) {
+            let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+            let logoField = try sut.inspect().find(NativeTopicImageField.self).actualView()
+            logoField.beginUpload(at: url)
+            let logoTask = try XCTUnwrap(logoState.uploadTask)
+            do {
+                _ = try await request.wait()
+                XCTAssertTrue(try sut.inspect().find(button: "Create Topic").isDisabled())
+                heroState.isUploading = true
+                logoField.cancelUpload()
+                CannedFeedURLProtocol.releaseResponse(path: path)
+                await logoTask.value
+                XCTAssertTrue(try sut.inspect().find(button: "Create Topic").isDisabled())
+                heroState.isUploading = false
+                XCTAssertFalse(try sut.inspect().find(button: "Create Topic").isDisabled())
+            } catch {
+                logoField.cancelUpload()
+                CannedFeedURLProtocol.releaseResponse(path: path)
+                await logoTask.value
+                throw error
+            }
+        }
+    }
+
+    func testMountedTopicUploadCannotStartWhileSaveRequestIsHeld() async throws {
+        let path = "/api/v1/topics"
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("web.topics.mutation.default"), 201)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("topic-during-save-\(UUID().uuidString).png")
+        try Data("selected-bytes".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let logoState = NativeTopicImageFieldUploadState()
+        let operationState = NativeTopicManagementOperationState()
+        let createMatch = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topics/create")?.match)
+        let sut = try NativeTopicManagementSurface(
+            client: makeClient(), routeMatch: createMatch,
+            logoUploadState: logoState, operationState: operationState
+        )
+
+        try await ViewHosting.host(sut) {
+            let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+            try sut.inspect().find(button: "Create Topic").tap()
+            XCTAssertTrue(operationState.isSavePending)
+            do {
+                _ = try await request.wait()
+                let field = try sut.inspect().find(NativeTopicImageField.self).actualView()
+                XCTAssertTrue(try sut.inspect().find(button: "Upload").isDisabled())
+                field.beginUpload(at: url)
+                XCTAssertNil(logoState.uploadTask)
+                XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
+                    .allSatisfy { $0.url.path != "/api/v1/images/upload-url" })
+            } catch {
+                CannedFeedURLProtocol.releaseResponse(path: path)
+                throw error
+            }
+            CannedFeedURLProtocol.releaseResponse(path: path)
+        }
+    }
+
     func testTopicImageFieldUsesOnlyReturnedPlacementForPersistedPreview() throws {
         let response = try JSONDecoder.vouchaFixtureDecoder.decode(
             TopicEnvelope.self,

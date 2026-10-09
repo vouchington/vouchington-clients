@@ -49,6 +49,8 @@ public final class NativePostComposeViewModel {
     var imageUploadErrorMessage: UiVerbatimText?
     var activeImageUploadBatches = 0
     var imageUploadGeneration = 0
+    @ObservationIgnored
+    var imageUploadTask: Task<Void, Never>?
     public internal(set) var drafts: [NativeRouteDestinationRow] = []
     public internal(set) var publishedPostId: String?
     public internal(set) var state: NativePostComposeState = .idle
