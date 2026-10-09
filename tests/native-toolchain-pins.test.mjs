@@ -173,14 +173,15 @@ test('Linux mise jobs install the Swift runtime libraries they require', () => {
     action,
     /if: runner\.os == 'Linux'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?mise-action/u,
   )
-  for (const job of ['tooling-lint', 'swift-lint']) {
-    const block = jobBlock(validation, job)
-    assert.match(block, /apt-get install --yes --no-install-recommends libncurses6/u)
-    const aptIndex = block.indexOf('apt-get install --yes --no-install-recommends libncurses6')
-    const miseExecIndex = block.indexOf('mise exec')
-    if (miseExecIndex >= 0)
-      assert.ok(aptIndex < miseExecIndex, `${job} installs libs before mise exec`)
-  }
+  const swiftLintJob = jobBlock(validation, 'swift-lint')
+  assert.match(swiftLintJob, /apt-get install --yes --no-install-recommends libncurses6/u)
+  const toolingLintJob = jobBlock(validation, 'tooling-lint')
+  assert.doesNotMatch(toolingLintJob, /apt-get install --yes --no-install-recommends libncurses6/u)
+  assert.match(
+    toolingLintJob,
+    /name: Run portable tooling checks\n\s+env:\n\s+MISE_DISABLE_TOOLS: dotnet,swift,swiftformat\n\s+run: pnpm run lint:portable/u,
+  )
+  assert.match(toolingLintJob, /mise install actionlint shellcheck github:boyter\/scc zizmor/u)
   const gitleaksJob = jobBlock(validation, 'gitleaks')
   assert.match(gitleaksJob, /mise install aqua:gitleaks\/gitleaks/u)
   assert.match(gitleaksJob, /mise --no-config where aqua:gitleaks\/gitleaks/u)

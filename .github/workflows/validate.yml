@@ -80,10 +80,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Install mise Swift runtime libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libncurses6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
@@ -101,6 +97,8 @@ jobs:
       - name: Install pinned tooling dependencies
         run: pnpm install --frozen-lockfile
       - name: Run portable tooling checks
+        env:
+          MISE_DISABLE_TOOLS: dotnet,swift,swiftformat
         run: pnpm run lint:portable
 
   gitleaks:
