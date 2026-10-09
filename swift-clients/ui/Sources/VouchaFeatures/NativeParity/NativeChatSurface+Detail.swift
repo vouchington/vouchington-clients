@@ -119,6 +119,7 @@ extension NativeChatSurface {
                 }
             }
             .pickerStyle(.menu)
+            .disabled(viewModel.isStreaming)
             Text(UiMessages.string(viewModel.titleProviderSelection.detailText, locale: nativeUiLocale))
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryLabel)

@@ -17,6 +17,7 @@
                     ItemsSource="{Binding ProviderStatuses}"
                     ItemDisplayBinding="{Binding DisplayName}"
                     SelectedItem="{Binding SelectedProviderStatus}"
+                    IsEnabled="{Binding CanSend}"
                     SelectedIndexChanged="OnProviderSelected"
                     MinimumWidthRequest="220" />
             </HorizontalStackLayout>
