@@ -74,7 +74,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         )
     }
 
-    func testChatViewModelSkipsCreateResultWhenSelectionChangesBeforeSendStarts() async throws {
+    func testChatViewModelSkipsCreateResultWhenSelectionChangesBeforeCreateResponse() async throws {
         let createPath = "/api/v1/conversations"
         CannedFeedURLProtocol.queuedHandlers[createPath] = [
             (NativeChatTestFixtures.createdConversationData, 201, 0)
@@ -85,7 +85,30 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         )
 
         let client = try makeClient()
-        let viewModel = NativeChatViewModel(client: client, routeMatch: nil)
+        let unavailable = StubTitleProvider(
+            kind: .appleFoundationModels,
+            status: .init(isAvailable: false, detail: nil),
+            title: nil
+        )
+        let unavailableResolver = StubTitleProviderResolver(
+            defaultSelectionValue: .appleFoundationModels,
+            providers: [.appleFoundationModels: unavailable]
+        )
+        let unavailableViewModel = NativeChatViewModel(
+            client: client,
+            routeMatch: nil,
+            titleProviderResolver: unavailableResolver
+        )
+        unavailableViewModel.draftMessage = "Hello"
+        await unavailableViewModel.sendDraftMessage()
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+
+        let provider = StubTitleProvider(kind: .appleFoundationModels, title: nil)
+        let resolver = StubTitleProviderResolver(
+            defaultSelectionValue: .appleFoundationModels,
+            providers: [.appleFoundationModels: provider]
+        )
+        let viewModel = NativeChatViewModel(client: client, routeMatch: nil, titleProviderResolver: resolver)
         viewModel.conversations = try [
             makeConversation(
                 id: "conversation-1",
@@ -100,7 +123,7 @@ final class NativeChatViewModelRegressionTests: NativeRouteSurfaceViewModelTestC
         CannedFeedURLProtocol.suspendResponse(path: createPath)
         let send = Task { await viewModel.sendDraftMessage() }
         do {
-            _ = try await createRequest.wait()
+            _ = try await createRequest.wait(timeout: .seconds(10))
             await viewModel.selectConversation(id: "conversation-1")
             CannedFeedURLProtocol.releaseResponse(path: createPath)
             await send.value
