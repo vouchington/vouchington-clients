@@ -37,5 +37,6 @@ public sealed partial class ChatConversationViewModel
   private static bool SameProviderIdentity(ChatProviderStatus left, ChatProviderStatus right) =>
       left.Kind == right.Kind &&
       left.ModelProvider == right.ModelProvider &&
-      left.ModelName == right.ModelName;
+      (left.ModelName == right.ModelName ||
+       right.ModelName is null && right.ModelProvider == LocalChatProviderIds.WindowsSystemLanguageModel);
 }

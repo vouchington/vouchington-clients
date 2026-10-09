@@ -90,6 +90,40 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generationCount, 1)
     }
+
+    func testChangingProviderDuringHeldPersistenceKeepsTheSubmittedTurnForRetry() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let resolver = RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Hello"
+
+        let requestBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        let send = Task { await viewModel.sendDraftMessage() }
+        let first: CannedFeedURLProtocol.CapturedRequest
+        do {
+            first = try await requestBarrier.wait(timeout: .seconds(10))
+            let originalSelection = viewModel.titleProviderSelection
+            viewModel.selectTitleProvider(.appleFoundationModels)
+            XCTAssertEqual(viewModel.titleProviderSelection, originalSelection)
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await send.value
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await send.value
+            throw error
+        }
+
+        await viewModel.sendDraftMessage()
+        let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        XCTAssertEqual(retried.body, first.body)
+        XCTAssertEqual(provider.generationCount, 1)
+    }
 }
 
 private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {

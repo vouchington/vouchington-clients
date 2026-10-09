@@ -88,6 +88,8 @@ public sealed partial class ChatConversationViewModel :
     set
     {
       if (value is null) return;
+      if (IsStreaming && pendingLocalTurn is { } activeTurn &&
+          !SameProviderIdentity(activeTurn.Provider, value)) return;
       if (SetProperty(ref selectedProviderStatus, value))
       {
         if (pendingLocalTurn is { } pending && !SameProviderIdentity(pending.Provider, value))
