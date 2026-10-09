@@ -4,6 +4,7 @@ import VouchaModels
 
 extension NativeChatViewModel {
     func selectTitleProvider(_ selection: NativeChatTitleProviderKind) {
+        guard !isSendingDraft, !isStreaming else { return }
         titleProviderSelection = selection
         let revision = titleProviderPersistenceState.advance()
         let persistenceState = titleProviderPersistenceState

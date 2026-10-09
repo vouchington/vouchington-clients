@@ -9,9 +9,17 @@ public sealed partial class ChatConversationViewModel
   {
     if (ConversationId == conversationId && Messages.Count > 0 && State != LoadState.Error && !IsDeleted) return;
 
+    var retainedTurn = !IsDeleted && conversationId == ConversationId && pendingLocalTurn?.ConversationId == conversationId
+        ? pendingLocalTurn : null;
+    var retainedProvider = retainedTurn is null ? null : SelectedProviderStatus;
     Reset();
     ConversationId = conversationId;
     Title = conversationTitle ?? string.Empty;
+    if (retainedTurn is not null)
+    {
+      SelectedProviderStatus = retainedProvider!;
+      pendingLocalTurn = retainedTurn;
+    }
     if (conversationId is null)
     {
       State = LoadState.Loaded;
@@ -25,6 +33,12 @@ public sealed partial class ChatConversationViewModel
       var reloaded = await ReloadMessagesAsync(conversationId, currentRequest, cancellationToken).ConfigureAwait(true);
       if (reloaded && currentRequest == Volatile.Read(ref requestId))
       {
+        if (pendingLocalTurn is { } pending &&
+            messages.Any(message => message.Id == pending.Body.UserMessageId) &&
+            messages.Any(message => message.Id == pending.Body.AssistantMessageId))
+        {
+          pendingLocalTurn = null;
+        }
         State = LoadState.Loaded;
       }
     }

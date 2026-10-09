@@ -149,6 +149,33 @@ public sealed class ChatLocalProviderSelectionTests
     Assert.False(viewModel.CanSetUpSelectedWindowsSystemLanguageModel);
   }
 
+  [Fact]
+  public async Task ProviderRefreshIgnoresTransientPickerNullAndReselectsFromTheNewList()
+  {
+    var provider = new WindowsSystemLanguageModelProvider(new SetupRuntime());
+    var viewModel = new ChatConversationViewModel(new FakeChatService(), new Resolver(provider), new TestLocalProvider("fallback", false));
+    var notifications = new List<string?>();
+    ChatProviderStatus? selectedWhileListChanged = null;
+    viewModel.PropertyChanged += (_, args) =>
+    {
+      notifications.Add(args.PropertyName);
+      if (args.PropertyName == nameof(ChatConversationViewModel.ProviderStatuses))
+      {
+        viewModel.SelectedProviderStatus = null!; // The bound Picker temporarily has no selected item.
+        selectedWhileListChanged = viewModel.SelectedProviderStatus;
+      }
+    };
+
+    await viewModel.SetUpSelectedWindowsSystemLanguageModelAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.NotNull(selectedWhileListChanged);
+    Assert.Equal(LocalChatProviderIds.WindowsSystemLanguageModel, selectedWhileListChanged.ModelProvider);
+    Assert.True(viewModel.SelectedProviderStatus.IsAvailable);
+    Assert.Contains(viewModel.SelectedProviderStatus, viewModel.ProviderStatuses);
+    Assert.True(notifications.IndexOf(nameof(ChatConversationViewModel.ProviderStatuses)) <
+        notifications.LastIndexOf(nameof(ChatConversationViewModel.SelectedProviderStatus)));
+  }
+
   [Theory]
   [InlineData(WindowsSystemLanguageModelReadiness.Unsupported)]
   [InlineData(WindowsSystemLanguageModelReadiness.Disabled)]

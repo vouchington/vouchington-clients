@@ -24,3 +24,8 @@ struct NativeChatDraftSendContext {
         self.providerSelection = providerSelection
     }
 }
+
+struct NativeChatPendingLocalTurn {
+    let context: NativeChatDraftSendContext
+    let response: NativeChatAssistantResponse
+}

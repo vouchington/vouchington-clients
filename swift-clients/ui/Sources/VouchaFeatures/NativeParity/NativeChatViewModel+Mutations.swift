@@ -8,13 +8,18 @@ extension NativeChatViewModel {
         guard let text = normalizedDraftMessage else { return }
         guard let client else { return }
         guard isLoadingDetail == false else { return }
+        guard !isSendingDraft, !isStreaming else { return }
         let providerSelection = titleProviderSelection
         let provider = titleProviderResolver.provider(for: providerSelection)
-        guard provider.status.isAvailable else {
+        let retry = pendingTurn(for: text, providerSelection: providerSelection, provider: provider)
+        guard retry != nil || provider.status.isAvailable else {
             detailErrorMessage = nil
             streamErrorMessage = provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
             return
         }
+
+        isSendingDraft = true
+        defer { isSendingDraft = false }
 
         detailErrorMessage = nil
         streamErrorMessage = nil
@@ -34,19 +39,15 @@ extension NativeChatViewModel {
 
         streamTask?.cancel()
         let localTurnIds = NativeChatMessageIDs.nextLocalTurn()
-        let userMessageId = localTurnIds.user
-        messages.append(.init(
-            id: userMessageId,
-            role: .user,
-            content: text,
-            isStreaming: false
-        ))
+        let userMessageId = retry?.context.userMessageId ?? localTurnIds.user
+        appendDraftUserMessage(id: userMessageId, text: text)
         beginStreaming(conversationId: conversationId, userMessageId: userMessageId)
+        pendingLocalTurn = retry
 
         streamTask = Task { [weak self, client] in
             await self?.streamDraftMessage(
                 client: client,
-                context: .init(
+                context: retry?.context ?? .init(
                     conversationId: conversationId,
                     text: text,
                     userMessageId: userMessageId,
@@ -57,6 +58,10 @@ extension NativeChatViewModel {
             )
         }
         _ = await streamTask?.value
+    }
+
+    private func appendDraftUserMessage(id: String, text: String) {
+        messages.append(.init(id: id, role: .user, content: text, isStreaming: false))
     }
 
     func abortStreaming() {
@@ -142,7 +147,7 @@ extension NativeChatViewModel {
         context: NativeChatDraftSendContext
     ) async {
         let provider = titleProviderResolver.provider(for: context.providerSelection)
-        guard provider.status.isAvailable else {
+        guard pendingLocalTurn?.context.userMessageId == context.userMessageId || provider.status.isAvailable else {
             failUnpersistedLocalGeneration(
                 context: context,
                 assistantMessageId: nil,

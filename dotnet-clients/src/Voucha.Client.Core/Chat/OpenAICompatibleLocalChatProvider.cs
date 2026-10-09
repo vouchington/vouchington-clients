@@ -106,7 +106,7 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
           UiText.Localized(reason),
           localization,
           Id,
-          null);
+          profile?.SelectedModel);
 
   private static UiText DisplayName(LocalLLMEndpointProfile profile) =>
       !string.IsNullOrWhiteSpace(profile.DisplayName) ? UiText.Verbatim(profile.DisplayName.Trim()) :
