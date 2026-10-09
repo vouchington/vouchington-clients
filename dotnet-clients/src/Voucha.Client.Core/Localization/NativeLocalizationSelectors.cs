@@ -13,6 +13,7 @@ public static class NativeLocalizationSelectors
       "settings.*",
       "shared.*",
       "native.common.*",
+      "native.copyrightNotices.*",
       "native.auth.*",
       "native.apiKeys.*",
       "native.credentials.*",

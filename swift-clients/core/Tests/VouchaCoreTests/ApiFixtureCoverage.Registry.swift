@@ -72,6 +72,7 @@ enum ApiFixtureCoverage {
         storyFixtureCoverage +
         nativeOAuthAndFriendRecommendationFixtureCoverage
         + copyrightMediaFixtureCoverage
+        + copyrightNoticesFixtureCoverage
         + chatFixtureCoverage
 }
 

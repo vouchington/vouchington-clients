@@ -44,8 +44,8 @@
                         <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
                         <Button Text="{DynamicResource native.dotnet.dynamic.follow}" Clicked="OnFollowUserClicked" IsVisible="{Binding CanFollowUser}" />
                         <Button Text="{DynamicResource native.dotnet.dynamic.unfollow}" Clicked="OnFollowUserClicked" IsVisible="{Binding CanUnfollowUser}" />
-                        <Button Text="{DynamicResource native.dotnet.profile.uploadAvatar}" Clicked="OnUploadAvatarClicked" IsVisible="{Binding CanEdit}" />
-                        <Button Text="{DynamicResource native.dotnet.profile.removeAvatar}" Clicked="OnRemoveAvatarClicked" IsVisible="{Binding CanEdit}" />
+                        <Button Text="{DynamicResource native.dotnet.profile.uploadAvatar}" Clicked="OnUploadAvatarClicked" IsVisible="{Binding CanEdit}" IsEnabled="{Binding CanMutateAvatar}" />
+                        <Button Text="{DynamicResource native.dotnet.profile.removeAvatar}" Clicked="OnRemoveAvatarClicked" IsVisible="{Binding CanEdit}" IsEnabled="{Binding CanMutateAvatar}" />
                         <Button Text="{DynamicResource native.swift.identityVerification.admin}" Clicked="OnUserAdminClicked" IsVisible="{Binding CanViewAdminLandingPages}" AutomationId="user-profile-admin" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>

@@ -141,6 +141,7 @@ extension NativeRouteDestinationSurface {
             || entry.destinationIdentifier == .engineeringValkey
             || entry.destinationIdentifier == .engineeringAiCosts
             || entry.destinationIdentifier == .moderationReports
+            || entry.destinationIdentifier == .copyrightNotices
             || entry.destinationIdentifier == .moderationDisputes
             || entry.destinationIdentifier == .moderationIntegrity
         return requiresAuth && !isSignedIn ? nil : client

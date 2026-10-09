@@ -52,7 +52,7 @@ public static partial class NativeDeepLinkResolver
         NativeRouteDestinationId.Chat => "chat",
         NativeRouteDestinationId.LandingPages => "landing-pages",
         NativeRouteDestinationId.Lists or NativeRouteDestinationId.Bookmarks => NavigationCatalog.ListsIntentId,
-        NativeRouteDestinationId.AccountSettings or NativeRouteDestinationId.ProfileSettings or NativeRouteDestinationId.Household or NativeRouteDestinationId.PaymentCards or NativeRouteDestinationId.PointValuations or NativeRouteDestinationId.SpendingCategories or NativeRouteDestinationId.RewardsProgramStatuses or
+        NativeRouteDestinationId.CopyrightNotices or NativeRouteDestinationId.AccountSettings or NativeRouteDestinationId.ProfileSettings or NativeRouteDestinationId.Household or NativeRouteDestinationId.PaymentCards or NativeRouteDestinationId.PointValuations or NativeRouteDestinationId.SpendingCategories or NativeRouteDestinationId.RewardsProgramStatuses or
             NativeRouteDestinationId.AdvancedSettings => NavigationCatalog.SettingsIntentId,
         _ => null,
       };
@@ -109,7 +109,7 @@ public static partial class NativeDeepLinkResolver
     return destinationId is NativeRouteDestinationId.UrlsBrowse or NativeRouteDestinationId.UrlDetail or NativeRouteDestinationId.UsersBrowse or
         NativeRouteDestinationId.PostCompose or NativeRouteDestinationId.Messages or NativeRouteDestinationId.Chat or
         NativeRouteDestinationId.Notifications or NativeRouteDestinationId.AccountSettings or NativeRouteDestinationId.ProfileSettings or NativeRouteDestinationId.Household or NativeRouteDestinationId.PaymentCards or NativeRouteDestinationId.PointValuations or NativeRouteDestinationId.SpendingCategories or NativeRouteDestinationId.RewardsProgramStatuses or
-        NativeRouteDestinationId.AdvancedSettings or NativeRouteDestinationId.Referrals or
+        NativeRouteDestinationId.CopyrightNotices or NativeRouteDestinationId.AdvancedSettings or NativeRouteDestinationId.Referrals or
         NativeRouteDestinationId.Bookmarks or NativeRouteDestinationId.TopicRecommendations or NativeRouteDestinationId.TagManagement or
         NativeRouteDestinationId.ModerationCases or NativeRouteDestinationId.UserAdmin or NativeRouteDestinationId.MembershipGrants or
         NativeRouteDestinationId.EngineeringQueues or NativeRouteDestinationId.EngineeringPostgresql or NativeRouteDestinationId.EngineeringValkey or

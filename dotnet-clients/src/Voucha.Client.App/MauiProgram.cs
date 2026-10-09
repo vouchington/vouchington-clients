@@ -90,6 +90,7 @@ public static partial class MauiProgram
     AddChatServices(builder.Services);
     AddHouseholdServices(builder.Services);
     AddPaymentCardServices(builder.Services);
+    builder.Services.AddSingleton<Voucha.Client.Core.Copyright.ICopyrightNoticesService, Voucha.Client.Core.Copyright.ApiCopyrightNoticesService>();
     AddPointValuationServices(builder.Services);
     AddSpendingCategoryServices(builder.Services);
     AddRewardsProgramStatusServices(builder.Services);

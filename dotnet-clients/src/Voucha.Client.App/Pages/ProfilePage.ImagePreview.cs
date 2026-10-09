@@ -23,6 +23,7 @@ public partial class ProfilePage
       Justification = "MAUI async void event handlers must not let picker or upload failures escape.")]
   private async void OnUploadAvatarClicked(object? sender, EventArgs e)
   {
+    if (!viewModel.CanMutateAvatar) return;
     var generation = ++avatarPreviewGeneration;
     using var cancellation = new CancellationTokenSource();
     avatarPreviewCancellation.Replace(cancellation);
@@ -71,6 +72,7 @@ public partial class ProfilePage
 
   private async void OnRemoveAvatarClicked(object? sender, EventArgs e)
   {
+    if (!viewModel.CanMutateAvatar) return;
     avatarPreviewGeneration++;
     avatarPreviewCancellation.CancelCurrent();
     ClearLocalAvatarPreview();

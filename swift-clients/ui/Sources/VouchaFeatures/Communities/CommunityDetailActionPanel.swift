@@ -61,7 +61,7 @@ struct CommunityDetailActionPanel: View {
                         canModerate: true
                     )
                 )
-                .id(viewModel.communityLoadRevision)
+                .id(automodWorkspaceIdentity)
             }
 
             if isSignedIn, viewModel.canModerateCommunity, viewModel.selectedTab == .moderation {
@@ -73,7 +73,7 @@ struct CommunityDetailActionPanel: View {
                     ),
                     onNavigate: onNavigate
                 )
-                .id(viewModel.communityLoadRevision)
+                .id(automodWorkspaceIdentity)
             }
 
             if viewModel.selectedTab != .modmail,
@@ -97,5 +97,9 @@ struct CommunityDetailActionPanel: View {
                 CommunityVacationControls(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
             }
         }
+    }
+
+    private var automodWorkspaceIdentity: String {
+        "\(viewModel.slug)|\(viewModel.communityDetail?.community.automodAction.rawValue ?? "")"
     }
 }

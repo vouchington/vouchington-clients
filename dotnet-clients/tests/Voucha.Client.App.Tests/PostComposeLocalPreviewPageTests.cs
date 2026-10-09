@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App;
 using Voucha.Client.App.Pages;
+using Voucha.Client.App.Support;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
@@ -17,14 +18,22 @@ namespace Voucha.Client.App.Tests;
 public sealed class PostComposeLocalPreviewPageTests
 {
   [Fact]
+  public void UndecodableBytesDoNotBecomeRetainedThumbnail()
+  {
+    Assert.Null(LocalImagePreview.RetainedThumbnailFromBytes([1, 2, 3]));
+  }
+
+  [Fact]
   public async Task MountedPageShowsSelectedBytesBeforeUploadUrlAndRemovesPendingSelection()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var locale = new UiLocaleController(new EnglishLanguages());
     _ = new Application
     {
       Resources =
       {
-        ["UiLocaleVersion"] = 0,
+        ["UiLocaleVersion"] = new UiLocaleVersion(locale),
+        ["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English),
         ["Body"] = new Style(typeof(Label)),
         ["Metadata"] = new Style(typeof(Label)),
       },
@@ -34,7 +43,6 @@ public sealed class PostComposeLocalPreviewPageTests
         DispatchProxy.Create<IPostsService, UnusedService>(),
         new AppConfig(new Uri("https://api.test"), "site-key"),
         imageUploadService: uploads);
-    using var locale = new UiLocaleController(new EnglishLanguages());
     var page = new PostComposePage(
         viewModel,
         DispatchProxy.Create<ITurnstileTokenProvider, UnusedService>(),
@@ -65,6 +73,10 @@ public sealed class PostComposeLocalPreviewPageTests
     }
     Assert.False(await upload);
     Assert.Empty(viewModel.Images);
+
+    Assert.True(viewModel.TryAddImageDraft(new PostComposeImageDraft("ready-image", 0, PreviewUnavailable: true)));
+    Assert.Contains(page.GetVisualTreeDescendants().OfType<Label>(),
+        label => label.Text == "Image uploaded. Preview unavailable." && label.IsVisible);
   }
 
   private sealed class HeldUploadService : IImageUploadService

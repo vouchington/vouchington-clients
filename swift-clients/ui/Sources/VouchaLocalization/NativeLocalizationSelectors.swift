@@ -8,6 +8,7 @@ public enum NativeLocalizationSelectors {
         "native.apiKeys.*",
         "native.auth.*",
         "native.navigation.*",
+        "native.copyrightNotices.*",
         "native.swift.navigation.*",
         "native.swift.navigationTitles.*",
         "images.uploadPreviewUnavailable"

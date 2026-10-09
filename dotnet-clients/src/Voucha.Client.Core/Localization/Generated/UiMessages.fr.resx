@@ -295,6 +295,65 @@
   <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ articles associés</value></data>
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ articles associés</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Réessayer</value></data>
+  <data name="native.copyrightNotices.acceptedDate" xml:space="preserve"><value>Accepté le {date}</value></data>
+  <data name="native.copyrightNotices.affectedHostedMaterial" xml:space="preserve"><value>Contenu hébergé concerné</value></data>
+  <data name="native.copyrightNotices.affectedPlacementCount.__plural.one" xml:space="preserve"><value>{count} emplacement concerné.</value></data>
+  <data name="native.copyrightNotices.affectedPlacementCount.__plural.other" xml:space="preserve"><value>{count} emplacements concernés.</value></data>
+  <data name="native.copyrightNotices.case" xml:space="preserve"><value>Dossier {id}</value></data>
+  <data name="native.copyrightNotices.caseTimeline" xml:space="preserve"><value>Chronologie du dossier</value></data>
+  <data name="native.copyrightNotices.claimant" xml:space="preserve"><value>Plaignant</value></data>
+  <data name="native.copyrightNotices.complaintAfterDecision" xml:space="preserve"><value>Vous pouvez déposer une plainte après qu’une décision a été prise.</value></data>
+  <data name="native.copyrightNotices.complaintAfterRedecision" xml:space="preserve"><value>Une nouvelle plainte sera possible après une nouvelle décision du personnel.</value></data>
+  <data name="native.copyrightNotices.complaintAvailable" xml:space="preserve"><value>Une plainte peut être déposée au sujet de cette décision.</value></data>
+  <data name="native.copyrightNotices.complaintCannotSubmit" xml:space="preserve"><value>Aucune plainte ne peut être déposée au sujet de cette décision.</value></data>
+  <data name="native.copyrightNotices.complaintMaintained" xml:space="preserve"><value>La décision initiale a été maintenue.</value></data>
+  <data name="native.copyrightNotices.complaintReceived" xml:space="preserve"><value>Votre plainte a été reçue.</value></data>
+  <data name="native.copyrightNotices.complaintUpheld" xml:space="preserve"><value>Votre plainte a été accueillie.</value></data>
+  <data name="native.copyrightNotices.complaintWindowEnds" xml:space="preserve"><value>Le délai de plainte prend fin le {date}.</value></data>
+  <data name="native.copyrightNotices.decidedDate" xml:space="preserve"><value>Décision le {date}</value></data>
+  <data name="native.copyrightNotices.decision" xml:space="preserve"><value>Décision</value></data>
+  <data name="native.copyrightNotices.deliveryCouldNotComplete" xml:space="preserve"><value>La livraison n’a pas pu être effectuée</value></data>
+  <data name="native.copyrightNotices.deliveryFailed" xml:space="preserve"><value>Échec de la livraison</value></data>
+  <data name="native.copyrightNotices.deliveryPending" xml:space="preserve"><value>Livraison en attente</value></data>
+  <data name="native.copyrightNotices.detailTitle" xml:space="preserve"><value>Avis de droit d’auteur</value></data>
+  <data name="native.copyrightNotices.disputeSettlements" xml:space="preserve"><value>Règlements des litiges</value></data>
+  <data name="native.copyrightNotices.euComplaintUpheldReviewing" xml:space="preserve"><value>Votre plainte a été accueillie. Le personnel réexamine cet avis.</value></data>
+  <data name="native.copyrightNotices.euDecisionReviewing" xml:space="preserve"><value>Un modérateur examine cet avis.</value></data>
+  <data name="native.copyrightNotices.euDetailTitle" xml:space="preserve"><value>Avis de droit d’auteur de l’UE</value></data>
+  <data name="native.copyrightNotices.euMaterialRestricted" xml:space="preserve"><value>Le contenu hébergé a été restreint.</value></data>
+  <data name="native.copyrightNotices.euNoAction" xml:space="preserve"><value>Aucune mesure n’a été prise.</value></data>
+  <data name="native.copyrightNotices.euOtherRedressRoutes" xml:space="preserve"><value>Vous pouvez saisir un organisme certifié de règlement extrajudiciaire des litiges au titre de l’article 21 du DSA. Vous pouvez également saisir la justice.</value></data>
+  <data name="native.copyrightNotices.eventAppealReceived" xml:space="preserve"><value>Recours reçu</value></data>
+  <data name="native.copyrightNotices.eventAppealReviewed" xml:space="preserve"><value>Recours examiné</value></data>
+  <data name="native.copyrightNotices.eventCounterNoticeReceived" xml:space="preserve"><value>Contre-notification reçue</value></data>
+  <data name="native.copyrightNotices.eventCounterNoticeReviewed" xml:space="preserve"><value>Contre-notification examinée</value></data>
+  <data name="native.copyrightNotices.eventMaterialRestored" xml:space="preserve"><value>Contenu rétabli</value></data>
+  <data name="native.copyrightNotices.eventMaterialWithheld" xml:space="preserve"><value>Contenu retenu</value></data>
+  <data name="native.copyrightNotices.eventNoticeReceived" xml:space="preserve"><value>Avis reçu</value></data>
+  <data name="native.copyrightNotices.eventProvisionalRestriction" xml:space="preserve"><value>Contenu provisoirement restreint</value></data>
+  <data name="native.copyrightNotices.eventWithdrawalReceived" xml:space="preserve"><value>Retrait reçu</value></data>
+  <data name="native.copyrightNotices.hostedMaterialUnavailable" xml:space="preserve"><value>Ce contenu hébergé n’est pas visible pour cette personne.</value></data>
+  <data name="native.copyrightNotices.loadMore" xml:space="preserve"><value>Charger plus d’avis de droit d’auteur acceptés</value></data>
+  <data name="native.copyrightNotices.noDisputeSettlements" xml:space="preserve"><value>Aucun règlement de litige n’a été enregistré.</value></data>
+  <data name="native.copyrightNotices.noSettlementOutcome" xml:space="preserve"><value>Aucun résultat n’a été enregistré.</value></data>
+  <data name="native.copyrightNotices.otherRedressRoutes" xml:space="preserve"><value>Autres voies de recours</value></data>
+  <data name="native.copyrightNotices.privacyNote" xml:space="preserve"><value>Les dossiers affichent le profil public actuel du plaignant. Ils excluent l’identité juridique privée, la correspondance, les preuves et l’analyse des agents.</value></data>
+  <data name="native.copyrightNotices.receivedDate" xml:space="preserve"><value>Reçu le {date}</value></data>
+  <data name="native.copyrightNotices.referredDate" xml:space="preserve"><value>Transmis le {date}</value></data>
+  <data name="native.copyrightNotices.sentDate" xml:space="preserve"><value>Envoyé le {date}</value></data>
+  <data name="native.copyrightNotices.settlementImplemented" xml:space="preserve"><value>Mis en œuvre le {date}</value></data>
+  <data name="native.copyrightNotices.settlementOutcome" xml:space="preserve"><value>Résultat : {result}. Décision le {date}</value></data>
+  <data name="native.copyrightNotices.statementsAndDecisions" xml:space="preserve"><value>Déclarations des motifs et décisions</value></data>
+  <data name="native.copyrightNotices.status" xml:space="preserve"><value>Statut : {status}</value></data>
+  <data name="native.copyrightNotices.surfaceCommunityBannerImage" xml:space="preserve"><value>Image de bannière de la communauté</value></data>
+  <data name="native.copyrightNotices.surfaceCommunityProfileImage" xml:space="preserve"><value>Image de profil de la communauté</value></data>
+  <data name="native.copyrightNotices.surfacePostImage" xml:space="preserve"><value>Image de publication</value></data>
+  <data name="native.copyrightNotices.surfaceProfileImage" xml:space="preserve"><value>Image de profil</value></data>
+  <data name="native.copyrightNotices.surfaceProfileLinkImage" xml:space="preserve"><value>Image du lien de profil</value></data>
+  <data name="native.copyrightNotices.surfaceTopicHero" xml:space="preserve"><value>Image principale du sujet</value></data>
+  <data name="native.copyrightNotices.surfaceTopicLogo" xml:space="preserve"><value>Logo du sujet</value></data>
+  <data name="native.copyrightNotices.title" xml:space="preserve"><value>Avis de droit d’auteur acceptés</value></data>
+  <data name="native.copyrightNotices.yourComplaint" xml:space="preserve"><value>Votre plainte</value></data>
   <data name="native.credentials.action" xml:space="preserve"><value>Action</value></data>
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Impossible de charger les paramètres des identifiants</value></data>

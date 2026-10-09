@@ -47,6 +47,9 @@ public partial class PostComposePage
 
           var preview = await LocalImagePreview.ReadSelectedBytesAsync(
               selection.Content, batchCancellationSource.Token);
+          var retainedThumbnail = preview.CanPreview
+              ? LocalImagePreview.RetainedThumbnailFromBytes(preview.Bytes)
+              : null;
           using var uploadContent = new MemoryStream(preview.Bytes, writable: false);
           var uploaded = await viewModel.UploadImageWithPreviewAsync(
               uploadContent,
@@ -54,7 +57,8 @@ public partial class PostComposePage
               preview.Bytes.Length,
               preview.CanPreview ? preview.Bytes : null,
               !preview.CanPreview,
-              cancellationToken: batchCancellationSource.Token);
+              cancellationToken: batchCancellationSource.Token,
+              completedPreviewBytes: retainedThumbnail);
           if (!uploaded) break;
         }
         catch (Exception ex)

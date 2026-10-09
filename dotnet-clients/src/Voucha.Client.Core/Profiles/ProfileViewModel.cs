@@ -122,14 +122,22 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public bool CanEdit
   {
     get => canEdit;
-    private set => SetProperty(ref canEdit, value);
+    private set
+    {
+      if (SetProperty(ref canEdit, value)) OnPropertyChanged(nameof(CanMutateAvatar));
+    }
   }
 
   public bool IsUploadingAvatar
   {
     get => isUploadingAvatar;
-    private set => SetProperty(ref isUploadingAvatar, value);
+    private set
+    {
+      if (SetProperty(ref isUploadingAvatar, value)) OnPropertyChanged(nameof(CanMutateAvatar));
+    }
   }
+
+  public bool CanMutateAvatar => CanEdit && !IsUploadingAvatar;
 
   public bool IsSavingBio
   {

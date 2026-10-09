@@ -14,6 +14,11 @@ enum NativeRouteCatalogAccount {
             )
         ),
         .included(
+            destinationIdentifier: .copyrightNotices,
+            representativePath: "/copyright/notices",
+            patterns: ["/copyright/notices", "/copyright/notices/:id"]
+        ),
+        .included(
             destinationIdentifier: .household,
             representativePath: "/my/household",
             patterns: ["/my/household"]

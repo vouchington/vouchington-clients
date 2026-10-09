@@ -74,6 +74,13 @@ extension NativeRouteDestinationSurface {
                 detailDestinationContent
             case .postCompose:
                 postComposeContent
+            case .copyrightNotices:
+                NativeCopyrightNoticesSurface(
+                    client: viewModel.client,
+                    noticeId: routeMatch?.param("id"),
+                    onNavigateToTargetPath: onNavigateToTargetPath
+                )
+                .id(routeMatch?.param("id"))
             case .topicManagement:
                 NativeTopicManagementSurface(client: viewModel.client, routeMatch: viewModel.routeMatch)
             case .accountSettings, .profileSettings, .advancedSettings, .notificationSettings:

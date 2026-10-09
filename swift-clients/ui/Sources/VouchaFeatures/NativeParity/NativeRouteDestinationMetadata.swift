@@ -2,6 +2,8 @@ extension NativeRouteDestinationIdentifier {
     var nativeRows: [NativeRouteDestinationRow] {
         switch self {
         case .signIn: signInNativeRows
+        case .copyrightNotices:
+            [row("doc.text.magnifyingglass", .nativeCopyrightNoticesTitle, .nativeCopyrightNoticesPrivacyNote)]
         case .webSearch:
             [
                 row(

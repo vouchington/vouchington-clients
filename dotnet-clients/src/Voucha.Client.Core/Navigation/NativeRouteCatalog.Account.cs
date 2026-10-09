@@ -4,6 +4,8 @@ public static partial class NativeRouteCatalog
 {
   private static NativeRouteCatalogEntry[] AccountEntries() =>
   [
+    Included("Copyright notices", NativeRouteDestinationId.CopyrightNotices,
+        "/copyright/notices", ["/copyright/notices", "/copyright/notices/:id"]),
     Included("Sign in", NativeRouteDestinationId.SignIn, "/login", ["/login"]),
     Included(
         "Account settings",

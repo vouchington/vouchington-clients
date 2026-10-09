@@ -50,6 +50,7 @@ public enum NativeRouteDestinationIdentifier: String, CaseIterable, Identifiable
     case notifications
 
     case accountSettings = "account-settings"
+    case copyrightNotices = "copyright-notices"
     case profileSettings = "profile-settings"
     case household
     case paymentCards = "payment-cards"
@@ -82,6 +83,7 @@ public enum NativeRouteDestinationIdentifier: String, CaseIterable, Identifiable
 
     public var requiresAuthenticatedSession: Bool {
         self == .topicImportExport || self == .sourceImportExport || self == .friendRecommendations
+            || self == .copyrightNotices
     }
 
     public var isFediverseDestination: Bool {

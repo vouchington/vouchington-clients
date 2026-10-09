@@ -15,6 +15,8 @@ final class NativeTopicImageFieldUploadState {
     var localPreviewData: Data?
     var previewImageId: String?
     var generation = 0
+    @ObservationIgnored
+    var uploadTask: Task<Void, Never>?
 }
 
 struct NativeTopicImageField: View {
@@ -111,16 +113,13 @@ struct NativeTopicImageField: View {
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.image]) { result in
             switch result {
             case let .success(url):
-                Task { await uploadImage(at: url) }
+                beginUpload(at: url)
             case let .failure(error):
                 uploadState.uploadError = .verbatim(error.localizedDescription)
             }
         }
         .onDisappear {
-            uploadState.generation += 1
-            uploadState.isUploading = false
-            uploadState.localPreviewData = nil
-            uploadState.previewImageId = nil
+            cancelUpload()
         }
         .onChange(of: imageId) { _, newValue in handleImageIdChange(newValue) }
         .onChange(of: placement) { _, newValue in
@@ -139,11 +138,23 @@ struct NativeTopicImageField: View {
 }
 
 extension NativeTopicImageField {
+    func beginUpload(at url: URL) {
+        guard !uploadState.isUploading, uploadState.uploadTask == nil else { return }
+        uploadState.uploadTask = Task { await uploadImage(at: url) }
+    }
+
+    func cancelUpload() {
+        uploadState.generation += 1
+        uploadState.uploadTask?.cancel()
+        uploadState.localPreviewData = nil
+        uploadState.previewImageId = nil
+        // Keep the field busy until the canceled operation releases its bytes and request.
+    }
+
     func handleImageIdChange(_ newValue: String) {
         if newValue != uploadState.previewImageId {
             if uploadState.isUploading, uploadState.previewImageId == nil {
-                uploadState.generation += 1
-                uploadState.isUploading = false
+                cancelUpload()
             }
             uploadState.localPreviewData = nil
             uploadState.previewImageId = nil
@@ -154,19 +165,25 @@ extension NativeTopicImageField {
     }
 
     func uploadImage(at url: URL) async {
+        guard !Task.isCancelled else {
+            uploadState.uploadTask = nil
+            return
+        }
+        guard !uploadState.isUploading else { return }
         uploadState.isUploading = true
         uploadState.uploadError = nil
         uploadState.generation += 1
         let generation = uploadState.generation
         defer {
-            if generation == uploadState.generation {
-                uploadState.isUploading = false
-            }
+            uploadState.isUploading = false
+            uploadState.uploadTask = nil
         }
         do {
             uploadState.localPreviewData = nil
             uploadState.previewImageId = nil
+            try Task.checkCancellation()
             let (data, contentType) = try await ImageSelectionLoader.load(from: url)
+            try Task.checkCancellation()
             guard generation == uploadState.generation else { return }
             uploadState.localPreviewData = data
             let uploadedImageId = try await imageUploadService.uploadImage(data: data, contentType: contentType)
@@ -174,7 +191,7 @@ extension NativeTopicImageField {
             uploadState.previewImageId = uploadedImageId
             imageId = uploadedImageId
         } catch {
-            guard generation == uploadState.generation else { return }
+            guard generation == uploadState.generation, !Task.isCancelled else { return }
             uploadState.localPreviewData = nil
             uploadState.previewImageId = nil
             uploadState.uploadError = .verbatim(error.localizedDescription)

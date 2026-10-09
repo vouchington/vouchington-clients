@@ -53,6 +53,10 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml.cs" Link="Pages/AiCostsPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml" Link="Pages/EngineeringQueuesPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml.cs" Link="Pages/EngineeringQueuesPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.cs" Link="Pages/CopyrightNoticesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.List.cs" Link="Pages/CopyrightNoticesPage.List.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.Detail.cs" Link="Pages/CopyrightNoticesPage.Detail.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.Eu.cs" Link="Pages/CopyrightNoticesPage.Eu.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.cs" Link="Pages/MemberAppealsPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Form.cs" Link="Pages/MemberAppealsPage.Form.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Lifecycle.cs" Link="Pages/MemberAppealsPage.Lifecycle.cs" />

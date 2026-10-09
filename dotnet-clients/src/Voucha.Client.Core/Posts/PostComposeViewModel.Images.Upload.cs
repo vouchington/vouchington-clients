@@ -19,7 +19,7 @@ public sealed partial class PostComposeViewModel
       long contentLength,
       string? caption = null,
       CancellationToken cancellationToken = default) =>
-      UploadImageWithPreviewAsync(content, contentType, contentLength, null, false, caption, cancellationToken);
+      UploadImageWithPreviewAsync(content, contentType, contentLength, null, false, caption, null, cancellationToken);
 
   public async Task<bool> UploadImageWithPreviewAsync(
       Stream content,
@@ -28,6 +28,7 @@ public sealed partial class PostComposeViewModel
       ReadOnlyMemory<byte>? localPreviewBytes,
       bool previewUnavailable,
       string? caption = null,
+      ReadOnlyMemory<byte>? completedPreviewBytes = null,
       CancellationToken cancellationToken = default)
   {
     if (Interlocked.CompareExchange(ref imageUploadInProgress, 1, 0) != 0)
@@ -139,7 +140,8 @@ public sealed partial class PostComposeViewModel
           return false;
         }
 
-        UpdateImage(uploadedImageId, image => image with { IsUploading = false, UploadProgress = 1d, UploadError = null });
+        UpdateImage(uploadedImageId, image => CompleteImagePreview(
+            image, localPreviewBytes, completedPreviewBytes, previewUnavailable));
         ClearImageUploadError();
         return true;
       }

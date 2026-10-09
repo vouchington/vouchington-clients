@@ -36,7 +36,7 @@ public sealed partial class ProfileViewModelTests
   }
 
   [Fact]
-  public async Task RemoveAvatarWinsOverHeldCancelledUploadResponse()
+  public async Task RemoveAvatarWaitsUntilCancelledIdentityUploadActuallyFinishes()
   {
     var (viewModel, proxy) = await NewHeldAvatarViewModelAsync();
     using var cancellation = new CancellationTokenSource();
@@ -46,7 +46,11 @@ public sealed partial class ProfileViewModelTests
     {
       await proxy.UpdateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
       cancellation.Cancel();
+      Assert.True(viewModel.IsUploadingAvatar);
+      Assert.False(viewModel.CanMutateAvatar);
+      Assert.False(proxy.IdentityRequestCancellation.CanBeCanceled);
       await viewModel.RemoveAvatarAsync(TestContext.Current.CancellationToken);
+      Assert.Equal(1, proxy.UpdateCalls);
     }
     finally
     {
@@ -54,6 +58,9 @@ public sealed partial class ProfileViewModelTests
       await upload;
     }
     Assert.False(await upload);
+    Assert.True(viewModel.CanMutateAvatar);
+    await viewModel.RemoveAvatarAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, proxy.UpdateCalls);
 
     Assert.Null(viewModel.AvatarUrl);
     Assert.Null(viewModel.ProfileImageId);
@@ -61,7 +68,7 @@ public sealed partial class ProfileViewModelTests
   }
 
   [Fact]
-  public async Task ReplacementAvatarWinsOverHeldFirstUploadResponse()
+  public async Task ReplacementAvatarIsIgnoredUntilFirstIdentityUploadActuallyFinishes()
   {
     var (viewModel, proxy) = await NewHeldAvatarViewModelAsync(new SequentialAvatarImageService());
     using var firstCancellation = new CancellationTokenSource();
@@ -73,8 +80,10 @@ public sealed partial class ProfileViewModelTests
     {
       await proxy.UpdateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
       firstCancellation.Cancel();
-      Assert.True(await viewModel.UploadAvatarAsync(
+      Assert.False(await viewModel.UploadAvatarAsync(
           secondContent, "image/png", secondContent.Length, TestContext.Current.CancellationToken));
+      Assert.Equal(1, proxy.UpdateCalls);
+      Assert.True(viewModel.IsUploadingAvatar);
     }
     finally
     {
@@ -82,10 +91,45 @@ public sealed partial class ProfileViewModelTests
       await first;
     }
     Assert.False(await first);
+    Assert.True(viewModel.CanMutateAvatar);
+    Assert.True(await viewModel.UploadAvatarAsync(
+        secondContent, "image/png", secondContent.Length, TestContext.Current.CancellationToken));
+    Assert.Equal(2, proxy.UpdateCalls);
 
     Assert.Equal("image-2", viewModel.ProfileImageId);
     Assert.Equal(new Uri("https://images.example.test/images/placements/avatar-placement/3/image-2?w=144"),
         viewModel.AvatarUrl);
+  }
+
+  [Fact]
+  public async Task HeldAvatarRemovalRejectsBothOtherMutationsUntilServerResponse()
+  {
+    var (viewModel, proxy) = await NewHeldAvatarViewModelAsync();
+    using var cancellation = new CancellationTokenSource();
+    await using var content = new MemoryStream([1, 2, 3]);
+    var removal = viewModel.RemoveAvatarAsync(cancellation.Token);
+    try
+    {
+      await proxy.UpdateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+      cancellation.Cancel();
+      Assert.True(viewModel.IsUploadingAvatar);
+      Assert.False(proxy.IdentityRequestCancellation.CanBeCanceled);
+      Assert.False(await viewModel.UploadAvatarAsync(
+          content, "image/png", content.Length, TestContext.Current.CancellationToken));
+      await viewModel.RemoveAvatarAsync(TestContext.Current.CancellationToken);
+      Assert.Equal(1, proxy.UpdateCalls);
+    }
+    finally
+    {
+      proxy.ReleaseUpdate.TrySetResult(true);
+      await removal;
+    }
+    Assert.False(viewModel.IsUploadingAvatar);
+    Assert.True(viewModel.CanMutateAvatar);
+    Assert.NotNull(viewModel.AvatarUrl);
+    await viewModel.RemoveAvatarAsync(TestContext.Current.CancellationToken);
+    Assert.Null(viewModel.AvatarUrl);
+    Assert.Equal(2, proxy.UpdateCalls);
   }
 
   private static async Task<(ProfileViewModel ViewModel, HeldIdentityUpdateProxy Proxy)> NewHeldAvatarViewModelAsync(
@@ -109,6 +153,8 @@ public sealed partial class ProfileViewModelTests
   public class HeldIdentityUpdateProxy : DispatchProxy
   {
     private int heldUpdates;
+    public int UpdateCalls => Volatile.Read(ref heldUpdates);
+    public CancellationToken IdentityRequestCancellation { get; private set; }
     public ISettingsService Target { get; set; } = null!;
 
     public TaskCompletionSource<bool> UpdateStarted { get; } =
@@ -120,9 +166,10 @@ public sealed partial class ProfileViewModelTests
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
       if (targetMethod?.Name == nameof(ISettingsService.UpdateMyIdentityAsync) &&
-          args?[0] is UpdateMyIdentityBody { ProfileImageId.Value: not null } &&
+          args?[0] is UpdateMyIdentityBody &&
           Interlocked.Increment(ref heldUpdates) == 1)
       {
+        IdentityRequestCancellation = (CancellationToken)args[1]!;
         UpdateStarted.TrySetResult(true);
         return HeldUpdateAsync(targetMethod, args);
       }

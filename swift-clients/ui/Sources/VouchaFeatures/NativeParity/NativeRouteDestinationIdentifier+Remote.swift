@@ -81,7 +81,7 @@ extension NativeRouteDestinationIdentifier {
              .moderationReviewQueue, .moderationAdmin, .moderationIntegrity,
              .moderationCases, .moderationTransparency:
             .moderation
-        case .accountSettings, .profileSettings, .advancedSettings, .notificationSettings:
+        case .accountSettings, .profileSettings, .advancedSettings, .notificationSettings, .copyrightNotices:
             .account
         case .household, .paymentCards, .pointValuations, .spendingCategories, .rewardsProgramStatuses,
              .friendRecommendations:
