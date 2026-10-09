@@ -105,6 +105,7 @@ struct NativeRssFeedSummary: Decodable, Identifiable {
     let rssFeedUrl: NativeRssFeedUrl
     let hostname: NativeHostnameName?
     let topic: NativeRssFeedTopicSummary?
+    var provenance: PublicContentProvenance?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -113,6 +114,7 @@ struct NativeRssFeedSummary: Decodable, Identifiable {
         case rssFeedUrl
         case hostname
         case topic
+        case provenance
     }
 }
 

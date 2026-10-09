@@ -12,6 +12,7 @@ struct ListsSummaryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(list.name).font(Typography.headline)
+            ProvenanceBadge(provenance: list.provenance)
             Text(list.description
                 ?? UiMessages.string(list.visibility.titleKey, locale: nativeUiLocale))
                 .font(Typography.body)

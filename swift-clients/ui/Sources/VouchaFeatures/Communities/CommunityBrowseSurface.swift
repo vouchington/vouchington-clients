@@ -28,7 +28,8 @@ struct CommunityBrowseSurface: View {
                         NativeSurfaceRow(row: .init(
                             icon: "person.3",
                             title: .verbatim(row.title),
-                            detail: .joined([.verbatim(row.detail), row.metrics])
+                            detail: .joined([.verbatim(row.detail), row.metrics]),
+                            provenance: row.provenance
                         ))
                     }
 

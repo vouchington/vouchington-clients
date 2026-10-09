@@ -18,6 +18,7 @@ struct CommunityWorkspaceSurface: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text(verbatim: UiMessages.string(viewModel.summary.title, locale: nativeUiLocale))
                     .font(Typography.largeTitle)
+                ProvenanceBadge(provenance: viewModel.communityDetail?.community.provenance)
                 Text(verbatim: UiMessages.string(viewModel.summary.detail, locale: nativeUiLocale))
                     .foregroundStyle(.secondary)
                 Text(verbatim: UiMessages.string(viewModel.summary.activity, locale: nativeUiLocale))

@@ -65,7 +65,8 @@ extension NativeRouteSurfaceViewModel {
                     ?? .verbatim(entity.displayTitle(fallback: entity.id.ifNotEmpty ?? String(index + 1))),
                 topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response),
                 declaredLanguage: authoredTitle?.declaredLanguage,
-                detectedLanguage: authoredTitle?.detectedLanguage
+                detectedLanguage: authoredTitle?.detectedLanguage,
+                provenance: entity.provenance
             )
         }
     }
@@ -113,7 +114,12 @@ extension NativeRouteSurfaceViewModel {
             ])
         } ?? appText(.nativeSwiftRouteSurfaceVoteThisTopic)
         return [
-            row("tag", .verbatim(entity.displayTitle(fallback: routeEntityId)), .verbatim(entity.displayDetail)),
+            row(
+                "tag",
+                .verbatim(entity.displayTitle(fallback: routeEntityId)),
+                .verbatim(entity.displayDetail),
+                provenance: entity.provenance
+            ),
             row("chevron.up.chevron.down", appText(.nativeSwiftRouteSurfaceVote), voteDetail),
             row("doc.text", countText(0, item: "post"), appText(.nativeSwiftRouteSurfaceTopicPostsAvailable)),
             row(
