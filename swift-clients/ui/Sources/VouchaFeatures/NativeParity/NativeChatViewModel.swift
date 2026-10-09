@@ -51,7 +51,7 @@ final class NativeChatViewModel {
     var messages: [NativeChatTimelineMessage] = []
     var draftMessage = "" {
         didSet {
-            if !isStreaming, let pendingLocalTurn,
+            if !isSendingDraft, let pendingLocalTurn,
                draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) != pendingLocalTurn.context.text {
                 self.pendingLocalTurn = nil
             }
@@ -66,6 +66,7 @@ final class NativeChatViewModel {
     var isLoadingList = false
     var isLoadingDetail = false
     var isLoadingOlderMessages = false
+    var isSendingDraft = false
     var isStreaming = false
     var isGeneratingTitle = false
     var streamedContent = ""

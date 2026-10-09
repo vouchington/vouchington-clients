@@ -119,7 +119,7 @@ extension NativeChatSurface {
                 }
             }
             .pickerStyle(.menu)
-            .disabled(viewModel.isStreaming)
+            .disabled(viewModel.isSendingDraft || viewModel.isStreaming)
             Text(UiMessages.string(viewModel.titleProviderSelection.detailText, locale: nativeUiLocale))
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryLabel)
@@ -172,6 +172,7 @@ extension NativeChatSurface {
                     viewModel.draftMessage
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                         .isEmpty
+                        || viewModel.isSendingDraft
                         || viewModel.isStreaming
                         || viewModel.isLoadingDetail
                 )
