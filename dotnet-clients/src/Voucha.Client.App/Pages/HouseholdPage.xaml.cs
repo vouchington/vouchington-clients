@@ -60,7 +60,7 @@ public partial class HouseholdPage : ContentPage
         .Where(control => control.HasMore)
         .Select(control => (
             Control: control,
-            Top: VerticalOffset(control, content),
+            Top: ViewportPagination.VerticalOffset(control, content),
             Height: control.Height > 0 ? control.Height : control.DesiredSize.Height))
         .Where(candidate => double.IsFinite(candidate.Top) && candidate.Height > 0)
         .ToArray();
@@ -68,18 +68,6 @@ public partial class HouseholdPage : ContentPage
     {
       control.TryLoadAutomatically();
     }
-  }
-
-  private static double VerticalOffset(VisualElement control, VisualElement content)
-  {
-    var offset = 0d;
-    Element? current = control;
-    while (current is VisualElement visual && !ReferenceEquals(current, content))
-    {
-      offset += visual.Y;
-      current = visual.Parent;
-    }
-    return ReferenceEquals(current, content) ? offset : double.PositiveInfinity;
   }
 
   private async void OnCreateClicked(object? sender, EventArgs e) => await viewModel.CreateHouseholdAsync();

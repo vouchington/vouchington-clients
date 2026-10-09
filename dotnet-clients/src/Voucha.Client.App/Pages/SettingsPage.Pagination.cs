@@ -41,7 +41,7 @@ public partial class SettingsPage
         .Where(control => control.HasMore)
         .Select(control => (
             Control: control,
-            Top: VerticalOffset(control, content),
+            Top: ViewportPagination.VerticalOffset(control, content),
             Height: control.Height > 0 ? control.Height : control.DesiredSize.Height))
         .Where(candidate => double.IsFinite(candidate.Top) && candidate.Height > 0)
         .ToArray();
@@ -65,17 +65,5 @@ public partial class SettingsPage
   {
     if (sender is HybridPaginationControl control) settingsPaginationVisibility.Rearm(control);
     TryLoadVisibleSettingsPagination(SettingsScroll, SettingsScroll.ScrollY);
-  }
-
-  private static double VerticalOffset(VisualElement control, VisualElement content)
-  {
-    var offset = 0d;
-    Element? current = control;
-    while (current is VisualElement visual && !ReferenceEquals(current, content))
-    {
-      offset += visual.Y;
-      current = visual.Parent;
-    }
-    return ReferenceEquals(current, content) ? offset : double.PositiveInfinity;
   }
 }

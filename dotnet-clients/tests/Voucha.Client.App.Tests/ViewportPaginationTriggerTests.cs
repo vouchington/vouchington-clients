@@ -68,4 +68,30 @@ public sealed class ViewportPaginationTriggerTests
     Assert.Equal("Loading more", button.Text);
     Assert.Equal("Loading more", SemanticProperties.GetDescription(button));
   }
+
+  [Fact]
+  public void VerticalOffsetSumsAncestorsUntilTheContentRoot()
+  {
+    var content = new ContentView();
+    var section = new ContentView();
+    var control = new BoxView();
+    section.Content = control;
+    content.Content = section;
+    ((IView)content).Arrange(new Rect(0, 900, 8, 8));
+    ((IView)section).Arrange(new Rect(0, 120, 8, 8));
+    ((IView)control).Arrange(new Rect(0, 36, 8, 8));
+
+    Assert.Equal(0d, ViewportPagination.VerticalOffset(content, content));
+    Assert.Equal(156d, ViewportPagination.VerticalOffset(control, content));
+  }
+
+  [Fact]
+  public void VerticalOffsetIsInfiniteWhenTheControlIsOutsideTheContent()
+  {
+    var content = new ContentView();
+    var control = new BoxView();
+    ((IView)control).Arrange(new Rect(0, 36, 8, 8));
+
+    Assert.Equal(double.PositiveInfinity, ViewportPagination.VerticalOffset(control, content));
+  }
 }
