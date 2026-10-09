@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
-using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
@@ -25,36 +24,6 @@ public partial class TopicManagementPage
       await topicsService.UpdateSourceAsync(source.Id, new UpdateRssFeedBody(Discoverable: source.IsDiscoverable != true)).ConfigureAwait(true);
       await RefreshSourceAsync(source.Topic?.Id ?? topicIdOrSlug ?? "").ConfigureAwait(true);
     }).ConfigureAwait(true);
-  }
-
-  private async void OnUploadLogoClicked(object? sender, EventArgs e) =>
-      await UploadIntoAsync(LogoImageEntry).ConfigureAwait(true);
-
-  private async void OnUploadHeroClicked(object? sender, EventArgs e) =>
-      await UploadIntoAsync(HeroImageEntry).ConfigureAwait(true);
-
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "File picker and upload failures are displayed inline.")]
-  private async Task UploadIntoAsync(Entry target)
-  {
-    try
-    {
-      var file = await FilePicker.Default.PickAsync(new PickOptions
-      {
-        PickerTitle = UiCopy.Localize(UiMessageKey.NativeDotnetCsharpEditorSelectImage),
-      }).ConfigureAwait(true);
-      if (file is null) return;
-      await using var stream = await file.OpenReadAsync().ConfigureAwait(true);
-      var upload = await imageUploadService
-          .CreateUploadUrlAsync(new CreateImageUploadUrlBody(file.ContentType ?? "application/octet-stream", checked((int)stream.Length)))
-          .ConfigureAwait(true);
-      await imageUploadService.UploadAsync(upload.Upload, stream, stream.Length).ConfigureAwait(true);
-      var completed = await imageUploadService.CompleteAsync(upload.Upload.ImageId).ConfigureAwait(true);
-      target.Text = completed.Image.Id;
-    }
-    catch (Exception ex)
-    {
-      StatusLabel.Text = ex.Message;
-    }
   }
 
   private async Task RefreshRelatedAsync(string topicId)

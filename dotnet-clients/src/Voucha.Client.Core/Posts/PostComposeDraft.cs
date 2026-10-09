@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Posts;
@@ -36,13 +37,23 @@ public sealed record PostComposeImageDraft(
     bool IsUploading = false,
     double? UploadProgress = null,
     string? UploadError = null,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    [property: JsonIgnore] ReadOnlyMemory<byte>? LocalPreviewBytes = null,
+    [property: JsonIgnore] bool PreviewUnavailable = false)
 {
   public string DisplayLabel => (Localization ?? UiLocalization.English).Format(
       UiMessageKey.NativeDotnetPostsImageNumber,
       ("count", OrderIndex + 1));
 
   public bool HasUploadError => !string.IsNullOrWhiteSpace(UploadError);
+
+  public bool HasLocalPreview => LocalPreviewBytes is { Length: > 0 };
+
+  public bool HasUploadedPreviewUnavailable => PreviewUnavailable && IsReady;
+
+  [JsonIgnore]
+  public string PreviewUnavailableMessage => (Localization ?? UiLocalization.English).Localize(
+      UiMessageKey.ImagesUploadPreviewUnavailable);
 
   public bool IsReady => !IsUploading && !HasUploadError;
 }

@@ -31,14 +31,18 @@ internal static class ImageSelectionLoader
     return results?.ToArray()!;
   }
 
-  public static async Task<ImageSelection> LoadAsync(FileResult file, CancellationToken cancellationToken = default)
+  public static Task<ImageSelection> LoadAsync(FileResult file, CancellationToken cancellationToken = default) =>
+      LoadAsync(file, file.OpenReadAsync, cancellationToken);
+
+  internal static async Task<ImageSelection> LoadAsync(
+      FileResult file, Func<Task<Stream>> openRead, CancellationToken cancellationToken = default)
   {
     var contentType = ResolveContentType(file);
-    Stream? stream = await file.OpenReadAsync().ConfigureAwait(false);
-    cancellationToken.ThrowIfCancellationRequested();
+    Stream? stream = await openRead().ConfigureAwait(false);
 
     try
     {
+      cancellationToken.ThrowIfCancellationRequested();
       if (stream.CanSeek)
       {
         if (stream.Length > MaxImageUploadBytes)

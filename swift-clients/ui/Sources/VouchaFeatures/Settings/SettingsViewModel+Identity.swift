@@ -3,7 +3,15 @@ import VouchaModels
 
 extension SettingsViewModel {
     func apply(identity: PrivateUser) {
+        if let previousOwnerId = apiKeyRotationOwnerState.lastConfirmedOwnerId,
+           previousOwnerId != identity.id {
+            invalidateApiKeyRotationOwner()
+        }
+        if self.identity?.roles.contains("administrator") != identity.roles.contains("administrator") {
+            apiKeyLifetimeDays = identity.roles.contains("administrator") ? 30 : 90
+        }
         self.identity = identity
+        confirmApiKeyRotationOwner(identity.id)
         username = identity.username ?? ""
         displayNameSource = identity.useDisplayNameFrom ?? .username
         profileImageId = identity.profileImageId ?? ""

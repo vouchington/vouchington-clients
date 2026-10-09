@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Posts;
 
-public sealed class PostComposeImageTests
+public sealed partial class PostComposeImageTests
 {
   private const long MaxImageUploadBytes = 50L * 1024 * 1024;
 

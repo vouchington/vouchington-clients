@@ -8,17 +8,45 @@ public sealed partial class SettingsViewModelActionsTests
   {
     public int FetchMyIdentityCount { get; private set; }
 
+    public Func<int, Task<MyIdentityResponse>>? FetchMyIdentityOverride { get; set; }
+
     public int FetchApiKeysCount { get; private set; }
+
+    public string? LastFetchedUserId { get; private set; }
 
     public int CancelMembershipCount { get; private set; }
 
     public int RevokeAuthSessionsCount { get; private set; }
+
+    public Func<Task>? DeleteAuthSessionOverride { get; set; }
+
+    public Func<Task>? RevokeAuthSessionsOverride { get; set; }
+
+    public Func<Task<DeleteUserResponse>>? DeleteUserOverride { get; set; }
 
     public string? LastCreatedUserDataRequestUserId { get; private set; }
 
     public string? LastCreatedApiKeyLabel { get; private set; }
 
     public string? LastCreatedApiKeyType { get; private set; }
+
+    public int? LastCreatedApiKeyLifetimeDays { get; private set; }
+
+    public IReadOnlyList<string> UserRoles { get; set; } = ["member"];
+
+    public System.Net.HttpStatusCode? RotateStatus { get; set; }
+
+    public string? LastRotatedApiKeyId { get; private set; }
+
+    public int RotateApiKeyCount { get; private set; }
+
+    public Func<Task<ApiKeyCreationResponse>>? CreateApiKeyOverride { get; set; }
+
+    public ApiKey? RotatedApiKey { get; private set; }
+
+    public Func<int, Task<ApiKeyListResponse>>? FetchApiKeysOverride { get; set; }
+
+    public Func<string, Task<ApiKeyCreationResponse>>? RotateApiKeyOverride { get; set; }
 
     public string? LastDeletedApiKeyId { get; private set; }
 
@@ -40,6 +68,7 @@ public sealed partial class SettingsViewModelActionsTests
     public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default)
     {
       FetchMyIdentityCount++;
+      if (FetchMyIdentityOverride is { } fetch) return fetch(FetchMyIdentityCount);
       return Task.FromResult(CreateIdentity());
     }
 
@@ -62,20 +91,23 @@ public sealed partial class SettingsViewModelActionsTests
     public Task DeleteAuthSessionAsync(string id, CancellationToken cancellationToken = default)
     {
       LastDeletedAuthSessionId = id;
-      return Task.CompletedTask;
+      return DeleteAuthSessionOverride?.Invoke() ?? Task.CompletedTask;
     }
 
     public Task RevokeAuthSessionsAsync(CancellationToken cancellationToken = default)
     {
       RevokeAuthSessionsCount++;
-      return Task.CompletedTask;
+      return RevokeAuthSessionsOverride?.Invoke() ?? Task.CompletedTask;
     }
 
     public Task<UserResponse> FetchUserAsync(
         string idOrSlug,
         bool includeBio = false,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateUser());
+        CancellationToken cancellationToken = default)
+    {
+      LastFetchedUserId = idOrSlug;
+      return Task.FromResult(CreateUser());
+    }
 
     public Task<UserResponse> UpdateUserAsync(
         string idOrSlug,
@@ -108,13 +140,14 @@ public sealed partial class SettingsViewModelActionsTests
         CancellationToken cancellationToken = default)
     {
       DeleteUserCallCount++;
-      return Task.FromResult(new DeleteUserResponse(true));
+      return DeleteUserOverride?.Invoke() ?? Task.FromResult(new DeleteUserResponse(true));
     }
 
     public Task<ApiKeyListResponse> FetchApiKeysAsync(CancellationToken cancellationToken = default)
     {
       FetchApiKeysCount++;
-      return Task.FromResult(new ApiKeyListResponse([CreateApiKey()], new PageInfo(null, false, null)));
+      if (FetchApiKeysOverride is { } fetch) return fetch(FetchApiKeysCount);
+      return Task.FromResult(new ApiKeyListResponse([RotatedApiKey ?? CreateApiKey()], new PageInfo(null, false, null)));
     }
 
     public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
@@ -126,7 +159,29 @@ public sealed partial class SettingsViewModelActionsTests
       LastCreatedApiKeyLabel = label;
       LastCreatedApiKeyType = type;
       LastCreatedApiKeyPermissions = permissions;
+      if (CreateApiKeyOverride is { } create) return create();
       return Task.FromResult(new ApiKeyCreationResponse(CreateApiKey(), "raw-key"));
+    }
+
+    public Task<ApiKeyCreationResponse> CreateApiKeyAsync(
+        string label, string type, IReadOnlyList<string> permissions, int? lifetimeDays,
+        CancellationToken cancellationToken = default)
+    {
+      LastCreatedApiKeyLifetimeDays = lifetimeDays;
+      return CreateApiKeyAsync(label, type, permissions, cancellationToken);
+    }
+
+    public Task<ApiKeyCreationResponse> RotateApiKeyAsync(string id, CancellationToken cancellationToken = default)
+    {
+      RotateApiKeyCount++;
+      LastRotatedApiKeyId = id;
+      if (RotateApiKeyOverride is { } rotate) return rotate(id);
+      if (RotateStatus is { } status)
+      {
+        throw new VouchaApiException(status, null);
+      }
+      RotatedApiKey = CreateApiKey() with { Id = "replacement" };
+      return Task.FromResult(new ApiKeyCreationResponse(RotatedApiKey, "replacement-raw"));
     }
 
     public Task DeleteApiKeyAsync(string id, CancellationToken cancellationToken = default)

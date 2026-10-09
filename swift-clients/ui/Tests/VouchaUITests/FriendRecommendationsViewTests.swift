@@ -27,7 +27,16 @@ final class FriendRecommendationsViewTests: NativeRouteSurfaceViewModelTestCase 
                 recommendations: [
                     recommendation(id: "user-1", provider: "github", name: "Alice")
                 ],
-                users: [user(id: "user-1", username: "alice", profileImageId: "image-1")],
+                users: [user(
+                    id: "user-1",
+                    username: "alice",
+                    profileImageId: "image-1",
+                    profileImagePlacement: [
+                        "image_id": "image-1",
+                        "placement_id": "placement-1",
+                        "placement_revision": 2
+                    ]
+                )],
                 cursor: "cursor-1",
                 hasMore: true
             ),
@@ -68,7 +77,7 @@ final class FriendRecommendationsViewTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertNoThrow(try inspection.find(button: "Load more"))
         XCTAssertEqual(
             try viewModel.avatarURL(for: XCTUnwrap(viewModel.recommendations.first)),
-            "https://images.example/images/image-1?w=96"
+            "https://images.example/images/placements/placement-1/2/image-1?w=96"
         )
 
         try inspection.find(button: "Dismissed").tap()
@@ -245,14 +254,23 @@ final class FriendRecommendationsViewTests: NativeRouteSurfaceViewModelTestCase 
         ]
     }
 
-    private func user(id: String, username: String, profileImageId: String? = nil) -> [String: Any] {
-        [
+    private func user(
+        id: String,
+        username: String,
+        profileImageId: String? = nil,
+        profileImagePlacement: [String: Any]? = nil
+    ) -> [String: Any] {
+        var value: [String: Any] = [
             "__entity_type": "user",
             "id": id,
             "username": username,
             "roles": [],
             "profile_image_id": profileImageId.map { $0 as Any } ?? NSNull()
         ]
+        if let profileImagePlacement {
+            value["profile_image_placement"] = profileImagePlacement
+        }
+        return value
     }
 
     private func page(

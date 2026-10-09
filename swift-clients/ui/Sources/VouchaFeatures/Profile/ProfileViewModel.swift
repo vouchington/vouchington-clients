@@ -22,11 +22,14 @@ public final class ProfileViewModel {
     public internal(set) var bioHtml: String?
     public internal(set) var isUploadingAvatar = false
     public internal(set) var avatarUploadErrorMessage: UiVerbatimText?
+    public internal(set) var avatarPreviewData: Data?
+    var avatarPreviewDecodeFailed = false
+    var avatarUploadGeneration = 0
     public private(set) var state: LoadState = .idle
 
     /// The signed-in user's avatar URL, or `nil` if no image is set.
     public var avatarURL: String? {
-        config.imageURL(forImageId: identity?.profileImageId, width: 144)
+        config.imageURL(for: identity?.profileImagePlacement, width: 144)
     }
 
     /// `true` when the profile has loaded successfully.
@@ -35,6 +38,14 @@ public final class ProfileViewModel {
             return true
         }
         return false
+    }
+
+    func clearAvatarPreviewForNavigation() {
+        avatarUploadGeneration += 1
+        avatarPreviewData = nil
+        avatarPreviewDecodeFailed = false
+        avatarUploadErrorMessage = nil
+        // An identity mutation may already be on the server; keep it serialized until it returns.
     }
 
     let client: APIClient

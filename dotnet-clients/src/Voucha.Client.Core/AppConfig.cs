@@ -51,19 +51,6 @@ public sealed record AppConfig(
             Read(environment, "APPLE_CLIENT_ID"));
   }
 
-  public Uri? ImageUrlForImageId(string? imageId, int width = 96)
-  {
-    if (string.IsNullOrWhiteSpace(imageId))
-    {
-      return null;
-    }
-
-    var builder = new UriBuilder(ImageBaseUrl ?? new Uri(DefaultImageBaseUrl));
-    builder.Path = $"{builder.Path.TrimEnd('/')}/images/{Uri.EscapeDataString(imageId)}";
-    builder.Query = $"w={width}";
-    return builder.Uri;
-  }
-
   public Uri? ImageUrlForPlacement(string? placementId, int revision, string? imageId, int width = 96)
   {
     if (string.IsNullOrWhiteSpace(placementId) || string.IsNullOrWhiteSpace(imageId))

@@ -18,6 +18,23 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideHackerNews619f304a = new("extracted.asides.hnDiscussionsAside.hackerNews_619f304a");
     public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = new("extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8");
     public static readonly UiMessageKey ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971 = new("extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1 = new("extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784 = new("extracted.communities.communityAutomodActionForm.automodAction_83211784");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormChooseWhatHappensToApublishedPostB2e29694 = new("extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5 = new("extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30 = new("extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0 = new("extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormRecordOnlyC9184072 = new("extracted.communities.communityAutomodActionForm.recordOnly_c9184072");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5 = new("extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e = new("extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f = new("extracted.communities.communityAutomodActionForm.saving_dc85af8f");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormSendToReviewQueue1c3a1b74 = new("extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormUnpublish2db04a54 = new("extracted.communities.communityAutomodActionForm.unpublish_2db04a54");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46 = new("extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagsB5fc56db = new("extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelDismiss48845bff = new("extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68 = new("extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68");
+    public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodFlagsPanelPostsAutomodFlaggedForModeratorReview90005619 = new("extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619");
     public static readonly UiMessageKey ExtractedIntentsAdminAiCosts75cce222 = new("extracted.intents.admin.aiCosts_75cce222");
     public static readonly UiMessageKey ExtractedIntentsAdminAppeals03e8c5a5 = new("extracted.intents.admin.appeals_03e8c5a5");
     public static readonly UiMessageKey ExtractedIntentsAdminDynamicConfig59cf5829 = new("extracted.intents.admin.dynamicConfig_59cf5829");
@@ -259,10 +276,84 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteSupport = new("extracted.votes.semanticVote.support");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVote = new("extracted.votes.semanticVote.vote");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
+    public static readonly UiMessageKey ImagesUploadPreviewUnavailable = new("images.uploadPreviewUnavailable");
+    public static readonly UiMessageKey NativeApiKeysActive = new("native.apiKeys.active");
+    public static readonly UiMessageKey NativeApiKeysAdministratorInvalid = new("native.apiKeys.administratorInvalid");
+    public static readonly UiMessageKey NativeApiKeysExpired = new("native.apiKeys.expired");
+    public static readonly UiMessageKey NativeApiKeysExpiresAt = new("native.apiKeys.expiresAt");
+    public static readonly UiMessageKey NativeApiKeysLifetime30 = new("native.apiKeys.lifetime30");
+    public static readonly UiMessageKey NativeApiKeysLifetime365 = new("native.apiKeys.lifetime365");
+    public static readonly UiMessageKey NativeApiKeysLifetime90 = new("native.apiKeys.lifetime90");
+    public static readonly UiMessageKey NativeApiKeysLifetimeLabel = new("native.apiKeys.lifetimeLabel");
+    public static readonly UiMessageKey NativeApiKeysLifetimeNone = new("native.apiKeys.lifetimeNone");
+    public static readonly UiMessageKey NativeApiKeysReplaced = new("native.apiKeys.replaced");
+    public static readonly UiMessageKey NativeApiKeysRevoked = new("native.apiKeys.revoked");
+    public static readonly UiMessageKey NativeApiKeysRotate = new("native.apiKeys.rotate");
+    public static readonly UiMessageKey NativeApiKeysRotated = new("native.apiKeys.rotated");
+    public static readonly UiMessageKey NativeApiKeysRotationConflict = new("native.apiKeys.rotationConflict");
+    public static readonly UiMessageKey NativeApiKeysRotationNotFound = new("native.apiKeys.rotationNotFound");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
     public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
     public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
     public static readonly UiMessageKey NativeCommonRetry = new("native.common.retry");
+    public static readonly UiMessageKey NativeCopyrightNoticesAcceptedDate = new("native.copyrightNotices.acceptedDate");
+    public static readonly UiMessageKey NativeCopyrightNoticesAffectedHostedMaterial = new("native.copyrightNotices.affectedHostedMaterial");
+    public static readonly UiMessageKey NativeCopyrightNoticesAffectedPlacementCount = new("native.copyrightNotices.affectedPlacementCount");
+    public static readonly UiMessageKey NativeCopyrightNoticesCase = new("native.copyrightNotices.case");
+    public static readonly UiMessageKey NativeCopyrightNoticesCaseTimeline = new("native.copyrightNotices.caseTimeline");
+    public static readonly UiMessageKey NativeCopyrightNoticesClaimant = new("native.copyrightNotices.claimant");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintAfterDecision = new("native.copyrightNotices.complaintAfterDecision");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintAfterRedecision = new("native.copyrightNotices.complaintAfterRedecision");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintAvailable = new("native.copyrightNotices.complaintAvailable");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintCannotSubmit = new("native.copyrightNotices.complaintCannotSubmit");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintMaintained = new("native.copyrightNotices.complaintMaintained");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintReceived = new("native.copyrightNotices.complaintReceived");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintUpheld = new("native.copyrightNotices.complaintUpheld");
+    public static readonly UiMessageKey NativeCopyrightNoticesComplaintWindowEnds = new("native.copyrightNotices.complaintWindowEnds");
+    public static readonly UiMessageKey NativeCopyrightNoticesDecidedDate = new("native.copyrightNotices.decidedDate");
+    public static readonly UiMessageKey NativeCopyrightNoticesDecision = new("native.copyrightNotices.decision");
+    public static readonly UiMessageKey NativeCopyrightNoticesDeliveryCouldNotComplete = new("native.copyrightNotices.deliveryCouldNotComplete");
+    public static readonly UiMessageKey NativeCopyrightNoticesDeliveryFailed = new("native.copyrightNotices.deliveryFailed");
+    public static readonly UiMessageKey NativeCopyrightNoticesDeliveryPending = new("native.copyrightNotices.deliveryPending");
+    public static readonly UiMessageKey NativeCopyrightNoticesDetailTitle = new("native.copyrightNotices.detailTitle");
+    public static readonly UiMessageKey NativeCopyrightNoticesDisputeSettlements = new("native.copyrightNotices.disputeSettlements");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuComplaintUpheldReviewing = new("native.copyrightNotices.euComplaintUpheldReviewing");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuDecisionReviewing = new("native.copyrightNotices.euDecisionReviewing");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuDetailTitle = new("native.copyrightNotices.euDetailTitle");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuMaterialRestricted = new("native.copyrightNotices.euMaterialRestricted");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuNoAction = new("native.copyrightNotices.euNoAction");
+    public static readonly UiMessageKey NativeCopyrightNoticesEuOtherRedressRoutes = new("native.copyrightNotices.euOtherRedressRoutes");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventAppealReceived = new("native.copyrightNotices.eventAppealReceived");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventAppealReviewed = new("native.copyrightNotices.eventAppealReviewed");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventCounterNoticeReceived = new("native.copyrightNotices.eventCounterNoticeReceived");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventCounterNoticeReviewed = new("native.copyrightNotices.eventCounterNoticeReviewed");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventMaterialRestored = new("native.copyrightNotices.eventMaterialRestored");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventMaterialWithheld = new("native.copyrightNotices.eventMaterialWithheld");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventNoticeReceived = new("native.copyrightNotices.eventNoticeReceived");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventProvisionalRestriction = new("native.copyrightNotices.eventProvisionalRestriction");
+    public static readonly UiMessageKey NativeCopyrightNoticesEventWithdrawalReceived = new("native.copyrightNotices.eventWithdrawalReceived");
+    public static readonly UiMessageKey NativeCopyrightNoticesHostedMaterialUnavailable = new("native.copyrightNotices.hostedMaterialUnavailable");
+    public static readonly UiMessageKey NativeCopyrightNoticesLoadMore = new("native.copyrightNotices.loadMore");
+    public static readonly UiMessageKey NativeCopyrightNoticesNoDisputeSettlements = new("native.copyrightNotices.noDisputeSettlements");
+    public static readonly UiMessageKey NativeCopyrightNoticesNoSettlementOutcome = new("native.copyrightNotices.noSettlementOutcome");
+    public static readonly UiMessageKey NativeCopyrightNoticesOtherRedressRoutes = new("native.copyrightNotices.otherRedressRoutes");
+    public static readonly UiMessageKey NativeCopyrightNoticesPrivacyNote = new("native.copyrightNotices.privacyNote");
+    public static readonly UiMessageKey NativeCopyrightNoticesReceivedDate = new("native.copyrightNotices.receivedDate");
+    public static readonly UiMessageKey NativeCopyrightNoticesReferredDate = new("native.copyrightNotices.referredDate");
+    public static readonly UiMessageKey NativeCopyrightNoticesSentDate = new("native.copyrightNotices.sentDate");
+    public static readonly UiMessageKey NativeCopyrightNoticesSettlementImplemented = new("native.copyrightNotices.settlementImplemented");
+    public static readonly UiMessageKey NativeCopyrightNoticesSettlementOutcome = new("native.copyrightNotices.settlementOutcome");
+    public static readonly UiMessageKey NativeCopyrightNoticesStatementsAndDecisions = new("native.copyrightNotices.statementsAndDecisions");
+    public static readonly UiMessageKey NativeCopyrightNoticesStatus = new("native.copyrightNotices.status");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceCommunityBannerImage = new("native.copyrightNotices.surfaceCommunityBannerImage");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceCommunityProfileImage = new("native.copyrightNotices.surfaceCommunityProfileImage");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfacePostImage = new("native.copyrightNotices.surfacePostImage");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceProfileImage = new("native.copyrightNotices.surfaceProfileImage");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceProfileLinkImage = new("native.copyrightNotices.surfaceProfileLinkImage");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceTopicHero = new("native.copyrightNotices.surfaceTopicHero");
+    public static readonly UiMessageKey NativeCopyrightNoticesSurfaceTopicLogo = new("native.copyrightNotices.surfaceTopicLogo");
+    public static readonly UiMessageKey NativeCopyrightNoticesTitle = new("native.copyrightNotices.title");
+    public static readonly UiMessageKey NativeCopyrightNoticesYourComplaint = new("native.copyrightNotices.yourComplaint");
     public static readonly UiMessageKey NativeCredentialsAction = new("native.credentials.action");
     public static readonly UiMessageKey NativeCredentialsApiAudience = new("native.credentials.apiAudience");
     public static readonly UiMessageKey NativeCredentialsCatalogLoadFailed = new("native.credentials.catalogLoadFailed");
@@ -680,6 +771,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesActiveCount = new("native.dotnet.engineeringQueues.activeCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesBackfills = new("native.dotnet.engineeringQueues.backfills");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesCompletedCount = new("native.dotnet.engineeringQueues.completedCount");
+    public static readonly UiMessageKey NativeDotnetEngineeringQueuesDelayedCount = new("native.dotnet.engineeringQueues.delayedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesFailedCount = new("native.dotnet.engineeringQueues.failedCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesQueueCount = new("native.dotnet.engineeringQueues.queueCount");
     public static readonly UiMessageKey NativeDotnetEngineeringQueuesRunBackfill = new("native.dotnet.engineeringQueues.runBackfill");
@@ -1924,6 +2016,23 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedAsidesHnDiscussionsAsideHackerNews619f304a,
         ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8,
         ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971,
+        ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1,
+        ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784,
+        ExtractedCommunitiesCommunityAutomodActionFormChooseWhatHappensToApublishedPostB2e29694,
+        ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5,
+        ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedAndAddIt56f75b30,
+        ExtractedCommunitiesCommunityAutomodActionFormKeepThePostPublishedTheFlagAppears01b0cba0,
+        ExtractedCommunitiesCommunityAutomodActionFormRecordOnlyC9184072,
+        ExtractedCommunitiesCommunityAutomodActionFormRemoveThePostFromTheCommunityRight215c4ec5,
+        ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e,
+        ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f,
+        ExtractedCommunitiesCommunityAutomodActionFormSendToReviewQueue1c3a1b74,
+        ExtractedCommunitiesCommunityAutomodActionFormUnpublish2db04a54,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagsB5fc56db,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelDismiss48845bff,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelFailedToDismissTheAutomodFlag0e50ec68,
+        ExtractedCommunitiesCommunityAutomodFlagsPanelPostsAutomodFlaggedForModeratorReview90005619,
         ExtractedIntentsAdminAiCosts75cce222,
         ExtractedIntentsAdminAppeals03e8c5a5,
         ExtractedIntentsAdminDynamicConfig59cf5829,
@@ -2165,10 +2274,84 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteSupport,
         ExtractedVotesSemanticVoteVote,
         ExtractedVotesSemanticVoteVouch,
+        ImagesUploadPreviewUnavailable,
+        NativeApiKeysActive,
+        NativeApiKeysAdministratorInvalid,
+        NativeApiKeysExpired,
+        NativeApiKeysExpiresAt,
+        NativeApiKeysLifetime30,
+        NativeApiKeysLifetime365,
+        NativeApiKeysLifetime90,
+        NativeApiKeysLifetimeLabel,
+        NativeApiKeysLifetimeNone,
+        NativeApiKeysReplaced,
+        NativeApiKeysRevoked,
+        NativeApiKeysRotate,
+        NativeApiKeysRotated,
+        NativeApiKeysRotationConflict,
+        NativeApiKeysRotationNotFound,
         NativeAuthEmailAddress,
         NativeCommonRelatedArticles,
         NativeCommonRelatedArticlesMore,
         NativeCommonRetry,
+        NativeCopyrightNoticesAcceptedDate,
+        NativeCopyrightNoticesAffectedHostedMaterial,
+        NativeCopyrightNoticesAffectedPlacementCount,
+        NativeCopyrightNoticesCase,
+        NativeCopyrightNoticesCaseTimeline,
+        NativeCopyrightNoticesClaimant,
+        NativeCopyrightNoticesComplaintAfterDecision,
+        NativeCopyrightNoticesComplaintAfterRedecision,
+        NativeCopyrightNoticesComplaintAvailable,
+        NativeCopyrightNoticesComplaintCannotSubmit,
+        NativeCopyrightNoticesComplaintMaintained,
+        NativeCopyrightNoticesComplaintReceived,
+        NativeCopyrightNoticesComplaintUpheld,
+        NativeCopyrightNoticesComplaintWindowEnds,
+        NativeCopyrightNoticesDecidedDate,
+        NativeCopyrightNoticesDecision,
+        NativeCopyrightNoticesDeliveryCouldNotComplete,
+        NativeCopyrightNoticesDeliveryFailed,
+        NativeCopyrightNoticesDeliveryPending,
+        NativeCopyrightNoticesDetailTitle,
+        NativeCopyrightNoticesDisputeSettlements,
+        NativeCopyrightNoticesEuComplaintUpheldReviewing,
+        NativeCopyrightNoticesEuDecisionReviewing,
+        NativeCopyrightNoticesEuDetailTitle,
+        NativeCopyrightNoticesEuMaterialRestricted,
+        NativeCopyrightNoticesEuNoAction,
+        NativeCopyrightNoticesEuOtherRedressRoutes,
+        NativeCopyrightNoticesEventAppealReceived,
+        NativeCopyrightNoticesEventAppealReviewed,
+        NativeCopyrightNoticesEventCounterNoticeReceived,
+        NativeCopyrightNoticesEventCounterNoticeReviewed,
+        NativeCopyrightNoticesEventMaterialRestored,
+        NativeCopyrightNoticesEventMaterialWithheld,
+        NativeCopyrightNoticesEventNoticeReceived,
+        NativeCopyrightNoticesEventProvisionalRestriction,
+        NativeCopyrightNoticesEventWithdrawalReceived,
+        NativeCopyrightNoticesHostedMaterialUnavailable,
+        NativeCopyrightNoticesLoadMore,
+        NativeCopyrightNoticesNoDisputeSettlements,
+        NativeCopyrightNoticesNoSettlementOutcome,
+        NativeCopyrightNoticesOtherRedressRoutes,
+        NativeCopyrightNoticesPrivacyNote,
+        NativeCopyrightNoticesReceivedDate,
+        NativeCopyrightNoticesReferredDate,
+        NativeCopyrightNoticesSentDate,
+        NativeCopyrightNoticesSettlementImplemented,
+        NativeCopyrightNoticesSettlementOutcome,
+        NativeCopyrightNoticesStatementsAndDecisions,
+        NativeCopyrightNoticesStatus,
+        NativeCopyrightNoticesSurfaceCommunityBannerImage,
+        NativeCopyrightNoticesSurfaceCommunityProfileImage,
+        NativeCopyrightNoticesSurfacePostImage,
+        NativeCopyrightNoticesSurfaceProfileImage,
+        NativeCopyrightNoticesSurfaceProfileLinkImage,
+        NativeCopyrightNoticesSurfaceTopicHero,
+        NativeCopyrightNoticesSurfaceTopicLogo,
+        NativeCopyrightNoticesTitle,
+        NativeCopyrightNoticesYourComplaint,
         NativeCredentialsAction,
         NativeCredentialsApiAudience,
         NativeCredentialsCatalogLoadFailed,
@@ -2586,6 +2769,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetEngineeringQueuesActiveCount,
         NativeDotnetEngineeringQueuesBackfills,
         NativeDotnetEngineeringQueuesCompletedCount,
+        NativeDotnetEngineeringQueuesDelayedCount,
         NativeDotnetEngineeringQueuesFailedCount,
         NativeDotnetEngineeringQueuesQueueCount,
         NativeDotnetEngineeringQueuesRunBackfill,

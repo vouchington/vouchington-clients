@@ -62,6 +62,12 @@ public partial interface ICommunitiesService
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  Task<CommunityResponse> UpdateAutomodActionAsync(
+      string idOrSlug,
+      UpdateCommunityAutomodSettingsRequest request,
+      CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
   Task<CommunityWarningResponse> IssueWarningAsync(
       string idOrSlug,
       IssueCommunityWarningRequest request,

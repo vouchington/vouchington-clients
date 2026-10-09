@@ -1,5 +1,4 @@
 import Foundation
-import UniformTypeIdentifiers
 import VouchaAPI
 import VouchaCore
 import VouchaModels
@@ -23,27 +22,15 @@ struct NativeTopicImageUploadService {
         self.uploadStatePollDelayNanoseconds = uploadStatePollDelayNanoseconds
     }
 
-    func uploadImage(at url: URL) async throws -> String {
+    func uploadImage(data: Data, contentType: String) async throws -> String {
         guard let client else {
             throw VouchaError.api(statusCode: 0, preconditionCode: nil)
         }
-
-        let isSecurityScoped = url.startAccessingSecurityScopedResource()
-        defer {
-            if isSecurityScoped {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-
-        guard let fileSize = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
-            throw VouchaError.api(statusCode: 0, preconditionCode: "IMAGE_UPLOAD_FILE_SIZE_UNAVAILABLE")
-        }
-        guard fileSize <= Self.maximumUploadBytes else {
+        guard data.count <= Self.maximumUploadBytes else {
             throw VouchaError.api(statusCode: 0, preconditionCode: "IMAGE_TOO_LARGE")
         }
-        let contentType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         let uploadEnvelope: ImageUploadResponse = try await client.send(
-            .imageUploadUrl(contentType: contentType, contentLength: fileSize)
+            .imageUploadUrl(contentType: contentType, contentLength: data.count)
         )
         let upload = uploadEnvelope.upload
         let uploadURL = upload.uploadUrl
@@ -53,7 +40,7 @@ struct NativeTopicImageUploadService {
         request.httpMethod = "PUT"
         request.setValue(upload.contentType, forHTTPHeaderField: "Content-Type")
 
-        let (_, response) = try await session.upload(for: request, fromFile: url)
+        let (_, response) = try await session.upload(for: request, from: data)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200 ..< 300).contains(status) else {
             throw VouchaError.api(statusCode: status, preconditionCode: nil)

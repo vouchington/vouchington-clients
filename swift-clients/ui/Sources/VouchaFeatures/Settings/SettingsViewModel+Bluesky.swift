@@ -5,6 +5,26 @@ import VouchaLocalization
 import VouchaModels
 
 public extension SettingsViewModel {
+    internal func initializeBlueskyLinkState() {
+        if let result = blueskyLinkStore.takeResult() {
+            blueskyLinkState = Self.state(for: result)
+        } else {
+            do {
+                switch try blueskyLinkStore.pendingStatus(now: now()) {
+                case let .active(pending):
+                    blueskyLinkExpiresAt = pending.expiresAt
+                    blueskyLinkState = pending.isFinalizing ? .finalizing : .awaitingCallback
+                case .expired:
+                    blueskyLinkState = .expired
+                case .none:
+                    blueskyLinkState = .idle
+                }
+            } catch {
+                blueskyLinkState = .error(.message(.nativeSwiftSettingsBlueskyLinkFailed))
+            }
+        }
+    }
+
     func beginBlueskyLink(
         store: NativeBlueskyLinkStore? = nil,
         openAuthorizationURL: @escaping @MainActor (URL) -> Void

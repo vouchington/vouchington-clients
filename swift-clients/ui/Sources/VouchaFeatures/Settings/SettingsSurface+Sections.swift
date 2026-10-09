@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -22,6 +23,11 @@ extension SettingsSurface {
                 Text(rawKey)
                     .font(Typography.caption.monospaced())
                     .textSelection(.enabled)
+                    .accessibilityHidden(false)
+                Button(UiMessages.string(.nativeCommonDone, locale: nativeUiLocale)) {
+                    viewModel.dismissRawApiKey()
+                }
+                .accessibilityIdentifier("dismiss-api-key-secret")
             }
         }
     }
@@ -30,7 +36,9 @@ extension SettingsSurface {
         section(.nativeSwiftSettingsAccount, systemImage: "person.crop.circle") {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Avatar(
-                    imageURL: imageURL(forImageId: viewModel.profileImageId),
+                    imageURL: viewModel.identity?.profileImageId == viewModel.profileImageId.trimmed
+                        ? imageURL(forPlacement: viewModel.identity?.profileImagePlacement)
+                        : nil,
                     username: viewModel.username,
                     size: 56
                 )
@@ -74,12 +82,8 @@ extension SettingsSurface {
         }
     }
 
-    func imageURL(forImageId imageId: String?) -> String? {
-        guard let imageId, !imageId.isEmpty else { return nil }
-        var components = URLComponents(url: imageBaseURL, resolvingAgainstBaseURL: false)
-        components?.path += "/images/\(imageId)"
-        components?.queryItems = [URLQueryItem(name: "w", value: "96")]
-        return components?.url?.absoluteString
+    func imageURL(forPlacement placement: ImagePlacement?) -> String? {
+        AppConfig(baseURL: AppConfig.shared.baseURL, imageBaseURL: imageBaseURL).imageURL(for: placement)
     }
 
     var privacySection: some View {

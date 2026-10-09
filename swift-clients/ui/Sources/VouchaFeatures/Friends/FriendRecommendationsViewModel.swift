@@ -64,7 +64,7 @@ public final class FriendRecommendationsViewModel {
     }
 
     public func avatarURL(for recommendation: FriendRecommendation) -> String? {
-        config.imageURL(forImageId: user(for: recommendation)?.profileImageId)
+        config.imageURL(for: user(for: recommendation)?.profileImagePlacement)
     }
 
     public func isMutating(userId: String) -> Bool {

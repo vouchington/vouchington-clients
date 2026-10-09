@@ -12,6 +12,7 @@ public let uiMessageDescriptors: [UiMessageKey: UiMessageDescriptor] = [
     .extractedAiCostsPageUnpricedRequestCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeCommonRelatedArticles: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeCommonRelatedArticlesMore: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
+    .nativeCopyrightNoticesAffectedPlacementCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeModerationSummaryEvidenceFlaggedCategories: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeModerationSummaryEvidenceSignals: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),
     .nativeSwiftModerationReportsPostCount: UiMessageDescriptor(kind: .plural, valueParameter: "count", selectParameter: nil, numberParameters: ["count"], cases: []),

@@ -18,13 +18,15 @@ public extension SettingsViewModel {
     func load() async {
         await loadLocalLLMSettings()
         guard let client else { return }
+        let ownerInvalidationGeneration = apiKeyRotationOwnerState.invalidationGeneration
         let generation = beginSettingsLoad()
         state = .loading
         statusMessage = nil
 
         do {
             let identityResponse: SettingsIdentityResponse = try await client.send(.myIdentity)
-            guard isCurrentSettingsLoad(generation) else { return }
+            guard isCurrentSettingsLoad(generation),
+                  ownerInvalidationGeneration == apiKeyRotationOwnerState.invalidationGeneration else { return }
             apply(identity: identityResponse.identity)
             activeMainSettingsLoadGeneration = generation
             await loadMainSettings(
@@ -34,6 +36,9 @@ public extension SettingsViewModel {
             )
         } catch {
             guard isCurrentSettingsLoad(generation) else { return }
+            if let apiError = error as? VouchaError, case .unauthorized = apiError {
+                invalidateApiKeyRotationOwner()
+            }
             if error is CancellationError || Task.isCancelled {
                 state = identity == nil ? .idle : .loaded
                 return
@@ -84,11 +89,7 @@ public extension SettingsViewModel {
             state = .loaded
         } catch {
             if isCurrentSettingsLoad(generation) {
-                if error is CancellationError || Task.isCancelled {
-                    state = identity == nil ? .idle : .loaded
-                } else {
-                    state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
-                }
+                handleMainSettingsLoadError(error)
             }
         }
         if activeMainSettingsLoadGeneration == generation {
@@ -96,6 +97,17 @@ public extension SettingsViewModel {
             createdApiKeysDuringMainLoad = []
         }
         await credentialSettings
+    }
+
+    private func handleMainSettingsLoadError(_ error: Error) {
+        if let apiError = error as? VouchaError, case .unauthorized = apiError {
+            invalidateApiKeyRotationOwner()
+        }
+        if error is CancellationError || Task.isCancelled {
+            state = identity == nil ? .idle : .loaded
+        } else {
+            state = .error((error as? VouchaError) ?? .unexpected(error.localizedDescription))
+        }
     }
 
     private func loadCredentialSettings(forSettingsLoad generation: Int) async {

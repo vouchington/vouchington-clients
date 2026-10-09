@@ -78,20 +78,6 @@ public sealed record SettingsProfileLinkRow(
   public string LocalizedLinkType => Localization.Resolve(LinkTypeText);
 }
 
-public sealed record SettingsApiKeyRow(
-    ApiKey ProtocolValue,
-    UiText TypeText,
-    IUiLocalization Localization)
-{
-  public string Label => ProtocolValue.Label;
-
-  public string Prefix => ProtocolValue.Prefix;
-
-  public string LocalizedApiKeyType => Localization.Resolve(TypeText);
-
-  public string Permissions => Localization.Resolve(UiText.ProtocolValue(string.Join(", ", ProtocolValue.Permissions)));
-}
-
 public sealed partial class SettingsToggleRowViewModel : ObservableObject
 {
   private readonly IUiLocalization localization;

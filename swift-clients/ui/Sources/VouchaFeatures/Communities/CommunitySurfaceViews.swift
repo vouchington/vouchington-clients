@@ -11,6 +11,7 @@ struct CommunityWorkspaceSurface: View {
     var viewModel: CommunityDetailViewModel
     var isSignedIn = true
     var showSignIn: () -> Void = {}
+    var onNavigate: (String) -> Void = { _ in }
 
     var body: some View {
         ScrollView {
@@ -39,7 +40,10 @@ struct CommunityWorkspaceSurface: View {
 
                 CommunityActionRow(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
                 CommunityTabControls(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
-                CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
+                CommunityDetailActionPanel(
+                    viewModel: viewModel, isSignedIn: isSignedIn,
+                    showSignIn: showSignIn, onNavigate: onNavigate
+                )
                 if viewModel.selectedTab == .moderationAnalytics {
                     ModerationTransparencyRangePicker(
                         range: viewModel.moderationTransparencyRange,

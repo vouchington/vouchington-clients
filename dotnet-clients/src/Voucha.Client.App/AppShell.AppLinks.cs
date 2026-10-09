@@ -94,6 +94,10 @@ public sealed partial class AppShell
     {
       return householdRoute;
     }
+    if (TryOpenCopyrightNoticesRouteAsync(resolution) is { } copyrightRoute)
+    {
+      return copyrightRoute;
+    }
     if (TryOpenPaymentCardsRouteAsync(resolution) is { } paymentCardsRoute)
     {
       return paymentCardsRoute;

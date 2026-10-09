@@ -7,11 +7,12 @@ public sealed partial class SettingsViewModel
 {
   private readonly ApiKeyScopeSelection scopeSelection = new([]);
   private IReadOnlyList<ScopeCatalogEntry> scopeCatalog = [];
-  private bool isCreatingApiKey;
   private UiMessageKey? credentialNoticeKey;
 
-  public bool CanCreateApiKey => ApiKeyType is "rss" or "mcp" && loadedUser is not null && !isCreatingApiKey && ApiKeyLabel.Trim().Length > 0 &&
-      SelectedApiKeyScopes.Count > 0 && (ApiKeyType != "rss" || SelectedApiKeyScopes.Count == 1);
+  public bool CanCreateApiKey => CanStartApiKeySecretOperation &&
+      ApiKeyType is "rss" or "mcp" && loadedUser is not null && ApiKeyLabel.Trim().Length > 0 &&
+      SelectedApiKeyScopes.Count > 0 && (ApiKeyType != "rss" || SelectedApiKeyScopes.Count == 1) &&
+      (!IsApiKeyAdministrator || apiKeyLifetime is "30" or "90");
   public string? CredentialNotice => credentialNoticeKey is { } key ? localization.Localize(key) : null;
   public IReadOnlyList<string> SelectedApiKeyScopes => scopeSelection.SelectedScopes;
   public IReadOnlyList<SettingsScopeRow> ApiKeyScopes => scopeSelection.Scopes

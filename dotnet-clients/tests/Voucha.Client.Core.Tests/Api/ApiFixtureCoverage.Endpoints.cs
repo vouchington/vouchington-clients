@@ -7,6 +7,10 @@ internal static partial class ApiFixtureCoverage
   public static readonly IReadOnlyDictionary<string, ApiRequest> EndpointRegistry =
       WithOAuthBrokerEndpoints(WithRewardsProgramStatusEndpoints(WithAiCostEndpoints(new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
+        ["entity-provenance.communities"] = VouchaApiEndpoints.SearchCommunities("test", limit: 20),
+        ["entity-provenance.topics"] = VouchaApiEndpoints.SearchTopics("test"),
+        ["entity-provenance.lists"] = VouchaApiEndpoints.Lists(),
+        ["entity-provenance.rss-feeds"] = VouchaApiEndpoints.AllRssFeeds(),
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(
@@ -62,6 +66,14 @@ internal static partial class ApiFixtureCoverage
             25),
         ["web.communities.modlog.default"] = VouchaApiEndpoints.CommunityModlog("test-community"),
         ["web.communities.moderation-queue.default"] = VouchaApiEndpoints.CommunityModerationQueue("test-community"),
+        ["native.communities.moderation-queue.automod-flag.page-1"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", limit: 1, source: "automod_flag"),
+        ["native.communities.moderation-queue.automod-flag.page-2"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", ApiFixtureLoader.QueryValue("native.communities.moderation-queue.automod-flag.page-2", "after"), 1, "automod_flag"),
+        ["native.communities.moderation-queue.automod-flag.member"] = VouchaApiEndpoints.CommunityModerationQueue(
+            "test-community", limit: 1, source: "automod_flag"),
+        ["native.communities.automod-flag.dismissal.default"] = VouchaApiEndpoints.DismissCommunityAutomodFlag(
+            "test-community", ApiFixtureLoader.RouteParameterValue("native.communities.automod-flag.dismissal.default", "postId")),
         ["native.community.pending-reports.paginated"] = VouchaApiEndpoints.CommunityPendingReports(
             "fixture-community",
             "fixture-community-role-and-sort-scoped-report-cursor",

@@ -19,9 +19,42 @@ public extension SettingsViewModel {
     }
 
     var canCreateApiKey: Bool {
-        guard case .loaded = credentialState else { return false }
+        guard case .loaded = credentialState,
+              apiKeyRotationOwnerState.identityConfirmed, identity?.id != nil else { return false }
         return apiKeyScopeSelection.isValid && !apiKeyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !apiKeyCreationInFlight
+            !apiKeySecretOperationInFlight && latestRawAPIKey == nil &&
+            (!isApiKeyAdministrator || apiKeyLifetimeDays == 30 || apiKeyLifetimeDays == 90)
+    }
+
+    var isApiKeyAdministrator: Bool {
+        identity?.roles.contains("administrator") == true
+    }
+
+    func setApiKeyLifetimeDays(_ days: Int?) {
+        if let days, ![30, 90, 365].contains(days) { return }
+        guard !isApiKeyAdministrator || days == 30 || days == 90 else { return }
+        apiKeyLifetimeDays = days
+    }
+
+    func apiKeyStatus(_ key: ApiKey, now: Date = Date()) -> UiMessageKey {
+        if key.revokedAt != nil { return .nativeApiKeysRevoked }
+        if key.replacedByApiKeyId != nil { return .nativeApiKeysReplaced }
+        if let expiry = key.expiresAt, expiry <= now { return .nativeApiKeysExpired }
+        if isInvalidAdministratorApiKey(key) { return .nativeApiKeysAdministratorInvalid }
+        return .nativeApiKeysActive
+    }
+
+    func canRotateApiKey(_ key: ApiKey, now: Date = Date()) -> Bool {
+        apiKeyRotationOwnerState.identityConfirmed && identity?.id != nil &&
+            !apiKeySecretOperationInFlight && latestRawAPIKey == nil &&
+            key.revokedAt == nil && key.replacedByApiKeyId == nil &&
+            key.expiresAt.map { $0 > now } != false && !apiKeyRotationInFlight.contains(key.id)
+    }
+
+    func isInvalidAdministratorApiKey(_ key: ApiKey) -> Bool {
+        guard isApiKeyAdministrator else { return false }
+        guard let expiry = key.expiresAt else { return true }
+        return expiry.timeIntervalSince(key.createdAt) > 90 * 86_400
     }
 
     func setApiKeyScope(_ scope: String, selected: Bool) {

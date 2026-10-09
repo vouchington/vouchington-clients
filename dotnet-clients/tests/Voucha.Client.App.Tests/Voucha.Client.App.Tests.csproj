@@ -15,6 +15,24 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml" Link="Pages/TopicManagementPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml.cs" Link="Pages/TopicManagementPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.State.cs" Link="Pages/TopicManagementPage.State.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.Operations.cs" Link="Pages/TopicManagementPage.Operations.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.ImagePreview.cs" Link="Pages/TopicManagementPage.ImagePreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.Pagination.cs" Link="Pages/TopicManagementPage.Pagination.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Support/ImageSelectionLoader.cs" Link="Support/ImageSelectionLoader.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Support/LocalImagePreview.cs" Link="Support/LocalImagePreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Support/AvatarPreviewCancellation.cs" Link="Support/AvatarPreviewCancellation.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostComposePage.xaml" Link="Pages/PostComposePage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostComposePage.xaml.cs" Link="Pages/PostComposePage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostComposePage.ImagePreview.cs" Link="Pages/PostComposePage.ImagePreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostComposePage.Categories.cs" Link="Pages/PostComposePage.Categories.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/LocalImagePreviewSourceConverter.cs" Link="Pages/LocalImagePreviewSourceConverter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/EmailVerificationRecoveryCoordinator.cs" Link="EmailVerificationRecoveryCoordinator.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/EmailVerificationRecoveryPage.cs" Link="Pages/EmailVerificationRecoveryPage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml" Link="Pages/EmailAddressManagerView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml.cs" Link="Pages/EmailAddressManagerView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.cs" Link="Pages/PostDetailPageBinding.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Rows.cs" Link="Pages/PostDetailPageBinding.Rows.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageBinding.Pagination.cs" Link="Pages/PostDetailPageBinding.Pagination.cs" />
@@ -33,6 +51,12 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/ReviewQueuePage.xaml.cs" Link="Pages/ReviewQueuePage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml" Link="Pages/AiCostsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml.cs" Link="Pages/AiCostsPage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml" Link="Pages/EngineeringQueuesPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml.cs" Link="Pages/EngineeringQueuesPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.cs" Link="Pages/CopyrightNoticesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.List.cs" Link="Pages/CopyrightNoticesPage.List.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.Detail.cs" Link="Pages/CopyrightNoticesPage.Detail.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CopyrightNoticesPage.Eu.cs" Link="Pages/CopyrightNoticesPage.Eu.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.cs" Link="Pages/MemberAppealsPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Form.cs" Link="Pages/MemberAppealsPage.Form.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/MemberAppealsPage.Lifecycle.cs" Link="Pages/MemberAppealsPage.Lifecycle.cs" />
@@ -67,9 +91,13 @@
     <Compile Include="../../src/Voucha.Client.App/NotificationSettingsInboxAction.cs" Link="NotificationSettingsInboxAction.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsRoutePresentation.cs" Link="Pages/SettingsRoutePresentation.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPageInitialLoad.cs" Link="Pages/SettingsPageInitialLoad.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/SettingsApiKeyLifecycleView.xaml" Link="Pages/SettingsApiKeyLifecycleView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsApiKeyLifecycleView.xaml.cs" Link="Pages/SettingsApiKeyLifecycleView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionInitialRouteState.cs" Link="Pages/CommunitySectionInitialRouteState.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityModerationTransparencyControls.cs" Link="Pages/CommunityModerationTransparencyControls.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodActionView.cs" Link="Pages/CommunityAutomodActionView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodFlagsView.cs" Link="Pages/CommunityAutomodFlagsView.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionPage*.cs" Link="Pages/%(Filename)%(Extension)" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />

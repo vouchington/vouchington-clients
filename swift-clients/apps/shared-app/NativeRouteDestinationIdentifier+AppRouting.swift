@@ -45,7 +45,8 @@ extension NativeRouteDestinationIdentifier {
         case .friendRecommendations:
             .friends
         case .accountSettings, .profileSettings, .household, .paymentCards, .pointValuations,
-             .spendingCategories, .rewardsProgramStatuses, .advancedSettings, .notificationSettings:
+             .spendingCategories, .rewardsProgramStatuses, .advancedSettings, .notificationSettings,
+             .copyrightNotices:
             .settings
         case .referrals, .landingPages, .bookmarks, .lists:
             .library

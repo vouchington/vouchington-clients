@@ -8,14 +8,33 @@ import XCTest
 @MainActor
 final class CommunityAutomodActionVisibilityTests: NativeRouteSurfaceViewModelTestCase {
     func testModeratorCanInspectEachCurrentCommunityAutomodAction() async throws {
-        for action in ["record_only", "review_queue", "unpublish"] {
+        for (action, title) in [
+            ("record_only", "Record only"), ("review_queue", "Send to review queue"), ("unpublish", "Unpublish")
+        ] {
             let detail = try await communityDetail(action: action, role: "moderator")
             let viewModel = CommunityDetailViewModel(client: nil, slug: "test-community", initialTab: .moderation)
             viewModel.communityDetail = detail
 
             let panel = CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
-            XCTAssertNoThrow(try panel.inspect().find(text: action))
+            XCTAssertNoThrow(try panel.inspect().find(text: title))
         }
+    }
+
+    func testModeratorCanOpenAutomodFlagReview() async throws {
+        let detail = try await communityDetail(action: "review_queue", role: "moderator")
+        let viewModel = CommunityDetailViewModel(client: nil, slug: "test-community", initialTab: .moderation)
+        viewModel.communityDetail = detail
+        let panel = CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+        XCTAssertNoThrow(try panel.inspect().find(text: "Automod flags"))
+    }
+
+    func testOwnerCanChooseAutomodActionInCommunitySettings() async throws {
+        let detail = try await communityDetail(action: "review_queue", role: "owner")
+        let viewModel = CommunityDetailViewModel(client: nil, slug: "test-community", initialTab: .settings)
+        viewModel.communityDetail = detail
+        let panel = CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+        XCTAssertNoThrow(try panel.inspect().find(button: "Save automod action"))
+        XCTAssertThrowsError(try panel.inspect().find(text: "Automod flags"))
     }
 
     func testMemberCannotInspectCommunityAutomodAction() async throws {
@@ -24,7 +43,7 @@ final class CommunityAutomodActionVisibilityTests: NativeRouteSurfaceViewModelTe
         viewModel.communityDetail = detail
 
         let panel = CommunityDetailActionPanel(viewModel: viewModel, isSignedIn: true, showSignIn: {})
-        XCTAssertThrowsError(try panel.inspect().find(text: "review_queue"))
+        XCTAssertThrowsError(try panel.inspect().find(text: "Automod flags"))
     }
 
     private func communityDetail(action: String, role: String) async throws -> CommunityResponse {

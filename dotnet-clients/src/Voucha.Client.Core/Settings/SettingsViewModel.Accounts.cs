@@ -45,6 +45,7 @@ public sealed partial class SettingsViewModel
 
   public async Task<bool> DeleteAccountAsync(CancellationToken cancellationToken = default)
   {
+    var ownerInvalidationGeneration = Volatile.Read(ref apiKeyOwnerInvalidationGeneration);
     try
     {
       if (!CanDeleteAccount)
@@ -56,8 +57,11 @@ public sealed partial class SettingsViewModel
       }
 
       await EnsureUserIdAsync(cancellationToken).ConfigureAwait(true);
+      if (ownerInvalidationGeneration != Volatile.Read(ref apiKeyOwnerInvalidationGeneration)) return false;
       var response = await settingsService.DeleteUserAsync(currentUserIdOrSlug!, cancellationToken)
           .ConfigureAwait(true);
+      if (ownerInvalidationGeneration != Volatile.Read(ref apiKeyOwnerInvalidationGeneration)) return false;
+      if (response.Logout) InvalidateApiKeyOwnerIdentityIfCurrent(ownerInvalidationGeneration);
       IdentitySummary = response.Logout
           ? localization.Localize(UiMessageKey.NativeDotnetCsharpAccountDeleted)
           : IdentitySummary;
@@ -65,6 +69,7 @@ public sealed partial class SettingsViewModel
     }
     catch (Exception ex)
     {
+      if (ownerInvalidationGeneration != Volatile.Read(ref apiKeyOwnerInvalidationGeneration)) return false;
       ErrorMessage = ex.Message;
       return false;
     }

@@ -32,20 +32,21 @@ public sealed partial class ProfileViewModel
     }
   }
 
-  public async Task UploadAvatarAsync(
+  public async Task<bool> UploadAvatarAsync(
       Stream content,
       string contentType,
       long contentLength,
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(content);
-    if (!CanEdit || IsUploadingAvatar) return;
+    if (!CanMutateAvatar || cancellationToken.IsCancellationRequested) return false;
     if (contentLength <= 0 || contentLength > MaxAvatarUploadBytes)
     {
       ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetCsharpChooseImageUpTo50Mb);
-      return;
+      return false;
     }
 
+    var generation = Interlocked.Increment(ref avatarMutationGeneration);
     IsUploadingAvatar = true;
     ErrorMessage = null;
 
@@ -57,28 +58,36 @@ public sealed partial class ProfileViewModel
       await imageUploadService.UploadAsync(upload.Upload, content, contentLength, cancellationToken).ConfigureAwait(true);
       var completion = await imageUploadService.CompleteAsync(upload.Upload.ImageId, cancellationToken).ConfigureAwait(true);
       var uploadState = await WaitForAvatarUploadStateAsync(completion.Image.Id, cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentAvatarMutation(generation, cancellationToken)) return false;
       if (!IsReadyAvatarUploadState(uploadState))
       {
         ErrorMessage = uploadState.Blocked
             ? localization.Localize(UiMessageKey.NativeDotnetCsharpImageBlocked)
             : uploadState.UploadError ?? localization.Localize(UiMessageKey.NativeDotnetCsharpAvatarUploadFailed);
-        return;
+        return false;
       }
 
-      var response = await settingsService.UpdateMyIdentityAsync(
+      var response = await UpdateAvatarIdentityAsync(
           // The processing pipeline may return a canonical ready image id that differs from the original upload id.
-          new UpdateMyIdentityBody(ProfileImageId: JsonNullableString.FromString(uploadState.Id)),
-          cancellationToken).ConfigureAwait(true);
+          new UpdateMyIdentityBody(ProfileImageId: JsonNullableString.FromString(uploadState.Id))).ConfigureAwait(true);
+      if (!IsCurrentAvatarMutation(generation, cancellationToken)) return false;
       Identity = response.Identity;
-      if (User is not null) User = User with { ProfileImageId = response.Identity.ProfileImageId };
+      if (User is not null) User = User with
+      {
+        ProfileImageId = response.Identity.ProfileImageId,
+        ProfileImagePlacement = response.Identity.ProfileImagePlacement,
+      };
+      return true;
     }
     catch (TimeoutException ex)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      return false;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      return false;
     }
     finally
     {
@@ -146,30 +155,6 @@ public sealed partial class ProfileViewModel
   {
     var status = (int)statusCode;
     return status == 429 || status is >= 500 and <= 599;
-  }
-
-  public async Task RemoveAvatarAsync(CancellationToken cancellationToken = default)
-  {
-    if (!CanEdit || IsUploadingAvatar) return;
-    IsUploadingAvatar = true;
-    ErrorMessage = null;
-
-    try
-    {
-      var response = await settingsService.UpdateMyIdentityAsync(
-          new UpdateMyIdentityBody(ProfileImageId: JsonNullableString.Null),
-          cancellationToken).ConfigureAwait(true);
-      Identity = response.Identity;
-      if (User is not null) User = User with { ProfileImageId = null };
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      IsUploadingAvatar = false;
-    }
   }
 
   public async Task RefreshAsync(CancellationToken cancellationToken = default)

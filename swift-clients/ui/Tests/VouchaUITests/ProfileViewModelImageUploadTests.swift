@@ -20,7 +20,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         CannedFeedURLProtocol.capturedBodies = []
     }
 
-    func testUploadAvatarOverridesStaleProfileImageId() async throws {
+    func testDecodeFailureAfterSuccessfulUploadKeepsImageIdAndUsesReturnedPlacement() async throws {
         let vm = try makeViewModel()
         let imageId = "avatar-image-1"
         let avatarURL = try makeImageFile(name: "avatar-image", extension: "jpg", data: Data("avatar-image".utf8))
@@ -34,15 +34,35 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: "old-avatar"
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
+        CannedFeedURLProtocol.suspendResponse(path: "/api/v1/images/upload-url")
+        defer { CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url") }
+        let uploadRequest = CannedFeedURLProtocol.requestBarrier(path: "/api/v1/images/upload-url", method: "POST")
+        let upload = Task { await vm.uploadAvatar(from: avatarURL) }
+        _ = try await uploadRequest.wait()
 
-        await vm.uploadAvatar(from: avatarURL)
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertTrue(vm.avatarPreviewDecodeFailed)
+        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertTrue(vm.isUploadingAvatar)
+
+        CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url")
+        await upload.value
 
         XCTAssertEqual(vm.identity?.profileImageId, imageId)
-        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertEqual(
+            vm.avatarUploadErrorMessage,
+            .app(UiMessage(UiMessageKey.imagesUploadPreviewUnavailable))
+        )
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertEqual(
+            vm.avatarURL,
+            "https://images.voucha.ai/images/placements/placement-avatar-image-1/2/avatar-image-1?w=144"
+        )
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
             "/api/v1/images/upload-url",
             "/\(imageId)",
@@ -59,7 +79,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
     func testCompleteAvatarUploadWithoutReadyStillUpdatesIdentity() async throws {
         let vm = try makeViewModel()
         let imageId = "avatar-complete-not-ready"
-        let avatarURL = try makeImageFile(name: "complete-avatar", extension: "jpg", data: Data("complete-avatar".utf8))
+        let avatarURL = try makeImageFile(name: "complete-avatar", extension: "jpg", data: Self.validImageData)
         try registerImageUploadFlow(
             imageId: imageId,
             uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/\(imageId)")),
@@ -70,7 +90,8 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: "old-avatar"
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
@@ -115,7 +136,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
 
     func testRemoveAvatarIsIgnoredWhileAvatarUploadIsInFlight() async throws {
         let vm = try makeViewModel()
-        let avatarURL = try makeImageFile(name: "avatar-in-flight", extension: "jpg", data: Data("avatar".utf8))
+        let avatarURL = try makeImageFile(name: "avatar-in-flight", extension: "jpg", data: Self.validImageData)
         let imageId = "avatar-in-flight-1"
         try registerImageUploadFlow(
             imageId: imageId,
@@ -128,7 +149,8 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             PrivateUserTestFixture.identityEnvelope(
                 membershipPlan: "free",
                 roles: ["user"],
-                profileImageId: imageId
+                profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
             ),
             200
         )
@@ -150,6 +172,68 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertEqual(vm.identity?.profileImageId, imageId)
         XCTAssertNil(vm.avatarUploadErrorMessage)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
+    }
+
+    func testNavigationKeepsAvatarUploadBusyUntilIdentityPatchFinishes() async throws {
+        try await assertNavigationKeepsAvatarMutationBusy(removing: false)
+    }
+
+    func testNavigationKeepsAvatarRemovalBusyUntilIdentityPatchFinishes() async throws {
+        try await assertNavigationKeepsAvatarMutationBusy(removing: true)
+    }
+
+    private func assertNavigationKeepsAvatarMutationBusy(removing: Bool) async throws {
+        let vm = try makeViewModel()
+        let imageId = "navigation-avatar"
+        let avatarURL = try makeImageFile(name: imageId, extension: "jpg", data: Self.validImageData)
+        defer { try? FileManager.default.removeItem(at: avatarURL) }
+        try registerImageUploadFlow(
+            imageId: imageId,
+            uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/\(imageId)")),
+            contentType: "image/jpeg",
+            stateBody: #"{"upload_state":{"id":"\#(imageId)","upload_status":"complete","upload_error":null,"ready":true,"blocked":false}}"#
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            PrivateUserTestFixture.identityEnvelope(
+                membershipPlan: "free", roles: ["user"], profileImageId: imageId
+            ), 200
+        )
+        let identityPath = "/api/v1/my/identity"
+        CannedFeedURLProtocol.suspendResponse(path: identityPath)
+        defer { CannedFeedURLProtocol.releaseResponse(path: identityPath) }
+        let patch = CannedFeedURLProtocol.requestBarrier(path: identityPath, method: "PATCH")
+        let mutation = Task {
+            if removing {
+                await vm.removeAvatar()
+            } else {
+                await vm.uploadAvatar(from: avatarURL)
+            }
+        }
+        do {
+            _ = try await patch.wait()
+        } catch {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await mutation.value
+            throw error
+        }
+        vm.clearAvatarPreviewForNavigation()
+        guard vm.isUploadingAvatar else {
+            CannedFeedURLProtocol.releaseResponse(path: identityPath)
+            await mutation.value
+            XCTFail("Navigation allowed a new avatar mutation while the identity PATCH was still held")
+            return
+        }
+        XCTAssertNil(vm.avatarPreviewData)
+        await vm.uploadAvatar(from: avatarURL)
+        await vm.removeAvatar()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
+        CannedFeedURLProtocol.releaseResponse(path: identityPath)
+        await mutation.value
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertNil(vm.identity)
+        await vm.removeAvatar()
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 2)
     }
 
     func testRemoveAvatarOverridesStaleProfileImageId() async throws {
@@ -233,6 +317,14 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             sessionManager: sessionManager,
             imageUploadProtocolClasses: [CannedFeedURLProtocol.self]
         )
+    }
+
+    private static let validImageData = Data(
+        base64Encoded: "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    )!
+
+    private static func placement(imageId: String) -> [String: Any] {
+        ["image_id": imageId, "placement_id": "placement-\(imageId)", "placement_revision": 2]
     }
 
     private func registerImageUploadFlow(

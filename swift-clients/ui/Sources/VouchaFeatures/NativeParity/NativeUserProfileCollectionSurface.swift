@@ -43,7 +43,7 @@ extension NativeUserProfileSurface {
                 Button { onNavigate(NativeUserProfileNavigationTarget.user(user)) } label: {
                     UserRow(
                         user: user,
-                        avatarURL: AppConfig.shared.imageURL(forImageId: user.profileImageId, width: 96)
+                        avatarURL: AppConfig.shared.imageURL(for: user.profileImagePlacement, width: 96)
                     )
                 }
                 .buttonStyle(.plain)

@@ -85,7 +85,9 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
 
   public string? ProfileImageId => Identity?.ProfileImageId ?? User?.ProfileImageId;
 
-  public Uri? AvatarUrl => config.ImageUrlForImageId(ProfileImageId, 144);
+  public Uri? AvatarUrl => (Identity is not null ? Identity.ProfileImagePlacement : User?.ProfileImagePlacement) is { } placement
+      ? config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, 144)
+      : null;
 
   public string BioMarkdown
   {
@@ -120,14 +122,22 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public bool CanEdit
   {
     get => canEdit;
-    private set => SetProperty(ref canEdit, value);
+    private set
+    {
+      if (SetProperty(ref canEdit, value)) OnPropertyChanged(nameof(CanMutateAvatar));
+    }
   }
 
   public bool IsUploadingAvatar
   {
     get => isUploadingAvatar;
-    private set => SetProperty(ref isUploadingAvatar, value);
+    private set
+    {
+      if (SetProperty(ref isUploadingAvatar, value)) OnPropertyChanged(nameof(CanMutateAvatar));
+    }
   }
+
+  public bool CanMutateAvatar => CanEdit && !IsUploadingAvatar;
 
   public bool IsSavingBio
   {

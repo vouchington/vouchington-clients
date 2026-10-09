@@ -36,6 +36,7 @@ extension NativeEngineeringQueuesSurface {
             .nativeSwiftEngineeringQueuesStatsSummary,
             numberParameters: [
                 "waiting": Double(stats.totalWaiting),
+                "delayed": Double(stats.totalDelayed),
                 "active": Double(stats.totalActive),
                 "failed": Double(stats.totalFailed),
                 "queues": Double(stats.queueCount)
@@ -52,6 +53,7 @@ extension NativeEngineeringQueuesSurface {
             .nativeSwiftEngineeringQueuesQueueSummary,
             numberParameters: [
                 "waiting": Double(queue.waiting),
+                "delayed": Double(queue.delayed),
                 "active": Double(queue.active),
                 "failed": Double(queue.failed),
                 "completed": Double(queue.completed)

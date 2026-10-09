@@ -139,6 +139,10 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
         await viewModel.loadCredentialSettings()
         viewModel.setApiKeyScope("feed:read", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        viewModel.apply(identity: owner.identity)
 
         await viewModel.createApiKey()
 

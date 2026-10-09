@@ -1,4 +1,5 @@
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
@@ -82,5 +83,6 @@ public sealed partial class AppShell
           serviceProvider.GetRequiredService<ITopicsService>(),
           serviceProvider.GetRequiredService<IImageUploadService>(),
           serviceProvider.GetRequiredService<VouchaApiClient>(),
-          match?.Param("idOrSlug", "id"));
+          match?.Param("idOrSlug", "id"),
+          serviceProvider.GetRequiredService<AppConfig>());
 }

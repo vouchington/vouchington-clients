@@ -6,6 +6,8 @@ internal static class UiCopy
 {
   private static IUiLocalization localization = UiLocalization.English;
 
+  public static IUiLocalization CurrentLocalization => localization;
+
   public static void UseLocalization(IUiLocalization value) =>
       localization = value ?? throw new ArgumentNullException(nameof(value));
 

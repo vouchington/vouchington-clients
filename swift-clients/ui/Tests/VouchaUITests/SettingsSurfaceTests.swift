@@ -6,6 +6,18 @@ import XCTest
 
 @MainActor
 final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testOneTimeKeyRemainsAccessibleUntilDismissed() throws {
+        let viewModel = try SettingsViewModel(client: makeClient())
+        viewModel.latestRawAPIKey = "fixture-one-time-secret"
+        let sut = SettingsSurface(viewModel: viewModel)
+
+        let secret = try sut.statusBanner.inspect().find(text: "fixture-one-time-secret")
+        XCTAssertFalse(try secret.accessibilityHidden())
+        try sut.statusBanner.inspect().find(button: "Done").tap()
+        XCTAssertNil(viewModel.latestRawAPIKey)
+        XCTAssertThrowsError(try sut.statusBanner.inspect().find(text: "fixture-one-time-secret"))
+    }
+
     func testSettingsSurfaceRendersFunctionalSections() async throws {
         seedSettingsResponses()
         let viewModel = try SettingsViewModel(client: makeClient())

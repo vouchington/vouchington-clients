@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ImagePlacement: Codable, Sendable {
+public struct ImagePlacement: Codable, Equatable, Sendable {
     public let imageId: String
     public let placementId: String
     public let placementRevision: Int

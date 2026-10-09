@@ -106,6 +106,7 @@ extension SettingsViewModel {
     }
 
     func beginSettingsLoad() -> Int {
+        holdDisplayedApiKeySecretForReload()
         settingsLoadGeneration += 1
         activeMainSettingsLoadGeneration = nil
         createdApiKeysDuringMainLoad = []

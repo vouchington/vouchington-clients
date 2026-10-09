@@ -93,13 +93,14 @@ struct NativePostComposeSurface: View {
             allowsMultipleSelection: true
         ) { result in
             if case let .success(urls) = result {
-                Task { await viewModel.uploadImages(from: urls) }
+                viewModel.startImageUploadBatch(from: urls)
             }
         }
         .emailVerificationRecovery(
             client: client,
             gate: viewModel.emailVerificationGate
         )
+        .onDisappear { viewModel.clearImagePreviewsForNavigation() }
     }
 
     private func turnstileVerification(viewModel: NativePostComposeViewModel) -> some View {

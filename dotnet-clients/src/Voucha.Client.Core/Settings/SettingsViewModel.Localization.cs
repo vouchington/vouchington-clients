@@ -21,6 +21,7 @@ public sealed partial class SettingsViewModel
 
   public void Dispose()
   {
+    DisposeApiKeyRotationState();
     localeSubscription?.Dispose();
     if (ownsLocalLLMResponsesClient) localLLMResponsesClient.Dispose();
   }
@@ -30,6 +31,9 @@ public sealed partial class SettingsViewModel
     OnPropertyChanged(nameof(SupportedUiLocaleCount));
     OnPropertyChanged(nameof(ApiKeyTypeOptions));
     OnPropertyChanged(nameof(SelectedApiKeyTypeOption));
+    OnPropertyChanged(nameof(ApiKeyLifetimeOptions));
+    OnPropertyChanged(nameof(SelectedApiKeyLifetimeOption));
+    OnPropertyChanged(nameof(ApiKeyRotationNotice));
     NotifyScopeSelection();
     OnPropertyChanged(nameof(LocalizedOAuthGrants));
     OnPropertyChanged(nameof(CredentialNotice));
@@ -84,7 +88,9 @@ public sealed partial class SettingsViewModel
           new SettingsApiKeyRow(
               apiKey,
               UiTaxonomy.ApiKeyType(apiKey.Type),
-              localization)).ToArray();
+              localization,
+              IsApiKeyAdministrator,
+              !CanStartApiKeySecretOperation)).ToArray();
 
   public IReadOnlyList<SettingsLocalLLMEndpointRow> LocalizedLocalLLMEndpoints =>
       LocalLLMEndpoints.Select(profile =>

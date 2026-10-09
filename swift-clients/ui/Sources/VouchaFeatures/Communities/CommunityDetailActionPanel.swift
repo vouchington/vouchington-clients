@@ -7,6 +7,7 @@ struct CommunityDetailActionPanel: View {
     var viewModel: CommunityDetailViewModel
     let isSignedIn: Bool
     let showSignIn: () -> Void
+    var onNavigate: (String) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -52,6 +53,29 @@ struct CommunityDetailActionPanel: View {
                 )
             }
 
+            if isSignedIn, viewModel.canModerateCommunity, viewModel.selectedTab == .settings {
+                CommunityAutomodSettingsView(
+                    viewModel: CommunityAutomodWorkspaceViewModel(
+                        client: viewModel.client, slug: viewModel.slug,
+                        action: viewModel.communityDetail?.community.automodAction,
+                        canModerate: true
+                    )
+                )
+                .id(automodWorkspaceIdentity)
+            }
+
+            if isSignedIn, viewModel.canModerateCommunity, viewModel.selectedTab == .moderation {
+                CommunityAutomodWorkspaceView(
+                    viewModel: CommunityAutomodWorkspaceViewModel(
+                        client: viewModel.client, slug: viewModel.slug,
+                        action: viewModel.communityDetail?.community.automodAction,
+                        canModerate: true
+                    ),
+                    onNavigate: onNavigate
+                )
+                .id(automodWorkspaceIdentity)
+            }
+
             if viewModel.selectedTab != .modmail,
                viewModel.canModerateCommunity,
                viewModel.selectedTab.isManagementTab || viewModel.selectedTab == .moderation {
@@ -73,5 +97,9 @@ struct CommunityDetailActionPanel: View {
                 CommunityVacationControls(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
             }
         }
+    }
+
+    private var automodWorkspaceIdentity: String {
+        "\(viewModel.slug)|\(viewModel.communityDetail?.community.automodAction.rawValue ?? "")"
     }
 }

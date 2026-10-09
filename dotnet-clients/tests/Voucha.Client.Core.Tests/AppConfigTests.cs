@@ -111,7 +111,7 @@ public sealed class AppConfigTests
   }
 
   [Fact]
-  public void ImageUrlForImageIdUsesConfiguredImageBaseUrl()
+  public void ImageUrlForPlacementUsesConfiguredImageBaseUrl()
   {
     var config = new AppConfig(
         new Uri("https://api.example.test"),
@@ -119,8 +119,8 @@ public sealed class AppConfigTests
         ImageBaseUrl: new Uri("https://images.example.test/assets"));
 
     Assert.Equal(
-        new Uri("https://images.example.test/assets/images/avatar-1?w=144"),
-        config.ImageUrlForImageId("avatar-1", 144));
-    Assert.Null(config.ImageUrlForImageId(" "));
+        new Uri("https://images.example.test/assets/images/placements/placement-1/2/avatar-1?w=144"),
+        config.ImageUrlForPlacement("placement-1", 2, "avatar-1", 144));
+    Assert.Null(config.ImageUrlForPlacement(" ", 2, "avatar-1"));
   }
 }

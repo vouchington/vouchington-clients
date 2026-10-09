@@ -13,7 +13,7 @@ struct CommunityAutomodActionStatusView: View {
             Text(UiMessages.string(.nativeSwiftCommunitiesAutomod, locale: nativeUiLocale))
                 .font(Typography.subheadline)
             if let action {
-                Text(verbatim: UiMessages.string(.protocolValue(action.rawValue), locale: nativeUiLocale))
+                Text(UiMessages.string(action.nativeTitleKey, locale: nativeUiLocale))
                     .accessibilityIdentifier("community-automod-action")
             }
         }

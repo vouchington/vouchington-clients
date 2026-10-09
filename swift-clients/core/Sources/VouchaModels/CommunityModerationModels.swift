@@ -47,12 +47,18 @@ public struct CommunityModmailThread: Codable, Identifiable, Sendable {
     public let channelType: String
     public let title: String
     public let communityId: String
-    @RequiredNullable public var subjectUserId: String?
-    @RequiredNullable public var assignedModeratorUserId: String?
-    @RequiredNullable public var assignedAt: Date?
-    @RequiredNullable public var resolvedAt: Date?
-    @RequiredNullable public var resolvedById: String?
-    @RequiredNullable public var createdById: String?
+    @RequiredNullable
+    public var subjectUserId: String?
+    @RequiredNullable
+    public var assignedModeratorUserId: String?
+    @RequiredNullable
+    public var assignedAt: Date?
+    @RequiredNullable
+    public var resolvedAt: Date?
+    @RequiredNullable
+    public var resolvedById: String?
+    @RequiredNullable
+    public var createdById: String?
     public let createdAt: Date
     public let updatedAt: Date
 }
@@ -110,7 +116,8 @@ public struct CommunityModerationQueueEntry: Codable, Identifiable, Sendable {
     public let postId: String?
     public let status: String
     public let queueSource: String
-    public let reason: String
+    @RequiredNullable
+    public var reason: String?
     public let note: String?
     public let reportCount: Int
     public let actionAt: Date?
@@ -121,14 +128,14 @@ public struct CommunityModerationQueueEntry: Codable, Identifiable, Sendable {
     public let targetAvailable: Bool
     public let targetLabel: String?
     public let targetPath: String?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let targetIsAnonymous: Bool?
     public let targetIsRestricted: Bool?
     @RequiredNullable
     public var targetUserId: String?
     public let reporterUserId: String?
-    @RequiredNullable
-    public var reporterUsername: String?
+    public let reporterUsername: String?
     @RequiredNullable
     public var resolvedById: String?
     @RequiredNullable
@@ -140,7 +147,7 @@ public struct CommunityModerationQueueEntry: Codable, Identifiable, Sendable {
     public var communityBanEvasion: CommunityBanEvasionContext?
     @RequiredNullable
     public var postModerationContext: DecodedJSONValue?
-    public let isSystemGenerated: Bool
+    public let isSystemGenerated: Bool?
     public let caseId: String?
     @RequiredNullable
     public var reviewedAt: Date?

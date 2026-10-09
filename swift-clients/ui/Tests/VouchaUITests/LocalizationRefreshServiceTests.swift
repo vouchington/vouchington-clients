@@ -73,6 +73,14 @@ final class LocalizationRefreshServiceTests: XCTestCase {
         XCTAssertTrue(selectors.split(separator: ",").contains("native.swift.navigationTitles.*"))
         XCTAssertTrue(selectors.split(separator: ",").contains("native.swift.navigation.*"))
         XCTAssertTrue(selectors.split(separator: ",").contains("native.navigation.*"))
+        XCTAssertTrue(selectors.split(separator: ",").contains("native.apiKeys.*"))
+        XCTAssertTrue(selectors.split(separator: ",").contains("images.uploadPreviewUnavailable"))
+        let apiKey = UiMessageKey.nativeApiKeysRotate.rawValue
+        XCTAssertTrue(selectors.split(separator: ",").contains { selector in
+            selector.hasSuffix("*")
+                ? apiKey.hasPrefix(String(selector.dropLast()))
+                : apiKey == selector
+        })
         let navigationKey = UiMessageKey.nativeSwiftNavigationVoucha.rawValue
         XCTAssertTrue(selectors.split(separator: ",").contains { selector in
             selector.hasSuffix("*")

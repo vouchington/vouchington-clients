@@ -5,10 +5,13 @@ public enum NativeLocalizationSelectors {
         "settings.*",
         "shared.*",
         "native.common.*",
+        "native.apiKeys.*",
         "native.auth.*",
         "native.navigation.*",
+        "native.copyrightNotices.*",
         "native.swift.navigation.*",
-        "native.swift.navigationTitles.*"
+        "native.swift.navigationTitles.*",
+        "images.uploadPreviewUnavailable"
     ]
 
     public static let consumer = "swift"

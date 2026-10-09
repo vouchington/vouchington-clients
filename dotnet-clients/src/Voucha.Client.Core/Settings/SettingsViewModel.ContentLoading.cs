@@ -44,7 +44,6 @@ public sealed partial class SettingsViewModel
       var sessionsResponse = await sessionsTask.ConfigureAwait(true);
       ReplaceApiKeyPage(apiKeysResponse);
       ReplaceSessionPage(sessionsResponse);
-      ApiKeySecret = null;
 
       var plansResponse = await membershipPlansTask.ConfigureAwait(true);
       var plans = plansResponse.Plans;

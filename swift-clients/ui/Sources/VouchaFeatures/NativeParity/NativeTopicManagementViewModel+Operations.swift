@@ -176,6 +176,8 @@ extension NativeTopicManagementViewModel {
         hostname = topic.hostname?.hostname ?? ""
         logoImageId = topic.logoImageId ?? ""
         heroImageId = topic.heroImageId ?? ""
+        logoImagePlacement = topic.logoImagePlacement
+        heroImagePlacement = topic.heroImagePlacement
         noindex = topic.noindex ?? false
         allowReviews = topic.allowReviews ?? false
     }

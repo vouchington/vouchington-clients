@@ -27,11 +27,19 @@ enum EndpointManifestCoverage {
             + nativeOAuthAndFriendRecommendationEndpoints
             + followerDistributionEndpoints
             + storyEndpoints
+            + communityAutomodFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
+
             + currentContractFixtureEndpoints.map { id, endpoint in
                 ManifestRegisteredEndpoint(id: id) { endpoint }
             }
 
             + entityProvenanceFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
+
+            + copyrightNoticesFixtureEndpoints.map { id, endpoint in
                 ManifestRegisteredEndpoint(id: id) { endpoint }
             }
 }

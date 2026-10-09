@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import ViewInspector
+@testable import VouchaAPI
 import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaLocalization
@@ -9,6 +10,28 @@ import XCTest
 
 @MainActor
 final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testApiKeySectionRendersExpiryStatusAndRotateActionFromCanonicalFixture() throws {
+        let model = SettingsViewModel(client: nil)
+        let response = try APIClient.makeDecoder().decode(
+            SettingsApiKeyResponse.self,
+            from: ApiFixtureLoader.data("native.my.api-keys.rotate")
+        )
+        model.apiKeyPagination.reset(items: [response.apiKey])
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
+        let surface = SettingsSurface(viewModel: model)
+        let section = try surface.apiKeysSection.inspect()
+
+        XCTAssertNoThrow(try section.find(text: uiEnglish(.nativeApiKeysLifetimeLabel)))
+        XCTAssertNoThrow(try section.find(text: uiEnglish(.nativeApiKeysLifetime90)))
+        XCTAssertNoThrow(try section.find(button: uiEnglish(.nativeApiKeysRotate)))
+        XCTAssertNoThrow(try section.find(ViewType.Text.self, where: {
+            try $0.string().contains("Expires")
+        }))
+    }
+
     func testStagedCatalogRendersLocalizedUmbrellaMeaningWithoutSelectingResourceScopes() async throws {
         seedCredentials()
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (ApiFixtureLoader.data("shared.scopes.catalog"), 200)
@@ -47,6 +70,11 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         })
         try toggle.tap()
         XCTAssertEqual(model.apiKeyScopeSelection.permissions, ["data:read", "data:write"])
+        XCTAssertTrue(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
     }
 
@@ -98,6 +126,10 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: "data:write"))
         XCTAssertThrowsError(try surface.apiKeyScopePicker.inspect().find(text: "Sign in to continue."))
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertFalse(try surface.apiKeysSection.inspect().find(button: "Create API Key").isDisabled())
     }
 
@@ -109,6 +141,10 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         model.apiKeyLabel = "Agent"
         await model.loadCredentialSettings()
         model.setApiKeyScope("data:write", selected: true)
+        let owner = try APIClient.makeDecoder().decode(
+            SettingsIdentityResponse.self, from: PrivateUserTestFixture.identityEnvelope()
+        )
+        model.apply(identity: owner.identity)
         XCTAssertTrue(model.canCreateApiKey)
         let scopeRequests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == "/api/v1/scopes" }.count
 

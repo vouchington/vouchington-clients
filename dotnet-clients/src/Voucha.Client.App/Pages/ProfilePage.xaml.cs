@@ -1,12 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Storage;
 using Voucha.Client.App;
-using Voucha.Client.App.Support;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.LandingPages;
-using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Profiles;
 using Voucha.Client.Core.Tags;
@@ -87,6 +84,14 @@ public partial class ProfilePage : ContentPage
     }
   }
 
+  protected override void OnDisappearing()
+  {
+    avatarPreviewGeneration++;
+    avatarPreviewCancellation.CancelCurrent();
+    ClearLocalAvatarPreview();
+    base.OnDisappearing();
+  }
+
   private async void OnUserAdminClicked(object? sender, EventArgs e)
   {
     var target = viewModel.User?.Username ?? viewModel.User?.Id ?? idOrUsername;
@@ -105,38 +110,6 @@ public partial class ProfilePage : ContentPage
   private async void OnSaveBioClicked(object? sender, EventArgs e)
   {
     await viewModel.SaveBioAsync(viewModel.BioMarkdown);
-  }
-
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void event handlers must not let picker or upload failures escape.")]
-  private async void OnUploadAvatarClicked(object? sender, EventArgs e)
-  {
-    try
-    {
-      var result = await FilePicker.PickAsync(PickOptions.Images);
-      if (result is null) return;
-
-      await using var selection = await ImageSelectionLoader.LoadAsync(result);
-      await viewModel.UploadAvatarAsync(
-          selection.Content,
-          selection.ContentType,
-          selection.ContentLength);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-      viewModel.ReportAvatarUploadFailure(
-          ex is InvalidOperationException
-              ? ex.Message
-              : UiCopy.Localize(UiMessageKey.NativeDotnetCsharpAvatarUploadFailed));
-    }
-  }
-
-  private async void OnRemoveAvatarClicked(object? sender, EventArgs e)
-  {
-    await viewModel.RemoveAvatarAsync();
   }
 
   private async void OnHistoryTabClicked(object? sender, EventArgs e)

@@ -63,5 +63,6 @@ public enum NativeRouteDestinationId
   ModerationAdmin,
   ModerationIntegrity,
   ModerationCases,
+  CopyrightNotices,
   Compare,
 }

@@ -15,6 +15,23 @@
   <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
   <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} puntos</value></data>
   <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Mostrar respuestas anteriores</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" xml:space="preserve"><value>Acción de automod guardada</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.automodAction_83211784" xml:space="preserve"><value>Acción de automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.chooseWhatHappensToAPublishedPost_b2e29694" xml:space="preserve"><value>Elige qué ocurre con una publicación publicada cuando uno de los prompts de agente de esta comunidad la marca. La marca siempre se registra y cambiar esto nunca vuelve a ejecutar un prompt.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.couldNotSaveTheAutomodAction_d095dea5" xml:space="preserve"><value>No se pudo guardar la acción de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedAndAddIt_56f75b30" xml:space="preserve"><value>Mantén la publicación publicada y agrégala a la cola de revisión para que un moderador descarte la marca o elimine la publicación.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.keepThePostPublishedTheFlagAppears_01b0cba0" xml:space="preserve"><value>Mantén la publicación publicada. La marca solo aparece en la revisión de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.recordOnly_c9184072" xml:space="preserve"><value>Solo registrar</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.removeThePostFromTheCommunityRight_215c4ec5" xml:space="preserve"><value>Retira la publicación de la comunidad de inmediato. Un moderador puede restablecerla desde la revisión de automod.</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saveAutomodAction_5f2b209e" xml:space="preserve"><value>Guardar acción de automod</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.saving_dc85af8f" xml:space="preserve"><value>Guardando...</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.sendToReviewQueue_1c3a1b74" xml:space="preserve"><value>Enviar a la cola de revisión</value></data>
+  <data name="extracted.communities.communityAutomodActionForm.unpublish_2db04a54" xml:space="preserve"><value>Dejar de Publicar</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlagDismissed_66ee7e46" xml:space="preserve"><value>Marca de automod descartada</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.automodFlags_b5fc56db" xml:space="preserve"><value>Marcas de automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.dismiss_48845bff" xml:space="preserve"><value>Descartar</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.failedToDismissTheAutomodFlag_0e50ec68" xml:space="preserve"><value>Error al descartar la marca de automod</value></data>
+  <data name="extracted.communities.communityAutomodFlagsPanel.postsAutomodFlaggedForModeratorReview_90005619" xml:space="preserve"><value>Publicaciones que el automod marcó para revisión de los moderadores. Descarta una marca cuando no se necesite ninguna acción; editar una publicación elimina su marca.</value></data>
   <data name="extracted.intents.admin.aiCosts_75cce222" xml:space="preserve"><value>Costos de IA</value></data>
   <data name="extracted.intents.admin.appeals_03e8c5a5" xml:space="preserve"><value>Apelaciones</value></data>
   <data name="extracted.intents.admin.dynamicConfig_59cf5829" xml:space="preserve"><value>Configuración dinámica</value></data>
@@ -256,12 +273,87 @@
   <data name="extracted.votes.semanticVote.support" xml:space="preserve"><value>Apoyar</value></data>
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Avalar</value></data>
+  <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Imagen subida. Vista previa no disponible.</value></data>
+  <data name="native.apiKeys.active" xml:space="preserve"><value>Activa</value></data>
+  <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Esta clave de administrador no es válida. Renuévala por 30 o 90 días, o revócala.</value></data>
+  <data name="native.apiKeys.expired" xml:space="preserve"><value>Caducada</value></data>
+  <data name="native.apiKeys.expiresAt" xml:space="preserve"><value>Caduca el {date}</value></data>
+  <data name="native.apiKeys.lifetime30" xml:space="preserve"><value>30 días</value></data>
+  <data name="native.apiKeys.lifetime365" xml:space="preserve"><value>365 días</value></data>
+  <data name="native.apiKeys.lifetime90" xml:space="preserve"><value>90 días</value></data>
+  <data name="native.apiKeys.lifetimeLabel" xml:space="preserve"><value>Duración de la clave</value></data>
+  <data name="native.apiKeys.lifetimeNone" xml:space="preserve"><value>Sin caducidad</value></data>
+  <data name="native.apiKeys.replaced" xml:space="preserve"><value>Reemplazada</value></data>
+  <data name="native.apiKeys.revoked" xml:space="preserve"><value>Revocada</value></data>
+  <data name="native.apiKeys.rotate" xml:space="preserve"><value>Renovar clave</value></data>
+  <data name="native.apiKeys.rotated" xml:space="preserve"><value>Clave de API renovada. Guarda la nueva clave ahora; solo se muestra una vez.</value></data>
+  <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>Esta clave no se puede renovar. Actualiza su estado o revócala.</value></data>
+  <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>Esta clave ya no está disponible. Actualiza tus claves.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Correo electrónico</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} artículo relacionado</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} artículos relacionados</value></data>
   <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ artículos relacionados</value></data>
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ artículos relacionados</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="native.copyrightNotices.acceptedDate" xml:space="preserve"><value>Aceptado {date}</value></data>
+  <data name="native.copyrightNotices.affectedHostedMaterial" xml:space="preserve"><value>Material alojado afectado</value></data>
+  <data name="native.copyrightNotices.affectedPlacementCount.__plural.one" xml:space="preserve"><value>{count} ubicación afectada.</value></data>
+  <data name="native.copyrightNotices.affectedPlacementCount.__plural.other" xml:space="preserve"><value>{count} ubicaciones afectadas.</value></data>
+  <data name="native.copyrightNotices.case" xml:space="preserve"><value>Caso {id}</value></data>
+  <data name="native.copyrightNotices.caseTimeline" xml:space="preserve"><value>Cronología del caso</value></data>
+  <data name="native.copyrightNotices.claimant" xml:space="preserve"><value>Reclamante</value></data>
+  <data name="native.copyrightNotices.complaintAfterDecision" xml:space="preserve"><value>Puedes presentar una reclamación después de que se tome una decisión.</value></data>
+  <data name="native.copyrightNotices.complaintAfterRedecision" xml:space="preserve"><value>Habrá una nueva reclamación cuando el personal tome otra decisión.</value></data>
+  <data name="native.copyrightNotices.complaintAvailable" xml:space="preserve"><value>Se puede presentar una reclamación sobre esta decisión.</value></data>
+  <data name="native.copyrightNotices.complaintCannotSubmit" xml:space="preserve"><value>No se puede presentar una reclamación sobre esta decisión.</value></data>
+  <data name="native.copyrightNotices.complaintMaintained" xml:space="preserve"><value>Se mantuvo la decisión original.</value></data>
+  <data name="native.copyrightNotices.complaintReceived" xml:space="preserve"><value>Hemos recibido tu reclamación.</value></data>
+  <data name="native.copyrightNotices.complaintUpheld" xml:space="preserve"><value>Tu reclamación fue aceptada.</value></data>
+  <data name="native.copyrightNotices.complaintWindowEnds" xml:space="preserve"><value>El plazo para reclamar termina el {date}.</value></data>
+  <data name="native.copyrightNotices.decidedDate" xml:space="preserve"><value>Decidido el {date}</value></data>
+  <data name="native.copyrightNotices.decision" xml:space="preserve"><value>Decisión</value></data>
+  <data name="native.copyrightNotices.deliveryCouldNotComplete" xml:space="preserve"><value>No se pudo completar la entrega</value></data>
+  <data name="native.copyrightNotices.deliveryFailed" xml:space="preserve"><value>Error en la entrega</value></data>
+  <data name="native.copyrightNotices.deliveryPending" xml:space="preserve"><value>Entrega pendiente</value></data>
+  <data name="native.copyrightNotices.detailTitle" xml:space="preserve"><value>Aviso de derechos de autor</value></data>
+  <data name="native.copyrightNotices.disputeSettlements" xml:space="preserve"><value>Resoluciones de controversias</value></data>
+  <data name="native.copyrightNotices.euComplaintUpheldReviewing" xml:space="preserve"><value>Tu reclamación fue aceptada. El personal está revisando este aviso.</value></data>
+  <data name="native.copyrightNotices.euDecisionReviewing" xml:space="preserve"><value>Un moderador está revisando este aviso.</value></data>
+  <data name="native.copyrightNotices.euDetailTitle" xml:space="preserve"><value>Aviso de derechos de autor de la UE</value></data>
+  <data name="native.copyrightNotices.euMaterialRestricted" xml:space="preserve"><value>Se restringió el material alojado.</value></data>
+  <data name="native.copyrightNotices.euNoAction" xml:space="preserve"><value>No se tomó ninguna medida.</value></data>
+  <data name="native.copyrightNotices.euOtherRedressRoutes" xml:space="preserve"><value>Puedes remitir la disputa a un órgano certificado de resolución extrajudicial conforme al artículo 21 de la DSA. También puedes acudir a los tribunales.</value></data>
+  <data name="native.copyrightNotices.eventAppealReceived" xml:space="preserve"><value>Recurso recibido</value></data>
+  <data name="native.copyrightNotices.eventAppealReviewed" xml:space="preserve"><value>Recurso revisado</value></data>
+  <data name="native.copyrightNotices.eventCounterNoticeReceived" xml:space="preserve"><value>Contranotificación recibida</value></data>
+  <data name="native.copyrightNotices.eventCounterNoticeReviewed" xml:space="preserve"><value>Contranotificación revisada</value></data>
+  <data name="native.copyrightNotices.eventMaterialRestored" xml:space="preserve"><value>Material restaurado</value></data>
+  <data name="native.copyrightNotices.eventMaterialWithheld" xml:space="preserve"><value>Material restringido</value></data>
+  <data name="native.copyrightNotices.eventNoticeReceived" xml:space="preserve"><value>Aviso recibido</value></data>
+  <data name="native.copyrightNotices.eventProvisionalRestriction" xml:space="preserve"><value>Material restringido provisionalmente</value></data>
+  <data name="native.copyrightNotices.eventWithdrawalReceived" xml:space="preserve"><value>Retirada recibida</value></data>
+  <data name="native.copyrightNotices.hostedMaterialUnavailable" xml:space="preserve"><value>Este material alojado no está visible para esta persona.</value></data>
+  <data name="native.copyrightNotices.loadMore" xml:space="preserve"><value>Cargar más avisos de derechos de autor aceptados</value></data>
+  <data name="native.copyrightNotices.noDisputeSettlements" xml:space="preserve"><value>No se ha registrado ninguna resolución de disputa.</value></data>
+  <data name="native.copyrightNotices.noSettlementOutcome" xml:space="preserve"><value>No se ha registrado ningún resultado.</value></data>
+  <data name="native.copyrightNotices.otherRedressRoutes" xml:space="preserve"><value>Otras vías de reparación</value></data>
+  <data name="native.copyrightNotices.privacyNote" xml:space="preserve"><value>Los registros muestran el perfil público actual de quien reclama. No incluyen identidad legal privada, correspondencia, pruebas ni análisis de agentes.</value></data>
+  <data name="native.copyrightNotices.receivedDate" xml:space="preserve"><value>Recibido el {date}</value></data>
+  <data name="native.copyrightNotices.referredDate" xml:space="preserve"><value>Remitido el {date}</value></data>
+  <data name="native.copyrightNotices.sentDate" xml:space="preserve"><value>Enviado el {date}</value></data>
+  <data name="native.copyrightNotices.settlementImplemented" xml:space="preserve"><value>Implementado el {date}</value></data>
+  <data name="native.copyrightNotices.settlementOutcome" xml:space="preserve"><value>Resultado: {result}. Decidido el {date}</value></data>
+  <data name="native.copyrightNotices.statementsAndDecisions" xml:space="preserve"><value>Declaraciones de motivos y decisiones</value></data>
+  <data name="native.copyrightNotices.status" xml:space="preserve"><value>Estado: {status}</value></data>
+  <data name="native.copyrightNotices.surfaceCommunityBannerImage" xml:space="preserve"><value>Imagen del banner de la comunidad</value></data>
+  <data name="native.copyrightNotices.surfaceCommunityProfileImage" xml:space="preserve"><value>Imagen de perfil de la comunidad</value></data>
+  <data name="native.copyrightNotices.surfacePostImage" xml:space="preserve"><value>Imagen de publicación</value></data>
+  <data name="native.copyrightNotices.surfaceProfileImage" xml:space="preserve"><value>Imagen de perfil</value></data>
+  <data name="native.copyrightNotices.surfaceProfileLinkImage" xml:space="preserve"><value>Imagen del enlace de perfil</value></data>
+  <data name="native.copyrightNotices.surfaceTopicHero" xml:space="preserve"><value>Imagen principal del tema</value></data>
+  <data name="native.copyrightNotices.surfaceTopicLogo" xml:space="preserve"><value>Logotipo del tema</value></data>
+  <data name="native.copyrightNotices.title" xml:space="preserve"><value>Avisos de derechos de autor aceptados</value></data>
+  <data name="native.copyrightNotices.yourComplaint" xml:space="preserve"><value>Tu reclamación</value></data>
   <data name="native.credentials.action" xml:space="preserve"><value>Acción</value></data>
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>No se pudo cargar la configuración de credenciales</value></data>
@@ -679,6 +771,7 @@
   <data name="native.dotnet.engineeringQueues.activeCount" xml:space="preserve"><value>Activas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.backfills" xml:space="preserve"><value>Procesos históricos</value></data>
   <data name="native.dotnet.engineeringQueues.completedCount" xml:space="preserve"><value>Completadas: {value}</value></data>
+  <data name="native.dotnet.engineeringQueues.delayedCount" xml:space="preserve"><value>Retrasados: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.failedCount" xml:space="preserve"><value>Fallidas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.queueCount" xml:space="preserve"><value>Colas: {value}</value></data>
   <data name="native.dotnet.engineeringQueues.runBackfill" xml:space="preserve"><value>Ejecutar proceso histórico</value></data>

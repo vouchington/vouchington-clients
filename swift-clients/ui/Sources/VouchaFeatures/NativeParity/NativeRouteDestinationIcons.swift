@@ -42,6 +42,7 @@ extension NativeRouteDestinationIdentifier {
         case .chat: "bubble.left.and.bubble.right"
         case .notifications: "bell"
         case .accountSettings: "gearshape"
+        case .copyrightNotices: "doc.text.magnifyingglass"
         case .profileSettings: "person.crop.circle"
         case .household: "person.3"
         case .paymentCards: "creditcard"

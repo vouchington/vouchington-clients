@@ -59,7 +59,7 @@ public final class FriendsListViewModel {
     }
 
     public func avatarURL(for user: PublicUser) -> String? {
-        config.imageURL(forImageId: user.profileImageId)
+        config.imageURL(for: user.profileImagePlacement)
     }
 
     public func isFollowing(userId: String) -> Bool {

@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Profiles;
 
-public sealed class ProfileViewModelTests
+public sealed partial class ProfileViewModelTests
 {
   [Fact]
   public async Task LoadOwnAsyncLoadsProfileAndHistory()
@@ -24,7 +24,7 @@ public sealed class ProfileViewModelTests
     Assert.Equal(LoadState.Loaded, viewModel.State);
     Assert.Equal("Alice", viewModel.DisplayName);
     Assert.Equal("Hello", viewModel.BioMarkdown);
-    Assert.Equal(new Uri("https://images.example.test/images/avatar-1?w=144"), viewModel.AvatarUrl);
+    Assert.Equal(new Uri("https://images.example.test/images/placements/avatar-placement/2/avatar-1?w=144"), viewModel.AvatarUrl);
     Assert.True(settings.LastIncludeBio);
     Assert.Equal("user-1", posts.LastRequest?.Creator);
     Assert.Equal("review,discussion,comment", posts.LastRequest?.PostTypes);
@@ -69,6 +69,32 @@ public sealed class ProfileViewModelTests
     await viewModel.LoadPublicAsync("alice", cancellationToken: TestContext.Current.CancellationToken);
 
     Assert.Equal("Display Alice", viewModel.DisplayName);
+  }
+
+  [Fact]
+  public async Task LoadPublicAsyncDoesNotDeliverAvatarWithoutPlacement()
+  {
+    var settings = new RecordingSettingsService
+    {
+      ResponseUser = new User("user-1", "alice", ProfileImageId: "legacy-id"),
+    };
+    var viewModel = NewViewModel(settings, new RecordingPostsService());
+
+    await viewModel.LoadPublicAsync("alice", cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.Null(viewModel.AvatarUrl);
+  }
+
+  [Fact]
+  public async Task LoadOwnAsyncDoesNotFallBackToStalePublicPlacement()
+  {
+    var settings = new RecordingSettingsService { IdentityPlacement = null };
+    var viewModel = NewViewModel(settings, new RecordingPostsService());
+
+    await viewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal("avatar-1", viewModel.ProfileImageId);
+    Assert.Null(viewModel.AvatarUrl);
   }
 
   [Fact]
@@ -220,7 +246,7 @@ public sealed class ProfileViewModelTests
     Assert.Equal(3, images.ContentLength);
     Assert.Equal(1, images.FetchStateCount);
     Assert.Equal("image-1", settings.LastIdentityUpdateBody?.ProfileImageId?.Value);
-    Assert.Equal(new Uri("https://images.example.test/images/image-1?w=144"), viewModel.AvatarUrl);
+    Assert.Equal(new Uri("https://images.example.test/images/placements/avatar-placement/3/image-1?w=144"), viewModel.AvatarUrl);
     Assert.False(viewModel.IsUploadingAvatar);
   }
 
@@ -360,8 +386,11 @@ public sealed class ProfileViewModelTests
 
   private sealed class RecordingSettingsService : ISettingsService
   {
+    public TopicImagePlacement? IdentityPlacement { get; set; } =
+        new("avatar-1", "avatar-placement", 2);
     public User ResponseUser { get; set; } =
-        new("user-1", "alice", "Hello", Name: "Alice", ProfileImageId: "avatar-1");
+        new("user-1", "alice", "Hello", Name: "Alice", ProfileImageId: "avatar-1",
+            ProfileImagePlacement: new TopicImagePlacement("avatar-1", "avatar-placement", 2));
 
     public string? LastFetchedUserIdOrSlug { get; private set; }
 
@@ -380,7 +409,8 @@ public sealed class ProfileViewModelTests
             Roles: [],
             EmailAddress: "alice@example.test",
             MembershipPlan: "free",
-            ProfileImageId: "avatar-1")));
+            ProfileImageId: "avatar-1",
+            ProfileImagePlacement: IdentityPlacement)));
 
     public Task<MyIdentityResponse> UpdateMyIdentityAsync(
         UpdateMyIdentityBody body,
@@ -393,7 +423,10 @@ public sealed class ProfileViewModelTests
           Roles: [],
           EmailAddress: "alice@example.test",
           MembershipPlan: "free",
-          ProfileImageId: body.ProfileImageId?.Value)));
+          ProfileImageId: body.ProfileImageId?.Value,
+          ProfileImagePlacement: body.ProfileImageId?.Value is { } id
+              ? new TopicImagePlacement(id, "avatar-placement", 3)
+              : null)));
     }
 
     public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) =>
