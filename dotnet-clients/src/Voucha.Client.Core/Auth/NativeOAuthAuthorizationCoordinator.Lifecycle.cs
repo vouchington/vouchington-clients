@@ -15,7 +15,7 @@ public sealed partial class NativeOAuthAuthorizationCoordinator
   {
     ArgumentNullException.ThrowIfNull(uri);
     if (!IsCallback(uri)) return new(false, null);
-    var query = ParseQuery(uri.Query);
+    var query = NativeCallbackQuery.Parse(uri.Query);
     if (!query.TryGetValue("flow_id", out var flowId) ||
         !query.TryGetValue("completion_token", out var token) ||
         string.IsNullOrWhiteSpace(flowId) ||
@@ -126,17 +126,6 @@ public sealed partial class NativeOAuthAuthorizationCoordinator
       uri.Scheme.Equals("voucha", StringComparison.OrdinalIgnoreCase) &&
       uri.Host.Equals("auth", StringComparison.OrdinalIgnoreCase) &&
       uri.AbsolutePath == "/oauth/callback";
-
-  private static Dictionary<string, string> ParseQuery(string query) =>
-      query.TrimStart('?')
-          .Split('&', StringSplitOptions.RemoveEmptyEntries)
-          .Select(item => item.Split('=', 2))
-          .Where(parts => parts.Length == 2)
-          .GroupBy(parts => Uri.UnescapeDataString(parts[0]), StringComparer.Ordinal)
-          .ToDictionary(
-              group => group.Key,
-              group => Uri.UnescapeDataString(group.First()[1]),
-              StringComparer.Ordinal);
 
   private static NativeOAuthAuthorizationState StateFor(NativeOAuthAuthorizationResultKind kind) =>
       kind switch
