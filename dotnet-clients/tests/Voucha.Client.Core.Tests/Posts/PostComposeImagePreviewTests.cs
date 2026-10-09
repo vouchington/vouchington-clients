@@ -217,6 +217,8 @@ public sealed partial class PostComposeImageTests
       var retained = Assert.Single(viewModel.Images);
       Assert.Equal("ready", retained.ImageId);
       Assert.False(retained.HasLocalPreview);
+      Assert.True(retained.IsReady);
+      Assert.True(retained.HasUploadedPreviewUnavailable);
     }
     finally
     {

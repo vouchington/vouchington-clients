@@ -33,7 +33,7 @@ public sealed partial class PostComposeViewModel
     SetPendingLocalPreview(null, false);
     SetImages(Images
         .Where(image => !image.IsUploading)
-        .Select(image => image with { LocalPreviewBytes = null, PreviewUnavailable = false })
+        .Select(image => image with { LocalPreviewBytes = null, PreviewUnavailable = image.IsReady })
         .ToArray());
   }
 

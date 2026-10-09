@@ -100,6 +100,29 @@ public sealed class PostComposeLocalPreviewPageTests
         label => label.Text == "Image uploaded. Preview unavailable." && label.IsVisible);
   }
 
+  [Fact]
+  public void ReturningToComposeShowsFallbackForTheRetainedUploadedAttachment()
+  {
+    var (page, viewModel, locale) = CreatePage();
+    using var _ = locale;
+    Assert.True(viewModel.TryAddImageDraft(new PostComposeImageDraft(
+        "ready-image", 0, LocalPreviewBytes: new byte[] { 1, 2, 3 })));
+    Assert.True(viewModel.TryAddImageDraft(new PostComposeImageDraft(
+        "unfinished-image", 1, IsUploading: true, LocalPreviewBytes: new byte[] { 4, 5, 6 })));
+
+    typeof(PostComposePage).GetMethod("OnDisappearing", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(page, null);
+
+    var retained = Assert.Single(viewModel.Images);
+    Assert.Equal("ready-image", retained.ImageId);
+    Assert.True(retained.IsReady);
+    Assert.True(retained.HasUploadedPreviewUnavailable);
+    Assert.Contains(page.GetVisualTreeDescendants().OfType<Label>(),
+        label => label.Text == "Image uploaded. Preview unavailable." && label.IsVisible);
+    Assert.DoesNotContain(page.GetVisualTreeDescendants().OfType<Image>(), image =>
+        image.IsVisible && image.Source is StreamImageSource);
+  }
+
   private static (PostComposePage Page, PostComposeViewModel ViewModel, UiLocaleController Locale) CreatePage(
       IImageUploadService? uploads = null)
   {

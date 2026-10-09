@@ -71,6 +71,53 @@ public sealed class CommunityAutomodActionViewTests
     Assert.Equal(UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5), Assert.Single(view.Children.OfType<Label>(), label => label.AutomationId == "community-automod-action-status").Text);
   }
 
+  [Fact]
+  public async Task MountedFormRefreshesOptionsDescriptionAndHeldSaveStatusWhenLocaleChanges()
+  {
+    ConfigureResources();
+    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var version = new UiLocaleVersion(locales);
+    Application.Current!.Resources["UiLocaleVersion"] = version;
+    using var localization = UiCopy.PushLocalization(new UiLocalization(locales));
+    var releaseSave = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var view = new CommunityAutomodActionView("record_only", _ => releaseSave.Task);
+    _ = new ContentPage { Content = view };
+    var picker = Assert.Single(view.Children.OfType<Picker>());
+    var status = Assert.Single(view.Children.OfType<Label>(), label =>
+        label.AutomationId == "community-automod-action-status");
+    var description = Assert.Single(view.Children.OfType<Label>(), label =>
+        label.AutomationId == "community-automod-action-description");
+    picker.SelectedIndex = 2;
+    Assert.Single(view.Children.OfType<Button>()).SendClicked();
+    var englishOptions = picker.ItemsSource.Cast<string>().ToArray();
+    var englishDescription = description.Text;
+    var englishStatus = status.Text;
+
+    try
+    {
+      locales.ApplySavedLocale("es");
+      Assert.Equal("unpublish", view.SelectedAction);
+      Assert.NotEqual(englishOptions, picker.ItemsSource.Cast<string>().ToArray());
+      Assert.NotEqual(englishDescription, description.Text);
+      Assert.NotEqual(englishStatus, status.Text);
+      Assert.Equal(UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f), status.Text);
+    }
+    finally
+    {
+      var savingStatus = status.Text;
+      var failed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+      status.PropertyChanged += (_, args) =>
+      {
+        if (args.PropertyName == nameof(Label.Text) && status.Text != savingStatus)
+          failed.TrySetResult();
+      };
+      releaseSave.TrySetResult(false);
+      await failed.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    }
+    Assert.Equal("record_only", view.SelectedAction);
+    Assert.Equal(UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5), status.Text);
+  }
+
   private static void ConfigureResources()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -104,5 +151,10 @@ public sealed class CommunityAutomodActionViewTests
     public bool Dispatch(Action action) { action(); return true; }
     public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
     public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
+  }
+
+  private sealed class EnglishLanguages : IDeviceLanguageProvider
+  {
+    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 }

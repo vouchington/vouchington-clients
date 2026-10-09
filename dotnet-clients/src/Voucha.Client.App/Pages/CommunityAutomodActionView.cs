@@ -4,6 +4,9 @@ namespace Voucha.Client.App.Pages;
 
 public sealed class CommunityAutomodActionView : VerticalStackLayout
 {
+  private static readonly BindableProperty LocaleVersionProperty = BindableProperty.Create(
+      nameof(LocaleVersion), typeof(int), typeof(CommunityAutomodActionView), 0,
+      propertyChanged: static (view, _, _) => ((CommunityAutomodActionView)view).RefreshLocalization());
   private static readonly string[] Actions = ["record_only", "review_queue", "unpublish"];
   private static readonly UiMessageKey[] OptionKeys =
   [
@@ -25,6 +28,8 @@ public sealed class CommunityAutomodActionView : VerticalStackLayout
       Button.TextProperty,
       UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSaveAutomodAction5f2b209e);
   private string? committedAction;
+  private UiMessageKey? statusKey;
+  private int LocaleVersion { get => (int)GetValue(LocaleVersionProperty); set => SetValue(LocaleVersionProperty, value); }
 
   public CommunityAutomodActionView(string? action, Func<string, Task<bool>>? save = null)
   {
@@ -39,6 +44,9 @@ public sealed class CommunityAutomodActionView : VerticalStackLayout
     actionPicker.SelectedIndexChanged += (_, _) => RefreshDescription();
     saveButton.Clicked += OnSaveClicked;
     Update(action);
+    if (Application.Current?.Resources.TryGetValue("UiLocaleVersion", out var resource) == true &&
+        resource is UiLocaleVersion version)
+      SetBinding(LocaleVersionProperty, new Binding(nameof(UiLocaleVersion.Version), source: version));
   }
 
   public Func<string, Task<bool>> SaveRequested { get; set; }
@@ -65,19 +73,31 @@ public sealed class CommunityAutomodActionView : VerticalStackLayout
           ? UiCopy.Localize(DescriptionKeys[actionPicker.SelectedIndex])
           : null;
 
+  private void RefreshLocalization()
+  {
+    Update(committedAction);
+    if (statusKey is { } key) status.Text = UiCopy.Localize(key);
+  }
+
+  private void SetStatus(UiMessageKey key)
+  {
+    statusKey = key;
+    status.Text = UiCopy.Localize(key);
+  }
+
   private async void OnSaveClicked(object? sender, EventArgs args)
   {
     if (!saveButton.IsEnabled || SelectedAction is not { } action) return;
     saveButton.IsEnabled = false;
-    status.Text = UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f);
+    SetStatus(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormSavingDc85af8f);
     try
     {
       if (await SaveRequested(action).ConfigureAwait(true))
-        status.Text = UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1);
+        SetStatus(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1);
       else
       {
         actionPicker.SelectedIndex = Array.IndexOf(Actions, committedAction);
-        status.Text = UiCopy.Localize(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5);
+        SetStatus(UiMessageKey.ExtractedCommunitiesCommunityAutomodActionFormCouldNotSaveTheAutomodActionD095dea5);
       }
     }
     finally
