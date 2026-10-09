@@ -360,6 +360,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeCredentialsChooseScopes = new("native.credentials.chooseScopes");
     public static readonly UiMessageKey NativeCredentialsConfirmRevokeGrant = new("native.credentials.confirmRevokeGrant");
     public static readonly UiMessageKey NativeCredentialsConnectedApps = new("native.credentials.connectedApps");
+    public static readonly UiMessageKey NativeCredentialsFinancialProfileRead = new("native.credentials.financialProfileRead");
+    public static readonly UiMessageKey NativeCredentialsFinancialProfileWrite = new("native.credentials.financialProfileWrite");
     public static readonly UiMessageKey NativeCredentialsGrantActivity = new("native.credentials.grantActivity");
     public static readonly UiMessageKey NativeCredentialsGrantRevoked = new("native.credentials.grantRevoked");
     public static readonly UiMessageKey NativeCredentialsInvalidSelection = new("native.credentials.invalidSelection");
@@ -371,6 +373,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeCredentialsResource = new("native.credentials.resource");
     public static readonly UiMessageKey NativeCredentialsRevokeFailed = new("native.credentials.revokeFailed");
     public static readonly UiMessageKey NativeCredentialsScopes = new("native.credentials.scopes");
+    public static readonly UiMessageKey NativeCredentialsSpendingRead = new("native.credentials.spendingRead");
+    public static readonly UiMessageKey NativeCredentialsSpendingWrite = new("native.credentials.spendingWrite");
     public static readonly UiMessageKey NativeCredentialsUnusedGrantActivity = new("native.credentials.unusedGrantActivity");
     public static readonly UiMessageKey NativeCredentialsUnverified = new("native.credentials.unverified");
     public static readonly UiMessageKey NativeCredentialsUserAudience = new("native.credentials.userAudience");
@@ -2353,6 +2357,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeCredentialsChooseScopes,
         NativeCredentialsConfirmRevokeGrant,
         NativeCredentialsConnectedApps,
+        NativeCredentialsFinancialProfileRead,
+        NativeCredentialsFinancialProfileWrite,
         NativeCredentialsGrantActivity,
         NativeCredentialsGrantRevoked,
         NativeCredentialsInvalidSelection,
@@ -2364,6 +2370,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeCredentialsResource,
         NativeCredentialsRevokeFailed,
         NativeCredentialsScopes,
+        NativeCredentialsSpendingRead,
+        NativeCredentialsSpendingWrite,
         NativeCredentialsUnusedGrantActivity,
         NativeCredentialsUnverified,
         NativeCredentialsUserAudience,

@@ -230,6 +230,8 @@
 "native.credentials.chooseScopes" = "Elegir ámbitos";
 "native.credentials.confirmRevokeGrant" = "¿Revocar el acceso a {app}?";
 "native.credentials.connectedApps" = "Aplicaciones conectadas";
+"native.credentials.financialProfileRead" = "Leer tu rango de puntuación crediticia, rango de ingresos declarados, límite de crédito total y años de historial crediticio.";
+"native.credentials.financialProfileWrite" = "Actualizar tu rango de puntuación crediticia, rango de ingresos declarados, límite de crédito total y años de historial crediticio.";
 "native.credentials.grantActivity" = "Autorizada el {consentedAt} · Último uso: {lastUsedAt}";
 "native.credentials.grantRevoked" = "Acceso revocado";
 "native.credentials.invalidSelection" = "Elige al menos un permiso";
@@ -240,6 +242,8 @@
 "native.credentials.requires" = "Requiere {scope}";
 "native.credentials.resource" = "Recurso";
 "native.credentials.scopes" = "Ámbitos";
+"native.credentials.spendingRead" = "Leer tus categorías de gastos, importes, frecuencia y notas.";
+"native.credentials.spendingWrite" = "Añadir, actualizar o eliminar tus categorías de gastos, importes, frecuencia y notas.";
 "native.credentials.unusedGrantActivity" = "Autorizada {consentedAt} · Aún no se ha usado";
 "native.credentials.userAudience" = "Usuario";
 "native.credentials.writeAction" = "Escritura";

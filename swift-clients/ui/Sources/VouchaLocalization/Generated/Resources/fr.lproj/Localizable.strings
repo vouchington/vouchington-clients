@@ -230,6 +230,8 @@
 "native.credentials.chooseScopes" = "Choisir les portées";
 "native.credentials.confirmRevokeGrant" = "Révoquer l’accès à {app} ?";
 "native.credentials.connectedApps" = "Applications connectées";
+"native.credentials.financialProfileRead" = "Lire votre fourchette de score de crédit, vos revenus déclarés, votre plafond total de crédit et vos années d’historique de crédit.";
+"native.credentials.financialProfileWrite" = "Modifier votre fourchette de score de crédit, vos revenus déclarés, votre plafond total de crédit et vos années d’historique de crédit.";
 "native.credentials.grantActivity" = "Autorisée le {consentedAt} · Dernière utilisation : {lastUsedAt}";
 "native.credentials.grantRevoked" = "Accès révoqué";
 "native.credentials.invalidSelection" = "Choisissez au moins une autorisation";
@@ -240,6 +242,8 @@
 "native.credentials.requires" = "Nécessite {scope}";
 "native.credentials.resource" = "Ressource";
 "native.credentials.scopes" = "Portées";
+"native.credentials.spendingRead" = "Lire vos catégories de dépenses, montants, fréquence et notes.";
+"native.credentials.spendingWrite" = "Ajouter, modifier ou supprimer vos catégories de dépenses, montants, fréquence et notes.";
 "native.credentials.unusedGrantActivity" = "Autorisée {consentedAt} · Pas encore utilisée";
 "native.credentials.userAudience" = "Utilisateur";
 "native.credentials.writeAction" = "Écriture";
