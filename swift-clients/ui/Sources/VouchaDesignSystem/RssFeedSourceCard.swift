@@ -65,6 +65,7 @@ public struct RssFeedSourceCard: View {
                     Text(source.displayHost)
                         .font(Typography.caption)
                         .foregroundStyle(Colors.secondaryLabel)
+                    ProvenanceBadge(provenance: source.provenance)
                     Text(verbatim: UiMessages.string(source.cardFeedTypeLabel, locale: nativeUiLocale))
                         .font(Typography.caption2)
                         .foregroundStyle(Colors.secondaryLabel)
