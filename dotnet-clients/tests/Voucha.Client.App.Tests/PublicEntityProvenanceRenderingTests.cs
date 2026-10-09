@@ -173,24 +173,42 @@ public sealed class PublicEntityProvenanceRenderingTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
     using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var localization = new UiLocalization(locale);
     var client = Client(Fixture("entity-provenance.rss-feeds"));
     using var model = new NewsFeedsViewModel(new ApiNewsFeedService(client),
-        NewsFeedKind.News, NewsFeedScope.AllSources);
+        NewsFeedKind.News, NewsFeedScope.AllSources, localization: localization, localeController: locale);
     var page = new NewsFeedsPage(model, new AnonymousSessionStore(), null!,
         Recovery(locale));
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var collection = Assert.Single(Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<NewsFeedItem>);
+    var originalItems = model.Items;
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
     var verified = Assert.Single(model.Items, row => row.Provenance?.App?.ClientName == "Fixture Agent");
     card.BindingContext = verified;
     var label = Assert.Single(Descendants<Label>(card), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
+    var englishLabel = label.Text;
 
     card.BindingContext = Assert.Single(model.Items, row => !row.HasProvenance);
     Assert.False(label.IsVisible);
     Assert.Null(label.Text);
+
+    card.BindingContext = verified;
+    Assert.True(label.IsVisible);
+    Assert.Equal(englishLabel, label.Text);
+    locale.ApplySavedLocale("es");
+
+    var refreshedItems = Assert.IsAssignableFrom<IReadOnlyList<NewsFeedItem>>(collection.ItemsSource);
+    Assert.NotSame(originalItems, refreshedItems);
+    Assert.Same(model.Items, refreshedItems);
+    var refreshed = Assert.Single(refreshedItems, row => row.Provenance?.App?.ClientName == "Fixture Agent");
+    Assert.NotSame(verified, refreshed);
+    card.BindingContext = refreshed;
+    Assert.True(label.IsVisible);
+    Assert.NotEqual(englishLabel, label.Text);
+    Assert.Equal(refreshed.LocalizedProvenanceLabel, label.Text);
   }
 
   private static string Fixture(string id)
