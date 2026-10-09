@@ -149,7 +149,10 @@ private extension ScopeDescriptionKey {
         switch self {
         case .mcpUserFullAccess: .nativeCredentialsMcpUserFullAccess
         case .mcpAdminFullAccess: .nativeCredentialsMcpAdminFullAccess
-        case .financialProfileRead, .financialProfileWrite, .spendingRead, .spendingWrite: nil
+        case .financialProfileRead: .nativeCredentialsFinancialProfileRead
+        case .financialProfileWrite: .nativeCredentialsFinancialProfileWrite
+        case .spendingRead: .nativeCredentialsSpendingRead
+        case .spendingWrite: .nativeCredentialsSpendingWrite
         }
     }
 }

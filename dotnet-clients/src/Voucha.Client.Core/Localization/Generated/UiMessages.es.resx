@@ -360,6 +360,8 @@
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Elegir ámbitos</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>¿Revocar el acceso a {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicaciones conectadas</value></data>
+  <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Leer tu rango de puntuación crediticia, rango de ingresos declarados, límite de crédito total y años de historial crediticio.</value></data>
+  <data name="native.credentials.financialProfileWrite" xml:space="preserve"><value>Actualizar tu rango de puntuación crediticia, rango de ingresos declarados, límite de crédito total y años de historial crediticio.</value></data>
   <data name="native.credentials.grantActivity" xml:space="preserve"><value>Autorizada el {consentedAt} · Último uso: {lastUsedAt}</value></data>
   <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Acceso revocado</value></data>
   <data name="native.credentials.invalidSelection" xml:space="preserve"><value>Elige al menos un permiso</value></data>
@@ -371,6 +373,8 @@
   <data name="native.credentials.resource" xml:space="preserve"><value>Recurso</value></data>
   <data name="native.credentials.revokeFailed" xml:space="preserve"><value>No se pudo revocar el acceso</value></data>
   <data name="native.credentials.scopes" xml:space="preserve"><value>Ámbitos</value></data>
+  <data name="native.credentials.spendingRead" xml:space="preserve"><value>Leer tus categorías de gastos, importes, frecuencia y notas.</value></data>
+  <data name="native.credentials.spendingWrite" xml:space="preserve"><value>Añadir, actualizar o eliminar tus categorías de gastos, importes, frecuencia y notas.</value></data>
   <data name="native.credentials.unusedGrantActivity" xml:space="preserve"><value>Autorizada {consentedAt} · Aún no se ha usado</value></data>
   <data name="native.credentials.unverified" xml:space="preserve"><value>Sin verificar</value></data>
   <data name="native.credentials.userAudience" xml:space="preserve"><value>Usuario</value></data>
