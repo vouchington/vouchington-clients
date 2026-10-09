@@ -124,6 +124,12 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
     exit 1
   fi
 
+  # Swift Build otherwise discovers the runner's Android SDK NDK, which may be
+  # older than the NDK used to build this Swift Android SDK's runtime libraries.
+  ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"
+  ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+  export ANDROID_NDK_ROOT ANDROID_NDK_HOME
+
   # Skip's Gradle bridge discovers host toolchains only through the conventional
   # macOS path. Keep that path as a real directory and link only the verified
   # .xctoolchain — Foundation rejects a directory-level symlink (NSPOSIX 20).
