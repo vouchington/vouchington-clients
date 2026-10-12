@@ -104,7 +104,7 @@ struct SpendingCategoryDraft: Equatable {
     private static func parseDecimal(_ amountText: String, locale: Locale) -> Decimal? {
         let trimmed = amountText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        let formatter = decimalFormatter(locale: locale)
+        let formatter = DraftDecimalFormatter.make(locale: locale)
         guard hasCanonicalDecimalSyntax(trimmed, formatter: formatter) else { return nil }
         var object: AnyObject?
         var range = NSRange(location: 0, length: trimmed.utf16.count)
@@ -136,22 +136,12 @@ struct SpendingCategoryDraft: Equatable {
     private static let whitespaceGroupingSeparators = [" ", "\u{00A0}", "\u{202F}"]
 
     private static func format(_ value: Decimal, locale: Locale) -> String {
-        decimalFormatter(locale: locale)
+        DraftDecimalFormatter.make(locale: locale)
             .string(from: NSDecimalNumber(decimal: value)) ?? NSDecimalNumber(decimal: value).stringValue
     }
 
     private static func powerOfTen(_ exponent: Int) -> Decimal {
         (0 ..< exponent).reduce(1) { value, _ in value * 10 }
-    }
-
-    private static func decimalFormatter(locale: Locale) -> NumberFormatter {
-        let formatter = NumberFormatter()
-        formatter.locale = locale
-        formatter.numberStyle = .decimal
-        formatter.generatesDecimalNumbers = true
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 38
-        return formatter
     }
 }
 
