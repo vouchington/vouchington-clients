@@ -7,20 +7,19 @@ public extension Endpoint {
         query: String? = nil,
         sort: String? = "best"
     ) -> Endpoint {
-        var queryItems: [URLQueryItem] = []
-        if let limit {
-            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
-        }
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
+        var filters: [URLQueryItem] = []
         if let query {
-            queryItems.append(URLQueryItem(name: "q", value: query))
+            filters.append(URLQueryItem(name: "q", value: query))
         }
         if let sort {
-            queryItems.append(URLQueryItem(name: "sort", value: sort))
+            filters.append(URLQueryItem(name: "sort", value: sort))
         }
-        return Endpoint(.GET, path: "/api/v1/fediverse/instances", queryItems: queryItems)
+        return pagedGet(
+            path: "/api/v1/fediverse/instances",
+            after: after,
+            limit: limit,
+            queryItems: filters
+        )
     }
 
     static func fediverseInstance(idOrSlug: String) -> Endpoint {

@@ -69,4 +69,35 @@ final class PagedGetEndpointTests: XCTestCase {
         XCTAssertEqual(posts.queryItems.map(\.value), ["10", cursor, "video"])
         XCTAssertEqual(posts.path, "/api/v1/users/ada/posts/bookmarks")
     }
+
+    func testOptionalCursorPagesOmitNilLimitAndKeepLaterFilters() {
+        XCTAssertTrue(Endpoint.currencies().queryItems.isEmpty)
+        XCTAssertEqual(Endpoint.currencies(after: "cursor").queryItems, [
+            URLQueryItem(name: "after", value: "cursor")
+        ])
+        XCTAssertEqual(Endpoint.copyrightNotices(limit: 40).queryItems, [
+            URLQueryItem(name: "limit", value: "40")
+        ])
+        XCTAssertEqual(Endpoint.postAncestors(postId: "comment 1").queryItems, [])
+        XCTAssertEqual(
+            Endpoint.householdMemberships(householdId: "house/1").path,
+            "/api/v1/households/house%2F1/memberships"
+        )
+        XCTAssertTrue(Endpoint.householdMemberships(householdId: "house/1").queryItems.isEmpty)
+        XCTAssertEqual(
+            Endpoint.myConversations(after: "cursor-5").queryItems,
+            [URLQueryItem(name: "after", value: "cursor-5")]
+        )
+        XCTAssertEqual(
+            Endpoint.fediverseInstances(limit: nil, query: "social", sort: nil).queryItems,
+            [URLQueryItem(name: "q", value: "social")]
+        )
+        XCTAssertEqual(
+            Endpoint.fediverseInstances().queryItems,
+            [
+                URLQueryItem(name: "limit", value: "25"),
+                URLQueryItem(name: "sort", value: "best")
+            ]
+        )
+    }
 }
