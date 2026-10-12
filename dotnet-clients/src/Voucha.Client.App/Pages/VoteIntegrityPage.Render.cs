@@ -50,7 +50,7 @@ public sealed partial class VoteIntegrityPage
         string.IsNullOrWhiteSpace(row.Evidence) ? string.Empty :
             UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityEvidence),
         row.Evidence);
-    AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
+    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
     content.Children.Insert(1, IntegrityPageViews.Entity(row.Entity));
     if (flag.Resolution is null && flag.ResolvedAt is null) AddActions(content, flag.Id);
     if (viewModel.PenalizedUserCount(flag.Id) is { } count)
@@ -69,23 +69,6 @@ public sealed partial class VoteIntegrityPage
       content.Children.Add(reconcile);
     }
     return IntegrityPageViews.Card(content, $"vote-integrity-flag-{flag.Id}");
-  }
-
-  private static void AddResolution(
-      VerticalStackLayout content, string? resolution, DateTimeOffset? at, string? by)
-  {
-    if (resolution is null && at is null && by is null)
-    {
-      content.Children.Add(new Label { Text = UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityPending) });
-      return;
-    }
-    if (resolution is not null) IntegrityPageViews.AddPair(
-        content, UiMessageKey.NativeSwiftIntegrityResolution,
-        IntegrityPageViews.Resolution(resolution));
-    if (at is not null) IntegrityPageViews.AddPair(
-        content, UiMessageKey.NativeSwiftIntegrityResolvedAt, UiCopy.FormatDateTime(at.Value));
-    if (by is not null) IntegrityPageViews.AddPair(
-        content, UiMessageKey.NativeSwiftIntegrityResolvedBy, by);
   }
 
   private void AddActions(VerticalStackLayout content, string flagId)

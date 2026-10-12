@@ -47,6 +47,23 @@ internal static class IntegrityPageViews
     content.Children.Add(new Label { Text = value });
   }
 
+  public static void AddResolution(
+      VerticalStackLayout content, string? resolution, DateTimeOffset? at, string? by)
+  {
+    if (resolution is null && at is null && by is null)
+    {
+      content.Children.Add(new Label { Text = UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityPending) });
+      return;
+    }
+
+    if (resolution is not null) AddPair(
+        content, UiMessageKey.NativeSwiftIntegrityResolution, Resolution(resolution));
+    if (at is not null) AddPair(
+        content, UiMessageKey.NativeSwiftIntegrityResolvedAt, UiCopy.FormatDateTime(at.Value));
+    if (by is not null) AddPair(
+        content, UiMessageKey.NativeSwiftIntegrityResolvedBy, by);
+  }
+
   public static string FlagType(string value) => value switch
   {
     "mass_report_suspected" =>
