@@ -2,11 +2,7 @@ import Foundation
 
 public extension Endpoint {
     static func adminAiCosts(after: String? = nil) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "limit", value: "25")]
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/admin/ai-costs", queryItems: queryItems)
+        pagedGet(path: "/api/v1/admin/ai-costs", after: after, limit: 25)
     }
 }
 

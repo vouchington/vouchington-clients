@@ -61,14 +61,11 @@ public extension Endpoint {
         limit: Int,
         queryItems: [URLQueryItem] = []
     ) -> Endpoint {
-        var paginationItems = [URLQueryItem(name: "limit", value: "\(limit)")]
-        if let after {
-            paginationItems.append(.init(name: "after", value: after))
-        }
-        return Endpoint(
-            .GET,
+        pagedGet(
             path: "/api/v1/users/\(pathSegment(userId))/\(entitySegment)/\(pathSegment(listType))",
-            queryItems: paginationItems + queryItems
+            after: after,
+            limit: limit,
+            queryItems: queryItems
         )
     }
 }

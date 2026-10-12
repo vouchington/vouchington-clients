@@ -2,7 +2,7 @@ import Foundation
 
 public extension Endpoint {
     static func myEmailAddresses(after: String? = nil, limit: Int = 25) -> Endpoint {
-        paginatedGet(path: "/api/v1/my/email-addresses", after: after, limit: limit)
+        pagedGet(path: "/api/v1/my/email-addresses", after: after, limit: limit)
     }
 
     static func requestMyEmailAddressVerification(emailAddress: String) -> Endpoint {
@@ -23,14 +23,6 @@ public extension Endpoint {
             body: EmailAddressVerificationBody(token: token)
         )
     }
-}
-
-private func paginatedGet(path: String, after: String?, limit: Int) -> Endpoint {
-    var queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
-    if let after {
-        queryItems.append(URLQueryItem(name: "after", value: after))
-    }
-    return Endpoint(.GET, path: path, queryItems: queryItems)
 }
 
 private struct EmailAddressVerificationRequestBody: Encodable {
