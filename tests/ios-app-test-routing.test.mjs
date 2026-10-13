@@ -17,6 +17,14 @@ describe('iOS Simulator launch smoke fan-in', () => {
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
     )
+    const validation = readFileSync(
+      new URL('../.github/workflows/validate.yml', import.meta.url),
+      'utf8',
+    )
+    assert.match(
+      validation,
+      /name: Require jq for workflow predicate tests\n\s+run: command -v jq/u,
+    )
     const testsJob = jobBlock(workflow, 'tests')
     const iosJob = jobBlock(workflow, 'build-ios-app')
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
