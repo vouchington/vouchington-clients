@@ -9,6 +9,7 @@ using Microsoft.Maui.Dispatching;
 using Voucha.Client.App;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
@@ -157,18 +158,20 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var client = Client(Fixture("entity-provenance.topics"));
     using var model = new TopicsViewModel(new ApiTopicsService(client));
     var page = new TopicsPage(model, new AnonymousSessionStore(), null!, null!, null!, client,
-        Recovery(locale), null!, UiLocalization.English, null!);
+        Recovery(locale), null!, UiLocalization.English, null!, new AppConfig(new Uri("https://api.test")));
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var collection = Assert.Single(Descendants<CollectionView>(page), view =>
-        view.ItemsSource is IReadOnlyList<TopicRow>);
+        view.ItemsSource is IReadOnlyList<TopicPageRow>);
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
-    card.BindingContext = Assert.Single(model.Items, row => row.Provenance?.App?.ClientName == "Fixture Agent");
+    card.BindingContext = Assert.Single(Assert.IsType<TopicsPageBinding>(page.BindingContext).Items,
+        row => row.Topic.Provenance?.App?.ClientName == "Fixture Agent");
     var label = Assert.Single(Descendants<Label>(card), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     Assert.Contains("Fixture Agent", label.Text, StringComparison.Ordinal);
 
-    card.BindingContext = Assert.Single(model.Items, row => !row.HasProvenance);
+    card.BindingContext = Assert.Single(Assert.IsType<TopicsPageBinding>(page.BindingContext).Items,
+        row => !row.HasProvenance);
     Assert.False(label.IsVisible);
     Assert.Null(label.Text);
   }
@@ -187,7 +190,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     using var model = new TopicDetailViewModel(new ApiTopicsService(client),
         localization: localization, localeController: controller);
     var page = new TopicDetailPage(model, new AnonymousSessionStore(), "topic-1-mcp",
-        Recovery(controller));
+        Recovery(controller), new AppConfig(new Uri("https://api.test")));
     await model.LoadAsync("topic-1-mcp", followSource: false, TestContext.Current.CancellationToken);
     var label = Assert.Single(Descendants<Label>(page), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
@@ -216,7 +219,8 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         new JsonObject { ["topic"] = topic.DeepClone() }.ToJsonString(),
         Fixture("entity-provenance.rss-feeds"));
     using var topicModel = new TopicDetailViewModel(new ApiTopicsService(topicClient));
-    var topicPage = new TopicDetailPage(topicModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale));
+    var topicPage = new TopicDetailPage(topicModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale),
+        new AppConfig(new Uri("https://api.test")));
     var topicLoaded = WaitUntilLoadedAsync(topicModel);
     Appear(topicPage);
     await topicLoaded;
@@ -228,7 +232,8 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         new JsonObject { ["topic"] = topic }.ToJsonString(),
         Fixture("entity-provenance.rss-feeds"));
     using var sourceModel = new TopicDetailViewModel(new ApiTopicsService(sourceClient));
-    var sourcePage = new TopicDetailPage(sourceModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale), isSourceDetail: true);
+    var sourcePage = new TopicDetailPage(sourceModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale),
+        new AppConfig(new Uri("https://api.test")), isSourceDetail: true);
     var sourceLoaded = WaitUntilLoadedAsync(sourceModel);
     Appear(sourcePage);
     await sourceLoaded;
@@ -325,17 +330,19 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     using var topicsModel = new TopicsViewModel(new ApiTopicsService(topicClient));
     using var locale = new UiLocaleController(new DeviceLanguage("en"));
     var topics = new TopicsPage(topicsModel, new AnonymousSessionStore(), null!, null!, null!, topicClient,
-        Recovery(locale), null!, UiLocalization.English, null!);
+        Recovery(locale), null!, UiLocalization.English, null!, new AppConfig(new Uri("https://api.test")));
     await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
     var topicCollection = Assert.Single(Descendants<CollectionView>(topics), view =>
-        view.ItemsSource is IReadOnlyList<TopicRow>);
+        view.ItemsSource is IReadOnlyList<TopicPageRow>);
     var topicCard = Assert.IsType<Border>(topicCollection.ItemTemplate.CreateContent());
-    var topic = topicsModel.Items[0] with { StaffProvenance = facts, IsStaffViewer = true };
+    var topic = TopicPageRow.Create(topicsModel.Items[0] with { StaffProvenance = facts, IsStaffViewer = true },
+        new AppConfig(new Uri("https://api.test")));
     topicCard.BindingContext = topic;
     var topicLabel = Assert.Single(Descendants<Label>(topicCard), item =>
         item.Text == topic.StaffChannelLabel);
     Assert.True(topicLabel.IsVisible);
-    topicCard.BindingContext = topic with { IsStaffViewer = false };
+    topicCard.BindingContext = TopicPageRow.Create(topic.Topic with { IsStaffViewer = false },
+        new AppConfig(new Uri("https://api.test")));
     Assert.False(topicLabel.IsVisible);
     Assert.Null(topicLabel.Text);
 

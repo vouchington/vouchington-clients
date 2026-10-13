@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using System.ComponentModel;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.App.Controls;
 
@@ -14,15 +16,18 @@ public partial class TopicDetailPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly bool showSourceCrawls;
   private readonly bool isSourceDetail;
+  private readonly AppConfig config;
   private readonly string? sourceCrawlId;
   private bool lastStaffViewer;
   private bool isVisible;
+  private bool isTopicChangeAttached;
 
   public TopicDetailPage(
       TopicDetailViewModel viewModel,
       ISessionStore sessionStore,
       string topicIdOrSlug,
       EmailVerificationRecoveryCoordinator emailRecovery,
+      AppConfig config,
       bool showSourceCrawls = false,
       string? sourceCrawlId = null,
       bool isSourceDetail = false)
@@ -33,11 +38,14 @@ public partial class TopicDetailPage : ContentPage
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     this.topicIdOrSlug = topicIdOrSlug;
     this.emailRecovery = emailRecovery ?? throw new ArgumentNullException(nameof(emailRecovery));
+    this.config = config ?? throw new ArgumentNullException(nameof(config));
     this.showSourceCrawls = showSourceCrawls;
     this.sourceCrawlId = sourceCrawlId;
     this.isSourceDetail = isSourceDetail;
     lastStaffViewer = IsStaffViewer;
     BindingContext = viewModel;
+    AttachTopicChanges();
+    RefreshTopicLogo();
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI lifecycle handlers must not throw.")]
@@ -46,8 +54,10 @@ public partial class TopicDetailPage : ContentPage
     base.OnAppearing();
     isVisible = true;
     sessionStore.SessionChanged += sessionChangedHandler;
+    AttachTopicChanges();
     RefreshViewerState();
     lastStaffViewer = IsStaffViewer;
+    RefreshTopicLogo();
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
@@ -64,6 +74,11 @@ public partial class TopicDetailPage : ContentPage
   {
     isVisible = false;
     sessionStore.SessionChanged -= sessionChangedHandler;
+    if (isTopicChangeAttached)
+    {
+      viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+      isTopicChangeAttached = false;
+    }
     base.OnDisappearing();
   }
 
@@ -90,6 +105,28 @@ public partial class TopicDetailPage : ContentPage
     {
       System.Diagnostics.Debug.WriteLine(ex);
     }
+  }
+
+  private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+  {
+    if (e.PropertyName == nameof(viewModel.Topic)) RefreshTopicLogo();
+  }
+
+  private void AttachTopicChanges()
+  {
+    if (isTopicChangeAttached) return;
+    viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    isTopicChangeAttached = true;
+  }
+
+  private void RefreshTopicLogo()
+  {
+    var placement = viewModel.Topic?.LogoImagePlacement;
+    var url = placement is null
+        ? null
+        : config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, 320);
+    TopicLogoImage.Source = url is null ? null : ImageSource.FromUri(url);
+    TopicLogoImage.IsVisible = url is not null;
   }
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)
@@ -162,7 +199,8 @@ public partial class TopicDetailPage : ContentPage
         emailRecovery,
         showSourceCrawls: true,
         sourceCrawlId: crawlId,
-        isSourceDetail: isSourceDetail));
+        isSourceDetail: isSourceDetail,
+        config: config));
   }
 
   private async void OnRetrySourceCrawlHistoryClicked(object? sender, EventArgs e)

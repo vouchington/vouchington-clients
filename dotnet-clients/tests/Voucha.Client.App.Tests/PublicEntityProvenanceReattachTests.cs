@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Lists;
@@ -317,7 +318,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     using var topicsModel = new TopicsViewModel(new ApiTopicsService(Client(
         Fixture("entity-provenance.topics.staff"))));
     await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
-    var topics = new TopicsPageBinding(topicsModel, session);
+    var topics = new TopicsPageBinding(topicsModel, session, new AppConfig(new Uri("https://api.test")));
     Assert.Contains(feeds.Items, row => row.HasStaffChannel);
     Assert.Contains(topics.Items, row => row.HasStaffChannel);
 

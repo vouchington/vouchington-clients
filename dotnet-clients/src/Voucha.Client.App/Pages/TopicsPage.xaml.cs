@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Topics;
@@ -21,6 +22,7 @@ public partial class TopicsPage : ContentPage
   private readonly IServiceProvider serviceProvider;
   private readonly IUiLocalization localization;
   private readonly IUiLocaleController localeController;
+  private readonly AppConfig config;
 
   public TopicsPage(
       TopicsViewModel viewModel,
@@ -32,7 +34,8 @@ public partial class TopicsPage : ContentPage
       EmailVerificationRecoveryCoordinator emailRecovery,
       IServiceProvider serviceProvider,
       IUiLocalization localization,
-      IUiLocaleController localeController)
+      IUiLocaleController localeController,
+      AppConfig config)
   {
     InitializeComponent();
     this.viewModel = viewModel;
@@ -45,7 +48,8 @@ public partial class TopicsPage : ContentPage
     this.serviceProvider = serviceProvider;
     this.localization = localization;
     this.localeController = localeController;
-    BindingContext = new TopicsPageBinding(viewModel, sessionStore);
+    this.config = config ?? throw new ArgumentNullException(nameof(config));
+    BindingContext = new TopicsPageBinding(viewModel, sessionStore, config);
   }
 
   [SuppressMessage(
@@ -79,22 +83,22 @@ public partial class TopicsPage : ContentPage
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: TopicRow item })
+    if (sender is Button { CommandParameter: TopicPageRow item })
     {
       if (!sessionStore.Current.CanCastPublicVotes()) return;
       var choice = await SemanticVoteActionSheet.ChooseSentimentAsync(this, item.CurrentVoteChoice);
       if (choice is null) return;
-      await viewModel.VoteTopicAsync(item, choice);
+      await viewModel.VoteTopicAsync(item.Topic, choice);
       await emailRecovery.PresentIfRequestedAsync(this, viewModel.EmailVerificationGate);
     }
   }
 
   private async void OnClearVoteClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: TopicRow item })
+    if (sender is Button { CommandParameter: TopicPageRow item })
     {
       if (!sessionStore.Current.CanClearPublicVote(item.CurrentVoteChoice)) return;
-      await viewModel.VoteTopicAsync(item, null);
+      await viewModel.VoteTopicAsync(item.Topic, null);
       await emailRecovery.PresentIfRequestedAsync(this, viewModel.EmailVerificationGate);
     }
   }
@@ -107,7 +111,7 @@ public partial class TopicsPage : ContentPage
 
   private async void OnOpenClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: TopicRow item })
+    if (sender is Button { CommandParameter: TopicPageRow item })
     {
       await Navigation.PushAsync(new TopicDetailPage(
           new TopicDetailViewModel(
@@ -121,14 +125,15 @@ public partial class TopicsPage : ContentPage
               requiresAuthoritativeSourceCrawlMembership: true),
           sessionStore,
           item.Id,
-          emailRecovery));
+          emailRecovery,
+          config));
     }
   }
 
   private async void OnSettingsClicked(object? sender, EventArgs e)
   {
     if (!sessionStore.Current.CanManageTopics()) return;
-    if (sender is Button { CommandParameter: TopicRow item })
+    if (sender is Button { CommandParameter: TopicPageRow item })
     {
       await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, item.Id));
     }
