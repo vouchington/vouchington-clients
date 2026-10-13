@@ -73,11 +73,12 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
     func generateAssistantResponse(
         to message: String,
         history: [NativeChatTimelineMessage],
-        mcpSession: NativeChatMCPAgentSession?
+        mcpSession: NativeChatMCPAgentSession?,
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws -> NativeChatAssistantResponse? {
         guard let endpoint = availableEndpoint,
               let mcpSession,
-              let snapshot = await mcpSession.connectedSnapshot()
+              let snapshot = mcpSnapshot
         else { return try await generateAssistantResponse(to: message, history: history) }
         let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
         guard !bridge.tools.isEmpty else {

@@ -106,7 +106,8 @@ protocol NativeChatTitleProviding: Sendable {
     func generateAssistantResponse(
         to message: String,
         history: [NativeChatTimelineMessage],
-        mcpSession: NativeChatMCPAgentSession?
+        mcpSession: NativeChatMCPAgentSession?,
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws -> NativeChatAssistantResponse?
 
     func generateTitle(from messages: [NativeChatTimelineMessage]) async throws -> String?
@@ -120,7 +121,8 @@ extension NativeChatTitleProviding {
     func generateAssistantResponse(
         to message: String,
         history: [NativeChatTimelineMessage],
-        mcpSession _: NativeChatMCPAgentSession?
+        mcpSession _: NativeChatMCPAgentSession?,
+        mcpSnapshot _: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws -> NativeChatAssistantResponse? {
         try await generateAssistantResponse(to: message, history: history)
     }

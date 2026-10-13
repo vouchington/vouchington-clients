@@ -61,7 +61,8 @@ extension NativeChatViewModel {
         guard let response = try await provider.generateAssistantResponse(
             to: context.text,
             history: localGenerationHistory(excluding: context.userMessageId),
-            mcpSession: mcpSession
+            mcpSession: mcpSession,
+            mcpSnapshot: mcpSnapshot
         ) else {
             failLocalGeneration(
                 context: context,
