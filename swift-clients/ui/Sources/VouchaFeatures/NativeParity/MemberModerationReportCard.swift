@@ -38,12 +38,9 @@ struct MemberModerationReportCard: View {
                     parameters: ["reason": report.reason],
                     locale: nativeUiLocale
                 ))
-                Text(UiMessages.date(
+                Text(UiMessages.abbreviatedDateTime(
                     report.createdAt,
-                    date: .abbreviated,
-                    time: .shortened,
-                    locale: nativeUiLocale,
-                    timeZone: .current
+                    locale: nativeUiLocale
                 )).foregroundStyle(.secondary)
                 if let context = report.postModerationContext {
                     Text(UiMessages.string(

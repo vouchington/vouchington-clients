@@ -265,6 +265,42 @@ final class UiLocalizationTests: XCTestCase {
         )
     }
 
+    func testAbbreviatedDateTimeUsesShortenedTimeAndHonorsTimeZone() throws {
+        let date = Date(timeIntervalSince1970: 0)
+        let utc = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let pacific = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let dateOnly = UiMessages.date(
+            date,
+            date: .abbreviated,
+            time: .omitted,
+            locale: .english,
+            timeZone: utc
+        )
+        let timestamp = UiMessages.abbreviatedDateTime(date, locale: .english, timeZone: utc)
+        let english = Locale(identifier: "en_US")
+
+        XCTAssertNotEqual(timestamp, dateOnly)
+        XCTAssertTrue(timestamp.contains(dateOnly), "\(timestamp) should contain \(dateOnly)")
+        XCTAssertNotEqual(
+            timestamp,
+            UiMessages.abbreviatedDateTime(date, locale: .english, timeZone: pacific)
+        )
+        XCTAssertEqual(
+            UiMessages.abbreviatedDateTime(date, locale: .english),
+            UiMessages.abbreviatedDateTime(date, locale: .english, timeZone: .current)
+        )
+        XCTAssertEqual(
+            UiMessages.abbreviatedDateTime(date, locale: english, timeZone: utc),
+            UiMessages.date(
+                date,
+                date: .abbreviated,
+                time: .shortened,
+                locale: english,
+                timeZone: utc
+            )
+        )
+    }
+
     func testControllerFormatsNumbersWithUiLocale() {
         let controller = UiLocaleController(savedUiLocale: "fr", preferredLanguages: [])
         XCTAssertEqual(controller.number(1_234), "1\u{202F}234")

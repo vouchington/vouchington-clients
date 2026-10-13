@@ -136,12 +136,9 @@ extension DirectMessagesSurface {
                     .foregroundStyle(Colors.secondaryLabel)
                     Text(message.bodyText)
                         .font(Typography.body)
-                    Text(UiMessages.date(
+                    Text(UiMessages.abbreviatedDateTime(
                         message.createdAt,
-                        date: .abbreviated,
-                        time: .shortened,
-                        locale: nativeUiLocale,
-                        timeZone: .current
+                        locale: nativeUiLocale
                     ))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)

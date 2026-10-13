@@ -121,12 +121,9 @@ struct ReportIntegrityFlagCard: View {
     }
 
     private func date(_ value: Date) -> String {
-        UiMessages.date(
+        UiMessages.abbreviatedDateTime(
             value,
-            date: .abbreviated,
-            time: .shortened,
-            locale: nativeUiLocale,
-            timeZone: .current
+            locale: nativeUiLocale
         )
     }
 

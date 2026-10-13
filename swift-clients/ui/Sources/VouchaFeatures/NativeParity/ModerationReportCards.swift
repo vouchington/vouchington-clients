@@ -39,12 +39,9 @@ struct StaffModerationReportCard: View {
                     parameters: [
                         "reports": reportCountText(report.reportCount),
                         "reason": report.reason,
-                        "date": UiMessages.date(
+                        "date": UiMessages.abbreviatedDateTime(
                             report.createdAt,
-                            date: .abbreviated,
-                            time: .shortened,
-                            locale: nativeUiLocale,
-                            timeZone: .current
+                            locale: nativeUiLocale
                         )
                     ],
                     locale: nativeUiLocale

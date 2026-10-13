@@ -28,12 +28,9 @@ struct ModerationReportDuplicateClusterCard: View {
                 Text(UiMessages.string(
                     .nativeSwiftModerationReportsLatest,
                     parameters: [
-                        "date": UiMessages.date(
+                        "date": UiMessages.abbreviatedDateTime(
                             duplicateCluster.lastReportedAt,
-                            date: .abbreviated,
-                            time: .shortened,
-                            locale: nativeUiLocale,
-                            timeZone: .current
+                            locale: nativeUiLocale
                         )
                     ],
                     locale: nativeUiLocale

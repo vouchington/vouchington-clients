@@ -65,12 +65,9 @@ struct StaffModerationReportClusterCard: View {
                     Text(UiMessages.string(
                         .nativeSwiftModerationReportsLatest,
                         parameters: [
-                            "date": UiMessages.date(
+                            "date": UiMessages.abbreviatedDateTime(
                                 cluster.lastReportedAt,
-                                date: .abbreviated,
-                                time: .shortened,
-                                locale: nativeUiLocale,
-                                timeZone: .current
+                                locale: nativeUiLocale
                             )
                         ],
                         locale: nativeUiLocale

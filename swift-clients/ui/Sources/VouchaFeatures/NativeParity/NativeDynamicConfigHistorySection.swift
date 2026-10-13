@@ -21,12 +21,9 @@ struct NativeDynamicConfigHistorySection: View {
             ForEach(history) { entry in
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(actorName(entry)).font(Typography.headline)
-                    Text(UiMessages.date(
+                    Text(UiMessages.abbreviatedDateTime(
                         entry.createdAt,
-                        date: .abbreviated,
-                        time: .shortened,
-                        locale: nativeUiLocale,
-                        timeZone: .current
+                        locale: nativeUiLocale
                     ))
                     .font(Typography.caption).foregroundStyle(.secondary)
                     ForEach(entry.changedFields.keys.sorted(), id: \.self) { name in

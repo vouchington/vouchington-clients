@@ -61,12 +61,9 @@ extension NativeChatSurface {
                 Text(UiMessages.string(chatConversationTitle(conversation), locale: nativeUiLocale))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.primary)
-                Text(UiMessages.date(
+                Text(UiMessages.abbreviatedDateTime(
                     conversation.updatedAt,
-                    date: .abbreviated,
-                    time: .shortened,
-                    locale: nativeUiLocale,
-                    timeZone: .current
+                    locale: nativeUiLocale
                 ))
                 .font(Typography.caption)
                 .foregroundStyle(Colors.secondaryLabel)
