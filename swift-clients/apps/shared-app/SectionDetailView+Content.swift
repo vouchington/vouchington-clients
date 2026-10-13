@@ -4,8 +4,7 @@ import VouchaLocalization
 
 extension SectionDetailView {
     var canCastPublicVotes: Bool {
-        guard factory.sessionManager.isSignedIn else { return false }
-        return factory.sessionManager.currentUserAccountType == nil
+        factory.sessionManager.canCastPublicVotes
     }
 
     @ViewBuilder

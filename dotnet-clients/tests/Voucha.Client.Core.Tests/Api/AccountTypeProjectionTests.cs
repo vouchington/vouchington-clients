@@ -48,4 +48,34 @@ public sealed class AccountTypeProjectionTests
     var response = envelope.Deserialize<PostsFeedResponse>(VouchaApiJson.Options)!;
     Assert.Equal(expected, response.Users!["user-1"].AccountType);
   }
+
+  [Theory]
+  [InlineData("official", AccountType.Official)]
+  [InlineData("system", AccountType.System)]
+  [InlineData("ai_agent", AccountType.AiAgent)]
+  [InlineData(null, null)]
+  public void StagedCommunityAndReferralUserProjectionsDecodeAccountType(
+      string? wireValue, AccountType? expected)
+  {
+    var community = StagedUser("web.communities.search.default", wireValue);
+    var owner = community.Deserialize<CommunityOwner>(VouchaApiJson.Options)!;
+    Assert.Equal(expected, owner.AccountType);
+
+    var referral = StagedUser("web.referral-links.feed.default", wireValue);
+    var feedUser = referral.Deserialize<ReferralLinkFeedUser>(VouchaApiJson.Options)!;
+    Assert.Equal(expected, feedUser.AccountType);
+
+    var click = StagedUser("native.referral-clicks.mine.default", wireValue);
+    var clickUser = click.Deserialize<User>(VouchaApiJson.Options)!;
+    Assert.Equal(expected, clickUser.AccountType);
+  }
+
+  private static JsonNode StagedUser(string fixture, string? wireValue)
+  {
+    var response = JsonNode.Parse(ApiFixtureLoader.LoadResponse(fixture))!;
+    var users = response["users"]!.AsObject();
+    var first = users.OrderBy(entry => entry.Key, StringComparer.Ordinal).First().Value!.DeepClone();
+    first["account_type"] = wireValue is null ? null : JsonValue.Create(wireValue);
+    return first;
+  }
 }
