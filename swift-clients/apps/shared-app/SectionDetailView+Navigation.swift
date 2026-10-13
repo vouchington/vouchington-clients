@@ -15,6 +15,7 @@ extension SectionDetailView {
                         playbackController: playbackController,
                         isSignedIn: factory.sessionManager.isSignedIn,
                         currentUserId: factory.sessionManager.currentUserId,
+                        nativeChatMCPSession: factory.nativeChatMCPSession,
                         membershipPlan: factory.sessionManager.currentMembershipPlan,
                         isAdministrator: factory.sessionManager.currentUserRoles.contains("administrator"),
                         canOverrideFeatureFlags: FeatureFlagState.canManageDeviceOverrides(
@@ -77,6 +78,7 @@ extension SectionDetailView {
                 playbackController: playbackController,
                 isSignedIn: factory.sessionManager.isSignedIn,
                 currentUserId: factory.sessionManager.currentUserId,
+                nativeChatMCPSession: factory.nativeChatMCPSession,
                 membershipPlan: factory.sessionManager.currentMembershipPlan,
                 isAdministrator: factory.sessionManager.currentUserRoles.contains("administrator"),
                 canOverrideFeatureFlags: FeatureFlagState.canManageDeviceOverrides(

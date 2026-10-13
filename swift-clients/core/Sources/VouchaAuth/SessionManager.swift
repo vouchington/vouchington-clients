@@ -25,10 +25,12 @@ public final class SessionManager {
     public private(set) var state: SessionState = .anonymous
     public private(set) var isRefreshing: Bool = false
     public private(set) var uiLocale: String?
+    public private(set) var lastSignOutErrorMessage: String?
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
     private let logger = VouchaLogger(category: "SessionManager")
+    private var beforeSignOut: (@MainActor (String) async throws -> Void)?
 
     public var isSignedIn: Bool {
         if case .signedIn = state {
@@ -75,6 +77,11 @@ public final class SessionManager {
         self.cookieStorage = cookieStorage
     }
 
+    /// Install device-grant cleanup that must finish before the member identity is discarded.
+    public func setBeforeSignOut(_ action: @escaping @MainActor (String) async throws -> Void) {
+        beforeSignOut = action
+    }
+
     /// Load persisted session state from cookies (call at app startup).
     public func restoreSession() async {
         await refresh()
@@ -110,6 +117,16 @@ public final class SessionManager {
     }
 
     public func signOut() async {
+        lastSignOutErrorMessage = nil
+        if let accountId = currentUserId, let beforeSignOut {
+            do {
+                try await beforeSignOut(accountId)
+            } catch {
+                logger.error("Device grant cleanup failed before sign-out: \(error.localizedDescription)")
+                lastSignOutErrorMessage = error.localizedDescription
+                return
+            }
+        }
         do {
             let _: EmptyResponse = try await client.send(.logout)
         } catch {

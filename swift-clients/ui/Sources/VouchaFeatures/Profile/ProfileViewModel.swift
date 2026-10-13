@@ -22,6 +22,7 @@ public final class ProfileViewModel {
     public internal(set) var bioHtml: String?
     public internal(set) var isUploadingAvatar = false
     public internal(set) var avatarUploadErrorMessage: UiVerbatimText?
+    public internal(set) var signOutErrorMessage: UiVerbatimText?
     public internal(set) var avatarPreviewData: Data?
     var avatarPreviewDecodeFailed = false
     var avatarUploadGeneration = 0
@@ -123,7 +124,9 @@ public final class ProfileViewModel {
 
     /// Sign out the current user.
     public func signOut() async {
+        signOutErrorMessage = nil
         await sessionManager.signOut()
+        signOutErrorMessage = sessionManager.lastSignOutErrorMessage.map(UiVerbatimText.verbatim)
     }
 
     /// Update the current user's bio markdown.

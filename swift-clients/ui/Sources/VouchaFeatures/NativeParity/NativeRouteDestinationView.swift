@@ -12,6 +12,7 @@ struct NativeRouteDestinationSurface: View {
     let playbackController: PodcastPlaybackController?
     let isSignedIn: Bool
     let currentUserId: String?
+    let nativeChatMCPSession: NativeChatMCPAgentSession?
     let canViewLandingPageAnalytics: Bool
     let isAdministrator: Bool
     let canOverrideFeatureFlags: Bool
@@ -36,7 +37,12 @@ struct NativeRouteDestinationSurface: View {
             if isSignedOutChatOrSupportRoute {
                 signedOutChatSupportContent
             } else if entry.destinationIdentifier == .chat {
-                NativeChatSurface(client: viewModel.client, routeMatch: routeMatch)
+                NativeChatSurface(
+                    client: viewModel.client,
+                    routeMatch: routeMatch,
+                    currentUserId: currentUserId,
+                    mcpSession: nativeChatMCPSession
+                )
             } else if isOwnerLandingPageManagementRoute {
                 landingPageManagementContent
             } else if isSignedInMessagesRoute {
@@ -106,6 +112,7 @@ extension NativeRouteDestinationSurface {
         playbackController: PodcastPlaybackController? = nil,
         isSignedIn: Bool,
         currentUserId: String? = nil,
+        nativeChatMCPSession: NativeChatMCPAgentSession? = nil,
         canViewLandingPageAnalytics: Bool = false,
         isAdministrator: Bool = false,
         canOverrideFeatureFlags: Bool = false,
@@ -128,6 +135,7 @@ extension NativeRouteDestinationSurface {
         self.playbackController = playbackController
         self.isSignedIn = isSignedIn
         self.currentUserId = currentUserId
+        self.nativeChatMCPSession = nativeChatMCPSession
         self.canViewLandingPageAnalytics = canViewLandingPageAnalytics
         self.isAdministrator = isAdministrator
         self.canOverrideFeatureFlags = canOverrideFeatureFlags

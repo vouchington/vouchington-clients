@@ -19,14 +19,27 @@
                 clientId: XCTUnwrap(URL(string: "https://example.test/api/v1/oauth/native-clients/ios"))
             )
             let key = KeychainMemberMCPOAuthTokenStore.accountKey(for: original)
+            XCTAssertEqual(KeychainMemberMCPOAuthTokenStore.scope(for: key, accountId: "member"), original)
             for scope in [otherAccount, otherIssuer, otherResource, otherClient] {
                 XCTAssertNotEqual(key, KeychainMemberMCPOAuthTokenStore.accountKey(for: scope))
             }
+            let prefix = KeychainMemberMCPOAuthTokenStore.accountPrefix(for: "member")
+            XCTAssertTrue(key.hasPrefix(prefix))
+            XCTAssertFalse(try KeychainMemberMCPOAuthTokenStore.accountKey(
+                for: scope(account: "member-extra", issuer: "https://example.test")
+            ).hasPrefix(prefix))
+            XCTAssertNil(KeychainMemberMCPOAuthTokenStore.scope(for: key, accountId: "member-extra"))
+            let unicode = try scope(account: "mémber", issuer: "https://example.test")
+            XCTAssertEqual(
+                KeychainMemberMCPOAuthTokenStore.scope(
+                    for: KeychainMemberMCPOAuthTokenStore.accountKey(for: unicode), accountId: "mémber"
+                ), unicode
+            )
         }
 
         func testPerAccountTokensSurviveStoreRecreationAndClearOnlyThatAccount() async throws {
             let account = "mcp-test-\(UUID().uuidString.lowercased())"
-            let other = "mcp-test-\(UUID().uuidString.lowercased())"
+            let other = "\(account)-other"
             let accountScope = try scope(account: account, issuer: "https://example.test")
             let otherScope = try scope(account: other, issuer: "https://example.test")
             let otherIssuerScope = try scope(account: account, issuer: "https://staging.example.test")
@@ -74,6 +87,18 @@
                 XCTAssertEqual(staging?.refreshToken, "staging-refresh")
                 let ios = try await reopened.load(scope: otherClientScope)
                 XCTAssertEqual(ios?.refreshToken, "ios-refresh")
+
+                try await reopened.save(tokens, scope: accountScope)
+                let taken = try await reopened.takeAccount(account)
+                XCTAssertEqual(Set(taken.map(\.scope)), Set([accountScope, otherIssuerScope, otherClientScope]))
+                let clearedAccount = try await reopened.load(scope: accountScope)
+                let clearedIssuer = try await reopened.load(scope: otherIssuerScope)
+                let clearedClient = try await reopened.load(scope: otherClientScope)
+                XCTAssertNil(clearedAccount)
+                XCTAssertNil(clearedIssuer)
+                XCTAssertNil(clearedClient)
+                let retained = try await reopened.load(scope: otherScope)
+                XCTAssertEqual(retained?.refreshToken, "fake-refresh")
             } catch {
                 try? await store.clear(scope: accountScope)
                 try? await store.clear(scope: otherScope)

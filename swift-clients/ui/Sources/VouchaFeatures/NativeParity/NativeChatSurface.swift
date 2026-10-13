@@ -7,9 +7,18 @@ struct NativeChatSurface: View {
     var nativeUiLocale
     @State
     private var viewModel: NativeChatViewModel
+    @State
+    var mcpPresentationWindow = NativeChatMCPWindowReference()
+    let currentUserId: String?
+    let mcpSession: NativeChatMCPAgentSession?
 
-    init(client: APIClient?, routeMatch: NativeRouteMatch?) {
+    init(
+        client: APIClient?, routeMatch: NativeRouteMatch?,
+        currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil
+    ) {
         _viewModel = State(initialValue: NativeChatViewModel(client: client, routeMatch: routeMatch))
+        self.currentUserId = currentUserId
+        self.mcpSession = mcpSession
     }
 
     var body: some View {
@@ -25,6 +34,7 @@ struct NativeChatSurface: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.md)
+        .background(NativeChatMCPWindowReader { mcpPresentationWindow.value = $0 })
         .task {
             await viewModel.load()
         }

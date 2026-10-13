@@ -57,6 +57,19 @@ public actor MemberMCPTokenManager {
         try await beginSignOut().value
     }
 
+    /// Stops a live session from saving another rotated grant while the caller clears the account store.
+    public func beginLocalSignOut() -> Task<Void, Never> {
+        signedOut = true
+        refreshTask?.cancel()
+        redeemTask?.cancel()
+        let refresh = refreshTask
+        let redeem = redeemTask
+        return Task {
+            if let refresh { _ = try? await refresh.value }
+            if let redeem { _ = try? await redeem.value }
+        }
+    }
+
     func beginSignOut() -> Task<Void, Error> {
         signedOut = true
         return Task { try await finishSignOut() }

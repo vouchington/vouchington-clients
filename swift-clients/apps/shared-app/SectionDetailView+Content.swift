@@ -154,6 +154,8 @@ extension SectionDetailView {
                 section: section,
                 client: factory.apiClient,
                 isSignedIn: factory.sessionManager.isSignedIn,
+                currentUserId: factory.sessionManager.currentUserId,
+                nativeChatMCPSession: factory.nativeChatMCPSession,
                 userRoles: userRoles,
                 canCastPublicVotes: canCastPublicVotes,
                 featureFlags: factory.featureFlagState,

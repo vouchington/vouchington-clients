@@ -82,6 +82,48 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertTrue(cookieStorage.cookies?.isEmpty ?? true)
     }
 
+    func testSignOutWaitsForDeviceGrantCleanupBeforeLosingIdentity() async throws {
+        let sessionManager = makeSessionManager()
+        try sessionManager.synchronize(with: identity(uiLocale: "en"))
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 200)
+        let cleanupStarted = expectation(description: "device cleanup started")
+        var releaseCleanup: CheckedContinuation<Void, Never>?
+        sessionManager.setBeforeSignOut { accountId in
+            XCTAssertEqual(accountId, "user-abc")
+            cleanupStarted.fulfill()
+            await withCheckedContinuation { releaseCleanup = $0 }
+        }
+
+        let signOut = Task { await sessionManager.signOut() }
+        await fulfillment(of: [cleanupStarted], timeout: 2)
+        XCTAssertEqual(sessionManager.currentUserId, "user-abc")
+        XCTAssertEqual(sessionManager.uiLocale, "en")
+        releaseCleanup?.resume()
+        await signOut.value
+
+        XCTAssertFalse(sessionManager.isSignedIn)
+        XCTAssertNil(sessionManager.currentUserId)
+    }
+
+    func testFailedDeviceGrantCleanupLeavesSignOutRetryable() async throws {
+        let sessionManager = makeSessionManager()
+        try sessionManager.synchronize(with: identity(uiLocale: "fr"))
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 200)
+        sessionManager.setBeforeSignOut { _ in throw DeviceCleanupError.failed }
+
+        await sessionManager.signOut()
+
+        XCTAssertEqual(sessionManager.currentUserId, "user-abc")
+        XCTAssertEqual(sessionManager.uiLocale, "fr")
+        XCTAssertNotNil(sessionManager.lastSignOutErrorMessage)
+        sessionManager.setBeforeSignOut { accountId in
+            XCTAssertEqual(accountId, "user-abc")
+        }
+        await sessionManager.signOut()
+        XCTAssertNil(sessionManager.currentUserId)
+        XCTAssertNil(sessionManager.lastSignOutErrorMessage)
+    }
+
     private func makeSessionManager(
         cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make()
     ) -> SessionManager {
@@ -119,4 +161,8 @@ final class SessionManagerLocalizationTests: XCTestCase {
 
 private struct IdentityEnvelope: Decodable {
     let identity: PrivateUser
+}
+
+private enum DeviceCleanupError: Error {
+    case failed
 }

@@ -96,6 +96,9 @@ public struct RootView: View {
             }
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
+                await viewModelFactory.nativeChatMCPSession?.useAccount(
+                    viewModelFactory.sessionManager.currentUserId
+                )
                 await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
@@ -104,6 +107,12 @@ public struct RootView: View {
             .onChange(of: viewModelFactory.sessionManager.uiLocale) { _, uiLocale in
                 viewModelFactory.uiLocaleController.update(savedUiLocale: uiLocale)
                 Task { await refreshLocalization() }
+            }
+            .onChange(of: viewModelFactory.sessionManager.currentUserId) { _, accountId in
+                Task {
+                    guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
+                    await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
+                }
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }

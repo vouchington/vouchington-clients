@@ -27,6 +27,7 @@ public final class ViewModelFactory {
     public let config: AppConfig
     public let featureFlagState: FeatureFlagState
     public let nativeOAuthAuthorizationCoordinator: NativeOAuthAuthorizationCoordinator
+    public private(set) var nativeChatMCPSession: NativeChatMCPAgentSession?
     public let restoresSessionOnLaunch: Bool
     /// Shared App Attest service — nil on platforms without DeviceCheck.
     private var appAttestationService: AppAttestationService?
@@ -98,10 +99,19 @@ public final class ViewModelFactory {
             config: config,
             nativeOAuthAuthorizationStore: NativeOAuthAuthorizationStore()
         )
+        factory.nativeChatMCPSession = makeNativeChatMCPSession(config: config, accessGroup: keychainAccessGroup)
+        factory.installMCPSignOutCleanup()
         #if canImport(DeviceCheck)
             factory.appAttestationService = appAttestationService
         #endif
         return factory
+    }
+
+    private func installMCPSignOutCleanup() {
+        guard let nativeChatMCPSession else { return }
+        sessionManager.setBeforeSignOut { accountId in
+            try await nativeChatMCPSession.prepareForSignOut(accountId: accountId)
+        }
     }
 
     private static func keychainAccessGroup() -> String? {
