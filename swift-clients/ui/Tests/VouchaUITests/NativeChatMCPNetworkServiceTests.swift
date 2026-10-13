@@ -6,6 +6,18 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPNetworkServiceTests: XCTestCase {
+    func testAppleOAuthOnlyEnablesTheRegisteredProductionOrigin() throws {
+        for origin in ["https://voucha.ai", "https://voucha.ai/"] {
+            XCTAssertTrue(try NativeChatMCPAppleOAuthOrigin.allows(XCTUnwrap(URL(string: origin))))
+        }
+        for origin in [
+            "https://staging.voucha.ai", "https://voucha.ai.example.test", "http://voucha.ai",
+            "https://voucha.ai:8443", "https://voucha.ai/api", "https://voucha.ai/?preview=1"
+        ] {
+            XCTAssertFalse(try NativeChatMCPAppleOAuthOrigin.allows(XCTUnwrap(URL(string: origin))))
+        }
+    }
+
     func testDiscoveryFailureDoesNotPinDifferentAccount() async throws {
         MCPAgentURLProtocol.configure(discoveryUnavailable: true)
         let site = try XCTUnwrap(URL(string: "https://example.test"))
@@ -194,6 +206,42 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 1)
     }
 
+    func testStalledRemoteCloseDoesNotDelayLocalGrantRemoval() async throws {
+        MCPAgentURLProtocol.configure(holdClose: true)
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let store = HeldClearMCPTokenStore(holdClear: false)
+        let scope = scope(for: "member-a", site: site)
+        try await store.save(
+            .init(
+                accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
+                scope: "mcp.user:read", tokenType: "Bearer"
+            ), scope: scope
+        )
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: store,
+            browserCode: { _, _ in XCTFail("Existing grant must avoid browser authorization")
+                return ""
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+        _ = try await service.connect(accountId: "member-a")
+
+        let disconnect = Task {
+            try await service.disconnect(accountId: "member-a")
+            await MCPAgentURLProtocol.waitForHeldClose()
+            return MCPAgentURLProtocol.isCloseHeld
+        }
+        await MCPAgentURLProtocol.waitForHeldClose()
+        let release = Task {
+            try? await Task.sleep(for: .seconds(2))
+            MCPAgentURLProtocol.releaseHeldClose()
+        }
+        let returnedWhileCloseWasHeld = try await disconnect.value
+        XCTAssertTrue(returnedWhileCloseWasHeld)
+        let retainedGrant = try await store.load(scope: scope)
+        XCTAssertNil(retainedGrant)
+        await release.value
+    }
+
     func testOfflineColdSignOutClearsOnlyFormerAccountGrant() async throws {
         MCPAgentURLProtocol.configure(discoveryUnavailable: true)
         let site = try XCTUnwrap(URL(string: "https://example.test"))
@@ -283,119 +331,5 @@ private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAc
 
     func releaseClear(accountId: String) {
         releases.removeValue(forKey: accountId)?.resume()
-    }
-}
-
-private final class MCPAgentURLProtocol: URLProtocol {
-    private static let stateLock = NSLock()
-    private static var unavailable = false
-    private static var paginatedTools = false
-    private static var revoked = 0
-    private let deliveryLock = NSRecursiveLock()
-    private var stopped = false
-
-    static func configure(discoveryUnavailable: Bool = false, paginatedTools: Bool = false) {
-        stateLock.lock()
-        unavailable = discoveryUnavailable
-        self.paginatedTools = paginatedTools
-        revoked = 0
-        stateLock.unlock()
-    }
-
-    static var revokeCount: Int {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        return revoked
-    }
-
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        deliveryLock.lock()
-        defer { deliveryLock.unlock() }
-        guard !stopped, let url = request.url else { return }
-        let path = url.path
-        let body = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
-        let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
-        let method = rpc?["method"] as? String
-        let cursor = (rpc?["params"] as? [String: Any])?["cursor"] as? String
-        let id = rpc?["id"] as? String ?? "1"
-        Self.stateLock.lock()
-        let discoveryUnavailable = Self.unavailable
-        let paginatedTools = Self.paginatedTools
-        if path == "/revoke" { Self.revoked += 1 }
-        Self.stateLock.unlock()
-        let payload: String
-        let status: Int
-        switch path {
-        case "/.well-known/oauth-protected-resource/api/v1/mcp" where discoveryUnavailable:
-            payload = #"{"error":"unavailable"}"#
-            status = 503
-        case "/.well-known/oauth-protected-resource/api/v1/mcp":
-            payload = #"{"resource":"https://example.test/api/v1/mcp","authorization_servers":["https://example.test"]}"#
-            status = 200
-        case "/.well-known/oauth-authorization-server":
-            payload = #"{"issuer":"https://example.test","authorization_endpoint":"https://example.test/authorize","token_endpoint":"https://example.test/token","revocation_endpoint":"https://example.test/revoke"}"#
-            status = 200
-        case "/token":
-            payload = #"{"access_token":"new-access","refresh_token":"new-refresh","expires_in":3600,"scope":"mcp.user:read","token_type":"Bearer"}"#
-            status = 200
-        case "/revoke":
-            payload = ""
-            status = 200
-        case "/api/v1/mcp" where request.httpMethod == "DELETE":
-            payload = ""
-            status = 204
-        case "/api/v1/mcp" where method == "initialize":
-            payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"protocolVersion":"2025-06-18"}}"#
-            status = 200
-        case "/api/v1/mcp" where method == "notifications/initialized":
-            payload = ""
-            status = 202
-        case "/api/v1/mcp" where method == "tools/list":
-            if paginatedTools, cursor == nil {
-                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_post"}],"nextCursor":"page-2"}}"#
-            } else if paginatedTools, cursor == "page-2" {
-                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_profile"}]}}"#
-            } else {
-                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_post"}]}}"#
-            }
-            status = 200
-        default:
-            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
-            return
-        }
-        let response = HTTPURLResponse(
-            url: url, statusCode: status, httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Type": "application/json"]
-        )!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        if !payload.isEmpty { client?.urlProtocol(self, didLoad: Data(payload.utf8)) }
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {
-        deliveryLock.lock()
-        stopped = true
-        deliveryLock.unlock()
-    }
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var bytes = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&bytes, maxLength: bytes.count)
-            if count <= 0 { break }
-            data.append(bytes, count: count)
-        }
-        return data
     }
 }

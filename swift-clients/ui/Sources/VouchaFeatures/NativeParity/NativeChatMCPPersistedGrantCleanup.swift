@@ -1,6 +1,5 @@
 import Foundation
 import VouchaAPI
-import VouchaModels
 
 @MainActor
 enum NativeChatMCPPersistedGrantCleanup {

@@ -37,13 +37,14 @@ public final class NativeChatMCPAgentSession {
     private let service: any NativeChatMCPServicing
     private var generation = 0
     private var operation: Task<DecodedJSONValue, Error>?
+    private var pendingCleanupAccountIds: [String] = []
 
     public init(service: any NativeChatMCPServicing) {
         self.service = service
     }
 
     public func useAccount(_ nextAccountId: String?) async {
-        guard nextAccountId != accountId else { return }
+        guard nextAccountId != accountId || !pendingCleanupAccountIds.isEmpty else { return }
         generation += 1
         let currentGeneration = generation
         operation?.cancel()
@@ -52,9 +53,15 @@ public final class NativeChatMCPAgentSession {
         accountId = nextAccountId
         toolCatalog = nil
         lastError = nil
-        status = previousAccountId == nil ? .disconnected : .switchingAccount
-        if let previousAccountId {
-            try? await service.disconnect(accountId: previousAccountId)
+        if let previousAccountId { enqueueCleanup(previousAccountId) }
+        status = pendingCleanupAccountIds.isEmpty ? .disconnected : .switchingAccount
+        do {
+            try await drainPendingCleanup()
+        } catch {
+            guard generation == currentGeneration else { return }
+            lastError = .verbatim(error.localizedDescription)
+            status = .failed
+            return
         }
         guard generation == currentGeneration else { return }
         status = .disconnected
@@ -67,7 +74,11 @@ public final class NativeChatMCPAgentSession {
         operation?.cancel()
         status = .connecting
         lastError = nil
-        let task = Task { try await service.connect(accountId: accountId, presentationWindow: presentationWindow) }
+        let task = Task {
+            try await drainPendingCleanup()
+            try Task.checkCancellation()
+            return try await service.connect(accountId: accountId, presentationWindow: presentationWindow)
+        }
         operation = task
         do {
             let catalog = try await task.value
@@ -118,8 +129,9 @@ public final class NativeChatMCPAgentSession {
         toolCatalog = nil
         lastError = nil
         status = .switchingAccount
+        enqueueCleanup(accountId)
         do {
-            try await service.disconnect(accountId: accountId)
+            try await drainPendingCleanup()
             guard generation == currentGeneration, self.accountId == accountId else { return }
             status = .disconnected
         } catch {
@@ -127,6 +139,19 @@ public final class NativeChatMCPAgentSession {
             status = .failed
             lastError = .verbatim(error.localizedDescription)
             throw error
+        }
+    }
+
+    private func enqueueCleanup(_ accountId: String) {
+        if !pendingCleanupAccountIds.contains(accountId) {
+            pendingCleanupAccountIds.append(accountId)
+        }
+    }
+
+    private func drainPendingCleanup() async throws {
+        while let accountId = pendingCleanupAccountIds.first {
+            try await service.disconnect(accountId: accountId)
+            pendingCleanupAccountIds.removeAll { $0 == accountId }
         }
     }
 }

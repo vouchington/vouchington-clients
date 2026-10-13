@@ -23,6 +23,7 @@ extension ViewModelFactory {
     ) -> NativeChatMCPAgentSession? {
         #if canImport(AuthenticationServices) && !targetEnvironment(macCatalyst)
             guard #available(iOS 17.4, macOS 14.4, *) else { return nil }
+            guard NativeChatMCPAppleOAuthOrigin.allows(config.baseURL) else { return nil }
             #if os(iOS)
                 let app: MemberMCPApp = .ios
             #else

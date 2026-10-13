@@ -107,7 +107,9 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
             if let previousDisconnect { _ = try? await previousDisconnect.value }
             if let current {
                 if let accessToken = try? await current.tokens.accessToken() {
-                    try? await current.client.close(accessToken: accessToken)
+                    // The producer does not retain an MCP session; remote close is best effort.
+                    // Never hold local grant removal behind a stalled DELETE response.
+                    _ = Task { try? await current.client.close(accessToken: accessToken) }
                 }
                 try await current.tokens.signOut()
             } else {

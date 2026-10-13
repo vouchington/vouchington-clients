@@ -110,6 +110,33 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         XCTAssertEqual(service.disconnectedAccounts, ["member-a"])
     }
 
+    func testFailedSignOutMustClearFormerAccountBeforeAnotherMemberConnects() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        service.failDisconnect = true
+
+        await session.useAccount(nil)
+        XCTAssertEqual(session.status, .failed)
+        XCTAssertNotNil(session.lastError)
+        await session.useAccount("member-b")
+        XCTAssertEqual(session.status, .failed)
+        do {
+            try await session.connect()
+            XCTFail("A retained former grant must block another member's connection")
+        } catch SuspendedMCPService.Failure.disconnectFailed {}
+        XCTAssertTrue(service.connectedAccounts.isEmpty)
+
+        service.failDisconnect = false
+        await session.useAccount("member-b")
+        XCTAssertEqual(session.status, .disconnected)
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([])]))
+        try await connect.value
+        XCTAssertEqual(service.connectedAccounts, ["member-b"])
+    }
+
     func testChatControlsRenderAuthorizationAndConnectedActions() async throws {
         let service = SuspendedMCPService()
         let session = NativeChatMCPAgentSession(service: service)
