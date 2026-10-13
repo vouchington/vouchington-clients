@@ -31,7 +31,7 @@ public sealed partial class ChatViewModelProviderTests
   }
 
   [Fact]
-  public async Task AccountChangeBeforePersistenceRetryRegeneratesInsteadOfReusingMcpResponse()
+  public async Task AccountChangeBeforePersistenceRetryRequiresContextResetBeforeGeneration()
   {
     var bodies = new List<CreateClientGeneratedChatBody>();
     var service = new FakeChatService
@@ -47,6 +47,11 @@ public sealed partial class ChatViewModelProviderTests
 
     Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
     provider.UseAccount("account-b");
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+
+    Assert.Equal(1, provider.Generations);
+    Assert.Single(bodies);
+    viewModel.Reset();
     Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
 
     Assert.Equal(2, provider.Generations);

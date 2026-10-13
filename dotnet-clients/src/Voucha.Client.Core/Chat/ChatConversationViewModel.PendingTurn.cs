@@ -1,5 +1,7 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Agent;
+using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Chat;
 
@@ -18,6 +20,21 @@ public sealed partial class ChatConversationViewModel
       pending.ConversationId == ConversationId && pending.Body.Message == text
           ? pending.Provider : SelectedProviderStatus;
 
+  private bool HasConflictingCompletedMcpTurn(string text) =>
+      pendingLocalTurn is { McpSnapshot: not null } pending &&
+      pending.ConversationId == ConversationId &&
+      !string.Equals(pending.Body.Message, text, StringComparison.Ordinal);
+
+  private bool RejectInvalidatedCompletedMcpAccount(string text, ILocalChatProvider provider)
+  {
+    if (pendingLocalTurn is not { McpSnapshot: { } snapshot } pending ||
+        pending.ConversationId != ConversationId || pending.Body.Message != text ||
+        provider is IMcpLocalChatProvider mcp && mcp.MatchesAccount(snapshot.AccountId)) return false;
+    ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
+    State = LoadState.Error;
+    return true;
+  }
+
   private PendingLocalTurn? RetryableTurn(
       string? conversationId, string text, ChatProviderStatus provider, ILocalChatProvider localProvider)
   {
@@ -31,7 +48,7 @@ public sealed partial class ChatConversationViewModel
     {
       return pending;
     }
-    pendingLocalTurn = null;
+    if (pending?.McpSnapshot is null) pendingLocalTurn = null;
     return null;
   }
 
@@ -40,7 +57,7 @@ public sealed partial class ChatConversationViewModel
     if (blockedToolRetryText is not null &&
         !string.Equals(text?.Trim(), blockedToolRetryText, StringComparison.Ordinal))
       blockedToolRetryText = null;
-    if (pendingLocalTurn is { } pending &&
+    if (pendingLocalTurn is { McpSnapshot: null } pending &&
         !string.Equals(text?.Trim(), pending.Body.Message, StringComparison.Ordinal))
     {
       pendingLocalTurn = null;

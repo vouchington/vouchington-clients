@@ -32,9 +32,9 @@ public sealed partial class ChatConversationViewModel
     ArgumentNullException.ThrowIfNull(message);
     var trimmed = message.Trim();
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
+    if (HasConflictingCompletedMcpTurn(trimmed)) return false;
     if (blockedToolRetryText == trimmed) return false;
     blockedToolRetryText = null;
-
     var selectedProvider = ProviderForPendingMcpRetry(trimmed);
     ILocalChatProvider selectedLocalProvider;
     try
@@ -63,8 +63,8 @@ public sealed partial class ChatConversationViewModel
       State = LoadState.Error;
       return false;
     }
-
     var conversationId = ConversationId;
+    if (RejectInvalidatedCompletedMcpAccount(trimmed, selectedLocalProvider)) return false;
     var retry = RetryableTurn(conversationId, trimmed, selectedProvider, selectedLocalProvider);
     if (retry is null && !selectedProvider.IsAvailable)
     {

@@ -3,6 +3,7 @@ using System.Net.Http;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Chat;
 using Voucha.Client.Core.Agent;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
@@ -17,10 +18,14 @@ public partial class ChatConversationPage : ContentPage
   private bool hasLoaded;
 
   public ChatConversationPage(
-      ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null)
+      ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null,
+      ISessionStore? sessionStore = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+    this.sessionStore = sessionStore;
+    memberId = sessionStore?.Current.Identity?.Id;
+    sessionChangedHandler = OnSessionChanged;
     InitializeComponent();
     BindingContext = viewModel;
     if (mcpSession is not null) McpControlsHost.Content = new ChatMemberMcpControlsView(mcpSession);
@@ -35,6 +40,7 @@ public partial class ChatConversationPage : ContentPage
 
   public async Task ApplyRouteAsync(string? conversationId, string? conversationTitle = null)
   {
+    if (viewModel.ConversationId != conversationId) MessageEditor.Text = string.Empty;
     SetContext(conversationId, conversationTitle);
     hasLoaded = true;
     await LoadConversationAsync().ConfigureAwait(true);
@@ -44,6 +50,8 @@ public partial class ChatConversationPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    AttachMemberSession();
+    RefreshMemberContext();
     try
     {
       await LoadConversationAsync().ConfigureAwait(true);
