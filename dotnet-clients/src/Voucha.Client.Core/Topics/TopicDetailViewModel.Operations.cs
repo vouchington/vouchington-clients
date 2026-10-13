@@ -21,7 +21,7 @@ public sealed partial class TopicDetailViewModel
       bool isSourceDetail,
       CancellationToken cancellationToken = default)
   {
-    SetSourceDetailMode(false);
+    SetSourceDetailMode(isSourceDetail);
     SourceProvenance = null;
     State = LoadState.Loading;
     ErrorMessage = null;
