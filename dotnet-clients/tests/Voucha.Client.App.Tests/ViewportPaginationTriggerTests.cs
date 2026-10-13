@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Voucha.Client.App.Tests;
 
+[Collection(MauiPageTestCollection.Name)]
 public sealed class ViewportPaginationTriggerTests
 {
   [Fact]
