@@ -25,6 +25,7 @@ public actor MemberMCPClient {
 
     let endpoint: URL
     let configuration: URLSessionConfiguration
+    let responseTimeout: TimeInterval
     private var nextRequestId = 0
     var protocolVersion: String?
     var sessionId: String?
@@ -32,15 +33,18 @@ public actor MemberMCPClient {
     var closed = false
     var initialization: Task<Void, Error>?
 
-    public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil) throws {
+    public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil, responseTimeout: TimeInterval = 120) throws {
         let origin = URLComponents(url: siteOrigin, resolvingAgainstBaseURL: false)
         guard origin?.scheme == "https", origin?.host != nil,
               origin?.user == nil, origin?.password == nil,
               origin?.query == nil, origin?.fragment == nil,
               origin?.path.isEmpty == true || origin?.path == "/"
         else { throw Failure.invalidOrigin }
+        guard responseTimeout.isFinite, responseTimeout > 0 else { throw Failure.invalidResponse }
         endpoint = siteOrigin.appendingPathComponent("api/v1/mcp")
+        self.responseTimeout = responseTimeout
         let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForResource = responseTimeout
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
@@ -119,7 +123,11 @@ public actor MemberMCPClient {
         if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
         request.httpBody = try JSONEncoder().encode(body)
         let transport = ResponseLinesTransport(followRedirects: false)
-        defer { transport.cancel() }
+        let deadline = responseDeadline(for: transport)
+        defer {
+            deadline.cancel()
+            transport.cancel()
+        }
         let responseLines = try await transport.start(request: request, configuration: configuration)
         let response = responseLines.response
         guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
@@ -146,6 +154,13 @@ public actor MemberMCPClient {
                 try await sendServerReply(data, token: token, session: responseSession, version: requestVersion)
             }
         )
+    }
+
+    private func responseDeadline(for transport: ResponseLinesTransport) -> Task<Void, Never> {
+        Task {
+            try? await Task.sleep(for: .seconds(responseTimeout))
+            if !Task.isCancelled { transport.cancel() }
+        }
     }
 
 }

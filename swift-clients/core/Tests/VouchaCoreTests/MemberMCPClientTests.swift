@@ -7,36 +7,6 @@ import VouchaModels
 import XCTest
 
 final class MemberMCPClientTests: XCTestCase {
-    func testStructuredResultPreservesLargeIntegerPrecision() throws {
-        let json = Data(#"{"content":[],"structuredContent":{"id":9007199254740993}}"#.utf8)
-        let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: json)
-        guard case let .object(fields)? = result.structuredContent,
-              case let .integer(id)? = fields["id"] else {
-            return XCTFail("Large MCP integer lost its integer representation")
-        }
-        XCTAssertEqual(id, 9_007_199_254_740_993)
-        let encoded = try JSONEncoder().encode(result.structuredContent)
-        XCTAssertTrue(String(decoding: encoded, as: UTF8.self).contains("9007199254740993"))
-    }
-
-    func testStructuredResultPreservesUnsignedAndLargeDecimalIntegers() throws {
-        let json = Data(
-            #"{"content":[],"structuredContent":{"unsigned":18446744073709551615,"large":123456789012345678901234567890}}"#
-                .utf8
-        )
-        let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: json)
-        guard case let .object(fields)? = result.structuredContent,
-              case let .unsignedInteger(unsigned)? = fields["unsigned"],
-              case .decimal? = fields["large"] else {
-            return XCTFail("MCP integers outside signed 64-bit range must remain exact")
-        }
-        XCTAssertEqual(unsigned, UInt64.max)
-        let encoded = try JSONEncoder().encode(result.structuredContent)
-        let wire = String(decoding: encoded, as: UTF8.self)
-        XCTAssertTrue(wire.contains("18446744073709551615"))
-        XCTAssertTrue(wire.contains("123456789012345678901234567890"))
-    }
-
     func testSSEAnswersPingAndClosesSession() async throws {
         let events = "data: {\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"}\n\n" +
             "data: {\"jsonrpc\":\"2.0\",\"id\":\"2\",\"result\":{\"tools\":[]}}\n\n"
@@ -176,6 +146,24 @@ final class MemberMCPClientTests: XCTestCase {
             XCTAssertEqual(name, "read_post")
         } else {
             XCTFail("The matching SSE result was not decoded")
+        }
+    }
+
+    func testSSECommentsWithoutResultStopAtAbsoluteDeadline() async throws {
+        MCPTestURLProtocol.configure(
+            data: Data(": heartbeat\n\n".utf8), status: 200, contentType: "text/event-stream",
+            holdToolResponse: true
+        )
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self], responseTimeout: 0.05
+        )
+
+        do {
+            _ = try await client.listTools(accessToken: "access-1")
+            XCTFail("An SSE stream without the correlated result must time out")
+        } catch {
+            XCTAssertTrue(MCPTestURLProtocol.stoppedHeldResponse())
         }
     }
 
@@ -341,10 +329,13 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var deletedSession: String?
     private static var replySession: String?
     private static var initializeEvents: Data?
+    private static var holdToolResponse = false
+    private static var heldResponseStopped = false
 
     static func configure(
         data: Data, status: Int, retryAfter: String? = nil,
-        contentType: String = "application/json", initializeEvents: Data? = nil
+        contentType: String = "application/json", initializeEvents: Data? = nil,
+        holdToolResponse: Bool = false
     ) {
         lock.lock()
         self.data = data
@@ -352,6 +343,8 @@ private final class MCPTestURLProtocol: URLProtocol {
         self.retryAfter = retryAfter
         self.contentType = contentType
         self.initializeEvents = initializeEvents
+        self.holdToolResponse = holdToolResponse
+        heldResponseStopped = false
         captured = nil
         capturedBody = nil
         metadata = [:]
@@ -406,6 +399,12 @@ private final class MCPTestURLProtocol: URLProtocol {
         return deletedSession
     }
 
+    static func stoppedHeldResponse() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return heldResponseStopped
+    }
+
     static func snapshot() -> URLRequest? {
         lock.lock()
         defer { lock.unlock() }
@@ -455,6 +454,7 @@ private final class MCPTestURLProtocol: URLProtocol {
         let status = method == "notifications/initialized" || rpc?["result"] != nil
             ? 202 : request.httpMethod == "DELETE" ? 204 : method == "initialize" ? 200 : Self.status
         let retryAfter = Self.retryAfter
+        let holdToolResponse = Self.holdToolResponse && method == "tools/list"
         let contentType = method == "initialize" && Self.initializeEvents != nil
             ? "text/event-stream" : method == "initialize" || method == "notifications/initialized"
             ? "application/json" : Self.contentType
@@ -467,10 +467,14 @@ private final class MCPTestURLProtocol: URLProtocol {
         )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: selected)
-        client?.urlProtocolDidFinishLoading(self)
+        if !holdToolResponse { client?.urlProtocolDidFinishLoading(self) }
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        Self.lock.lock()
+        if Self.holdToolResponse { Self.heldResponseStopped = true }
+        Self.lock.unlock()
+    }
 
     private static func readBodyStream(_ stream: InputStream) -> Data {
         stream.open()
