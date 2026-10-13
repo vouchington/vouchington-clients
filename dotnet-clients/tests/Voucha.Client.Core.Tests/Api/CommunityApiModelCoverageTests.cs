@@ -11,6 +11,9 @@ public sealed class CommunityApiModelCoverageTests
   [Fact]
   public void CommunityFixturesPopulateOptionalFields()
   {
+    var shownCommunity = JsonSerializer.Deserialize<CommunityResponse>(
+        ApiFixtureLoader.LoadResponse("web.communities.show.default"),
+        VouchaApiJson.Options)!.Community;
     var community = JsonSerializer.Deserialize<CommunityResponse>(
         ApiFixtureLoader.LoadResponse("web.communities.archive.default"),
         VouchaApiJson.Options)!.Community;
@@ -28,6 +31,17 @@ public sealed class CommunityApiModelCoverageTests
     Assert.NotNull(community.ArchivedAt);
     Assert.Equal(DateTimeOffset.Parse("2026-01-01T00:00:00Z"), community.CreatedAt);
     Assert.Equal(DateTimeOffset.Parse("2026-06-01T00:00:00Z"), community.UpdatedAt);
+    Assert.Null(community.ProfileImagePlacement);
+    Assert.Null(community.BannerImagePlacement);
+    Assert.Equal("00000000-0000-7000-8000-000000000304", shownCommunity.ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, shownCommunity.ProfileImagePlacement?.PlacementRevision);
+    Assert.Equal("00000000-0000-7000-8000-000000000305", shownCommunity.BannerImagePlacement?.PlacementId);
+    Assert.Equal(5, shownCommunity.BannerImagePlacement?.PlacementRevision);
+    using var serialized = JsonDocument.Parse(JsonSerializer.Serialize(shownCommunity, VouchaApiJson.Options));
+    Assert.Equal("00000000-0000-7000-8000-000000000304",
+        serialized.RootElement.GetProperty("profile_image_placement").GetProperty("placement_id").GetString());
+    Assert.Equal(5,
+        serialized.RootElement.GetProperty("banner_image_placement").GetProperty("placement_revision").GetInt32());
     Assert.Equal("community-member-1", members.Results[0].Id);
     Assert.Equal("community-1", members.CommunityMembers["community-member-1"].CommunityId);
     Assert.Equal("owner", members.CommunityMembers["community-member-1"].Role);

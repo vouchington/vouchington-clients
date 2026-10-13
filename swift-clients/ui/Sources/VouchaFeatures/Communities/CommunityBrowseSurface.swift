@@ -26,13 +26,16 @@ struct CommunityBrowseSurface: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(viewModel.rows) { row in
-                        NativeSurfaceRow(row: .init(
-                            icon: "person.3",
-                            title: .verbatim(row.title),
-                            detail: .joined([.verbatim(row.detail), row.metrics]),
-                            provenance: row.provenance,
-                            staffProvenance: row.staffProvenance
-                        ), isStaffViewer: isStaffViewer)
+                        HStack(alignment: .top, spacing: Spacing.sm) {
+                            CommunityPlacementAvatar(placement: row.profileImagePlacement)
+                            NativeSurfaceRow(row: .init(
+                                icon: "person.3",
+                                title: .verbatim(row.title),
+                                detail: .joined([.verbatim(row.detail), row.metrics]),
+                                provenance: row.provenance,
+                                staffProvenance: row.staffProvenance
+                            ), isStaffViewer: isStaffViewer)
+                        }
                     }
 
                     HybridPaginationControl(

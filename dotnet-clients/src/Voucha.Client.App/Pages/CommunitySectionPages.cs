@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Voucha.Client.App.Controls;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
@@ -39,13 +40,15 @@ public abstract partial class CommunitySectionPage : ContentPage
       ISessionStore sessionStore,
       CommunityDetailSurfaceSection section,
       UiMessageKey title,
-      IServiceProvider? serviceProvider = null)
+      IServiceProvider? serviceProvider = null,
+      AppConfig? config = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
     sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     this.section = section;
     this.serviceProvider = serviceProvider;
+    this.config = config ?? AppConfig.FromEnvironment();
     paginationControl = new HybridPaginationControl
     {
       PaginationId = $"community-{section.ToString().ToLowerInvariant()}",
@@ -84,6 +87,7 @@ public abstract partial class CommunitySectionPage : ContentPage
         Children =
         {
           titleLabel,
+          CommunityImagesView(),
           metaLabel,
           provenanceLabel,
           staffChannelLabel,
@@ -167,6 +171,7 @@ public abstract partial class CommunitySectionPage : ContentPage
   private void Render()
   {
     RefreshLocalizedPickers();
+    RenderCommunityImages();
     titleLabel.Text = viewModel.Community?.Name ?? Title;
     metaLabel.Text = viewModel.Community is null
         ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualCommunity)

@@ -16,6 +16,7 @@ struct CommunityWorkspaceSurface: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.md) {
+                CommunityPlacementImages(community: viewModel.communityDetail?.community)
                 Text(verbatim: UiMessages.string(viewModel.summary.title, locale: nativeUiLocale))
                     .font(Typography.largeTitle)
                 ProvenanceBadge(

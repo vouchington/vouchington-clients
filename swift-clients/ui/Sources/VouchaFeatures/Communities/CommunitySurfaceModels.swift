@@ -209,4 +209,5 @@ struct CommunityBrowseItem: Identifiable, Equatable {
     let metrics: UiVerbatimText
     var provenance: PublicContentProvenance?
     var staffProvenance: StaffContentProvenance?
+    var profileImagePlacement: ImagePlacement?
 }

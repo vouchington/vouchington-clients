@@ -52,7 +52,8 @@ final class CommunityBrowseViewModel {
                     detail: community.markdown ?? community.slug,
                     metrics: .count(metrics?.memberCount ?? 0, item: "member"),
                     provenance: community.provenance,
-                    staffProvenance: community.staffProvenance
+                    staffProvenance: community.staffProvenance,
+                    profileImagePlacement: community.profileImagePlacement
                 )
             }
             guard pagination.complete(
