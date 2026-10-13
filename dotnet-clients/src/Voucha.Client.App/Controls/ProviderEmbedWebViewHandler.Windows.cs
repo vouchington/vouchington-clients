@@ -44,7 +44,8 @@ public sealed class ProviderEmbedWebViewHandler : WebViewHandler
     try
     {
       if (active.UserDataFolder is null) return;
-      var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: active.UserDataFolder).ConfigureAwait(true);
+      var environment = await CoreWebView2Environment.CreateWithOptionsAsync(
+          null, active.UserDataFolder, null).AsTask().ConfigureAwait(true);
       active.Cancellation.Token.ThrowIfCancellationRequested();
       await platformView.EnsureCoreWebView2Async(environment).ConfigureAwait(true);
       active.Cancellation.Token.ThrowIfCancellationRequested();
