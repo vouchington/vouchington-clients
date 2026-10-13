@@ -39,11 +39,7 @@ public partial class PostDetailPage : ContentPage
         serviceProvider.GetRequiredService<IUiLocaleController>(),
         serviceProvider.GetRequiredService<IHnDiscussionsSettings>(),
         serviceProvider.GetRequiredService<HnDiscussionsClient>());
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() =>
-    {
-      binding.RefreshViewerState();
-      binding.RefreshRows();
-    });
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = binding.RefreshAfterSessionChangedAsync());
     BindingContext = binding;
   }
 

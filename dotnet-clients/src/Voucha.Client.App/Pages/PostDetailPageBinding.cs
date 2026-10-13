@@ -129,6 +129,13 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     OnPropertyChanged(nameof(CurrentUserId));
   }
 
+  public async Task RefreshAfterSessionChangedAsync(CancellationToken cancellationToken = default)
+  {
+    RefreshViewerState();
+    RefreshRows();
+    await RefreshHnDiscussionsAsync(cancellationToken).ConfigureAwait(true);
+  }
+
   public void OnUiLocaleChanged() => RefreshRows();
 
   public void ToggleCollapse(string postId)
@@ -145,6 +152,11 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
         ? viewModel.LoadAsync(cancellationToken)
         : viewModel.LoadPermalinkAsync(focusedCommentId, cancellationToken)).ConfigureAwait(true);
     RefreshRows();
+    await RefreshHnDiscussionsAsync(cancellationToken).ConfigureAwait(true);
+  }
+
+  private async Task RefreshHnDiscussionsAsync(CancellationToken cancellationToken)
+  {
     await HnDiscussions.LoadAsync(RootRow?.ShowBodyContent == true ? viewModel.RootPost : null,
         cancellationToken).ConfigureAwait(true);
     OnPropertyChanged(nameof(HasVisibleHnDiscussions));

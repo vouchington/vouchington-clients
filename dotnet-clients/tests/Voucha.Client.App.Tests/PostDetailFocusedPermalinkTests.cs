@@ -13,7 +13,7 @@ namespace Voucha.Client.App.Tests;
 public sealed class PostDetailFocusedPermalinkTests
 {
   [Fact]
-  public async Task RejectedRootDoesNotSearchHiddenMarkdownForHnDiscussions()
+  public async Task RejectedRootHnDiscussionsFollowViewerPermissionChanges()
   {
     var root = Post("root", null) with
     {
@@ -21,31 +21,34 @@ public sealed class PostDetailFocusedPermalinkTests
       ClearanceStatus = "rejected",
     };
     var service = new ThreadService(new PostResponse(root), Response([]), Response([root]));
-    var hiddenRequests = new CountingHnHandler();
-    var hiddenBinding = new PostDetailPageBinding(
+    var requests = new CountingHnHandler();
+    var session = new SessionStore(new(new User("other", "other")));
+    var binding = new PostDetailPageBinding(
         new CommentThreadViewModel(service, root.Id),
-        new SessionStore(new(new User("other", "other"))),
+        session,
         hnDiscussionsSettings: new MemoryHnDiscussionsSettings(true),
-        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(hiddenRequests)));
+        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(requests)));
 
-    await hiddenBinding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-    Assert.False(Assert.IsType<PostDetailPageRow>(hiddenBinding.RootRow).ShowBodyContent);
-    Assert.False(hiddenBinding.HasVisibleHnDiscussions);
-    Assert.Empty(hiddenBinding.HnDiscussions.Threads);
-    Assert.Equal(0, hiddenRequests.Count);
+    Assert.False(Assert.IsType<PostDetailPageRow>(binding.RootRow).ShowBodyContent);
+    Assert.False(binding.HasVisibleHnDiscussions);
+    Assert.Empty(binding.HnDiscussions.Threads);
+    Assert.Equal(0, requests.Count);
 
-    var staffRequests = new CountingHnHandler();
-    var staffBinding = new PostDetailPageBinding(
-        new CommentThreadViewModel(service, root.Id),
-        new SessionStore(new(new User("moderator", "moderator", Roles: ["moderator"]))),
-        hnDiscussionsSettings: new MemoryHnDiscussionsSettings(true),
-        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(staffRequests)));
+    session.SetCurrent(new(new User("moderator", "moderator", Roles: ["moderator"])));
+    await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
 
-    await staffBinding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.True(Assert.IsType<PostDetailPageRow>(binding.RootRow).ShowBodyContent);
+    Assert.True(binding.HasVisibleHnDiscussions);
+    Assert.Single(binding.HnDiscussions.Threads);
+    Assert.Equal(1, requests.Count);
 
-    Assert.True(Assert.IsType<PostDetailPageRow>(staffBinding.RootRow).ShowBodyContent);
-    Assert.Equal(1, staffRequests.Count);
+    session.SetCurrent(new(new User("other", "other")));
+    await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
+    Assert.False(binding.HasVisibleHnDiscussions);
+    Assert.Empty(binding.HnDiscussions.Threads);
+    Assert.Equal(1, requests.Count);
   }
 
   [Fact]
@@ -145,7 +148,8 @@ public sealed class PostDetailFocusedPermalinkTests
   private sealed class SessionStore(SessionSnapshot current) : ISessionStore
   {
     public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current { get; } = current;
+    public SessionSnapshot Current { get; private set; } = current;
+    public void SetCurrent(SessionSnapshot next) => Current = next;
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
@@ -159,7 +163,7 @@ public sealed class PostDetailFocusedPermalinkTests
       Count++;
       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
       {
-        Content = new StringContent("{\"hits\":[]}", Encoding.UTF8, "application/json"),
+        Content = new StringContent("{\"hits\":[{\"objectID\":\"123\",\"title\":\"Private discussion\",\"url\":\"https://example.com/hidden-story\",\"points\":4,\"num_comments\":1}]}", Encoding.UTF8, "application/json"),
         RequestMessage = request,
       });
     }

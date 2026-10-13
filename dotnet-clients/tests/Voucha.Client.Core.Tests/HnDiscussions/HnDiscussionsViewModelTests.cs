@@ -65,6 +65,24 @@ public sealed class HnDiscussionsViewModelTests
   }
 
   [Fact]
+  public async Task RevokedVisibilityDiscardsAnEarlierHnSearchResult()
+  {
+    var handler = new HeldHandler();
+    var viewModel = new HnDiscussionsViewModel(
+        new MemoryHnDiscussionsSettings(true),
+        new HnDiscussionsClient(new HttpClient(handler)));
+    var firstLoad = viewModel.LoadAsync(["https://example.com/a"], TestContext.Current.CancellationToken);
+    Assert.Equal(1, handler.RequestCount);
+
+    await viewModel.LoadAsync(Array.Empty<string?>(), TestContext.Current.CancellationToken);
+    handler.Release();
+    await firstLoad;
+
+    Assert.Empty(viewModel.Threads);
+    Assert.False(viewModel.HasThreads);
+  }
+
+  [Fact]
   public async Task SearchAsyncReturnsEmptyWhenAlgoliaIsUnreachable()
   {
     var client = new HnDiscussionsClient(new HttpClient(new ThrowingHandler()));
@@ -113,5 +131,26 @@ public sealed class HnDiscussionsViewModelTests
         HttpRequestMessage request,
         CancellationToken cancellationToken) =>
         throw new HttpRequestException("offline");
+  }
+
+  private sealed class HeldHandler : HttpMessageHandler
+  {
+    private readonly TaskCompletionSource<HttpResponseMessage> response =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public int RequestCount { get; private set; }
+
+    public void Release() => response.SetResult(new HttpResponseMessage(HttpStatusCode.OK)
+    {
+      Content = new StringContent("""
+          {"hits":[{"objectID":"123","title":"Example","url":"https://example.com/a","points":1,"num_comments":1}]}
+          """, Encoding.UTF8, "application/json"),
+    });
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+      RequestCount++;
+      return response.Task;
+    }
   }
 }

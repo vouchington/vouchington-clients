@@ -18,6 +18,7 @@ public sealed class HnDiscussionsViewModel : ObservableObject
   private readonly HnDiscussionsClient client;
   private readonly IUiLocalization localization;
   private bool hasThreads;
+  private int loadRevision;
 
   public HnDiscussionsViewModel(
       IHnDiscussionsSettings settings,
@@ -42,13 +43,16 @@ public sealed class HnDiscussionsViewModel : ObservableObject
 
   public async Task LoadAsync(IEnumerable<string?> urls, CancellationToken cancellationToken = default)
   {
+    var revision = ++loadRevision;
     Threads.Clear();
+    HasThreads = false;
     if (!settings.Enabled)
     {
-      HasThreads = false;
       return;
     }
-    foreach (var thread in await client.SearchAsync(urls, cancellationToken).ConfigureAwait(true))
+    var threads = await client.SearchAsync(urls, cancellationToken).ConfigureAwait(true);
+    if (revision != loadRevision) return;
+    foreach (var thread in threads)
     {
       Threads.Add(new HnDiscussionRow
       {
