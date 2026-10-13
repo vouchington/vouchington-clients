@@ -25,16 +25,10 @@ struct NativeSurfaceRow: View {
 
     private var rowContent: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            if let imageURL = row.imageURL, let url = URL(string: imageURL) {
-                AsyncImageView(
-                    urlString: url.absoluteString,
-                    baseURL: AppConfig.shared.imageBaseURL,
-                    contentMode: .fill
-                )
-                .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
-                .accessibilityIdentifier("topic-logo-image")
+            if let imageURL = row.avatarURL ?? row.imageURL, let url = URL(string: imageURL) {
+                rowImage(url: url)
+                    .accessibilityHidden(true)
+                    .accessibilityIdentifier(row.avatarURL == nil ? "topic-logo-image" : "native-surface-avatar")
             } else if showsLeadingIcon {
                 Image(systemName: row.icon)
                     .font(.headline)
@@ -68,5 +62,21 @@ struct NativeSurfaceRow: View {
         .padding(Spacing.md)
         .background(Colors.background.opacity(0.75))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func rowImage(url: URL) -> some View {
+        let image = AsyncImageView(
+            urlString: url.absoluteString,
+            baseURL: AppConfig.shared.imageBaseURL,
+            contentMode: .fill
+        )
+        .frame(width: 48, height: 48)
+
+        if row.avatarURL != nil {
+            image.clipShape(Circle())
+        } else {
+            image.clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 }

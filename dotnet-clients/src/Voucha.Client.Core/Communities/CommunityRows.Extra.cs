@@ -15,7 +15,8 @@ public sealed record CommunitySummaryRow(
     string? TitleDetectedLanguage = null,
     AuthoredContentText? Content = null,
     StaffContentProvenance? StaffProvenance = null,
-    bool IsStaffViewer = false)
+    bool IsStaffViewer = false,
+    TopicImagePlacement? ProfileImagePlacement = null)
 {
   public CommunitySummaryRow(string id, string title, string subtitle, string? detail = null)
       : this(

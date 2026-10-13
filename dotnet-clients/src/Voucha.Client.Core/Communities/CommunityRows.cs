@@ -11,7 +11,8 @@ public sealed record CommunityMemberRow(
     string ProtocolRole,
     DateTimeOffset? CreatedAt,
     UiText RoleText,
-    IUiLocalization Localization)
+    IUiLocalization Localization,
+    TopicImagePlacement? ProfileImagePlacement = null)
 {
   public string Role => Localization.Resolve(RoleText);
 
@@ -28,7 +29,8 @@ public sealed record CommunityMemberRow(
         member.Role,
         member.CreatedAt,
         UiTaxonomy.CommunityMemberRole(member.Role),
-        localization ?? UiLocalization.English);
+        localization ?? UiLocalization.English,
+        user?.ProfileImagePlacement);
   }
 }
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Maui.Controls;
@@ -89,6 +90,48 @@ public sealed class CommunityPlacementRenderingTests
     Assert.False(avatar.IsVisible);
   }
 
+  [Fact]
+  public async Task MemberRowsRenderOnlyThePublicUsersCanonicalPlacement()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var responses = new Dictionary<string, string>
+    {
+      ["/api/v1/communities/test-community"] = Fixture("web.communities.show.default"),
+      ["/api/v1/communities/test-community/members"] = Fixture("web.communities.members.default"),
+      ["/api/v1/communities/test-community/posts"] = Fixture("web.communities.posts.default"),
+      ["/api/v1/communities/test-community/list-items/counts"] = Fixture("web.communities.list-items.counts.default"),
+    };
+    var apiClient = new VouchaApiClient(new HttpClient(new RouteResponseHandler(responses))
+    {
+      BaseAddress = new Uri("https://api.test"),
+    });
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(apiClient));
+    var page = new CommunityMembersPage(model, new AnonymousSessionStore(), Config());
+
+    await model.LoadSurfaceAsync("test-community", CommunityDetailSurfaceSection.Members,
+        TestContext.Current.CancellationToken);
+
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(page));
+    var member = Assert.IsType<CommunitySummaryRow>(Assert.Single((IEnumerable<object>)collection.ItemsSource!));
+    var row = Assert.IsType<HorizontalStackLayout>(collection.ItemTemplate!.CreateContent());
+    row.BindingContext = member;
+    var avatar = Assert.Single(Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+    var avatarImage = Assert.Single(Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
+
+    Assert.Equal("Test User", member.Title);
+    Assert.Equal("Owner", member.Subtitle);
+    Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
+        Assert.IsType<UriImageSource>(avatarImage.Source).Uri);
+    Assert.True(avatar.IsVisible);
+    Assert.Equal("Test User", SemanticProperties.GetDescription(avatarImage));
+    row.BindingContext = member with { ProfileImagePlacement = null };
+    Assert.Null(avatarImage.Source);
+    Assert.False(avatar.IsVisible);
+  }
+
   private static AppConfig Config() => new(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
 
   private static string Fixture(string id)
@@ -119,6 +162,26 @@ public sealed class CommunityPlacementRenderingTests
           Content = new StringContent(responses.Dequeue(), Encoding.UTF8, "application/json"),
           RequestMessage = request,
         });
+  }
+
+  private sealed class RouteResponseHandler(IReadOnlyDictionary<string, string> responses) : HttpMessageHandler
+  {
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+      var path = request.RequestUri?.AbsolutePath ?? "";
+      if (!responses.TryGetValue(path, out var body))
+      {
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+          RequestMessage = request,
+        });
+      }
+      return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent(body, Encoding.UTF8, "application/json"),
+        RequestMessage = request,
+      });
+    }
   }
 
   private sealed class AnonymousSessionStore : ISessionStore

@@ -1,4 +1,5 @@
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -109,6 +110,10 @@ extension CommunityDetailViewModel {
                 id: result.id,
                 row: .init(
                     icon: "person",
+                    avatarURL: AppConfig.shared.imageURL(
+                        for: response.users[member.userId]?.profileImagePlacement,
+                        width: 96
+                    ),
                     title: .verbatim(response.users[member.userId]?.username ?? member.userId),
                     detail: .message(member.role.titleKey)
                 )

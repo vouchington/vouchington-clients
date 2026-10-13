@@ -9,6 +9,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     public let id: String
     public let icon: String
     public let imageURL: String?
+    public let avatarURL: String?
     public let title: String
     public let detail: String
     let titleText: UiVerbatimText
@@ -24,6 +25,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         id: String = UUID().uuidString,
         icon: String,
         imageURL: String? = nil,
+        avatarURL: String? = nil,
         title: UiVerbatimText,
         detail: UiVerbatimText,
         declaredLanguage: String? = nil,
@@ -42,6 +44,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         self.id = id
         self.icon = icon
         self.imageURL = imageURL
+        self.avatarURL = avatarURL
         titleText = title
         detailText = detail
         self.title = UiMessages.string(title, locale: .english)
@@ -59,6 +62,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
             id: UUID().uuidString,
             icon: icon,
             imageURL: nil,
+            avatarURL: nil,
             title: .app(title),
             detail: .app(detail),
             externalURL: externalURL,
@@ -75,7 +79,8 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     }
 
     public static func == (lhs: NativeRouteDestinationRow, rhs: NativeRouteDestinationRow) -> Bool {
-        lhs.icon == rhs.icon && lhs.imageURL == rhs.imageURL && lhs.title == rhs.title && lhs.detail == rhs.detail
+        lhs.icon == rhs.icon && lhs.imageURL == rhs.imageURL && lhs.avatarURL == rhs.avatarURL
+            && lhs.title == rhs.title && lhs.detail == rhs.detail
             && lhs.declaredLanguage == rhs.declaredLanguage && lhs.detectedLanguage == rhs.detectedLanguage
             && lhs.detailDeclaredLanguage == rhs.detailDeclaredLanguage
             && lhs.detailDetectedLanguage == rhs.detailDetectedLanguage
@@ -96,6 +101,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         hasher.combine(accountType)
         hasher.combine(icon)
         hasher.combine(imageURL)
+        hasher.combine(avatarURL)
         hasher.combine(title)
         hasher.combine(detail)
         hasher.combine(declaredLanguage)

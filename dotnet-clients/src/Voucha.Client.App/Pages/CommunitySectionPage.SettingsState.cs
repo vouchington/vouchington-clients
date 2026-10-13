@@ -1,3 +1,6 @@
+using System.Globalization;
+using Voucha.Client.Core;
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
@@ -31,7 +34,8 @@ public abstract partial class CommunitySectionPage
             member.Id,
             UiText.UserContent(member.DisplayName),
             UiText.ProtocolValue(member.Role),
-            Date(member.CreatedAt))).ToArray(),
+            Date(member.CreatedAt),
+            profileImagePlacement: member.ProfileImagePlacement)).ToArray(),
         CommunityDetailSurfaceSection.Posts => viewModel.Posts.Select(post => Row(
             post.Id,
             UiText.UserContent(post.Title),
@@ -73,15 +77,38 @@ public abstract partial class CommunitySectionPage
       UiText subtitle,
       UiText? detail = null,
       Voucha.Client.Core.Api.StaffContentProvenance? staffProvenance = null,
-      bool isStaffViewer = false) =>
+      bool isStaffViewer = false,
+      TopicImagePlacement? profileImagePlacement = null) =>
       new(id, title, subtitle, detail, UiCopy.CurrentLocalization,
-          StaffProvenance: staffProvenance, IsStaffViewer: isStaffViewer);
+          StaffProvenance: staffProvenance, IsStaffViewer: isStaffViewer,
+          ProfileImagePlacement: profileImagePlacement);
 
   private static UiText? Date(DateTimeOffset? value) =>
       value is { } date ? UiText.Verbatim(UiCopy.FormatDateTime(date)) : null;
 
   private View RowTemplate()
   {
+    var avatarImage = new Image
+    {
+      Aspect = Aspect.AspectFill,
+      AutomationId = "community-member-avatar-image",
+    };
+    avatarImage.SetBinding(
+        Image.SourceProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new PlacementImageSourceConverter(config, 96)));
+    avatarImage.SetBinding(SemanticProperties.DescriptionProperty, nameof(CommunitySummaryRow.Title));
+    var avatar = new Border
+    {
+      WidthRequest = 40,
+      HeightRequest = 40,
+      StrokeThickness = 0,
+      StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+      Content = avatarImage,
+      AutomationId = "community-member-avatar",
+    };
+    avatar.SetBinding(
+        IsVisibleProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new HasProfileImagePlacementConverter()));
     var title = new Label { FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Title));
     title.SetBinding(Label.FlowDirectionProperty, nameof(CommunitySummaryRow.TitleFlowDirection));
@@ -116,10 +143,25 @@ public abstract partial class CommunitySectionPage
     open.Clicked += OnEmbedOpenClicked;
     var embed = new VerticalStackLayout { Spacing = 3, Children = { image, provider, embedTitle, description, play, open } };
     embed.SetBinding(IsVisibleProperty, "EmbedPreview.HasPreview");
-    return new VerticalStackLayout
+    var text = new VerticalStackLayout
     {
       Spacing = 3,
       Children = { title, authoredContent, subtitle, detail, staffChannel, embed },
     };
+    return section == CommunityDetailSurfaceSection.Members
+        ? new HorizontalStackLayout
+        {
+          Spacing = 8,
+          Children = { avatar, text },
+        }
+        : text;
+  }
+
+  private sealed class HasProfileImagePlacementConverter : IValueConverter
+  {
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is TopicImagePlacement;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
   }
 }
