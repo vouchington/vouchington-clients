@@ -1,4 +1,5 @@
 using System.Net;
+using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -14,6 +15,7 @@ using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Lists;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Settings;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.Core.Tests.Api;
 using Xunit;
@@ -215,8 +217,9 @@ public sealed class PublicEntityProvenanceRenderingTests
         Fixture("entity-provenance.rss-feeds"));
     using var topicModel = new TopicDetailViewModel(new ApiTopicsService(topicClient));
     var topicPage = new TopicDetailPage(topicModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale));
+    var topicLoaded = WaitUntilLoadedAsync(topicModel);
     Appear(topicPage);
-    await WaitUntilAsync(() => topicModel.Topic is not null && !topicModel.IsLoading);
+    await topicLoaded;
     var topicLabel = Assert.Single(Descendants<Label>(topicPage), item =>
         item.Text?.Contains("Topic Agent", StringComparison.Ordinal) == true);
     Assert.True(topicLabel.IsVisible);
@@ -226,8 +229,9 @@ public sealed class PublicEntityProvenanceRenderingTests
         Fixture("entity-provenance.rss-feeds"));
     using var sourceModel = new TopicDetailViewModel(new ApiTopicsService(sourceClient));
     var sourcePage = new TopicDetailPage(sourceModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale), isSourceDetail: true);
+    var sourceLoaded = WaitUntilLoadedAsync(sourceModel);
     Appear(sourcePage);
-    await WaitUntilAsync(() => sourceModel.Topic is not null && !sourceModel.IsLoading);
+    await sourceLoaded;
 
     var label = Assert.Single(Descendants<Label>(sourcePage), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
@@ -324,11 +328,32 @@ public sealed class PublicEntityProvenanceRenderingTests
           BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
           null, Type.EmptyTypes, null)!.Invoke(page, null);
 
-  private static async Task WaitUntilAsync(Func<bool> condition)
+  private static Task WaitUntilLoadedAsync(TopicDetailViewModel viewModel)
   {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
+    var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    void OnStateChanged(object? sender, PropertyChangedEventArgs args)
+    {
+      if (args.PropertyName != nameof(viewModel.State)) return;
+      if (viewModel.State == LoadState.Loaded) completion.TrySetResult();
+      else if (viewModel.State == LoadState.Error)
+        completion.TrySetException(new InvalidOperationException(viewModel.ErrorMessage ?? "Topic detail failed to load."));
+    }
+
+    viewModel.PropertyChanged += OnStateChanged;
+    if (viewModel.State == LoadState.Loaded) completion.TrySetResult();
+    return WaitAndUnsubscribeAsync();
+
+    async Task WaitAndUnsubscribeAsync()
+    {
+      try
+      {
+        await completion.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+      }
+      finally
+      {
+        viewModel.PropertyChanged -= OnStateChanged;
+      }
+    }
   }
 
   private sealed class ResponseHandler(IEnumerable<string> bodies) : HttpMessageHandler
