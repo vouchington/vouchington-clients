@@ -3,7 +3,7 @@
     import Security
 
     /// Per-member OAuth credentials, confined to this device and never synchronized to iCloud.
-    public actor KeychainMemberMCPOAuthTokenStore: MemberMCPOAuthTokenStore {
+    public actor KeychainMemberMCPOAuthTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAccountClearing {
         public enum Failure: Error { case keychain(OSStatus) }
 
         private let accessGroup: String?
@@ -51,21 +51,52 @@
             }
         }
 
+        public func clearAccount(_ accountId: String) throws {
+            var query = serviceQuery()
+            query[kSecReturnAttributes] = true
+            query[kSecMatchLimit] = kSecMatchLimitAll
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &result)
+            if status == errSecItemNotFound { return }
+            guard status == errSecSuccess, let records = result as? [[String: Any]] else {
+                throw Failure.keychain(status == errSecSuccess ? errSecDecode : status)
+            }
+            let accountPrefix = Self.accountPrefix(for: accountId)
+            for record in records {
+                guard let key = record[kSecAttrAccount as String] as? String,
+                      key.hasPrefix(accountPrefix) else { continue }
+                var deletion = serviceQuery()
+                deletion[kSecAttrAccount] = key
+                let deleted = SecItemDelete(deletion as CFDictionary)
+                guard deleted == errSecSuccess || deleted == errSecItemNotFound else {
+                    throw Failure.keychain(deleted)
+                }
+            }
+        }
+
         static func accountKey(for scope: MemberMCPOAuthTokenScope) -> String {
             let parts = [
-                scope.accountId,
                 scope.issuerIdentifier,
                 scope.resource.absoluteString,
                 scope.clientId.absoluteString
             ]
-            return parts.map { "\($0.utf8.count):\($0)" }.joined()
+            return accountPrefix(for: scope.accountId) + parts.map { "\($0.utf8.count):\($0)" }.joined()
+        }
+
+        static func accountPrefix(for accountId: String) -> String {
+            "\(accountId.utf8.count):\(accountId)"
         }
 
         private func baseQuery(scope: MemberMCPOAuthTokenScope) -> [CFString: Any] {
+            var query = serviceQuery()
+            query[kSecAttrAccount] = Self.accountKey(for: scope)
+            return query
+        }
+
+        private func serviceQuery() -> [CFString: Any] {
             var query: [CFString: Any] = [
                 kSecClass: kSecClassGenericPassword,
-                kSecAttrService: service,
-                kSecAttrAccount: Self.accountKey(for: scope)
+                kSecAttrService: service
             ]
             #if os(macOS)
                 query[kSecUseDataProtectionKeychain] = true

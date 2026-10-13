@@ -68,3 +68,8 @@ public protocol MemberMCPOAuthTokenStore: Sendable {
     func save(_ tokens: MemberMCPOAuthTokens, scope: MemberMCPOAuthTokenScope) async throws
     func clear(scope: MemberMCPOAuthTokenScope) async throws
 }
+
+/// Removes every credential owned by one member when issuer discovery is unavailable at sign-out.
+public protocol MemberMCPOAuthAccountClearing: Sendable {
+    func clearAccount(_ accountId: String) async throws
+}

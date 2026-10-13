@@ -14,6 +14,7 @@ public struct NativeRouteDestinationView: View {
     private let playbackController: PodcastPlaybackController?
     private let isSignedIn: Bool
     private let currentUserId: String?
+    private let nativeChatMCPSession: NativeChatMCPAgentSession?
     private let membershipPlan: String?
     private let isAdministrator: Bool
     private let canOverrideFeatureFlags: Bool
@@ -37,6 +38,7 @@ public struct NativeRouteDestinationView: View {
         playbackController: PodcastPlaybackController? = nil,
         isSignedIn: Bool = true,
         currentUserId: String? = nil,
+        nativeChatMCPSession: NativeChatMCPAgentSession? = nil,
         membershipPlan: String? = nil,
         isAdministrator: Bool = false,
         canOverrideFeatureFlags: Bool = false,
@@ -59,6 +61,7 @@ public struct NativeRouteDestinationView: View {
         self.playbackController = playbackController
         self.isSignedIn = isSignedIn
         self.currentUserId = currentUserId
+        self.nativeChatMCPSession = nativeChatMCPSession
         self.membershipPlan = membershipPlan
         self.isAdministrator = isAdministrator
         self.canOverrideFeatureFlags = canOverrideFeatureFlags
@@ -125,6 +128,7 @@ public struct NativeRouteDestinationView: View {
                     playbackController: playbackController,
                     isSignedIn: isSignedIn,
                     currentUserId: currentUserId,
+                    nativeChatMCPSession: nativeChatMCPSession,
                     canViewLandingPageAnalytics: ["plus", "pro"].contains(membershipPlan?.lowercased()),
                     isAdministrator: isAdministrator,
                     canOverrideFeatureFlags: canOverrideFeatureFlags,

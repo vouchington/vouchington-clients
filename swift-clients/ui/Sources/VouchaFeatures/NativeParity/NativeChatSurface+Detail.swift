@@ -6,6 +6,7 @@ extension NativeChatSurface {
     func chatDetail(viewModel: NativeChatViewModel) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             header(viewModel: viewModel)
+            mcpControls()
 
             if let message = viewModel.detailErrorMessage ?? viewModel.streamErrorMessage {
                 Text(UiMessages.string(message, locale: nativeUiLocale))

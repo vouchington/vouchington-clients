@@ -366,6 +366,11 @@
 "native.swift.chat.local" = "Local";
 "native.swift.chat.localModelSettingsOff" = "Ative as respostas do modelo local nas Definições.";
 "native.swift.chat.localModelsUnavailablePlatform" = "Os modelos locais não estão disponíveis nesta plataforma.";
+"native.swift.chat.mcpAuthorizationRequired" = "Ligue as ferramentas Voucha para as utilizar.";
+"native.swift.chat.mcpConnect" = "Ligar as ferramentas Voucha";
+"native.swift.chat.mcpConnected" = "Ferramentas Voucha ligadas";
+"native.swift.chat.mcpDisconnect" = "Desligar as ferramentas Voucha";
+"native.swift.chat.mcpRefresh" = "Atualizar ferramentas";
 "native.swift.chat.new" = "Novo";
 "native.swift.chat.newConversation" = "Nova conversa";
 "native.swift.chat.onDeviceUnavailable" = "As respostas no dispositivo não estão disponíveis.";
