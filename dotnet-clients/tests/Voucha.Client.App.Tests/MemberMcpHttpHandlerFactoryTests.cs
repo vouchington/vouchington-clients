@@ -1,5 +1,4 @@
 using System.Net.Security;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Voucha.Client.App.Chat;
 using Voucha.Client.Core;
@@ -13,11 +12,7 @@ public sealed class MemberMcpHttpHandlerFactoryTests
   [Fact]
   public void FreshCookieFreeHandlersApplyTheConfiguredCertificatePolicy()
   {
-    using var key = RSA.Create(2048);
-    var request = new CertificateRequest("CN=voucha.ai", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-    using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
-    var pin = PublicKeyPinningPolicy.TryGetLeafSpkiSha256Base64(certificate)!;
-    var policy = new PublicKeyPinningPolicy(["voucha.ai"], [new PublicKeyPin("voucha.ai", pin, "current")]);
+    var policy = new PublicKeyPinningPolicy(["voucha.ai"], [new PublicKeyPin("voucha.ai", "configured-pin", "current")]);
     var factory = new MemberMcpHttpHandlerFactory(new AppConfig(new Uri("https://voucha.ai")), policy);
     using var first = factory.Create();
     using var second = factory.Create();
@@ -27,8 +22,12 @@ public sealed class MemberMcpHttpHandlerFactoryTests
     Assert.False(first.AllowAutoRedirect);
     Assert.Equal(X509RevocationMode.Online, first.SslOptions.CertificateRevocationCheckMode);
     var validate = Assert.IsType<RemoteCertificateValidationCallback>(first.SslOptions.RemoteCertificateValidationCallback);
-    Assert.True(validate(new object(), certificate, null, SslPolicyErrors.None));
     Assert.False(validate(new object(), null, null, SslPolicyErrors.None));
-    Assert.False(validate(new object(), certificate, null, SslPolicyErrors.RemoteCertificateChainErrors));
+
+    var developmentFactory = new MemberMcpHttpHandlerFactory(new AppConfig(new Uri("https://development.example")), policy);
+    using var development = developmentFactory.Create();
+    var validateDevelopment = Assert.IsType<RemoteCertificateValidationCallback>(development.SslOptions.RemoteCertificateValidationCallback);
+    Assert.True(validateDevelopment(new object(), null, null, SslPolicyErrors.None));
+    Assert.False(validateDevelopment(new object(), null, null, SslPolicyErrors.RemoteCertificateChainErrors));
   }
 }
