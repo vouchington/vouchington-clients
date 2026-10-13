@@ -22,24 +22,11 @@ func verbatimRow(
 class NativeRouteSurfaceViewModelTestCase: XCTestCase {
     override func setUp() {
         super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.contentTypes = [:]
-        CannedFeedURLProtocol.errors = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
+        CannedFeedURLProtocol.reset()
     }
 
     override func tearDown() {
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.contentTypes = [:]
-        CannedFeedURLProtocol.errors = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-        CannedFeedURLProtocol.discardPendingResponses()
+        CannedFeedURLProtocol.reset()
         super.tearDown()
     }
 
