@@ -16,6 +16,7 @@ describe('Windows image preview test routing', () => {
       'global.json',
       '.mise.toml',
       'dotnet-clients/NuGet.config',
+      'dotnet-clients/Directory.Build.targets',
       '.github/workflows/native-contract-tests.yml',
     ])
       assert.equal(shouldRunWindowsImagePreviewTests([path]), true, path)

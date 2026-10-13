@@ -10,6 +10,7 @@ const windowsImagePreviewPaths = [
   'docs/development/native-ci-test-placement.md',
   'dotnet-clients/AGENTS.md',
   'dotnet-clients/Directory.Build.props',
+  'dotnet-clients/Directory.Build.targets',
   'dotnet-clients/Directory.Packages.props',
   'dotnet-clients/NuGet.config',
   'dotnet-clients/src/Voucha.Client.App/Support/LocalImagePreview.cs',
