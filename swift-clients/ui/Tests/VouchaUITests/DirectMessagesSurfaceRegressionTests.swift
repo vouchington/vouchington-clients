@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testFailedInitialSendRetainsCreatedConversationForReplyRetry() async throws {
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/messages/new"))
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages"] = [
@@ -180,13 +171,27 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
         try sut.inspect().find(button: "Send").tap()
 
         try await waitForCondition {
-            CannedFeedURLProtocol.capturedURLs.contains(where: { $0.path == "/api/v1/my/messages/conversation-99" }) &&
+            let requestsStarted = CannedFeedURLProtocol.capturedURLs.contains(where: {
+                $0.path == "/api/v1/my/messages/conversation-99"
+            }) &&
                 CannedFeedURLProtocol.capturedURLs.contains(where: {
                     $0.path == "/api/v1/my/messages/conversation-99/messages"
                 }) &&
                 CannedFeedURLProtocol.capturedURLs.contains(where: {
                     $0.path == "/api/v1/my/messages/conversation-99/participants"
                 })
+            guard requestsStarted,
+                  !viewModel.isCreatingConversation,
+                  viewModel.selectedConversationId == "conversation-99",
+                  viewModel.conversations.first?.title == "Support follow-up",
+                  viewModel.conversations.first?.participantUsernames == ["alice", "bob"]
+            else {
+                return false
+            }
+            if case .loaded = viewModel.threadState {
+                return true
+            }
+            return false
         }
 
         XCTAssertEqual(viewModel.selectedConversationId, "conversation-99")
