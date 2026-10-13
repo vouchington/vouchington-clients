@@ -89,9 +89,9 @@ private func integrityValue(_ value: DecodedJSONValue, locale: Locale) -> String
     case let .integer(value):
         UiMessages.number(value, locale: locale)
     case let .unsignedInteger(value):
-        String(value)
+        integrityPreciseNumber(String(value), locale: locale)
     case let .decimal(value):
-        NSDecimalNumber(decimal: value).stringValue
+        integrityPreciseNumber(NSDecimalNumber(decimal: value).stringValue, locale: locale)
     case let .string(value):
         value
     case let .array(values):
@@ -102,6 +102,34 @@ private func integrityValue(_ value: DecodedJSONValue, locale: Locale) -> String
             .joined(separator: ", ")
             .applyingBraces()
     }
+}
+
+private func integrityPreciseNumber(_ value: String, locale: Locale) -> String {
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    let negative = value.hasPrefix("-")
+    let parts = value.trimmingPrefix(negative ? "-" : "").split(separator: ".", maxSplits: 1)
+    guard let whole = parts.first else { return value }
+    let primary = max(formatter.groupingSize, 1)
+    let secondary = max(formatter.secondaryGroupingSize, primary)
+    var digits = Array(whole)
+    var groups: [String] = []
+    var width = primary
+    while !digits.isEmpty {
+        let start = max(0, digits.count - width)
+        groups.insert(String(digits[start...]), at: 0)
+        digits.removeSubrange(start...)
+        width = secondary
+    }
+    let separator = formatter.groupingSeparator ?? ","
+    let fraction = parts.count == 2 ? (formatter.decimalSeparator ?? ".") + parts[1] : ""
+    let sign = negative ? (formatter.minusSign ?? "-") : ""
+    let localized = groups.joined(separator: separator) + fraction
+    return sign + localized.map { digit in
+        guard let value = digit.wholeNumberValue else { return String(digit) }
+        return formatter.string(from: NSNumber(value: value)) ?? String(digit)
+    }.joined()
 }
 
 private extension String {

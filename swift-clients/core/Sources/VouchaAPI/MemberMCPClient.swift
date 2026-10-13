@@ -14,6 +14,7 @@ public actor MemberMCPClient {
         case invalidResponse
         case sessionExpired
         case rpc(code: Int, message: String)
+        case closed
     }
 
     public struct ToolResult: Decodable, Sendable {
@@ -28,6 +29,7 @@ public actor MemberMCPClient {
     var protocolVersion: String?
     var sessionId: String?
     var initialized = false
+    var closed = false
     var initialization: Task<Void, Error>?
 
     public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil) throws {
@@ -99,6 +101,7 @@ public actor MemberMCPClient {
         params: DecodedJSONValue,
         token: String
     ) async throws -> Result {
+        if closed, method != "initialize" { throw Failure.closed }
         nextRequestId += 1
         let id = String(nextRequestId)
         let body: DecodedJSONValue = .object([
@@ -135,19 +138,14 @@ public actor MemberMCPClient {
             ))
         }
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
-        let result: Result = try await MCPResponseReader.read(
+        let responseSession = try sessionForReply(to: method, response: http, previous: requestSession)
+        return try await MCPResponseReader.read(
             responseLines.lines,
             contentType: http.value(forHTTPHeaderField: "Content-Type"), id: id,
             sendServerReply: { [self] data in
-                try await sendServerReply(data, token: token, session: requestSession, version: requestVersion)
+                try await sendServerReply(data, token: token, session: responseSession, version: requestVersion)
             }
         )
-        if method == "initialize", let session = http.value(forHTTPHeaderField: "Mcp-Session-Id") {
-            guard !session.isEmpty, session.utf8.allSatisfy({ 0x21 ... 0x7E ~= $0 })
-            else { throw Failure.invalidResponse }
-            sessionId = session
-        }
-        return result
     }
 
 }

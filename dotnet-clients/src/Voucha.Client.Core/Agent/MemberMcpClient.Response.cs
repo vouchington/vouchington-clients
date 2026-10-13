@@ -18,7 +18,7 @@ public sealed partial class MemberMcpClient
     {
       var body = new StringBuilder();
       string? line;
-      while ((line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
+      while ((line = await ReadBoundedLineAsync(reader, cancellationToken).ConfigureAwait(false)) is not null)
       {
         if (body.Length + line.Length + 1 > MaximumResponseChars)
           throw new InvalidDataException("MCP response is too large.");
@@ -32,7 +32,7 @@ public sealed partial class MemberMcpClient
 
     var data = new StringBuilder();
     string? eventLine;
-    while ((eventLine = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
+    while ((eventLine = await ReadBoundedLineAsync(reader, cancellationToken).ConfigureAwait(false)) is not null)
     {
       if (eventLine.Length == 0)
       {
@@ -65,6 +65,21 @@ public sealed partial class MemberMcpClient
       if (TryReadReply(data.ToString(), id, allowUnmatched: true, out var last)) return last;
     }
     throw new InvalidDataException("MCP event stream ended without a matching response.");
+  }
+
+  private static async Task<string?> ReadBoundedLineAsync(
+      StreamReader reader, CancellationToken cancellationToken)
+  {
+    var line = new StringBuilder();
+    var character = new char[1];
+    while (await reader.ReadAsync(character.AsMemory(), cancellationToken).ConfigureAwait(false) != 0)
+    {
+      if (character[0] == '\n') return line.ToString().TrimEnd('\r');
+      if (line.Length == MaximumResponseChars)
+        throw new InvalidDataException("MCP response line is too large.");
+      line.Append(character[0]);
+    }
+    return line.Length == 0 ? null : line.ToString();
   }
 
   private static bool TryReadReply(string body, string id, bool allowUnmatched, out JsonElement result)

@@ -235,6 +235,20 @@ final class IntegritySurfacesTests: XCTestCase {
         ])
     }
 
+    func testIntegrityDetailsLocalizesPreciseUnsignedAndDecimalValues() throws {
+        let details: [String: DecodedJSONValue] = try [
+            "unsigned": .unsignedInteger(UInt64.max),
+            "decimal": .decimal(XCTUnwrap(Decimal(string: "1234.5")))
+        ]
+
+        XCTAssertEqual(integrityDetails(details, locale: Locale(identifier: "en_US")), [
+            "decimal: 1,234.5", "unsigned: 18,446,744,073,709,551,615"
+        ])
+        XCTAssertEqual(integrityDetails(details, locale: Locale(identifier: "de_DE")), [
+            "decimal: 1.234,5", "unsigned: 18.446.744.073.709.551.615"
+        ])
+    }
+
     func testIntegrityErrorMessageUsesVouchaAndGenericDescriptions() {
         XCTAssertEqual(
             integrityErrorMessage(VouchaError.forbidden(preconditionCode: nil)),

@@ -7,6 +7,8 @@ public extension MemberMCPClient {
     /// Terminates a stateful MCP session before the client is released.
     func close(accessToken: String) async throws {
         guard !accessToken.isEmpty else { throw Failure.unauthorized }
+        closed = true
+        if let initialization { _ = try? await initialization.value }
         let closingSession = sessionId
         let version = protocolVersion
         initialized = false

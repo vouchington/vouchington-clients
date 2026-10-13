@@ -54,6 +54,28 @@ final class MemberMCPClientTests: XCTestCase {
         try await client.close(accessToken: "access-1")
         XCTAssertEqual(MCPTestURLProtocol.methodHistory().last, "DELETE")
         XCTAssertEqual(MCPTestURLProtocol.closedSession(), "test-session")
+        do {
+            _ = try await client.listTools(accessToken: "access-1")
+            XCTFail("A closed MCP client must not open a new session")
+        } catch MemberMCPClient.Failure.closed {}
+    }
+
+    func testInitializationSSEPingUsesReturnedSessionHeader() async throws {
+        let initEvents = "data: {\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"}\n\n" +
+            "data: {\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"protocolVersion\":\"2025-06-18\"}}\n\n"
+        MCPTestURLProtocol.configure(
+            data: Data(#"{"jsonrpc":"2.0","id":"2","result":{"tools":[]}}"#.utf8),
+            status: 200, initializeEvents: Data(initEvents.utf8)
+        )
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self]
+        )
+
+        _ = try await client.listTools(accessToken: "access-1")
+
+        XCTAssertNotNil(MCPTestURLProtocol.serverReply())
+        XCTAssertEqual(MCPTestURLProtocol.serverReplySession(), "test-session")
     }
 
     func testToolListingForwardsOpaqueCursor() async throws {
@@ -317,22 +339,26 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var methods: [String] = []
     private static var replyBody: Data?
     private static var deletedSession: String?
+    private static var replySession: String?
+    private static var initializeEvents: Data?
 
     static func configure(
         data: Data, status: Int, retryAfter: String? = nil,
-        contentType: String = "application/json"
+        contentType: String = "application/json", initializeEvents: Data? = nil
     ) {
         lock.lock()
         self.data = data
         self.status = status
         self.retryAfter = retryAfter
         self.contentType = contentType
+        self.initializeEvents = initializeEvents
         captured = nil
         capturedBody = nil
         metadata = [:]
         requestedPaths = []
         methods = []
         replyBody = nil
+        replySession = nil
         deletedSession = nil
         lock.unlock()
     }
@@ -366,6 +392,12 @@ private final class MCPTestURLProtocol: URLProtocol {
         lock.lock()
         defer { lock.unlock() }
         return replyBody
+    }
+
+    static func serverReplySession() -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return replySession
     }
 
     static func closedSession() -> String? {
@@ -405,6 +437,7 @@ private final class MCPTestURLProtocol: URLProtocol {
             Self.deletedSession = request.value(forHTTPHeaderField: "Mcp-Session-Id")
         } else if method == nil, rpc?["result"] != nil {
             Self.replyBody = body
+            Self.replySession = request.value(forHTTPHeaderField: "Mcp-Session-Id")
         }
         if method != "initialize", method != "notifications/initialized",
            request.httpMethod != "DELETE", rpc?["result"] == nil {
@@ -415,13 +448,15 @@ private final class MCPTestURLProtocol: URLProtocol {
         let path = request.url?.path ?? ""
         Self.requestedPaths.append(path)
         let selected = method == "initialize"
-            ? Data(#"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#.utf8)
+            ? Self
+            .initializeEvents ?? Data(#"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#.utf8)
             : method == "notifications/initialized" || request.httpMethod == "DELETE" ||
             rpc?["result"] != nil ? Data() : Self.metadata[path] ?? data
         let status = method == "notifications/initialized" || rpc?["result"] != nil
             ? 202 : request.httpMethod == "DELETE" ? 204 : method == "initialize" ? 200 : Self.status
         let retryAfter = Self.retryAfter
-        let contentType = method == "initialize" || method == "notifications/initialized"
+        let contentType = method == "initialize" && Self.initializeEvents != nil
+            ? "text/event-stream" : method == "initialize" || method == "notifications/initialized"
             ? "application/json" : Self.contentType
         Self.lock.unlock()
         var headers = ["Content-Type": contentType]

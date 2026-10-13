@@ -11,12 +11,17 @@ public sealed partial class MemberMcpClient
 
   private async Task EnsureInitializedAsync(string accessToken, CancellationToken cancellationToken)
   {
-    lock (sessionGate) if (initialized) return;
+    lock (sessionGate)
+    {
+      ObjectDisposedException.ThrowIf(closed, this);
+      if (initialized) return;
+    }
     await initializeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
       lock (sessionGate)
       {
+        ObjectDisposedException.ThrowIf(closed, this);
         if (initialized) return;
         protocolVersion = null;
         sessionId = null;

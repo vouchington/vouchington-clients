@@ -10,6 +10,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
 {
   private readonly HttpClient client;
   private readonly Uri endpoint;
+  private readonly TimeSpan responseTimeout;
   private long nextRequestId;
   private readonly SemaphoreSlim initializeGate = new(1, 1);
   private readonly object sessionGate = new();
@@ -17,9 +18,11 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
   private string? sessionId;
   private string? sessionAccessToken;
   private bool initialized;
+  private bool closed;
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "HttpClient owns and disposes the handler.")]
-  public MemberMcpClient(Uri siteOrigin, HttpMessageHandler? handler = null)
+  public MemberMcpClient(
+      Uri siteOrigin, HttpMessageHandler? handler = null, TimeSpan? responseTimeout = null)
   {
     ArgumentNullException.ThrowIfNull(siteOrigin);
     if (siteOrigin.Scheme != Uri.UriSchemeHttps || siteOrigin.AbsolutePath != "/" ||
@@ -28,6 +31,9 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
       throw new ArgumentException("A HTTPS site origin is required.", nameof(siteOrigin));
 
     endpoint = new Uri(siteOrigin, "/api/v1/mcp");
+    this.responseTimeout = responseTimeout ?? TimeSpan.FromMinutes(2);
+    if (this.responseTimeout <= TimeSpan.Zero)
+      throw new ArgumentOutOfRangeException(nameof(responseTimeout));
     client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false });
   }
 
@@ -113,6 +119,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     string? requestSession;
     lock (sessionGate)
     {
+      ObjectDisposedException.ThrowIf(closed, this);
       if (method != "initialize" && !initialized)
         throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
       version = protocolVersion;
@@ -148,15 +155,19 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 
-    var result = await ReadReplyAsync(
-        response.Content, id, accessToken, requestSession, version, cancellationToken).ConfigureAwait(false);
+    string? replySession = requestSession;
     if (method == "initialize" && response.Headers.TryGetValues("Mcp-Session-Id", out var values))
     {
       var proposed = values.SingleOrDefault();
       if (string.IsNullOrEmpty(proposed) || proposed.Any(character => character < 0x21 || character > 0x7E))
         throw new InvalidDataException("MCP server returned an invalid session ID.");
+      replySession = proposed;
       lock (sessionGate) sessionId = proposed;
     }
+    using var responseBudget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    responseBudget.CancelAfter(responseTimeout);
+    var result = await ReadReplyAsync(
+        response.Content, id, accessToken, replySession, version, responseBudget.Token).ConfigureAwait(false);
     return result;
   }
 
@@ -164,6 +175,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
   {
     lock (sessionGate)
     {
+      closed = true;
       initialized = false;
       protocolVersion = null;
       sessionId = null;

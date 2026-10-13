@@ -134,6 +134,25 @@ public sealed class MemberMcpClientTests
   }
 
   [Fact]
+  public async Task InitializationSsePingUsesNewSessionHeader()
+  {
+    var initEvents = "data: {\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"}\n\n" +
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"protocolVersion\":\"2025-06-18\"}}\n\n";
+    var handler = new StubHandler(HttpStatusCode.OK,
+        """{"jsonrpc":"2.0","id":"2","result":{"tools":[]}}""")
+    {
+      InitializeEvents = initEvents
+    };
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+
+    await client.ListToolsAsync("access-1", TestContext.Current.CancellationToken);
+
+    using var reply = JsonDocument.Parse(Assert.IsType<string>(handler.ServerReply));
+    Assert.Equal(17, reply.RootElement.GetProperty("id").GetInt32());
+    Assert.Equal("test-session", handler.ServerReplySession);
+  }
+
+  [Fact]
   public async Task AsyncDisposalTerminatesStatefulSession()
   {
     var handler = new StubHandler(HttpStatusCode.OK,
@@ -148,6 +167,45 @@ public sealed class MemberMcpClientTests
     Assert.Equal("Bearer access-1", handler.Authorization);
     Assert.Equal("test-session", handler.SessionId);
     Assert.Equal("2025-06-18", handler.ProtocolVersion);
+  }
+
+  [Fact]
+  public async Task CloseTerminatesSessionAndRejectsNewWork()
+  {
+    var handler = new StubHandler(HttpStatusCode.OK,
+        """{"jsonrpc":"2.0","id":"2","result":{"tools":[]}}""");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+    await client.ListToolsAsync("access-1", TestContext.Current.CancellationToken);
+
+    await client.CloseAsync("access-1", TestContext.Current.CancellationToken);
+
+    Assert.Equal("DELETE", handler.Methods.Last());
+    await Assert.ThrowsAsync<ObjectDisposedException>(
+        () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
+  }
+
+  [Fact]
+  public async Task StreamedBodyHasAnAbsoluteDeadlineAfterHeaders()
+  {
+    var stream = new SyntheticStream(stall: true);
+    using var client = new MemberMcpClient(new Uri("https://example.test"),
+        new StubHandler(HttpStatusCode.OK, "") { ToolStream = stream },
+        responseTimeout: TimeSpan.FromMilliseconds(100));
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(
+        () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
+  }
+
+  [Fact]
+  public async Task UnterminatedSseLineStopsReadingAtSizeLimit()
+  {
+    var stream = new SyntheticStream(stall: false);
+    using var client = new MemberMcpClient(new Uri("https://example.test"),
+        new StubHandler(HttpStatusCode.OK, "") { ToolStream = stream });
+
+    await Assert.ThrowsAsync<InvalidDataException>(
+        () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
+    Assert.InRange(stream.BytesRead, 1_048_577, 1_052_672);
   }
 
   [Theory]
@@ -173,10 +231,13 @@ public sealed class MemberMcpClientTests
     public string? ProtocolVersion { get; private set; }
     public string? SessionId { get; private set; }
     public string? ServerReply { get; private set; }
+    public string? ServerReplySession { get; private set; }
+    public string? InitializeEvents { get; init; }
     public List<string> Methods { get; } = [];
     public int? RetryAfterSeconds { get; init; }
     public DateTimeOffset? RetryAfterDate { get; init; }
     public string ContentType { get; init; } = "application/json";
+    public SyntheticStream? ToolStream { get; init; }
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
@@ -203,6 +264,7 @@ public sealed class MemberMcpClientTests
             ? replyVersions.Single() : null;
         SessionId = request.Headers.TryGetValues("Mcp-Session-Id", out var replySessions)
             ? replySessions.Single() : null;
+        ServerReplySession = SessionId;
         return new HttpResponseMessage(HttpStatusCode.Accepted);
       }
       var method = methodValue.GetString()!;
@@ -212,8 +274,8 @@ public sealed class MemberMcpClientTests
         var init = new HttpResponseMessage(HttpStatusCode.OK)
         {
           Content = new StringContent(
-              """{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"1"}}}""",
-              Encoding.UTF8, "application/json")
+              InitializeEvents ?? """{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"1"}}}""",
+              Encoding.UTF8, InitializeEvents is null ? "application/json" : "text/event-stream")
         };
         init.Headers.TryAddWithoutValidation("Mcp-Session-Id", "test-session");
         return init;
@@ -224,13 +286,45 @@ public sealed class MemberMcpClientTests
         return new HttpResponseMessage(HttpStatusCode.Accepted);
       var response = new HttpResponseMessage(status)
       {
-        Content = new StringContent(responseBody, Encoding.UTF8, ContentType)
+        Content = ToolStream is null
+            ? new StringContent(responseBody, Encoding.UTF8, ContentType)
+            : new StreamContent(ToolStream)
       };
+      if (ToolStream is not null)
+        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
       if (RetryAfterSeconds is { } seconds)
         response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(seconds));
       if (RetryAfterDate is { } date)
         response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(date);
       return response;
+    }
+  }
+
+  private sealed class SyntheticStream(bool stall) : Stream
+  {
+    public int BytesRead { get; private set; }
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    public override void Flush() => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+      if (stall)
+      {
+        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        return 0;
+      }
+      if (BytesRead >= 1_200_000) throw new IOException("The line reader exceeded its bounded budget.");
+      var count = Math.Min(buffer.Length, 1_200_000 - BytesRead);
+      buffer.Span[..count].Fill((byte)'x');
+      BytesRead += count;
+      return count;
     }
   }
 }

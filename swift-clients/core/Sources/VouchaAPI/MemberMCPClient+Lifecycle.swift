@@ -6,6 +6,7 @@ import VouchaModels
 
 extension MemberMCPClient {
     func ensureInitialized(token: String) async throws {
+        if closed { throw Failure.closed }
         if initialized { return }
         if let initialization { return try await initialization.value }
         let task = Task { try await initialize(token: token) }

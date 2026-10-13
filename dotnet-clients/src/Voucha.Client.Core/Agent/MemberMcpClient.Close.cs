@@ -9,10 +9,18 @@ public sealed partial class MemberMcpClient
   public async Task CloseAsync(string accessToken, CancellationToken cancellationToken = default)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
+    await initializeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+    try { await CloseSessionAsync(accessToken, cancellationToken).ConfigureAwait(false); }
+    finally { initializeGate.Release(); }
+  }
+
+  private async Task CloseSessionAsync(string? accessToken, CancellationToken cancellationToken)
+  {
     string? closingSession;
     string? version;
     lock (sessionGate)
     {
+      closed = true;
       closingSession = sessionId;
       version = protocolVersion;
       initialized = false;
@@ -21,6 +29,7 @@ public sealed partial class MemberMcpClient
       sessionAccessToken = null;
     }
     if (closingSession is null) return;
+    if (accessToken is null) throw new InvalidOperationException("MCP session has no access token.");
     using var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     request.Headers.TryAddWithoutValidation("Mcp-Session-Id", closingSession);
@@ -36,9 +45,14 @@ public sealed partial class MemberMcpClient
   {
     try
     {
-      string? accessToken;
-      lock (sessionGate) accessToken = sessionAccessToken;
-      if (accessToken is not null) await CloseAsync(accessToken).ConfigureAwait(false);
+      await initializeGate.WaitAsync().ConfigureAwait(false);
+      try
+      {
+        string? accessToken;
+        lock (sessionGate) accessToken = sessionAccessToken;
+        await CloseSessionAsync(accessToken, CancellationToken.None).ConfigureAwait(false);
+      }
+      finally { initializeGate.Release(); }
     }
     finally
     {
