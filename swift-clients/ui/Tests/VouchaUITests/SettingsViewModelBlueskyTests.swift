@@ -196,9 +196,7 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
         let viewModel = try SettingsViewModel(client: makeClient(), blueskyLinkStore: store)
 
         store.recordResult(.success)
-        for _ in 0 ..< 100 where viewModel.identity?.blueskyAccount == nil {
-            await Task.yield()
-        }
+        await viewModel.waitForBlueskyLinkResultConsumption()
 
         XCTAssertEqual(viewModel.blueskyLinkState, .success)
         XCTAssertEqual(viewModel.identity?.blueskyAccount?.handle, "alice.bsky.social")
