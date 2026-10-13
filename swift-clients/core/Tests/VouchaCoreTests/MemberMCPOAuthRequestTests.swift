@@ -33,6 +33,14 @@ final class MemberMCPOAuthRequestTests: XCTestCase {
         let valid =
             try XCTUnwrap(URL(string: "\(callback)?code=code-1&state=\(pending.state)&iss=https%3A%2F%2Fexample.test"))
         XCTAssertEqual(try pending.code(from: valid), "code-1")
+        let formSpace = try XCTUnwrap(URL(string:
+            "\(callback)?code=space+code&state=\(pending.state)&iss=https%3A%2F%2Fexample.test"
+        ))
+        XCTAssertEqual(try pending.code(from: formSpace), "space code")
+        let literalPlus = try XCTUnwrap(URL(string:
+            "\(callback)?code=literal%2Bplus&state=\(pending.state)&iss=https%3A%2F%2Fexample.test"
+        ))
+        XCTAssertEqual(try pending.code(from: literalPlus), "literal+plus")
         let wrongState =
             try XCTUnwrap(URL(string: "\(callback)?code=code-1&state=wrong&iss=https%3A%2F%2Fexample.test"))
         XCTAssertThrowsError(try pending.code(from: wrongState))

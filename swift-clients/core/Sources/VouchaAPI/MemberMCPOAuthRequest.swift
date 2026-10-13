@@ -94,9 +94,10 @@ public struct MemberMCPOAuthRequest: Sendable {
         guard callback.scheme == redirectURI.scheme, callback.host == redirectURI.host,
               callback.port == redirectURI.port, callback.path == redirectURI.path,
               callback.user == nil, callback.password == nil, callback.fragment == nil,
-              let parts = URLComponents(url: callback, resolvingAgainstBaseURL: false),
-              let items = parts.queryItems
+              var parts = URLComponents(url: callback, resolvingAgainstBaseURL: false)
         else { throw Failure.invalidCallback }
+        parts.percentEncodedQuery = parts.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%20")
+        guard let items = parts.queryItems else { throw Failure.invalidCallback }
         let states = items.filter { $0.name == "state" }
         let issuers = items.filter { $0.name == "iss" }
         let codes = items.filter { $0.name == "code" }

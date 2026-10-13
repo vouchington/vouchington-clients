@@ -97,7 +97,7 @@ public sealed class MemberMcpOAuthRequest
     var pairs = callback.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
         .Select(value => value.Split('=', 2))
         .Where(parts => parts.Length == 2)
-        .Select(parts => (Key: Uri.UnescapeDataString(parts[0]), Value: Uri.UnescapeDataString(parts[1])))
+        .Select(parts => (Key: DecodeFormComponent(parts[0]), Value: DecodeFormComponent(parts[1])))
         .ToArray();
     if (pairs.GroupBy(pair => pair.Key).Any(group => group.Count() > 1))
       throw new InvalidDataException("OAuth callback has duplicate security parameters.");
@@ -117,4 +117,7 @@ public sealed class MemberMcpOAuthRequest
 
   private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes)
       .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+  private static string DecodeFormComponent(string value) =>
+      Uri.UnescapeDataString(value.Replace('+', ' '));
 }

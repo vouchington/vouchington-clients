@@ -72,6 +72,34 @@ public sealed class MemberMcpTokenManagerTests
   }
 
   [Fact]
+  public async Task ConcurrentClearsShareOnePendingStoreMutation()
+  {
+    var store = new DeferredStore { DeferClear = true };
+    using var tokenClient = new MemberMcpOAuthTokenClient(
+        Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
+        new Uri("https://example.test/api/v1/mcp"), new DeferredGrantHandler());
+    var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
+
+    var first = manager.ClearAsync();
+    try
+    {
+      await store.ClearEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+      var second = manager.ClearAsync();
+      Assert.Same(first, second);
+      Assert.Equal(1, store.ClearCount);
+      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+      store.ReleaseClear.TrySetResult();
+      await Task.WhenAll(first, second);
+      Assert.Equal(1, store.ClearCount);
+    }
+    finally
+    {
+      store.ReleaseClear.TrySetResult();
+      await first;
+    }
+  }
+
+  [Fact]
   public async Task ExpiredPersistedAccessRefreshesBeforeMcpUse()
   {
     var handler = new DeferredGrantHandler();
@@ -144,6 +172,10 @@ public sealed class MemberMcpTokenManagerTests
   {
     public MemberMcpOAuthTokens? Current { get; set; }
     public int SaveCount { get; private set; }
+    public int ClearCount { get; private set; }
+    public bool DeferClear { get; init; }
+    public TaskCompletionSource ClearEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource ReleaseClear { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource SaveEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource ReleaseSave { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -157,10 +189,12 @@ public sealed class MemberMcpTokenManagerTests
       SaveCount++;
     }
 
-    public Task ClearAsync(MemberMcpOAuthTokenScope scope)
+    public async Task ClearAsync(MemberMcpOAuthTokenScope scope)
     {
+      ClearCount++;
+      ClearEntered.TrySetResult();
+      if (DeferClear) await ReleaseClear.Task;
       Current = null;
-      return Task.CompletedTask;
     }
   }
 

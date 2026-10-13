@@ -29,6 +29,10 @@ public sealed class MemberMcpOAuthRequestTests
         query["code_challenge"]);
     Assert.Equal("code-1", pending.CodeFromCallback(new Uri(
         $"{callback}?code=code-1&state={pending.State}&iss=https%3A%2F%2Fexample.test")));
+    Assert.Equal("space code", pending.CodeFromCallback(new Uri(
+        $"{callback}?code=space+code&state={pending.State}&iss=https%3A%2F%2Fexample.test")));
+    Assert.Equal("literal+plus", pending.CodeFromCallback(new Uri(
+        $"{callback}?code=literal%2Bplus&state={pending.State}&iss=https%3A%2F%2Fexample.test")));
     Assert.Throws<InvalidDataException>(() => pending.CodeFromCallback(new Uri(
         $"{callback}?code=code-1&state=wrong&iss=https%3A%2F%2Fexample.test")));
     Assert.Throws<InvalidDataException>(() => pending.CodeFromCallback(new Uri(

@@ -11,6 +11,7 @@ public sealed partial class MemberMcpTokenManager(
   private readonly MemberMcpOAuthTokenScope scope = tokenClient.ScopeFor(accountId);
   private Task<MemberMcpOAuthTokens>? refreshTask;
   private Task<MemberMcpOAuthTokens>? redeemTask;
+  private Task? clearTask;
   private MemberMcpOAuthTokens? latestRefreshedTokens;
   private bool signedOut;
   private bool clearing;
@@ -79,26 +80,37 @@ public sealed partial class MemberMcpTokenManager(
     }
   }
 
-  [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification = "Invalid-token cleanup must settle even if an older token operation failed.")]
-  public async Task ClearAsync()
+  public Task ClearAsync()
   {
-    Task<MemberMcpOAuthTokens>? refreshing;
-    Task<MemberMcpOAuthTokens>? redeeming;
     lock (gate)
     {
       if (signedOut) throw new McpUnauthorizedException();
+      if (clearTask is not null) return clearTask;
       clearing = true;
-      refreshing = refreshTask;
-      redeeming = redeemTask;
+      var pending = ClearCoreAsync(refreshTask, redeemTask);
+      clearTask = pending;
+      _ = pending.ContinueWith(completed =>
+      {
+        _ = completed.Exception;
+        lock (gate)
+        {
+          if (!ReferenceEquals(clearTask, completed)) return;
+          clearTask = null;
+          clearing = false;
+        }
+      }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+      return pending;
     }
+  }
+
+  [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification = "Invalid-token cleanup must settle even if an older token operation failed.")]
+  private async Task ClearCoreAsync(
+      Task<MemberMcpOAuthTokens>? refreshing, Task<MemberMcpOAuthTokens>? redeeming)
+  {
     if (refreshing is not null) { try { await refreshing.ConfigureAwait(false); } catch (Exception) { } }
     if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
-    try
-    {
-      await store.ClearAsync(scope).ConfigureAwait(false);
-      lock (gate) { latestRefreshedTokens = null; }
-    }
-    finally { lock (gate) { clearing = false; } }
+    await store.ClearAsync(scope).ConfigureAwait(false);
+    lock (gate) { latestRefreshedTokens = null; }
   }
 
   private void ObserveCompletion(Task<MemberMcpOAuthTokens> task, bool refresh) =>

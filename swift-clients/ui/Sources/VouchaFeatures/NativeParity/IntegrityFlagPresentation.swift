@@ -112,7 +112,7 @@ private func integrityPreciseNumber(_ value: String, locale: Locale) -> String {
     let parts = value.trimmingPrefix(negative ? "-" : "").split(separator: ".", maxSplits: 1)
     guard let whole = parts.first else { return value }
     let primary = max(formatter.groupingSize, 1)
-    let secondary = max(formatter.secondaryGroupingSize, primary)
+    let secondary = formatter.secondaryGroupingSize > 0 ? formatter.secondaryGroupingSize : primary
     var digits = Array(whole)
     var groups: [String] = []
     var width = primary
