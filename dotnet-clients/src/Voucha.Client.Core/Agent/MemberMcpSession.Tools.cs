@@ -36,9 +36,14 @@ public sealed partial class MemberMcpSession
       accountId == snapshot.AccountId && generation == snapshot.Revision &&
       sessionStore.Current.Identity?.Id == snapshot.AccountId;
 
+  public Task<McpToolResult> CallToolAsync(
+      MemberMcpConnectedSnapshot snapshot, string name, JsonElement arguments,
+      CancellationToken cancellationToken = default) =>
+      CallToolAsync(snapshot, name, arguments, null, cancellationToken);
+
   public async Task<McpToolResult> CallToolAsync(
       MemberMcpConnectedSnapshot snapshot, string name, JsonElement arguments,
-      CancellationToken cancellationToken = default)
+      Action? onAdmitted, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(snapshot);
     ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -55,6 +60,8 @@ public sealed partial class MemberMcpSession
         sessionToken = activeCancellation!.Token;
       }
       using var linked = CancellationTokenSource.CreateLinkedTokenSource(wait.Token, sessionToken);
+      linked.Token.ThrowIfCancellationRequested();
+      onAdmitted?.Invoke();
       McpToolResult result;
       try { result = await connection.CallToolAsync(name, arguments, linked.Token).ConfigureAwait(false); }
       catch (McpUnauthorizedException)

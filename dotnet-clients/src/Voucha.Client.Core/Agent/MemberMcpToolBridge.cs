@@ -43,14 +43,20 @@ public sealed class MemberMcpToolBridge
     Tools = projected;
   }
 
+  public Task<string> ExecuteAsync(
+      string name, string rawArguments, MemberMcpSession session,
+      MemberMcpConnectedSnapshot snapshot, CancellationToken cancellationToken = default) =>
+      ExecuteAsync(name, rawArguments, session, snapshot, null, cancellationToken);
+
   public async Task<string> ExecuteAsync(
       string name, string rawArguments, MemberMcpSession session,
-      MemberMcpConnectedSnapshot snapshot, CancellationToken cancellationToken = default)
+      MemberMcpConnectedSnapshot snapshot, Action? onAdmitted,
+      CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(session);
     ArgumentNullException.ThrowIfNull(snapshot);
     var arguments = ValidatedArguments(name, rawArguments);
-    var result = await session.CallToolAsync(snapshot, name, arguments, cancellationToken)
+    var result = await session.CallToolAsync(snapshot, name, arguments, onAdmitted, cancellationToken)
         .ConfigureAwait(false);
     var envelope = JsonSerializer.Serialize(new
     {

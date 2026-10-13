@@ -114,7 +114,8 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
             bridge.Validate(name, arguments);
             return Task.CompletedTask;
           },
-          (name, arguments, token) => bridge.ExecuteAsync(name, arguments, session, snapshot, token),
+          (name, arguments, token, admitted) =>
+              bridge.ExecuteAsync(name, arguments, session, snapshot, admitted, token),
           cancellationToken).ConfigureAwait(false);
     }
     else

@@ -231,6 +231,51 @@ public sealed class OpenAICompatibleMcpToolLoopTests
     }
   }
 
+  [Fact]
+  public async Task CancellationAfterAsyncValidationNeverAdmitsAToolCall()
+  {
+    using var handler = new RepliesHandler("""{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    using var cancellation = new CancellationTokenSource();
+    var validating = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var admitted = false;
+    var action = client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true,
+        async (_, _, _) => { validating.SetResult(); await release.Task; },
+        (_, _, _, onAdmitted) =>
+        {
+          onAdmitted();
+          admitted = true;
+          return Task.FromResult(Wrapped);
+        }, cancellation.Token);
+    await validating.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    cancellation.Cancel();
+    release.SetResult();
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => action);
+    Assert.False(admitted);
+    Assert.Single(handler.Bodies);
+  }
+
+  [Fact]
+  public async Task CanceledSessionAdmissionDoesNotClaimPossibleSideEffect()
+  {
+    using var handler = new RepliesHandler("""{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+        client.GenerateAssistantContentWithToolsAsync(
+            "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())],
+            () => true, null,
+            (_, _, _, _) => throw new OperationCanceledException("Canceled before session RPC admission."),
+            TestContext.Current.CancellationToken));
+
+    Assert.Single(handler.Bodies);
+  }
+
   private static LocalLLMEndpointProfile Profile() =>
       new(Guid.NewGuid(), "Test", true, "http://127.0.0.1:11434/v1", ["model"], "model");
 
