@@ -23,9 +23,15 @@ public partial class ChatConversationPage : ContentPage
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
-    this.sessionStore = sessionStore;
-    memberId = sessionStore?.Current.Identity?.Id;
-    sessionChangedHandler = OnSessionChanged;
+    if (sessionStore is not null)
+    {
+      memberSession = new ChatConversationMemberSession(sessionStore, viewModel, action =>
+      {
+        if (Dispatcher.IsDispatchRequired) Dispatcher.Dispatch(action);
+        else action();
+      });
+      memberSession.MemberChanged += OnMemberChanged;
+    }
     InitializeComponent();
     BindingContext = viewModel;
     if (mcpSession is not null) McpControlsHost.Content = new ChatMemberMcpControlsView(mcpSession);
@@ -50,8 +56,7 @@ public partial class ChatConversationPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    AttachMemberSession();
-    RefreshMemberContext();
+    memberSession?.Attach();
     try
     {
       await LoadConversationAsync().ConfigureAwait(true);

@@ -179,7 +179,7 @@ public sealed partial class ChatConversationViewModel
           }
           if (userMessageInserted) RemoveLocalMessage(localUserMessageId);
         }
-        ErrorMessage = ex.Message;
+        ErrorMessage = PresentSendError(ex, selectedLocalProvider is IMcpLocalChatProvider);
         State = LoadState.Error;
       }
 
