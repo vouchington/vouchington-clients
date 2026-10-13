@@ -37,6 +37,32 @@ final class NativeChatProviderSelectionPersistenceTests: XCTestCase {
         XCTAssertEqual(viewModel.titleProviderSelection, .appleFoundationModels)
     }
 
+    func testFailedSelectionPersistenceDoesNotReplaceAnActiveTurnProvider() async {
+        let recorder = ProviderSelectionRecorder()
+        let viewModel = NativeChatViewModel(
+            client: nil,
+            routeMatch: nil,
+            titleProviderResolver: FailingProviderSelectionResolver(recorder: recorder)
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.selectTitleProvider(.androidAICore)
+        await recorder.waitForFirstPersistenceStart()
+        viewModel.pendingLocalTurn = .init(
+            context: .init(
+                conversationId: "conversation-1", text: "Hello", userMessageId: "user-1",
+                assistantMessageId: "assistant-1", createdConversation: false,
+                providerSelection: .androidAICore
+            ),
+            response: .init(content: "Reply", modelProvider: "android_aicore", modelName: nil)
+        )
+        viewModel.isSendingDraft = true
+        await recorder.releaseFirstPersistence()
+        await viewModel.titleProviderPersistenceTask?.value
+
+        XCTAssertEqual(viewModel.titleProviderSelection, .androidAICore)
+        XCTAssertEqual(viewModel.pendingLocalTurn?.context.userMessageId, "user-1")
+    }
+
     func testSelectingAndroidAICorePersistsItsPersistedIDThroughTheResolver() async {
         let recorder = ProviderSelectionRecorder()
         let viewModel = NativeChatViewModel(
@@ -92,6 +118,12 @@ private struct RecordingProviderSelectionResolver: NativeChatTitleProviderResolv
 }
 
 private struct FailingProviderSelectionResolver: NativeChatTitleProviderResolving {
+    let recorder: ProviderSelectionRecorder?
+
+    init(recorder: ProviderSelectionRecorder? = nil) {
+        self.recorder = recorder
+    }
+
     func defaultSelection() -> NativeChatTitleProviderKind {
         .appleFoundationModels
     }
@@ -100,8 +132,9 @@ private struct FailingProviderSelectionResolver: NativeChatTitleProviderResolvin
         NativeChatUnavailableTitleProvider(id: kind.id)
     }
 
-    func persistSelection(_: NativeChatTitleProviderKind) async -> Bool {
-        false
+    func persistSelection(_ kind: NativeChatTitleProviderKind) async -> Bool {
+        if let recorder { await recorder.persist(kind) }
+        return false
     }
 }
 

@@ -5,6 +5,53 @@ import XCTest
 
 @MainActor
 final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCase {
+    func testTitleGenerationDoesNotHoldTheNextSend() async throws {
+        let path = "/api/v1/conversations/conversation-3/client-generated-chat"
+        CannedFeedURLProtocol.handlers["/api/v1/conversations"] = (NativeChatTestFixtures.createdConversationData, 201)
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        let titleHold = HeldTitleGeneration()
+        let provider = MutableRetryDraftProvider()
+        provider.titleHold = titleHold
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider)
+        )
+        viewModel.draftMessage = "Hello"
+
+        await viewModel.sendDraftMessage()
+        await titleHold.waitForStart()
+        XCTAssertFalse(viewModel.isSendingDraft)
+        viewModel.draftMessage = "Next message"
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(provider.generationCount, 2)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 2)
+        await titleHold.release()
+    }
+
+    func testReloadContainingBothPendingIdsClearsTheRetry() throws {
+        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil)
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.pendingLocalTurn = .init(
+            context: .init(
+                conversationId: "conversation-1", text: "Hello", userMessageId: "pending-user",
+                assistantMessageId: "pending-assistant", createdConversation: false
+            ),
+            response: .init(content: "Reply", modelProvider: "apple_foundation", modelName: nil)
+        )
+        viewModel.activeConversationDetailLoadRevision = 1
+        let response = try NativeChatTestFixtures.decode(ChatMessagesResponse.self, """
+        {"results":[
+          {"id":"pending-user","conversation_id":"conversation-1","created_at":"2026-01-01T00:00:00Z","created_by_id":"user-1","updated_at":"2026-01-01T00:00:00Z","updated_by_id":null,"deleted_at":null,"deleted_by_id":null,"content":{"role":"user","content":"Hello","error":null}},
+          {"id":"pending-assistant","conversation_id":"conversation-1","created_at":"2026-01-01T00:00:01Z","created_by_id":"user-1","updated_at":"2026-01-01T00:00:01Z","updated_by_id":null,"deleted_at":null,"deleted_by_id":null,"content":{"role":"assistant","content":"Reply","error":null}}
+        ],"page_info":{"has_next_page":false,"start_cursor":"pending-user","end_cursor":null}}
+        """)
+
+        viewModel.applyConversationDetailResponse(response, id: "conversation-1", revision: 1)
+
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.messages.map(\.id), ["pending-user", "pending-assistant"])
+    }
+
     func testChangedModelStartsNewTurnButUnavailableProviderCanRetryPersistence() async throws {
         let path = "/api/v1/conversations/conversation-1/client-generated-chat"
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
@@ -157,6 +204,7 @@ private func payload(_ request: CannedFeedURLProtocol.CapturedRequest) throws ->
 private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
     var model = "model-a"
     var available = true
+    var titleHold: HeldTitleGeneration?
     private(set) var generationCount = 0
 
     var status: NativeChatTitleProviderStatus {
@@ -176,7 +224,31 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     }
 
     func generateTitle(from _: [NativeChatTimelineMessage]) async throws -> String? {
-        nil
+        if let titleHold { await titleHold.waitUntilReleased() }
+        return nil
+    }
+}
+
+private actor HeldTitleGeneration {
+    private var started = false
+    private var startWaiter: CheckedContinuation<Void, Never>?
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    func waitUntilReleased() async {
+        started = true
+        startWaiter?.resume()
+        startWaiter = nil
+        await withCheckedContinuation { releaseWaiter = $0 }
+    }
+
+    func waitForStart() async {
+        if started { return }
+        await withCheckedContinuation { startWaiter = $0 }
+    }
+
+    func release() {
+        releaseWaiter?.resume()
+        releaseWaiter = nil
     }
 }
 
