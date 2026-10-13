@@ -133,6 +133,9 @@ internal static partial class MemberMcpInputSchema
         inClass = true;
       }
       else if (character == ']') inClass = false;
+      if (character == '(' && !inClass && index + 1 < pattern.Length && pattern[index + 1] == '?' &&
+          (index + 2 >= pattern.Length || pattern[index + 2] != ':'))
+        throw new ArgumentException("Unsupported MCP group extension.", nameof(pattern));
       if (character == '$' && !inClass)
       {
         result.Append(@"\z");

@@ -107,6 +107,7 @@ public sealed class MemberMcpInputSchemaTests
     using var nonWhitespace = JsonDocument.Parse("""{"type":"string","pattern":"^\\S+$"}""");
     using var whitespace = JsonDocument.Parse("""{"type":"string","pattern":"^\\s$"}""");
     using var dot = JsonDocument.Parse("""{"type":"string","pattern":"^.$"}""");
+    using var nonCapturingGroup = JsonDocument.Parse("""{"type":"string","pattern":"^(?:a|b)$"}""");
 
     Assert.True(Accepts("\"123\"", digits));
     Assert.False(Accepts("\"١٢٣\"", digits));
@@ -115,12 +116,14 @@ public sealed class MemberMcpInputSchemaTests
     Assert.False(Accepts("\"\\u00A0\"", nonWhitespace));
     Assert.True(Accepts("\"\\u00A0\"", whitespace));
     Assert.False(Accepts("\"\\u2028\"", dot));
+    Assert.True(Accepts("\"a\"", nonCapturingGroup));
   }
 
   [Fact]
   public void UnsupportedEcmaBoundaryAndClassEscapesFailCatalogAdmission()
   {
-    foreach (var pattern in new[] { "\\bword\\b", "[\\d]", "[a-[b]]", "\\A", "\\Z", "\\x1", "\\u123" })
+    foreach (var pattern in new[] { "\\bword\\b", "[\\d]", "[a-[b]]", "\\A", "\\Z", "\\x1", "\\u123",
+                 "(?i)^admin$", "(?x)admin", "(?#comment)admin" })
     {
       using var schema = JsonDocument.Parse(JsonSerializer.Serialize(new { type = "string", pattern }));
       Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(schema.RootElement));
