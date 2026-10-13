@@ -110,12 +110,12 @@ internal static partial class MemberMcpInputSchema
 
   private static bool CheckNumber(JsonElement value, JsonElement schema)
   {
-    if (!schema.TryGetProperty("minimum", out var minimum) &&
-        !schema.TryGetProperty("maximum", out _)) return true;
     if (!Number(value, out var number)) return false;
-    if (schema.TryGetProperty("minimum", out minimum) && Number(minimum, out var lower) && number < lower)
+    if (schema.TryGetProperty("minimum", out var minimum) &&
+        (!Number(minimum, out var lower) || number < lower))
       return false;
-    if (schema.TryGetProperty("maximum", out var maximum) && Number(maximum, out var upper) && number > upper)
+    if (schema.TryGetProperty("maximum", out var maximum) &&
+        (!Number(maximum, out var upper) || number > upper))
       return false;
     return true;
   }

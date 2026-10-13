@@ -26,6 +26,10 @@ public sealed partial class ChatViewModelProviderTests
 
     Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
     Assert.Equal(1, provider.Generations);
+    viewModel.Reset();
+    Assert.False(viewModel.PossibleToolSideEffect);
+    Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+    Assert.Equal(2, provider.Generations);
     viewModel.NotifyDraftEdited("Different request");
     Assert.False(viewModel.PossibleToolSideEffect);
   }
@@ -101,6 +105,7 @@ public sealed partial class ChatViewModelProviderTests
     var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
 
     Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+    provider.Status = provider.Status with { ModelName = "replacement-model" };
     viewModel.SelectedProviderStatus = provider.Status with
     {
       ModelProvider = "other-local",
@@ -429,7 +434,7 @@ public sealed partial class ChatViewModelProviderTests
     public int Generations { get; private set; }
     public Exception? Failure { get; set; }
     public Action? AfterGeneration { get; set; }
-    public ChatProviderStatus Status { get; } = new(
+    public ChatProviderStatus Status { get; set; } = new(
         ChatProviderKind.Local, "Windows local", true, "Windows system language model",
         "windows_foundry", "windows-system-language-model");
     public string Id => Status.ModelProvider!;

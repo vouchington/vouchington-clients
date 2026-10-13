@@ -42,7 +42,10 @@ public sealed partial class ChatConversationViewModel
     if (pending is not null &&
         pending.ConversationId == conversationId &&
         pending.Body.Message == text &&
-        SameProviderIdentity(pending.Provider, provider) &&
+        (pending.McpSnapshot is not null
+            ? pending.Provider.Kind == provider.Kind &&
+              pending.Provider.ModelProvider == provider.ModelProvider
+            : SameProviderIdentity(pending.Provider, provider)) &&
         (pending.McpSnapshot is null || localProvider is IMcpLocalChatProvider mcp &&
             mcp.MatchesAccount(pending.McpSnapshot.AccountId)))
     {

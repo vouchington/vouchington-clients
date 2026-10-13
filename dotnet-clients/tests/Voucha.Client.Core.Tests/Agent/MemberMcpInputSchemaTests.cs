@@ -54,6 +54,27 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void DecimalUnderflowCannotSatisfyIntegerConstOrZeroMaximum()
+  {
+    using var integer = JsonDocument.Parse("""{"type":"integer"}""");
+    using var number = JsonDocument.Parse("""{"type":"number"}""");
+    using var constant = JsonDocument.Parse("""{"const":0}""");
+    using var maximum = JsonDocument.Parse("""{"maximum":0}""");
+    using var underflowedMaximum = JsonDocument.Parse("""{"maximum":1e-100}""");
+
+    Assert.False(Accepts("1e-100", integer));
+    Assert.False(Accepts("1e-100", number));
+    Assert.False(Accepts("1e-100", constant));
+    Assert.False(Accepts("1e-100", maximum));
+    Assert.Throws<InvalidDataException>(() => Accepts("1", underflowedMaximum));
+    Assert.False(Accepts("1.00000000000000000000000000001", integer));
+    Assert.False(Accepts("0.00000000000000000000000000001", maximum));
+    Assert.True(Accepts("0e-100", integer));
+    Assert.True(Accepts("0", constant));
+    Assert.True(Accepts("0", maximum));
+  }
+
+  [Fact]
   public void AdditionalPropertiesDefaultsToAllowedButExplicitFalseRejectsThem()
   {
     using var defaultSchema = JsonDocument.Parse("""{"type":"object","properties":{"id":{"type":"string"}}}""");

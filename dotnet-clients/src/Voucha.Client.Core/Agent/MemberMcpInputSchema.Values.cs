@@ -10,7 +10,49 @@ internal static partial class MemberMcpInputSchema
   {
     number = 0;
     return value.ValueKind == JsonValueKind.Number &&
-        decimal.TryParse(value.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+        decimal.TryParse(value.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture, out number) &&
+        SameExactDecimal(value.GetRawText(), number);
+  }
+
+  // Decimal.TryParse can silently round or underflow; constrained MCP numbers must compare exactly.
+  private static bool SameExactDecimal(string raw, decimal number) =>
+      CanonicalNumber(raw, out var rawSign, out var rawDigits, out var rawExponent) &&
+      CanonicalNumber(number.ToString("G29", CultureInfo.InvariantCulture),
+          out var parsedSign, out var parsedDigits, out var parsedExponent) &&
+      rawSign == parsedSign && rawDigits == parsedDigits && rawExponent == parsedExponent;
+
+  private static bool CanonicalNumber(
+      string raw, out bool negative, out string digits, out long exponent)
+  {
+    negative = raw.StartsWith('-');
+    if (negative) raw = raw[1..];
+    exponent = 0;
+    var exponentIndex = raw.IndexOfAny(['e', 'E']);
+    if (exponentIndex >= 0)
+    {
+      if (!long.TryParse(raw.AsSpan(exponentIndex + 1), NumberStyles.AllowLeadingSign,
+              CultureInfo.InvariantCulture, out exponent))
+      {
+        digits = string.Empty;
+        return false;
+      }
+      raw = raw[..exponentIndex];
+    }
+    var decimalIndex = raw.IndexOf('.', StringComparison.Ordinal);
+    var fractionalDigits = decimalIndex < 0 ? 0 : raw.Length - decimalIndex - 1;
+    digits = raw.Replace(".", string.Empty, StringComparison.Ordinal).TrimStart('0');
+    if (digits.Length == 0)
+    {
+      negative = false;
+      exponent = 0;
+      digits = "0";
+      return true;
+    }
+    var trailingZeros = digits.Length - digits.TrimEnd('0').Length;
+    digits = digits.TrimEnd('0');
+    try { exponent = checked(exponent - fractionalDigits + trailingZeros); }
+    catch (OverflowException) { return false; }
+    return true;
   }
 
   private static bool Count(JsonElement value, out int count)
