@@ -12,12 +12,17 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | Portable Swift core + `test-support`                                                                 | `ubuntu-latest`  | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
 | Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `macos-latest`   | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
 | Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, Skip host tools                                                    |
+| iOS Simulator app compile                                                                            | `macos-latest`   | Generated Xcode project and iOS Simulator SDK                                      |
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
 | .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
+
+The iOS app compile uses a generic iOS Simulator destination on `macos-latest`. It validates the
+generated app target against the hosted Xcode and Simulator SDK without launching a simulator or
+running the UI launch-smoke target; it is required by the native workflow `Tests` fan-in.
 
 ## Required dual-OS
 

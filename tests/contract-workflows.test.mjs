@@ -165,6 +165,7 @@ describe('native contract workflow boundary', () => {
       'swift-patch-coverage:',
       'build-android-core:',
       'build-macos-app:',
+      'build-ios-app:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
     assert.match(
@@ -211,7 +212,6 @@ describe('native contract workflow boundary', () => {
       /test "\$\("\$xcodegen_bin" --version\)" = "Version: \$\{XCODEGEN_VERSION\}"/u,
     )
     assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u)
-    assert.match(workflow, /#6705[\s\S]*iOS[\s\S]*Simulator destination/u)
     assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u)
     assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
