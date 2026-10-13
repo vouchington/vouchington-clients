@@ -99,7 +99,9 @@ public sealed class SettingsCredentialsRenderedControlsTests
     revoke.SetException(new VouchaApiException(System.Net.HttpStatusCode.Forbidden, "{}"));
     await failureNotice.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal("grant-1", Assert.Single(model.OAuthGrants).Id);
-    Assert.NotNull(model.OAuthGrantNotice);
+    Assert.Equal(
+        UiLocalization.English.Localize(UiMessageKey.NativeCredentialsRevokeFailed),
+        model.OAuthGrantNotice);
 
     fake.RevokeTask = Task.CompletedTask;
     var grantsChanged = When(model, nameof(model.OAuthGrants), () => model.OAuthGrants.Count == 0);
