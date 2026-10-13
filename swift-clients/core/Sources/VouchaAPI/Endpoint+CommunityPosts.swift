@@ -24,31 +24,28 @@ public extension Endpoint {
         recaptchaToken: String? = nil,
         idempotencyKey: String
     ) -> Endpoint {
-        Endpoint(
-            .POST,
+        createPostEndpoint(
             path: "/api/v1/communities/\(Endpoint.pathSegment(communityIdOrSlug))/posts",
-            headers: ["Idempotency-Key": idempotencyKey],
-            body: CreatePostBody(
-                postType: postType,
-                title: title,
-                markdown: markdown,
-                slug: slug,
-                broadcast: broadcast,
-                privacy: privacy,
-                isAnonymous: isAnonymous,
-                url: url,
-                urlId: urlId,
-                rootId: rootId,
-                parentId: parentId,
-                reviewTopicRatings: reviewTopicRatings,
-                categories: categories,
-                images: images,
-                dataPointVertical: dataPointVertical,
-                structuredData: structuredData,
-                declaredLanguage: declaredLanguage,
-                cfTurnstileResponse: turnstileToken,
-                recaptchaToken: recaptchaToken
-            )
+            postType: postType,
+            title: title,
+            markdown: markdown,
+            slug: slug,
+            broadcast: broadcast,
+            privacy: privacy,
+            isAnonymous: isAnonymous,
+            url: url,
+            urlId: urlId,
+            rootId: rootId,
+            parentId: parentId,
+            reviewTopicRatings: reviewTopicRatings,
+            categories: categories,
+            images: images,
+            dataPointVertical: dataPointVertical,
+            structuredData: structuredData,
+            declaredLanguage: declaredLanguage,
+            turnstileToken: turnstileToken,
+            recaptchaToken: recaptchaToken,
+            idempotencyKey: idempotencyKey
         )
     }
 }

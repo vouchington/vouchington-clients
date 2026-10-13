@@ -87,8 +87,9 @@ struct CreatePostBody: Encodable {
     let recaptchaToken: String?
 }
 
-public extension Endpoint {
-    static func createPost(
+extension Endpoint {
+    static func createPostEndpoint(
+        path: String,
         postType: PostType,
         title: String,
         markdown: String,
@@ -112,7 +113,7 @@ public extension Endpoint {
     ) -> Endpoint {
         Endpoint(
             .POST,
-            path: "/api/v1/posts",
+            path: path,
             headers: ["Idempotency-Key": idempotencyKey],
             body: CreatePostBody(
                 postType: postType,
@@ -135,6 +136,55 @@ public extension Endpoint {
                 cfTurnstileResponse: turnstileToken,
                 recaptchaToken: recaptchaToken
             )
+        )
+    }
+}
+
+public extension Endpoint {
+    static func createPost(
+        postType: PostType,
+        title: String,
+        markdown: String,
+        slug: String? = nil,
+        broadcast: BroadcastScope = .everyone,
+        privacy: PostPrivacy = .public,
+        isAnonymous: Bool = false,
+        url: String? = nil,
+        urlId: String? = nil,
+        rootId: String? = nil,
+        parentId: String? = nil,
+        reviewTopicRatings: [CreatePostReviewTopicRatingInput]? = nil,
+        categories: [PostCategoryInput]? = nil,
+        images: [CreatePostImageInput]? = nil,
+        dataPointVertical: DataPointVertical? = nil,
+        structuredData: CreatePostJSONValue? = nil,
+        declaredLanguage: String? = nil,
+        turnstileToken: String? = nil,
+        recaptchaToken: String? = nil,
+        idempotencyKey: String
+    ) -> Endpoint {
+        createPostEndpoint(
+            path: "/api/v1/posts",
+            postType: postType,
+            title: title,
+            markdown: markdown,
+            slug: slug,
+            broadcast: broadcast,
+            privacy: privacy,
+            isAnonymous: isAnonymous,
+            url: url,
+            urlId: urlId,
+            rootId: rootId,
+            parentId: parentId,
+            reviewTopicRatings: reviewTopicRatings,
+            categories: categories,
+            images: images,
+            dataPointVertical: dataPointVertical,
+            structuredData: structuredData,
+            declaredLanguage: declaredLanguage,
+            turnstileToken: turnstileToken,
+            recaptchaToken: recaptchaToken,
+            idempotencyKey: idempotencyKey
         )
     }
 

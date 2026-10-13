@@ -140,6 +140,73 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
         XCTAssertEqual((body["review_topic_ratings"] as? [[String: Any]])?.first?["rating"] as? Int, 4)
     }
 
+    func testCommunityPostCreationEncodesTheSameBodyAsPostCreation() throws {
+        let structured = CreatePostJSONValue.string("payload")
+        let categories = [PostCategoryInput.topic(topicId: "topic-1")]
+        let images = [CreatePostImageInput(imageId: "image-1", orderIndex: 2, caption: "Hero")]
+        let ratings = [CreatePostReviewTopicRatingInput(topicId: "topic-1", rating: 5)]
+        let create = Endpoint.createPost(
+            postType: .dataPoint,
+            title: "Shared title",
+            markdown: "Shared body",
+            slug: "shared-slug",
+            broadcast: .followers,
+            privacy: .private,
+            isAnonymous: true,
+            url: "https://example.com/shared",
+            urlId: "url-1",
+            rootId: "root-1",
+            parentId: "parent-1",
+            reviewTopicRatings: ratings,
+            categories: categories,
+            images: images,
+            dataPointVertical: .creditCard,
+            structuredData: structured,
+            declaredLanguage: "en",
+            turnstileToken: "turnstile-token",
+            recaptchaToken: "recaptcha-token",
+            idempotencyKey: "00000000-0000-4000-8000-000000000011"
+        )
+        let community = Endpoint.createCommunityPost(
+            communityIdOrSlug: "native community",
+            postType: .dataPoint,
+            title: "Shared title",
+            markdown: "Shared body",
+            slug: "shared-slug",
+            broadcast: .followers,
+            privacy: .private,
+            isAnonymous: true,
+            url: "https://example.com/shared",
+            urlId: "url-1",
+            rootId: "root-1",
+            parentId: "parent-1",
+            reviewTopicRatings: ratings,
+            categories: categories,
+            images: images,
+            dataPointVertical: .creditCard,
+            structuredData: structured,
+            declaredLanguage: "en",
+            turnstileToken: "turnstile-token",
+            recaptchaToken: "recaptcha-token",
+            idempotencyKey: "00000000-0000-4000-8000-000000000012"
+        )
+
+        XCTAssertEqual(create.method, .POST)
+        XCTAssertEqual(community.method, .POST)
+        XCTAssertEqual(create.path, "/api/v1/posts")
+        XCTAssertEqual(community.path, "/api/v1/communities/native%20community/posts")
+        XCTAssertEqual(create.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000011")
+        XCTAssertEqual(community.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000012")
+        XCTAssertEqual(
+            try canonicalJSON(from: XCTUnwrap(create.body)),
+            try canonicalJSON(from: XCTUnwrap(community.body))
+        )
+        let body = try encodedJSONObject(from: XCTUnwrap(community.body))
+        XCTAssertEqual(body["structured_data"] as? String, "payload")
+        XCTAssertEqual(body["declared_language"] as? String, "en")
+        XCTAssertEqual(body["recaptcha_token"] as? String, "recaptcha-token")
+    }
+
     func testPostCategoriesEncodeOnCreateCommunityCreateAndUpdateBodies() throws {
         let hashtag = try XCTUnwrap(PostCategoryInput(hashtag: " #Me.Too__2026 "))
         let categories: [PostCategoryInput] = [
@@ -178,9 +245,21 @@ final class EndpointPostAndPasskeyCoverageTests: XCTestCase {
     }
 
     private func encodedJSONObject(from body: any Encodable) throws -> [String: Any] {
+        let data = try encodedJSONData(from: body)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func canonicalJSON(from body: any Encodable) throws -> String {
+        let data = try encodedJSONData(from: body, sortedKeys: true)
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
+
+    private func encodedJSONData(from body: any Encodable, sortedKeys: Bool = false) throws -> Data {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(body)
-        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        if sortedKeys {
+            encoder.outputFormatting = [.sortedKeys]
+        }
+        return try encoder.encode(body)
     }
 }
