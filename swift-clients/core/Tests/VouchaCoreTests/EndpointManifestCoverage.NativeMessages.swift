@@ -48,7 +48,7 @@ extension EndpointManifestCoverage {
             )
         },
         ManifestRegisteredEndpoint(id: "native.messages.user-search.default") {
-            Endpoint.myMessageUserSearch(query: "bo", limit: 10)
+            Endpoint.searchUsers(query: "bo", limit: 10)
         },
         ManifestRegisteredEndpoint(id: "native.memberships.plans.default") {
             Endpoint.membershipPlans

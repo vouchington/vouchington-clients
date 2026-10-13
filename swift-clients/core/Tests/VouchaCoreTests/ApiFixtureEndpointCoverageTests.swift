@@ -397,7 +397,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 conversationId: messageConversationId,
                 policy: .ownerOnly
             ),
-            "native.messages.user-search.default": Endpoint.myMessageUserSearch(query: "bo", limit: 10),
+            "native.messages.user-search.default": Endpoint.searchUsers(query: "bo", limit: 10),
             "native.memberships.plans.default": Endpoint.membershipPlans,
             "native.memberships.grant.default": Endpoint.grantMembership(
                 userId: "00000000-0000-7000-8000-000000000003",
