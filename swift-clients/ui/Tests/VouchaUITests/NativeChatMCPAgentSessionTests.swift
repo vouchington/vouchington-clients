@@ -69,6 +69,46 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         XCTAssertEqual(service.disconnectedAccounts, ["member-a"])
     }
 
+    func testFailedRefreshInvalidatesCatalog() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([])]))
+        try await connect.value
+
+        service.failRefresh = true
+        do {
+            try await session.refreshTools()
+            XCTFail("Expected catalog refresh to fail")
+        } catch SuspendedMCPService.Failure.refreshFailed {}
+
+        XCTAssertEqual(session.status, .failed)
+        XCTAssertNil(session.toolCatalog)
+        XCTAssertEqual(service.refreshedAccounts, ["member-a"])
+    }
+
+    func testFailedDisconnectKeepsCatalogInvalidated() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([])]))
+        try await connect.value
+
+        service.failDisconnect = true
+        do {
+            try await session.disconnect()
+            XCTFail("Expected grant cleanup to fail")
+        } catch SuspendedMCPService.Failure.disconnectFailed {}
+
+        XCTAssertEqual(session.status, .failed)
+        XCTAssertNil(session.toolCatalog)
+        XCTAssertEqual(service.disconnectedAccounts, ["member-a"])
+    }
+
     func testChatControlsRenderAuthorizationAndConnectedActions() async throws {
         let service = SuspendedMCPService()
         let session = NativeChatMCPAgentSession(service: service)
@@ -94,12 +134,15 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
 
 @MainActor
 private final class SuspendedMCPService: NativeChatMCPServicing {
+    enum Failure: Error { case refreshFailed, disconnectFailed }
     private var pendingConnect: CheckedContinuation<DecodedJSONValue, Error>?
     private var started: CheckedContinuation<Void, Never>?
     private var hasStarted = false
     private(set) var connectedAccounts: [String] = []
     private(set) var refreshedAccounts: [String] = []
     private(set) var disconnectedAccounts: [String] = []
+    var failRefresh = false
+    var failDisconnect = false
 
     func connect(accountId: String) async throws -> DecodedJSONValue {
         connectedAccounts.append(accountId)
@@ -121,10 +164,12 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
 
     func refreshTools(accountId: String) async throws -> DecodedJSONValue {
         refreshedAccounts.append(accountId)
+        if failRefresh { throw Failure.refreshFailed }
         return .object(["tools": .array([.string("refreshed")])])
     }
 
     func disconnect(accountId: String) async throws {
         disconnectedAccounts.append(accountId)
+        if failDisconnect { throw Failure.disconnectFailed }
     }
 }
