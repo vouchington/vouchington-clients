@@ -1,16 +1,26 @@
 using Voucha.Client.Core.Lists;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.App.Pages;
 
 public sealed class ListsPageBinding : BindableObject
 {
   private readonly ListsViewModel viewModel;
+  private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
+  private bool isSessionChangedAttached;
   private string cachedSelectedListDescription;
   private string cachedSelectedListName;
 
-  public ListsPageBinding(ListsViewModel viewModel)
+  public ListsPageBinding(ListsViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel;
+    this.sessionStore = sessionStore;
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() =>
+    {
+      OnPropertyChanged(nameof(Lists));
+      OnPropertyChanged(nameof(SelectedList));
+    });
     cachedSelectedListDescription = viewModel.SelectedListDescription;
     cachedSelectedListName = viewModel.SelectedListName;
     viewModel.PropertyChanged += (_, e) =>
@@ -88,7 +98,27 @@ public sealed class ListsPageBinding : BindableObject
     OnPropertyChanged(nameof(SelectedListDescription));
   }
 
-  public IReadOnlyList<ListSummaryRow> Lists => viewModel.Lists;
+  public void AttachSessionChanged()
+  {
+    if (isSessionChangedAttached) return;
+    sessionStore.SessionChanged += sessionChangedHandler;
+    isSessionChangedAttached = true;
+  }
+
+  public void DetachSessionChanged()
+  {
+    if (!isSessionChangedAttached) return;
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    isSessionChangedAttached = false;
+  }
+
+  private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
+
+  public IReadOnlyList<ListSummaryRow> Lists => viewModel.Lists.Select(row => row with
+  {
+    IsStaffViewer = IsStaffViewer,
+  }).ToArray();
 
   public IReadOnlyList<ListItemRow> Items => viewModel.Items;
 
@@ -124,7 +154,9 @@ public sealed class ListsPageBinding : BindableObject
     }
   }
 
-  public ListSummaryRow? SelectedList => viewModel.SelectedList;
+  public ListSummaryRow? SelectedList => viewModel.SelectedList is { } row
+      ? row with { IsStaffViewer = IsStaffViewer }
+      : null;
 
   public string? ErrorMessage => viewModel.ErrorMessage;
 

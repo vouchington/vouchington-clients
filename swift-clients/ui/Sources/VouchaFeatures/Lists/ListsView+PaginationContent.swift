@@ -9,7 +9,10 @@ extension ListsView {
                 Button {
                     Task { await viewModel.selectList(list) }
                 } label: {
-                    ListsSummaryRow(list: list, isSelected: viewModel.selectedList?.id == list.id)
+                    ListsSummaryRow(
+                        list: list, isSelected: viewModel.selectedList?.id == list.id,
+                        isStaffViewer: isStaffViewer
+                    )
                 }
                 .buttonStyle(.plain)
             }

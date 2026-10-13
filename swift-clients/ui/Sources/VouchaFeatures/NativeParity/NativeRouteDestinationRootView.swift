@@ -118,7 +118,10 @@ public struct NativeRouteDestinationView: View {
                       let client {
                 ImportExportView(route: route, client: client)
             } else if entry.destinationIdentifier == .lists {
-                ListsRouteSurface(client: client, isSignedIn: isSignedIn, showSignIn: showSignIn)
+                ListsRouteSurface(
+                    client: client, isSignedIn: isSignedIn,
+                    isStaffViewer: isAdministrator || isSiteModerator, showSignIn: showSignIn
+                )
             } else {
                 NativeRouteDestinationSurface(
                     entry: entry,

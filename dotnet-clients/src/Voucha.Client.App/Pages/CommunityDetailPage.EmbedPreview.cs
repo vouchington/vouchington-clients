@@ -16,6 +16,9 @@ public sealed partial class CommunityDetailPage
         title.FlowDirection = direction == "RightToLeft" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
       content.Add(title);
       content.Add(new Label { Text = row.PostType, FontSize = 12 });
+      var staffChannel = row.StaffChannelLabel(sessionStore.Current.Identity?.Roles?.Any(role =>
+          role is "administrator" or "moderator") == true);
+      if (staffChannel is not null) content.Add(new Label { Text = staffChannel, FontSize = 12 });
       if (row.EmbedPreview is { } preview)
       {
         if (preview.ThumbnailUrl is { } thumbnail) content.Add(new Image { HeightRequest = 160, Aspect = Aspect.AspectFit, Source = thumbnail });

@@ -132,7 +132,12 @@ private extension PostCard {
 
     private var postFooter: some View {
         HStack(spacing: Spacing.md) {
-            ProvenanceBadge(provenance: post.provenance)
+            ProvenanceBadge(
+                provenance: post.provenance,
+                staffProvenance: post.staffProvenance,
+                isStaffViewer: isStaffViewer,
+                showClient: variant == .expanded
+            )
             voteControls
             relationControls
             commentCount

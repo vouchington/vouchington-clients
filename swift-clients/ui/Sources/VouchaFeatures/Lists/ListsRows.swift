@@ -8,11 +8,16 @@ struct ListsSummaryRow: View {
     var nativeUiLocale
     let list: UserList
     let isSelected: Bool
+    var isStaffViewer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(list.name).font(Typography.headline)
-            ProvenanceBadge(provenance: list.provenance)
+            ProvenanceBadge(
+                provenance: list.provenance,
+                staffProvenance: list.staffProvenance,
+                isStaffViewer: isStaffViewer
+            )
             Text(list.description
                 ?? UiMessages.string(list.visibility.titleKey, locale: nativeUiLocale))
                 .font(Typography.body)

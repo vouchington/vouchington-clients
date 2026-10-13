@@ -31,6 +31,7 @@ public sealed record PostRow(
     bool HasAuthoredTitle = false,
     AccountType? AuthorAccountType = null,
     PublicContentProvenance? Provenance = null,
+    StaffContentProvenance? StaffProvenance = null,
     string? ViewerId = null,
     bool IsStaffViewer = false,
     string? ClearanceStatus = null,
@@ -55,6 +56,9 @@ public sealed record PostRow(
   public bool HasProvenance => Provenance is not null;
 
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, L);
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, L);
+  public bool HasStaffChannel => StaffChannelLabel is not null;
 
   public PostContentPresentation ContentPresentation =>
       PostContentPolicy.For(ClearanceStatus, CreatedById, ViewerId, IsStaffViewer);
@@ -151,6 +155,7 @@ public static class PostRows
         HasAuthoredTitle: Normalize(post.Title) is not null,
         AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType,
         Provenance: post.Provenance,
+        StaffProvenance: post.StaffProvenance,
         ClearanceStatus: post.ClearanceStatus,
         ClearanceReason: post.ClearanceReason);
   }

@@ -25,6 +25,7 @@ public struct RssFeedSource: Codable, Identifiable, Sendable {
     public var hostname: SourceHostname?
     public let topic: RssFeedTopic?
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
     @RequiredNullable
     public var publisherType: TopicReference?
     @RequiredNullable
@@ -45,7 +46,7 @@ public struct RssFeedSource: Codable, Identifiable, Sendable {
         case hostname
         case topic
         case publisherType
-        case provenance
+        case provenance, staffProvenance
         case podcastShow
     }
 
@@ -126,7 +127,8 @@ public struct RssFeedSource: Codable, Identifiable, Sendable {
         topic: RssFeedTopic?,
         publisherType: TopicReference?,
         podcastShow: PodcastShowInfo?,
-        provenance: PublicContentProvenance? = nil
+        provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil
     ) {
         self.entityType = entityType
         self.id = id
@@ -142,6 +144,7 @@ public struct RssFeedSource: Codable, Identifiable, Sendable {
         self.hostname = hostname
         self.topic = topic
         self.provenance = provenance
+        self.staffProvenance = staffProvenance
         self.publisherType = publisherType
         self.podcastShow = podcastShow
     }

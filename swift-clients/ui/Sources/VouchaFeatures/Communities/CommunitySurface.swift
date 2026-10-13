@@ -35,7 +35,10 @@ struct CommunitySurface: View {
     var body: some View {
         switch mode {
         case .browse:
-            CommunityBrowseSurface(viewModel: CommunityBrowseViewModel(client: client))
+            CommunityBrowseSurface(
+                viewModel: CommunityBrowseViewModel(client: client),
+                isStaffViewer: isAdministrator || isSiteModerator
+            )
         case .create:
             if isSignedIn {
                 CommunityCreateSurface(

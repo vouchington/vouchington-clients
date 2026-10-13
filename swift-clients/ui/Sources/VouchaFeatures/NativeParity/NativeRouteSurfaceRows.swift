@@ -39,6 +39,8 @@ struct NativeRowsSurface: View {
     let state: LoadState
     let retry: (@Sendable () async -> Void)?
     var onNavigate: ((String) -> Void)?
+    var isStaffViewer = false
+    var showStaffClient = false
 
     var body: some View {
         switch state {
@@ -70,11 +72,15 @@ struct NativeRowsSurface: View {
                     ForEach(rows) { row in
                         if let targetPath = row.targetPath, let onNavigate {
                             Button { onNavigate(targetPath) } label: {
-                                NativeSurfaceRow(row: row)
+                                NativeSurfaceRow(
+                                    row: row, isStaffViewer: isStaffViewer, showStaffClient: showStaffClient
+                                )
                             }
                             .buttonStyle(.plain)
                         } else {
-                            NativeSurfaceRow(row: row)
+                            NativeSurfaceRow(
+                                row: row, isStaffViewer: isStaffViewer, showStaffClient: showStaffClient
+                            )
                         }
                     }
                 }

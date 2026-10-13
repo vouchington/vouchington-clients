@@ -11,6 +11,10 @@ internal static partial class ApiFixtureCoverage
         ["entity-provenance.topics"] = VouchaApiEndpoints.SearchTopics("test"),
         ["entity-provenance.lists"] = VouchaApiEndpoints.Lists(),
         ["entity-provenance.rss-feeds"] = VouchaApiEndpoints.AllRssFeeds(),
+        ["entity-provenance.communities.staff"] = VouchaApiEndpoints.SearchCommunities("test", limit: 20),
+        ["entity-provenance.topics.staff"] = VouchaApiEndpoints.SearchTopics("test"),
+        ["entity-provenance.lists.staff"] = VouchaApiEndpoints.Lists(),
+        ["entity-provenance.rss-feeds.staff"] = VouchaApiEndpoints.AllRssFeeds(),
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(
@@ -254,6 +258,11 @@ internal static partial class ApiFixtureCoverage
         ["native.users.vouch-context.default"] = VouchaApiEndpoints.UserTrustContext("user-abc"),
         ["native.users.profile.posts.all"] = VouchaApiEndpoints.AllPosts(new FetchPostsRequest(
             PostTypes: "review,discussion,comment",
+            Creator: "user-abc",
+            Sort: "new",
+            Limit: 25)),
+        ["native.users.profile.posts.staff-provenance"] = VouchaApiEndpoints.AllPosts(new FetchPostsRequest(
+            PostTypes: "discussion,review",
             Creator: "user-abc",
             Sort: "new",
             Limit: 25)),

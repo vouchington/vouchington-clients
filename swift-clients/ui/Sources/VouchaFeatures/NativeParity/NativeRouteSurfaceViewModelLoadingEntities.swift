@@ -66,7 +66,8 @@ extension NativeRouteSurfaceViewModel {
                 topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response),
                 declaredLanguage: authoredTitle?.declaredLanguage,
                 detectedLanguage: authoredTitle?.detectedLanguage,
-                provenance: entity.provenance
+                provenance: entity.provenance,
+                staffProvenance: entity.staffProvenance
             )
         }
     }
@@ -118,7 +119,8 @@ extension NativeRouteSurfaceViewModel {
                 "tag",
                 .verbatim(entity.displayTitle(fallback: routeEntityId)),
                 .verbatim(entity.displayDetail),
-                provenance: entity.provenance
+                provenance: entity.provenance,
+                staffProvenance: entity.staffProvenance
             ),
             row("chevron.up.chevron.down", appText(.nativeSwiftRouteSurfaceVote), voteDetail),
             row("doc.text", countText(0, item: "post"), appText(.nativeSwiftRouteSurfaceTopicPostsAvailable)),

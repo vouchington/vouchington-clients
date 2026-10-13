@@ -153,7 +153,8 @@ public sealed record RssFeedSource(
     [property: JsonPropertyName("publisher_type")] Topic? PublisherType = null,
     [property: JsonPropertyName("podcast_show")] object? PodcastShow = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
-    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null,
+    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null);
 
 public sealed record RssFeedsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<RssFeedSource> Results,

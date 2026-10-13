@@ -35,6 +35,7 @@ public struct Post: Codable, Identifiable, Sendable {
     public let createdById: String?
     public let createdAt: Date
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
     public let broadcast: BroadcastScope?
     public let privacy: PostPrivacy
     public let isAnonymous: Bool
@@ -89,15 +90,13 @@ public struct Post: Codable, Identifiable, Sendable {
         case entityType = "__entityType"
         case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
         case parentId = "parentPostId", rootId = "rootPostId"
-        case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
-        case provenance
+        case createdById, createdAt, broadcast, privacy, isAnonymous, communityId, provenance, staffProvenance
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
         case metrics, election, createdBy, updatedAt, deletedAt, deletedById
         case lockedAt, lockedById, canEditContent, canDelete, canLock
         case aiSummaryMarkdown, archivedAt, archivedById, clearanceReason
         case clearanceUpdatedAt, spamDetectionCreatedAt, spamDetectionFlagged
-        case spamDetectionResults, spamDetectionScore, updatedById
-        case postExplicitCategories, postHashtags
+        case spamDetectionResults, spamDetectionScore, updatedById, postExplicitCategories, postHashtags
     }
 }
 
@@ -116,6 +115,7 @@ extension Post {
         createdById: String?,
         createdAt: Date,
         provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil,
         broadcast: BroadcastScope?,
         privacy: PostPrivacy,
         isAnonymous: Bool,
@@ -149,6 +149,7 @@ extension Post {
         self.createdById = createdById
         self.createdAt = createdAt
         self.provenance = provenance
+        self.staffProvenance = staffProvenance
         self.broadcast = broadcast
         self.privacy = privacy
         self.isAnonymous = isAnonymous
@@ -187,7 +188,7 @@ extension Post {
         case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
         case parentId = "parentPostId", rootId = "rootPostId"
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
-        case provenance
+        case provenance, staffProvenance
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
         case metrics, election, createdBy, updatedAt, deletedAt, deletedById
         case lockedAt, lockedById, canEditContent, canDelete, canLock

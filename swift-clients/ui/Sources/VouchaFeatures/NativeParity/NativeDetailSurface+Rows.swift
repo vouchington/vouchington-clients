@@ -10,7 +10,9 @@ extension NativeDetailSurface {
                 rows: viewModel.rows,
                 state: viewModel.state,
                 retry: nativeRetryAction(for: viewModel),
-                onNavigate: onNavigate
+                onNavigate: onNavigate,
+                isStaffViewer: viewModel.isStaffViewer,
+                showStaffClient: true
             )
             if viewModel.rows.isEmpty, !viewModel.isLoading {
                 EmptyStateView(

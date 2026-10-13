@@ -8,6 +8,48 @@ import XCTest
 
 @MainActor
 final class EntityProvenanceSurfaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testStaffEntityFixturesRenderRawCardChannelOnlyForStaff() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/lists"] = (
+            ApiFixtureLoader.data("entity-provenance.lists.staff"), 200
+        )
+        let lists = try NativeRouteSurfaceViewModel(entry: entry(for: .lists), client: nil)
+        let listPage = try await lists.loadListsPreviewPage(client: makeClient(), after: nil)
+        try assertStaffCard(listPage.rows.map(\.row))
+
+        CannedFeedURLProtocol.handlers["/api/v1/topics"] = (
+            ApiFixtureLoader.data("entity-provenance.topics.staff"), 200
+        )
+        let topics = try NativeRouteSurfaceViewModel(entry: entry(for: .topicsBrowse), client: nil)
+        try await assertStaffCard(topics.loadEntityRows(for: .topicsBrowse, client: makeClient()))
+
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feeds"] = (
+            ApiFixtureLoader.data("entity-provenance.rss-feeds.staff"), 200
+        )
+        let sourceRoute = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/news-sources"))
+        let sources = NativeRouteSurfaceViewModel(
+            entry: sourceRoute.entry, client: nil, routeMatch: sourceRoute.match
+        )
+        try await assertStaffCard(sources.loadSourceRows(client: makeClient()))
+
+        CannedFeedURLProtocol.handlers["/api/v1/communities"] = (
+            ApiFixtureLoader.data("entity-provenance.communities.staff"), 200
+        )
+        let communities = try NativeRouteSurfaceViewModel(entry: entry(for: .communitiesBrowse), client: nil)
+        try await assertStaffCard(communities.loadDiscoveryRows(for: .communitiesBrowse, client: makeClient()))
+    }
+
+    private func assertStaffCard(_ rows: [NativeRouteDestinationRow]) throws {
+        let row = try XCTUnwrap(rows.first { $0.staffProvenance?.createdVia == "mcp" })
+        XCTAssertThrowsError(try NativeSurfaceRow(row: row).inspect().find(text: "Channel: mcp"))
+        XCTAssertNoThrow(try NativeSurfaceRow(row: row, isStaffViewer: true).inspect().find(text: "Channel: mcp"))
+        XCTAssertThrowsError(try NativeSurfaceRow(
+            row: row, isStaffViewer: true
+        ).inspect().find(text: "Client: Fixture Agent (voucha_fixture_agent)"))
+        XCTAssertNoThrow(try NativeSurfaceRow(
+            row: row, isStaffViewer: true, showStaffClient: true
+        ).inspect().find(text: "Client: Fixture Agent (voucha_fixture_agent)"))
+    }
+
     func testListCardsRenderOnlyServerProvidedPublicProvenance() throws {
         let cases: [(String, String?)] = [
             (#","provenance":{"via":"api","app":null}"#, "via API"),

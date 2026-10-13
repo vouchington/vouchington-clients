@@ -7,6 +7,8 @@ struct NativeSurfaceRow: View {
     @Environment(\.timeZone)
     private var timeZone
     let row: NativeRouteDestinationRow
+    var isStaffViewer = false
+    var showStaffClient = false
 
     var body: some View {
         if let externalURL = row.externalURL {
@@ -30,7 +32,12 @@ struct NativeSurfaceRow: View {
                     .font(Typography.headline)
                     .authoredContentLanguage(declared: row.declaredLanguage, detected: row.detectedLanguage)
                 AccountTypeBadge(accountType: row.accountType)
-                ProvenanceBadge(provenance: row.provenance)
+                ProvenanceBadge(
+                    provenance: row.provenance,
+                    staffProvenance: row.staffProvenance,
+                    isStaffViewer: isStaffViewer,
+                    showClient: showStaffClient
+                )
                 Text(row.localizedDetail(locale: locale, timeZone: timeZone))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)

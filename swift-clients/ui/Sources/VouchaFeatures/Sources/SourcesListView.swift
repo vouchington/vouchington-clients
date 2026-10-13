@@ -18,6 +18,7 @@ public struct SourcesListView: View {
     public let navigationTitle: String
     public let isSignedIn: Bool
     public let canVote: Bool
+    public let isStaffViewer: Bool
     public let showSignIn: (() -> Void)?
 
     public init(
@@ -26,6 +27,7 @@ public struct SourcesListView: View {
         navigationTitle: String,
         isSignedIn: Bool = true,
         canVote: Bool? = nil,
+        isStaffViewer: Bool = false,
         showSignIn: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
@@ -33,6 +35,7 @@ public struct SourcesListView: View {
         self.navigationTitle = navigationTitle
         self.isSignedIn = isSignedIn
         self.canVote = canVote ?? isSignedIn
+        self.isStaffViewer = isStaffViewer
         self.showSignIn = showSignIn
     }
 
@@ -91,6 +94,7 @@ public struct SourcesListView: View {
             ForEach(currentItems) { source in
                 RssFeedSourceCard(
                     source: source,
+                    isStaffViewer: isStaffViewer,
                     isFollowing: viewModel.isFollowing(sourceId: source.id),
                     isFollowingTopic: viewModel.isFollowingTopic(topicId: source.topic?.id),
                     isMutedSource: viewModel.isMuted(sourceId: source.id),

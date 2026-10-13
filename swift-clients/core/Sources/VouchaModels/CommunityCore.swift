@@ -42,6 +42,7 @@ public struct Community: Codable, Identifiable, Sendable {
     public var rulesMarkdown: String?
     public let owner: DecodedJSONValue?
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
 
     private enum CodingKeys: String, CodingKey {
         case entityType
@@ -72,6 +73,7 @@ public struct Community: Codable, Identifiable, Sendable {
         case rulesMarkdown
         case owner
         case provenance
+        case staffProvenance
     }
 
     public init(from decoder: any Decoder) throws {
@@ -115,6 +117,7 @@ public struct Community: Codable, Identifiable, Sendable {
         _rulesMarkdown = try container.decode(RequiredNullable<String>.self, forKey: .rulesMarkdown)
         owner = try container.decodeIfPresent(DecodedJSONValue.self, forKey: .owner)
         provenance = try container.decodeIfPresent(PublicContentProvenance.self, forKey: .provenance)
+        staffProvenance = try container.decodeIfPresent(StaffContentProvenance.self, forKey: .staffProvenance)
     }
 }
 
@@ -168,6 +171,7 @@ extension Community {
             }
             object["provenance"] = .object(facts)
         }
+        if let staffProvenance { object["staff_provenance"] = staffProvenance.rawValue }
         try raw.encode(object)
     }
 

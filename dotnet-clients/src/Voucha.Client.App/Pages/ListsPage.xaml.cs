@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Lists;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.App.Pages;
 
@@ -7,11 +8,11 @@ public partial class ListsPage : ContentPage
 {
   private readonly ListsViewModel viewModel;
 
-  public ListsPage(ListsViewModel viewModel)
+  public ListsPage(ListsViewModel viewModel, ISessionStore sessionStore)
   {
     InitializeComponent();
     this.viewModel = viewModel;
-    BindingContext = new ListsPageBinding(viewModel);
+    BindingContext = new ListsPageBinding(viewModel, sessionStore);
     ListsPaginationControl.LoadNextPageRequested += OnLoadMoreListsRequested;
     ItemsPaginationControl.LoadNextPageRequested += OnLoadMoreItemsRequested;
   }
@@ -19,7 +20,14 @@ public partial class ListsPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    ((ListsPageBinding)BindingContext).AttachSessionChanged();
     await viewModel.LoadAsync();
+  }
+
+  protected override void OnDisappearing()
+  {
+    ((ListsPageBinding)BindingContext).DetachSessionChanged();
+    base.OnDisappearing();
   }
 
   private async void OnCreateClicked(object? sender, EventArgs e)

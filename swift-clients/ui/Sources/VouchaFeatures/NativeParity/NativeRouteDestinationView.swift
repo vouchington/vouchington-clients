@@ -88,6 +88,7 @@ struct NativeRouteDestinationSurface: View {
         }
         .onChange(of: isSignedIn) { _, _ in rebuildViewModels() }
         .onChange(of: isAdministrator) { _, _ in rebuildViewModels() }
+        .onChange(of: isSiteModerator) { _, _ in rebuildViewModels() }
         .onReceive(NotificationCenter.default.publisher(for: .vouchaMembershipEntitlementDidChange)) { _ in
             Task { await viewModel.reloadAfterMembershipEntitlementChange() }
         }
@@ -157,7 +158,8 @@ extension NativeRouteDestinationSurface {
                 client: resolvedClient,
                 routeMatch: routeMatch,
                 routeQuery: routeQuery,
-                isAdministrator: isAdministrator
+                isAdministrator: isAdministrator,
+                isSiteModerator: isSiteModerator
             )
         )
         _reviewQueueViewModel = State(

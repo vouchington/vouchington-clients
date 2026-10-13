@@ -43,12 +43,16 @@ public sealed record CommunityPostRow(
     UrlEmbedPreview? EmbedPreview = null,
     string? DeclaredLanguage = null,
     string? DetectedLanguage = null,
-    bool HasAuthoredTitle = false)
+    bool HasAuthoredTitle = false,
+    StaffContentProvenance? StaffProvenance = null)
 {
   public string PostType => Localization.Resolve(PostTypeText);
 
   public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(DeclaredLanguage, DetectedLanguage);
   public string? TitleFlowDirection => HasAuthoredTitle ? ContentLanguage.Direction?.ToString() : null;
+
+  public string? StaffChannelLabel(bool isStaffViewer) =>
+      StaffProvenanceLabels.Channel(StaffProvenance, isStaffViewer, Localization);
 
   public static CommunityPostRow FromPost(
       Post post,
@@ -73,7 +77,8 @@ public sealed record CommunityPostRow(
         localization ?? UiLocalization.English,
         UrlEmbedPreviews.From(embed), Normalize(post.Title) is null ? null : post.DeclaredLanguage,
         Normalize(post.Title) is null ? null : post.LinguaRsDetectedLanguage,
-        HasAuthoredTitle: Normalize(post.Title) is not null);
+        HasAuthoredTitle: Normalize(post.Title) is not null,
+        StaffProvenance: post.StaffProvenance);
   }
 
   private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

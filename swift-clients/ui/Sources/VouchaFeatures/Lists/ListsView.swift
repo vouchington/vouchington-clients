@@ -9,6 +9,7 @@ public struct ListsView: View {
     var nativeUiLocale
     @Bindable
     public var viewModel: ListsViewModel
+    public let isStaffViewer: Bool
     @State
     private var showingCreate = false
     @State
@@ -18,8 +19,9 @@ public struct ListsView: View {
     @State
     private var confirmingDelete = false
 
-    public init(viewModel: ListsViewModel) {
+    public init(viewModel: ListsViewModel, isStaffViewer: Bool = false) {
         self.viewModel = viewModel
+        self.isStaffViewer = isStaffViewer
     }
 
     public var body: some View {
@@ -125,6 +127,7 @@ struct ListsRouteSurface: View {
     var nativeUiLocale
     let client: APIClient?
     let isSignedIn: Bool
+    var isStaffViewer = false
     let showSignIn: () -> Void
 
     var body: some View {
@@ -137,7 +140,7 @@ struct ListsRouteSurface: View {
                 action: showSignIn
             )
         } else if let client {
-            ListsRouteLoadedSurface(client: client)
+            ListsRouteLoadedSurface(client: client, isStaffViewer: isStaffViewer)
         }
     }
 }

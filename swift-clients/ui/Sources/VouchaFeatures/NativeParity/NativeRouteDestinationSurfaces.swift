@@ -42,7 +42,8 @@ struct NativeListSurface: View {
                     rows: viewModel.rows,
                     state: viewModel.state,
                     retry: nativeRetryAction(for: viewModel),
-                    onNavigate: onNavigateToTargetPath
+                    onNavigate: onNavigateToTargetPath,
+                    isStaffViewer: viewModel.isStaffViewer
                 )
                 if viewModel.destination == .moderationTransparency,
                    viewModel.moderationTransparencyRange == .all {

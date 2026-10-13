@@ -100,7 +100,11 @@ public sealed class NewsFeedsPageBinding : BindableObject
     isSessionChangedAttached = false;
   }
 
-  public IReadOnlyList<NewsFeedItem> Items => viewModel.Items;
+  public IReadOnlyList<NewsFeedItem> Items => viewModel.Items.Select(row => row with
+  {
+    IsStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
+        role is "administrator" or "moderator") == true,
+  }).ToArray();
 
   public string PageTitle => viewModel.PageTitle;
 
@@ -166,6 +170,7 @@ public sealed class NewsFeedsPageBinding : BindableObject
     OnPropertyChanged(nameof(CanClearVote));
     OnPropertyChanged(nameof(CanRelate));
     OnPropertyChanged(nameof(CanImportExport));
+    OnPropertyChanged(nameof(Items));
     try
     {
       await viewModel.ReloadAfterSessionChangedAsync(sessionStore.Current.IsAuthenticated).ConfigureAwait(true);

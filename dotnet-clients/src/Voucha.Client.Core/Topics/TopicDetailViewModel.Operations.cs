@@ -23,6 +23,7 @@ public sealed partial class TopicDetailViewModel
   {
     SetSourceDetailMode(isSourceDetail);
     SourceProvenance = null;
+    SourceStaffProvenance = null;
     State = LoadState.Loading;
     ErrorMessage = null;
     try
@@ -42,6 +43,7 @@ public sealed partial class TopicDetailViewModel
       ErrorMessage = ex is OperationCanceledException ? null : ex.Message;
       SetSourceDetailMode(false);
       SourceProvenance = null;
+      SourceStaffProvenance = null;
       Topic = null;
     }
   }
@@ -140,6 +142,7 @@ public sealed partial class TopicDetailViewModel
     var feed = feeds.Results.Count > 0 ? feeds.Results[0] : null;
     SourceRssFeedId = feed?.Id;
     SourceProvenance = feed?.Provenance;
+    SourceStaffProvenance = feed?.StaffProvenance;
     IsFollowingSource = feed is not null &&
         BookmarkSidecar.IsActive(feeds.Bookmarks, feed.Id, BookmarkPredicate.Follow);
     IsMutedSource = feed is not null &&

@@ -21,7 +21,8 @@ extension NativeRouteSurfaceViewModel {
                     "person.3",
                     rawText(community.displayTitle(fallback: "")),
                     rawText(community.displayDetail),
-                    provenance: community.provenance
+                    provenance: community.provenance,
+                    staffProvenance: community.staffProvenance
                 )
             }
         case .feedReferralLinks:

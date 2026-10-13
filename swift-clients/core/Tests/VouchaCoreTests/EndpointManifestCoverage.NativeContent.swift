@@ -88,6 +88,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.comments") {
             Endpoint.userPosts(userId: "user-abc", postTypes: "comment")
         },
+        ManifestRegisteredEndpoint(id: "native.users.profile.posts.staff-provenance") {
+            Endpoint.userPosts(userId: "user-abc", postTypes: "discussion,review")
+        },
         ManifestRegisteredEndpoint(id: "native.users.profile.topics-following.first-page") {
             Endpoint.userTopicsFollowing(userId: "user-abc")
         },

@@ -2,15 +2,26 @@ import SwiftUI
 import VouchaLocalization
 import VouchaModels
 
-/// Renders only the public facts the server chose to expose.
+/// Renders public facts, plus server-provided raw facts for the current staff viewer.
 public struct ProvenanceBadge: View {
     @Environment(\.locale)
     private var locale
 
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
+    public let isStaffViewer: Bool
+    public let showClient: Bool
 
-    public init(provenance: PublicContentProvenance?) {
+    public init(
+        provenance: PublicContentProvenance?,
+        staffProvenance: StaffContentProvenance? = nil,
+        isStaffViewer: Bool = false,
+        showClient: Bool = false
+    ) {
         self.provenance = provenance
+        self.staffProvenance = staffProvenance
+        self.isStaffViewer = isStaffViewer
+        self.showClient = showClient
     }
 
     public var body: some View {
@@ -19,6 +30,33 @@ public struct ProvenanceBadge: View {
                 .font(Typography.caption2)
                 .foregroundStyle(Colors.secondaryLabel)
                 .accessibilityIdentifier("content-provenance")
+        }
+        if isStaffViewer, let staffProvenance {
+            Text(verbatim: UiMessages.string(
+                .sharedProvenanceChannel,
+                parameters: ["channel": staffProvenance.createdVia],
+                locale: locale
+            ))
+            .font(Typography.caption2)
+            .foregroundStyle(Colors.secondaryLabel)
+            .accessibilityIdentifier("content-staff-provenance-channel")
+            if showClient, let client = staffProvenance.oauthClient {
+                Text(verbatim: UiMessages.string(
+                    .sharedProvenanceClient,
+                    parameters: ["name": client.clientName, "clientId": client.clientId],
+                    locale: locale
+                ))
+                .font(Typography.caption2)
+                .foregroundStyle(Colors.secondaryLabel)
+                .accessibilityIdentifier("content-staff-provenance-client")
+                Text(verbatim: UiMessages.string(
+                    client.verified ? .sharedProvenanceVerified : .sharedProvenanceUnverified,
+                    locale: locale
+                ))
+                .font(Typography.caption2)
+                .foregroundStyle(Colors.secondaryLabel)
+                .accessibilityIdentifier("content-staff-provenance-verification")
+            }
         }
     }
 

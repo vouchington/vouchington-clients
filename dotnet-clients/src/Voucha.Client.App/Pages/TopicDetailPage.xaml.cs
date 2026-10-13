@@ -9,6 +9,7 @@ public partial class TopicDetailPage : ContentPage
 {
   private readonly TopicDetailViewModel viewModel;
   private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly string topicIdOrSlug;
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly bool showSourceCrawls;
@@ -27,6 +28,7 @@ public partial class TopicDetailPage : ContentPage
     InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(RefreshViewerState);
     this.topicIdOrSlug = topicIdOrSlug;
     this.emailRecovery = emailRecovery ?? throw new ArgumentNullException(nameof(emailRecovery));
     this.showSourceCrawls = showSourceCrawls;
@@ -39,6 +41,8 @@ public partial class TopicDetailPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    sessionStore.SessionChanged += sessionChangedHandler;
+    RefreshViewerState();
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
@@ -50,6 +54,15 @@ public partial class TopicDetailPage : ContentPage
       System.Diagnostics.Debug.WriteLine(ex);
     }
   }
+
+  protected override void OnDisappearing()
+  {
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    base.OnDisappearing();
+  }
+
+  private void RefreshViewerState() => viewModel.IsStaffViewer =
+      sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true;
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)
   {

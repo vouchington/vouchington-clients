@@ -47,6 +47,8 @@ extension SectionDetailView {
                 ),
                 isSignedIn: factory.sessionManager.isSignedIn,
                 canVote: canCastPublicVotes,
+                isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
+                    factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn
             )
         }
@@ -81,6 +83,8 @@ extension SectionDetailView {
                 ),
                 isSignedIn: factory.sessionManager.isSignedIn,
                 canVote: canCastPublicVotes,
+                isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
+                    factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn
             )
         }
@@ -115,6 +119,8 @@ extension SectionDetailView {
                 ),
                 isSignedIn: factory.sessionManager.isSignedIn,
                 canVote: canCastPublicVotes,
+                isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
+                    factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn
             )
         }

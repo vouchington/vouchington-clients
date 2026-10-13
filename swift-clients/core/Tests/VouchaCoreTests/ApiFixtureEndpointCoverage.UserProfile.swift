@@ -11,6 +11,9 @@ let userProfileFixtureEndpointRegistry: [String: Endpoint] = [
     "native.users.profile.posts.reviews": Endpoint.userPosts(userId: "user-abc", postTypes: "review"),
     "native.users.profile.posts.discussions": Endpoint.userPosts(userId: "user-abc", postTypes: "discussion"),
     "native.users.profile.posts.comments": Endpoint.userPosts(userId: "user-abc", postTypes: "comment"),
+    "native.users.profile.posts.staff-provenance": Endpoint.userPosts(
+        userId: "user-abc", postTypes: "discussion,review"
+    ),
     "native.users.profile.topics-following.first-page": Endpoint.userTopicsFollowing(userId: "user-abc"),
     "native.users.profile.topics-following.next-page": Endpoint.userTopicsFollowing(
         userId: "user-abc",

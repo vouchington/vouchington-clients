@@ -13,7 +13,8 @@ extension NativeRouteSurfaceViewModel {
         detailDeclaredLanguage: String? = nil,
         detailDetectedLanguage: String? = nil,
         targetPath: String? = nil,
-        provenance: PublicContentProvenance? = nil
+        provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil
     ) -> NativeRouteDestinationRow {
         .init(
             icon: icon,
@@ -24,7 +25,8 @@ extension NativeRouteSurfaceViewModel {
             detailDeclaredLanguage: detailDeclaredLanguage,
             detailDetectedLanguage: detailDetectedLanguage,
             targetPath: targetPath,
-            provenance: provenance
+            provenance: provenance,
+            staffProvenance: staffProvenance
         )
     }
 

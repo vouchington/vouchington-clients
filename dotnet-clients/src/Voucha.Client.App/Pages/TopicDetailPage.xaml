@@ -13,6 +13,9 @@
         <VerticalStackLayout Padding="20" Spacing="14">
             <Label Text="{Binding Topic.Name}" Style="{StaticResource Headline}" />
             <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+            <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
+            <Label Text="{Binding StaffClientLabel}" IsVisible="{Binding HasStaffClient}" Style="{StaticResource Metadata}" />
+            <Label Text="{Binding StaffVerificationLabel}" IsVisible="{Binding HasStaffVerification}" Style="{StaticResource Metadata}" />
             <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
             <controls:NativeHtmlContentView Html="{Binding Topic.Html}" Fallback="{Binding Topic.Markdown}" />
             <HorizontalStackLayout Spacing="10">
