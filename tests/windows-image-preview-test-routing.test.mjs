@@ -9,6 +9,7 @@ import { shouldRunWindowsImagePreviewTests } from '../scripts/windows-image-prev
 describe('Windows image preview test routing', () => {
   it('selects production, test, lock, and runner policy changes', () => {
     for (const path of [
+      '.github/actions/prepare-native-contract/action.yml',
       'dotnet-clients/src/Voucha.Client.App/Support/LocalImagePreview.cs',
       'dotnet-clients/src/Voucha.Client.App/Support/WindowsLocalImagePreviewDecoder.cs',
       'dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/WindowsLocalImagePreviewDecoderTests.cs',

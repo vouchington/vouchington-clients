@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 
 const windowsImagePreviewPaths = [
+  '.github/actions/prepare-native-contract/action.yml',
   '.github/actions/setup-mise-toolchain/action.yml',
   '.github/workflows/native-contract-tests.yml',
   '.mise.toml',
