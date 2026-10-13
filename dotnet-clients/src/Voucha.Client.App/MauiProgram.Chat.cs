@@ -36,7 +36,11 @@ public static partial class MauiProgram
     services.AddSingleton<ILocalChatProvider>(services => new OpenAICompatibleLocalChatProvider(
         services.GetRequiredService<ILocalLLMConfigurationStore>(), services.GetRequiredService<ILocalLLMSecretStore>(),
         services.GetRequiredService<OpenAICompatibleResponsesClient>(), services.GetRequiredService<LocalLLMFeaturePolicy>(), Guid.Empty,
-        services.GetRequiredService<IUiLocalization>()));
+        services.GetRequiredService<IUiLocalization>()
+#if WINDOWS
+        , services.GetRequiredService<MemberMcpSession>()
+#endif
+        ));
     services.AddSingleton<IChatService, ApiChatService>();
     services.AddTransient<ChatListViewModel>();
     services.AddTransient<ChatConversationViewModel>();

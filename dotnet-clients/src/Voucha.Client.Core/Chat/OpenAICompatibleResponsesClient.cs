@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Voucha.Client.Core.Chat;
 
-public sealed class OpenAICompatibleResponsesClient : IDisposable
+public sealed partial class OpenAICompatibleResponsesClient : IDisposable
 {
   private readonly HttpClient httpClient;
 

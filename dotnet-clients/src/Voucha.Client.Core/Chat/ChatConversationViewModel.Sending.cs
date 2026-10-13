@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -62,7 +63,7 @@ public sealed partial class ChatConversationViewModel
     }
 
     var conversationId = ConversationId;
-    var retry = RetryableTurn(conversationId, trimmed, selectedProvider);
+    var retry = RetryableTurn(conversationId, trimmed, selectedProvider, selectedLocalProvider);
     if (retry is null && !selectedProvider.IsAvailable)
     {
       ErrorMessage = selectedProvider.StatusText;
@@ -156,7 +157,9 @@ public sealed partial class ChatConversationViewModel
 
       return false;
     }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
+    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or
+        InvalidDataException or McpUnauthorizedException or McpRateLimitException or McpRpcException or
+        System.Text.Json.JsonException)
     {
       if (currentRequest == Volatile.Read(ref requestId))
       {

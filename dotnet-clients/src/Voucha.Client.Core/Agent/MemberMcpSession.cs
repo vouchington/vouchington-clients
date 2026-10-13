@@ -104,6 +104,7 @@ public sealed partial class MemberMcpSession : IDisposable
         created = null;
         Tools = tools;
         Status = MemberMcpSessionStatus.Connected;
+        generation++;
       }
       Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -175,6 +176,7 @@ public sealed partial class MemberMcpSession : IDisposable
       {
         if (generation != revision || !ReferenceEquals(active, connection)) return;
         Tools = tools;
+        generation++;
       }
       Changed?.Invoke(this, EventArgs.Empty);
     }

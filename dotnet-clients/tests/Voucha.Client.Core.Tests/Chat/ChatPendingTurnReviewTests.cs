@@ -1,5 +1,7 @@
 using System.Net.Http;
+using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Chat;
 using Xunit;
 
@@ -7,6 +9,32 @@ namespace Voucha.Client.Core.Tests.Chat;
 
 public sealed partial class ChatViewModelProviderTests
 {
+  [Fact]
+  public async Task AccountChangeBeforePersistenceRetryRegeneratesInsteadOfReusingMcpResponse()
+  {
+    var bodies = new List<CreateClientGeneratedChatBody>();
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
+      {
+        bodies.Add(body);
+        return Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+      },
+    };
+    var provider = new TestMcpLocalChatProvider();
+    var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    provider.UseAccount("account-b");
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+
+    Assert.Equal(2, provider.Generations);
+    Assert.Equal(2, bodies.Count);
+    Assert.NotEqual(bodies[0].UserMessageId, bodies[1].UserMessageId);
+    Assert.Equal("Reply from account-a", bodies[0].AssistantContent);
+    Assert.Equal("Reply from account-b", bodies[1].AssistantContent);
+  }
+
   [Fact]
   public async Task StoppedPersistenceMustUnwindBeforeTheSameTurnCanRetry()
   {
@@ -221,5 +249,38 @@ public sealed partial class ChatViewModelProviderTests
 
     Assert.Equal(1, generations);
     Assert.Equal(bodies[0], bodies[1]);
+  }
+
+  private sealed class TestMcpLocalChatProvider : IMcpLocalChatProvider
+  {
+    private MemberMcpConnectedSnapshot snapshot = MakeSnapshot("account-a", 1);
+
+    public int Generations { get; private set; }
+    public ChatProviderStatus Status { get; } = new(
+        ChatProviderKind.Local, "Windows local", true, "Windows system language model",
+        "windows_foundry", "windows-system-language-model");
+    public string Id => Status.ModelProvider!;
+
+    public void UseAccount(string accountId) => snapshot = MakeSnapshot(accountId, snapshot.Revision + 1);
+    public MemberMcpConnectedSnapshot? ConnectedMcpSnapshot() => snapshot;
+    public bool IsCurrent(MemberMcpConnectedSnapshot candidate) =>
+        candidate.AccountId == snapshot.AccountId && candidate.Revision == snapshot.Revision;
+
+    public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
+        string message, IReadOnlyList<LocalLLMResponseInput> history,
+        CancellationToken cancellationToken = default) =>
+        GenerateAssistantContentAsync(message, history, snapshot, cancellationToken);
+
+    public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
+        string message, IReadOnlyList<LocalLLMResponseInput> history,
+        MemberMcpConnectedSnapshot? generationSnapshot, CancellationToken cancellationToken)
+    {
+      Generations++;
+      return Task.FromResult(new LocalChatGenerationResult(
+          $"Reply from {generationSnapshot?.AccountId}", Status.ModelProvider!, Status.ModelName));
+    }
+
+    private static MemberMcpConnectedSnapshot MakeSnapshot(string accountId, long revision) =>
+        new(accountId, revision, JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone(), CancellationToken.None);
   }
 }

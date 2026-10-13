@@ -274,6 +274,28 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task AccountSwitchCancelsHeldToolCallAndInvalidatesItsCatalogSnapshot()
+  {
+    var identity = new FakeSessionStore("account-a");
+    var factory = new FakeFactory { HoldToolCall = true };
+    using var session = new MemberMcpSession(identity, new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    using var arguments = JsonDocument.Parse("{}");
+
+    var call = session.CallToolAsync(snapshot, "read_profile", arguments.RootElement,
+        TestContext.Current.CancellationToken);
+    await factory.Connections[0].ToolEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    identity.SetAccount("account-b");
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call);
+    await session.WhenSettledAsync();
+    Assert.False(session.IsCurrent(snapshot));
+    Assert.Null(session.Tools);
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+  }
+
+  [Fact]
   public async Task DisposeCancelsHeldConnectAndSettlesCleanupBeforeReleasingOwnedState()
   {
     var store = new FakeStore();
@@ -442,18 +464,19 @@ public sealed partial class MemberMcpSessionTests
     public bool HoldConnect { get; set; }
     public bool HoldRefresh { get; set; }
     public bool FailConnect { get; set; }
+    public bool HoldToolCall { get; set; }
     public bool FailDisconnect { get; set; }
     public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
     {
       var hold = Connections.Count < disconnectHolds.Length ? disconnectHolds[Connections.Count] : null;
-      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, FailDisconnect);
+      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, HoldToolCall, FailDisconnect);
       Connections.Add(connection);
       return Task.FromResult<IMemberMcpSessionConnection>(connection);
     }
   }
 
   private sealed class FakeConnection(TaskCompletionSource? disconnectHold, bool holdConnect, bool holdRefresh,
-      bool failConnect, bool failDisconnect)
+      bool failConnect, bool holdToolCall, bool failDisconnect)
       : IMemberMcpSessionConnection
   {
     public bool FailRefresh { get; set; }
@@ -463,6 +486,7 @@ public sealed partial class MemberMcpSessionTests
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource RefreshEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource ReleaseRefresh { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource ToolEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
     {
       ConnectEntered.TrySetResult();
@@ -477,6 +501,13 @@ public sealed partial class MemberMcpSessionTests
       if (UnauthorizedRefresh) throw new McpUnauthorizedException();
       if (FailRefresh) throw new IOException("Tool discovery failed");
       return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
+    }
+    public async Task<McpToolResult> CallToolAsync(string name, JsonElement arguments,
+        CancellationToken cancellationToken)
+    {
+      ToolEntered.TrySetResult();
+      if (holdToolCall) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      return new(JsonDocument.Parse("[]").RootElement.Clone(), null, false);
     }
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {

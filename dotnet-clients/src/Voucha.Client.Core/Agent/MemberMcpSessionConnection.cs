@@ -64,6 +64,10 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
       MemberMcpToolCatalog.ListAllAsync(
           (cursor, token) => authorized.ListToolsAsync(cursor, token), cancellationToken);
 
+  public Task<McpToolResult> CallToolAsync(
+      string name, JsonElement arguments, CancellationToken cancellationToken) =>
+      authorized.CallToolAsync(name, arguments, cancellationToken);
+
   public async Task DisconnectAsync(CancellationToken cancellationToken)
   {
     if (disconnected) return;

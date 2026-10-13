@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Chat;
@@ -10,6 +11,7 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   private readonly OpenAICompatibleResponsesClient responsesClient;
   private readonly LocalLLMFeaturePolicy featurePolicy;
   private readonly IUiLocalization localization;
+  private readonly MemberMcpSession? mcpSession;
 #if WINDOWS
   private readonly IWindowsSystemLanguageModelRuntime windowsRuntime;
 #endif
@@ -19,10 +21,12 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
 #if WINDOWS
       , IWindowsSystemLanguageModelRuntime windowsRuntime
 #endif
+      , MemberMcpSession? mcpSession = null
       )
   {
     this.configurationStore = configurationStore; this.secretStore = secretStore; this.responsesClient = responsesClient;
     this.featurePolicy = featurePolicy; this.localization = localization;
+    this.mcpSession = mcpSession;
 #if WINDOWS
     this.windowsRuntime = windowsRuntime;
 #endif
@@ -74,5 +78,5 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   public void SaveSelectedProvider(string? providerId) => LocalLLMProviderSelection.Save(configurationStore, providerId);
 
   private OpenAICompatibleLocalChatProvider Create(LocalLLMEndpointProfile profile) =>
-      new(configurationStore, secretStore, responsesClient, featurePolicy, profile.Id, localization);
+      new(configurationStore, secretStore, responsesClient, featurePolicy, profile.Id, localization, mcpSession);
 }
