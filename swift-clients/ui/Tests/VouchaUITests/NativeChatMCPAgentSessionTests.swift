@@ -1,6 +1,7 @@
 import Foundation
 import ViewInspector
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -148,6 +149,14 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         await service.waitForRefresh()
         XCTAssertNil(session.connectedSnapshot(), "Old schema must not be captured during refresh")
         XCTAssertFalse(session.isCurrent(previous))
+        do {
+            _ = try await session.callTool(
+                name: "read_my_profile", arguments: [:],
+                accountId: previous.accountId, revision: previous.revision
+            )
+            XCTFail("Refresh must reject the stale call before service admission")
+        } catch LocalLLMToolLoopFailure.toolNotAdmitted {}
+        XCTAssertEqual(service.toolCalls, 0)
 
         service.finishRefresh(with: .object(["tools": .array([.string("new")])]))
         try await refresh.value
@@ -257,6 +266,7 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     private var pendingToolCall: CheckedContinuation<MemberMCPClient.ToolResult, Error>?
     private var toolCallStarted: CheckedContinuation<Void, Never>?
     private var hasToolCallStarted = false
+    private(set) var toolCalls = 0
     var toolCallCancellationExpectation: XCTestExpectation?
     private var pendingRefresh: CheckedContinuation<DecodedJSONValue, Error>?
     private var refreshStarted: CheckedContinuation<Void, Never>?
@@ -289,6 +299,7 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     func callTool(
         accountId _: String, name _: String, arguments _: [String: DecodedJSONValue]
     ) async throws -> MemberMCPClient.ToolResult {
+        toolCalls += 1
         hasToolCallStarted = true
         toolCallStarted?.resume()
         toolCallStarted = nil

@@ -19,9 +19,19 @@ extension NativeChatMCPInputSchema {
         }
         if let pattern = fields["pattern"] {
             guard case let .string(source) = pattern,
-                  (try? NSRegularExpression(pattern: source)) != nil else { throw Failure.unsupportedSchema }
+                  boundedPatternSources.contains(source) else { throw Failure.unsupportedSchema }
         }
     }
+
+    // These are the complete, structurally bounded pattern forms in the
+    // published member MCP catalog. Unknown regexes fail closed at admission;
+    // NSRegularExpression has no match-time budget for arbitrary patterns.
+    static let boundedPatternSources: Set<String> = [
+        #"\S"#,
+        #"^(0|[1-9][0-9]*)$"#,
+        #"^([01]\d|2[0-3]):[0-5]\d$"#,
+        #"^[a-z][a-z0-9_]{0,99}$"#
+    ]
 
     static func inspectKeyword(
         _ key: String, item: DecodedJSONValue, root: DecodedJSONValue, depth: Int

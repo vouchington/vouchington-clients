@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 import VouchaModels
 
 @MainActor
@@ -9,7 +10,9 @@ extension NativeChatMCPAgentSession {
         accountId expectedAccountId: String, revision expectedRevision: Int
     ) async throws -> MemberMCPClient.ToolResult {
         guard accountId == expectedAccountId, revision == expectedRevision,
-              status == .connected, toolCatalog != nil else { throw CancellationError() }
+              status == .connected, toolCatalog != nil else {
+            throw LocalLLMToolLoopFailure.toolNotAdmitted
+        }
         let id = UUID()
         let task = Task {
             try await service.callTool(accountId: expectedAccountId, name: name, arguments: arguments)

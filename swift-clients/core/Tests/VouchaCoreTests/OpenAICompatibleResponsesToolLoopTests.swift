@@ -412,7 +412,7 @@ private actor ToolLoopValidity {
     }
 }
 
-private actor ToolInvocationCounter {
+actor ToolInvocationCounter {
     private(set) var count = 0
 
     func record() {
@@ -420,7 +420,7 @@ private actor ToolInvocationCounter {
     }
 }
 
-private final class ToolLoopURLProtocol: URLProtocol {
+final class ToolLoopURLProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var pending: [Data] = []
     private static var captured: [Data] = []

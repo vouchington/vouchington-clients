@@ -224,12 +224,17 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         ))
     }
 
-    func testSchemaRejectsInvalidPatternAndFormatsBeforeToolCall() throws {
-        let pattern: DecodedJSONValue = .object([
-            "type": .string("string"), "pattern": .string("^[a-z]+$")
-        ])
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("letters"), schema: pattern))
-        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("letters2"), schema: pattern))
+    func testSchemaRejectsUnboundedPatternsAndInvalidFormatsBeforeToolCall() throws {
+        for source in ["^[a-z]+$", "^(a+)+$"] {
+            let catalog: DecodedJSONValue = .object(["tools": .array([.object([
+                "name": .string("read"), "inputSchema": .object([
+                    "type": .string("object"), "properties": .object([
+                        "text": .object(["type": .string("string"), "pattern": .string(source)])
+                    ])
+                ])
+            ])])])
+            XCTAssertThrowsError(try NativeChatMCPToolBridge(catalog: catalog))
+        }
 
         let uuid: DecodedJSONValue = .object([
             "type": .string("string"), "format": .string("uuid")
