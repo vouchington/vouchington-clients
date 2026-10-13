@@ -173,9 +173,11 @@ public extension NativeChatMCPAgentSession {
     /// Completes local grant removal while the app still knows which member is signing out.
     func prepareForSignOut(accountId signingOutAccountId: String) async throws {
         generation += 1
+        revision += 1
         let currentGeneration = generation
         operation?.cancel()
         operation = nil
+        cancelCalls()
         if let accountId { enqueueCleanup(accountId) }
         enqueueCleanup(signingOutAccountId)
         accountId = nil

@@ -1,5 +1,6 @@
 import Foundation
 import ViewInspector
+import VouchaAPI
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -17,6 +18,36 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         XCTAssertNil(session.accountId)
         XCTAssertNil(session.toolCatalog)
         XCTAssertEqual(session.status, .disconnected)
+    }
+
+    func testPrepareForSignOutCancelsInFlightToolCall() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([])]))
+        try await connect.value
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+
+        let cancelled = expectation(description: "In-flight member tool call cancelled")
+        service.toolCallCancellationExpectation = cancelled
+        let call = Task {
+            try await session.callTool(
+                name: "read_my_profile", arguments: [:],
+                accountId: snapshot.accountId, revision: snapshot.revision
+            )
+        }
+        await service.waitForToolCall()
+
+        try await session.prepareForSignOut(accountId: "member-a")
+        await fulfillment(of: [cancelled], timeout: 2)
+        XCTAssertFalse(session.isCurrent(snapshot))
+        try service.finishToolCall()
+        do {
+            _ = try await call.value
+            XCTFail("Former member tool call must not publish after sign-out")
+        } catch is CancellationError {}
     }
 
     func testAccountSwitchDiscardsDelayedToolsAndRevokesPreviousGrant() async throws {
@@ -195,6 +226,10 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     private var pendingConnect: CheckedContinuation<DecodedJSONValue, Error>?
     private var started: CheckedContinuation<Void, Never>?
     private var hasStarted = false
+    private var pendingToolCall: CheckedContinuation<MemberMCPClient.ToolResult, Error>?
+    private var toolCallStarted: CheckedContinuation<Void, Never>?
+    private var hasToolCallStarted = false
+    var toolCallCancellationExpectation: XCTestExpectation?
     private(set) var connectedAccounts: [String] = []
     private(set) var refreshedAccounts: [String] = []
     private(set) var disconnectedAccounts: [String] = []
@@ -217,6 +252,30 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     func finishConnect(with catalog: DecodedJSONValue) {
         pendingConnect?.resume(returning: catalog)
         pendingConnect = nil
+    }
+
+    func callTool(
+        accountId _: String, name _: String, arguments _: [String: DecodedJSONValue]
+    ) async throws -> MemberMCPClient.ToolResult {
+        hasToolCallStarted = true
+        toolCallStarted?.resume()
+        toolCallStarted = nil
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { pendingToolCall = $0 }
+        } onCancel: {
+            Task { @MainActor in self.toolCallCancellationExpectation?.fulfill() }
+        }
+    }
+
+    func waitForToolCall() async {
+        if hasToolCallStarted { return }
+        await withCheckedContinuation { toolCallStarted = $0 }
+    }
+
+    func finishToolCall() throws {
+        let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: Data(#"{"content":[]}"#.utf8))
+        pendingToolCall?.resume(returning: result)
+        pendingToolCall = nil
     }
 
     func refreshTools(accountId: String) async throws -> DecodedJSONValue {
