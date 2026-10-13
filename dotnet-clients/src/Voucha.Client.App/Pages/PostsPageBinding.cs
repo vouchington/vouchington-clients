@@ -69,12 +69,13 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
     isSessionChangedAttached = false;
   }
 
-  private async Task RefreshAfterSessionChangedAsync()
+  internal async Task RefreshAfterSessionChangedAsync()
   {
     OnPropertyChanged(nameof(CanVote));
     OnPropertyChanged(nameof(CanClearVote));
     OnPropertyChanged(nameof(CanRelate));
     OnPropertyChanged(nameof(CurrentUserId));
+    OnPropertyChanged(nameof(Items));
     OnPropertyChanged(nameof(CanCompose));
     try
     {

@@ -152,6 +152,48 @@ public sealed class AccountTypeAuthorRenderingTests
     Assert.True(embed.IsVisible);
   }
 
+  [Fact]
+  public async Task FeedSessionChangeHidesRejectedBodyBeforeHeldRefreshFinishes()
+  {
+    InstallPageResources();
+    var service = DispatchProxy.Create<IPostsService, FeedPostsProxy>();
+    ((FeedPostsProxy)(object)service).Response = new PostsFeedResponse(
+        [new EntityReference(null, null, "post", null, null, null, null, null, null, null, null)],
+        new PageInfo(null, false, null),
+        new Dictionary<string, Post>
+        {
+          ["post"] = Post(null) with { ClearanceStatus = "rejected" },
+        },
+        new Dictionary<string, User>(),
+        new Dictionary<string, Community>());
+    using var model = new PostsListViewModel(service);
+    await model.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
+    var session = new MutableSessionStore(new SessionSnapshot(new User(
+        "staff", "staff", Roles: ["moderator"])));
+    var heldRefresh = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var binding = new PostsPageBinding(model, session, () => heldRefresh.Task);
+    var page = new PostsPage { BindingContext = binding };
+    var collection = Named<CollectionView>(page, "authored-post-collection");
+    Assert.True(Assert.Single(binding.Items).ShowBodyContent);
+    var itemsChanged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    binding.PropertyChanged += (_, args) =>
+    {
+      if (args.PropertyName == nameof(binding.Items)) itemsChanged.TrySetResult();
+    };
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var refreshTask = binding.RefreshAfterSessionChangedAsync();
+    await itemsChanged.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+    Assert.False(heldRefresh.Task.IsCompleted);
+    var row = Assert.Single(Assert.IsAssignableFrom<IEnumerable>(collection.ItemsSource).Cast<PostRow>());
+    var card = Assert.IsAssignableFrom<View>(collection.ItemTemplate.CreateContent());
+    card.BindingContext = row;
+    Assert.False(Named<VisualElement>(card, "authored-post-body").IsVisible);
+    Assert.True(Named<Label>(card, "authored-post-notice").IsVisible);
+    heldRefresh.SetResult();
+    await refreshTask;
+  }
+
   private static readonly UrlEmbedPreview Preview = new("preview", null, null, null, null, null);
 
   private static PostRow RejectedRow(string viewer, bool staff) =>
@@ -195,6 +237,24 @@ public sealed class AccountTypeAuthorRenderingTests
   {
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
         throw new NotSupportedException(targetMethod?.Name);
+  }
+
+  public class FeedPostsProxy : DispatchProxy
+  {
+    public PostsFeedResponse Response { get; set; } = null!;
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+        targetMethod?.Name == nameof(IPostsService.FetchFeedAsync)
+            ? Task.FromResult(Response)
+            : throw new NotSupportedException(targetMethod?.Name);
+  }
+
+  private sealed class MutableSessionStore(SessionSnapshot initial) : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
+    public SessionSnapshot Current { get; private set; } = initial;
+    public void SetCurrent(SessionSnapshot next) => Current = next;
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>

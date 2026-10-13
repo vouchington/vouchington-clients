@@ -24,7 +24,7 @@ final class AuthoredPostCardTests: XCTestCase {
         XCTAssertNoThrow(try staff.inspect().find(text: "Private rejected body"))
     }
 
-    func testNormalTitledCompactPostStillHidesBodyAfterClearanceRecovery() throws {
+    func testApprovedTitledCompactPostStillHidesBody() throws {
         let card = PostCard(post: makePost(markdown: "Body", clearanceStatus: .approved), currentUserId: "user-1")
 
         XCTAssertNoThrow(try card.inspect().find(text: "Discussion"))
