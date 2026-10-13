@@ -35,6 +35,7 @@ public enum LocalLLMToolLoopFailure: Error, Equatable {
     case invalidResponse
     case tooManyCalls
     case resultTooLarge
+    case partialExecution
 }
 
 private struct LocalLLMFunctionCall {
@@ -67,8 +68,9 @@ public extension OpenAICompatibleResponsesClient {
         var callsRemaining = 4
         var outputBytesRemaining = 256_000
         var usedCallIDs = Set<String>()
+        var attemptedToolExecution = false
 
-        while true {
+        do { while true {
             try Task.checkCancellation()
             guard await isCurrent() else { throw CancellationError() }
             let body = try JSONSerialization.data(withJSONObject: [
@@ -80,13 +82,13 @@ public extension OpenAICompatibleResponsesClient {
             let data = try await send(body: body, to: url, apiKey: request.apiKey)
             guard await isCurrent() else { throw CancellationError() }
             let response = try Self.decodedToolResponse(data)
-            guard let output = response["output"] as? [[String: Any]] else {
-                throw LocalLLMToolLoopFailure.invalidResponse
-            }
+            let output = try Self.responseOutput(response)
 
             let calls = try Self.functionCalls(output)
             if calls.isEmpty {
-                return Self.responseText(response, output: output)
+                return try Self.completedToolResponseText(
+                    response, output: output, attemptedToolExecution: attemptedToolExecution
+                )
             }
             try Self.recordUniqueCallIDs(calls, seen: &usedCallIDs)
             try Self.consumeCallBudget(calls.count, remaining: &callsRemaining)
@@ -96,12 +98,28 @@ public extension OpenAICompatibleResponsesClient {
             input.append(contentsOf: output)
             for call in calls {
                 try Task.checkCancellation()
+                // The remote tool may commit even if its reply is lost.
+                attemptedToolExecution = true
                 let result = try await execute(call.name, call.arguments)
                 outputBytesRemaining -= result.utf8.count
                 guard outputBytesRemaining >= 0 else { throw LocalLLMToolLoopFailure.resultTooLarge }
                 input.append(["type": "function_call_output", "call_id": call.callID, "output": result])
             }
+        } } catch {
+            throw Self.toolLoopError(error, attemptedToolExecution: attemptedToolExecution)
         }
+    }
+
+    private static func toolLoopError(_ error: Error, attemptedToolExecution: Bool) -> Error {
+        attemptedToolExecution ? LocalLLMToolLoopFailure.partialExecution : error
+    }
+
+    private static func completedToolResponseText(
+        _ response: [String: Any], output: [[String: Any]], attemptedToolExecution: Bool
+    ) throws -> String? {
+        let text = responseText(response, output: output)
+        if attemptedToolExecution, text == nil { throw LocalLLMToolLoopFailure.partialExecution }
+        return text
     }
 
     private static func consumeCallBudget(_ count: Int, remaining: inout Int) throws {
@@ -128,6 +146,13 @@ public extension OpenAICompatibleResponsesClient {
               let response = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { throw LocalLLMToolLoopFailure.invalidResponse }
         return response
+    }
+
+    private static func responseOutput(_ response: [String: Any]) throws -> [[String: Any]] {
+        guard let output = response["output"] as? [[String: Any]] else {
+            throw LocalLLMToolLoopFailure.invalidResponse
+        }
+        return output
     }
 
     private static func toolDefinitions(_ tools: [LocalLLMFunctionTool]) throws -> [[String: Any]] {

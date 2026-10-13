@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 @testable import VouchaModels
 import XCTest
@@ -117,6 +118,64 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertNil(viewModel.pendingLocalTurn)
         XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
         XCTAssertEqual(provider.generationCount, 1)
+    }
+
+    func testFailedMCPPersistenceRetriesCompletedTurnAfterSameMemberRefresh() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Run once"
+
+        await viewModel.sendDraftMessage()
+        let first = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
+        XCTAssertEqual(provider.generationCount, 1)
+
+        try await session.refreshTools()
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        await viewModel.sendDraftMessage()
+        let requests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }
+
+        XCTAssertEqual(requests.count, 2)
+        XCTAssertEqual(requests.last?.body, first.body)
+        XCTAssertEqual(provider.generationCount, 1)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+    }
+
+    func testPossibleToolSideEffectNeverRestoresDraftForOrdinaryRetry() async throws {
+        let provider = MutableRetryDraftProvider()
+        provider.mcpFailure = LocalLLMToolLoopFailure.partialExecution
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Mutate once"
+
+        await viewModel.sendDraftMessage()
+
+        XCTAssertTrue(provider.receivedMcpSnapshot)
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertNotNil(viewModel.streamErrorMessage)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path.hasSuffix("/client-generated-chat")
+        })
     }
 
     func testMcpRefreshDuringGenerationRestoresSameMemberDraft() async throws {
@@ -358,6 +417,7 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     var available = true
     var titleHold: HeldTitleGeneration?
     var mcpHold: HeldTitleGeneration?
+    var mcpFailure: Error?
     private(set) var generationCount = 0
     private(set) var receivedMcpSnapshot = false
 
@@ -383,6 +443,7 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
         mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws -> NativeChatAssistantResponse? {
         receivedMcpSnapshot = mcpSnapshot != nil
+        if let mcpFailure { throw mcpFailure }
         if let mcpHold {
             await mcpHold.waitUntilReleased()
             throw CancellationError()

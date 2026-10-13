@@ -115,7 +115,7 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
             }
             XCTFail("Expected bounded tool-result failure")
         } catch {
-            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .resultTooLarge)
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .partialExecution)
         }
         XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
     }
@@ -249,6 +249,39 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
     }
 
+    func testLaterInvalidOrBlankContinuationReportsPossiblePriorToolSideEffect() async throws {
+        let call = #"{"output":[{"type":"function_call","status":"completed","call_id":"write-1","name":"write","arguments":"{}"}]}"#
+        let continuations = [
+            #"{"output":[{"type":"function_call","status":"incomplete","call_id":"write-2","name":"write","arguments":"{}"}]}"#,
+            #"{"output":[],"output_text":"  \n "}"#
+        ]
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Update it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "write", description: "Write", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        for continuation in continuations {
+            ToolLoopURLProtocol.reset(responses: [call, continuation])
+            let invocations = ToolInvocationCounter()
+            do {
+                _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                    await invocations.record()
+                    return "{}"
+                }
+                XCTFail("Expected partial execution failure")
+            } catch {
+                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .partialExecution)
+            }
+            let count = await invocations.count
+            XCTAssertEqual(count, 1)
+            XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 2)
+        }
+    }
+
     func testDuplicateFunctionCallIDsNeverExecuteAnAmbiguousCall() async throws {
         let call = #"{"type":"function_call","call_id":"repeat","name":"read","arguments":"{}"}"#
         let singleCall = #"{"output":[\#(call)]}"#
@@ -277,7 +310,10 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
                 }
                 XCTFail("Duplicate call IDs must fail before an ambiguous execution")
             } catch {
-                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+                XCTAssertEqual(
+                    error as? LocalLLMToolLoopFailure,
+                    testCase.expectedCalls == 0 ? .invalidResponse : .partialExecution
+                )
             }
             let count = await invocations.count
             XCTAssertEqual(count, testCase.expectedCalls)
@@ -307,7 +343,7 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
                 return #"{"structuredContent":{"value":"old member"},"isError":false}"#
             }
             XCTFail("Expected canceled generation")
-        } catch is CancellationError {
+        } catch LocalLLMToolLoopFailure.partialExecution {
             XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
         }
     }

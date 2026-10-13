@@ -12,7 +12,7 @@ extension NativeChatViewModel {
         response: NativeChatAssistantResponse,
         mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = nil
     ) async throws {
-        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
+        if let mcpSnapshot, !matchesMCPAccount(mcpSnapshot) {
             pendingLocalTurn = nil
             abortStreaming()
             return
@@ -25,19 +25,9 @@ extension NativeChatViewModel {
             assistantContent: response.content,
             model: (provider: response.modelProvider, name: response.modelName)
         ))
-        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
+        if let mcpSnapshot, !matchesMCPAccount(mcpSnapshot) {
             pendingLocalTurn = nil
-            if currentMemberId == mcpSnapshot.accountId,
-               isCurrentLocalGeneration(context) {
-                // The server acknowledged this turn. A same-member MCP refresh or
-                // disconnect cannot undo that write, so show the persisted result.
-                await finishPersistedLocalTurn(
-                    context: context, assistantMessageId: assistantMessageId,
-                    response: persistedResponse
-                )
-            } else {
-                abortStreaming()
-            }
+            abortStreaming()
             return
         }
         guard isCurrentLocalGeneration(context) else {

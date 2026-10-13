@@ -31,6 +31,13 @@ extension NativeChatViewModel {
                 client: client, provider: provider, context: context,
                 assistantMessageId: assistantMessageId, mcpSnapshot: mcpSnapshot
             )
+        } catch LocalLLMToolLoopFailure.partialExecution {
+            failLocalGeneration(
+                context: context,
+                assistantMessageId: assistantMessageId,
+                message: .message(.nativeSwiftChatOnDeviceUnavailable),
+                restoreDraft: false
+            )
         } catch let error as VouchaError {
             failLocalGeneration(
                 context: context,
@@ -79,7 +86,7 @@ extension NativeChatViewModel {
             )
             return
         }
-        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
+        if let mcpSnapshot, !matchesMCPAccount(mcpSnapshot) {
             abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
             return
         }
@@ -100,6 +107,10 @@ extension NativeChatViewModel {
 
     func isCurrentMCPSnapshot(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Bool {
         currentMemberId == snapshot.accountId && mcpSession?.isCurrent(snapshot) == true
+    }
+
+    func matchesMCPAccount(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Bool {
+        currentMemberId == snapshot.accountId && mcpSession?.accountId == snapshot.accountId
     }
 
     func abortInvalidatedMCPTurn(
@@ -137,7 +148,8 @@ extension NativeChatViewModel {
     private func failLocalGeneration(
         context: NativeChatDraftSendContext,
         assistantMessageId: String,
-        message: UiVerbatimText
+        message: UiVerbatimText,
+        restoreDraft: Bool = true
     ) {
         guard isCurrentLocalGeneration(context) else {
             discardStaleLocalTurn(
@@ -149,14 +161,16 @@ extension NativeChatViewModel {
         failUnpersistedLocalGeneration(
             context: context,
             assistantMessageId: assistantMessageId,
-            message: message
+            message: message,
+            restoreDraft: restoreDraft
         )
     }
 
     func failUnpersistedLocalGeneration(
         context: NativeChatDraftSendContext,
         assistantMessageId: String?,
-        message: UiVerbatimText
+        message: UiVerbatimText,
+        restoreDraft: Bool = true
     ) {
         guard isCurrentLocalGeneration(context) else {
             discardConversationMessage(id: context.userMessageId)
@@ -167,7 +181,7 @@ extension NativeChatViewModel {
         if let assistantMessageId {
             discardConversationMessage(id: assistantMessageId)
         }
-        if !draftEditedDuringSend { draftMessage = context.text }
+        if restoreDraft, !draftEditedDuringSend { draftMessage = context.text }
         if streamingUserMessageId == context.userMessageId {
             streamingUserMessageId = nil
         }
@@ -183,5 +197,4 @@ extension NativeChatViewModel {
         streamedContent = ""
         streamTask = nil
     }
-
 }

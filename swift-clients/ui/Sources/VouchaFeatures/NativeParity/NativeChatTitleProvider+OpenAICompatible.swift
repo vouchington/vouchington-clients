@@ -102,7 +102,6 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
                 )
             }
         )
-        guard await mcpSession.isCurrent(snapshot) else { throw CancellationError() }
         guard let content else { return nil }
         return NativeChatAssistantResponse(
             content: content, modelProvider: "openai_compatible", modelName: endpoint.selectedModel
