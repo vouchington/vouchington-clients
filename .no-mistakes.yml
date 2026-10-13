@@ -19,6 +19,9 @@ tests:
       app-tests:
         project: dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
         test: true
+      windows-image-preview-tests:
+        project: dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
+        test: true
 
 test_plan:
   swift:
@@ -52,6 +55,7 @@ test_plan:
           - src/Voucha.Client.App/Voucha.Client.App.csproj
           - tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
           - tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          - tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
           - NuGet.config
           - Directory.Build.props
           - Directory.Build.targets

@@ -156,7 +156,20 @@ describe('event-driven CI orchestration', () => {
     )
     assert.match(workflow, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u)
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
-    assert.match(workflow, /jq -e 'all\(\.\[\]; \.result == "success"\)'/u)
+    assert.match(
+      workflow,
+      /all\(to_entries\[\] \| select\(\.key != "dotnet-windows-image-preview"\); \.value\.result == "success"\)/u,
+    )
+    assert.ok(workflow.includes('((."dotnet-windows-image-preview".result == "success") or'))
+    assert.ok(
+      workflow.includes(
+        '($route == "false" and ."dotnet-windows-image-preview".result == "skipped"))',
+      ),
+    )
+    assert.match(
+      workflow,
+      /WINDOWS_IMAGE_PREVIEW_ROUTE: \$\{\{ needs\.verify\.outputs\.windows-image-preview \}\}/u,
+    )
     assert.match(
       workflow,
       /dotnet-portable:[\s\S]*?outputs:\n\s+dto-fixture-parity-outcome: \$\{\{ steps\.dotnet-dto-fixture-parity\.outcome \}\}/u,

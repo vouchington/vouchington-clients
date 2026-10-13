@@ -8,6 +8,8 @@ the closed allowlist:
 - `ubuntu-latest` is used for Linux work that needs Docker, a tool container, or a full GitHub
   Ubuntu image.
 - `macos-latest` is used for macOS native build, test, and dead-code checks.
+- `windows-latest` is reserved for the changed-file-routed .NET `BitmapDecoder` test, which
+  exercises a Windows-only compiled source slice.
 
 Which native tests belong on each label, and when a second OS is forbidden, is documented in
 [native CI test placement](native-ci-test-placement.md).
@@ -21,8 +23,8 @@ The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the m
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
 required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
 
-Do not add `self-hosted`, `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. Windows remains
-out of scope until a hosted Windows job is actually needed.
+Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The narrow
+Windows decoder test is the only Windows job; full Windows app packaging remains out of scope.
 
 Hosted VMs are single-job and discarded after the run. Jobs check out the revision they execute and
 must not run persistent-workspace cleanup, restore a trusted base only to wipe the disk, or isolate
@@ -81,7 +83,7 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's eight lockfiles, while
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's nine lockfiles, while
 `dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
 enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
 base and fetch candidate dependency files as inert API data. They never check out or execute the

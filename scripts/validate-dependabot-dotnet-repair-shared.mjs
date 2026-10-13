@@ -7,6 +7,7 @@ export const NUGET_LOCK_PATHS = Object.freeze([
   'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json',
   'dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json',
   'dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json',
+  'dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json',
 ])
 
 export const NUGET_MANIFEST_PATH = 'dotnet-clients/Directory.Packages.props'

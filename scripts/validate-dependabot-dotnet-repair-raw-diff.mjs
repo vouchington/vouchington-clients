@@ -23,7 +23,7 @@ export function validateDotnetRepairRawDiff(rawDiff) {
     }
     const path = fields[index + 1]
     if (!allowedPaths.has(path) || changedPaths.includes(path)) {
-      fail('Dependabot may change only its central manifest and existing NuGet locks')
+      fail('Dependabot may change only its central manifest and committed NuGet locks')
     }
     changedPaths.push(path)
   }
