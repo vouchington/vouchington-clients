@@ -27,9 +27,36 @@ public sealed class MemberMcpSessionConnectionTests
     Assert.Equal(failProtectedWrite ? 0 : 1, store.PendingClears);
   }
 
+  [Fact]
+  public async Task ClosedBrowserWithoutCallbackCanBeCanceledAndClearsPendingProof()
+  {
+    var store = new FakeStore();
+    var browser = new FakeBrowser(store) { ReturnNormally = true };
+    await using var connection = new MemberMcpSessionConnection(
+        new Uri("https://example.test"), "account-a",
+        new MemberMcpOAuthMetadata(
+            "https://example.test/", new Uri("https://example.test/oauth/authorize"),
+            new Uri("https://example.test/oauth/token"), new Uri("https://example.test/oauth/revoke")),
+        store, browser);
+    using var cancel = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    var connecting = connection.ConnectAndListToolsAsync(cancel.Token);
+    await browser.Started.Task.WaitAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(store.PendingState);
+
+    cancel.Cancel();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => connecting);
+
+    Assert.Null(store.PendingState);
+    Assert.Null(store.PendingVerifier);
+    Assert.Null(store.PendingRedirect);
+    Assert.Equal(1, store.PendingClears);
+  }
+
   private sealed class FakeBrowser(FakeStore store) : IMemberMcpSystemBrowser
   {
     public int Starts { get; private set; }
+    public bool ReturnNormally { get; set; }
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Task OpenAsync(Uri authorizationUri, CancellationToken cancellationToken)
     {
       Assert.NotNull(store.PendingState);
@@ -38,6 +65,8 @@ public sealed class MemberMcpSessionConnectionTests
       Assert.True(store.PendingRedirect.Port > 0);
       Assert.Contains(store.PendingRedirect.Host, new[] { "127.0.0.1", "[::1]", "::1" });
       Starts++;
+      Started.TrySetResult();
+      if (ReturnNormally) return Task.CompletedTask;
       throw new IOException("Stop before browser return");
     }
   }

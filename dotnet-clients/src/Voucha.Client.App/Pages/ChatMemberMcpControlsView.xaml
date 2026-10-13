@@ -21,7 +21,7 @@
                 <Button Text="{DynamicResource native.dotnet.chat.mcpRefresh}"
                         Clicked="OnRefreshClicked" IsVisible="{Binding IsConnected}" />
                 <Button Text="{DynamicResource native.dotnet.chat.mcpDisconnect}"
-                        Clicked="OnDisconnectClicked" IsVisible="{Binding IsConnected}" />
+                        Clicked="OnDisconnectClicked" IsVisible="{Binding CanDisconnect}" />
             </HorizontalStackLayout>
         </VerticalStackLayout>
     </Border>

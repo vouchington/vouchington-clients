@@ -88,6 +88,31 @@ public sealed class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task DisconnectDuringPendingAuthorizationCancelsConnectAndAllowsRetry()
+  {
+    var store = new FakeStore();
+    var factory = new FakeFactory { HoldConnect = true };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    var connecting = session.ConnectAsync(TestContext.Current.CancellationToken);
+    await factory.Connections[0].ConnectEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(MemberMcpSessionStatus.Connecting, session.Status);
+
+    var disconnecting = session.DisconnectAsync();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => connecting);
+    await disconnecting;
+
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+    Assert.Null(session.Tools);
+    Assert.Equal(1, factory.Connections[0].DisconnectCalls);
+    Assert.Contains("account-a", store.ClearedAccounts);
+
+    factory.HoldConnect = false;
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
+    Assert.Equal(2, factory.Created);
+  }
+
+  [Fact]
   public async Task WaitingConnectRechecksNewCleanupTailBeforeCreatingGrant()
   {
     var identity = new FakeSessionStore("account-a");

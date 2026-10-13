@@ -52,6 +52,67 @@ public sealed class ChatMemberMcpControlsTests
     Assert.Equal(1, session.Tools?.GetProperty("tools").GetArrayLength());
   }
 
+  [Fact]
+  public async Task MemberChatShowsDisconnectWhileBrowserAuthorizationIsPending()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+        ["native.taxonomy.settings.mcp"] = "MCP",
+        ["native.dotnet.chat.mcpConnect"] = "Connect",
+        ["native.dotnet.chat.mcpConnected"] = "Connected",
+        ["native.dotnet.chat.mcpConnectionFailed"] = "Connection failed",
+        ["native.dotnet.chat.mcpRefresh"] = "Refresh",
+        ["native.dotnet.chat.mcpDisconnect"] = "Disconnect",
+      },
+    };
+    var connection = new PendingConnection();
+    using var session = new MemberMcpSession(new MemberSession(), new EmptyStore(),
+        new PendingConnectionFactory(connection));
+    var service = new UnusedChatService();
+    var page = new ChatConversationPage(new ChatConversationViewModel(service), service, session);
+    var view = Assert.Single(page.GetVisualTreeDescendants().OfType<ChatMemberMcpControlsView>());
+    typeof(ChatMemberMcpControlsView).GetMethod("OnLoaded", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(view, [view, EventArgs.Empty]);
+    var buttons = view.GetVisualTreeDescendants().OfType<Button>().ToArray();
+
+    var connecting = session.ConnectAsync(TestContext.Current.CancellationToken);
+    await connection.Entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    Assert.False(Assert.Single(buttons, button => button.Text == "Connect").IsVisible);
+    Assert.True(Assert.Single(buttons, button => button.Text == "Disconnect").IsVisible);
+    await session.DisconnectAsync();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => connecting);
+    Assert.True(Assert.Single(buttons, button => button.Text == "Connect").IsVisible);
+  }
+
+  private sealed class PendingConnectionFactory(PendingConnection connection) : IMemberMcpSessionConnectionFactory
+  {
+    public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken) =>
+        Task.FromResult<IMemberMcpSessionConnection>(connection);
+  }
+
+  private sealed class PendingConnection : IMemberMcpSessionConnection
+  {
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
+    {
+      Entered.TrySetResult();
+      await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      throw new InvalidOperationException("The callback wait was not canceled.");
+    }
+    public Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+    public Task DisconnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+  }
+
   private sealed class MemberSession : ISessionStore
   {
     public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }

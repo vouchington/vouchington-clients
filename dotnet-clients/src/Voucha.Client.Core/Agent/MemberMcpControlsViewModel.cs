@@ -11,6 +11,7 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   public bool IsConnected => session.Status == MemberMcpSessionStatus.Connected;
   public bool IsBusy => session.Status == MemberMcpSessionStatus.Connecting;
   public bool CanConnect => HasMemberSession && !IsConnected && !IsBusy;
+  public bool CanDisconnect => IsBusy || IsConnected;
   public bool HasError => hasError || session.Status == MemberMcpSessionStatus.Error;
 
   public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -53,6 +54,7 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
     OnPropertyChanged(nameof(IsConnected));
     OnPropertyChanged(nameof(IsBusy));
     OnPropertyChanged(nameof(CanConnect));
+    OnPropertyChanged(nameof(CanDisconnect));
     OnPropertyChanged(nameof(HasError));
   }
 }
