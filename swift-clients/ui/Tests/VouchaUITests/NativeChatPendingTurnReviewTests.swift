@@ -146,7 +146,12 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let requests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }
 
         XCTAssertEqual(requests.count, 2)
-        XCTAssertEqual(requests.last?.body, first.body)
+        let firstBody = try XCTUnwrap(first.body?.data(using: .utf8))
+        let retriedBody = try XCTUnwrap(requests.last?.body?.data(using: .utf8))
+        XCTAssertEqual(
+            try JSONSerialization.jsonObject(with: retriedBody) as? NSDictionary,
+            try JSONSerialization.jsonObject(with: firstBody) as? NSDictionary
+        )
         XCTAssertEqual(provider.generationCount, 1)
         XCTAssertNil(viewModel.pendingLocalTurn)
         XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])

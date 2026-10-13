@@ -75,7 +75,10 @@ extension NativeChatMCPInputSchema {
         }
         if case let .string(format)? = fields["format"] {
             if format == "uuid", UUID(uuidString: text) == nil { return false }
-            if format == "uri", URLComponents(string: text)?.scheme == nil { return false }
+            if format == "uri" {
+                guard let components = URLComponents(string: text),
+                      components.scheme != nil, components.string == text else { return false }
+            }
         }
         return true
     }

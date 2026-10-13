@@ -84,6 +84,7 @@ public extension OpenAICompatibleResponsesClient {
             guard await isCurrent() else { throw CancellationError() }
             let response = try Self.decodedToolResponse(data)
             let output = try Self.responseOutput(response)
+            try Self.requireCompletedResponse(response, output: output)
 
             let calls = try Self.functionCalls(output)
             if calls.isEmpty {

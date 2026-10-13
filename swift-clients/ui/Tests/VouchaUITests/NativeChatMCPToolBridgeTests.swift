@@ -32,6 +32,15 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         XCTAssertTrue(try projected.isEqual(to: XCTUnwrap(published["inputSchema"] as? [String: Any])))
     }
 
+    func testBridgeRejectsMCPNamesThatCannotBeModelFunctionNames() throws {
+        for name in ["posts.search", String(repeating: "a", count: 65)] {
+            let catalog: DecodedJSONValue = .object(["tools": .array([.object([
+                "name": .string(name), "inputSchema": .object(["type": .string("object")])
+            ])])])
+            XCTAssertThrowsError(try NativeChatMCPToolBridge(catalog: catalog))
+        }
+    }
+
     func testOnlyAdvertisedAndSchemaValidCallsExecuteWithUnchangedResultMarkers() async throws {
         let service = BridgeMCPService()
         let session = NativeChatMCPAgentSession(service: service)
@@ -230,6 +239,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             "type": .string("string"), "format": .string("uri")
         ])
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("relative/path"), schema: uri))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("mailto:a b"), schema: uri))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("https://example.test/%GG"), schema: uri))
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("mailto:a%20b"), schema: uri))
 
         XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
             "pattern": .string("[")

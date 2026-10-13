@@ -21,7 +21,7 @@ struct NativeChatMCPToolBridge {
         var schemas: [String: DecodedJSONValue] = [:]
         for entry in entries {
             guard case let .object(fields) = entry,
-                  case let .string(name)? = fields["name"], !name.isEmpty, name.utf8.count <= 128,
+                  case let .string(name)? = fields["name"], Self.validModelFunctionName(name),
                   case let .object(schema)? = fields["inputSchema"],
                   schemas[name] == nil else { throw Failure.invalidCatalog }
             let description: String = if case let .string(value)? = fields["description"] { value } else { "" }
@@ -38,6 +38,13 @@ struct NativeChatMCPToolBridge {
         }
         tools = projected
         self.schemas = schemas
+    }
+
+    private static func validModelFunctionName(_ name: String) -> Bool {
+        !name.isEmpty && name.utf8.count <= 64 && name.utf8.allSatisfy { byte in
+            (65 ... 90).contains(byte) || (97 ... 122).contains(byte) ||
+                (48 ... 57).contains(byte) || byte == 95 || byte == 45
+        }
     }
 
     func execute(

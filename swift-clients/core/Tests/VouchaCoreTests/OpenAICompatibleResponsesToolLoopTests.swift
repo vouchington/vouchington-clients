@@ -69,6 +69,21 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
             XCTAssertEqual(result, expected)
             XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
         }
+        for response in [
+            #"{"status":"incomplete","output":[],"output_text":"partial answer"}"#,
+            #"{"output":[{"type":"message","status":"incomplete","content":[{"text":"partial answer"}]}]}"#
+        ] {
+            ToolLoopURLProtocol.reset(responses: [response])
+            do {
+                _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                    XCTFail("Incomplete text must not execute a tool")
+                    return "{}"
+                }
+                XCTFail("Incomplete text must not be persisted")
+            } catch {
+                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+            }
+        }
     }
 
     func testMalformedFunctionCallCannotExecuteANameWithoutACallID() async throws {
@@ -253,7 +268,9 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         let call = #"{"output":[{"type":"function_call","status":"completed","call_id":"write-1","name":"write","arguments":"{}"}]}"#
         let continuations = [
             #"{"output":[{"type":"function_call","status":"incomplete","call_id":"write-2","name":"write","arguments":"{}"}]}"#,
-            #"{"output":[],"output_text":"  \n "}"#
+            #"{"output":[],"output_text":"  \n "}"#,
+            #"{"status":"incomplete","output":[],"output_text":"partial answer"}"#,
+            #"{"output":[{"type":"message","status":"incomplete","content":[{"text":"partial answer"}]}]}"#
         ]
         let endpoint = LocalLLMEndpointProfile(
             id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
