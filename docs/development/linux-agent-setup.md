@@ -4,7 +4,7 @@ This setup supports editing both clients and running their portable Core tests o
 Xcode generation, Periphery, MAUI App tests, Mac Catalyst smoke, and Darwin/Security tests still
 require macOS. The [CI placement policy](native-ci-test-placement.md) explains the split.
 
-The host or machine profile must first provide Node.js 26+, pnpm 12, Docker, and mise. The
+The host or machine profile must first provide Node.js 26+, pnpm 12, jq, Docker, and mise. The
 repository's mise configuration selects .NET SDK 10.0.401 and Swift 6.4.0; `mise install` installs
 both. The root [global.json](../../global.json) remains the .NET SDK and workload policy source.
 Docker runs the same pinned Swift 6.4.0, SwiftFormat, and SwiftLint images as CI. Use an x86_64
