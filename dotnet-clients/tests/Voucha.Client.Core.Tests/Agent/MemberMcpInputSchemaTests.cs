@@ -147,6 +147,25 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void UuidFormatRequiresCanonicalHyphenatedRepresentation()
+  {
+    using var schema = JsonDocument.Parse("""{"type":"string","format":"uuid"}""");
+    Assert.True(Accepts("\"123e4567-e89b-12d3-a456-426614174000\"", schema));
+    Assert.False(Accepts("\"123e4567e89b12d3a456426614174000\"", schema));
+    Assert.False(Accepts("\"{123e4567-e89b-12d3-a456-426614174000}\"", schema));
+    Assert.False(Accepts("\"urn:uuid:123e4567-e89b-12d3-a456-426614174000\"", schema));
+  }
+
+  [Fact]
+  public void DuplicateObjectMembersCannotSatisfyPropertyCountsOrOverrideValidatedValues()
+  {
+    using var schema = JsonDocument.Parse("""{"type":"object","properties":{"payload":{"type":"object","minProperties":2,"properties":{"id":{"type":"string","maxLength":3}}}}}""");
+    Assert.True(Accepts("""{"payload":{"id":"one","other":1}}""", schema));
+    Assert.False(Accepts("""{"payload":{"id":"one","id":"two"}}""", schema));
+    Assert.False(Accepts("""{"payload":{"id":"one","id":"too-long"}}""", schema));
+  }
+
+  [Fact]
   public void UniqueItemsRequiresAnExplicitLocallyBoundedSchema()
   {
     foreach (var schema in new[]

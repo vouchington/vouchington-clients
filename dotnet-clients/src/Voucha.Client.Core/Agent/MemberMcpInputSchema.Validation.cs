@@ -54,6 +54,8 @@ internal static partial class MemberMcpInputSchema
   private static bool CheckObject(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
   {
     var fields = value.EnumerateObject().ToArray();
+    if (fields.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count() != fields.Length)
+      return false;
     if (!Within(fields.Length, schema, "minProperties", "maxProperties")) return false;
     if (schema.TryGetProperty("required", out var required) &&
         !required.EnumerateArray().All(name => value.TryGetProperty(name.GetString()!, out _))) return false;
@@ -97,7 +99,7 @@ internal static partial class MemberMcpInputSchema
     if (!Within(text.EnumerateRunes().Count(), schema, "minLength", "maxLength")) return false;
     if (schema.TryGetProperty("format", out var format))
     {
-      if (format.GetString() == "uuid" && !Guid.TryParse(text, out _)) return false;
+      if (format.GetString() == "uuid" && !Guid.TryParseExact(text, "D", out _)) return false;
       if (format.GetString() == "uri" && !StrictUri(text)) return false;
     }
     if (schema.TryGetProperty("pattern", out var pattern))
