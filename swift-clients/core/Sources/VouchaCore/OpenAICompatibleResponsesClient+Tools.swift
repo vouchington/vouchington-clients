@@ -58,6 +58,7 @@ public extension OpenAICompatibleResponsesClient {
     func generateAssistantResponseWithTools(
         request: LocalLLMToolRequest,
         isCurrent: @Sendable () async -> Bool,
+        validate: @Sendable (String, String) async throws -> Void = { _, _ in },
         execute: @Sendable (String, String) async throws -> String
     ) async throws -> String? {
         guard let url = request.endpoint.responsesURL else { throw LocalLLMError.invalidEndpoint }
@@ -98,6 +99,7 @@ public extension OpenAICompatibleResponsesClient {
             input.append(contentsOf: output)
             for call in calls {
                 try Task.checkCancellation()
+                try await validate(call.name, call.arguments)
                 // The remote tool may commit even if its reply is lost.
                 attemptedToolExecution = true
                 let result = try await execute(call.name, call.arguments)

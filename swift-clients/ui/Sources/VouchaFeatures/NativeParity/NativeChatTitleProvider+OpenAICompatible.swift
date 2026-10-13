@@ -95,6 +95,9 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
         let content = try await responsesClient.generateAssistantResponseWithTools(
             request: request,
             isCurrent: { await mcpSession.isCurrent(snapshot) },
+            validate: { name, arguments in
+                try bridge.validate(name: name, rawArguments: arguments)
+            },
             execute: { name, arguments in
                 try await bridge.execute(
                     name: name, rawArguments: arguments, session: mcpSession,

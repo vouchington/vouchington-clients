@@ -45,13 +45,7 @@ struct NativeChatMCPToolBridge {
         session: NativeChatMCPAgentSession,
         accountId: String, revision: Int
     ) async throws -> String {
-        guard let schema = schemas[name] else { throw Failure.unknownTool }
-        guard rawArguments.utf8.count <= 64_000,
-              let data = rawArguments.data(using: .utf8),
-              let arguments = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
-              case let .object(object) = arguments,
-              (try? NativeChatMCPInputSchema.accepts(arguments, schema: schema)) == true
-        else { throw Failure.invalidArguments }
+        let object = try validatedArguments(name: name, rawArguments: rawArguments)
         let result = try await session.callTool(
             name: name, arguments: object, accountId: accountId, revision: revision
         )
@@ -65,5 +59,20 @@ struct NativeChatMCPToolBridge {
             throw Failure.resultTooLarge
         }
         return text
+    }
+
+    func validate(name: String, rawArguments: String) throws {
+        _ = try validatedArguments(name: name, rawArguments: rawArguments)
+    }
+
+    private func validatedArguments(name: String, rawArguments: String) throws -> [String: DecodedJSONValue] {
+        guard let schema = schemas[name] else { throw Failure.unknownTool }
+        guard rawArguments.utf8.count <= 64_000,
+              let data = rawArguments.data(using: .utf8),
+              let arguments = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
+              case let .object(object) = arguments,
+              (try? NativeChatMCPInputSchema.accepts(arguments, schema: schema)) == true
+        else { throw Failure.invalidArguments }
+        return object
     }
 }

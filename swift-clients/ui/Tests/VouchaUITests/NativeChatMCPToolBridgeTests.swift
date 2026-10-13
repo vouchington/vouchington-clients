@@ -40,6 +40,8 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         let snapshot = try XCTUnwrap(session.connectedSnapshot())
         let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
 
+        XCTAssertThrowsError(try bridge.validate(name: "invented", rawArguments: "{}"))
+
         do {
             _ = try await bridge.execute(
                 name: "invented", rawArguments: "{}", session: session,
@@ -52,6 +54,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             #"{"option":"details","arguments":{"unknown":"one"}}"#,
             #"{"option":"details","arguments":{"id":"longer"}}"#
         ] {
+            XCTAssertThrowsError(try bridge.validate(name: "read_community", rawArguments: invalid))
             do {
                 _ = try await bridge.execute(
                     name: "read_community", rawArguments: invalid, session: session,
@@ -60,6 +63,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
                 XCTFail("Invalid option envelope must not execute")
             } catch { XCTAssertEqual(service.calls, 0) }
         }
+        XCTAssertNoThrow(try bridge.validate(
+            name: "read_community", rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#
+        ))
         let output = try await bridge.execute(
             name: "read_community",
             rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,

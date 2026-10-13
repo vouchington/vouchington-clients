@@ -282,6 +282,44 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         }
     }
 
+    func testPreflightValidationFailureIsRetryableOnlyBeforeFirstInvocation() async throws {
+        enum InvalidArguments: Error { case rejected }
+        let first = #"{"output":[{"type":"function_call","call_id":"first","name":"write","arguments":"{}"}]}"#
+        let second = #"{"output":[{"type":"function_call","call_id":"second","name":"invalid","arguments":"{}"}]}"#
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Update it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "write", description: "Write", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+
+        for (responses, expectedCalls) in [([second], 0), ([first, second], 1)] {
+            ToolLoopURLProtocol.reset(responses: responses)
+            let invocations = ToolInvocationCounter()
+            do {
+                _ = try await client.generateAssistantResponseWithTools(
+                    request: request, isCurrent: { true },
+                    validate: { name, _ in if name == "invalid" { throw InvalidArguments.rejected } }
+                ) { _, _ in
+                    await invocations.record()
+                    return "{}"
+                }
+                XCTFail("Expected preflight rejection")
+            } catch {
+                if expectedCalls == 0 {
+                    XCTAssertTrue(error is InvalidArguments)
+                } else {
+                    XCTAssertEqual(error as? LocalLLMToolLoopFailure, .partialExecution)
+                }
+            }
+            let count = await invocations.count
+            XCTAssertEqual(count, expectedCalls)
+        }
+    }
+
     func testDuplicateFunctionCallIDsNeverExecuteAnAmbiguousCall() async throws {
         let call = #"{"type":"function_call","call_id":"repeat","name":"read","arguments":"{}"}"#
         let singleCall = #"{"output":[\#(call)]}"#
