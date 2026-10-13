@@ -10,7 +10,8 @@ enum NativeChatMCPInputSchema {
     }
 
     static func accepts(_ value: DecodedJSONValue, schema: DecodedJSONValue) throws -> Bool {
-        try check(value, schema: schema, root: schema, depth: 0)
+        var remainingWork = 4_096
+        return try check(value, schema: schema, root: schema, depth: 0, remainingWork: &remainingWork)
     }
 
 }

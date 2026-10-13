@@ -144,6 +144,31 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         ])))
     }
 
+    func testComposedReferenceValidationHasACumulativeWorkBound() throws {
+        var definitions: [String: DecodedJSONValue] = [
+            "leaf": .object(["type": .string("object")])
+        ]
+        for level in (0 ..< 7).reversed() {
+            let next = level == 6 ? "leaf" : "level\(level + 1)"
+            definitions["level\(level)"] = .object([
+                "allOf": .array(Array(repeating: .object([
+                    "$ref": .string("#/$defs/\(next)")
+                ]), count: 4))
+            ])
+        }
+        let schema: DecodedJSONValue = .object([
+            "$defs": .object(definitions), "$ref": .string("#/$defs/level0")
+        ])
+        try NativeChatMCPInputSchema.validateSchema(schema)
+        XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(.object([:]), schema: schema))
+
+        let bounded: DecodedJSONValue = .object([
+            "$defs": .object(definitions),
+            "allOf": .array(Array(repeating: .object(["$ref": .string("#/$defs/leaf")]), count: 2))
+        ])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([:]), schema: bounded))
+    }
+
     func testSchemaBoundsKeepLargeIntegerPrecisionAndRejectUnrepresentableCounts() throws {
         let maximum: DecodedJSONValue = .object(["maximum": .integer(9_007_199_254_740_992)])
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
