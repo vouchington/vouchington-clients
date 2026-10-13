@@ -222,6 +222,54 @@ public sealed class PostComposeViewModelPublishTests
     Assert.NotEqual(first, service.IdempotencyKeys[1]);
   }
 
+  [Fact]
+  public async Task PublishAsyncRotatesFailedCommunityIntentAndPreservesTheNewDestinationRetry()
+  {
+    var service = new FailedCommunityPostsService();
+    var viewModel = new PostComposeViewModel(
+        service,
+        new AppConfig(new Uri("https://api.example.test"), "site-key", true))
+    {
+      Title = "Same title",
+      Markdown = "Same draft",
+      CommunitySlug = "community-a",
+    };
+
+    Assert.False(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    Assert.Equal(LoadState.Error, viewModel.State);
+    viewModel.CommunitySlug = " community-b ";
+    Assert.False(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+    Assert.False(await viewModel.PublishAsync(TestContext.Current.CancellationToken));
+
+    Assert.Collection(service.Attempts,
+        request => Assert.Equal("community-a", request.Destination),
+        request => Assert.Equal("community-b", request.Destination),
+        request => Assert.Equal("community-b", request.Destination));
+    Assert.NotEqual(service.Attempts[0].Key, service.Attempts[1].Key);
+    Assert.Equal(service.Attempts[1].Key, service.Attempts[2].Key);
+    Assert.All(service.Attempts, request =>
+    {
+      Assert.False(string.IsNullOrWhiteSpace(request.Key));
+      Assert.Equal("Same title", request.Body.Title);
+      Assert.Equal("Same draft", request.Body.Markdown);
+    });
+  }
+
+  private sealed class FailedCommunityPostsService : RecordingPostsService
+  {
+    public List<(string Destination, CreatePostBody Body, string Key)> Attempts { get; } = [];
+
+    public override Task<PostMutationResponse> CreateCommunityPostAsync(
+        string communityIdOrSlug,
+        CreatePostBody body,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+      Attempts.Add((communityIdOrSlug, body, idempotencyKey));
+      return Task.FromException<PostMutationResponse>(new HttpRequestException("Connection interrupted."));
+    }
+  }
+
   private class RecordingPostsService : IPostsService
   {
     public List<string> IdempotencyKeys { get; } = [];
@@ -259,7 +307,7 @@ public sealed class PostComposeViewModelPublishTests
       return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
     }
 
-    public Task<PostMutationResponse> CreateCommunityPostAsync(
+    public virtual Task<PostMutationResponse> CreateCommunityPostAsync(
         string communityIdOrSlug,
         CreatePostBody body,
         string idempotencyKey,
