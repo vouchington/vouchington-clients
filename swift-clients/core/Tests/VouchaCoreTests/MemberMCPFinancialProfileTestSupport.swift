@@ -56,8 +56,23 @@ final class FinancialMCPURLProtocol: URLProtocol {
         do {
             guard let bodyData = request.httpBody ?? request.httpBodyStream.flatMap(Self.readBodyStream),
                   let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
-                  let params = body["params"] as? [String: Any],
-                  let method = body["method"] as? String,
+                  let method = body["method"] as? String
+            else { throw MemberMCPClient.Failure.invalidResponse }
+            if method == "initialize" {
+                try finish(status: 200, body: [
+                    "jsonrpc": "2.0", "id": body["id"] ?? "",
+                    "result": [
+                        "protocolVersion": "2025-06-18", "capabilities": [:],
+                        "serverInfo": ["name": "test", "version": "1"]
+                    ]
+                ])
+                return
+            }
+            if method == "notifications/initialized" {
+                try finish(status: 202, body: nil)
+                return
+            }
+            guard let params = body["params"] as? [String: Any],
                   let name = params["name"] as? String,
                   let arguments = params["arguments"] as? [String: Any]
             else { throw MemberMCPClient.Failure.invalidResponse }
@@ -76,22 +91,26 @@ final class FinancialMCPURLProtocol: URLProtocol {
             let result: [String: Any] = [
                 "content": [], "structuredContent": structured, "isError": isError
             ]
-            let response = try JSONSerialization.data(withJSONObject: [
+            try finish(status: 200, body: [
                 "jsonrpc": "2.0", "id": body["id"] ?? "", "result": result
             ])
-            let http = HTTPURLResponse(
-                url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: response)
-            client?.urlProtocolDidFinishLoading(self)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)
         }
     }
 
     override func stopLoading() {}
+
+    private func finish(status: Int, body: [String: Any]?) throws {
+        let response = try body.map { try JSONSerialization.data(withJSONObject: $0) }
+        let http = HTTPURLResponse(
+            url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
+        if let response { client?.urlProtocol(self, didLoad: response) }
+        client?.urlProtocolDidFinishLoading(self)
+    }
 
     private static func readBodyStream(_ stream: InputStream) -> Data? {
         stream.open()

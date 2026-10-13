@@ -152,7 +152,25 @@ public sealed class MemberMcpFinancialProfileTests
       Authorization = request.Headers.Authorization?.ToString();
       using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
       var rpc = body.RootElement;
-      Method = rpc.GetProperty("method").GetString();
+      var method = rpc.GetProperty("method").GetString();
+      if (method == "initialize")
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+          Content = new StringContent(JsonSerializer.Serialize(new
+          {
+            jsonrpc = "2.0",
+            id = rpc.GetProperty("id").GetString(),
+            result = new
+            {
+              protocolVersion = "2025-06-18",
+              capabilities = new { },
+              serverInfo = new { name = "test", version = "1" }
+            }
+          }), Encoding.UTF8, "application/json")
+        };
+      if (method == "notifications/initialized")
+        return new HttpResponseMessage(HttpStatusCode.Accepted);
+      Method = method;
       ToolName = rpc.GetProperty("params").GetProperty("name").GetString();
       Arguments = rpc.GetProperty("params").GetProperty("arguments").GetRawText();
       return new HttpResponseMessage(HttpStatusCode.OK)
