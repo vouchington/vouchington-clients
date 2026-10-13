@@ -25,7 +25,7 @@ public sealed class CommunityPlacementRenderingTests
     using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
         detail, Fixture("web.communities.members.default"), Fixture("web.communities.posts.default"),
         Fixture("web.communities.list-items.counts.default"))));
-    var page = new CommunityOverviewPage(model, Config());
+    var page = new CommunityOverviewPage(model, new AnonymousSessionStore(), Config());
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
@@ -49,7 +49,7 @@ public sealed class CommunityPlacementRenderingTests
     using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
         detail.ToJsonString(), Fixture("web.communities.members.default"), Fixture("web.communities.posts.default"),
         Fixture("web.communities.list-items.counts.default"))));
-    var page = new CommunityOverviewPage(model, Config());
+    var page = new CommunityOverviewPage(model, new AnonymousSessionStore(), Config());
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
