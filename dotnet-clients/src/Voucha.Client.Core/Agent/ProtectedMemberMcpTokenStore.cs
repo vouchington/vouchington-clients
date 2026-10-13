@@ -8,6 +8,8 @@ namespace Voucha.Client.Core.Agent;
 public sealed class ProtectedMemberMcpTokenStore(IMemberMcpProtectedValues values) : IMemberMcpAccountTokenStore, IDisposable
 {
   private const string IndexKey = "voucha.mcp.oauth.accounts.v1";
+  [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213", Justification =
+      "Queued session cleanup may outlive synchronous DI disposal; this semaphore has no native wait handle.")]
   private readonly SemaphoreSlim gate = new(1, 1);
 
   public async Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope)
@@ -97,6 +99,20 @@ public sealed class ProtectedMemberMcpTokenStore(IMemberMcpProtectedValues value
     finally { gate.Release(); }
   }
 
+  public async Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId)
+  {
+    ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
+    await gate.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      var grants = (await ReadAccountAsync(accountId).ConfigureAwait(false)).Tokens
+          .Select(entry => new MemberMcpStoredGrant(entry.Scope, entry.Tokens)).ToArray();
+      await RemoveAccountAsync(accountId).ConfigureAwait(false);
+      return grants;
+    }
+    finally { gate.Release(); }
+  }
+
   public async Task<bool> HasAccountGrantAsync(string accountId)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
@@ -153,7 +169,9 @@ public sealed class ProtectedMemberMcpTokenStore(IMemberMcpProtectedValues value
       string.Equals(left.IssuerIdentifier, right.IssuerIdentifier, StringComparison.Ordinal) &&
       left.Resource == right.Resource && left.ClientId == right.ClientId;
 
-  public void Dispose() => gate.Dispose();
+  // DI disposes synchronous services without awaiting the session's queued exact-account cleanup.
+  // SemaphoreSlim has no native handle here; keep it usable until that cleanup settles.
+  public void Dispose() { }
 
   private sealed record ScopedToken(MemberMcpOAuthTokenScope Scope, MemberMcpOAuthTokens Tokens);
   private sealed record PendingAuthorization(string State, string Verifier, Uri RedirectUri);

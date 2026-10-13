@@ -80,6 +80,23 @@ public sealed partial class MemberMcpTokenManager(
     }
   }
 
+  /// <summary>Fences future token writes and drains a rotation before account-wide local removal.</summary>
+  [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification =
+      "A failed in-flight token exchange cannot keep a signed-out account writable.")]
+  internal async Task BeginLocalSignOutAsync()
+  {
+    Task<MemberMcpOAuthTokens>? refreshing;
+    Task<MemberMcpOAuthTokens>? redeeming;
+    lock (gate)
+    {
+      signedOut = true;
+      refreshing = refreshTask;
+      redeeming = redeemTask;
+    }
+    if (refreshing is not null) { try { await refreshing.ConfigureAwait(false); } catch (Exception) { } }
+    if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
+  }
+
   public Task ClearAsync(string? rejectedAccessToken = null)
   {
     lock (gate)

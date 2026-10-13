@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Voucha.Client.Core.Agent;
 
 /// <summary>One account's OAuth grant and MCP transport, with a system-browser authorization fallback.</summary>
-public sealed class MemberMcpSessionConnection : IMemberMcpSessionConnection
+public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnection
 {
   private readonly Uri siteOrigin;
   private readonly MemberMcpOAuthMetadata metadata;
@@ -18,7 +18,8 @@ public sealed class MemberMcpSessionConnection : IMemberMcpSessionConnection
 
   public MemberMcpSessionConnection(
       Uri siteOrigin, string accountId, MemberMcpOAuthMetadata metadata,
-      IMemberMcpAccountTokenStore store, IMemberMcpSystemBrowser browser)
+      IMemberMcpAccountTokenStore store, IMemberMcpSystemBrowser browser,
+      Func<HttpMessageHandler>? createHandler = null)
   {
     this.siteOrigin = siteOrigin;
     this.metadata = metadata;
@@ -27,15 +28,15 @@ public sealed class MemberMcpSessionConnection : IMemberMcpSessionConnection
     this.browser = browser;
     var resource = new Uri(siteOrigin, "/api/v1/mcp");
     var clientId = new Uri(siteOrigin, "/api/v1/oauth/native-clients/windows");
-    tokenClient = new MemberMcpOAuthTokenClient(metadata, clientId, resource);
+    tokenClient = new MemberMcpOAuthTokenClient(metadata, clientId, resource, createHandler?.Invoke());
     tokens = new MemberMcpTokenManager(accountId, store, tokenClient);
-    client = new MemberMcpClient(siteOrigin);
+    client = new MemberMcpClient(siteOrigin, createHandler?.Invoke());
     authorized = new MemberMcpAuthorizedClient(client, tokens);
   }
 
   public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
   {
-    try { return await authorized.ListToolsAsync(cancellationToken).ConfigureAwait(false); }
+    try { return await ListToolsAsync(cancellationToken).ConfigureAwait(false); }
     catch (McpUnauthorizedException) { }
 
     var callback = MemberMcpLoopbackCallback.Start();
@@ -56,11 +57,12 @@ public sealed class MemberMcpSessionConnection : IMemberMcpSessionConnection
           .ConfigureAwait(false);
     }
     finally { await store.ClearPendingAsync(accountId).ConfigureAwait(false); }
-    return await authorized.ListToolsAsync(cancellationToken).ConfigureAwait(false);
+    return await ListToolsAsync(cancellationToken).ConfigureAwait(false);
   }
 
   public Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken) =>
-      authorized.ListToolsAsync(cancellationToken);
+      MemberMcpToolCatalog.ListAllAsync(
+          (cursor, token) => authorized.ListToolsAsync(cursor, token), cancellationToken);
 
   public async Task DisconnectAsync(CancellationToken cancellationToken)
   {

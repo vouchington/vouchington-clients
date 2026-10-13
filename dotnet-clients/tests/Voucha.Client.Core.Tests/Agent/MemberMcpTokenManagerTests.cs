@@ -189,6 +189,35 @@ public sealed class MemberMcpTokenManagerTests
     }
   }
 
+  [Fact]
+  public async Task LocalSignOutDrainsRotationBeforeAccountTakeAndRejectsLaterAccess()
+  {
+    var handler = new DeferredGrantHandler();
+    handler.Release.TrySetResult();
+    var store = new DeferredStore
+    {
+      Current = new MemberMcpOAuthTokens("expired", "old-refresh", 3600, "mcp.user:read", "Bearer")
+      {
+        AcquiredAt = DateTimeOffset.UtcNow.AddHours(-2)
+      }
+    };
+    using var tokenClient = new MemberMcpOAuthTokenClient(
+        Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
+        new Uri("https://example.test/api/v1/mcp"), handler);
+    var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
+    var access = manager.AccessTokenAsync();
+    await store.SaveEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    var draining = manager.BeginLocalSignOutAsync();
+    Assert.False(draining.IsCompleted);
+    store.ReleaseSave.SetResult();
+    await draining;
+
+    Assert.Equal("new-refresh", store.Current?.RefreshToken);
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => access);
+  }
+
   private static MemberMcpOAuthMetadata Metadata => new(
       "https://example.test", new Uri("https://example.test/authorize"),
       new Uri("https://example.test/token"), new Uri("https://example.test/revoke"));

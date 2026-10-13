@@ -49,6 +49,28 @@ public sealed class ProtectedMemberMcpTokenStoreTests
     Assert.Equal("other-client", (await store.LoadAsync(otherClient))?.AccessToken);
   }
 
+  [Fact]
+  public async Task TakeAccountReturnsAllScopesOnlyAfterExactAccountIsRemoved()
+  {
+    var values = new FakeProtectedValues();
+    var store = new ProtectedMemberMcpTokenStore(values);
+    var current = Scope("member-1", "https://issuer.test/");
+    var historical = Scope("member-1", "https://old-issuer.test/");
+    var other = Scope("member-10", "https://issuer.test/");
+    await store.SaveAsync(current, Tokens);
+    await store.SaveAsync(historical, Tokens with { RefreshToken = "old-refresh" });
+    await store.SaveAsync(other, Tokens with { AccessToken = "other-account" });
+
+    var taken = await store.TakeAccountAsync("member-1");
+    store.Dispose();
+
+    Assert.Equal(2, taken.Count);
+    Assert.Contains(taken, grant => grant.Scope == historical && grant.Tokens.RefreshToken == "old-refresh");
+    Assert.Null(await store.LoadAsync(current));
+    Assert.Null(await store.LoadAsync(historical));
+    Assert.Equal("other-account", (await store.LoadAsync(other))?.AccessToken);
+  }
+
   [Theory]
   [InlineData(1)]
   [InlineData(2)]

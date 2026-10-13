@@ -48,18 +48,29 @@ public sealed partial class MemberMcpSession
         activeCancellation?.Dispose();
         activeCancellation = null;
       }
+      var drain = connection is MemberMcpSessionConnection live ? live.BeginLocalSignOutAsync() : null;
+      IReadOnlyList<MemberMcpStoredGrant> grants;
       try
       {
-        if (connection is not null)
-          await DisconnectBestEffortAsync(connection).ConfigureAwait(false);
-        else if (priorAccount is not null &&
-            await store.HasAccountGrantAsync(priorAccount).ConfigureAwait(false))
-          await RevokePersistedGrantAsync(priorAccount).ConfigureAwait(false);
+        grants = priorAccount is null ? [] :
+            await store.TakeAccountAsync(priorAccount).ConfigureAwait(false);
+        if (drain is not null)
+        {
+          await drain.ConfigureAwait(false);
+          grants = [.. grants, .. await store.TakeAccountAsync(priorAccount!).ConfigureAwait(false)];
+        }
       }
-      finally
+      catch
       {
-        if (priorAccount is not null) await store.ClearAccountAsync(priorAccount).ConfigureAwait(false);
+        if (connection is not null) await connection.DisposeAsync().ConfigureAwait(false);
+        throw;
       }
+      if (connection is MemberMcpSessionConnection current)
+        _ = current.StartRemoteCleanup(grants);
+      else if (connection is not null)
+        _ = DisconnectBestEffortAsync(connection);
+      else if (priorAccount is not null && grants.Count > 0)
+        _ = RevokePersistedGrantAsync(priorAccount, grants);
       if (priorFailed) await store.ClearAllAccountsAsync().ConfigureAwait(false);
     }
     finally { operation.Release(); }
@@ -69,7 +80,8 @@ public sealed partial class MemberMcpSession
       "Remote close and revoke are best effort; protected exact-account cleanup remains mandatory.")]
   private static async Task DisconnectBestEffortAsync(IMemberMcpSessionConnection connection)
   {
-    try { await connection.DisconnectAsync(CancellationToken.None).ConfigureAwait(false); }
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+    try { await connection.DisconnectAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false); }
     catch (Exception error) { System.Diagnostics.Debug.WriteLine($"MCP remote close failed: {error.GetType().Name}"); }
     try { await connection.DisposeAsync().ConfigureAwait(false); }
     catch (Exception error) { System.Diagnostics.Debug.WriteLine($"MCP remote dispose failed: {error.GetType().Name}"); }
@@ -77,12 +89,15 @@ public sealed partial class MemberMcpSession
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification =
       "Offline discovery or revocation cannot prevent exact-account local credential deletion.")]
-  private async Task RevokePersistedGrantAsync(string account)
+  private async Task RevokePersistedGrantAsync(string account, IReadOnlyList<MemberMcpStoredGrant> grants)
   {
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
     try
     {
-      var connection = await factory.CreateAsync(account, CancellationToken.None).ConfigureAwait(false);
-      await DisconnectBestEffortAsync(connection).ConfigureAwait(false);
+      var connection = await factory.CreateAsync(account, timeout.Token).WaitAsync(timeout.Token)
+          .ConfigureAwait(false);
+      if (connection is MemberMcpSessionConnection current) _ = current.StartRemoteCleanup(grants);
+      else await DisconnectBestEffortAsync(connection).ConfigureAwait(false);
     }
     catch (Exception error) { System.Diagnostics.Debug.WriteLine($"MCP persisted grant revoke failed: {error.GetType().Name}"); }
   }

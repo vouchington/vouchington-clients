@@ -10,8 +10,8 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   public bool HasMemberSession => session.HasMemberSession;
   public bool IsConnected => session.Status == MemberMcpSessionStatus.Connected;
   public bool IsBusy => session.Status == MemberMcpSessionStatus.Connecting;
-  public bool CanConnect => HasMemberSession && !IsConnected && !IsBusy;
-  public bool CanDisconnect => IsBusy || IsConnected;
+  public bool CanConnect => HasMemberSession && !IsConnected && !IsBusy && !HasError;
+  public bool CanDisconnect => IsBusy || IsConnected || HasError;
   public bool HasError => hasError || session.Status == MemberMcpSessionStatus.Error;
 
   public async Task ConnectAsync(CancellationToken cancellationToken = default)

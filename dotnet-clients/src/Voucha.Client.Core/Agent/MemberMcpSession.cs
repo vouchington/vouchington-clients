@@ -40,7 +40,7 @@ public sealed partial class MemberMcpSession : IDisposable
     this.factory = factory;
     lifetimeToken = lifetime.Token;
     accountId = sessionStore.Current.Identity?.Id;
-    cleanupTail = accountId is null ? store.ClearAllAccountsAsync() : Task.CompletedTask;
+    cleanupTail = Task.CompletedTask;
     sessionStore.SessionChanged += OnSessionChanged;
   }
 
@@ -110,14 +110,7 @@ public sealed partial class MemberMcpSession : IDisposable
     catch (Exception error)
     {
       if (created is not null)
-      {
-        try
-        {
-          if (error is OperationCanceledException || sessionStore.Current.Identity?.Id != accountId)
-            await created.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        finally { await created.DisposeAsync().ConfigureAwait(false); }
-      }
+        await created.DisposeAsync().ConfigureAwait(false);
       lock (gate)
       {
         if (Status == MemberMcpSessionStatus.Connecting)
@@ -155,6 +148,15 @@ public sealed partial class MemberMcpSession : IDisposable
       using var linked = CancellationTokenSource.CreateLinkedTokenSource(wait.Token, sessionToken);
       JsonElement tools;
       try { tools = await connection.ListToolsAsync(linked.Token).ConfigureAwait(false); }
+      catch (McpUnauthorizedException)
+      {
+        lock (gate)
+        {
+          if (generation == revision && ReferenceEquals(active, connection))
+            _ = QueueCleanup(accountId);
+        }
+        throw;
+      }
       catch
       {
         var invalidated = false;

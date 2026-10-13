@@ -129,6 +129,8 @@ public sealed class ChatMemberMcpControlsTests
     public Task SavePendingAsync(string accountId, string state, string verifier, Uri redirectUri) => Task.CompletedTask;
     public Task ClearPendingAsync(string accountId) => Task.CompletedTask;
     public Task<bool> HasAccountGrantAsync(string accountId) => Task.FromResult(false);
+    public Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId) =>
+        Task.FromResult<IReadOnlyList<MemberMcpStoredGrant>>([]);
     public Task ClearAccountAsync(string accountId) => Task.CompletedTask;
     public Task ClearAllAccountsAsync() => Task.CompletedTask;
   }

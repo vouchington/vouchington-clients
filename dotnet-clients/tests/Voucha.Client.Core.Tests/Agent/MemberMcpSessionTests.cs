@@ -9,17 +9,22 @@ namespace Voucha.Client.Core.Tests.Agent;
 public sealed class MemberMcpSessionTests
 {
   [Fact]
-  public async Task SignedOutColdStartClearsPersistedAccountsWithoutDiscovery()
+  public async Task UnresolvedStartupSessionPreservesGrantUntilAccountIsConfirmed()
   {
     var store = new FakeStore();
     await store.SaveAsync(Scope("account-a"), Tokens);
     var factory = new FakeFactory();
-    using var session = new MemberMcpSession(new FakeSessionStore(), store, factory);
+    var identity = new FakeSessionStore();
+    using var session = new MemberMcpSession(identity, store, factory);
 
     await session.WhenSettledAsync();
 
-    Assert.Null(await store.LoadAsync(Scope("account-a")));
+    Assert.NotNull(await store.LoadAsync(Scope("account-a")));
     Assert.Equal(0, factory.Created);
+
+    identity.SetAccount("account-a");
+    await session.WhenSettledAsync();
+    Assert.NotNull(await store.LoadAsync(Scope("account-a")));
   }
 
   [Fact]
@@ -69,6 +74,28 @@ public sealed class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task HeldRemoteCloseCannotDelayLocalRemovalOrNewAccountConnect()
+  {
+    var identity = new FakeSessionStore("account-a");
+    var store = new FakeStore();
+    await store.SaveAsync(Scope("account-a"), Tokens);
+    var heldClose = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var factory = new FakeFactory(heldClose);
+    using var session = new MemberMcpSession(identity, store, factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+
+    identity.SetAccount("account-b");
+    await factory.Connections[0].DisconnectEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    Assert.Null(await store.LoadAsync(Scope("account-a")));
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, factory.Created);
+    Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
+    Assert.False(heldClose.Task.IsCompleted);
+
+    heldClose.SetResult();
+  }
+
+  [Fact]
   public async Task SwitchDuringDiscoveryCannotPublishOldAccountTools()
   {
     var identity = new FakeSessionStore("account-a");
@@ -103,7 +130,7 @@ public sealed class MemberMcpSessionTests
 
     Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
     Assert.Null(session.Tools);
-    Assert.Equal(1, factory.Connections[0].DisconnectCalls);
+    Assert.Equal(0, factory.Connections[0].DisconnectCalls);
     Assert.Contains("account-a", store.ClearedAccounts);
 
     factory.HoldConnect = false;
@@ -175,6 +202,28 @@ public sealed class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task DefinitiveUnauthorizedRefreshClearsGrantAndRequiresFreshConnection()
+  {
+    var identity = new FakeSessionStore("account-a");
+    var store = new FakeStore();
+    await store.SaveAsync(Scope("account-a"), Tokens);
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(identity, store, factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+
+    factory.Connections[0].UnauthorizedRefresh = true;
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() =>
+        session.RefreshToolsAsync(TestContext.Current.CancellationToken));
+    await session.WhenSettledAsync();
+
+    Assert.Null(session.Tools);
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+    Assert.Null(await store.LoadAsync(Scope("account-a")));
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, factory.Created);
+  }
+
+  [Fact]
   public async Task RefreshRemovesOldCatalogBeforeDiscoveryCompletes()
   {
     var factory = new FakeFactory { HoldRefresh = true };
@@ -209,7 +258,7 @@ public sealed class MemberMcpSessionTests
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => connecting);
     await session.WhenSettledAsync();
 
-    Assert.Equal(1, factory.Connections[0].DisconnectCalls);
+    Assert.Equal(0, factory.Connections[0].DisconnectCalls);
     Assert.Contains("account-a", store.ClearedAccounts);
   }
 
@@ -249,6 +298,28 @@ public sealed class MemberMcpSessionTests
     Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
   }
 
+  [Fact]
+  public async Task FailedProtectedCleanupCanBeRetriedBeforeConnectingAgain()
+  {
+    var store = new FakeStore { FailClearOnce = true };
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var controls = new MemberMcpControlsViewModel(session);
+
+    await Assert.ThrowsAsync<IOException>(() => controls.DisconnectAsync());
+    controls.MarkError();
+    Assert.True(controls.HasError);
+    Assert.True(controls.CanDisconnect);
+    Assert.False(controls.CanConnect);
+
+    await controls.DisconnectAsync();
+    Assert.False(controls.HasError);
+    Assert.True(controls.CanConnect);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, factory.Created);
+  }
+
   private static MemberMcpOAuthTokenScope Scope(string accountId) =>
       new(accountId, "https://issuer.test/", new Uri("https://example.test/api/v1/mcp"),
           new Uri("https://example.test/api/v1/oauth/native-clients/windows"));
@@ -280,6 +351,7 @@ public sealed class MemberMcpSessionTests
     private readonly Dictionary<MemberMcpOAuthTokenScope, MemberMcpOAuthTokens> tokens = [];
     public List<string> ClearedAccounts { get; } = [];
     public string? HeldClearAccount { get; set; }
+    public bool FailClearOnce { get; set; }
     public TaskCompletionSource ClearEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource ReleaseClear { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope) =>
@@ -299,8 +371,20 @@ public sealed class MemberMcpSessionTests
     public Task ClearPendingAsync(string accountId) => Task.CompletedTask;
     public Task<bool> HasAccountGrantAsync(string accountId) => Task.FromResult(
         tokens.Keys.Any(scope => scope.AccountId == accountId));
+    public async Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId)
+    {
+      var grants = tokens.Where(entry => entry.Key.AccountId == accountId)
+          .Select(entry => new MemberMcpStoredGrant(entry.Key, entry.Value)).ToArray();
+      await ClearAccountAsync(accountId);
+      return grants;
+    }
     public async Task ClearAccountAsync(string accountId)
     {
+      if (FailClearOnce)
+      {
+        FailClearOnce = false;
+        throw new IOException("Protected account cleanup failed");
+      }
       if (accountId == HeldClearAccount)
       {
         ClearEntered.TrySetResult();
@@ -338,6 +422,7 @@ public sealed class MemberMcpSessionTests
       : IMemberMcpSessionConnection
   {
     public bool FailRefresh { get; set; }
+    public bool UnauthorizedRefresh { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -353,6 +438,7 @@ public sealed class MemberMcpSessionTests
     {
       RefreshEntered.TrySetResult();
       if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
+      if (UnauthorizedRefresh) throw new McpUnauthorizedException();
       if (FailRefresh) throw new IOException("Tool discovery failed");
       return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }

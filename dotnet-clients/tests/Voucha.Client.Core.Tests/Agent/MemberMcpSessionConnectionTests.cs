@@ -84,6 +84,8 @@ public sealed class MemberMcpSessionConnectionTests
         Task.CompletedTask;
     public Task ClearAsync(MemberMcpOAuthTokenScope scope) => Task.CompletedTask;
     public Task<bool> HasAccountGrantAsync(string accountId) => Task.FromResult(false);
+    public Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId) =>
+        Task.FromResult<IReadOnlyList<MemberMcpStoredGrant>>([]);
     public Task ClearAccountAsync(string accountId) => Task.CompletedTask;
     public Task ClearAllAccountsAsync() => Task.CompletedTask;
     public Task SavePendingAsync(string accountId, string state, string verifier, Uri redirectUri)

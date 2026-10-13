@@ -15,11 +15,13 @@ public static partial class MauiProgram
     services.AddSingleton<IMemberMcpProtectedValues, MauiMemberMcpProtectedValues>();
     services.AddSingleton<IMemberMcpAccountTokenStore, ProtectedMemberMcpTokenStore>();
     services.AddSingleton<IMemberMcpSystemBrowser, MauiMemberMcpSystemBrowser>();
+    services.AddSingleton<MemberMcpHttpHandlerFactory>();
     services.AddSingleton<IMemberMcpSessionConnectionFactory>(sp =>
         new MemberMcpSessionConnectionFactory(
             sp.GetRequiredService<AppConfig>().ApiBaseUrl,
             sp.GetRequiredService<IMemberMcpAccountTokenStore>(),
-            sp.GetRequiredService<IMemberMcpSystemBrowser>()));
+            sp.GetRequiredService<IMemberMcpSystemBrowser>(),
+            sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create));
     services.AddSingleton<MemberMcpSession>();
 #endif
     services.AddSingleton<IChatProviderResolver, ChatProviderResolver>();
