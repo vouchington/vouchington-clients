@@ -26,22 +26,28 @@ final class NativeReferralLinksManagementViewModelReloadTests: NativeRouteSurfac
     }
 
     func testLoadMoreLinksIsIgnoredDuringCombinedLoad() async throws {
+        let clicksPath = "/api/v1/my/referral-clicks"
         CannedFeedURLProtocol.queuedHandlers["/api/v1/referral-links"] = [
             (referralLinksPage(ids: ["old-link"], endCursor: "old-cursor", hasNextPage: true), 200, 0),
             (referralLinksPage(ids: ["new-link"], endCursor: "new-cursor", hasNextPage: true), 200, 0),
             (referralLinksPage(ids: ["extra-link"], endCursor: nil, hasNextPage: false), 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/my/referral-clicks"] = [
+        CannedFeedURLProtocol.queuedHandlers[clicksPath] = [
             (emptyReferralClicksFeed(), 200, 0),
-            (emptyReferralClicksFeed(), 200, 0.1)
+            (emptyReferralClicksFeed(), 200, 0)
         ]
         let client = try makeClient()
         let viewModel = NativeReferralLinksManagementViewModel(client: client)
 
         await viewModel.load()
+        let combinedLoadWaiting = expectation(description: "combined referral load is waiting on clicks")
+        CannedFeedURLProtocol.suspendResponse(path: clicksPath) {
+            combinedLoadWaiting.fulfill()
+        }
         async let loadingTask: Void = viewModel.load()
-        try await Task.sleep(nanoseconds: 20_000_000)
+        await fulfillment(of: [combinedLoadWaiting], timeout: 2)
         await viewModel.loadMoreLinks()
+        CannedFeedURLProtocol.releaseResponse(path: clicksPath)
         await loadingTask
 
         XCTAssertEqual(
