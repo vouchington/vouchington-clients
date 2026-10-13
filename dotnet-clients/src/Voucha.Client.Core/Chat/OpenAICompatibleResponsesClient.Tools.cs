@@ -46,7 +46,6 @@ public sealed partial class OpenAICompatibleResponsesClient
       strict = false,
     }).ToArray();
     var remainingCalls = 4;
-    var remainingOutputBytes = 256_000;
     var seenCallIds = new HashSet<string>(StringComparer.Ordinal);
     var attemptedToolExecution = false;
     byte[] RequestBody() => JsonSerializer.SerializeToUtf8Bytes(new
@@ -89,12 +88,12 @@ public sealed partial class OpenAICompatibleResponsesClient
           if (validate is not null)
             await validate(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
           // The bridge returns a JSON envelope with escaped controls. Backslashes reserve
-          // the maximum outer-JSON expansion of every remaining allowed result byte.
+          // the maximum outer-JSON expansion of every allowed per-call result byte.
           input.Add(new
           {
             type = "function_call_output",
             call_id = call.CallId,
-            output = new string('\\', remainingOutputBytes),
+            output = new string('\\', 256_000),
           });
           try
           {
@@ -105,8 +104,8 @@ public sealed partial class OpenAICompatibleResponsesClient
           attemptedToolExecution = true;
           var result = await execute(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-          remainingOutputBytes -= Encoding.UTF8.GetByteCount(result);
-          if (remainingOutputBytes < 0) throw new InvalidDataException("MCP tool output too large.");
+          if (Encoding.UTF8.GetByteCount(result) > 256_000)
+            throw new InvalidDataException("MCP tool output too large.");
           input.Add(new { type = "function_call_output", call_id = call.CallId, output = result });
         }
       }

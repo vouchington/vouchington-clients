@@ -156,6 +156,26 @@ public sealed class OpenAICompatibleMcpToolLoopTests
   }
 
   [Fact]
+  public async Task LaterToolCallRetainsItsFullPerCallResultAllowance()
+  {
+    var first = """{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""";
+    var second = """{"output":[{"type":"function_call","call_id":"two","name":"write","arguments":"{}"}]}""";
+    using var handler = new RepliesHandler(first, second, """{"output_text":"Done","output":[]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+
+    var answer = await client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => Task.FromResult(new string('x', ++executed == 1 ? 150_000 : 256_000)),
+        TestContext.Current.CancellationToken);
+
+    Assert.Equal("Done", answer);
+    Assert.Equal(2, executed);
+    Assert.Equal(3, handler.Bodies.Count);
+  }
+
+  [Fact]
   public async Task DuplicateCallIdAcrossResponsesNeverExecutesTwice()
   {
     var call = """{"type":"function_call","call_id":"same","name":"write","arguments":"{}"}""";
