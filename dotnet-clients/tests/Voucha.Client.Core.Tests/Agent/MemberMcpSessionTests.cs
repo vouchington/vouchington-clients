@@ -157,10 +157,15 @@ public sealed partial class MemberMcpSessionTests
     identity.SetAccount("account-a");
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
     await store.ClearEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
-    Assert.False(waiting.IsCompleted);
-    Assert.Equal(1, factory.Created);
-
-    store.ReleaseClear.SetResult();
+    var completedWhileHeld = waiting.IsCompleted;
+    var statusWhileHeld = waiting.Status;
+    var errorWhileHeld = waiting.Exception?.ToString();
+    var createdWhileHeld = factory.Created;
+    store.ReleaseClear.TrySetResult();
+    Assert.False(completedWhileHeld,
+        $"Queued connect completed while account-B cleanup was held: status={statusWhileHeld}, " +
+        $"created={createdWhileHeld}, error={errorWhileHeld}");
+    Assert.Equal(1, createdWhileHeld);
     await waiting;
     Assert.Equal(2, factory.Created);
     Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
