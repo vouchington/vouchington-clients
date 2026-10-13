@@ -1000,13 +1000,13 @@ jobs:
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
-        run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config
+        run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config -p:MSBuildEnableWorkloadResolver=false
       - name: Test the Windows image decoder
         working-directory: candidate-clients
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
-        run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore
+        run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: always()

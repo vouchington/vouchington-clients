@@ -97,6 +97,7 @@ describe('native contract workflow boundary', () => {
     ])
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
+    const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
 
     assert.match(portable, /^    name: \.NET portable$/mu)
     assert.match(portable, /runs-on: ubuntu-latest/u)
@@ -104,6 +105,8 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(portable, /macos/u)
     assert.doesNotMatch(portable, /matrix\.os/u)
     assert.match(maui, /runs-on: macos-latest/u)
+    assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
+    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
     assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)

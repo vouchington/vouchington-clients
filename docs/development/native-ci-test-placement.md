@@ -42,6 +42,10 @@ keep a second OS.
 The Windows decoder test is a separate, changed-file-routed test project that links only the
 Windows image decoder helper. It runs when the helper, its consumer/tests, pinned SDK or package
 graph, and its CI routing/policy change. It does not build or test the full MAUI Windows app.
+The isolated mise SDK does not install workloads, while the repository's `global.json` pins a
+workload manifest version. This workload-free project passes `MSBuildEnableWorkloadResolver=false`
+only to its locked restore and test commands so MSBuild does not fail while probing absent
+workload manifests; the Windows target and WinRT decoder tests still compile and run.
 
 Do not add `strategy.matrix.os` (or a second job that runs the same `dotnet test` / `swift test`
 filter) unless the new OS compiles different source or links a different networking stack.
