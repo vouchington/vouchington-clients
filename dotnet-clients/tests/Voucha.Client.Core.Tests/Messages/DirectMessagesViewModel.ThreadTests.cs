@@ -17,7 +17,10 @@ public sealed class DirectMessagesViewModelThreadTests
           [Message("m2", "c1", "newest", "alice")],
           new PageInfo("cursor-1", true, null, true)),
       ParticipantsResponse = new DirectMessageParticipantsResponse(
-          [Participant("p1", "c1", "me", "owner", "me"), Participant("p2", "c1", "u2", "member", null)],
+          [Participant("p1", "c1", "me", "owner", "me"), Participant("p2", "c1", "u2", "member", null) with
+          {
+            ProfileImagePlacement = new TopicImagePlacement("avatar-1", "participant-placement", 2),
+          }],
           new PageInfo(null, false, null)),
     };
     var viewModel = new DirectMessagesViewModel(service, "me");
@@ -37,6 +40,8 @@ public sealed class DirectMessagesViewModelThreadTests
     Assert.Equal(["older", "newest"], viewModel.Messages.Select(row => row.BodyText));
     Assert.Equal("Message", viewModel.Messages[0].SenderLabel);
     Assert.Equal("Member", viewModel.Participants[1].Label);
+    Assert.Equal(new TopicImagePlacement("avatar-1", "participant-placement", 2),
+        viewModel.Participants[1].ProfileImagePlacement);
     Assert.Equal("cursor-1", service.MessageFetchRequests[1].After);
     Assert.False(viewModel.HasMoreMessages);
   }

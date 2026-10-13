@@ -104,7 +104,12 @@ public sealed partial class VouchaApiClientTests
         TestContext.Current.CancellationToken);
 
     Assert.Equal("fixtureuser", participants.Results[0].Username);
+    Assert.Null(participants.Results[0].ProfileImagePlacement);
+    Assert.Equal(new TopicImagePlacement("image-alice", "dm-alice-profile-placement", 3),
+        participants.Results[1].ProfileImagePlacement);
     Assert.Equal("bob", added.Participant.Username);
+    Assert.Equal(new TopicImagePlacement("image-bob", "dm-bob-profile-placement", 4),
+        added.Participant.ProfileImagePlacement);
     Assert.Equal("owner_only", policy.ParticipantAddPolicy);
     Assert.Equal(HttpMethod.Patch, handler.Requests.Last().Method);
   }

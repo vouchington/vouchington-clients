@@ -115,10 +115,7 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="messages:DirectMessageParticipantRow">
                             <Grid ColumnDefinitions="*,Auto" Padding="0,0,0,8">
-                                <VerticalStackLayout>
-                                    <Label Text="{Binding Label}" Style="{StaticResource Body}" />
-                                    <Label Text="{Binding Role}" Style="{StaticResource Metadata}" />
-                                </VerticalStackLayout>
+                                <controls:DirectMessageParticipantView />
                                 <Button Grid.Column="1" Text="{Binding RemoveActionLabel}" IsEnabled="{Binding CanRemove}" Clicked="OnRemoveParticipantClicked" CommandParameter="{Binding .}" />
                             </Grid>
                         </DataTemplate>

@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Messages;
@@ -26,7 +27,8 @@ public sealed record DirectMessageParticipantRow(
     UiText RoleText,
     bool CanRemove,
     UiText RemoveActionText,
-    IUiLocalization Localization)
+    IUiLocalization Localization,
+    TopicImagePlacement? ProfileImagePlacement = null)
 {
   public string Label => Localization.Resolve(LabelText);
 

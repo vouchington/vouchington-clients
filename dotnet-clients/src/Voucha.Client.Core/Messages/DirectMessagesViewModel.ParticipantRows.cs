@@ -36,6 +36,7 @@ public sealed partial class DirectMessagesViewModel
             string.Equals(participant.UserId, currentUserId, StringComparison.Ordinal)
                 ? UiMessageKey.NativeDotnetCsharpCommunitiesLeave
                 : UiMessageKey.NativeDotnetCsharpCommunitiesRemove),
-        localization);
+        localization,
+        participant.ProfileImagePlacement);
   }
 }
