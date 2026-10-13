@@ -242,6 +242,35 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         await release.value
     }
 
+    func testDisconnectDoesNotRefreshNearlyExpiredAccessTokenBeforeClearingGrant() async throws {
+        MCPAgentURLProtocol.configure()
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let store = HeldClearMCPTokenStore(holdClear: false)
+        let accountScope = scope(for: "member-a", site: site)
+        try await store.save(.init(
+            accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
+            scope: "mcp.user:read", tokenType: "Bearer"
+        ), scope: accountScope)
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: store,
+            browserCode: { _, _ in XCTFail("Existing grant must avoid browser authorization")
+                return ""
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+        _ = try await service.connect(accountId: "member-a")
+        try await store.save(.init(
+            accessToken: "near-expiry", refreshToken: "old-refresh", expiresIn: 1,
+            scope: "mcp.user:read", tokenType: "Bearer"
+        ), scope: accountScope)
+
+        try await service.disconnect(accountId: "member-a")
+
+        let cleared = try await store.load(scope: accountScope)
+        XCTAssertNil(cleared)
+        XCTAssertEqual(MCPAgentURLProtocol.tokenRequestCount, 0)
+        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 1)
+    }
+
     func testOfflineColdSignOutClearsOnlyFormerAccountGrant() async throws {
         MCPAgentURLProtocol.configure(discoveryUnavailable: true)
         let site = try XCTUnwrap(URL(string: "https://example.test"))
@@ -273,6 +302,41 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
 
         let cleared = try await store.load(scope: scope)
         let retained = try await store.load(scope: other)
+        XCTAssertNil(cleared)
+        XCTAssertNotNil(retained)
+        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 0)
+    }
+
+    func testColdSignOutClearsOldIssuerGrantAfterCurrentMetadataChanges() async throws {
+        MCPAgentURLProtocol.configure()
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let store = HeldClearMCPTokenStore(holdClear: false)
+        let oldAccountScope = MemberMCPOAuthTokenScope(
+            accountId: "member-a", issuerIdentifier: "https://old-issuer.test",
+            resource: site.appendingPathComponent("api/v1/mcp"),
+            clientId: site.appendingPathComponent("api/v1/oauth/native-clients/old-client")
+        )
+        let otherAccountScope = MemberMCPOAuthTokenScope(
+            accountId: "member-b", issuerIdentifier: oldAccountScope.issuerIdentifier,
+            resource: oldAccountScope.resource, clientId: oldAccountScope.clientId
+        )
+        let credentials = MemberMCPOAuthTokens(
+            accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
+            scope: "mcp.user:read", tokenType: "Bearer"
+        )
+        try await store.save(credentials, scope: oldAccountScope)
+        try await store.save(credentials, scope: otherAccountScope)
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: store,
+            browserCode: { _, _ in XCTFail("Sign-out must not present a browser")
+                return ""
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+
+        try await service.disconnect(accountId: "member-a")
+
+        let cleared = try await store.load(scope: oldAccountScope)
+        let retained = try await store.load(scope: otherAccountScope)
         XCTAssertNil(cleared)
         XCTAssertNotNil(retained)
         XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 0)

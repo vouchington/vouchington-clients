@@ -3,6 +3,8 @@ import VouchaAPI
 
 @MainActor
 enum NativeChatMCPPersistedGrantCleanup {
+    enum Failure: Error { case accountClearingUnavailable }
+
     struct Input {
         let accountId: String
         let siteOrigin: URL
@@ -24,11 +26,10 @@ enum NativeChatMCPPersistedGrantCleanup {
             try await MemberMCPTokenManager(
                 accountId: input.accountId, store: input.tokenStore, tokenClient: tokenClient
             ).signOut()
-        } catch {
-            guard let accountClearing = input.tokenStore as? any MemberMCPOAuthAccountClearing else {
-                throw error
-            }
-            try await accountClearing.clearAccount(input.accountId)
+        } catch { /* Remote discovery and revocation are best effort; local account deletion is mandatory. */ }
+        guard let accountClearing = input.tokenStore as? any MemberMCPOAuthAccountClearing else {
+            throw Failure.accountClearingUnavailable
         }
+        try await accountClearing.clearAccount(input.accountId)
     }
 }

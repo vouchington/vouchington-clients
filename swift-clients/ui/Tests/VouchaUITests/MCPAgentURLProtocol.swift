@@ -5,6 +5,7 @@ final class MCPAgentURLProtocol: URLProtocol {
     private static var unavailable = false
     private static var paginatedTools = false
     private static var revoked = 0
+    private static var tokenRequests = 0
     private static var shouldHoldClose = false
     private static var heldClose: MCPAgentURLProtocol?
     private static var closeWaiters: [CheckedContinuation<Void, Never>] = []
@@ -18,6 +19,7 @@ final class MCPAgentURLProtocol: URLProtocol {
         unavailable = discoveryUnavailable
         self.paginatedTools = paginatedTools
         revoked = 0
+        tokenRequests = 0
         shouldHoldClose = holdClose
         heldClose = nil
         closeWaiters = []
@@ -58,6 +60,12 @@ final class MCPAgentURLProtocol: URLProtocol {
         return revoked
     }
 
+    static var tokenRequestCount: Int {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return tokenRequests
+    }
+
     override class func canInit(with _: URLRequest) -> Bool {
         true
     }
@@ -91,6 +99,7 @@ final class MCPAgentURLProtocol: URLProtocol {
             return
         }
         if path == "/revoke" { Self.revoked += 1 }
+        if path == "/token" { Self.tokenRequests += 1 }
         Self.stateLock.unlock()
         let payload: String
         let status: Int

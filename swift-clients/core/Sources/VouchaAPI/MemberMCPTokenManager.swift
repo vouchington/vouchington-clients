@@ -33,6 +33,16 @@ public actor MemberMCPTokenManager {
         return tokens.accessToken
     }
 
+    /// Reads an already valid token for optional remote session cleanup without refreshing it.
+    public func cachedAccessTokenForClose() async throws -> String? {
+        guard !signedOut, !clearing, let tokens = try await store.load(scope: scope) else { return nil }
+        guard tokens.expiresIn > 30,
+              tokens.acquiredAt.addingTimeInterval(TimeInterval(tokens.expiresIn - 30)) > Date() else {
+            return nil
+        }
+        return tokens.accessToken
+    }
+
     public func redeem(code: String, verifier: String, redirectURI: URL) async throws -> String {
         guard !signedOut, !clearing, redeemTask == nil else { throw Failure.notAuthorized }
         let previousRefresh = refreshTask
