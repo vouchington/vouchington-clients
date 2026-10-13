@@ -448,6 +448,11 @@
   <data name="native.dotnet.bookmarks.viewedPodcasts" xml:space="preserve"><value>Podcasts vistos recentemente</value></data>
   <data name="native.dotnet.bookmarks.viewedTopics" xml:space="preserve"><value>Tópicos vistos recentemente</value></data>
   <data name="native.dotnet.bookmarks.viewedVideos" xml:space="preserve"><value>Vídeos vistos recentemente</value></data>
+  <data name="native.dotnet.chat.mcpConnect" xml:space="preserve"><value>Ligar as ferramentas Voucha</value></data>
+  <data name="native.dotnet.chat.mcpConnected" xml:space="preserve"><value>Ferramentas Voucha ligadas</value></data>
+  <data name="native.dotnet.chat.mcpConnectionFailed" xml:space="preserve"><value>Ocorreu um problema. Tente novamente.</value></data>
+  <data name="native.dotnet.chat.mcpDisconnect" xml:space="preserve"><value>Desligar as ferramentas Voucha</value></data>
+  <data name="native.dotnet.chat.mcpRefresh" xml:space="preserve"><value>Atualizar ferramentas</value></data>
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Escolha um modelo local.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Envie uma mensagem para iniciar a conversa.</value></data>
   <data name="native.dotnet.chatConversation.enterLocalResponsesEndpoint" xml:space="preserve"><value>Introduza um ponto final local da API Responses.</value></data>

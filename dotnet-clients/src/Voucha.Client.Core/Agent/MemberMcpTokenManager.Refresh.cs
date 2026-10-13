@@ -29,21 +29,18 @@ public sealed partial class MemberMcpTokenManager
       var previous = await store.LoadAsync(scope).ConfigureAwait(false)
           ?? throw new McpUnauthorizedException();
       MemberMcpOAuthTokens next;
-      try { next = await tokenClient.RefreshAsync(previous.RefreshToken).ConfigureAwait(false); }
+      try { next = await tokenClient.RefreshAsync(previous.RefreshToken, exchangeCancellation.Token).ConfigureAwait(false); }
       catch (McpUnauthorizedException)
       {
-        await store.ClearAsync(scope).ConfigureAwait(false);
-        lock (gate) { latestRefreshedTokens = null; }
+        await ClearActiveTokensAsync(null).ConfigureAwait(false);
         throw;
       }
-      try { await store.SaveAsync(scope, next).ConfigureAwait(false); }
+      try { await SaveActiveTokensAsync(next).ConfigureAwait(false); }
       catch
       {
-        await store.ClearAsync(scope).ConfigureAwait(false);
-        lock (gate) { latestRefreshedTokens = null; }
+        await ClearActiveTokensAsync(null).ConfigureAwait(false);
         throw;
       }
-      lock (gate) { latestRefreshedTokens = next; }
       return next;
     }).ConfigureAwait(false);
   }

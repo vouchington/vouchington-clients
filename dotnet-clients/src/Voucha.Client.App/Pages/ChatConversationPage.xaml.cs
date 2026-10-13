@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
@@ -15,12 +16,14 @@ public partial class ChatConversationPage : ContentPage
   private string? initialMessage;
   private bool hasLoaded;
 
-  public ChatConversationPage(ChatConversationViewModel viewModel, IChatService chatService)
+  public ChatConversationPage(
+      ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
     InitializeComponent();
     BindingContext = viewModel;
+    if (mcpSession is not null) McpControlsHost.Content = new ChatMemberMcpControlsView(mcpSession);
   }
 
   public void SetContext(string? conversationId = null, string? conversationTitle = null, string? initialMessage = null)

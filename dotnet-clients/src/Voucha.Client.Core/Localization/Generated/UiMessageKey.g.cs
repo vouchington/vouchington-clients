@@ -448,6 +448,11 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetBookmarksViewedPodcasts = new("native.dotnet.bookmarks.viewedPodcasts");
     public static readonly UiMessageKey NativeDotnetBookmarksViewedTopics = new("native.dotnet.bookmarks.viewedTopics");
     public static readonly UiMessageKey NativeDotnetBookmarksViewedVideos = new("native.dotnet.bookmarks.viewedVideos");
+    public static readonly UiMessageKey NativeDotnetChatMcpConnect = new("native.dotnet.chat.mcpConnect");
+    public static readonly UiMessageKey NativeDotnetChatMcpConnected = new("native.dotnet.chat.mcpConnected");
+    public static readonly UiMessageKey NativeDotnetChatMcpConnectionFailed = new("native.dotnet.chat.mcpConnectionFailed");
+    public static readonly UiMessageKey NativeDotnetChatMcpDisconnect = new("native.dotnet.chat.mcpDisconnect");
+    public static readonly UiMessageKey NativeDotnetChatMcpRefresh = new("native.dotnet.chat.mcpRefresh");
     public static readonly UiMessageKey NativeDotnetChatConversationChooseLocalModel = new("native.dotnet.chatConversation.chooseLocalModel");
     public static readonly UiMessageKey NativeDotnetChatConversationEmpty = new("native.dotnet.chatConversation.empty");
     public static readonly UiMessageKey NativeDotnetChatConversationEnterLocalResponsesEndpoint = new("native.dotnet.chatConversation.enterLocalResponsesEndpoint");
@@ -2449,6 +2454,11 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetBookmarksViewedPodcasts,
         NativeDotnetBookmarksViewedTopics,
         NativeDotnetBookmarksViewedVideos,
+        NativeDotnetChatMcpConnect,
+        NativeDotnetChatMcpConnected,
+        NativeDotnetChatMcpConnectionFailed,
+        NativeDotnetChatMcpDisconnect,
+        NativeDotnetChatMcpRefresh,
         NativeDotnetChatConversationChooseLocalModel,
         NativeDotnetChatConversationEmpty,
         NativeDotnetChatConversationEnterLocalResponsesEndpoint,

@@ -23,6 +23,7 @@
             </HorizontalStackLayout>
             <Label Text="{Binding ProviderStatusText}" Style="{StaticResource Metadata}" />
             <Button Text="{DynamicResource native.dotnet.chatConversation.setUpWindowsModel}" Clicked="OnSetUpWindowsModelClicked" IsVisible="{Binding CanSetUpSelectedWindowsSystemLanguageModel}" />
+            <ContentView x:Name="McpControlsHost" />
         </VerticalStackLayout>
 
         <Border

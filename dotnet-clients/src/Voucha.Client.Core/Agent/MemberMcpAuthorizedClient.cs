@@ -10,7 +10,7 @@ public sealed class MemberMcpAuthorizedClient(MemberMcpClient client, MemberMcpT
 
   public async Task<JsonElement> ListToolsAsync(string? cursor, CancellationToken cancellationToken = default)
   {
-    var access = await tokens.AccessTokenAsync().ConfigureAwait(false);
+    var access = await tokens.AccessTokenAsync(cancellationToken).ConfigureAwait(false);
     try
     {
       return await client.ListToolsAsync(access, cursor, cancellationToken).ConfigureAwait(false);
@@ -33,7 +33,7 @@ public sealed class MemberMcpAuthorizedClient(MemberMcpClient client, MemberMcpT
   public async Task<McpToolResult> CallToolAsync(
       string name, JsonElement arguments, CancellationToken cancellationToken = default)
   {
-    var access = await tokens.AccessTokenAsync().ConfigureAwait(false);
+    var access = await tokens.AccessTokenAsync(cancellationToken).ConfigureAwait(false);
     try
     {
       return await client.CallToolAsync(name, arguments, access, cancellationToken).ConfigureAwait(false);

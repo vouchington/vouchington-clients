@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.App.Chat;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Chat;
 using Voucha.Client.Core.Localization;
 
@@ -10,6 +11,19 @@ public static partial class MauiProgram
 {
   private static void AddChatServices(IServiceCollection services)
   {
+#if WINDOWS
+    services.AddSingleton<IMemberMcpProtectedValues, MauiMemberMcpProtectedValues>();
+    services.AddSingleton<IMemberMcpAccountTokenStore, ProtectedMemberMcpTokenStore>();
+    services.AddSingleton<IMemberMcpSystemBrowser, MauiMemberMcpSystemBrowser>();
+    services.AddSingleton<MemberMcpHttpHandlerFactory>();
+    services.AddSingleton<IMemberMcpSessionConnectionFactory>(sp =>
+        new MemberMcpSessionConnectionFactory(
+            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+            sp.GetRequiredService<IMemberMcpAccountTokenStore>(),
+            sp.GetRequiredService<IMemberMcpSystemBrowser>(),
+            sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create));
+    services.AddSingleton<MemberMcpSession>();
+#endif
     services.AddSingleton<IChatProviderResolver, ChatProviderResolver>();
     services.AddSingleton<LocalLLMFeaturePolicy>();
     services.AddSingleton<ILocalLLMConfigurationStore>(_ =>
