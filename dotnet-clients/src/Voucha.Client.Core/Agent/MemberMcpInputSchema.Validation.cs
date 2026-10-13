@@ -99,7 +99,8 @@ internal static partial class MemberMcpInputSchema
     if (!Within(text.EnumerateRunes().Count(), schema, "minLength", "maxLength")) return false;
     if (schema.TryGetProperty("format", out var format))
     {
-      if (format.GetString() == "uuid" && !Guid.TryParseExact(text, "D", out _)) return false;
+      if (format.GetString() == "uuid" &&
+          (text.Length != 36 || !Guid.TryParseExact(text, "D", out _))) return false;
       if (format.GetString() == "uri" && !StrictUri(text)) return false;
     }
     if (schema.TryGetProperty("pattern", out var pattern))
