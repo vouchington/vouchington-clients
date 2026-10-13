@@ -3,10 +3,17 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 
 const windowsMauiPaths = [
+  '.editorconfig',
+  '.github/actions/prepare-native-contract/action.yml',
   '.github/actions/setup-mise-toolchain/action.yml',
   '.github/workflows/native-contract-tests.yml',
   '.mise.toml',
+  'contracts/filaments.json',
+  'docs/development/ci-runners.md',
+  'docs/development/native-ci-test-placement.md',
   'global.json',
+  'dotnet-clients/.editorconfig',
+  'dotnet-clients/AGENTS.md',
   'dotnet-clients/Directory.Build.props',
   'dotnet-clients/Directory.Build.targets',
   'dotnet-clients/Directory.Packages.props',

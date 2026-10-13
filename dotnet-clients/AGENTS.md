@@ -42,9 +42,9 @@ Core-vs-App test split, the test file-length cap, and local coverage.
 - Keep posts, referral links, and topics native in MAUI; do not use WebView fallback for parity surfaces.
 - Keep member chat and support native in MAUI, with list/detail/create flows backed by core chat/support services.
 - Every database-backed native list must forward opaque cursors and append pages safely; follow Vouchington's [cross-surface pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
-- Do not add Windows app packaging CI. The single hosted `windows-latest` decoder test is reserved
-  for the native `BitmapDecoder` source slice and is routed only when its production, test, toolchain,
-  lock, or runner-policy inputs change.
+- Do not add Windows app packaging or signing CI. Hosted `windows-latest` jobs cover the native
+  `BitmapDecoder` tests and unsigned MAUI app compilation. Each runs only when its production,
+  test, toolchain, lock, diagnostic configuration, or runner-policy inputs change.
 - **CI placement** — portable Core tests, DTO parity, and patch coverage run once on Linux. Do not add a macOS copy of `Voucha.DotNet.sln`. MAUI App tests and Mac Catalyst smoke stay macOS. See [native CI test placement](../docs/development/native-ci-test-placement.md).
 - Keep source files under the native cap: 200 physical lines for `dotnet-clients/src/**/*.cs`,
   enforced by `repo-file-policy`. The test cap and Core-vs-App split live in the

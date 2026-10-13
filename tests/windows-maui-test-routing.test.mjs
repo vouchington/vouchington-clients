@@ -9,6 +9,13 @@ import { shouldRunWindowsMauiBuild } from '../scripts/windows-maui-test-routing.
 describe('Windows MAUI compile routing', () => {
   it('selects production, test, lock, and runner policy changes', () => {
     for (const path of [
+      '.editorconfig',
+      'dotnet-clients/.editorconfig',
+      '.github/actions/prepare-native-contract/action.yml',
+      'contracts/filaments.json',
+      'docs/development/ci-runners.md',
+      'docs/development/native-ci-test-placement.md',
+      'dotnet-clients/AGENTS.md',
       'dotnet-clients/src/Voucha.Client.App/Support/LocalImagePreview.cs',
       'dotnet-clients/src/Voucha.Client.App/Support/WindowsLocalImagePreviewDecoder.cs',
       'dotnet-clients/src/Voucha.Client.Core/Chat/ChatConversationViewModel.cs',
