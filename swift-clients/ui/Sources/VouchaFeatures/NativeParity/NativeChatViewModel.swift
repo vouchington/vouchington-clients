@@ -129,10 +129,7 @@ final class NativeChatViewModel {
     }
 
     func load() async {
-        await loadConversations(reset: true)
-        if let initialConversationId {
-            await selectConversation(id: initialConversationId)
-        }
+        await loadInitialConversation(initialConversationId)
     }
 
     func selectConversation(id: String?) async {

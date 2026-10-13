@@ -13,6 +13,7 @@ extension NativeChatMCPAgentSession {
               status == .connected, toolCatalog != nil else {
             throw LocalLLMToolLoopFailure.toolNotAdmitted
         }
+        try Task.checkCancellation()
         let id = UUID()
         let task = Task {
             try await service.callTool(accountId: expectedAccountId, name: name, arguments: arguments)

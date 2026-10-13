@@ -23,6 +23,7 @@ extension OpenAICompatibleResponsesClient {
     ) async throws {
         try Task.checkCancellation()
         try await validate(call.name, call.arguments)
+        try Task.checkCancellation()
         // The bridge returns a JSON-encoded envelope without literal control characters.
         // Backslashes reserve the maximum outer-JSON escaping for every allowed result byte.
         let reservedInput = input + [[
@@ -38,6 +39,7 @@ extension OpenAICompatibleResponsesClient {
         _ call: LocalLLMFunctionCall, hadPreviousExecution: Bool,
         execute: @Sendable (String, String) async throws -> String
     ) async throws -> String {
+        try Task.checkCancellation()
         do {
             // The service may commit before an error or lost reply. Admission is the
             // only error that proves it was never called.

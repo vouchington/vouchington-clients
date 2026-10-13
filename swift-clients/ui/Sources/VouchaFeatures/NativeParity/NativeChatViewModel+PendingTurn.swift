@@ -1,6 +1,16 @@
 import VouchaAPI
 
 extension NativeChatViewModel {
+    func discardInvalidatedCompletedMCPTurn() -> Bool {
+        guard let pendingLocalTurn, let snapshot = pendingLocalTurn.mcpSnapshot,
+              !matchesMCPAccount(snapshot) else { return false }
+        // Do not turn a completed old-account MCP response into a fresh
+        // model generation while the mounted surface changes accounts.
+        self.pendingLocalTurn = nil
+        draftMessage = ""
+        return true
+    }
+
     func clearPendingTurnIfProviderChanged() {
         guard let pendingLocalTurn,
               pendingLocalTurn.mcpSnapshot == nil,

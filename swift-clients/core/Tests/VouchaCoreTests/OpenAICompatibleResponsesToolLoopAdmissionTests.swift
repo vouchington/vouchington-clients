@@ -33,6 +33,36 @@ final class OpenAICompatibleResponsesToolLoopAdmissionTests: XCTestCase {
         XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
     }
 
+    func testCancellationDuringValidationNeverStartsTool() async throws {
+        ToolLoopURLProtocol.reset(responses: [
+            #"{"output":[{"type":"function_call","call_id":"write-1","name":"write","arguments":"{}"}]}"#
+        ])
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let validation = SuspendedToolValidation()
+        let invocations = ToolInvocationCounter()
+        let generation = Task {
+            try await client.generateAssistantResponseWithTools(
+                request: request(), isCurrent: { true },
+                validate: { _, _ in await validation.hold() },
+                execute: { _, _ in
+                    await invocations.record()
+                    return "{}"
+                }
+            )
+        }
+        await validation.waitUntilEntered()
+        generation.cancel()
+        await validation.release()
+
+        do {
+            _ = try await generation.value
+            XCTFail("Cancellation after validation must stop before service admission")
+        } catch is CancellationError {}
+        let count = await invocations.count
+        XCTAssertEqual(count, 0)
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
+
     func testOversizedMinimalContinuationRejectsBeforeMutation() async throws {
         let ignored = String(repeating: "x", count: 995_000)
         let response: [String: Any] = ["output": [
@@ -156,5 +186,28 @@ final class OpenAICompatibleResponsesToolLoopAdmissionTests: XCTestCase {
         XCTAssertEqual(result, "I cannot provide that.")
         let count = await invocations.count
         XCTAssertEqual(count, 1)
+    }
+}
+
+private actor SuspendedToolValidation {
+    private var entered = false
+    private var enteredWaiter: CheckedContinuation<Void, Never>?
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    func hold() async {
+        entered = true
+        enteredWaiter?.resume()
+        enteredWaiter = nil
+        await withCheckedContinuation { releaseWaiter = $0 }
+    }
+
+    func waitUntilEntered() async {
+        if entered { return }
+        await withCheckedContinuation { enteredWaiter = $0 }
+    }
+
+    func release() {
+        releaseWaiter?.resume()
+        releaseWaiter = nil
     }
 }
