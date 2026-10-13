@@ -1,4 +1,5 @@
 import Foundation
+import VouchaAPI
 @testable import VouchaFeatures
 @testable import VouchaModels
 import XCTest
@@ -89,6 +90,33 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let restoredPayload = try payload(afterRestoringOldModel)
         XCTAssertNotEqual(restoredPayload, secondPayload)
         XCTAssertEqual(provider.generationCount, 3)
+    }
+
+    func testFailedMCPPersistenceCannotRetryAfterAccountSwitch() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Hello"
+
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+        XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
+
+        await session.useAccount("member-b")
+        provider.available = false
+        await viewModel.sendDraftMessage()
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+        XCTAssertEqual(provider.generationCount, 1)
     }
 
     func testTypingNextDraftDuringHeldPersistencePreservesTheNewDraftAfterFailure() async throws {
@@ -194,6 +222,19 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generationCount, 1)
     }
+}
+
+@MainActor
+private final class PendingTurnMCPService: NativeChatMCPServicing {
+    func connect(accountId _: String) async throws -> DecodedJSONValue {
+        .object(["tools": .array([])])
+    }
+
+    func refreshTools(accountId _: String) async throws -> DecodedJSONValue {
+        .object(["tools": .array([])])
+    }
+
+    func disconnect(accountId _: String) async throws {}
 }
 
 private func payload(_ request: CannedFeedURLProtocol.CapturedRequest) throws -> NSDictionary {

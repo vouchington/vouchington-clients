@@ -12,7 +12,12 @@ extension NativeChatViewModel {
         response: NativeChatAssistantResponse,
         mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = nil
     ) async throws {
-        pendingLocalTurn = .init(context: context, response: response)
+        if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+            pendingLocalTurn = nil
+            abortStreaming()
+            return
+        }
+        pendingLocalTurn = .init(context: context, response: response, mcpSnapshot: mcpSnapshot)
         let persistedResponse: ClientGeneratedChatResponse = try await client.send(.clientGeneratedChat(
             conversationId: context.conversationId,
             message: context.text,
@@ -21,6 +26,7 @@ extension NativeChatViewModel {
             model: (provider: response.modelProvider, name: response.modelName)
         ))
         if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+            pendingLocalTurn = nil
             abortStreaming()
             return
         }

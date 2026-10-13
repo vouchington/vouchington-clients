@@ -28,4 +28,15 @@ struct NativeChatDraftSendContext {
 struct NativeChatPendingLocalTurn {
     let context: NativeChatDraftSendContext
     let response: NativeChatAssistantResponse
+    let mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
+
+    init(
+        context: NativeChatDraftSendContext,
+        response: NativeChatAssistantResponse,
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = nil
+    ) {
+        self.context = context
+        self.response = response
+        self.mcpSnapshot = mcpSnapshot
+    }
 }
