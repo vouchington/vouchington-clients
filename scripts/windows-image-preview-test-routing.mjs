@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 
 const windowsImagePreviewPaths = [
+  '.editorconfig',
   '.github/actions/prepare-native-contract/action.yml',
   '.github/actions/setup-mise-toolchain/action.yml',
   '.github/workflows/native-contract-tests.yml',
@@ -10,6 +11,7 @@ const windowsImagePreviewPaths = [
   'docs/development/ci-runners.md',
   'docs/development/native-ci-test-placement.md',
   'dotnet-clients/AGENTS.md',
+  'dotnet-clients/.editorconfig',
   'dotnet-clients/Directory.Build.props',
   'dotnet-clients/Directory.Build.targets',
   'dotnet-clients/Directory.Packages.props',
