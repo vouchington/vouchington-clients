@@ -6,13 +6,14 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Agent;
 
-public sealed class MemberMcpSessionTests
+public sealed partial class MemberMcpSessionTests
 {
   [Fact]
   public async Task UnresolvedStartupSessionPreservesGrantUntilAccountIsConfirmed()
   {
     var store = new FakeStore();
     await store.SaveAsync(Scope("account-a"), Tokens);
+    await store.SaveAsync(Scope("account-b"), Tokens);
     var factory = new FakeFactory();
     var identity = new FakeSessionStore();
     using var session = new MemberMcpSession(identity, store, factory);
@@ -25,6 +26,7 @@ public sealed class MemberMcpSessionTests
     identity.SetAccount("account-a");
     await session.WhenSettledAsync();
     Assert.NotNull(await store.LoadAsync(Scope("account-a")));
+    Assert.Null(await store.LoadAsync(Scope("account-b")));
   }
 
   [Fact]
@@ -397,6 +399,12 @@ public sealed class MemberMcpSessionTests
     public Task ClearAllAccountsAsync()
     {
       tokens.Clear();
+      return Task.CompletedTask;
+    }
+    public Task ClearAllAccountsExceptAsync(string? accountId)
+    {
+      foreach (var scope in tokens.Keys.Where(scope => scope.AccountId != accountId).ToArray())
+        tokens.Remove(scope);
       return Task.CompletedTask;
     }
   }

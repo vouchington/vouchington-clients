@@ -4,6 +4,18 @@ namespace Voucha.Client.Core.Agent;
 
 public sealed partial class MemberMcpSession
 {
+  /// <summary>Reconcile cold-start grants only after identity restoration has completed.</summary>
+  public Task ConfirmStartupSessionAsync()
+  {
+    lock (gate)
+    {
+      ThrowIfDisposed();
+      var previous = cleanupTail;
+      cleanupTail = ClearStaleStartupAccountsAsync(previous);
+      return cleanupTail;
+    }
+  }
+
   private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
   {
     lock (gate)
@@ -54,6 +66,8 @@ public sealed partial class MemberMcpSession
       {
         grants = priorAccount is null ? [] :
             await store.TakeAccountAsync(priorAccount).ConfigureAwait(false);
+        if (priorAccount is null && accountId is not null)
+          await store.ClearAllAccountsExceptAsync(accountId).ConfigureAwait(false);
         if (drain is not null)
         {
           await drain.ConfigureAwait(false);
@@ -72,6 +86,22 @@ public sealed partial class MemberMcpSession
       else if (priorAccount is not null && grants.Count > 0)
         _ = RevokePersistedGrantAsync(priorAccount, grants);
       if (priorFailed) await store.ClearAllAccountsAsync().ConfigureAwait(false);
+    }
+    finally { operation.Release(); }
+  }
+
+  [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification =
+      "Confirmed startup must retry protected stale-account removal even after an earlier cleanup failed.")]
+  private async Task ClearStaleStartupAccountsAsync(Task previous)
+  {
+    try { await previous.ConfigureAwait(false); }
+    catch (Exception error) { System.Diagnostics.Debug.WriteLine($"MCP earlier account cleanup failed: {error.GetType().Name}"); }
+    await operation.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      string? retainedAccount;
+      lock (gate) { retainedAccount = accountId; }
+      await store.ClearAllAccountsExceptAsync(retainedAccount).ConfigureAwait(false);
     }
     finally { operation.Release(); }
   }

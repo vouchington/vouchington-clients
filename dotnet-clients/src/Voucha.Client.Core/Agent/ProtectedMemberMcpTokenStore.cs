@@ -122,13 +122,25 @@ public sealed class ProtectedMemberMcpTokenStore(IMemberMcpProtectedValues value
   }
 
   public async Task ClearAllAccountsAsync()
+      => await ClearAllAccountsExceptAsync(null).ConfigureAwait(false);
+
+  public async Task ClearAllAccountsExceptAsync(string? accountId)
   {
     await gate.WaitAsync().ConfigureAwait(false);
     try
     {
-      foreach (var accountId in await ReadIndexAsync().ConfigureAwait(false))
-        await values.RemoveAsync(AccountKey(accountId)).ConfigureAwait(false);
-      await values.RemoveAsync(IndexKey).ConfigureAwait(false);
+      var retained = new List<string>();
+      foreach (var indexedAccountId in await ReadIndexAsync().ConfigureAwait(false))
+      {
+        if (string.Equals(indexedAccountId, accountId, StringComparison.Ordinal))
+        {
+          retained.Add(indexedAccountId);
+          continue;
+        }
+        await values.RemoveAsync(AccountKey(indexedAccountId)).ConfigureAwait(false);
+      }
+      if (retained.Count == 0) await values.RemoveAsync(IndexKey).ConfigureAwait(false);
+      else await values.WriteAsync(IndexKey, JsonSerializer.Serialize(retained)).ConfigureAwait(false);
     }
     finally { gate.Release(); }
   }

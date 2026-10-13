@@ -133,6 +133,7 @@ public sealed class ChatMemberMcpControlsTests
         Task.FromResult<IReadOnlyList<MemberMcpStoredGrant>>([]);
     public Task ClearAccountAsync(string accountId) => Task.CompletedTask;
     public Task ClearAllAccountsAsync() => Task.CompletedTask;
+    public Task ClearAllAccountsExceptAsync(string? accountId) => Task.CompletedTask;
   }
 
   private sealed class ConnectionFactory : IMemberMcpSessionConnectionFactory

@@ -31,6 +31,24 @@ public sealed class ProtectedMemberMcpTokenStoreTests
   }
 
   [Fact]
+  public async Task ConfirmedStartupKeepsOnlyTheRestoredExactAccount()
+  {
+    var values = new FakeProtectedValues();
+    var restored = Scope("member-1", "https://issuer.test/");
+    var stale = Scope("member-10", "https://issuer.test/");
+    using var store = new ProtectedMemberMcpTokenStore(values);
+    await store.SaveAsync(restored, Tokens);
+    await store.SaveAsync(stale, Tokens with { AccessToken = "stale" });
+
+    await store.ClearAllAccountsExceptAsync("member-1");
+
+    Assert.Equal("access-secret", (await store.LoadAsync(restored))?.AccessToken);
+    Assert.Null(await store.LoadAsync(stale));
+    await store.ClearAllAccountsAsync();
+    Assert.Null(await store.LoadAsync(restored));
+  }
+
+  [Fact]
   public async Task ClearingOneScopePreservesOtherIssuerAndClient()
   {
     var values = new FakeProtectedValues();

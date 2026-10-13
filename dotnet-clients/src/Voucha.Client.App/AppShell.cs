@@ -1,6 +1,7 @@
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.Logging;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Friends;
 using Voucha.Client.Core.Localization;
@@ -58,16 +59,27 @@ public sealed partial class AppShell : Shell
     localeController.LocaleChanged += OnLocaleChanged;
     RebuildNavigation(viewerProvider.CurrentViewer);
     AppLinkDispatcher.Attach(HandleAppLinkAsync);
-    _ = RefreshSessionOnStartupAsync(sessionStore, logger);
+#if WINDOWS
+    var memberMcpSession = serviceProvider.GetRequiredService<MemberMcpSession>();
+#else
+    MemberMcpSession? memberMcpSession = null;
+#endif
+    _ = RefreshSessionOnStartupAsync(sessionStore, logger, memberMcpSession);
   }
 
   private static async Task RefreshSessionOnStartupAsync(
       ISessionStore sessionStore,
-      ILogger<AppShell> logger)
+      ILogger<AppShell> logger,
+      MemberMcpSession? memberMcpSession)
   {
     try
     {
-      await sessionStore.RefreshAsync().ConfigureAwait(false);
+      if (memberMcpSession is not null && sessionStore is IConfirmingSessionRefreshStore confirming)
+      {
+        await confirming.RefreshConfirmingAsync().ConfigureAwait(false);
+        await memberMcpSession.ConfirmStartupSessionAsync().ConfigureAwait(false);
+      }
+      else await sessionStore.RefreshAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {

@@ -1,12 +1,16 @@
 namespace Voucha.Client.Core.Agent;
 
 /// <summary>Refresh-token rotation is single-flight for one signed-in member.</summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification =
+    "A canceled network exchange may ignore cancellation and complete after sign-out; retain managed fencing primitives until that task is collected.")]
 public sealed partial class MemberMcpTokenManager(
     string accountId,
     IMemberMcpOAuthTokenStore store,
     MemberMcpOAuthTokenClient tokenClient)
 {
   private readonly object gate = new();
+  private readonly SemaphoreSlim localMutation = new(1, 1);
+  private readonly CancellationTokenSource exchangeCancellation = new();
   private Task mutationTail = Task.CompletedTask;
   private readonly MemberMcpOAuthTokenScope scope = tokenClient.ScopeFor(accountId);
   private Task<MemberMcpOAuthTokens>? refreshTask;
@@ -47,9 +51,9 @@ public sealed partial class MemberMcpTokenManager(
   {
     return await SerializeMutationAsync(async () =>
     {
-      var tokens = await tokenClient.RedeemAsync(code, verifier, redirectUri).ConfigureAwait(false);
-      await store.SaveAsync(scope, tokens).ConfigureAwait(false);
-      lock (gate) { latestRefreshedTokens = tokens; }
+      var tokens = await tokenClient.RedeemAsync(code, verifier, redirectUri, exchangeCancellation.Token)
+          .ConfigureAwait(false);
+      await SaveActiveTokensAsync(tokens).ConfigureAwait(false);
       return tokens;
     }).ConfigureAwait(false);
   }
@@ -57,16 +61,7 @@ public sealed partial class MemberMcpTokenManager(
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification = "Sign-out must settle even if an older token operation failed.")]
   public async Task SignOutAsync(CancellationToken cancellationToken = default)
   {
-    Task<MemberMcpOAuthTokens>? refreshing;
-    Task<MemberMcpOAuthTokens>? redeeming;
-    lock (gate)
-    {
-      signedOut = true;
-      refreshing = refreshTask;
-      redeeming = redeemTask;
-    }
-    if (refreshing is not null) { try { await refreshing.ConfigureAwait(false); } catch (Exception) { } }
-    if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
+    await BeginLocalSignOutAsync().ConfigureAwait(false);
     try
     {
       var tokens = await store.LoadAsync(scope).ConfigureAwait(false);
@@ -80,21 +75,14 @@ public sealed partial class MemberMcpTokenManager(
     }
   }
 
-  /// <summary>Fences future token writes and drains a rotation before account-wide local removal.</summary>
-  [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification =
-      "A failed in-flight token exchange cannot keep a signed-out account writable.")]
+  /// <summary>Fences future token writes and drains local writes without waiting for a stalled exchange.</summary>
   internal async Task BeginLocalSignOutAsync()
   {
-    Task<MemberMcpOAuthTokens>? refreshing;
-    Task<MemberMcpOAuthTokens>? redeeming;
-    lock (gate)
-    {
-      signedOut = true;
-      refreshing = refreshTask;
-      redeeming = redeemTask;
-    }
-    if (refreshing is not null) { try { await refreshing.ConfigureAwait(false); } catch (Exception) { } }
-    if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
+    lock (gate) { signedOut = true; }
+    _ = exchangeCancellation.CancelAsync();
+    await localMutation.WaitAsync().ConfigureAwait(false);
+    try { lock (gate) { latestRefreshedTokens = null; } }
+    finally { localMutation.Release(); }
   }
 
   public Task ClearAsync(string? rejectedAccessToken = null)
@@ -129,12 +117,35 @@ public sealed partial class MemberMcpTokenManager(
     if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
     await SerializeMutationAsync(async () =>
     {
+      return await ClearActiveTokensAsync(rejectedAccessToken).ConfigureAwait(false);
+    }).ConfigureAwait(false);
+  }
+
+  private async Task SaveActiveTokensAsync(MemberMcpOAuthTokens tokens)
+  {
+    await localMutation.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      lock (gate) { if (signedOut) throw new McpUnauthorizedException(); }
+      await store.SaveAsync(scope, tokens).ConfigureAwait(false);
+      lock (gate) { latestRefreshedTokens = tokens; }
+    }
+    finally { localMutation.Release(); }
+  }
+
+  private async Task<bool> ClearActiveTokensAsync(string? rejectedAccessToken)
+  {
+    await localMutation.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      lock (gate) { if (signedOut) return false; }
       var current = await store.LoadAsync(scope).ConfigureAwait(false);
       if (rejectedAccessToken is not null && current?.AccessToken != rejectedAccessToken) return false;
       await store.ClearAsync(scope).ConfigureAwait(false);
       lock (gate) { latestRefreshedTokens = null; }
       return true;
-    }).ConfigureAwait(false);
+    }
+    finally { localMutation.Release(); }
   }
 
   private void ObserveCompletion(Task<MemberMcpOAuthTokens> task, bool refresh) =>

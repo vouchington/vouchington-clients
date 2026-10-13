@@ -9,6 +9,7 @@ public interface IMemberMcpAccountTokenStore : IMemberMcpOAuthTokenStore
   Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId);
   Task ClearAccountAsync(string accountId);
   Task ClearAllAccountsAsync();
+  Task ClearAllAccountsExceptAsync(string? accountId);
 }
 
 public sealed record MemberMcpStoredGrant(MemberMcpOAuthTokenScope Scope, MemberMcpOAuthTokens Tokens);

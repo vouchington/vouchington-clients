@@ -66,5 +66,6 @@ public sealed class MemberMcpSessionConnectionCleanupTests
     public Task<IReadOnlyList<MemberMcpStoredGrant>> TakeAccountAsync(string accountId) => throw new NotSupportedException();
     public Task ClearAccountAsync(string accountId) => throw new NotSupportedException();
     public Task ClearAllAccountsAsync() => throw new NotSupportedException();
+    public Task ClearAllAccountsExceptAsync(string? accountId) => throw new NotSupportedException();
   }
 }

@@ -88,6 +88,7 @@ public sealed class MemberMcpSessionConnectionTests
         Task.FromResult<IReadOnlyList<MemberMcpStoredGrant>>([]);
     public Task ClearAccountAsync(string accountId) => Task.CompletedTask;
     public Task ClearAllAccountsAsync() => Task.CompletedTask;
+    public Task ClearAllAccountsExceptAsync(string? accountId) => Task.CompletedTask;
     public Task SavePendingAsync(string accountId, string state, string verifier, Uri redirectUri)
     {
       if (FailPendingWrite) throw new IOException("Protected store failed");
