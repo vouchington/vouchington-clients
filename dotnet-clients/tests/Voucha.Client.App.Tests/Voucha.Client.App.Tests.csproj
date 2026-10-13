@@ -64,6 +64,8 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/PostDetailPageRow.cs" Link="Pages/PostDetailPageRow.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml" Link="Pages/ChatConversationPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ChatConversationPage.xaml.cs" Link="Pages/ChatConversationPage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ChatMemberMcpControlsView.xaml" Link="Pages/ChatMemberMcpControlsView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ChatMemberMcpControlsView.xaml.cs" Link="Pages/ChatMemberMcpControlsView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Chat/ChatProviderResolver.cs" Link="Chat/ChatProviderResolver.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/StoryRelatedArticlesView.xaml" Link="Pages/StoryRelatedArticlesView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/StoryRelatedArticlesView.xaml.cs" Link="Pages/StoryRelatedArticlesView.xaml.cs" />
