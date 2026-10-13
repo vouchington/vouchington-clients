@@ -17,6 +17,7 @@
                     ItemsSource="{Binding ProviderStatuses}"
                     ItemDisplayBinding="{Binding DisplayName}"
                     SelectedItem="{Binding SelectedProviderStatus}"
+                    IsEnabled="{Binding CanSend}"
                     SelectedIndexChanged="OnProviderSelected"
                     MinimumWidthRequest="220" />
             </HorizontalStackLayout>
@@ -100,6 +101,7 @@
             <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                 <Editor
                     x:Name="MessageEditor"
+                    TextChanged="OnMessageTextChanged"
                     Placeholder="{DynamicResource native.dotnet.chatConversation.messagePlaceholder}"
                     AutoSize="TextChanges"
                     MinimumHeightRequest="96"

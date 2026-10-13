@@ -46,6 +46,54 @@ final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModel
         XCTAssertEqual(payload["assistant_message_id"] as? String, optimisticAssistantId)
     }
 
+    func testFailedPersistenceRetriesIdenticalBodyWithoutRegeneratingAndEditRotatesIdentity() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = CapturingLocalPersistenceDraftProvider(
+            status: .init(isAvailable: true, detail: nil), response: "Fresh response"
+        )
+        let resolver = UnavailableLocalDraftProviderResolver(provider: provider)
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil, titleProviderResolver: resolver
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Second"
+
+        await viewModel.sendDraftMessage()
+        let first = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        XCTAssertEqual(viewModel.draftMessage, "Second")
+        XCTAssertEqual(provider.generateAssistantResponseCallCount, 1)
+
+        CannedFeedURLProtocol.handlers[path] = (Self.clientGeneratedChatData, 200)
+        await viewModel.sendDraftMessage()
+        let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(first.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: XCTUnwrap(retried.body?.data(using: .utf8))
+        ) as? NSDictionary)
+        XCTAssertEqual(retriedPayload, firstPayload)
+        XCTAssertEqual(provider.generateAssistantResponseCallCount, 1)
+
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        viewModel.draftMessage = "Edited"
+        await viewModel.sendDraftMessage()
+        let failedEdit = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        viewModel.draftMessage = "Different"
+        CannedFeedURLProtocol.handlers[path] = (Self.clientGeneratedChatData, 200)
+        await viewModel.sendDraftMessage()
+        let changed = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        let failedPayload = try XCTUnwrap(try JSONSerialization.jsonObject(
+            with: XCTUnwrap(failedEdit.body?.data(using: .utf8))
+        ) as? [String: Any])
+        let changedPayload = try XCTUnwrap(try JSONSerialization.jsonObject(
+            with: XCTUnwrap(changed.body?.data(using: .utf8))
+        ) as? [String: Any])
+        XCTAssertNotEqual(failedPayload["user_message_id"] as? String, changedPayload["user_message_id"] as? String)
+        XCTAssertEqual(provider.generateAssistantResponseCallCount, 3)
+    }
+
     func testChatViewModelKeepsLocalAssistantContentHiddenUntilPersistenceSucceeds() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/conversations/conversation-1/client-generated-chat"] = (
             NativeChatTestFixtures.errorData,

@@ -4,6 +4,8 @@ import VouchaModels
 
 extension NativeChatViewModel {
     func selectTitleProvider(_ selection: NativeChatTitleProviderKind) {
+        guard !isSendingDraft, !isStreaming else { return }
+        deferredTitleProviderRollback = nil
         titleProviderSelection = selection
         let revision = titleProviderPersistenceState.advance()
         let persistenceState = titleProviderPersistenceState
@@ -14,10 +16,20 @@ extension NativeChatViewModel {
             guard persistenceState.isCurrent(revision) else { return }
             guard await resolver.persistSelection(selection) else {
                 guard persistenceState.isCurrent(revision), let self else { return }
-                titleProviderSelection = resolver.defaultSelection()
+                deferredTitleProviderRollback = (revision, selection)
+                applyDeferredTitleProviderRollbackIfSafe()
                 return
             }
         }
+    }
+
+    func applyDeferredTitleProviderRollbackIfSafe() {
+        guard let rollback = deferredTitleProviderRollback else { return }
+        guard !isSendingDraft, !isStreaming, pendingLocalTurn == nil else { return }
+        deferredTitleProviderRollback = nil
+        guard titleProviderPersistenceState.isCurrent(rollback.revision),
+              titleProviderSelection == rollback.selection else { return }
+        titleProviderSelection = titleProviderResolver.defaultSelection()
     }
 
     func generateTitleIfNeeded(conversationId: String) async {

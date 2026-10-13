@@ -17,9 +17,9 @@ public partial class ChatConversationPage : ContentPage
 
   public ChatConversationPage(ChatConversationViewModel viewModel, IChatService chatService)
   {
-    InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+    InitializeComponent();
     BindingContext = viewModel;
   }
 
@@ -46,10 +46,7 @@ public partial class ChatConversationPage : ContentPage
       await LoadConversationAsync().ConfigureAwait(true);
       if (!hasLoaded && !string.IsNullOrWhiteSpace(initialMessage))
       {
-        var message = initialMessage;
-        initialMessage = null;
-        await viewModel.SendAsync(message!).ConfigureAwait(true);
-        conversationId = viewModel.ConversationId;
+        await SendInitialMessageAsync().ConfigureAwait(true);
       }
 
       hasLoaded = true;
@@ -57,6 +54,19 @@ public partial class ChatConversationPage : ContentPage
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
       System.Diagnostics.Debug.WriteLine(ex);
+    }
+  }
+
+  private async Task SendInitialMessageAsync()
+  {
+    var message = initialMessage;
+    if (string.IsNullOrWhiteSpace(message)) return;
+    initialMessage = null;
+    var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+    conversationId = viewModel.ConversationId;
+    if (!sent && string.IsNullOrWhiteSpace(MessageEditor.Text))
+    {
+      MessageEditor.Text = message;
     }
   }
 
@@ -127,15 +137,19 @@ public partial class ChatConversationPage : ContentPage
     {
       var message = MessageEditor.Text?.Trim() ?? string.Empty;
       if (message.Length == 0) return;
-      if (!await viewModel.TrySendAsync(message).ConfigureAwait(true)) return;
-      MessageEditor.Text = string.Empty;
+      var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
       conversationId = viewModel.ConversationId;
+      if (!sent) return;
+      MessageEditor.Text = string.Empty;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
       System.Diagnostics.Debug.WriteLine(ex);
     }
   }
+
+  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e) =>
+      viewModel.NotifyDraftEdited(e.NewTextValue);
 
   private async void OnStopClicked(object? sender, EventArgs e) => await viewModel.StopStreamingAsync();
 

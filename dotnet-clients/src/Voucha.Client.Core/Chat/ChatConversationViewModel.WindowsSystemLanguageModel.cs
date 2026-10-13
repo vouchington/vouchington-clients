@@ -43,8 +43,9 @@ public sealed partial class ChatConversationViewModel
   private void RefreshProviderStatuses(string selectedProviderId)
   {
     providerStatuses = providerResolver.GetProviderStatuses();
+    OnPropertyChanged(nameof(ProviderStatuses));
     SelectedProviderStatus = providerStatuses.SingleOrDefault(status => status.ModelProvider == selectedProviderId)
         ?? SelectedProviderStatus;
-    OnPropertyChanged(nameof(ProviderStatuses));
+    OnPropertyChanged(nameof(SelectedProviderStatus));
   }
 }

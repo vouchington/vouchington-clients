@@ -10,6 +10,8 @@ extension NativeChatViewModel {
             return finishStreaming()
         }
         guard didFinishCurrentStream, createdConversation else { return }
-        await generateTitleIfNeeded(conversationId: conversationId)
+        Task { [weak self] in
+            await self?.generateTitleIfNeeded(conversationId: conversationId)
+        }
     }
 }
