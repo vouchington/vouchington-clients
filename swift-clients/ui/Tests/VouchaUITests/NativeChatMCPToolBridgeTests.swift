@@ -139,6 +139,56 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         let largeInteger = try XCTUnwrap(Decimal(string: "18446744073709551615"))
         XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(largeInteger), schema: integerType))
     }
+
+    func testSchemaAppliesAdditionalPropertyAndArrayItemAssertions() throws {
+        let objectSchema: DecodedJSONValue = .object([
+            "type": .string("object"),
+            "additionalProperties": .object(["type": .string("integer"), "minimum": .integer(1)])
+        ])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+            .object(["count": .integer(2)]), schema: objectSchema
+        ))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+            .object(["count": .integer(0)]), schema: objectSchema
+        ))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+            .object(["count": .string("2")]), schema: objectSchema
+        ))
+
+        let arraySchema: DecodedJSONValue = .object([
+            "type": .string("array"), "items": .object(["type": .string("string")])
+        ])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+            .array([.string("first"), .string("second")]), schema: arraySchema
+        ))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+            .array([.string("first"), .integer(2)]), schema: arraySchema
+        ))
+    }
+
+    func testSchemaRejectsInvalidPatternAndFormatsBeforeToolCall() throws {
+        let pattern: DecodedJSONValue = .object([
+            "type": .string("string"), "pattern": .string("^[a-z]+$")
+        ])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("letters"), schema: pattern))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("letters2"), schema: pattern))
+
+        let uuid: DecodedJSONValue = .object([
+            "type": .string("string"), "format": .string("uuid")
+        ])
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("not-a-uuid"), schema: uuid))
+        let uri: DecodedJSONValue = .object([
+            "type": .string("string"), "format": .string("uri")
+        ])
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("relative/path"), schema: uri))
+
+        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
+            "pattern": .string("[")
+        ])))
+        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
+            "format": .string("email")
+        ])))
+    }
 }
 
 @MainActor
