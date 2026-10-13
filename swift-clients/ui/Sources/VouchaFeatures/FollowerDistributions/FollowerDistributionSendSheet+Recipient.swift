@@ -1,5 +1,4 @@
 import SwiftUI
-import VouchaAPI
 import VouchaDesignSystem
 import VouchaModels
 

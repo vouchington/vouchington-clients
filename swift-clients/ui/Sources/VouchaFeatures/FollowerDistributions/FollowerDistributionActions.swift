@@ -14,10 +14,12 @@ public struct FollowerDistributionActions: View {
     private var isShareFailurePresented = false
     @State
     private var viewModel: FollowerDistributionViewModel
+    private let client: APIClient
     private let currentUserId: String?
     private let target: FollowerDistributionTarget
 
     public init(client: APIClient, currentUserId: String?, target: FollowerDistributionTarget) {
+        self.client = client
         self.currentUserId = currentUserId
         self.target = target
         _viewModel = State(initialValue: .init(client: client, currentUserId: currentUserId, target: target))
@@ -54,7 +56,7 @@ public struct FollowerDistributionActions: View {
             Text(message(.unableToShare))
         }
         .sheet(isPresented: $isSendSheetPresented, onDismiss: viewModel.resetSendSheet) {
-            FollowerDistributionSendSheet(viewModel: viewModel)
+            Self.sendSheet(viewModel: viewModel, client: client)
         }
         .onChange(of: currentUserId) { _, nextUserId in
             isShareFailurePresented = false
@@ -68,6 +70,16 @@ public struct FollowerDistributionActions: View {
 
     private func message(_ key: FollowerDistributionCopy) -> String {
         UiMessages.string(key.messageKey, locale: nativeUiLocale)
+    }
+
+    static func sendSheet(
+        viewModel: FollowerDistributionViewModel,
+        client: APIClient
+    ) -> FollowerDistributionSendSheet {
+        FollowerDistributionSendSheet(
+            viewModel: viewModel,
+            imageConfig: AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+        )
     }
 }
 

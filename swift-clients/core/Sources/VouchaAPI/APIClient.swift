@@ -6,6 +6,7 @@ import VouchaCore
 
 public actor APIClient {
     private let config: AppConfig
+    public nonisolated let imageBaseURL: URL
     let session: URLSession
     let cookieStorage: HTTPCookieStorage
     let decoder: JSONDecoder
@@ -28,6 +29,7 @@ public actor APIClient {
     ) {
         self.signer = signer
         self.metadata = metadata
+        imageBaseURL = config.imageBaseURL
         sessionBootstrapEnabled = bootstrapSession ?? (protocolClasses == nil)
         self.cookieStorage = cookieStorage
         self.config = config

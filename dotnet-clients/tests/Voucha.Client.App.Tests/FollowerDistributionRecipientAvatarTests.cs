@@ -61,6 +61,8 @@ public sealed class FollowerDistributionRecipientAvatarTests
     var initial = Assert.Single(Descendants<Label>(page), label =>
         label.AutomationId == "follower-recipient-avatar-initial" && label.Text == "🌱");
     Assert.False(AutomationProperties.GetIsInAccessibleTree(initial));
+    var existingRemoteAvatar = Assert.Single(images, image => image.Source is UriImageSource);
+    var existingFallbackAvatar = Assert.Single(images, image => image.Source is null);
 
     var checkbox = Assert.Single(Descendants<CheckBox>(page), item =>
         item.AutomationId == "follower-recipient-checkbox-friend-1");
@@ -71,6 +73,12 @@ public sealed class FollowerDistributionRecipientAvatarTests
     Assert.Equal(
         new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(selectedImage.Source).Uri);
+    var results = Assert.Single(Descendants<VerticalStackLayout>(page), layout =>
+        layout.AutomationId == "follower-distribution-recipient-results");
+    Assert.Same(existingFallbackAvatar, Assert.Single(
+        Descendants<Image>(results), image => image.Source is null));
+    Assert.Same(existingRemoteAvatar, Assert.Single(
+        Descendants<Image>(results), image => image.Source is UriImageSource));
     Assert.Equal(new[] { "friend-1" }, state.SelectedIds);
   }
 

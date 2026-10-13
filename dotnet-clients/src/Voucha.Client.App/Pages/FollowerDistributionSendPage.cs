@@ -14,7 +14,11 @@ internal sealed partial class FollowerDistributionSendPage : ContentPage
   private readonly ISessionStore sessionStore;
   private readonly AppConfig config;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private readonly VerticalStackLayout recipients = new() { Spacing = 6 };
+  private readonly VerticalStackLayout recipients = new()
+  {
+    Spacing = 6,
+    AutomationId = "follower-distribution-recipient-results"
+  };
   private readonly VerticalStackLayout selectedRecipients = new()
   {
     Spacing = 6,
@@ -91,41 +95,8 @@ internal sealed partial class FollowerDistributionSendPage : ContentPage
     error.Text = state.Error is null
         ? string.Empty
         : T(UiMessageKey.NativeSwiftFollowerDistributionUnableToSend);
-    recipients.Children.Clear();
-    foreach (var user in state.Followers) recipients.Children.Add(Recipient(user));
-    selectedRecipients.Children.Clear();
-    foreach (var user in state.SelectedRecipients) selectedRecipients.Children.Add(SelectedRecipient(user));
-  }
-
-  private View Recipient(User user)
-  {
-    var checkbox = new CheckBox
-    {
-      IsChecked = state.SelectedIds.Contains(user.Id),
-      AutomationId = $"follower-recipient-checkbox-{user.Id}"
-    };
-    checkbox.CheckedChanged += (_, _) =>
-    {
-      var changed = state.ToggleSelection(user);
-      Refresh();
-      if (!changed) error.Text = T(UiMessageKey.NativeSwiftFollowerDistributionUpToOneHundredFollowers);
-    };
-    return new HorizontalStackLayout
-    {
-      Spacing = 8,
-      Children = { checkbox, Avatar(user), new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center } }
-    };
-  }
-
-  private View SelectedRecipient(User user)
-  {
-    var remove = new Button { Text = T(UiMessageKey.NativeSwiftCommonRemove) };
-    remove.Clicked += (_, _) => { state.ToggleSelection(user.Id); Refresh(); };
-    return new HorizontalStackLayout
-    {
-      Spacing = 8,
-      Children = { Avatar(user), new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center }, remove }
-    };
+    RefreshRows(recipients, state.Followers, recipientRows, isSelected: false);
+    RefreshRows(selectedRecipients, state.SelectedRecipients, selectedRecipientRows, isSelected: true);
   }
 
   private static string Name(User user) => user.Name ?? user.Username ?? user.Id;

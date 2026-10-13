@@ -123,8 +123,9 @@ final class FollowerDistributionActionsTests: XCTestCase {
         )
         let page = try followersPageWithPlacement()
         CannedFeedURLProtocol.handlers[followersPath] = (page, 200)
-        let viewModel = makeViewModel()
-        let sut = FollowerDistributionSendSheet(viewModel: viewModel, imageConfig: config)
+        let client = makeClient(config: config)
+        let viewModel = makeViewModel(client: client)
+        let sut = FollowerDistributionActions.sendSheet(viewModel: viewModel, client: client)
             .environment(\.locale, Locale(identifier: "en_US"))
 
         try await ViewHosting.host(sut) {
@@ -187,13 +188,13 @@ final class FollowerDistributionActionsTests: XCTestCase {
             .environment(\.locale, Locale(identifier: "en_US"))
     }
 
-    private func makeViewModel() -> FollowerDistributionViewModel {
-        .init(client: makeClient(), currentUserId: "viewer-1", target: .post("post-1"))
+    private func makeViewModel(client: APIClient? = nil) -> FollowerDistributionViewModel {
+        .init(client: client ?? makeClient(), currentUserId: "viewer-1", target: .post("post-1"))
     }
 
-    private func makeClient() -> APIClient {
+    private func makeClient(config: AppConfig? = nil) -> APIClient {
         APIClient(
-            config: .init(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
+            config: config ?? .init(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
             cookieStorage: .init(),
             protocolClasses: [CannedFeedURLProtocol.self]
         )

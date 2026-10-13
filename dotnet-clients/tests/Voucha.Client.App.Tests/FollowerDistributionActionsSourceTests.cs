@@ -12,11 +12,12 @@ public sealed class FollowerDistributionActionsSourceTests
   {
     var actions = Source("FollowerDistributionActions.cs");
     var picker = Source("FollowerDistributionSendPage.cs");
+    var rows = Source("FollowerDistributionSendPage.Avatars.cs");
     Assert.Contains("NativeSwiftFollowerDistributionShareWithFollowers", actions, StringComparison.Ordinal);
     Assert.Contains("NativeSwiftFollowerDistributionSendToFollowers", actions, StringComparison.Ordinal);
     Assert.Contains("SearchFollowersAsync", picker, StringComparison.Ordinal);
     Assert.Contains("LoadMoreFollowersAsync", picker, StringComparison.Ordinal);
-    Assert.Contains("ToggleSelection", picker, StringComparison.Ordinal);
+    Assert.Contains("ToggleSelection", rows, StringComparison.Ordinal);
     Assert.Contains("SubmitAsync", picker, StringComparison.Ordinal);
   }
 
@@ -55,12 +56,13 @@ public sealed class FollowerDistributionActionsSourceTests
   public void SendModalKeepsSelectedRecipientsVisibleAndRemovableAcrossSearches()
   {
     var page = Source("FollowerDistributionSendPage.cs");
+    var rows = Source("FollowerDistributionSendPage.Avatars.cs");
 
     Assert.Contains("state.SelectedRecipients", page, StringComparison.Ordinal);
-    Assert.Contains("selectedRecipients.Children.Clear()", page, StringComparison.Ordinal);
-    Assert.Contains("SelectedRecipient(user)", page, StringComparison.Ordinal);
-    Assert.Contains("UiMessageKey.NativeSwiftCommonRemove", page, StringComparison.Ordinal);
-    Assert.Contains("state.ToggleSelection(user.Id); Refresh()", page, StringComparison.Ordinal);
+    Assert.Contains("RefreshRows(selectedRecipients, state.SelectedRecipients", page, StringComparison.Ordinal);
+    Assert.Contains("RefreshRows(recipients, state.Followers", page, StringComparison.Ordinal);
+    Assert.Contains("UiMessageKey.NativeSwiftCommonRemove", rows, StringComparison.Ordinal);
+    Assert.Contains("state.ToggleSelection(user.Id); Refresh()", rows, StringComparison.Ordinal);
   }
 
   [Fact]
