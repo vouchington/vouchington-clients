@@ -39,21 +39,14 @@ public sealed partial class ChatConversationViewModel
     ILocalChatProvider selectedLocalProvider;
     try
     {
-      if (providerResolver is ILocalChatProviderResolver localResolver)
+      var resolvedProvider = LocalProviderForSend(trimmed, selectedProvider);
+      if (resolvedProvider is null)
       {
-        var resolvedProvider = localResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty);
-        if (resolvedProvider is null)
-        {
-          ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
-          State = LoadState.Error;
-          return false;
-        }
-        selectedLocalProvider = resolvedProvider;
+        ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
+        State = LoadState.Error;
+        return false;
       }
-      else
-      {
-        selectedLocalProvider = localChatProvider;
-      }
+      selectedLocalProvider = resolvedProvider;
       selectedProvider = selectedLocalProvider.Status;
       SelectedProviderStatus = selectedProvider;
     }
@@ -93,7 +86,7 @@ public sealed partial class ChatConversationViewModel
         Title = created.Conversation.Title;
       }
 
-      if (providerResolver is ILocalChatProviderResolver refreshedResolver)
+      if (retry is null && providerResolver is ILocalChatProviderResolver refreshedResolver)
       {
         selectedLocalProvider = refreshedResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty)
             ?? throw new InvalidOperationException(
@@ -179,7 +172,10 @@ public sealed partial class ChatConversationViewModel
           }
           if (userMessageInserted) RemoveLocalMessage(localUserMessageId);
         }
-        ErrorMessage = PresentSendError(ex, selectedLocalProvider is IMcpLocalChatProvider);
+        var isMcpProvider = selectedLocalProvider is IMcpLocalChatProvider;
+        var hasMcpSnapshot = selectedLocalProvider is IMcpLocalChatProvider mcp &&
+            (retry?.McpSnapshot is not null || mcp.ConnectedMcpSnapshot() is not null);
+        ErrorMessage = PresentSendError(ex, isMcpProvider, hasMcpSnapshot);
         State = LoadState.Error;
       }
 

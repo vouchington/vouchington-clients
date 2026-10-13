@@ -13,7 +13,7 @@ using Xunit;
 namespace Voucha.Client.App.Tests;
 
 [Collection(MauiPageTestCollection.Name)]
-public sealed class ChatConversationPagePendingRetryTests
+public sealed partial class ChatConversationPagePendingRetryTests
 {
   [Fact]
   public async Task RoutingTheSamePageToAnotherConversationClearsTheRestoredComposer()
@@ -224,25 +224,30 @@ public sealed class ChatConversationPagePendingRetryTests
   private sealed class AvailableProvider : ILocalChatProvider
   {
     public Exception? Failure { get; set; }
+    public int Generations { get; private set; }
     public string Id => "windows-system-language-model";
     public ChatProviderStatus Status { get; } = new(
         ChatProviderKind.Local, "Windows local", true, "Ready", "windows-system-language-model", "windows-system-language-model");
 
     public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
-        string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default) =>
-        Failure is null
-            ? Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"))
-            : Task.FromException<LocalChatGenerationResult>(Failure);
+        string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default)
+    {
+      Generations++;
+      return Failure is null
+          ? Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"))
+          : Task.FromException<LocalChatGenerationResult>(Failure);
+    }
   }
 
   private sealed class AmbiguousFirstTurnService : IChatService
   {
+    public Func<Task<ChatConversationListResponse>>? ConversationList { get; set; }
     public string? LastFetchedConversationId { get; private set; }
     public List<CreateClientGeneratedChatBody> Attempts { get; } = [];
 
     public Task<ChatConversationListResponse> FetchMyConversationsAsync(
         string? after = null, int limit = 50, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ChatConversationListResponse([], new PageInfo(null, false, null)));
+        ConversationList?.Invoke() ?? Task.FromResult(new ChatConversationListResponse([], new PageInfo(null, false, null)));
 
     public Task<ChatConversationResponse> CreateConversationAsync(
         CreateChatConversationBody body, CancellationToken cancellationToken = default) =>

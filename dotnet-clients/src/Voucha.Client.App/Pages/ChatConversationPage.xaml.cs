@@ -16,6 +16,8 @@ public partial class ChatConversationPage : ContentPage
   private string? conversationTitle;
   private string? initialMessage;
   private bool hasLoaded;
+  private bool suppressDraftChange;
+  private long contextVersion;
 
   public ChatConversationPage(
       ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null,
@@ -39,6 +41,7 @@ public partial class ChatConversationPage : ContentPage
 
   public void SetContext(string? conversationId = null, string? conversationTitle = null, string? initialMessage = null)
   {
+    _ = Interlocked.Increment(ref contextVersion);
     this.conversationId = conversationId;
     this.conversationTitle = conversationTitle;
     this.initialMessage = initialMessage;
@@ -57,9 +60,11 @@ public partial class ChatConversationPage : ContentPage
   {
     base.OnAppearing();
     memberSession?.Attach();
+    var version = contextVersion;
     try
     {
       await LoadConversationAsync().ConfigureAwait(true);
+      if (version != contextVersion) return;
       if (!hasLoaded && !string.IsNullOrWhiteSpace(initialMessage))
       {
         await SendInitialMessageAsync().ConfigureAwait(true);
@@ -78,7 +83,9 @@ public partial class ChatConversationPage : ContentPage
     var message = initialMessage;
     if (string.IsNullOrWhiteSpace(message)) return;
     initialMessage = null;
+    var version = contextVersion;
     var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+    if (version != contextVersion) return;
     conversationId = viewModel.ConversationId;
     if (!sent && !viewModel.PossibleToolSideEffect && string.IsNullOrWhiteSpace(MessageEditor.Text))
     {
@@ -153,10 +160,14 @@ public partial class ChatConversationPage : ContentPage
     {
       var message = MessageEditor.Text?.Trim() ?? string.Empty;
       if (message.Length == 0) return;
+      var version = contextVersion;
       var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+      if (version != contextVersion) return;
       conversationId = viewModel.ConversationId;
       if (!sent && !viewModel.PossibleToolSideEffect) return;
-      MessageEditor.Text = string.Empty;
+      suppressDraftChange = viewModel.PossibleToolSideEffect;
+      try { MessageEditor.Text = string.Empty; }
+      finally { suppressDraftChange = false; }
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
@@ -164,8 +175,10 @@ public partial class ChatConversationPage : ContentPage
     }
   }
 
-  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e) =>
-      viewModel.NotifyDraftEdited(e.NewTextValue);
+  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
+  {
+    if (!suppressDraftChange) viewModel.NotifyDraftEdited(e.NewTextValue);
+  }
 
   private async void OnStopClicked(object? sender, EventArgs e) => await viewModel.StopStreamingAsync();
 
@@ -175,24 +188,4 @@ public partial class ChatConversationPage : ContentPage
   private async void OnSetUpWindowsModelClicked(object? sender, EventArgs e)
     => await viewModel.SetUpSelectedWindowsSystemLanguageModelAsync();
 
-  private async Task LoadConversationAsync()
-  {
-    var title = conversationTitle;
-    if (conversationId is { Length: > 0 } && string.IsNullOrWhiteSpace(title))
-    {
-      try
-      {
-        title = await ChatListViewModel.ResolveConversationTitleAsync(chatService, conversationId)
-            .ConfigureAwait(true);
-      }
-      catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
-      {
-        System.Diagnostics.Debug.WriteLine(ex);
-      }
-
-      conversationTitle = title;
-    }
-
-    await viewModel.LoadAsync(conversationId, title).ConfigureAwait(true);
-  }
 }

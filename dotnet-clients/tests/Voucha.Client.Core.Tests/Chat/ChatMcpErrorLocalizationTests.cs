@@ -23,6 +23,28 @@ public sealed partial class ChatViewModelProviderTests
     Assert.DoesNotContain("schema keyword", viewModel.ErrorMessage, StringComparison.Ordinal);
   }
 
+  [Fact]
+  public async Task TextOnlyOpenAiSchemaErrorUsesGenericLocalCopyInsteadOfMcpConnectionCopy()
+  {
+    var provider = new TestMcpLocalChatProvider
+    {
+      Failure = new InvalidDataException("Internal text response parser detail."),
+    };
+    provider.HideCatalog(disconnected: false);
+    var locale = new UiLocaleController(new FrenchDeviceLanguage());
+    var localization = new UiLocalization(locale);
+    var viewModel = new ChatConversationViewModel(
+        new FakeChatService(), new TestChatProviderResolver(provider.Status), provider,
+        localization, locale);
+
+    Assert.False(await viewModel.TrySendAsync("Text only", TestContext.Current.CancellationToken));
+    Assert.Equal(localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable),
+        viewModel.ErrorMessage);
+    Assert.NotEqual(localization.Localize(UiMessageKey.NativeDotnetChatMcpConnectionFailed),
+        viewModel.ErrorMessage);
+    Assert.DoesNotContain("parser detail", viewModel.ErrorMessage, StringComparison.Ordinal);
+  }
+
   private sealed class FrenchDeviceLanguage : IDeviceLanguageProvider
   {
     public IReadOnlyList<string> PreferredLanguages { get; } = ["fr"];

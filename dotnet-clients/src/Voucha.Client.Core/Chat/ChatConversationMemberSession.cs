@@ -25,6 +25,8 @@ public sealed class ChatConversationMemberSession : IDisposable
 
   public event EventHandler? MemberChanged;
 
+  public string? CurrentMemberId => sessionStore.Current.Identity?.Id;
+
   public void Attach()
   {
     ObjectDisposedException.ThrowIf(disposed, this);

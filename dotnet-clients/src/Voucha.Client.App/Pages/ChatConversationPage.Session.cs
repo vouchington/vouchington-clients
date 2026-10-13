@@ -8,12 +8,14 @@ public partial class ChatConversationPage
 
   protected override void OnDisappearing()
   {
+    _ = Interlocked.Increment(ref contextVersion);
     memberSession?.Detach();
     base.OnDisappearing();
   }
 
   private void OnMemberChanged(object? sender, EventArgs e)
   {
+    _ = Interlocked.Increment(ref contextVersion);
     initialMessage = null;
     conversationId = null;
     conversationTitle = null;

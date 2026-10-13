@@ -45,7 +45,8 @@ public sealed partial class ChatConversationViewModel
         localUserMessageId,
         localAssistantMessageId,
         generation.ModelName);
-    var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot);
+    var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot,
+        mcpSnapshot is null ? null : mcpProvider);
     pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(

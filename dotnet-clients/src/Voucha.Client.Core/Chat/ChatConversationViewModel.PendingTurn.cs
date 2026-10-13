@@ -13,12 +13,21 @@ public sealed partial class ChatConversationViewModel
       string ConversationId,
       ChatProviderStatus Provider,
       CreateClientGeneratedChatBody Body,
-      MemberMcpConnectedSnapshot? McpSnapshot);
+      MemberMcpConnectedSnapshot? McpSnapshot,
+      IMcpLocalChatProvider? McpProvider);
 
   private ChatProviderStatus ProviderForPendingMcpRetry(string text) =>
       pendingLocalTurn is { McpSnapshot: not null } pending &&
       pending.ConversationId == ConversationId && pending.Body.Message == text
           ? pending.Provider : SelectedProviderStatus;
+
+  private ILocalChatProvider? LocalProviderForSend(string text, ChatProviderStatus selected) =>
+      pendingLocalTurn is { McpSnapshot: not null, McpProvider: { } savedProvider } pending &&
+      pending.ConversationId == ConversationId && pending.Body.Message == text
+          ? savedProvider
+          : providerResolver is ILocalChatProviderResolver resolver
+              ? resolver.GetLocalProvider(selected.ModelProvider ?? string.Empty)
+              : localChatProvider;
 
   private bool HasConflictingCompletedMcpTurn(string text) =>
       pendingLocalTurn is { McpSnapshot: not null } pending &&
