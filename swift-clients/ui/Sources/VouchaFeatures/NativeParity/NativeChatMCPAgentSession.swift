@@ -112,6 +112,7 @@ public final class NativeChatMCPAgentSession {
         let currentGeneration = generation
         operation?.cancel()
         cancelCalls()
+        toolCatalog = nil
         let task = Task { try await service.refreshTools(accountId: accountId) }
         operation = task
         do {

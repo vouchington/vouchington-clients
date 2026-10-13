@@ -66,6 +66,7 @@ public extension OpenAICompatibleResponsesClient {
         var input: [[String: Any]] = initial.map { ["role": $0.role, "content": $0.content] }
         var callsRemaining = 4
         var outputBytesRemaining = 256_000
+        var usedCallIDs = Set<String>()
 
         while true {
             try Task.checkCancellation()
@@ -87,6 +88,7 @@ public extension OpenAICompatibleResponsesClient {
             if calls.isEmpty {
                 return Self.responseText(response, output: output)
             }
+            try Self.recordUniqueCallIDs(calls, seen: &usedCallIDs)
             try Self.consumeCallBudget(calls.count, remaining: &callsRemaining)
             input.append(contentsOf: output)
             for call in calls {
@@ -102,6 +104,16 @@ public extension OpenAICompatibleResponsesClient {
     private static func consumeCallBudget(_ count: Int, remaining: inout Int) throws {
         guard count <= remaining else { throw LocalLLMToolLoopFailure.tooManyCalls }
         remaining -= count
+    }
+
+    private static func recordUniqueCallIDs(
+        _ calls: [LocalLLMFunctionCall], seen: inout Set<String>
+    ) throws {
+        for call in calls {
+            guard seen.insert(call.callID).inserted else {
+                throw LocalLLMToolLoopFailure.invalidResponse
+            }
+        }
     }
 
     private static func decodedToolResponse(_ data: Data) throws -> [String: Any] {

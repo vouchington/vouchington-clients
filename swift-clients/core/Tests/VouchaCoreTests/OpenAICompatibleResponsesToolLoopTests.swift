@@ -197,6 +197,41 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         }
     }
 
+    func testDuplicateFunctionCallIDsNeverExecuteAnAmbiguousCall() async throws {
+        let call = #"{"type":"function_call","call_id":"repeat","name":"read","arguments":"{}"}"#
+        let singleCall = #"{"output":[\#(call)]}"#
+        let duplicateCalls = #"{"output":[\#(call),\#(call)]}"#
+        let cases: [(responses: [String], expectedCalls: Int)] = [
+            ([duplicateCalls, #"{"output":[],"output_text":"unexpected"}"#], 0),
+            ([singleCall, singleCall, #"{"output":[],"output_text":"unexpected"}"#], 1)
+        ]
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "read", description: "Read", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+
+        for testCase in cases {
+            ToolLoopURLProtocol.reset(responses: testCase.responses)
+            let invocations = ToolInvocationCounter()
+            do {
+                _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                    await invocations.record()
+                    return "{}"
+                }
+                XCTFail("Duplicate call IDs must fail before an ambiguous execution")
+            } catch {
+                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+            }
+            let count = await invocations.count
+            XCTAssertEqual(count, testCase.expectedCalls)
+        }
+    }
+
     func testAccountChangeAfterToolResultPreventsModelContinuation() async throws {
         ToolLoopURLProtocol.reset(responses: [
             #"{"output":[{"type":"function_call","call_id":"call-1","name":"read","arguments":"{}"}]}"#,
@@ -228,8 +263,17 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
 
 private actor ToolLoopValidity {
     private(set) var value = true
+
     func invalidate() {
         value = false
+    }
+}
+
+private actor ToolInvocationCounter {
+    private(set) var count = 0
+
+    func record() {
+        count += 1
     }
 }
 

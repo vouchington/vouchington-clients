@@ -133,6 +133,34 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         XCTAssertEqual(service.refreshedAccounts, ["member-a"])
     }
 
+    func testRefreshDoesNotExposeOldCatalogUnderNewRevision() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([.string("old")])]))
+        try await connect.value
+        let previous = try XCTUnwrap(session.connectedSnapshot())
+
+        service.suspendRefresh = true
+        let refresh = Task { try await session.refreshTools() }
+        await service.waitForRefresh()
+        XCTAssertNil(session.connectedSnapshot(), "Old schema must not be captured during refresh")
+        XCTAssertFalse(session.isCurrent(previous))
+
+        service.finishRefresh(with: .object(["tools": .array([.string("new")])]))
+        try await refresh.value
+        let current = try XCTUnwrap(session.connectedSnapshot())
+        XCTAssertNotEqual(current.revision, previous.revision)
+        guard case let .object(catalog) = current.catalog,
+              case let .array(tools)? = catalog["tools"]
+        else { return XCTFail("Expected refreshed catalog") }
+        guard case let .string(name)? = tools.first else { return XCTFail("Expected replacement tool") }
+        XCTAssertEqual(name, "new")
+        XCTAssertFalse(session.isCurrent(previous))
+    }
+
     func testFailedDisconnectKeepsCatalogInvalidated() async throws {
         let service = SuspendedMCPService()
         let session = NativeChatMCPAgentSession(service: service)
@@ -230,6 +258,10 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     private var toolCallStarted: CheckedContinuation<Void, Never>?
     private var hasToolCallStarted = false
     var toolCallCancellationExpectation: XCTestExpectation?
+    private var pendingRefresh: CheckedContinuation<DecodedJSONValue, Error>?
+    private var refreshStarted: CheckedContinuation<Void, Never>?
+    private var hasRefreshStarted = false
+    var suspendRefresh = false
     private(set) var connectedAccounts: [String] = []
     private(set) var refreshedAccounts: [String] = []
     private(set) var disconnectedAccounts: [String] = []
@@ -281,7 +313,25 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     func refreshTools(accountId: String) async throws -> DecodedJSONValue {
         refreshedAccounts.append(accountId)
         if failRefresh { throw Failure.refreshFailed }
+        if suspendRefresh {
+            return try await withCheckedThrowingContinuation { continuation in
+                pendingRefresh = continuation
+                hasRefreshStarted = true
+                refreshStarted?.resume()
+                refreshStarted = nil
+            }
+        }
         return .object(["tools": .array([.string("refreshed")])])
+    }
+
+    func waitForRefresh() async {
+        if hasRefreshStarted { return }
+        await withCheckedContinuation { refreshStarted = $0 }
+    }
+
+    func finishRefresh(with catalog: DecodedJSONValue) {
+        pendingRefresh?.resume(returning: catalog)
+        pendingRefresh = nil
     }
 
     func disconnect(accountId: String) async throws {
