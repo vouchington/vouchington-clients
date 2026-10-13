@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+phase=all
+if [[ "$#" -gt 0 ]]; then
+  if [[ "$#" -ne 2 || "$1" != --phase ]]; then
+    echo "Usage: $0 [--phase app|test-libs|all]" >&2
+    exit 64
+  fi
+  phase="$2"
+fi
+case "$phase" in
+  app | test-libs | all) ;;
+  *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
+esac
+
 SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 ANDROID_PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ANDROID_PROJECT_DIR="$ANDROID_PACKAGE_DIR/Android"
@@ -149,35 +162,39 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
-gradle_started_at=$SECONDS
-(
-  cd "$ANDROID_PROJECT_DIR"
-  # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
-  # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
-  ./gradlew :app:assembleDebug
-)
-gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
-echo "Android Gradle :app:assembleDebug completed in ${gradle_elapsed_seconds}s"
-if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  {
-    printf '### Android Gradle timing\n\n'
-    printf '| Command | Elapsed |\n'
-    printf '| --- | ---: |\n'
-    # The backticked task name is intentionally literal Markdown.
-    # shellcheck disable=SC2016
-    printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
-  } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
+if [[ "$phase" != test-libs ]]; then
+  gradle_started_at=$SECONDS
+  (
+    cd "$ANDROID_PROJECT_DIR"
+    # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
+    # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
+    ./gradlew :app:assembleDebug
+  )
+  gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
+  echo "Android Gradle :app:assembleDebug completed in ${gradle_elapsed_seconds}s"
+  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    {
+      printf '### Android Gradle timing\n\n'
+      printf '| Command | Elapsed |\n'
+      printf '| --- | ---: |\n'
+      # The backticked task name is intentionally literal Markdown.
+      # shellcheck disable=SC2016
+      printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
+    } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
+  fi
 fi
 
-# Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
-# https://github.com/skiptools/skipstone/issues/244
-# Build the actual Android test runner first, then verify its compatibility link.
-skip android build \
-  --package-path "$ANDROID_PACKAGE_DIR" \
-  --arch aarch64 \
-  --build-tests
-bash "$SCRIPT_DIR/link-swift64-android-test-runner.sh" "$ANDROID_PACKAGE_DIR"
+if [[ "$phase" != app ]]; then
+  # Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
+  # https://github.com/skiptools/skipstone/issues/244
+  # Build the actual Android test runner first, then verify its compatibility link.
+  skip android build \
+    --package-path "$ANDROID_PACKAGE_DIR" \
+    --arch aarch64 \
+    --build-tests
+  bash "$SCRIPT_DIR/link-swift64-android-test-runner.sh" "$ANDROID_PACKAGE_DIR"
 
-skip android test \
-  --package-path "$ANDROID_PACKAGE_DIR" \
-  --build-test-libs "$TEST_LIBRARIES_DIR"
+  skip android test \
+    --package-path "$ANDROID_PACKAGE_DIR" \
+    --build-test-libs "$TEST_LIBRARIES_DIR"
+fi

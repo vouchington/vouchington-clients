@@ -63,7 +63,7 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   )
   assert.match(macAndroid, /ANDROID_NDK_VERSION="r30"/u)
   const androidJob = workflow.slice(
-    workflow.indexOf('  test-swift-android:'),
+    workflow.indexOf('  build-swift-android:'),
     workflow.indexOf('  test-swift-ui:'),
   )
   assert.match(
