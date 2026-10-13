@@ -1076,6 +1076,17 @@ jobs:
           --locked-mode --configfile dotnet-clients/NuGet.config
           -p:TargetFramework=net10.0-windows10.0.26100.0 -p:RuntimeIdentifier=win-x64
           -p:Configuration=Release -p:EnableWindowsTargeting=true
+      - name: Restore the referenced portable Core framework
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        # The app restore's global TargetFramework also reaches Core; build resolves Core as net10.0.
+        run: >-
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+          --locked-mode --configfile dotnet-clients/NuGet.config
+          -p:TargetFramework=net10.0 -p:Configuration=Release
       - name: Compile the actual Windows MAUI app
         timeout-minutes: 10
         working-directory: candidate-clients
