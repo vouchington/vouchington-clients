@@ -30,7 +30,11 @@ public sealed record PostRow(
     string? DetectedLanguage = null,
     bool HasAuthoredTitle = false,
     AccountType? AuthorAccountType = null,
-    PublicContentProvenance? Provenance = null)
+    PublicContentProvenance? Provenance = null,
+    string? ViewerId = null,
+    bool IsStaffViewer = false,
+    string? ClearanceStatus = null,
+    string? ClearanceReason = null)
 {
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
@@ -51,6 +55,30 @@ public sealed record PostRow(
   public bool HasProvenance => Provenance is not null;
 
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, L);
+
+  public PostContentPresentation ContentPresentation =>
+      PostContentPolicy.For(ClearanceStatus, CreatedById, ViewerId, IsStaffViewer);
+
+  public bool ShowBodyContent => ContentPresentation is PostContentPresentation.Content or PostContentPresentation.UnderReviewForStaff;
+  public bool ShowAppealsAction => ContentPresentation == PostContentPresentation.RemovedForAuthor;
+  public bool ShowNotice => ContentPresentation is PostContentPresentation.RemovedForAuthor or PostContentPresentation.Unavailable;
+  public bool ShowEmbed => PostContentPolicy.CanShowMedia(ClearanceStatus, IsStaffViewer) && EmbedPreview?.HasPreview == true;
+  public bool CanPlayEmbed => ShowEmbed && EmbedPreview?.CanPlay == true;
+  public bool HasEmbedSource => ShowEmbed && EmbedPreview?.HasSource == true;
+  public string? LocalizedNotice => ContentPresentation switch
+  {
+    PostContentPresentation.RemovedForAuthor => L.Localize(UiMessageKey.NativeAuthoredPostRemoved),
+    PostContentPresentation.Unavailable => L.Localize(UiMessageKey.NativeAuthoredPostUnavailable),
+    _ => null,
+  };
+  public string? LocalizedRemovalReason => ShowAppealsAction
+      ? string.IsNullOrWhiteSpace(ClearanceReason)
+          ? L.Localize(UiMessageKey.NativeAuthoredPostNoAdditionalReason)
+          : L.Resolve(UiText.ProtocolValue(ClearanceReason))
+      : null;
+  public string? LocalizedReviewBadge => ContentPresentation == PostContentPresentation.UnderReviewForStaff
+      ? L.Localize(UiMessageKey.NativeDotnetModerationInReview)
+      : null;
 
   public bool IsEligibleForFollowerDistribution =>
       FollowerDistributionEligibility.IsPublicTopLevelPost(ProtocolPostType, ParentId, Privacy, Broadcast);
@@ -121,7 +149,9 @@ public static class PostRows
         DetectedLanguage: post.LinguaRsDetectedLanguage,
         HasAuthoredTitle: Normalize(post.Title) is not null,
         AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType,
-        Provenance: post.Provenance);
+        Provenance: post.Provenance,
+        ClearanceStatus: post.ClearanceStatus,
+        ClearanceReason: post.ClearanceReason);
   }
 
   public static PostRow From(

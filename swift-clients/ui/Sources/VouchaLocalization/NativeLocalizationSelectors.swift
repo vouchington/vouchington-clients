@@ -7,6 +7,7 @@ public enum NativeLocalizationSelectors {
         "native.common.*",
         "native.apiKeys.*",
         "native.auth.*",
+        "native.authoredPost.*",
         "native.navigation.*",
         "native.copyrightNotices.*",
         "native.swift.navigation.*",

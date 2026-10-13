@@ -157,7 +157,11 @@ public sealed partial class ProfileViewModel
               response.Bookmarks,
               response.MarkdownToHtml,
               response.PostLinkEmbeds,
-              localization))
+              localization) with
+          {
+            ViewerId = currentViewerUserId,
+            IsStaffViewer = currentViewerIsStaff,
+          })
           .ToArray();
       HistoryItems = append
           ? HistoryItems.Concat(rows).DistinctBy(row => row.Id, StringComparer.Ordinal).ToArray()

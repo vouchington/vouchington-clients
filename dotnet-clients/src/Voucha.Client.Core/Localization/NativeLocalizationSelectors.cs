@@ -15,6 +15,7 @@ public static class NativeLocalizationSelectors
       "native.common.*",
       "native.copyrightNotices.*",
       "native.auth.*",
+      "native.authoredPost.*",
       "native.apiKeys.*",
       "native.credentials.*",
       "native.dotnet.*",

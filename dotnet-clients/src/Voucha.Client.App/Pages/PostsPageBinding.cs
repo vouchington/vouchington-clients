@@ -36,7 +36,12 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
 
   public string? CurrentUserId => sessionStore.Current.Identity?.Id;
 
-  public override IReadOnlyList<PostRow> Items => viewModel.Items;
+  public override IReadOnlyList<PostRow> Items => viewModel.Items.Select(row => row with
+  {
+    ViewerId = CurrentUserId,
+    IsStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
+        role is "administrator" or "moderator") == true,
+  }).ToArray();
 
   public override bool HasError => viewModel.HasError;
 

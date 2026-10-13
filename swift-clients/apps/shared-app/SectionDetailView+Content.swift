@@ -129,7 +129,10 @@ extension SectionDetailView {
                 canVote: canCastPublicVotes,
                 currentUserId: factory.sessionManager.currentUserId,
                 hideDownCount: hideDownCount,
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
+                    factory.sessionManager.currentUserRoles.contains("moderator"),
+                onNavigate: onNavigateToTargetPath
             )
         case .feed(.all): PostsListView(
                 viewModel: postsAllVM,
@@ -137,7 +140,10 @@ extension SectionDetailView {
                 canVote: canCastPublicVotes,
                 currentUserId: factory.sessionManager.currentUserId,
                 hideDownCount: hideDownCount,
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
+                    factory.sessionManager.currentUserRoles.contains("moderator"),
+                onNavigate: onNavigateToTargetPath
             )
         case .sources: EmptyView()
         }

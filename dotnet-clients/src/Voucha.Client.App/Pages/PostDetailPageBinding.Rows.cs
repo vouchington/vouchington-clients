@@ -86,7 +86,9 @@ public sealed partial class PostDetailPageBinding
         vote?.Choice,
         localization,
         BodyHtml(post, isRoot),
-        viewModel.EmbedPreviewFor(post));
+        viewModel.EmbedPreviewFor(post),
+        sessionStore.Current.Identity?.Id,
+        sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true);
   }
 
   private string? BodyHtml(Post post, bool isRoot)

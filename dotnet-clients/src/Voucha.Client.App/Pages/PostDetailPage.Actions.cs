@@ -1,11 +1,19 @@
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.App.Controls;
+using Voucha.Client.Core.Moderation;
 namespace Voucha.Client.App.Pages;
 
 public partial class PostDetailPage
 {
+  private async void OnAppealsClicked(object? sender, EventArgs e)
+  {
+    await Navigation.PushAsync(serviceProvider.GetRequiredService<MemberAppealsPageFactory>()
+        .Create(MemberAppealsRoute.Tracking));
+  }
+
   private static PostDetailPageRow RowFrom(object? sender) =>
       sender is Button { CommandParameter: PostDetailPageRow row }
           ? row

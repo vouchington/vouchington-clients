@@ -5,7 +5,7 @@ import VouchaModels
 /// Displays a post summary in compact or expanded layout with optional voting controls.
 public struct PostCard: View {
     @Environment(\.locale)
-    private var nativeUiLocale
+    var nativeUiLocale
     public let post: Post
     public let variant: CardVariant
     public let myVote: ElectionVoteChoice?
@@ -17,6 +17,9 @@ public struct PostCard: View {
     public let isHidden: Bool
     public let onToggleSaved: (() -> Void)?
     public let onToggleHidden: (() -> Void)?
+    public let currentUserId: String?
+    public let isStaffViewer: Bool
+    public let onViewAppeals: (() -> Void)?
 
     public init(
         post: Post,
@@ -29,7 +32,10 @@ public struct PostCard: View {
         isSaved: Bool = false,
         isHidden: Bool = false,
         onToggleSaved: (() -> Void)? = nil,
-        onToggleHidden: (() -> Void)? = nil
+        onToggleHidden: (() -> Void)? = nil,
+        currentUserId: String? = nil,
+        isStaffViewer: Bool = false,
+        onViewAppeals: (() -> Void)? = nil
     ) {
         self.post = post
         self.variant = variant
@@ -42,6 +48,9 @@ public struct PostCard: View {
         self.isHidden = isHidden
         self.onToggleSaved = onToggleSaved
         self.onToggleHidden = onToggleHidden
+        self.currentUserId = currentUserId
+        self.isStaffViewer = isStaffViewer
+        self.onViewAppeals = onViewAppeals
     }
 
     public var body: some View {
@@ -66,16 +75,9 @@ public struct PostCard: View {
                     .font(Typography.subheadline)
                     .lineLimit(2)
                     .authoredContentLanguage(declared: post.declaredLanguage, detected: post.linguaRsDetectedLanguage)
-            } else if let markdown = authoredMarkdown {
-                NativeHtmlContent(
-                    html: post.html,
-                    fallback: markdown,
-                    lineLimit: 2,
-                    font: Typography.body,
-                    foregroundStyle: Colors.secondaryLabel,
-                    declaredLanguage: post.declaredLanguage,
-                    detectedLanguage: post.linguaRsDetectedLanguage
-                )
+                if contentPresentation != .content { authoredBody(lineLimit: 2) }
+            } else {
+                authoredBody(lineLimit: 2)
             }
             postFooter
         }
@@ -96,17 +98,7 @@ public struct PostCard: View {
                     .authoredContentLanguage(declared: post.declaredLanguage, detected: post.linguaRsDetectedLanguage)
                     .lineLimit(4)
             }
-            if let markdown = authoredMarkdown {
-                NativeHtmlContent(
-                    html: post.html,
-                    fallback: markdown,
-                    lineLimit: 6,
-                    font: Typography.body,
-                    foregroundStyle: Colors.secondaryLabel,
-                    declaredLanguage: post.declaredLanguage,
-                    detectedLanguage: post.linguaRsDetectedLanguage
-                )
-            }
+            authoredBody(lineLimit: 6)
             postFooter
         }
         .padding(.vertical, Spacing.sm)

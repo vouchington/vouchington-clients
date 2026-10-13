@@ -8,6 +8,7 @@ using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.LandingPages;
 using Voucha.Client.Core.Localization;
@@ -92,6 +93,87 @@ public sealed class AccountTypeAuthorRenderingTests
 
     Assert.Equal(expected, badge.Text);
   }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public void RejectedFeedAndProfileCardsRenderViewerSpecificNoticeAndControls(bool profile)
+  {
+    InstallPageResources();
+    var page = profile ? (ContentPage)new ProfilePage() : new PostsPage();
+    var collection = Named<CollectionView>(page, "authored-post-collection");
+    var card = Assert.IsAssignableFrom<View>(collection.ItemTemplate.CreateContent());
+    var notice = Named<Label>(card, "authored-post-notice");
+    var appeals = Named<Button>(card, "authored-post-appeals");
+    var body = Named<VisualElement>(card, "authored-post-body");
+    var embed = Named<VisualElement>(card, "authored-post-embed");
+
+    foreach (var (viewer, staff, showAppeals, showBody, showEmbed) in new[]
+    {
+      ("user-1", false, true, false, false),
+      ("other", false, false, false, false),
+      ("user-1", true, true, false, true),
+      ("other", true, false, true, true),
+    })
+    {
+      card.BindingContext = RejectedRow(viewer, staff);
+      Assert.Equal(showAppeals, appeals.IsVisible);
+      Assert.Equal(showBody, body.IsVisible);
+      Assert.Equal(showEmbed, embed.IsVisible);
+      Assert.Equal(!staff || viewer == "user-1", notice.IsVisible);
+      Assert.Equal(!staff || viewer == "user-1", notice.Text is not null);
+    }
+  }
+
+  [Fact]
+  public void RejectedDetailRootRendersAuthorNoticeAndHidesBodyAndEmbed()
+  {
+    InstallPageResources();
+    var page = new PostDetailPage();
+    var binding = new PostDetailPageBinding(
+        new CommentThreadViewModel(Proxy<ICommentThreadService>(), "post"),
+        new AnonymousSessionStore());
+    var rootProperty = typeof(PostDetailPageBinding).GetProperty(nameof(PostDetailPageBinding.RootRow))!;
+    rootProperty.SetValue(binding, RejectedDetailRow("user-1", false));
+    page.BindingContext = binding;
+    var notice = Named<Label>(page, "authored-post-notice");
+    var appeals = Named<Button>(page, "authored-post-appeals");
+    var body = Named<VisualElement>(page, "authored-post-body");
+    var embed = Named<VisualElement>(page, "authored-post-embed");
+    Assert.True(notice.IsVisible);
+    Assert.True(appeals.IsVisible);
+    Assert.False(body.IsVisible);
+    Assert.False(embed.IsVisible);
+
+    rootProperty.SetValue(binding, RejectedDetailRow("other", true));
+    Assert.False(notice.IsVisible);
+    Assert.False(appeals.IsVisible);
+    Assert.True(body.IsVisible);
+    Assert.True(embed.IsVisible);
+  }
+
+  private static readonly UrlEmbedPreview Preview = new("preview", null, null, null, null, null);
+
+  private static PostRow RejectedRow(string viewer, bool staff) =>
+      PostRows.From(Post(null) with { ClearanceStatus = "rejected", ClearanceReason = "Public reason" },
+          null, null, null) with
+      {
+        ViewerId = viewer,
+        IsStaffViewer = staff,
+        EmbedPreview = Preview,
+      };
+
+  private static PostDetailPageRow RejectedDetailRow(string viewer, bool staff) =>
+      DetailRow(null) with
+      {
+        Post = Post(null) with { ClearanceStatus = "rejected", ClearanceReason = "Public reason" },
+        ViewerId = viewer,
+        IsStaffViewer = staff,
+        EmbedPreview = Preview,
+      };
+
+  private static T Named<T>(Element root, string id) where T : VisualElement =>
+      Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
 
   private static User Author(AccountType? type) =>
       new("user-1", "alice", AccountType: type);

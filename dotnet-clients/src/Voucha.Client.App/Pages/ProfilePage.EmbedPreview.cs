@@ -1,10 +1,15 @@
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.App.Pages;
 
 public partial class ProfilePage
 {
+  private async void OnHistoryAppealsClicked(object? sender, EventArgs e) =>
+      await Navigation.PushAsync(serviceProvider.GetRequiredService<MemberAppealsPageFactory>()
+          .Create(MemberAppealsRoute.Tracking));
+
   private async void OnHistoryEmbedPlayClicked(object? sender, EventArgs e)
   {
     if (sender is Button { CommandParameter: PostRow { EmbedPreview: { PlayerUrl: { } playerUrl, SourceUrl: { } sourceUrl } } })

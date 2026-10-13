@@ -87,11 +87,13 @@ extension PostsListViewModelTests {
         electionVotes: [String: String] = [:],
         bookmarks: [String: [String: Bool]]? = nil,
         postLinkEmbeds: [String: String] = [:],
-        broadcast: String? = nil
+        broadcast: String? = nil,
+        clearanceStatus: String? = nil
     ) -> Data {
         let broadcastJSON = broadcast.map { #""\#($0)""# } ?? "null"
+        let clearanceJSON = clearanceStatus.map { #""\#($0)""# } ?? "null"
         let posts = ids.map { id in
-            "\"\(id)\":{\"id\":\"\(id)\",\"slug\":null,\"post_type\":\"discussion\",\"title\":\"Post \(id)\",\"markdown\":null,\"html\":null,\"parent_post_id\":null,\"root_post_id\":null,\"created_by_id\":\"user1\",\"created_at\":\"2024-01-01T00:00:00Z\",\"broadcast\":\(broadcastJSON),\"privacy\":\"public\",\"is_anonymous\":false,\"community_id\":null,\"clearance_status\":null,\"deleted_at\":null,\"deleted_by_id\":null,\"locked_at\":null,\"locked_by_id\":null,\"archived_at\":null,\"archived_by_id\":null,\"clearance_reason\":null,\"clearance_updated_at\":null,\"spam_detection_created_at\":null,\"spam_detection_flagged\":null,\"spam_detection_results\":null,\"spam_detection_score\":null,\"updated_by_id\":null}"
+            "\"\(id)\":{\"id\":\"\(id)\",\"slug\":null,\"post_type\":\"discussion\",\"title\":\"Post \(id)\",\"markdown\":null,\"html\":null,\"parent_post_id\":null,\"root_post_id\":null,\"created_by_id\":\"user1\",\"created_at\":\"2024-01-01T00:00:00Z\",\"broadcast\":\(broadcastJSON),\"privacy\":\"public\",\"is_anonymous\":false,\"community_id\":null,\"clearance_status\":\(clearanceJSON),\"deleted_at\":null,\"deleted_by_id\":null,\"locked_at\":null,\"locked_by_id\":null,\"archived_at\":null,\"archived_by_id\":null,\"clearance_reason\":null,\"clearance_updated_at\":null,\"spam_detection_created_at\":null,\"spam_detection_flagged\":null,\"spam_detection_results\":null,\"spam_detection_score\":null,\"updated_by_id\":null}"
         }.joined(separator: ",")
         let results = ids.map { "{\"entity_id\":\"\($0)\"}" }.joined(separator: ",")
         let cursor = endCursor.map { "\"\($0)\"" } ?? "null"
@@ -172,6 +174,23 @@ extension PostsListViewModelTests {
 
         XCTAssertEqual(viewModel.postEmbedsByPostId["p1"]?.previewTitle, "Provider preview")
         XCTAssertNoThrow(try PostsListView(viewModel: viewModel).inspect().find(text: "Provider preview"))
+    }
+
+    func testRejectedPostsListHidesEmbedFromOrdinaryViewerButShowsItToStaff() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/feeds/posts/any"] = (
+            makePostsPage(
+                ids: ["p1"],
+                hasMore: false,
+                postLinkEmbeds: ["p1": "Private preview"],
+                clearanceStatus: "rejected"
+            ), 200
+        )
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        await viewModel.load()
+
+        XCTAssertThrowsError(try PostsListView(viewModel: viewModel).inspect().find(text: "Private preview"))
+        XCTAssertNoThrow(try PostsListView(viewModel: viewModel, isStaffViewer: true)
+            .inspect().find(text: "Private preview"))
     }
 
     func testPostPaginationMergesPostLinkEmbeds() async {

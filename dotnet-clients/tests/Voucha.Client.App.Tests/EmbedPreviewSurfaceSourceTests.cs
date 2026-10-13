@@ -14,7 +14,8 @@ public sealed class EmbedPreviewSurfaceSourceTests
 
     Assert.Contains("EmbedPreview.Provider", source, StringComparison.Ordinal);
     Assert.Contains("EmbedPreview.ThumbnailUrl", source, StringComparison.Ordinal);
-    Assert.Contains("EmbedPreview.CanPlay", source, StringComparison.Ordinal);
+    Assert.Contains(page == "PostsPage.xaml" ? "CanPlayEmbed" : "EmbedPreview.CanPlay", source, StringComparison.Ordinal);
+    if (page == "PostsPage.xaml") Assert.Contains("IsVisible=\"{Binding ShowEmbed}\"", source, StringComparison.Ordinal);
   }
 
   [Theory]
@@ -37,9 +38,10 @@ public sealed class EmbedPreviewSurfaceSourceTests
     var ancestors = page.Split("<VerticalStackLayout Spacing=\"8\" IsVisible=\"{Binding HasAncestors}\">", 2)[1]
         .Split("<HorizontalStackLayout Spacing=\"8\">", 2)[0];
 
-    Assert.Equal(3, page.Split("EmbedPreview.HasPreview").Length - 1);
-    Assert.Contains("EmbedPreview.CanPlay", ancestors, StringComparison.Ordinal);
-    Assert.Contains("EmbedPreview.HasSource", ancestors, StringComparison.Ordinal);
+    Assert.Contains("RootRow.HasEmbedPreview", page, StringComparison.Ordinal);
+    Assert.Equal(2, page.Split("IsVisible=\"{Binding HasEmbedPreview}\"").Length - 1);
+    Assert.Contains("CanPlayEmbed", ancestors, StringComparison.Ordinal);
+    Assert.Contains("HasEmbedSource", ancestors, StringComparison.Ordinal);
     Assert.Contains("OnEmbedPlayClicked", ancestors, StringComparison.Ordinal);
     Assert.Contains("OnEmbedOpenClicked", ancestors, StringComparison.Ordinal);
   }

@@ -32,11 +32,36 @@ extension NativeUserProfileSurface {
             EmptyView()
         case let .posts(posts):
             ForEach(posts) { row in
-                Button { onNavigate(NativeUserProfileNavigationTarget.post(row)) } label: {
-                    PostCard(post: row.post, hideDownCount: hideDownCount)
+                if row.post.contentPresentation(
+                    viewerId: currentUserId, isStaffViewer: isStaffViewer
+                ) == .removedForAuthor {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        PostCard(
+                            post: row.post,
+                            hideDownCount: hideDownCount,
+                            currentUserId: currentUserId,
+                            isStaffViewer: isStaffViewer,
+                            onViewAppeals: { onNavigate("/my/appeals") }
+                        )
+                        Button { onNavigate(NativeUserProfileNavigationTarget.post(row)) } label: {
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .accessibilityLabel(UiMessages.string(
+                            .nativeSwiftRouteMetadataMainPostDetailPostDetailTitle, locale: nativeUiLocale
+                        ))
+                    }
+                } else {
+                    Button { onNavigate(NativeUserProfileNavigationTarget.post(row)) } label: {
+                        PostCard(
+                            post: row.post,
+                            hideDownCount: hideDownCount,
+                            currentUserId: currentUserId,
+                            isStaffViewer: isStaffViewer
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("public-profile-post-row")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("public-profile-post-row")
             }
         case let .users(users):
             ForEach(users) { user in

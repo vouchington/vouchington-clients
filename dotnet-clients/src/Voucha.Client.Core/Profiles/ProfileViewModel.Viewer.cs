@@ -4,6 +4,7 @@ public sealed partial class ProfileViewModel
 {
   private string? currentViewerUserId;
   private string? currentViewerUsername;
+  private bool currentViewerIsStaff;
   private bool currentViewerCanCastPublicVotes = true;
   private bool currentViewerCanCreateUserTagVotes = true;
 
@@ -11,12 +12,19 @@ public sealed partial class ProfileViewModel
       string? userId,
       string? username,
       bool canCastPublicVotes = true,
-      bool? canCreateUserTagVotes = null)
+      bool? canCreateUserTagVotes = null,
+      bool isStaffViewer = false)
   {
     currentViewerUserId = userId;
     currentViewerUsername = username;
+    currentViewerIsStaff = isStaffViewer;
     currentViewerCanCastPublicVotes = canCastPublicVotes;
     currentViewerCanCreateUserTagVotes = canCreateUserTagVotes ?? canCastPublicVotes;
+    HistoryItems = HistoryItems.Select(row => row with
+    {
+      ViewerId = userId,
+      IsStaffViewer = isStaffViewer,
+    }).ToArray();
     RefreshProfileActionEligibility();
     OnPropertyChanged(nameof(CanVoteUserTrust));
     OnPropertyChanged(nameof(CanCreateUserTrustVote));

@@ -62,7 +62,9 @@ public partial class ProfilePage : ContentPage
           sessionStore.Current.Identity?.Id,
           sessionStore.Current.Identity?.Username,
           sessionStore.Current.CanCastPublicVotes(),
-          sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true));
+          sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true),
+          isStaffViewer: sessionStore.Current.Identity?.Roles?.Any(role =>
+              role is "administrator" or "moderator") == true);
       if (string.IsNullOrWhiteSpace(idOrUsername))
       {
         await viewModel.LoadOwnAsync();

@@ -79,8 +79,9 @@ public sealed class ProviderEmbedPlayerSourceTests
     var page = Source("Pages", "ProfilePage.xaml") + Source("Pages", "ProfilePage.EmbedPreview.cs");
 
     Assert.Contains("EmbedPreview.Provider", page, StringComparison.Ordinal);
-    Assert.Contains("EmbedPreview.CanPlay", page, StringComparison.Ordinal);
-    Assert.Contains("EmbedPreview.HasSource", page, StringComparison.Ordinal);
+    Assert.Contains("IsVisible=\"{Binding ShowEmbed}\"", page, StringComparison.Ordinal);
+    Assert.Contains("CanPlayEmbed", page, StringComparison.Ordinal);
+    Assert.Contains("HasEmbedSource", page, StringComparison.Ordinal);
     Assert.Contains("EmbedPlayerPage", page, StringComparison.Ordinal);
   }
 

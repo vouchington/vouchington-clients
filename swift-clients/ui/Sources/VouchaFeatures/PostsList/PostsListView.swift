@@ -13,6 +13,8 @@ public struct PostsListView: View {
     public let currentUserId: String?
     public let hideDownCount: Bool
     public let showSignIn: (() -> Void)?
+    public let isStaffViewer: Bool
+    public let onNavigate: ((String) -> Void)?
 
     public init(
         viewModel: PostsListViewModel,
@@ -20,7 +22,9 @@ public struct PostsListView: View {
         canVote: Bool? = nil,
         currentUserId: String? = nil,
         hideDownCount: Bool = false,
-        showSignIn: (() -> Void)? = nil
+        showSignIn: (() -> Void)? = nil,
+        isStaffViewer: Bool = false,
+        onNavigate: ((String) -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.isSignedIn = isSignedIn
@@ -28,6 +32,8 @@ public struct PostsListView: View {
         self.currentUserId = currentUserId
         self.hideDownCount = hideDownCount
         self.showSignIn = showSignIn
+        self.isStaffViewer = isStaffViewer
+        self.onNavigate = onNavigate
     }
 
     public var body: some View {
@@ -90,9 +96,13 @@ public struct PostsListView: View {
                     onToggleSaved: isSignedIn ?
                         { _ = Task<Void, Never> { await viewModel.toggleSave(postId: post.id) } } : nil,
                     onToggleHidden: isSignedIn ?
-                        { _ = Task<Void, Never> { await viewModel.toggleHide(postId: post.id) } } : nil
+                        { _ = Task<Void, Never> { await viewModel.toggleHide(postId: post.id) } } : nil,
+                    currentUserId: currentUserId,
+                    isStaffViewer: isStaffViewer,
+                    onViewAppeals: onNavigate.map { navigate in { navigate("/my/appeals") } }
                 )
-                if let embed = viewModel.postEmbedsByPostId[post.id] {
+                if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
+                   let embed = viewModel.postEmbedsByPostId[post.id] {
                     ProviderEmbedPreview(embed: embed)
                 }
                 if canDistribute(post), let currentUserId {

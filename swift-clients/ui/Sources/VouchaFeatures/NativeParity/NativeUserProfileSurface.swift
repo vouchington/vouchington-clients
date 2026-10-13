@@ -10,6 +10,8 @@ struct NativeUserProfileSurface: View {
     var viewModel: NativeRouteSurfaceViewModel
     let isSignedIn: Bool
     let isAdministrator: Bool
+    let currentUserId: String?
+    let isStaffViewer: Bool
     let canCastPublicVotes: Bool
     let hideDownCount: Bool
     let turnstileSiteKey: String?
@@ -21,6 +23,8 @@ struct NativeUserProfileSurface: View {
         viewModel: NativeRouteSurfaceViewModel,
         isSignedIn: Bool,
         isAdministrator: Bool = false,
+        currentUserId: String? = nil,
+        isStaffViewer: Bool = false,
         canCastPublicVotes: Bool = false,
         hideDownCount: Bool = false,
         turnstileSiteKey: String?,
@@ -31,6 +35,8 @@ struct NativeUserProfileSurface: View {
         self.viewModel = viewModel
         self.isSignedIn = isSignedIn
         self.isAdministrator = isAdministrator
+        self.currentUserId = currentUserId
+        self.isStaffViewer = isStaffViewer
         self.canCastPublicVotes = canCastPublicVotes
         self.hideDownCount = hideDownCount
         self.turnstileSiteKey = turnstileSiteKey

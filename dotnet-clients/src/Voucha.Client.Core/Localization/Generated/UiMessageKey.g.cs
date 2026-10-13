@@ -293,6 +293,10 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeApiKeysRotationConflict = new("native.apiKeys.rotationConflict");
     public static readonly UiMessageKey NativeApiKeysRotationNotFound = new("native.apiKeys.rotationNotFound");
     public static readonly UiMessageKey NativeAuthEmailAddress = new("native.auth.emailAddress");
+    public static readonly UiMessageKey NativeAuthoredPostNoAdditionalReason = new("native.authoredPost.noAdditionalReason");
+    public static readonly UiMessageKey NativeAuthoredPostRemoved = new("native.authoredPost.removed");
+    public static readonly UiMessageKey NativeAuthoredPostUnavailable = new("native.authoredPost.unavailable");
+    public static readonly UiMessageKey NativeAuthoredPostViewAppeals = new("native.authoredPost.viewAppeals");
     public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
     public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
     public static readonly UiMessageKey NativeCommonRetry = new("native.common.retry");
@@ -2290,6 +2294,10 @@ public readonly record struct UiMessageKey(string Value)
         NativeApiKeysRotationConflict,
         NativeApiKeysRotationNotFound,
         NativeAuthEmailAddress,
+        NativeAuthoredPostNoAdditionalReason,
+        NativeAuthoredPostRemoved,
+        NativeAuthoredPostUnavailable,
+        NativeAuthoredPostViewAppeals,
         NativeCommonRelatedArticles,
         NativeCommonRelatedArticlesMore,
         NativeCommonRetry,

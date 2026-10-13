@@ -8,6 +8,7 @@ public partial class PostsPage : ContentPage
 {
   public PostsPage() => InitializeComponent();
   private void OnAllClicked(object? sender, EventArgs args) { }
+  private void OnAppealsClicked(object? sender, EventArgs args) { }
   private void OnChooseVoteClicked(object? sender, EventArgs args) { }
   private void OnClearVoteClicked(object? sender, EventArgs args) { }
   private void OnComposeClicked(object? sender, EventArgs args) { }
@@ -27,6 +28,7 @@ public partial class PostsPage : ContentPage
 public partial class PostDetailPage : ContentPage
 {
   public PostDetailPage() => InitializeComponent();
+  private void OnAppealsClicked(object? sender, EventArgs args) { }
   private void OnChooseVoteClicked(object? sender, EventArgs args) { }
   private void OnClearVoteClicked(object? sender, EventArgs args) { }
   private void OnCollapseClicked(object? sender, EventArgs args) { }
@@ -58,6 +60,7 @@ public partial class ProfilePage : ContentPage
   private void OnClearUserTrustVoteClicked(object? sender, EventArgs args) { }
   private void OnFollowUserClicked(object? sender, EventArgs args) { }
   private void OnHistoryEmbedOpenClicked(object? sender, EventArgs args) { }
+  private void OnHistoryAppealsClicked(object? sender, EventArgs args) { }
   private void OnHistoryEmbedPlayClicked(object? sender, EventArgs args) { }
   private void OnHistoryTabClicked(object? sender, EventArgs args) { }
   private void OnLandingPageAnalyticsClicked(object? sender, EventArgs args) { }
