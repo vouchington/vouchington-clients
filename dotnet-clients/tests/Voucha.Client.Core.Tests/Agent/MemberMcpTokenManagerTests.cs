@@ -100,6 +100,31 @@ public sealed class MemberMcpTokenManagerTests
   }
 
   [Fact]
+  public async Task LateRejectionOfOldAccessDoesNotClearRedeemedCredentials()
+  {
+    var handler = new DeferredGrantHandler();
+    handler.Release.TrySetResult();
+    var store = new DeferredStore
+    {
+      Current = new MemberMcpOAuthTokens("old-access", "old-refresh", 3600, "mcp.user:read", "Bearer")
+    };
+    store.ReleaseSave.TrySetResult();
+    using var tokenClient = new MemberMcpOAuthTokenClient(
+        Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
+        new Uri("https://example.test/api/v1/mcp"), handler);
+    var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
+
+    await manager.ClearAsync("old-access");
+    Assert.Equal("new-access", await manager.RedeemAsync("code-1", "verifier-1",
+        new Uri("http://127.0.0.1:47831/oauth/native/windows/callback"),
+        TestContext.Current.CancellationToken));
+    await manager.ClearAsync("old-access");
+
+    Assert.Equal("new-access", store.Current?.AccessToken);
+    Assert.Equal(1, store.ClearCount);
+  }
+
+  [Fact]
   public async Task ExpiredPersistedAccessRefreshesBeforeMcpUse()
   {
     var handler = new DeferredGrantHandler();

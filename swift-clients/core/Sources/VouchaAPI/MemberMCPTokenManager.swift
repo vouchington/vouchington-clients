@@ -75,14 +75,17 @@ public actor MemberMCPTokenManager {
         try await store.clear(scope: scope)
     }
 
-    public func clear() async throws {
+    public func clear(rejectedAccessToken: String? = nil) async throws {
         guard !signedOut, !clearing else { throw Failure.notAuthorized }
         clearing = true
         if let refreshTask { _ = try? await refreshTask.value }
         if let redeemTask { _ = try? await redeemTask.value }
         do {
-            try await store.clear(scope: scope)
-            latestRefreshedTokens = nil
+            let current = try await store.load(scope: scope)
+            if rejectedAccessToken == nil || current?.accessToken == rejectedAccessToken {
+                try await store.clear(scope: scope)
+                latestRefreshedTokens = nil
+            }
             clearing = false
         } catch {
             clearing = false

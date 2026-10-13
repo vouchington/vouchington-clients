@@ -80,14 +80,14 @@ public sealed partial class MemberMcpTokenManager(
     }
   }
 
-  public Task ClearAsync()
+  public Task ClearAsync(string? rejectedAccessToken = null)
   {
     lock (gate)
     {
       if (signedOut) throw new McpUnauthorizedException();
       if (clearTask is not null) return clearTask;
       clearing = true;
-      var pending = ClearCoreAsync(refreshTask, redeemTask);
+      var pending = ClearCoreAsync(refreshTask, redeemTask, rejectedAccessToken);
       clearTask = pending;
       _ = pending.ContinueWith(completed =>
       {
@@ -105,12 +105,19 @@ public sealed partial class MemberMcpTokenManager(
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification = "Invalid-token cleanup must settle even if an older token operation failed.")]
   private async Task ClearCoreAsync(
-      Task<MemberMcpOAuthTokens>? refreshing, Task<MemberMcpOAuthTokens>? redeeming)
+      Task<MemberMcpOAuthTokens>? refreshing, Task<MemberMcpOAuthTokens>? redeeming,
+      string? rejectedAccessToken)
   {
     if (refreshing is not null) { try { await refreshing.ConfigureAwait(false); } catch (Exception) { } }
     if (redeeming is not null) { try { await redeeming.ConfigureAwait(false); } catch (Exception) { } }
-    await store.ClearAsync(scope).ConfigureAwait(false);
-    lock (gate) { latestRefreshedTokens = null; }
+    await SerializeMutationAsync(async () =>
+    {
+      var current = await store.LoadAsync(scope).ConfigureAwait(false);
+      if (rejectedAccessToken is not null && current?.AccessToken != rejectedAccessToken) return false;
+      await store.ClearAsync(scope).ConfigureAwait(false);
+      lock (gate) { latestRefreshedTokens = null; }
+      return true;
+    }).ConfigureAwait(false);
   }
 
   private void ObserveCompletion(Task<MemberMcpOAuthTokens> task, bool refresh) =>

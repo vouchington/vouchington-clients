@@ -24,7 +24,7 @@ public sealed class MemberMcpAuthorizedClient(MemberMcpClient client, MemberMcpT
       }
       catch (McpUnauthorizedException)
       {
-        await tokens.ClearAsync().ConfigureAwait(false);
+        await tokens.ClearAsync(refreshed).ConfigureAwait(false);
         throw;
       }
     }
@@ -47,7 +47,7 @@ public sealed class MemberMcpAuthorizedClient(MemberMcpClient client, MemberMcpT
       }
       catch (McpUnauthorizedException)
       {
-        await tokens.ClearAsync().ConfigureAwait(false);
+        await tokens.ClearAsync(refreshed).ConfigureAwait(false);
         throw;
       }
     }

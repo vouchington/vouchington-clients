@@ -20,7 +20,7 @@ public actor MemberMCPAuthorizedClient {
             do {
                 return try await client.listTools(accessToken: refreshed, cursor: cursor)
             } catch MemberMCPClient.Failure.unauthorized {
-                try await tokens.clear()
+                try await tokens.clear(rejectedAccessToken: refreshed)
                 throw MemberMCPTokenManager.Failure.notAuthorized
             }
         }
@@ -36,7 +36,7 @@ public actor MemberMCPAuthorizedClient {
             do {
                 return try await client.callTool(name: name, arguments: arguments, accessToken: refreshed)
             } catch MemberMCPClient.Failure.unauthorized {
-                try await tokens.clear()
+                try await tokens.clear(rejectedAccessToken: refreshed)
                 throw MemberMCPTokenManager.Failure.notAuthorized
             }
         }

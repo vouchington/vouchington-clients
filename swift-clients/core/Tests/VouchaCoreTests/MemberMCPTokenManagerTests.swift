@@ -131,10 +131,13 @@ final class MemberMCPTokenManagerTests: XCTestCase {
             code: "new-code", verifier: "verifier",
             redirectURI: XCTUnwrap(URL(string: "https://example.test/oauth/native/macos/callback"))
         )
+        try await manager.clear(rejectedAccessToken: "old-access")
 
         XCTAssertEqual(access, "new-access")
         let saved = try await store.load(scope: testMCPScope)
         XCTAssertEqual(saved?.refreshToken, "new-refresh")
+        let clearCount = await store.clearCount()
+        XCTAssertEqual(clearCount, 1)
     }
 
     func testSignOutClearsUnreadablePersistedToken() async throws {
