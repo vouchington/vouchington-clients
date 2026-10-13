@@ -6,7 +6,7 @@ import { describe, it } from 'node:test'
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const githubRoot = join(repositoryRoot, '.github')
 const workflowRoot = join(githubRoot, 'workflows')
-const allowedLabels = new Set(['ubuntu-slim', 'ubuntu-latest', 'macos-latest'])
+const allowedLabels = new Set(['ubuntu-slim', 'ubuntu-latest', 'macos-latest', 'windows-latest'])
 
 async function readWorkflows() {
   const names = (await readdir(workflowRoot)).filter(name => name.endsWith('.yml')).sort()
@@ -49,6 +49,12 @@ describe('GitHub-hosted runner policy', () => {
       for (const label of labels) {
         assert.ok(allowedLabels.has(label), `${name} uses disallowed runs-on ${label}`)
       }
+      if (name === 'native-contract-tests.yml') {
+        assert.equal(labels.filter(label => label === 'windows-latest').length, 1)
+        const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
+        assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)
+        assert.match(windowsJob, /timeout-minutes: 15/u)
+      }
     }
   })
 
@@ -69,6 +75,11 @@ describe('GitHub-hosted runner policy', () => {
     assertRunner(workflows['native-contract-tests.yml'], 'tests', 'ubuntu-slim')
     assertRunner(workflows['native-contract-tests.yml'], 'native-dto-fixture-parity', 'ubuntu-slim')
     assertRunner(workflows['native-contract-tests.yml'], 'dotnet-portable', 'ubuntu-latest')
+    assertRunner(
+      workflows['native-contract-tests.yml'],
+      'dotnet-windows-image-preview',
+      'windows-latest',
+    )
     assertRunner(workflows['native-contract-tests.yml'], 'test-swift-core', 'macos-latest')
     assertRunner(workflows['native-contract-tests.yml'], 'build-swift-android', 'macos-latest')
     assertRunner(workflows['native-contract-tests.yml'], 'test-swift-android', 'ubuntu-slim')

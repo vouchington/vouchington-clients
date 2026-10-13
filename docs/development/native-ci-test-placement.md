@@ -6,14 +6,15 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 
 ## Default placement
 
-| Workload                                                                                             | Runner          | Why                                                                                |
-| ---------------------------------------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------- |
-| Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity                            | `ubuntu-latest` | Same test code, no meaningful Linux-vs-macOS branches                              |
-| Portable Swift core + `test-support`                                                                 | `ubuntu-latest` | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
-| Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `macos-latest`  | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
-| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`  | SwiftUI, Xcode, Skip host tools                                                    |
-| Swift Android core compile                                                                           | `ubuntu-latest` | Cross-compile in the pinned Swift container                                        |
-| .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`  | MAUI workload and Mac Catalyst RID                                                 |
+| Workload                                                                                             | Runner           | Why                                                                                |
+| ---------------------------------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------- |
+| Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity                            | `ubuntu-latest`  | Same test code, no meaningful Linux-vs-macOS branches                              |
+| Portable Swift core + `test-support`                                                                 | `ubuntu-latest`  | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
+| Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `macos-latest`   | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
+| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, Skip host tools                                                    |
+| Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
+| .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
+| .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
@@ -37,6 +38,10 @@ Darwin-only and Security-only tests are compiled out on Linux (`#if canImport(Da
 Portable .NET tests must not run on macOS. HttpClient and the Core suite do not change by OS in
 this repository. Coverage and DTO parity are Linux-only extras on the same job, not a reason to
 keep a second OS.
+
+The Windows decoder test is a separate, changed-file-routed test project that links only the
+Windows image decoder helper. It runs when the helper, its consumer/tests, pinned SDK or package
+graph, and its CI routing/policy change. It does not build or test the full MAUI Windows app.
 
 Do not add `strategy.matrix.os` (or a second job that runs the same `dotnet test` / `swift test`
 filter) unless the new OS compiles different source or links a different networking stack.

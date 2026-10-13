@@ -21,8 +21,9 @@ This workspace contains the .NET client stack for Voucha. The product target is 
 - Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations.
 - Deep linking: `voucha` protocol activation on Windows and Mac Catalyst, with MAUI lifecycle hooks and an app-shell coordinator that selects existing native targets or opens Session for login links.
 - Post compose: native signed-in post/community-post creation for discussions, reviews, data points, links, articles, and blogs. CAPTCHA-gated submissions open the shared MAUI Turnstile challenge and send the resulting token; local development can opt into omitting it with `VOUCHA_POST_COMPOSE_CAPTCHA_BYPASS=true`, which only succeeds against backends already configured with `SKIP_CAPTCHA_VERIFICATION=true`.
-- CI: portable restore/build/test plus Core changed-line coverage at 80% on Linux, and rendered
-  MAUI page tests plus a Mac Catalyst smoke build on macOS. Do not run `Voucha.DotNet.sln` on macOS.
+- CI: portable restore/build/test plus Core changed-line coverage at 80% on Linux, rendered
+  MAUI page tests plus a Mac Catalyst smoke build on macOS, and changed-file-routed Windows image
+  decoder tests. Do not run `Voucha.DotNet.sln` on macOS.
   App coverage is explicitly exempt because the platform app shell is not instrumentable by
   Coverlet. See [native CI test placement](../docs/development/native-ci-test-placement.md).
 - Local models: Windows uses the Windows system language model through the Windows App SDK, while
@@ -84,7 +85,7 @@ pnpm exec no-mistakes tests plan dotnet --base origin/main --head HEAD --format 
 ```
 
 The planner traces `Directory.Packages.props`, project `PackageReference` and `ProjectReference`
-edges across Core, App, Core.Tests, and App.Tests, plus all eight committed generic,
+edges across Core, App, Core.Tests, and App.Tests, plus all nine committed generic,
 framework-only Mac Catalyst, and Mac Catalyst RID-specific package locks.
 Inspect causal `reasons` separately from the `sample` group. If JSON reports a missing baseline or
 unsupported MSBuild/dependency form, follow the configured conservative policy rather than treating
@@ -136,7 +137,7 @@ diagnostics remain `check-failure`. See
 When changing a MAUI dependency, regenerate the framework-only Core Mac Catalyst lock and both app and Core locks for `maccatalyst-arm64` and `maccatalyst-x64`. Use the matrix helper below so every restore receives the correct `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 
 Follow the repository [frozen-install policy](../docs/development/reference-dependency-updates-frozen-install-policy.md#nuget)
-for dependency review and audit evidence. For the complete eight-lock matrix, use
+for dependency review and audit evidence. For the complete nine-lock matrix, use
 `bash dotnet-clients/tooling/restore-locks.sh update` followed by
 `bash dotnet-clients/tooling/restore-locks.sh verify` with isolated `NUGET_PACKAGES` and
 `NUGET_HTTP_CACHE_PATH`, `NUGET_PLUGINS_CACHE_PATH`, and `NUGET_SCRATCH`, while keeping lock-restore
