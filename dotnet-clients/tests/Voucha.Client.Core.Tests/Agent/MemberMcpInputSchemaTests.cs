@@ -215,6 +215,10 @@ public sealed class MemberMcpInputSchemaTests
     Assert.False(MemberMcpInputSchema.Accepts(rejected.RootElement, bounded.RootElement));
     Assert.False(Accepts("[1e100,10e99]", bounded));
     Assert.False(Accepts("""[{"value":1e100},{"value":10e99}]""", bounded));
+    Assert.False(Accepts("""[{"id":1,"id":2},{"id":2}]""", bounded));
+    Assert.False(Accepts("""[{"nested":[{"id":1,"id":2}]}]""", bounded));
+    using var unconstrained = JsonDocument.Parse("""{"type":"object","additionalProperties":true}""");
+    Assert.False(Accepts("""{"payload":[{"id":1,"id":2}]}""", unconstrained));
   }
 
   [Fact]

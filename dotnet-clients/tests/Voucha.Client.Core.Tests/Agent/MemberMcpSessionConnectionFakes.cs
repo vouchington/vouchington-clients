@@ -14,10 +14,14 @@ public sealed partial class MemberMcpSessionTests
     public bool FailConnect { get; set; }
     public bool HoldToolCall { get; set; }
     public bool FailDisconnect { get; set; }
+    public JsonElement? Catalog { get; set; }
     public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
     {
       var hold = Connections.Count < disconnectHolds.Length ? disconnectHolds[Connections.Count] : null;
-      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, HoldToolCall, FailDisconnect);
+      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, HoldToolCall, FailDisconnect)
+      {
+        Catalog = Catalog,
+      };
       Connections.Add(connection);
       return Task.FromResult<IMemberMcpSessionConnection>(connection);
     }
@@ -31,6 +35,7 @@ public sealed partial class MemberMcpSessionTests
     public bool UnauthorizedRefresh { get; set; }
     public bool RejectToolCall { get; set; }
     public bool ExpireToolCall { get; set; }
+    public JsonElement? Catalog { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,7 +47,7 @@ public sealed partial class MemberMcpSessionTests
       ConnectEntered.TrySetResult();
       if (holdConnect) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
       if (failConnect) throw new IOException("Transient discovery failure");
-      return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
+      return Catalog ?? JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
     public async Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken)
     {
@@ -50,7 +55,7 @@ public sealed partial class MemberMcpSessionTests
       if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
       if (UnauthorizedRefresh) throw new McpUnauthorizedException();
       if (FailRefresh) throw new IOException("Tool discovery failed");
-      return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
+      return Catalog ?? JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
     public async Task<McpToolResult> CallToolAsync(string name, JsonElement arguments,
         CancellationToken cancellationToken)

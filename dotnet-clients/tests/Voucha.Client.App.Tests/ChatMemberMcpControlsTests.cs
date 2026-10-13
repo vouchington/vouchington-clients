@@ -165,7 +165,10 @@ public sealed class ChatMemberMcpControlsTests
     public string ToolName { get; set; } = "read_profile";
     public Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken) => ListToolsAsync(cancellationToken);
     public Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken) => Task.FromResult(
-        JsonDocument.Parse(JsonSerializer.Serialize(new { tools = new[] { new { name = ToolName } } })).RootElement.Clone());
+        JsonSerializer.SerializeToElement(new
+        {
+          tools = new[] { new { name = ToolName, inputSchema = new { type = "object" } } },
+        }));
     public Task<McpToolResult> CallToolAsync(string name, JsonElement arguments, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
     public Task DisconnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;

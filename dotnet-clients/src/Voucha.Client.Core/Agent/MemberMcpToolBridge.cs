@@ -19,7 +19,7 @@ public sealed class MemberMcpToolBridge
     if (Encoding.UTF8.GetByteCount(catalog.GetRawText()) > 512_000 ||
         catalog.ValueKind != JsonValueKind.Object ||
         !catalog.TryGetProperty("tools", out var tools) || tools.ValueKind != JsonValueKind.Array ||
-        tools.GetArrayLength() > 128 ||
+        tools.GetArrayLength() > MemberMcpToolCatalog.MaximumTools ||
         catalog.TryGetProperty("nextCursor", out var cursor) && cursor.ValueKind != JsonValueKind.Null)
       throw new InvalidDataException("Invalid or incomplete MCP tool catalog.");
     var projected = new List<MemberMcpFunctionTool>();

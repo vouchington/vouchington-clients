@@ -14,7 +14,7 @@ struct NativeChatMCPToolBridge {
         let catalogData = try JSONEncoder().encode(catalog)
         guard catalogData.count <= 512_000 else { throw Failure.invalidCatalog }
         guard case let .object(body) = catalog,
-              case let .array(entries)? = body["tools"], entries.count <= 128 else {
+              case let .array(entries)? = body["tools"], entries.count <= NativeChatMCPToolCatalog.maximumTools else {
             throw Failure.invalidCatalog
         }
         var projected: [LocalLLMFunctionTool] = []

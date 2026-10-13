@@ -19,7 +19,28 @@ internal static partial class MemberMcpInputSchema
   {
     Inspect(schema);
     var remainingWork = 4_096;
+    if (!HasUniqueObjectMembers(value, 0, ref remainingWork)) return false;
+    remainingWork = 4_096;
     return Check(value, schema, schema, 0, ref remainingWork);
+  }
+
+  private static bool HasUniqueObjectMembers(JsonElement value, int depth, ref int remainingWork)
+  {
+    if (depth >= MaxDepth || remainingWork-- <= 0)
+      throw new InvalidDataException("MCP argument structure exceeded its local bound.");
+    if (value.ValueKind == JsonValueKind.Object)
+    {
+      var names = new HashSet<string>(StringComparer.Ordinal);
+      foreach (var field in value.EnumerateObject())
+        if (!names.Add(field.Name) || !HasUniqueObjectMembers(field.Value, depth + 1, ref remainingWork))
+          return false;
+    }
+    else if (value.ValueKind == JsonValueKind.Array)
+    {
+      foreach (var item in value.EnumerateArray())
+        if (!HasUniqueObjectMembers(item, depth + 1, ref remainingWork)) return false;
+    }
+    return true;
   }
 
   private static void InspectNode(JsonElement schema, JsonElement root, int depth)
