@@ -80,6 +80,34 @@ public sealed partial class ChatViewModelProviderTests
     Assert.Equal(bodies[0], bodies[1]);
   }
 
+  [Fact]
+  public async Task ProviderChangeAfterMcpPersistenceFailureRetainsCompletedTurn()
+  {
+    var bodies = new List<CreateClientGeneratedChatBody>();
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
+      {
+        bodies.Add(body);
+        return Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+      },
+    };
+    var provider = new TestMcpLocalChatProvider();
+    var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+    viewModel.SelectedProviderStatus = provider.Status with
+    {
+      ModelProvider = "other-local",
+      ModelName = "other-model",
+    };
+    Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+
+    Assert.Equal(1, provider.Generations);
+    Assert.Equal(2, bodies.Count);
+    Assert.Equal(bodies[0], bodies[1]);
+  }
+
   [Theory]
   [InlineData(false)]
   [InlineData(true)]

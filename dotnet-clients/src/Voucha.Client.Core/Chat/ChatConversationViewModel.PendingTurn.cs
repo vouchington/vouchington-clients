@@ -13,6 +13,11 @@ public sealed partial class ChatConversationViewModel
       CreateClientGeneratedChatBody Body,
       MemberMcpConnectedSnapshot? McpSnapshot);
 
+  private ChatProviderStatus ProviderForPendingMcpRetry(string text) =>
+      pendingLocalTurn is { McpSnapshot: not null } pending &&
+      pending.ConversationId == ConversationId && pending.Body.Message == text
+          ? pending.Provider : SelectedProviderStatus;
+
   private PendingLocalTurn? RetryableTurn(
       string? conversationId, string text, ChatProviderStatus provider, ILocalChatProvider localProvider)
   {

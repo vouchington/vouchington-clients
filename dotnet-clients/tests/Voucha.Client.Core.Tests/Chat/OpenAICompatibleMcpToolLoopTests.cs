@@ -176,6 +176,26 @@ public sealed class OpenAICompatibleMcpToolLoopTests
   }
 
   [Fact]
+  public async Task CompletedRefusalAfterToolIsDeliveredWithoutRetryingTool()
+  {
+    using var handler = new RepliesHandler(
+        """{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""",
+        """{"status":"completed","output_text":"","output":[{"type":"message","status":"completed","content":[{"type":"refusal","refusal":"I cannot provide that."}]}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+
+    var answer = await client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult("{}"); },
+        TestContext.Current.CancellationToken);
+
+    Assert.Equal("I cannot provide that.", answer);
+    Assert.Equal(1, executed);
+    Assert.Equal(2, handler.Bodies.Count);
+  }
+
+  [Fact]
   public async Task DuplicateCallIdAcrossResponsesNeverExecutesTwice()
   {
     var call = """{"type":"function_call","call_id":"same","name":"write","arguments":"{}"}""";

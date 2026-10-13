@@ -94,7 +94,8 @@ public sealed partial class ChatConversationViewModel :
           !SameProviderIdentity(activeTurn.Provider, value)) return;
       if (SetProperty(ref selectedProviderStatus, value))
       {
-        if (pendingLocalTurn is { } pending && !SameProviderIdentity(pending.Provider, value))
+        if (pendingLocalTurn is { McpSnapshot: null } pending &&
+            !SameProviderIdentity(pending.Provider, value))
         {
           pendingLocalTurn = null;
         }

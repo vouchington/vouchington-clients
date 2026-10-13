@@ -35,7 +35,7 @@ public sealed partial class ChatConversationViewModel
     if (blockedToolRetryText == trimmed) return false;
     blockedToolRetryText = null;
 
-    var selectedProvider = SelectedProviderStatus;
+    var selectedProvider = ProviderForPendingMcpRetry(trimmed);
     ILocalChatProvider selectedLocalProvider;
     try
     {

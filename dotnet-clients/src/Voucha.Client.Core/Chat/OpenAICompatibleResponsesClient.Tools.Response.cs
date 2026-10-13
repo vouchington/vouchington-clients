@@ -55,11 +55,17 @@ public sealed partial class OpenAICompatibleResponsesClient
         !string.IsNullOrWhiteSpace(outputText.GetString())) return outputText.GetString()!.Trim();
     var text = string.Concat(output.EnumerateArray()
         .Where(item => item.ValueKind == JsonValueKind.Object &&
+            item.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String &&
+            type.GetString() == "message" &&
             item.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
         .SelectMany(item => item.GetProperty("content").EnumerateArray())
         .Where(content => content.ValueKind == JsonValueKind.Object &&
-            content.TryGetProperty("text", out var value) && value.ValueKind == JsonValueKind.String)
-        .Select(content => content.GetProperty("text").GetString()));
+            content.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String &&
+            type.GetString() is "output_text" or "refusal")
+        .Select(content => content.TryGetProperty("text", out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : content.TryGetProperty("refusal", out var refusal) && refusal.ValueKind == JsonValueKind.String
+                ? refusal.GetString() : null));
     return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
   }
 }
