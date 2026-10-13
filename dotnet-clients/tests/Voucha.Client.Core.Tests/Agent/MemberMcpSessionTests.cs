@@ -157,6 +157,24 @@ public sealed class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task FailedRefreshInvalidatesStaleCatalogAndAllowsRetry()
+  {
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(session.Tools);
+
+    factory.Connections[0].FailRefresh = true;
+    await Assert.ThrowsAsync<IOException>(() => session.RefreshToolsAsync(TestContext.Current.CancellationToken));
+    Assert.Null(session.Tools);
+    Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
+
+    factory.Connections[0].FailRefresh = false;
+    await session.RefreshToolsAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(session.Tools);
+  }
+
+  [Fact]
   public async Task DisposeCancelsHeldConnectAndSettlesCleanupBeforeReleasingOwnedState()
   {
     var store = new FakeStore();
@@ -297,6 +315,7 @@ public sealed class MemberMcpSessionTests
       bool failDisconnect)
       : IMemberMcpSessionConnection
   {
+    public bool FailRefresh { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -311,6 +330,7 @@ public sealed class MemberMcpSessionTests
     {
       RefreshEntered.TrySetResult();
       if (holdRefresh) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      if (FailRefresh) throw new IOException("Tool discovery failed");
       return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
     public async Task DisconnectAsync(CancellationToken cancellationToken)
