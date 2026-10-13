@@ -30,16 +30,19 @@ final class SessionManagerLocalizationTests: XCTestCase {
     }
 
     func testRefreshRetainsAccountType() async throws {
-        MockURLProtocol.handlers["/api/v1/my/identity"] = try (
-            identityEnvelope(uiLocale: "en", accountType: "official"),
-            200
-        )
-        let sessionManager = makeSessionManager()
+        let cases: [AccountType?] = [.official, .system, .aiAgent, nil]
+        for accountType in cases {
+            MockURLProtocol.handlers["/api/v1/my/identity"] = try (
+                identityEnvelope(uiLocale: "en", accountType: accountType?.rawValue),
+                200
+            )
+            let sessionManager = makeSessionManager()
 
-        let refreshed = await sessionManager.refresh()
+            let refreshed = await sessionManager.refresh()
 
-        XCTAssertTrue(refreshed)
-        XCTAssertEqual(sessionManager.currentUserAccountType, .official)
+            XCTAssertTrue(refreshed)
+            XCTAssertEqual(sessionManager.currentUserAccountType, accountType)
+        }
     }
 
     func testUnauthorizedRefreshClearsSynchronizedLocaleAndIdentity() async throws {
