@@ -25,6 +25,7 @@ public final class SessionManager {
     public private(set) var state: SessionState = .anonymous
     public private(set) var isRefreshing: Bool = false
     public private(set) var uiLocale: String?
+    public private(set) var lastSignOutErrorMessage: String?
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
@@ -116,11 +117,13 @@ public final class SessionManager {
     }
 
     public func signOut() async {
+        lastSignOutErrorMessage = nil
         if let accountId = currentUserId, let beforeSignOut {
             do {
                 try await beforeSignOut(accountId)
             } catch {
                 logger.error("Device grant cleanup failed before sign-out: \(error.localizedDescription)")
+                lastSignOutErrorMessage = error.localizedDescription
                 return
             }
         }

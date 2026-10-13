@@ -115,11 +115,13 @@ final class SessionManagerLocalizationTests: XCTestCase {
 
         XCTAssertEqual(sessionManager.currentUserId, "user-abc")
         XCTAssertEqual(sessionManager.uiLocale, "fr")
+        XCTAssertNotNil(sessionManager.lastSignOutErrorMessage)
         sessionManager.setBeforeSignOut { accountId in
             XCTAssertEqual(accountId, "user-abc")
         }
         await sessionManager.signOut()
         XCTAssertNil(sessionManager.currentUserId)
+        XCTAssertNil(sessionManager.lastSignOutErrorMessage)
     }
 
     private func makeSessionManager(

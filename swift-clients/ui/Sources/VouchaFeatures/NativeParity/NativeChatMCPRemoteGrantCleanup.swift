@@ -2,6 +2,8 @@ import Foundation
 import VouchaAPI
 
 /// Local Keychain removal has already completed before any of these optional network calls start.
+/// Only grants matching the current discovered issuer/client are remotely revoked. Historical
+/// scopes are deleted locally; their former authorization metadata is not retained or guessed.
 @MainActor
 enum NativeChatMCPRemoteGrantCleanup {
     struct Input {
