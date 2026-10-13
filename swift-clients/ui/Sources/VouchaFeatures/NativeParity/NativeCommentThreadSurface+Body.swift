@@ -52,10 +52,12 @@ extension NativeCommentThreadSurface {
                         }
                     }
 
-                    HnDiscussionsPanel(
-                        urls: HnDiscussionURLCollector.extract(fromMarkdown: rootPost.markdown),
-                        client: client
-                    )
+                    if canShowBody(rootPost) {
+                        HnDiscussionsPanel(
+                            urls: HnDiscussionURLCollector.extract(fromMarkdown: rootPost.markdown),
+                            client: client
+                        )
+                    }
 
                     ancestorPaginationControl
 

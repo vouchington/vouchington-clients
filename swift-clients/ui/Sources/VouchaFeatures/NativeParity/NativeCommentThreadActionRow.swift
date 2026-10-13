@@ -17,6 +17,7 @@ struct NativeCommentThreadActionRow: View {
     let showSignIn: () -> Void
     let onReply: () -> Void
     let onQuote: () -> Void
+    let canQuote: Bool
     let onSave: () -> Void
     let onReport: (() -> Void)?
     let onEdit: (() -> Void)?
@@ -40,11 +41,13 @@ struct NativeCommentThreadActionRow: View {
                 systemImage: "arrowshape.turn.up.left"
             ) }
             .buttonStyle(.plain)
-            Button(action: onQuote) { Label(
-                UiMessages.string(.nativeSwiftCommentThreadActionRowQuote, locale: nativeUiLocale),
-                systemImage: "quote.opening"
-            ) }
-            .buttonStyle(.plain)
+            if canQuote {
+                Button(action: onQuote) { Label(
+                    UiMessages.string(.nativeSwiftCommentThreadActionRowQuote, locale: nativeUiLocale),
+                    systemImage: "quote.opening"
+                ) }
+                .buttonStyle(.plain)
+            }
 
             Button(action: onSave) {
                 Label(

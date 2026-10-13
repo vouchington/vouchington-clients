@@ -134,22 +134,34 @@ public sealed class AccountTypeAuthorRenderingTests
         new CommentThreadViewModel(Proxy<ICommentThreadService>(), "post"),
         new AnonymousSessionStore());
     var rootProperty = typeof(PostDetailPageBinding).GetProperty(nameof(PostDetailPageBinding.RootRow))!;
-    rootProperty.SetValue(binding, RejectedDetailRow("user-1", false));
+    rootProperty.SetValue(binding, RejectedDetailRow("user-1", false) with { CanReply = true });
     page.BindingContext = binding;
     var notice = Named<Label>(page, "authored-post-notice");
     var appeals = Named<Button>(page, "authored-post-appeals");
     var body = Named<VisualElement>(page, "authored-post-body");
     var embed = Named<VisualElement>(page, "authored-post-embed");
+    var quote = Named<Button>(page, "authored-post-quote");
     Assert.True(notice.IsVisible);
     Assert.True(appeals.IsVisible);
     Assert.False(body.IsVisible);
     Assert.False(embed.IsVisible);
+    Assert.False(quote.IsVisible);
 
-    rootProperty.SetValue(binding, RejectedDetailRow("other", true));
+    rootProperty.SetValue(binding, RejectedDetailRow("other", true) with { CanReply = true });
     Assert.False(notice.IsVisible);
     Assert.False(appeals.IsVisible);
     Assert.True(body.IsVisible);
     Assert.True(embed.IsVisible);
+    Assert.True(quote.IsVisible);
+
+    var comments = Assert.Single(Descendants<CollectionView>(page), view =>
+        ReferenceEquals(view.ItemsSource, binding.CommentRows));
+    var card = Assert.IsAssignableFrom<View>(comments.ItemTemplate.CreateContent());
+    var commentQuote = Named<Button>(card, "authored-comment-quote");
+    card.BindingContext = RejectedDetailRow("other", false) with { CanReply = true };
+    Assert.False(commentQuote.IsVisible);
+    card.BindingContext = RejectedDetailRow("other", true) with { CanReply = true };
+    Assert.True(commentQuote.IsVisible);
   }
 
   [Fact]

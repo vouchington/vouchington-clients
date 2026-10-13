@@ -96,6 +96,7 @@ public partial class PostDetailPage
   {
     if (!await EnsureSignedInAsync()) return;
     var row = RowFrom(sender);
+    if (!row.CanQuote) return;
     var markdown = await ShowReplyEditorAsync(
         row,
         isQuote: true,

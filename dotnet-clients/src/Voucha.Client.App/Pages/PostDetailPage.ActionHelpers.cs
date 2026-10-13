@@ -75,6 +75,7 @@ public partial class PostDetailPage
 
   private static string BuildQuoteMarkdown(PostDetailPageRow row)
   {
+    if (!row.CanQuote) return string.Empty;
     var lines = (row.BodyText ?? string.Empty).Split('\n');
     var quoted = string.Join('\n', lines.Select(line => $"> {line}"));
     var viewComment = UiCopy.Localize(UiMessageKey.NativeDotnetPostsViewComment);

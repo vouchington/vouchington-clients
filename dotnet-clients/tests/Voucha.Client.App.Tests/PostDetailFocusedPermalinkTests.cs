@@ -1,6 +1,9 @@
+using System.Net;
+using System.Text;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Posts;
 using Xunit;
 
@@ -9,6 +12,42 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class PostDetailFocusedPermalinkTests
 {
+  [Fact]
+  public async Task RejectedRootDoesNotSearchHiddenMarkdownForHnDiscussions()
+  {
+    var root = Post("root", null) with
+    {
+      Markdown = "Private https://example.com/hidden-story",
+      ClearanceStatus = "rejected",
+    };
+    var service = new ThreadService(new PostResponse(root), Response([]), Response([root]));
+    var hiddenRequests = new CountingHnHandler();
+    var hiddenBinding = new PostDetailPageBinding(
+        new CommentThreadViewModel(service, root.Id),
+        new SessionStore(new(new User("other", "other"))),
+        hnDiscussionsSettings: new MemoryHnDiscussionsSettings(true),
+        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(hiddenRequests)));
+
+    await hiddenBinding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.False(Assert.IsType<PostDetailPageRow>(hiddenBinding.RootRow).ShowBodyContent);
+    Assert.False(hiddenBinding.HasVisibleHnDiscussions);
+    Assert.Empty(hiddenBinding.HnDiscussions.Threads);
+    Assert.Equal(0, hiddenRequests.Count);
+
+    var staffRequests = new CountingHnHandler();
+    var staffBinding = new PostDetailPageBinding(
+        new CommentThreadViewModel(service, root.Id),
+        new SessionStore(new(new User("moderator", "moderator", Roles: ["moderator"]))),
+        hnDiscussionsSettings: new MemoryHnDiscussionsSettings(true),
+        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(staffRequests)));
+
+    await staffBinding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+    Assert.True(Assert.IsType<PostDetailPageRow>(staffBinding.RootRow).ShowBodyContent);
+    Assert.Equal(1, staffRequests.Count);
+  }
+
   [Fact]
   public async Task AncestorOnlyFocusRendersOnceWithItsOwnMetadataAndActions()
   {
@@ -109,6 +148,21 @@ public sealed class PostDetailFocusedPermalinkTests
     public SessionSnapshot Current { get; } = current;
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+  }
+
+  private sealed class CountingHnHandler : HttpMessageHandler
+  {
+    public int Count { get; private set; }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+      Count++;
+      return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("{\"hits\":[]}", Encoding.UTF8, "application/json"),
+        RequestMessage = request,
+      });
+    }
   }
 
   private sealed class ThreadService(PostResponse root, PostThreadResponse descendants, PostThreadResponse ancestors) : ICommentThreadService

@@ -55,6 +55,7 @@ public sealed record PostDetailPageRow(
 
   public PostContentPresentation ContentPresentation => PostContentPolicy.For(Post, ViewerId, IsStaffViewer);
   public bool ShowBodyContent => ContentPresentation is PostContentPresentation.Content or PostContentPresentation.UnderReviewForStaff;
+  public bool CanQuote => CanReply && ShowBodyContent;
   public bool ShowAppealsAction => ContentPresentation == PostContentPresentation.RemovedForAuthor;
   public bool ShowNotice => ContentPresentation is PostContentPresentation.RemovedForAuthor or PostContentPresentation.Unavailable;
   public string? LocalizedNotice => ContentPresentation switch

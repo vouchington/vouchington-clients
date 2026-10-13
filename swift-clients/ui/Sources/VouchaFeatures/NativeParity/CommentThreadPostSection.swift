@@ -74,6 +74,7 @@ struct CommentThreadPostSection: View {
                 showSignIn: showSignIn,
                 onReply: onReply,
                 onQuote: onQuote,
+                canQuote: showsBodyContent,
                 onSave: onSave,
                 onReport: onReport,
                 onEdit: onEdit,
@@ -84,6 +85,13 @@ struct CommentThreadPostSection: View {
         .padding(Spacing.md)
         .background(Colors.background.opacity(0.75))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var showsBodyContent: Bool {
+        switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
+        case .content, .underReviewForStaff: true
+        case .removedForAuthor, .unavailable: false
+        }
     }
 
     @ViewBuilder
