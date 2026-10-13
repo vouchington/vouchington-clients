@@ -38,7 +38,7 @@ extension NativeChatViewModel {
             )
         } catch {
             if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
-                abortStreaming()
+                abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
                 return
             }
             failLocalGeneration(
@@ -78,7 +78,7 @@ extension NativeChatViewModel {
             return
         }
         if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
-            abortStreaming()
+            abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
             return
         }
 
@@ -94,6 +94,18 @@ extension NativeChatViewModel {
     func isCurrentLocalGeneration(_ context: NativeChatDraftSendContext) -> Bool {
         streamingConversationId == context.conversationId
             && streamingUserMessageId == context.userMessageId
+    }
+
+    func abortInvalidatedMCPTurn(
+        context: NativeChatDraftSendContext,
+        snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
+    ) {
+        if isCurrentLocalGeneration(context),
+           mcpSession?.accountId == snapshot.accountId,
+           !draftEditedDuringSend {
+            draftMessage = context.text
+        }
+        abortStreaming()
     }
 
     func discardStaleLocalTurn(userMessageId: String, assistantMessageId: String?) {

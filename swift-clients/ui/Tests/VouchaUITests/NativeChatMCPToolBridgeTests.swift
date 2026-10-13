@@ -120,6 +120,13 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         ))
     }
 
+    func testUniqueItemsValidationHasAnIndependentWorkBound() throws {
+        let unique: DecodedJSONValue = .object(["type": .string("array"), "uniqueItems": .bool(true)])
+        let values: [DecodedJSONValue] = (0 ... 256).map { .string(String($0)) }
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array(Array(values.prefix(256))), schema: unique))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array(values), schema: unique))
+    }
+
     func testSchemaBoundsKeepLargeIntegerPrecisionAndRejectUnrepresentableCounts() throws {
         let maximum: DecodedJSONValue = .object(["maximum": .integer(9_007_199_254_740_992)])
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(

@@ -119,6 +119,61 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(provider.generationCount, 1)
     }
 
+    func testMcpRefreshDuringGenerationRestoresSameMemberDraft() async throws {
+        let hold = HeldTitleGeneration()
+        let provider = MutableRetryDraftProvider()
+        provider.mcpHold = hold
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Keep this prompt"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        await hold.waitForStart()
+        try await session.refreshTools()
+        await hold.release()
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "Keep this prompt")
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path.hasSuffix("/client-generated-chat")
+        })
+    }
+
+    func testMcpAccountSwitchDuringGenerationDoesNotRestoreOldMemberDraft() async throws {
+        let hold = HeldTitleGeneration()
+        let provider = MutableRetryDraftProvider()
+        provider.mcpHold = hold
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Old member prompt"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        await hold.waitForStart()
+        await session.useAccount("member-b")
+        await hold.release()
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertTrue(viewModel.messages.isEmpty)
+    }
+
     func testTypingNextDraftDuringHeldPersistencePreservesTheNewDraftAfterFailure() async throws {
         let path = "/api/v1/conversations/conversation-1/client-generated-chat"
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
@@ -246,6 +301,7 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     var model = "model-a"
     var available = true
     var titleHold: HeldTitleGeneration?
+    var mcpHold: HeldTitleGeneration?
     private(set) var generationCount = 0
 
     var status: NativeChatTitleProviderStatus {
@@ -262,6 +318,18 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     ) async throws -> NativeChatAssistantResponse? {
         generationCount += 1
         return .init(content: "Reply \(generationCount)", modelProvider: "openai_compatible", modelName: model)
+    }
+
+    func generateAssistantResponse(
+        to message: String, history: [NativeChatTimelineMessage],
+        mcpSession _: NativeChatMCPAgentSession?,
+        mcpSnapshot _: NativeChatMCPAgentSession.ConnectedSnapshot?
+    ) async throws -> NativeChatAssistantResponse? {
+        if let mcpHold {
+            await mcpHold.waitUntilReleased()
+            throw CancellationError()
+        }
+        return try await generateAssistantResponse(to: message, history: history)
     }
 
     func generateTitle(from _: [NativeChatTimelineMessage]) async throws -> String? {

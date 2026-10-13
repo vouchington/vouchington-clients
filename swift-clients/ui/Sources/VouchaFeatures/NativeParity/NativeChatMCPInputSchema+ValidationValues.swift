@@ -41,6 +41,7 @@ extension NativeChatMCPInputSchema {
         if let minimum = integer(fields["minItems"]), items.count < minimum { return false }
         if let maximum = integer(fields["maxItems"]), items.count > maximum { return false }
         if case .bool(true)? = fields["uniqueItems"] {
+            guard items.count <= 256 else { return false }
             for index in items.indices {
                 for prior in items.indices where prior < index {
                     if same(items[index], items[prior]) { return false }
