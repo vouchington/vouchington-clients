@@ -13,6 +13,7 @@ public abstract partial class CommunitySectionPage : ContentPage
   private readonly IServiceProvider? serviceProvider;
   private readonly Label titleLabel = new() { FontAttributes = FontAttributes.Bold, FontSize = 20 };
   private readonly Label metaLabel = new();
+  private readonly Label provenanceLabel = new();
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
   private readonly Button joinButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpCommunitiesJoin);
   private readonly Button leaveButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpCommunitiesLeave);
@@ -78,6 +79,7 @@ public abstract partial class CommunitySectionPage : ContentPage
         {
           titleLabel,
           metaLabel,
+          provenanceLabel,
           new HorizontalStackLayout { Spacing = 8, Children = { joinButton, leaveButton, archiveButton, unarchiveButton } },
           actionPanel,
           transparencyRangeSelector,
@@ -171,6 +173,8 @@ public abstract partial class CommunitySectionPage : ContentPage
         : viewModel.IsArchived
             ? UiCopy.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesArchived)
             : viewModel.Community.Visibility;
+    provenanceLabel.Text = PublicProvenanceLabels.Resolve(viewModel.Community?.Provenance, UiCopy.CurrentLocalization);
+    provenanceLabel.IsVisible = provenanceLabel.Text is not null;
     errorLabel.Text = PaginationErrorMessage();
     errorLabel.IsVisible = CommunityModerationTransparencyControls.ShouldShowErrorLabel(
         viewModel.HasError, viewModel.HasCommunityListPaginationError, viewModel.TransparencyPaginationError);

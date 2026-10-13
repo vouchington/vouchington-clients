@@ -83,6 +83,37 @@ public sealed class PublicEntityProvenanceRenderingTests
   }
 
   [Fact]
+  public async Task RoutedCommunityOverviewHeaderRendersAndLocalizesProvenance()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    var localization = new UiLocalization(controller);
+    using var copy = UiCopy.PushLocalization(localization);
+    var detail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
+    detail["community"]!["provenance"] = JsonNode.Parse("""
+        {"via":"mcp","app":{"kind":"verified","client_id":"fixture-agent","client_name":"Fixture Agent"}}
+        """);
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
+        detail.ToJsonString(), Fixture("web.communities.members.default"),
+        Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"))),
+        localization: localization, localeController: controller);
+    var page = new CommunityOverviewPage(model);
+
+    await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
+
+    var label = Assert.Single(Descendants<Label>(page), item =>
+        item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
+    var english = label.Text;
+    Assert.True(label.IsVisible);
+
+    controller.ApplySavedLocale("es");
+
+    Assert.NotEqual(english, label.Text);
+    Assert.Contains("Fixture Agent", label.Text, StringComparison.Ordinal);
+  }
+
+  [Fact]
   public async Task ListsPageCardAndSelectedHeaderRenderProvenanceAndRefreshLocale()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
