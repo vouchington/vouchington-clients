@@ -157,7 +157,8 @@ public sealed record NotificationCommunity(
 public sealed record PostDetailAuthorAside(
     [property: JsonPropertyName("about_html")] string AboutHtml,
     [property: JsonPropertyName("is_following")] bool IsFollowing,
-    [property: JsonPropertyName("profile_links")] IReadOnlyList<ProfileLink> ProfileLinks);
+    [property: JsonPropertyName("profile_links")] IReadOnlyList<ProfileLink> ProfileLinks,
+    [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null);
 
 public sealed record PostDetailResponse(
     [property: JsonPropertyName("author_aside")] PostDetailAuthorAside? AuthorAside,
