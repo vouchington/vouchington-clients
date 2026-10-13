@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -66,6 +67,7 @@ extension NativeRouteSurfaceViewModel {
                 topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response),
                 declaredLanguage: authoredTitle?.declaredLanguage,
                 detectedLanguage: authoredTitle?.detectedLanguage,
+                imageURL: AppConfig.shared.imageURL(for: entity.logoImagePlacement, width: 96),
                 provenance: entity.provenance,
                 staffProvenance: entity.staffProvenance
             )
@@ -119,6 +121,7 @@ extension NativeRouteSurfaceViewModel {
                 "tag",
                 .verbatim(entity.displayTitle(fallback: routeEntityId)),
                 .verbatim(entity.displayDetail),
+                imageURL: AppConfig.shared.imageURL(for: entity.logoImagePlacement, width: 96),
                 provenance: entity.provenance,
                 staffProvenance: entity.staffProvenance
             ),

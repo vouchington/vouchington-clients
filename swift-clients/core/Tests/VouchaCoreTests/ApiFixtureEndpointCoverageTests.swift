@@ -32,6 +32,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.import-export.topics.export.default": .exportTopics,
             "native.import-export.topics.export.download": .exportTopicsDownload,
             "web.communities.show.default": Endpoint.community(idOrSlug: "test-community"),
+            "web.topics.search.default": Endpoint.topics(query: "tech"),
+            "web.topics.show.default": Endpoint.topic(id: "test-topic"),
             "web.communities.archive.default": Endpoint.updateCommunity(
                 idOrSlug: "test-community",
                 archive: true

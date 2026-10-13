@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 
 struct NativeSurfaceRow: View {
@@ -24,7 +25,17 @@ struct NativeSurfaceRow: View {
 
     private var rowContent: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            if showsLeadingIcon {
+            if let imageURL = row.imageURL, let url = URL(string: imageURL) {
+                AsyncImageView(
+                    urlString: url.absoluteString,
+                    baseURL: AppConfig.shared.imageBaseURL,
+                    contentMode: .fill
+                )
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
+                .accessibilityIdentifier("topic-logo-image")
+            } else if showsLeadingIcon {
                 Image(systemName: row.icon)
                     .font(.headline)
                     .foregroundStyle(Colors.primary)
