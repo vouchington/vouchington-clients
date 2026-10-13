@@ -23,9 +23,8 @@ extension NativeChatMCPInputSchema {
         }
     }
 
-    // These are the complete, structurally bounded pattern forms in the
-    // published member MCP catalog. Unknown regexes fail closed at admission;
-    // NSRegularExpression has no match-time budget for arbitrary patterns.
+    /// The bounded pattern forms in the published member MCP catalog. Unknown
+    /// regexes fail closed because NSRegularExpression has no match-time budget.
     static let boundedPatternSources: Set<String> = [
         #"\S"#,
         #"^(0|[1-9][0-9]*)$"#,

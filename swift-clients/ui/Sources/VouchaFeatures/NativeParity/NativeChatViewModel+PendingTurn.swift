@@ -15,7 +15,9 @@ extension NativeChatViewModel {
             self.pendingLocalTurn = nil
             return nil
         }
-        if case .openAICompatible = providerSelection {
+        // A completed MCP turn may already have mutated server state. Persist
+        // its original response even if the local model selection has changed.
+        if pendingLocalTurn.mcpSnapshot == nil, case .openAICompatible = providerSelection {
             guard let currentModel = provider.retryModelIdentity,
                   pendingLocalTurn.response.modelName == currentModel
             else {
