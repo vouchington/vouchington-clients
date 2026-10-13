@@ -19,10 +19,16 @@ extension NativeChatMCPAgentSession {
         }
         inFlightCalls[id] = task
         defer { inFlightCalls.removeValue(forKey: id) }
-        let result = try await withTaskCancellationHandler {
-            try await task.value
-        } onCancel: {
-            task.cancel()
+        let result: MemberMCPClient.ToolResult
+        do {
+            result = try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                task.cancel()
+            }
+        } catch MemberMCPTokenManager.Failure.notAuthorized {
+            invalidateRejectedAuthorization(accountId: expectedAccountId, revision: expectedRevision)
+            throw MemberMCPTokenManager.Failure.notAuthorized
         }
         guard accountId == expectedAccountId, revision == expectedRevision,
               status == .connected else { throw CancellationError() }
@@ -34,5 +40,14 @@ extension NativeChatMCPAgentSession {
             task.cancel()
         }
         inFlightCalls.removeAll()
+    }
+
+    func invalidateRejectedAuthorization(accountId expectedAccountId: String, revision expectedRevision: Int) {
+        guard accountId == expectedAccountId, revision == expectedRevision, status == .connected else { return }
+        revision += 1
+        toolCatalog = nil
+        cancelCalls()
+        status = .failed
+        lastError = .verbatim(MemberMCPTokenManager.Failure.notAuthorized.localizedDescription)
     }
 }

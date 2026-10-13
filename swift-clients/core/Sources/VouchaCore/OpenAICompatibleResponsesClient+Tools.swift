@@ -69,7 +69,6 @@ public extension OpenAICompatibleResponsesClient {
         let initial = Self.boundedInput(message: request.message, history: request.history)
         var input: [[String: Any]] = initial.map { ["role": $0.role, "content": $0.content] }
         var callsRemaining = 4
-        var outputBytesRemaining = 256_000
         var usedCallIDs = Set<String>()
         var attemptedToolExecution = false
 
@@ -98,15 +97,14 @@ public extension OpenAICompatibleResponsesClient {
             for call in calls {
                 try await Self.preflight(
                     call, input: input,
-                    context: .init(model: model, definitions: definitions, remainingResultBytes: outputBytesRemaining),
+                    context: .init(model: model, definitions: definitions),
                     validate: validate
                 )
                 let result = try await Self.invokeTool(
                     call, hadPreviousExecution: attemptedToolExecution, execute: execute
                 )
                 attemptedToolExecution = true
-                outputBytesRemaining -= result.utf8.count
-                guard outputBytesRemaining >= 0 else { throw LocalLLMToolLoopFailure.resultTooLarge }
+                guard result.utf8.count <= 256_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
                 input.append(["type": "function_call_output", "call_id": call.callID, "output": result])
             }
         } } catch {
@@ -187,14 +185,4 @@ public extension OpenAICompatibleResponsesClient {
         }
     }
 
-    private static func responseText(_ response: [String: Any], output: [[String: Any]]) -> String? {
-        if let text = response["output_text"] as? String {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? nil : trimmed
-        }
-        let text = output.compactMap { $0["content"] as? [[String: Any]] }
-            .flatMap { $0 }.compactMap { $0["text"] as? String }.joined()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty ? nil : text
-    }
 }

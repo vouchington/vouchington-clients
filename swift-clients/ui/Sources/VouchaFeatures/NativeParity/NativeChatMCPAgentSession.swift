@@ -23,10 +23,10 @@ public final class NativeChatMCPAgentSession {
     }
 
     public private(set) var accountId: String?
-    public private(set) var status: Status = .disconnected
-    public private(set) var toolCatalog: DecodedJSONValue?
-    public private(set) var lastError: UiVerbatimText?
-    public private(set) var revision = 0
+    public internal(set) var status: Status = .disconnected
+    public internal(set) var toolCatalog: DecodedJSONValue?
+    public internal(set) var lastError: UiVerbatimText?
+    public internal(set) var revision = 0
 
     let service: any NativeChatMCPServicing
     private var generation = 0

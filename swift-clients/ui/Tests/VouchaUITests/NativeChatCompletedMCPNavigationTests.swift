@@ -1,0 +1,35 @@
+import Foundation
+import VouchaAPI
+@testable import VouchaFeatures
+import XCTest
+
+@MainActor
+final class NativeChatCompletedMCPNavigationTests: NativeRouteSurfaceViewModelTestCase {
+    func testLeavingConversationDiscardsRestoredPromptWithCompletedMcpTurn() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Mutate once"
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(viewModel.draftMessage, "Mutate once")
+        XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
+        XCTAssertEqual(provider.generationCount, 1)
+
+        await viewModel.selectConversation(id: nil)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.draftMessage, "")
+        viewModel.selectedConversationId = "conversation-1"
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(provider.generationCount, 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+    }
+}

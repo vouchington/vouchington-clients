@@ -4,7 +4,6 @@ extension OpenAICompatibleResponsesClient {
     struct ToolPreflightContext {
         let model: String
         let definitions: [[String: Any]]
-        let remainingResultBytes: Int
     }
 
     static func requestBody(
@@ -28,7 +27,7 @@ extension OpenAICompatibleResponsesClient {
         // Backslashes reserve the maximum outer-JSON escaping for every allowed result byte.
         let reservedInput = input + [[
             "type": "function_call_output", "call_id": call.callID,
-            "output": String(repeating: "\\", count: context.remainingResultBytes)
+            "output": String(repeating: "\\", count: 256_000)
         ]]
         guard try requestBody(
             model: context.model, input: reservedInput, definitions: context.definitions

@@ -46,8 +46,14 @@ final class NativeChatViewModel {
     var detailPageInfo: NativePaginationState?
     var selectedConversationId: String? {
         didSet {
-            if pendingLocalTurn?.context.conversationId != selectedConversationId {
-                pendingLocalTurn = nil
+            if let pendingLocalTurn, pendingLocalTurn.context.conversationId != selectedConversationId {
+                // A completed MCP turn may already have changed server state. When
+                // discarding its retry cache, discard the restored prompt too.
+                if pendingLocalTurn.mcpSnapshot != nil,
+                   draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) == pendingLocalTurn.context.text {
+                    draftMessage = ""
+                }
+                self.pendingLocalTurn = nil
             }
         }
     }

@@ -134,6 +134,40 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
         XCTAssertEqual(service.refreshedAccounts, ["member-a"])
     }
 
+    func testRejectedToolAuthorizationInvalidatesCatalogAndPermitsReconnect() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        let connect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([.string("read_my_profile")])]))
+        try await connect.value
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+
+        let call = Task {
+            try await session.callTool(
+                name: "read_my_profile", arguments: [:],
+                accountId: snapshot.accountId, revision: snapshot.revision
+            )
+        }
+        await service.waitForToolCall()
+        service.failToolAuthorization()
+        do {
+            _ = try await call.value
+            XCTFail("Definitive authorization loss must fail the call")
+        } catch MemberMCPTokenManager.Failure.notAuthorized {}
+        XCTAssertFalse(session.isCurrent(snapshot))
+        XCTAssertNil(session.connectedSnapshot())
+        XCTAssertNil(session.toolCatalog)
+        XCTAssertEqual(session.status, .failed)
+
+        let reconnect = Task { try await session.connect() }
+        await service.waitForConnect()
+        service.finishConnect(with: .object(["tools": .array([])]))
+        try await reconnect.value
+        XCTAssertEqual(session.status, .connected)
+    }
+
     func testRefreshDoesNotExposeOldCatalogUnderNewRevision() async throws {
         let service = SuspendedMCPService()
         let session = NativeChatMCPAgentSession(service: service)
@@ -294,6 +328,7 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     func finishConnect(with catalog: DecodedJSONValue) {
         pendingConnect?.resume(returning: catalog)
         pendingConnect = nil
+        hasStarted = false
     }
 
     func callTool(
@@ -318,6 +353,11 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     func finishToolCall() throws {
         let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: Data(#"{"content":[]}"#.utf8))
         pendingToolCall?.resume(returning: result)
+        pendingToolCall = nil
+    }
+
+    func failToolAuthorization() {
+        pendingToolCall?.resume(throwing: MemberMCPTokenManager.Failure.notAuthorized)
         pendingToolCall = nil
     }
 

@@ -401,7 +401,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
 }
 
 @MainActor
-private final class PendingTurnMCPService: NativeChatMCPServicing {
+final class PendingTurnMCPService: NativeChatMCPServicing {
     func connect(accountId _: String) async throws -> DecodedJSONValue {
         .object(["tools": .array([])])
     }
@@ -418,7 +418,7 @@ private func payload(_ request: CannedFeedURLProtocol.CapturedRequest) throws ->
     return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? NSDictionary)
 }
 
-private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
+final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
     var model = "model-a"
     var available = true
     var titleHold: HeldTitleGeneration?
@@ -463,7 +463,7 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     }
 }
 
-private actor HeldTitleGeneration {
+actor HeldTitleGeneration {
     private var started = false
     private var startWaiter: CheckedContinuation<Void, Never>?
     private var releaseWaiter: CheckedContinuation<Void, Never>?
@@ -486,7 +486,7 @@ private actor HeldTitleGeneration {
     }
 }
 
-private struct RetryDraftProviderResolver: NativeChatTitleProviderResolving {
+struct RetryDraftProviderResolver: NativeChatTitleProviderResolving {
     let endpointID: UUID
     let provider: MutableRetryDraftProvider
 
