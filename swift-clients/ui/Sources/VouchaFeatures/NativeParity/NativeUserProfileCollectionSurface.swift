@@ -85,6 +85,7 @@ private struct NativeUserProfileTopicRow: View {
             Image(systemName: "tag")
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(topic.name).font(Typography.subheadline).fontWeight(.semibold)
+                ProvenanceBadge(provenance: topic.provenance)
                 Text(topic.topicType.replacingOccurrences(of: "_", with: " "))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)
@@ -105,6 +106,7 @@ private struct NativeUserProfileCommunityRow: View {
             Image(systemName: "person.3")
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(community.name).font(Typography.subheadline).fontWeight(.semibold)
+                ProvenanceBadge(provenance: community.provenance)
                 Text(UiMessages.string(community.visibility.titleKey, locale: nativeUiLocale))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)
