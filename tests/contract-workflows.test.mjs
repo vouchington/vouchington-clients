@@ -401,6 +401,7 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(skip, /restore-keys:/u)
     assert.doesNotMatch(androidCore, /restore-keys:/u)
     assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
+    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
     assert.match(
       skip,
       /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,

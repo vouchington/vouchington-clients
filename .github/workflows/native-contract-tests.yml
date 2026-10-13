@@ -616,6 +616,7 @@ jobs:
           mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
+        if: matrix.phase == 'app'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
