@@ -112,6 +112,7 @@ public actor MemberMCPClient {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let protocolVersion { request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version") }
         let requestSession = sessionId
+        let requestVersion = protocolVersion
         if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
         request.httpBody = try JSONEncoder().encode(body)
         let transport = ResponseLinesTransport(followRedirects: false)
@@ -136,7 +137,10 @@ public actor MemberMCPClient {
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
         let result: Result = try await MCPResponseReader.read(
             responseLines.lines,
-            contentType: http.value(forHTTPHeaderField: "Content-Type"), id: id
+            contentType: http.value(forHTTPHeaderField: "Content-Type"), id: id,
+            sendServerReply: { [self] data in
+                try await sendServerReply(data, token: token, session: requestSession, version: requestVersion)
+            }
         )
         if method == "initialize", let session = http.value(forHTTPHeaderField: "Mcp-Session-Id") {
             guard !session.isEmpty, session.utf8.allSatisfy({ 0x21 ... 0x7E ~= $0 })

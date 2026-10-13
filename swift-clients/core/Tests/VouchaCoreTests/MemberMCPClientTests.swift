@@ -19,6 +19,43 @@ final class MemberMCPClientTests: XCTestCase {
         XCTAssertTrue(String(decoding: encoded, as: UTF8.self).contains("9007199254740993"))
     }
 
+    func testStructuredResultPreservesUnsignedAndLargeDecimalIntegers() throws {
+        let json = Data(
+            #"{"content":[],"structuredContent":{"unsigned":18446744073709551615,"large":123456789012345678901234567890}}"#
+                .utf8
+        )
+        let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: json)
+        guard case let .object(fields)? = result.structuredContent,
+              case let .unsignedInteger(unsigned)? = fields["unsigned"],
+              case .decimal? = fields["large"] else {
+            return XCTFail("MCP integers outside signed 64-bit range must remain exact")
+        }
+        XCTAssertEqual(unsigned, UInt64.max)
+        let encoded = try JSONEncoder().encode(result.structuredContent)
+        let wire = String(decoding: encoded, as: UTF8.self)
+        XCTAssertTrue(wire.contains("18446744073709551615"))
+        XCTAssertTrue(wire.contains("123456789012345678901234567890"))
+    }
+
+    func testSSEAnswersPingAndClosesSession() async throws {
+        let events = "data: {\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"}\n\n" +
+            "data: {\"jsonrpc\":\"2.0\",\"id\":\"2\",\"result\":{\"tools\":[]}}\n\n"
+        MCPTestURLProtocol.configure(data: Data(events.utf8), status: 200, contentType: "Text/Event-Stream")
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self]
+        )
+        _ = try await client.listTools(accessToken: "access-1")
+        let reply = try XCTUnwrap(MCPTestURLProtocol.serverReply())
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: reply) as? [String: Any])
+        XCTAssertEqual(fields["id"] as? Int, 17)
+        XCTAssertNotNil(fields["result"])
+
+        try await client.close(accessToken: "access-1")
+        XCTAssertEqual(MCPTestURLProtocol.methodHistory().last, "DELETE")
+        XCTAssertEqual(MCPTestURLProtocol.closedSession(), "test-session")
+    }
+
     func testToolListingForwardsOpaqueCursor() async throws {
         MCPTestURLProtocol.configure(
             data: Data(#"{"jsonrpc":"2.0","id":"2","result":{"tools":[],"nextCursor":"next/+"}}"#.utf8),
@@ -278,6 +315,8 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var metadata: [String: Data] = [:]
     private static var requestedPaths: [String] = []
     private static var methods: [String] = []
+    private static var replyBody: Data?
+    private static var deletedSession: String?
 
     static func configure(
         data: Data, status: Int, retryAfter: String? = nil,
@@ -293,6 +332,8 @@ private final class MCPTestURLProtocol: URLProtocol {
         metadata = [:]
         requestedPaths = []
         methods = []
+        replyBody = nil
+        deletedSession = nil
         lock.unlock()
     }
 
@@ -321,6 +362,18 @@ private final class MCPTestURLProtocol: URLProtocol {
         return methods
     }
 
+    static func serverReply() -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return replyBody
+    }
+
+    static func closedSession() -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return deletedSession
+    }
+
     static func snapshot() -> URLRequest? {
         lock.lock()
         defer { lock.unlock() }
@@ -347,7 +400,14 @@ private final class MCPTestURLProtocol: URLProtocol {
         let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
         if let method { Self.methods.append(method) }
-        if method != "initialize", method != "notifications/initialized" {
+        if request.httpMethod == "DELETE" {
+            Self.methods.append("DELETE")
+            Self.deletedSession = request.value(forHTTPHeaderField: "Mcp-Session-Id")
+        } else if method == nil, rpc?["result"] != nil {
+            Self.replyBody = body
+        }
+        if method != "initialize", method != "notifications/initialized",
+           request.httpMethod != "DELETE", rpc?["result"] == nil {
             Self.captured = request
             Self.capturedBody = body
         }
@@ -356,8 +416,10 @@ private final class MCPTestURLProtocol: URLProtocol {
         Self.requestedPaths.append(path)
         let selected = method == "initialize"
             ? Data(#"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#.utf8)
-            : method == "notifications/initialized" ? Data() : Self.metadata[path] ?? data
-        let status = method == "notifications/initialized" ? 202 : method == "initialize" ? 200 : Self.status
+            : method == "notifications/initialized" || request.httpMethod == "DELETE" ||
+            rpc?["result"] != nil ? Data() : Self.metadata[path] ?? data
+        let status = method == "notifications/initialized" || rpc?["result"] != nil
+            ? 202 : request.httpMethod == "DELETE" ? 204 : method == "initialize" ? 200 : Self.status
         let retryAfter = Self.retryAfter
         let contentType = method == "initialize" || method == "notifications/initialized"
             ? "application/json" : Self.contentType

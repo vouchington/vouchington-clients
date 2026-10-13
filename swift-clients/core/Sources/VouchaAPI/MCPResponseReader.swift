@@ -22,17 +22,18 @@ enum MCPResponseReader {
     private static let maximumBodyBytes = 1_024 * 1_024
 
     static func read<Result: Decodable & Sendable>(
-        _ lines: AsyncThrowingStream<String, Error>, contentType: String?, id: String
+        _ lines: AsyncThrowingStream<String, Error>, contentType: String?, id: String,
+        sendServerReply: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Result {
         let type = contentType?.split(separator: ";", maxSplits: 1).first
         guard let mediaType = type.map(String.init)?.trimmingCharacters(in: .whitespaces) else {
             throw MemberMCPClient.Failure.invalidResponse
         }
-        switch mediaType {
+        switch mediaType.lowercased() {
         case "application/json":
             return try await readJSON(lines, id: id)
         case "text/event-stream":
-            return try await readSSE(lines, id: id)
+            return try await readSSE(lines, id: id, sendServerReply: sendServerReply)
         default:
             throw MemberMCPClient.Failure.invalidResponse
         }
@@ -55,14 +56,15 @@ enum MCPResponseReader {
     }
 
     private static func readSSE<Result: Decodable & Sendable>(
-        _ lines: AsyncThrowingStream<String, Error>, id: String
+        _ lines: AsyncThrowingStream<String, Error>, id: String,
+        sendServerReply: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Result {
         var data = ""
         for try await rawLine in lines {
             let line = rawLine.hasSuffix("\r") ? String(rawLine.dropLast()) : rawLine
             if line.isEmpty {
                 if !data.isEmpty {
-                    if let result: Result = try decode(Data(data.utf8), id: id, allowUnmatched: true) {
+                    if let result: Result = try await eventResult(Data(data.utf8), id: id, send: sendServerReply) {
                         return result
                     }
                     data = ""
@@ -76,10 +78,19 @@ enum MCPResponseReader {
                 data += value
             }
         }
-        if !data.isEmpty, let result: Result = try decode(Data(data.utf8), id: id, allowUnmatched: true) {
-            return result
+        if !data.isEmpty {
+            if let result: Result = try await eventResult(Data(data.utf8), id: id, send: sendServerReply) {
+                return result
+            }
         }
         throw MemberMCPClient.Failure.invalidResponse
+    }
+
+    private static func eventResult<Result: Decodable & Sendable>(
+        _ data: Data, id: String, send: @escaping @Sendable (Data) async throws -> Void
+    ) async throws -> Result? {
+        if try await replyToServerRequest(data, send: send) { return nil }
+        return try decode(data, id: id, allowUnmatched: true)
     }
 
     private static func decode<Result: Decodable & Sendable>(

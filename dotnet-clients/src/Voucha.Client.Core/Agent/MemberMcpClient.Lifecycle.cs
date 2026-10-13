@@ -11,13 +11,17 @@ public sealed partial class MemberMcpClient
 
   private async Task EnsureInitializedAsync(string accessToken, CancellationToken cancellationToken)
   {
-    if (initialized) return;
+    lock (sessionGate) if (initialized) return;
     await initializeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      if (initialized) return;
-      protocolVersion = null;
-      sessionId = null;
+      lock (sessionGate)
+      {
+        if (initialized) return;
+        protocolVersion = null;
+        sessionId = null;
+        sessionAccessToken = null;
+      }
       var result = await SendRpcAsync("initialize", new
       {
         protocolVersion = SupportedProtocolVersion,
@@ -27,15 +31,23 @@ public sealed partial class MemberMcpClient
       if (!result.TryGetProperty("protocolVersion", out var negotiated) ||
           negotiated.GetString() != SupportedProtocolVersion)
         throw new InvalidDataException("MCP server selected an unsupported protocol version.");
-      protocolVersion = SupportedProtocolVersion;
+      lock (sessionGate) protocolVersion = SupportedProtocolVersion;
       await SendInitializedAsync(accessToken, cancellationToken).ConfigureAwait(false);
-      initialized = true;
+      lock (sessionGate)
+      {
+        initialized = true;
+        sessionAccessToken = sessionId is null ? null : accessToken;
+      }
     }
     catch
     {
-      initialized = false;
-      protocolVersion = null;
-      sessionId = null;
+      lock (sessionGate)
+      {
+        initialized = false;
+        protocolVersion = null;
+        sessionId = null;
+        sessionAccessToken = null;
+      }
       throw;
     }
     finally

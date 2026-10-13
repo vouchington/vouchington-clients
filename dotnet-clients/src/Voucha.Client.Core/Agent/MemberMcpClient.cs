@@ -6,14 +6,16 @@ using System.Text.Json;
 namespace Voucha.Client.Core.Agent;
 
 /// <summary>A bearer-only member MCP transport with no application session cookies.</summary>
-public sealed partial class MemberMcpClient : IDisposable
+public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
 {
   private readonly HttpClient client;
   private readonly Uri endpoint;
   private long nextRequestId;
   private readonly SemaphoreSlim initializeGate = new(1, 1);
+  private readonly object sessionGate = new();
   private string? protocolVersion;
   private string? sessionId;
+  private string? sessionAccessToken;
   private bool initialized;
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "HttpClient owns and disposes the handler.")]
@@ -107,19 +109,33 @@ public sealed partial class MemberMcpClient : IDisposable
     };
     request.Headers.Accept.ParseAdd("application/json, text/event-stream");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-    if (protocolVersion is { } version) request.Headers.TryAddWithoutValidation("MCP-Protocol-Version", version);
-    var requestSession = sessionId;
+    string? version;
+    string? requestSession;
+    lock (sessionGate)
+    {
+      if (method != "initialize" && !initialized)
+        throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
+      version = protocolVersion;
+      requestSession = sessionId;
+      if (initialized && requestSession is not null && sessionId == requestSession)
+        sessionAccessToken = accessToken;
+    }
+    if (version is not null) request.Headers.TryAddWithoutValidation("MCP-Protocol-Version", version);
     if (requestSession is not null) request.Headers.TryAddWithoutValidation("Mcp-Session-Id", requestSession);
     using var response = await client.SendAsync(
         request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
     if (response.StatusCode == HttpStatusCode.NotFound && requestSession is not null)
     {
-      if (sessionId == requestSession)
+      lock (sessionGate)
       {
-        initialized = false;
-        protocolVersion = null;
-        sessionId = null;
+        if (sessionId == requestSession)
+        {
+          initialized = false;
+          protocolVersion = null;
+          sessionId = null;
+          sessionAccessToken = null;
+        }
       }
       throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
     }
@@ -132,19 +148,27 @@ public sealed partial class MemberMcpClient : IDisposable
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 
-    var result = await ReadReplyAsync(response.Content, id, cancellationToken).ConfigureAwait(false);
+    var result = await ReadReplyAsync(
+        response.Content, id, accessToken, requestSession, version, cancellationToken).ConfigureAwait(false);
     if (method == "initialize" && response.Headers.TryGetValues("Mcp-Session-Id", out var values))
     {
       var proposed = values.SingleOrDefault();
       if (string.IsNullOrEmpty(proposed) || proposed.Any(character => character < 0x21 || character > 0x7E))
         throw new InvalidDataException("MCP server returned an invalid session ID.");
-      sessionId = proposed;
+      lock (sessionGate) sessionId = proposed;
     }
     return result;
   }
 
   public void Dispose()
   {
+    lock (sessionGate)
+    {
+      initialized = false;
+      protocolVersion = null;
+      sessionId = null;
+      sessionAccessToken = null;
+    }
     client.Dispose();
     initializeGate.Dispose();
   }

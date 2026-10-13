@@ -116,6 +116,40 @@ public sealed class MemberMcpClientTests
     Assert.Equal("read_post", result.GetProperty("tools")[0].GetProperty("name").GetString());
   }
 
+  [Fact]
+  public async Task SseAnswersServerPingBeforeToolResult()
+  {
+    var events = "data: {\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"}\n\n" +
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"2\",\"result\":{\"tools\":[]}}\n\n";
+    var handler = new StubHandler(HttpStatusCode.OK, events) { ContentType = "Text/Event-Stream" };
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+
+    await client.ListToolsAsync("access-1", TestContext.Current.CancellationToken);
+
+    using var reply = JsonDocument.Parse(Assert.IsType<string>(handler.ServerReply));
+    Assert.Equal(17, reply.RootElement.GetProperty("id").GetInt32());
+    Assert.Equal(JsonValueKind.Object, reply.RootElement.GetProperty("result").ValueKind);
+    Assert.Equal("test-session", handler.SessionId);
+    Assert.Equal("2025-06-18", handler.ProtocolVersion);
+  }
+
+  [Fact]
+  public async Task AsyncDisposalTerminatesStatefulSession()
+  {
+    var handler = new StubHandler(HttpStatusCode.OK,
+        """{"jsonrpc":"2.0","id":"2","result":{"tools":[]}}""")
+    { ContentType = "Application/JSON" };
+    var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+    await client.ListToolsAsync("access-1", TestContext.Current.CancellationToken);
+
+    await client.DisposeAsync();
+
+    Assert.Equal("DELETE", handler.Methods.Last());
+    Assert.Equal("Bearer access-1", handler.Authorization);
+    Assert.Equal("test-session", handler.SessionId);
+    Assert.Equal("2025-06-18", handler.ProtocolVersion);
+  }
+
   [Theory]
   [InlineData("[]")]
   [InlineData("{\"jsonrpc\":2,\"id\":\"1\",\"result\":{}}")]
@@ -138,6 +172,7 @@ public sealed class MemberMcpClientTests
     public string? Body { get; private set; }
     public string? ProtocolVersion { get; private set; }
     public string? SessionId { get; private set; }
+    public string? ServerReply { get; private set; }
     public List<string> Methods { get; } = [];
     public int? RetryAfterSeconds { get; init; }
     public DateTimeOffset? RetryAfterDate { get; init; }
@@ -150,9 +185,27 @@ public sealed class MemberMcpClientTests
       Authorization = request.Headers.Authorization?.ToString();
       Cookie = request.Headers.TryGetValues("Cookie", out var cookies) ? cookies.Single() : null;
       Accept = string.Join(", ", request.Headers.Accept.Select(value => value.ToString()));
+      if (request.Method == HttpMethod.Delete)
+      {
+        Methods.Add("DELETE");
+        ProtocolVersion = request.Headers.TryGetValues("MCP-Protocol-Version", out var deleteVersions)
+            ? deleteVersions.Single() : null;
+        SessionId = request.Headers.TryGetValues("Mcp-Session-Id", out var deleteSessions)
+            ? deleteSessions.Single() : null;
+        return new HttpResponseMessage(HttpStatusCode.NoContent);
+      }
       Body = await request.Content!.ReadAsStringAsync(cancellationToken);
       using var rpc = JsonDocument.Parse(Body);
-      var method = rpc.RootElement.GetProperty("method").GetString()!;
+      if (!rpc.RootElement.TryGetProperty("method", out var methodValue))
+      {
+        ServerReply = Body;
+        ProtocolVersion = request.Headers.TryGetValues("MCP-Protocol-Version", out var replyVersions)
+            ? replyVersions.Single() : null;
+        SessionId = request.Headers.TryGetValues("Mcp-Session-Id", out var replySessions)
+            ? replySessions.Single() : null;
+        return new HttpResponseMessage(HttpStatusCode.Accepted);
+      }
+      var method = methodValue.GetString()!;
       Methods.Add(method);
       if (method == "initialize")
       {

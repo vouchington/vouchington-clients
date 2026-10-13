@@ -1,8 +1,12 @@
+import Foundation
+
 public enum DecodedJSONValue: Codable, Sendable {
     case null
     case bool(Bool)
     case number(Double)
     case integer(Int64)
+    case unsignedInteger(UInt64)
+    case decimal(Decimal)
     case string(String)
     case array([DecodedJSONValue])
     case object([String: DecodedJSONValue])
@@ -16,6 +20,12 @@ public enum DecodedJSONValue: Codable, Sendable {
         } else if let value = try? container.decode(Int64.self),
                   value > 9_007_199_254_740_992 || value < -9_007_199_254_740_992 {
             self = .integer(value)
+        } else if let value = try? container.decode(UInt64.self),
+                  value > 9_007_199_254_740_992 {
+            self = .unsignedInteger(value)
+        } else if let value = try? container.decode(Decimal.self),
+                  value > Decimal(9_007_199_254_740_992) || value < Decimal(-9_007_199_254_740_992) {
+            self = .decimal(value)
         } else if let value = try? container.decode(Double.self) {
             self = .number(value)
         } else if let value = try? container.decode(String.self) {
@@ -38,6 +48,10 @@ public enum DecodedJSONValue: Codable, Sendable {
         case let .number(value):
             try container.encode(value)
         case let .integer(value):
+            try container.encode(value)
+        case let .unsignedInteger(value):
+            try container.encode(value)
+        case let .decimal(value):
             try container.encode(value)
         case let .string(value):
             try container.encode(value)

@@ -7,13 +7,14 @@ public sealed partial class MemberMcpClient
 {
   private const int MaximumResponseChars = 1_048_576;
 
-  private static async Task<JsonElement> ReadReplyAsync(
-      HttpContent content, string id, CancellationToken cancellationToken)
+  private async Task<JsonElement> ReadReplyAsync(
+      HttpContent content, string id, string accessToken, string? requestSession,
+      string? version, CancellationToken cancellationToken)
   {
     var mediaType = content.Headers.ContentType?.MediaType;
     using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
     using var reader = new StreamReader(stream, Encoding.UTF8);
-    if (mediaType == "application/json")
+    if (string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase))
     {
       var body = new StringBuilder();
       string? line;
@@ -26,7 +27,7 @@ public sealed partial class MemberMcpClient
       if (TryReadReply(body.ToString(), id, allowUnmatched: false, out var result)) return result;
       throw new InvalidDataException("MCP response does not match the request.");
     }
-    if (mediaType != "text/event-stream")
+    if (!string.Equals(mediaType, "text/event-stream", StringComparison.OrdinalIgnoreCase))
       throw new InvalidDataException("Unsupported MCP response content type.");
 
     var data = new StringBuilder();
@@ -37,6 +38,12 @@ public sealed partial class MemberMcpClient
       {
         if (data.Length > 0)
         {
+          if (await ReplyToServerRequestAsync(
+                  data.ToString(), accessToken, requestSession, version, cancellationToken).ConfigureAwait(false))
+          {
+            data.Clear();
+            continue;
+          }
           if (TryReadReply(data.ToString(), id, allowUnmatched: true, out var result)) return result;
           data.Clear();
         }
@@ -50,8 +57,13 @@ public sealed partial class MemberMcpClient
         data.Append(value);
       }
     }
-    if (data.Length > 0 && TryReadReply(data.ToString(), id, allowUnmatched: true, out var last))
-      return last;
+    if (data.Length > 0)
+    {
+      if (await ReplyToServerRequestAsync(
+              data.ToString(), accessToken, requestSession, version, cancellationToken).ConfigureAwait(false))
+        throw new InvalidDataException("MCP event stream ended without a matching response.");
+      if (TryReadReply(data.ToString(), id, allowUnmatched: true, out var last)) return last;
+    }
     throw new InvalidDataException("MCP event stream ended without a matching response.");
   }
 
