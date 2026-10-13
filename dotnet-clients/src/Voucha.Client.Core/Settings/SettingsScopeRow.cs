@@ -36,7 +36,10 @@ public sealed record SettingsScopeRow(
   {
     "mcp_user_full_access" => UiMessageKey.NativeCredentialsMcpUserFullAccess,
     "mcp_admin_full_access" => UiMessageKey.NativeCredentialsMcpAdminFullAccess,
-    "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write" => null,
+    "financial_profile_read" => UiMessageKey.NativeCredentialsFinancialProfileRead,
+    "financial_profile_write" => UiMessageKey.NativeCredentialsFinancialProfileWrite,
+    "spending_read" => UiMessageKey.NativeCredentialsSpendingRead,
+    "spending_write" => UiMessageKey.NativeCredentialsSpendingWrite,
     _ => UiMessageKey.NativeCredentialsInvalidSelection,
   };
 }

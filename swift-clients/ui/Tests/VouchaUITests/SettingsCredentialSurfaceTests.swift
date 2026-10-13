@@ -41,6 +41,14 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
         let surface = SettingsSurface(viewModel: model)
         XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect()
             .find(text: uiEnglish(.nativeCredentialsMcpUserFullAccess)))
+        for description in [
+            UiMessageKey.nativeCredentialsFinancialProfileRead,
+            .nativeCredentialsFinancialProfileWrite,
+            .nativeCredentialsSpendingRead,
+            .nativeCredentialsSpendingWrite
+        ] {
+            XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: uiEnglish(description)))
+        }
         XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: "financial-profile:read"))
         XCTAssertNoThrow(try surface.apiKeyScopePicker.inspect().find(text: "spending:read"))
         XCTAssertFalse(model.apiKeyScopes.contains { $0.descriptionKey == .mcpAdminFullAccess })

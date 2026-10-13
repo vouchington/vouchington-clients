@@ -360,6 +360,8 @@
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choose scopes</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Revoke access to {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Connected Apps</value></data>
+  <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Read your credit score range, stated income range, total credit limit and years of credit history.</value></data>
+  <data name="native.credentials.financialProfileWrite" xml:space="preserve"><value>Update your credit score range, stated income range, total credit limit and years of credit history.</value></data>
   <data name="native.credentials.grantActivity" xml:space="preserve"><value>Authorized {consentedAt} · Last used {lastUsedAt}</value></data>
   <data name="native.credentials.grantRevoked" xml:space="preserve"><value>Access revoked</value></data>
   <data name="native.credentials.invalidSelection" xml:space="preserve"><value>Choose at least one permission</value></data>
@@ -371,6 +373,8 @@
   <data name="native.credentials.resource" xml:space="preserve"><value>Resource</value></data>
   <data name="native.credentials.revokeFailed" xml:space="preserve"><value>Failed to revoke access</value></data>
   <data name="native.credentials.scopes" xml:space="preserve"><value>Scopes</value></data>
+  <data name="native.credentials.spendingRead" xml:space="preserve"><value>Read your spending categories, amounts, frequency and notes.</value></data>
+  <data name="native.credentials.spendingWrite" xml:space="preserve"><value>Add, update or remove your spending categories, amounts, frequency and notes.</value></data>
   <data name="native.credentials.unusedGrantActivity" xml:space="preserve"><value>Authorized {consentedAt} · Not used yet</value></data>
   <data name="native.credentials.unverified" xml:space="preserve"><value>Unverified</value></data>
   <data name="native.credentials.userAudience" xml:space="preserve"><value>User</value></data>
