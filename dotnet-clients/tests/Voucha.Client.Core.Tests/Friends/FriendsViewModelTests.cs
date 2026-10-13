@@ -1,12 +1,29 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Friends;
 using Voucha.Client.Core.Support;
+using System.Text.Json;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Friends;
 
 public sealed partial class FriendsViewModelTests
 {
+  [Fact]
+  public async Task LoadAsyncPreservesPlacementFromFollowingFixture()
+  {
+    var response = JsonSerializer.Deserialize<UserFollowingResponse>(
+        ApiFixtureLoader.LoadResponse("swift.users.following.default"), VouchaApiJson.Options)!;
+    var service = new RecordingFriendsService(following: response);
+    var viewModel = new FriendsViewModel(service, "user-abc");
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var friend = Assert.Single(viewModel.Items);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", friend.ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, friend.ProfileImagePlacement?.PlacementRevision);
+  }
+
   [Fact]
   public async Task LoadAsyncLoadsFollowingByDefault()
   {

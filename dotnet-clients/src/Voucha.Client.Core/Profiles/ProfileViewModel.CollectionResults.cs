@@ -78,7 +78,8 @@ public sealed partial class ProfileViewModel
       user.Username,
       user.ProfileImageId,
       following,
-      string.Equals(user.Id, currentViewerUserId, StringComparison.Ordinal));
+      string.Equals(user.Id, currentViewerUserId, StringComparison.Ordinal),
+      ProfileImagePlacement: user.ProfileImagePlacement);
 
   private TopicRow ToTopicRow(Topic topic) => new(
       topic.Id,

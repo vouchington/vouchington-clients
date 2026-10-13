@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
@@ -17,7 +18,8 @@ public partial class App : Application
         IServiceProvider serviceProvider,
         IUiLocalization localization,
         UiLocaleController localeController,
-        ISessionStore sessionStore)
+        ISessionStore sessionStore,
+        AppConfig config)
     {
         InitializeComponent();
         this.serviceProvider = serviceProvider;
@@ -30,6 +32,7 @@ public partial class App : Application
         localeController.LocaleChanged += OnLocaleChanged;
         Resources["UiLocaleVersion"] = new UiLocaleVersion(localeController);
         Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(localization);
+        Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(config, 96);
         RefreshLocalizedResources();
     }
 

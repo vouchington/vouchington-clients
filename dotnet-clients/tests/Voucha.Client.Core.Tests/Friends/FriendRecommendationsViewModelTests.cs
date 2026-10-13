@@ -1,12 +1,28 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Friends;
 using Voucha.Client.Core.Support;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Friends;
 
 public sealed class FriendRecommendationsViewModelTests
 {
+  [Fact]
+  public async Task LoadAsyncKeepsHydratedPlacementFromRecommendationFixture()
+  {
+    var response = JsonSerializer.Deserialize<FriendRecommendationsResponse>(
+        ApiFixtureLoader.LoadResponse("native.friend-recommendations.default"), VouchaApiJson.Options)!;
+    var viewModel = new FriendRecommendationsViewModel(new RecordingRecommendationService(response));
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var row = Assert.Single(viewModel.Items);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", row.ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, row.ProfileImagePlacement?.PlacementRevision);
+  }
+
   [Fact]
   public async Task PaginationDeduplicatesAndForwardsOpaqueCursor()
   {

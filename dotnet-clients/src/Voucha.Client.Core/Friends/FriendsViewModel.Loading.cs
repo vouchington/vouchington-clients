@@ -117,7 +117,8 @@ public sealed partial class FriendsViewModel
           user.Username,
           user.ProfileImageId,
           isFollowing,
-          IsSelf(user.Id));
+          IsSelf(user.Id),
+          ProfileImagePlacement: user.ProfileImagePlacement);
 
   private bool IsSelf(string userId) =>
       currentUserId is not null && StringComparer.Ordinal.Equals(currentUserId, userId);
