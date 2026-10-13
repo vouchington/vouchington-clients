@@ -64,9 +64,14 @@ public partial class SettingsPage
         GithubOAuthAccountButton,
         OAuthBrokerProvider.Github,
         oauthCoordinator.IsProviderConnected(OAuthBrokerProvider.Github));
+    ConfigureOAuthButton(
+        LinkedinOAuthAccountButton,
+        OAuthBrokerProvider.Linkedin,
+        oauthCoordinator.IsProviderConnected(OAuthBrokerProvider.Linkedin));
     FacebookOAuthIdentity.Text = identity?.FacebookAccount?.Name ?? string.Empty;
     XOAuthIdentity.Text = identity?.XAccount?.Name ?? string.Empty;
     GithubOAuthIdentity.Text = identity?.GithubAccount?.Name ?? string.Empty;
+    LinkedinOAuthIdentity.Text = identity?.LinkedinAccount?.Name ?? string.Empty;
     RetryOAuthAccountCapabilitiesButton.IsVisible = oauthCoordinator.CanRetryCapabilityLoading;
     CancelOAuthAccountButton.IsVisible = oauthCoordinator.CanCancelPendingAuthorization;
     OAuthAccountsStatus.Text = oauthCoordinator.State switch
@@ -148,6 +153,7 @@ public partial class SettingsPage
     "facebook" => OAuthBrokerProvider.Facebook,
     "x" => OAuthBrokerProvider.X,
     "github" => OAuthBrokerProvider.Github,
+    "linkedin" => OAuthBrokerProvider.Linkedin,
     _ => throw new ArgumentOutOfRangeException(nameof(provider)),
   };
 }

@@ -35,6 +35,7 @@ public static partial class VouchaApiEndpoints
     OAuthBrokerProvider.Facebook => "facebook",
     OAuthBrokerProvider.X => "x",
     OAuthBrokerProvider.Github => "github",
+    OAuthBrokerProvider.Linkedin => "linkedin",
     _ => throw new ArgumentOutOfRangeException(nameof(provider)),
   };
 }

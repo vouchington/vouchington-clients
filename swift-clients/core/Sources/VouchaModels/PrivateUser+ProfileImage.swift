@@ -39,6 +39,7 @@ public extension PrivateUser {
             facebookAccount: facebookAccount,
             xAccount: xAccount,
             githubAccount: githubAccount,
+            linkedinAccount: linkedinAccount,
             processingRestrictedAt: processingRestrictedAt,
             thirdPartyMarketing: thirdPartyMarketing,
             hnDiscussions: hnDiscussions,

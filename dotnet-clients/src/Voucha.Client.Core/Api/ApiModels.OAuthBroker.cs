@@ -8,6 +8,7 @@ public enum OAuthBrokerProvider
   Facebook,
   X,
   Github,
+  Linkedin,
 }
 
 public enum OAuthAuthorizationPurpose
@@ -36,11 +37,15 @@ public sealed record OAuthBrokerCapabilities(
     [property: JsonPropertyName("linkedin")] OAuthBrokerCapability? Linkedin = null,
     [property: JsonPropertyName("microsoft")] OAuthBrokerCapability? Microsoft = null)
 {
+  private static readonly OAuthBrokerCapability Disabled = new(
+      0, new OAuthBrokerModes(false, false), []);
+
   public OAuthBrokerCapability this[OAuthBrokerProvider provider] => provider switch
   {
     OAuthBrokerProvider.Facebook => Facebook,
     OAuthBrokerProvider.X => X,
     OAuthBrokerProvider.Github => Github,
+    OAuthBrokerProvider.Linkedin => Linkedin ?? Disabled,
     _ => throw new ArgumentOutOfRangeException(nameof(provider)),
   };
 }

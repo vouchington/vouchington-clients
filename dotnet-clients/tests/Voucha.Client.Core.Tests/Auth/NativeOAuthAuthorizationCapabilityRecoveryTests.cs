@@ -49,6 +49,12 @@ public sealed class NativeOAuthAuthorizationCapabilityRecoveryTests
     Assert.True(coordinator.Supports(
         OAuthBrokerProvider.Github,
         OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(coordinator.Supports(
+        OAuthBrokerProvider.Linkedin,
+        OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(coordinator.Supports(
+        OAuthBrokerProvider.Linkedin,
+        OAuthAuthorizationPurpose.Connect));
   }
 
   [Fact]

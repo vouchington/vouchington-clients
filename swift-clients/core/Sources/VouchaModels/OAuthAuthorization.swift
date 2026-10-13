@@ -41,6 +41,7 @@ public struct OAuthBrokerCapabilities: Codable, Equatable, Sendable {
         case .facebook: facebook
         case .x: x
         case .github: github
+        case .linkedin: linkedin ?? .disabled
         }
     }
 }

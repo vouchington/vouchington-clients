@@ -61,6 +61,11 @@
                         Clicked="OnGithubOAuthClicked"
                         IsVisible="False" />
                     <Button
+                        x:Name="LinkedinOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.linkedin}"
+                        Clicked="OnLinkedinOAuthClicked"
+                        IsVisible="False" />
+                    <Button
                         x:Name="CancelOAuthButton"
                         Text="{DynamicResource native.swift.settings.blueskyCancel}"
                         Clicked="OnCancelOAuthClicked"

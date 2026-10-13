@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Auth;
 
-public sealed class NativeOAuthAuthorizationCoordinatorTests
+public sealed partial class NativeOAuthAuthorizationCoordinatorTests
 {
   [Fact]
   public void CompletionProofMatchesBrokerContract()
