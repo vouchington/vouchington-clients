@@ -89,6 +89,14 @@ public struct OpenAICompatibleResponsesClient: Sendable {
             throw LocalLLMError.missingModel
         }
 
+        let input = Self.boundedInput(message: message, history: history)
+        let body = try JSONEncoder().encode(ResponseRequest(model: model, input: input))
+        let data = try await send(body: body, to: url, apiKey: apiKey)
+        let payload = try JSONDecoder().decode(ResponsePayload.self, from: data)
+        return payload.outputText
+    }
+
+    func send(body: Data, to url: URL, apiKey: String?) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -96,9 +104,7 @@ public struct OpenAICompatibleResponsesClient: Sendable {
         if let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
-        let input = Self.boundedInput(message: message, history: history)
-        request.httpBody = try JSONEncoder().encode(ResponseRequest(model: model, input: input))
-
+        request.httpBody = body
         let data: Data
         let response: URLResponse
         do {
@@ -120,11 +126,10 @@ public struct OpenAICompatibleResponsesClient: Sendable {
         guard (200 ... 299).contains(http.statusCode) else {
             throw LocalLLMError.requestFailed(statusCode: http.statusCode)
         }
-        let payload = try JSONDecoder().decode(ResponsePayload.self, from: data)
-        return payload.outputText
+        return data
     }
 
-    private static func boundedInput(
+    static func boundedInput(
         message: String,
         history: [LocalLLMChatMessage]
     ) -> [ResponseInput] {
@@ -147,42 +152,9 @@ private struct ResponseRequest: Encodable {
     let input: [ResponseInput]
 }
 
-private struct ResponseInput: Encodable {
+struct ResponseInput: Encodable {
     let role: String
     let content: String
-}
-
-private struct ResponsePayload: Decodable {
-    let outputText: String?
-
-    enum CodingKeys: String, CodingKey {
-        case outputText = "output_text"
-        case output
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let outputText = try container.decodeIfPresent(String.self, forKey: .outputText) {
-            let trimmedOutputText = outputText.trimmingCharacters(in: .whitespacesAndNewlines)
-            self.outputText = trimmedOutputText.isEmpty ? nil : trimmedOutputText
-            return
-        }
-        let output = try container.decodeIfPresent([ResponseOutput].self, forKey: .output) ?? []
-        let text = output
-            .flatMap { $0.content ?? [] }
-            .compactMap(\.text)
-            .joined()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        outputText = text.isEmpty ? nil : text
-    }
-}
-
-private struct ResponseOutput: Decodable {
-    let content: [ResponseContent]?
-}
-
-private struct ResponseContent: Decodable {
-    let text: String?
 }
 
 final class LocalLLMURLSessionDelegate: NSObject, URLSessionTaskDelegate {

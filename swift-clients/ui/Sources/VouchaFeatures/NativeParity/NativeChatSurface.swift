@@ -16,7 +16,9 @@ struct NativeChatSurface: View {
         client: APIClient?, routeMatch: NativeRouteMatch?,
         currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil
     ) {
-        _viewModel = State(initialValue: NativeChatViewModel(client: client, routeMatch: routeMatch))
+        _viewModel = State(initialValue: NativeChatViewModel(
+            client: client, routeMatch: routeMatch, mcpSession: mcpSession
+        ))
         self.currentUserId = currentUserId
         self.mcpSession = mcpSession
     }

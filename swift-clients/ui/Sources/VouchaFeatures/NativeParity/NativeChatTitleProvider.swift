@@ -103,12 +103,26 @@ protocol NativeChatTitleProviding: Sendable {
         history: [NativeChatTimelineMessage]
     ) async throws -> NativeChatAssistantResponse?
 
+    func generateAssistantResponse(
+        to message: String,
+        history: [NativeChatTimelineMessage],
+        mcpSession: NativeChatMCPAgentSession?
+    ) async throws -> NativeChatAssistantResponse?
+
     func generateTitle(from messages: [NativeChatTimelineMessage]) async throws -> String?
 }
 
 extension NativeChatTitleProviding {
     var retryModelIdentity: String? {
         nil
+    }
+
+    func generateAssistantResponse(
+        to message: String,
+        history: [NativeChatTimelineMessage],
+        mcpSession _: NativeChatMCPAgentSession?
+    ) async throws -> NativeChatAssistantResponse? {
+        try await generateAssistantResponse(to: message, history: history)
     }
 }
 
