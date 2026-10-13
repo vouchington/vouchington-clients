@@ -1,11 +1,28 @@
 using System.Text.Json;
 using Voucha.Client.Core.Agent;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Agent;
 
 public sealed class MemberMcpInputSchemaTests
 {
+  [Fact]
+  public void CurrentProducerCatalogProjectsEveryAdvertisedTool()
+  {
+    using var fixture = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    var server = fixture.RootElement.GetProperty("servers").EnumerateArray()
+        .Single(item => item.GetProperty("name").GetString() == "voucha-user-mcp");
+    var tools = server.GetProperty("tools").EnumerateArray()
+        .Select(item => item.GetProperty("tool")).ToArray();
+    using var catalog = JsonDocument.Parse(JsonSerializer.Serialize(new { tools }));
+
+    var projected = new MemberMcpToolBridge(catalog.RootElement);
+
+    Assert.NotEmpty(projected.Tools);
+    Assert.Equal(tools.Length, projected.Tools.Count);
+  }
+
   [Fact]
   public void LocalReferenceAndSiblingConstraintsBothApply()
   {
