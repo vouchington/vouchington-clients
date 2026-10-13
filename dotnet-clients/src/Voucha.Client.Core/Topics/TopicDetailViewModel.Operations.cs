@@ -7,11 +7,18 @@ namespace Voucha.Client.Core.Topics;
 public sealed partial class TopicDetailViewModel
 {
   public Task LoadAsync(string topicIdOrSlug, CancellationToken cancellationToken = default) =>
-      LoadAsync(topicIdOrSlug, followSource: true, cancellationToken);
+      LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: false, cancellationToken);
+
+  public Task LoadAsync(
+      string topicIdOrSlug,
+      bool followSource,
+      CancellationToken cancellationToken = default) =>
+      LoadAsync(topicIdOrSlug, followSource, isSourceDetail: false, cancellationToken);
 
   public async Task LoadAsync(
       string topicIdOrSlug,
       bool followSource,
+      bool isSourceDetail,
       CancellationToken cancellationToken = default)
   {
     SetSourceDetailMode(false);
@@ -22,7 +29,7 @@ public sealed partial class TopicDetailViewModel
     {
       var response = await topicsService.FetchTopicAsync(topicIdOrSlug, cancellationToken).ConfigureAwait(true);
       ApplyTopicResponse(response);
-      SetSourceDetailMode(followSource && response.Topic.TopicType == "rss_feed");
+      SetSourceDetailMode(isSourceDetail && response.Topic.TopicType == "rss_feed");
       if (followSource && response.Topic.TopicType == "rss_feed")
       {
         await LoadSourceAsync(response.Topic.Id, cancellationToken).ConfigureAwait(true);

@@ -79,7 +79,12 @@ public sealed class TopicDetailViewModelTests
     };
     var viewModel = new TopicDetailViewModel(service);
 
-    await viewModel.LoadAsync("rewards-feed", followSource: true, TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: false, TestContext.Current.CancellationToken);
+
+    Assert.Contains("Topic Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+    Assert.DoesNotContain("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
 
     Assert.Equal("feed-1", viewModel.SourceRssFeedId);
     Assert.Contains("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
@@ -97,7 +102,7 @@ public sealed class TopicDetailViewModelTests
               new Topic("topic-1", "Rewards", "rewards", "rss_feed")),
         ],
         new PageInfo(null, false, null));
-    await viewModel.LoadAsync("rewards-feed", followSource: true, TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
 
     Assert.Null(viewModel.LocalizedProvenanceLabel);
   }

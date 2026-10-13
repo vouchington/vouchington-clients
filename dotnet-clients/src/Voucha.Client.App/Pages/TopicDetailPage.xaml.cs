@@ -12,6 +12,7 @@ public partial class TopicDetailPage : ContentPage
   private readonly string topicIdOrSlug;
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly bool showSourceCrawls;
+  private readonly bool isSourceDetail;
   private readonly string? sourceCrawlId;
 
   public TopicDetailPage(
@@ -20,7 +21,8 @@ public partial class TopicDetailPage : ContentPage
       string topicIdOrSlug,
       EmailVerificationRecoveryCoordinator emailRecovery,
       bool showSourceCrawls = false,
-      string? sourceCrawlId = null)
+      string? sourceCrawlId = null,
+      bool isSourceDetail = false)
   {
     InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -29,6 +31,7 @@ public partial class TopicDetailPage : ContentPage
     this.emailRecovery = emailRecovery ?? throw new ArgumentNullException(nameof(emailRecovery));
     this.showSourceCrawls = showSourceCrawls;
     this.sourceCrawlId = sourceCrawlId;
+    this.isSourceDetail = isSourceDetail;
     BindingContext = viewModel;
   }
 
@@ -38,7 +41,7 @@ public partial class TopicDetailPage : ContentPage
     base.OnAppearing();
     try
     {
-      await viewModel.LoadAsync(topicIdOrSlug).ConfigureAwait(true);
+      await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
       if (sourceCrawlId is not null) await viewModel.LoadSourceCrawlAsync(sourceCrawlId).ConfigureAwait(true);
       else if (showSourceCrawls) await viewModel.LoadSourceCrawlsAsync().ConfigureAwait(true);
     }
@@ -117,7 +120,8 @@ public partial class TopicDetailPage : ContentPage
         topicIdOrSlug,
         emailRecovery,
         showSourceCrawls: true,
-        sourceCrawlId: crawlId));
+        sourceCrawlId: crawlId,
+        isSourceDetail: isSourceDetail));
   }
 
   private async void OnRetrySourceCrawlHistoryClicked(object? sender, EventArgs e)

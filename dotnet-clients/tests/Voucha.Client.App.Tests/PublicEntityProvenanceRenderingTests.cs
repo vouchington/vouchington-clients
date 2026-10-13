@@ -210,15 +210,26 @@ public sealed class PublicEntityProvenanceRenderingTests
     topic["provenance"] = JsonNode.Parse("""
         {"via":"api","app":{"kind":"verified","client_id":"topic-agent","client_name":"Topic Agent"}}
         """);
-    var client = Client(
+    var topicClient = Client(
+        new JsonObject { ["topic"] = topic.DeepClone() }.ToJsonString(),
+        Fixture("entity-provenance.rss-feeds"));
+    using var topicModel = new TopicDetailViewModel(new ApiTopicsService(topicClient));
+    var topicPage = new TopicDetailPage(topicModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale));
+    Appear(topicPage);
+    await WaitUntilAsync(() => topicModel.Topic is not null && !topicModel.IsLoading);
+    var topicLabel = Assert.Single(Descendants<Label>(topicPage), item =>
+        item.Text?.Contains("Topic Agent", StringComparison.Ordinal) == true);
+    Assert.True(topicLabel.IsVisible);
+
+    var sourceClient = Client(
         new JsonObject { ["topic"] = topic }.ToJsonString(),
         Fixture("entity-provenance.rss-feeds"));
-    using var model = new TopicDetailViewModel(new ApiTopicsService(client));
-    var page = new TopicDetailPage(model, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale));
+    using var sourceModel = new TopicDetailViewModel(new ApiTopicsService(sourceClient));
+    var sourcePage = new TopicDetailPage(sourceModel, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale), isSourceDetail: true);
+    Appear(sourcePage);
+    await WaitUntilAsync(() => sourceModel.Topic is not null && !sourceModel.IsLoading);
 
-    await model.LoadAsync("topic-1-mcp", followSource: true, TestContext.Current.CancellationToken);
-
-    var label = Assert.Single(Descendants<Label>(page), item =>
+    var label = Assert.Single(Descendants<Label>(sourcePage), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     Assert.DoesNotContain("Topic Agent", label.Text, StringComparison.Ordinal);
@@ -306,6 +317,18 @@ public sealed class PublicEntityProvenanceRenderingTests
       if (child is T match) yield return match;
       foreach (var descendant in Descendants<T>(child)) yield return descendant;
     }
+  }
+
+  private static void Appear(TopicDetailPage page) =>
+      typeof(TopicDetailPage).GetMethod("OnAppearing",
+          BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+          null, Type.EmptyTypes, null)!.Invoke(page, null);
+
+  private static async Task WaitUntilAsync(Func<bool> condition)
+  {
+    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
+      await Task.Delay(10, TestContext.Current.CancellationToken);
+    Assert.True(condition());
   }
 
   private sealed class ResponseHandler(IEnumerable<string> bodies) : HttpMessageHandler
