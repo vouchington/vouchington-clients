@@ -1,7 +1,7 @@
 #if WINDOWS
 using System.Reflection;
 using Microsoft.Windows.AI.Text;
-using Windows.ApplicationModel.LimitedAccessFeatures;
+using Windows.ApplicationModel;
 using Voucha.Client.Core.Chat;
 
 namespace Voucha.Client.App.Chat;
@@ -96,7 +96,7 @@ public sealed class WindowsSystemLanguageModelRuntime : IWindowsSystemLanguageMo
     if (!metadata.TryGetValue("WindowsSystemLanguageModelLafToken", out var token) ||
         !metadata.TryGetValue("WindowsSystemLanguageModelLafAttestation", out var attestation)) return false;
     var result = LimitedAccessFeatures.TryUnlockFeature(FeatureId, token, attestation);
-    return result.ToString() is "Available" or "AvailableWithoutToken";
+    return result.Status is LimitedAccessFeatureStatus.Available or LimitedAccessFeatureStatus.AvailableWithoutToken;
   }
 }
 #endif
