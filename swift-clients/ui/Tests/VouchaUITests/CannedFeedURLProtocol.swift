@@ -8,6 +8,7 @@ final class CannedFeedURLProtocol: URLProtocol {
         let method: String
         let body: String?
         let ifNoneMatch: String?
+        let idempotencyKey: String?
     }
 
     struct RequestBarrier {
@@ -399,7 +400,8 @@ final class CannedFeedURLProtocol: URLProtocol {
             url: url,
             method: request.httpMethod ?? "GET",
             body: capturedBody(from: request),
-            ifNoneMatch: request.value(forHTTPHeaderField: "If-None-Match")
+            ifNoneMatch: request.value(forHTTPHeaderField: "If-None-Match"),
+            idempotencyKey: request.value(forHTTPHeaderField: "Idempotency-Key")
         ))
         return sequence
     }
