@@ -47,7 +47,7 @@ public sealed class ProviderEmbedWebViewHandler : WebViewHandler
       var environment = await CoreWebView2Environment.CreateWithOptionsAsync(
           null, active.UserDataFolder, null).AsTask().ConfigureAwait(true);
       active.Cancellation.Token.ThrowIfCancellationRequested();
-      await platformView.EnsureCoreWebView2Async(environment).ConfigureAwait(true);
+      await platformView.EnsureCoreWebView2Async(environment).AsTask().ConfigureAwait(true);
       active.Cancellation.Token.ThrowIfCancellationRequested();
     }
     catch (OperationCanceledException) when (active.Cancellation.IsCancellationRequested) { }
