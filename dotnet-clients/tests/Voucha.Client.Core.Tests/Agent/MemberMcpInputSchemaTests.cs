@@ -45,6 +45,36 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void PercentEncodedReferenceCannotResolveAsALiteralDefinitionName()
+  {
+    foreach (var reference in new[] { "#/$defs/%61", "#/$defs/a%2Fb" })
+    {
+      using var schema = JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, object>
+      {
+        ["$ref"] = reference,
+        ["$defs"] = new Dictionary<string, object> { [reference[8..]] = new { type = "string" } },
+      }));
+      Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(schema.RootElement));
+    }
+  }
+
+  [Fact]
+  public void DuplicateMembersInsideAdvertisedSchemaLiteralsFailCatalogAdmission()
+  {
+    foreach (var inputSchema in new[]
+    {
+      """{"const":{"role":"reader","role":"admin"}}""",
+      """{"enum":[{"nested":{"id":1,"id":2}}]}""",
+      """{"properties":{"id":{"type":"string"},"id":{"type":"number"}}}""",
+    })
+    {
+      using var catalog = JsonDocument.Parse(
+          "{\"tools\":[{\"name\":\"unsafe\",\"inputSchema\":" + inputSchema + "}]}");
+      Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
+    }
+  }
+
+  [Fact]
   public void SelectedOptionAndNestedArgumentsMustMatchSameBranch()
   {
     using var schema = JsonDocument.Parse("""{"type":"object","oneOf":[{"type":"object","properties":{"option":{"enum":["details"]},"arguments":{"type":"object","required":["id"],"properties":{"id":{"type":"string"}},"additionalProperties":false}},"required":["option","arguments"],"additionalProperties":false},{"type":"object","properties":{"option":{"enum":["list"]},"arguments":{"type":"object","properties":{"after":{"type":"string"}},"additionalProperties":false}},"required":["option","arguments"],"additionalProperties":false}]}""");

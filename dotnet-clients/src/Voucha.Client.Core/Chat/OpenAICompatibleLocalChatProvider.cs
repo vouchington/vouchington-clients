@@ -106,7 +106,10 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
       var session = mcpSession ?? throw new OperationCanceledException("MCP session is unavailable.");
       if (!session.IsCurrent(snapshot)) throw new OperationCanceledException("MCP account or catalog changed.");
       var bridge = new MemberMcpToolBridge(snapshot.Catalog);
-      response = await responsesClient.GenerateAssistantContentWithToolsAsync(
+      response = bridge.Tools.Count == 0
+          ? await responsesClient.GenerateAssistantContentAsync(
+              message, history, profile, key, cancellationToken).ConfigureAwait(false)
+          : await responsesClient.GenerateAssistantContentWithToolsAsync(
           message, history, profile, key, bridge.Tools,
           () => session.IsCurrent(snapshot),
           (name, arguments, _) =>

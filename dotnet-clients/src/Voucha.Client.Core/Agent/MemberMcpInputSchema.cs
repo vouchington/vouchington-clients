@@ -12,6 +12,9 @@ internal static partial class MemberMcpInputSchema
 
   public static void Inspect(JsonElement schema)
   {
+    var remainingWork = 4_096;
+    if (!HasUniqueObjectMembers(schema, 0, ref remainingWork))
+      throw new InvalidDataException("Duplicate MCP schema member.");
     InspectNode(schema, schema, 0);
   }
 
@@ -132,7 +135,8 @@ internal static partial class MemberMcpInputSchema
   {
     if (item.ValueKind != JsonValueKind.String || item.GetString() is not { } path ||
         !path.StartsWith("#/$defs/", StringComparison.Ordinal) || path.Length <= 8 ||
-        path.AsSpan(8).Contains('/')) throw new InvalidDataException("Unsupported MCP schema reference.");
+        path.AsSpan(8).Contains('/') || path.AsSpan(8).Contains('%'))
+      throw new InvalidDataException("Unsupported MCP schema reference.");
     var encoded = path.AsSpan(8);
     var name = new System.Text.StringBuilder(encoded.Length);
     for (var index = 0; index < encoded.Length; index++)
