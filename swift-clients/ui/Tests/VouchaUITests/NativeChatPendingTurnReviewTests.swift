@@ -150,10 +150,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let retriedBody = try XCTUnwrap(requests.last?.body?.data(using: .utf8))
         let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(with: firstBody) as? NSDictionary)
         let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(with: retriedBody) as? NSDictionary)
-        XCTAssertEqual(
-            retriedPayload,
-            firstPayload
-        )
+        XCTAssertEqual(retriedPayload, firstPayload)
         XCTAssertEqual(provider.generationCount, 1)
         XCTAssertNil(viewModel.pendingLocalTurn)
         XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
