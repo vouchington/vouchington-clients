@@ -1,5 +1,6 @@
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.App.Pages;
