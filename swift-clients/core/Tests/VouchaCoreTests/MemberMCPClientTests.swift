@@ -43,9 +43,9 @@ final class MemberMCPClientTests: XCTestCase {
         )
 
         _ = try await client.listTools(accessToken: "access-1")
-
         XCTAssertNotNil(MCPTestURLProtocol.serverReply())
         XCTAssertEqual(MCPTestURLProtocol.serverReplySession(), "test-session")
+        XCTAssertEqual(MCPTestURLProtocol.serverReplyVersion(), "2025-06-18")
     }
 
     func testToolListingForwardsOpaqueCursor() async throws {
@@ -328,6 +328,7 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var replyBody: Data?
     private static var deletedSession: String?
     private static var replySession: String?
+    private static var replyVersion: String?
     private static var initializeEvents: Data?
     private static var holdToolResponse = false
     private static var heldResponseStopped = false
@@ -352,6 +353,7 @@ private final class MCPTestURLProtocol: URLProtocol {
         methods = []
         replyBody = nil
         replySession = nil
+        replyVersion = nil
         deletedSession = nil
         lock.unlock()
     }
@@ -391,6 +393,12 @@ private final class MCPTestURLProtocol: URLProtocol {
         lock.lock()
         defer { lock.unlock() }
         return replySession
+    }
+
+    static func serverReplyVersion() -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return replyVersion
     }
 
     static func closedSession() -> String? {
@@ -437,6 +445,7 @@ private final class MCPTestURLProtocol: URLProtocol {
         } else if method == nil, rpc?["result"] != nil {
             Self.replyBody = body
             Self.replySession = request.value(forHTTPHeaderField: "Mcp-Session-Id")
+            Self.replyVersion = request.value(forHTTPHeaderField: "MCP-Protocol-Version")
         }
         if method != "initialize", method != "notifications/initialized",
            request.httpMethod != "DELETE", rpc?["result"] == nil {

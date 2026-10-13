@@ -150,6 +150,7 @@ public sealed class MemberMcpClientTests
     using var reply = JsonDocument.Parse(Assert.IsType<string>(handler.ServerReply));
     Assert.Equal(17, reply.RootElement.GetProperty("id").GetInt32());
     Assert.Equal("test-session", handler.ServerReplySession);
+    Assert.Equal("2025-06-18", handler.ServerReplyProtocolVersion);
   }
 
   [Fact]
@@ -232,6 +233,7 @@ public sealed class MemberMcpClientTests
     public string? SessionId { get; private set; }
     public string? ServerReply { get; private set; }
     public string? ServerReplySession { get; private set; }
+    public string? ServerReplyProtocolVersion { get; private set; }
     public string? InitializeEvents { get; init; }
     public List<string> Methods { get; } = [];
     public int? RetryAfterSeconds { get; init; }
@@ -265,6 +267,7 @@ public sealed class MemberMcpClientTests
         SessionId = request.Headers.TryGetValues("Mcp-Session-Id", out var replySessions)
             ? replySessions.Single() : null;
         ServerReplySession = SessionId;
+        ServerReplyProtocolVersion = ProtocolVersion;
         return new HttpResponseMessage(HttpStatusCode.Accepted);
       }
       var method = methodValue.GetString()!;

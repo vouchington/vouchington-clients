@@ -167,7 +167,8 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     using var responseBudget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
     responseBudget.CancelAfter(responseTimeout);
     var result = await ReadReplyAsync(
-        response.Content, id, accessToken, replySession, version, responseBudget.Token).ConfigureAwait(false);
+        response.Content, id, accessToken, replySession,
+        method == "initialize" ? SupportedProtocolVersion : version, responseBudget.Token).ConfigureAwait(false);
     return result;
   }
 

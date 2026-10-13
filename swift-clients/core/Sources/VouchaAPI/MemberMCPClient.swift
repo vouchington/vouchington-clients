@@ -119,7 +119,7 @@ public actor MemberMCPClient {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let protocolVersion { request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version") }
         let requestSession = sessionId
-        let requestVersion = protocolVersion
+        let requestVersion = method == "initialize" ? "2025-06-18" : protocolVersion
         if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
         request.httpBody = try JSONEncoder().encode(body)
         let transport = ResponseLinesTransport(followRedirects: false)
