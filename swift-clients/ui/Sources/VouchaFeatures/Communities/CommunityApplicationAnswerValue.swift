@@ -23,7 +23,7 @@ extension DecodedJSONValue {
             value
         case let .array(values):
             values.compactMap(\.stringValue).joined(separator: ", ")
-        case .null, .number, .object:
+        case .null, .integer, .unsignedInteger, .decimal, .number, .object:
             ""
         }
     }

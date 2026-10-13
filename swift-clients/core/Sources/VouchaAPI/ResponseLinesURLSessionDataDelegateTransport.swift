@@ -65,11 +65,23 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
     var mode = ResponseLinesMode.undetermined
     var lineBuffer = ResponseLineBuffer()
     var cleanupPerformed = false
+    private let followRedirects: Bool
 
-    override init() {
+    init(followRedirects: Bool = true) {
+        self.followRedirects = followRedirects
         delegateQueue = OperationQueue()
         delegateQueue.maxConcurrentOperationCount = 1
         super.init()
+    }
+
+    func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(followRedirects ? request : nil)
     }
 
     func start(request: URLRequest, configuration: URLSessionConfiguration) async throws -> ResponseLines {
