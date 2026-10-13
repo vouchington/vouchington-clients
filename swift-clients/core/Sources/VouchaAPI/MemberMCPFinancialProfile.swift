@@ -10,7 +10,7 @@ public struct MemberFinancialProfile: Decodable, Equatable, Sendable {
     public let yearsOfCreditHistory: Double?
     public let hardInquiries12m: Double?
     public let cardsOpened24m: Double?
-    public let updatedAt: String
+    public let updatedAt: Date
 
     private enum CodingKeys: String, CodingKey {
         case individualId = "individual_id"
@@ -48,7 +48,7 @@ public struct MemberFinancialProfile: Decodable, Equatable, Sendable {
         yearsOfCreditHistory = try fields.decodeRequiredNullable(Double.self, forKey: .yearsOfCreditHistory)
         hardInquiries12m = try fields.decodeRequiredNullable(Double.self, forKey: .hardInquiries12m)
         cardsOpened24m = try fields.decodeRequiredNullable(Double.self, forKey: .cardsOpened24m)
-        updatedAt = try fields.decode(String.self, forKey: .updatedAt)
+        updatedAt = try fields.decode(Date.self, forKey: .updatedAt)
     }
 }
 
@@ -68,6 +68,13 @@ public struct MemberFinancialProfileResult: Decodable, Equatable, Sendable {
             MemberFinancialProfile.self, forKey: .financialProfile
         )
     }
+
+    static func decode(from data: Data) throws -> Self {
+        let decoder = APIClient.makeDecoder()
+        // These models use explicit wire keys, while APIClient normally converts snake case.
+        decoder.keyDecodingStrategy = .useDefaultKeys
+        return try decoder.decode(Self.self, from: data)
+    }
 }
 
 public enum MemberMCPFinancialProfileFailure: Error, Equatable, Sendable {
@@ -84,7 +91,7 @@ public extension MemberMCPAuthorizedClient {
             throw MemberMCPFinancialProfileFailure.missingStructuredContent
         }
         let data = try JSONEncoder().encode(structured)
-        return try JSONDecoder().decode(MemberFinancialProfileResult.self, from: data)
+        return try MemberFinancialProfileResult.decode(from: data)
     }
 }
 

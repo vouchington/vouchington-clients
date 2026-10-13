@@ -61,23 +61,33 @@ final class MemberMCPFinancialProfileTests: XCTestCase {
                 var profileFields = try XCTUnwrap(fields["financial_profile"] as? [String: Any])
                 XCTAssertEqual(profile.individualId, profileFields["individual_id"] as? String)
                 XCTAssertEqual(profile.currency, profileFields["currency"] as? String)
-                XCTAssertEqual(profile.updatedAt, profileFields["updated_at"] as? String)
+                XCTAssertEqual(profile.updatedAt, Date(timeIntervalSince1970: 1_791_504_000))
                 profileFields["years_of_credit_history"] = 7.5
                 fields["financial_profile"] = profileFields
                 envelope["result"] = fields
-                let fractional = try JSONDecoder().decode(
-                    MemberFinancialProfileResult.self,
+                let fractional = try MemberFinancialProfileResult.decode(
                     from: JSONSerialization.data(withJSONObject: envelope)
                 )
                 XCTAssertEqual(fractional.financialProfile?.yearsOfCreditHistory, 7.5)
+
+                profileFields["updated_at"] = "not-a-date"
+                fields["financial_profile"] = profileFields
+                envelope["result"] = fields
+                XCTAssertThrowsError(try MemberFinancialProfileResult.decode(
+                    from: JSONSerialization.data(withJSONObject: envelope)
+                )) { error in
+                    guard case DecodingError.dataCorrupted = error else {
+                        return XCTFail("An invalid updated_at must fail date decoding: \(error)")
+                    }
+                }
+                profileFields["updated_at"] = "2026-10-09T00:00:00.000Z"
 
                 var income = try XCTUnwrap(profileFields["stated_income_range"] as? [String: Any])
                 income.removeValue(forKey: "maximum")
                 profileFields["stated_income_range"] = income
                 fields["financial_profile"] = profileFields
                 envelope["result"] = fields
-                XCTAssertThrowsError(try JSONDecoder().decode(
-                    MemberFinancialProfileResult.self,
+                XCTAssertThrowsError(try MemberFinancialProfileResult.decode(
                     from: JSONSerialization.data(withJSONObject: envelope)
                 )) { error in
                     guard case DecodingError.keyNotFound = error else {
