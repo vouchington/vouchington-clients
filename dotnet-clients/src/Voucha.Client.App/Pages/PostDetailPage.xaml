@@ -25,7 +25,17 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
-                    <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Image
+                            AutomationId="post-author-avatar-root"
+                            WidthRequest="28"
+                            HeightRequest="28"
+                            Aspect="AspectFill"
+                            IsVisible="{Binding RootRow.HasAuthorImage}"
+                            SemanticProperties.Description="{Binding RootRow.AuthorText}"
+                            Source="{Binding RootRow.AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
+                        <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
                     <Label Text="{Binding RootRow.AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.ProvenanceLabel}" IsVisible="{Binding RootRow.HasProvenance}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.StaffChannelLabel}" IsVisible="{Binding RootRow.HasStaffChannel}" Style="{StaticResource Metadata}" />
@@ -103,7 +113,17 @@
                         <DataTemplate x:DataType="pages:PostDetailPageRow">
                             <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
                                 <Label Text="{Binding LocalizedTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Body}" />
-                                <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                    <Image
+                                        AutomationId="post-author-avatar-ancestor"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Aspect="AspectFill"
+                                        IsVisible="{Binding HasAuthorImage}"
+                                        SemanticProperties.Description="{Binding AuthorText}"
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
+                                    <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                </HorizontalStackLayout>
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
@@ -147,6 +167,14 @@
                             <VerticalStackLayout Spacing="6">
                                 <HorizontalStackLayout Spacing="8">
                                     <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" />
+                                    <Image
+                                        AutomationId="post-author-avatar-comment"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Aspect="AspectFill"
+                                        IsVisible="{Binding HasAuthorImage}"
+                                        SemanticProperties.Description="{Binding AuthorText}"
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />

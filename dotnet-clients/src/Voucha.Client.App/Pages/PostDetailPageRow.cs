@@ -101,6 +101,11 @@ public sealed record PostDetailPageRow(
               ?? Post.CreatedById
               ?? Localization.Localize(UiMessageKey.NativeDotnetPostsUnknown);
 
+  public TopicImagePlacement? AuthorImagePlacement =>
+      Post.DeletedAt is null && Post.IsAnonymous != true ? Post.CreatedBy?.ProfileImagePlacement : null;
+
+  public bool HasAuthorImage => AuthorImagePlacement is not null;
+
   public string? AuthorAccountTypeLabel => Post.DeletedAt is not null || Post.IsAnonymous == true
       ? null
       : AccountTypeLabels.Resolve(Post.CreatedBy?.AccountType, Localization);

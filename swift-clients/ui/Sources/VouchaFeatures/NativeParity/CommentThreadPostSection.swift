@@ -41,12 +41,21 @@ struct CommentThreadPostSection: View {
                     .buttonStyle(.plain)
                 }
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
-                        .font(Typography.headline)
-                        .authoredContentLanguage(
-                            declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
-                            detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
-                        )
+                    if isRoot {
+                        if showsAuthorAvatar, let username = post.createdBy?.username {
+                            HStack(spacing: Spacing.xs) {
+                                PostAuthorAvatar(post: post)
+                                Text(verbatim: username)
+                                    .font(Typography.caption)
+                            }
+                        }
+                        postTitle
+                    } else {
+                        HStack(spacing: Spacing.xs) {
+                            PostAuthorAvatar(post: post)
+                            postTitle
+                        }
+                    }
                     AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
                         .accountType)
                     ProvenanceBadge(
@@ -97,6 +106,19 @@ struct CommentThreadPostSection: View {
         case .content, .underReviewForStaff: true
         case .removedForAuthor, .unavailable: false
         }
+    }
+
+    private var showsAuthorAvatar: Bool {
+        post.deletedAt == nil && !post.isAnonymous && post.createdBy != nil
+    }
+
+    private var postTitle: some View {
+        Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
+            .font(Typography.headline)
+            .authoredContentLanguage(
+                declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
+                detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
+            )
     }
 
     @ViewBuilder
