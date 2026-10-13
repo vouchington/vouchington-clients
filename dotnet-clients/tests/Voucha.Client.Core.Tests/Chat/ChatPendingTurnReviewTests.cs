@@ -8,6 +8,41 @@ namespace Voucha.Client.Core.Tests.Chat;
 public sealed partial class ChatViewModelProviderTests
 {
   [Fact]
+  public async Task StoppedPersistenceMustUnwindBeforeTheSameTurnCanRetry()
+  {
+    var held = new TaskCompletionSource<ClientGeneratedChatResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var bodies = new List<CreateClientGeneratedChatBody>();
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
+      {
+        bodies.Add(body);
+        started.TrySetResult();
+        return held.Task;
+      },
+    };
+    var provider = AvailableLocalProvider("Local reply");
+    var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+
+    var send = viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken);
+    await started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    await viewModel.StopStreamingAsync();
+    Assert.False(viewModel.CanSend);
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    Assert.Single(bodies);
+
+    held.SetException(new HttpRequestException("Response lost."));
+    Assert.False(await send);
+    Assert.True(viewModel.CanSend);
+    Assert.Empty(viewModel.Messages);
+    Assert.False(await viewModel.TrySendAsync("Hello", TestContext.Current.CancellationToken));
+    Assert.Equal(2, bodies.Count);
+    Assert.Equal(bodies[0], bodies[1]);
+    Assert.Empty(viewModel.Messages);
+  }
+
+  [Fact]
   public async Task EditingDraftAwayAndBackStartsANewLocalTurn()
   {
     var bodies = new List<CreateClientGeneratedChatBody>();

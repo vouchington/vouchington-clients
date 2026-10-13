@@ -13,6 +13,21 @@ public sealed partial class ChatConversationViewModel
 
   public async Task<bool> TrySendAsync(string message, CancellationToken cancellationToken = default)
   {
+    if (Interlocked.CompareExchange(ref sendInFlight, 1, 0) != 0) return false;
+    OnPropertyChanged(nameof(CanSend));
+    try
+    {
+      return await TrySendCoreAsync(message, cancellationToken).ConfigureAwait(true);
+    }
+    finally
+    {
+      Volatile.Write(ref sendInFlight, 0);
+      OnPropertyChanged(nameof(CanSend));
+    }
+  }
+
+  private async Task<bool> TrySendCoreAsync(string message, CancellationToken cancellationToken)
+  {
     ArgumentNullException.ThrowIfNull(message);
     var trimmed = message.Trim();
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;

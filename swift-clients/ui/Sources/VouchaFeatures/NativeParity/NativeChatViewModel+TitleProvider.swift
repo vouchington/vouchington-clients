@@ -15,6 +15,8 @@ extension NativeChatViewModel {
             guard persistenceState.isCurrent(revision) else { return }
             guard await resolver.persistSelection(selection) else {
                 guard persistenceState.isCurrent(revision), let self else { return }
+                // Keep the provider used by an active or retryable turn stable.
+                guard !isSendingDraft, pendingLocalTurn == nil else { return }
                 titleProviderSelection = resolver.defaultSelection()
                 return
             }

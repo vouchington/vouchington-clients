@@ -36,6 +36,11 @@ extension NativeChatViewModel {
     func applyConversationDetailResponse(_ response: ChatMessagesResponse, id: String, revision: Int) {
         guard isCurrentConversationDetailLoad(id: id, revision: revision) else { return }
         messages = response.results.map { makeTimelineMessage(from: $0) }
+        if let pendingLocalTurn, pendingLocalTurn.context.conversationId == id,
+           messages.contains(where: { $0.id == pendingLocalTurn.context.userMessageId }),
+           messages.contains(where: { $0.id == pendingLocalTurn.context.assistantMessageId }) {
+            self.pendingLocalTurn = nil
+        }
         detailPageInfo = .init(
             hasNextPage: response.pageInfo.hasNextPage,
             endCursor: response.pageInfo.endCursor

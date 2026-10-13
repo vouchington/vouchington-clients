@@ -44,7 +44,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(provider.generationCount, 3)
     }
 
-    func testTypingNextDraftDuringHeldPersistenceKeepsTheSubmittedTurnForRetry() async throws {
+    func testTypingNextDraftDuringHeldPersistencePreservesTheNewDraftAfterFailure() async throws {
         let path = "/api/v1/conversations/conversation-1/client-generated-chat"
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
         let provider = MutableRetryDraftProvider()
@@ -68,13 +68,14 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
             throw error
         }
 
-        XCTAssertEqual(viewModel.draftMessage, "Hello")
+        XCTAssertEqual(viewModel.draftMessage, "Next draft")
+        XCTAssertNotNil(viewModel.pendingLocalTurn)
         await viewModel.sendDraftMessage()
-        let retried = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        let next = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
         let firstPayload = try payload(first)
-        let retriedPayload = try payload(retried)
-        XCTAssertEqual(retriedPayload, firstPayload)
-        XCTAssertEqual(provider.generationCount, 1)
+        let nextPayload = try payload(next)
+        XCTAssertNotEqual(nextPayload, firstPayload)
+        XCTAssertEqual(provider.generationCount, 2)
     }
 
     func testChangingProviderDuringHeldPersistenceKeepsTheSubmittedTurnForRetry() async throws {

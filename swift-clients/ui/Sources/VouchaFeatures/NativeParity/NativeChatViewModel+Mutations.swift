@@ -24,10 +24,12 @@ extension NativeChatViewModel {
         detailErrorMessage = nil
         streamErrorMessage = nil
         draftMessage = ""
+        draftEditedDuringSend = false
         let preparedConversation: (conversationId: String, created: Bool)?
         do {
             preparedConversation = try await ensureConversationForDraftSend(client: client)
         } catch {
+            if !draftEditedDuringSend { draftMessage = text }
             detailErrorMessage = .message(.nativeSwiftChatUnableToCreateConversation)
             return
         }

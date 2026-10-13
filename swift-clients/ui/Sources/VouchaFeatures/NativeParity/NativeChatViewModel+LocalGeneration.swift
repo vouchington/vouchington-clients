@@ -159,7 +159,7 @@ extension NativeChatViewModel {
         if let assistantMessageId {
             discardConversationMessage(id: assistantMessageId)
         }
-        draftMessage = context.text
+        if !draftEditedDuringSend { draftMessage = context.text }
         if streamingUserMessageId == context.userMessageId {
             streamingUserMessageId = nil
         }

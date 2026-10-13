@@ -24,6 +24,7 @@ public sealed partial class ChatConversationViewModel :
   private bool isStreaming;
   private LoadState state = LoadState.Idle;
   private int requestId;
+  private int sendInFlight;
   private ChatProviderStatus? selectedProviderStatus;
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
@@ -173,7 +174,7 @@ public sealed partial class ChatConversationViewModel :
     }
   }
 
-  public bool CanSend => !IsStreaming && !IsDeleted && State != LoadState.Loading;
+  public bool CanSend => Volatile.Read(ref sendInFlight) == 0 && !IsStreaming && !IsDeleted && State != LoadState.Loading;
 
   public bool CanRename => !IsDeleted && !IsStreaming && ConversationId is not null;
 
