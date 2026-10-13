@@ -1,19 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Shell(no-mistakes)",
-      "Shell(swift)",
-      "Shell(xcodebuild)",
-      "Shell(dotnet)",
-      "Mcp(agent-blackboard:entry_append)",
-      "Mcp(agent-blackboard:entry_get)",
-      "Mcp(agent-blackboard:session_archive)",
-      "Mcp(agent-blackboard:session_create)",
-      "Mcp(agent-blackboard:session_ensure)",
-      "Mcp(agent-blackboard:session_patch)",
-      "Mcp(agent-blackboard:session_search)",
-      "Mcp(agent-blackboard:snapshot_export)"
-    ],
+    "allow": ["Shell(no-mistakes)", "Shell(swift)", "Shell(xcodebuild)", "Shell(dotnet)"],
     "deny": ["Shell(sudo)"]
   }
 }
