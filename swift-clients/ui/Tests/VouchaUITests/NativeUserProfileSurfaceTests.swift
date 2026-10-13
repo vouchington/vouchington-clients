@@ -395,6 +395,10 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                 try loadedSurface.inspect().find(viewWithAccessibilityIdentifier: identifier),
                 path
             )
+            if path == "/user/alice/topics/following" {
+                XCTAssertNoThrow(try loadedSurface.inspect()
+                    .find(viewWithAccessibilityIdentifier: "public-profile-topic-logo"))
+            }
         }
     }
 

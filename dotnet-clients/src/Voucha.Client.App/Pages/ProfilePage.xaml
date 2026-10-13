@@ -288,11 +288,46 @@
                 <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
             </CollectionView>
 
-            <CollectionView ItemsSource="{Binding TopicItems}" SelectionMode="None" IsVisible="{Binding IsTopicsScope}">
+            <CollectionView x:Name="ProfileTopicsCollection" AutomationId="profile-topic-collection" ItemsSource="{Binding TopicItems}" SelectionMode="None" IsVisible="{Binding IsTopicsScope}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="topics:TopicRow">
                         <VerticalStackLayout>
-                            <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileTopicClicked" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="8">
+                                <Border WidthRequest="40" HeightRequest="40" Stroke="#D8DEE9" StrokeThickness="1" VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="6" />
+                                    </Border.StrokeShape>
+                                    <Grid>
+                                        <Label Text="#" HorizontalOptions="Center" VerticalOptions="Center" AutomationProperties.IsInAccessibleTree="False" />
+                                        <Image
+                                            WidthRequest="40"
+                                            HeightRequest="40"
+                                            Aspect="AspectFill"
+                                            Source="{Binding LogoImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}"
+                                            AutomationId="public-profile-topic-logo"
+                                            AutomationProperties.IsInAccessibleTree="False" />
+                                        <Button
+                                            WidthRequest="40"
+                                            HeightRequest="40"
+                                            Padding="0"
+                                            BorderWidth="0"
+                                            BackgroundColor="Transparent"
+                                            TextColor="Transparent"
+                                            Text=""
+                                            CommandParameter="{Binding .}"
+                                            Clicked="OnProfileTopicClicked"
+                                            AutomationId="public-profile-topic-logo-button"
+                                            SemanticProperties.Description="{Binding Name}" />
+                                    </Grid>
+                                </Border>
+                                <Button
+                                    Grid.Column="1"
+                                    Text="{Binding Name}"
+                                    CommandParameter="{Binding .}"
+                                    Clicked="OnProfileTopicClicked"
+                                    HorizontalOptions="Fill"
+                                    AutomationId="public-profile-topic-navigation" />
+                            </Grid>
                             <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                             <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                         </VerticalStackLayout>

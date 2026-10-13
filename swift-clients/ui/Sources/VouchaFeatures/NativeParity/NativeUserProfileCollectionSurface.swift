@@ -108,7 +108,22 @@ private struct NativeUserProfileTopicRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "tag")
+            if let logoURL = AppConfig.shared.imageURL(for: topic.logoImagePlacement, width: 80),
+               let url = URL(string: logoURL) {
+                AsyncImageView(
+                    urlString: url.absoluteString,
+                    baseURL: AppConfig.shared.imageBaseURL,
+                    contentMode: .fill
+                )
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .accessibilityHidden(true)
+                .accessibilityIdentifier("public-profile-topic-logo")
+            } else {
+                Image(systemName: "tag")
+                    .frame(width: 40, height: 40)
+                    .accessibilityHidden(true)
+            }
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(topic.name).font(Typography.subheadline).fontWeight(.semibold)
                 ProvenanceBadge(

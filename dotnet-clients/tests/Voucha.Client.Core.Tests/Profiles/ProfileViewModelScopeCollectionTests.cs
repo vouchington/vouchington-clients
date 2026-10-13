@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Profiles;
 using Voucha.Client.Core.Support;
@@ -331,6 +332,33 @@ public sealed partial class ProfileViewModelSafetyTests
 
     Assert.Equal("00000000-0000-7000-8000-000000000301", Assert.Single(viewModel.FriendItems).ProfileImagePlacement?.PlacementId);
   }
+
+  [Fact]
+  public async Task FollowingTopicsScopeKeepsLogoPlacementFromPublicProfileFixture()
+  {
+    var page = JsonSerializer.Deserialize<TopicFixturePage>(
+        ApiFixtureLoader.LoadResponse("native.users.profile.topics-following.first-page"), VouchaApiJson.Options)!;
+    var service = new RecordingProfileCollectionsService
+    {
+      TopicsOverride = (_, _) => new ProfileCollectionPage<Topic>(page.Results, page.PageInfo),
+    };
+    var viewModel = NewViewModel(new User("user-2", "bob", "Hello"));
+    viewModel.ConfigureProfileCollectionsService(service);
+
+    await viewModel.LoadPublicScopeAsync(
+        "bob",
+        new NativeUserProfileScope(NativeUserProfileSection.Topics, NativeUserProfileCollectionKind.TopicsFollowing),
+        TestContext.Current.CancellationToken);
+
+    var row = Assert.Single(viewModel.TopicItems);
+    Assert.Equal("00000000-0000-7000-8000-000000000306", row.LogoImagePlacement?.PlacementId);
+    Assert.Equal(3, row.LogoImagePlacement?.PlacementRevision);
+    Assert.Equal("00000000-0000-7000-8000-000000000205", row.LogoImagePlacement?.ImageId);
+  }
+
+  private sealed record TopicFixturePage(
+      [property: JsonPropertyName("results")] IReadOnlyList<Topic> Results,
+      [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
   private static ProfileCollectionPage<Topic> TopicPage(string id, string? cursor, bool hasNextPage) =>
       new([new Topic(id, id, id, "topic")], new PageInfo(cursor, hasNextPage, null));
