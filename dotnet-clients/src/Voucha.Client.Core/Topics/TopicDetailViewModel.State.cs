@@ -72,6 +72,25 @@ public sealed partial class TopicDetailViewModel
 
   public bool CanFollowSource => Topic?.TopicType == "rss_feed" && !string.IsNullOrWhiteSpace(SourceRssFeedId);
 
+  public PublicContentProvenance? SourceProvenance
+  {
+    get => sourceProvenance;
+    private set
+    {
+      if (!SetProperty(ref sourceProvenance, value)) return;
+      OnPropertyChanged(nameof(LocalizedProvenanceLabel));
+      OnPropertyChanged(nameof(HasProvenance));
+    }
+  }
+
+  private void SetSourceDetailMode(bool value)
+  {
+    if (isSourceDetail == value) return;
+    isSourceDetail = value;
+    OnPropertyChanged(nameof(LocalizedProvenanceLabel));
+    OnPropertyChanged(nameof(HasProvenance));
+  }
+
   public string LocalizedTopicType => localization.Resolve(UiTaxonomy.TopicType(Topic?.TopicType));
 
   public bool CanMuteSource => CanFollowSource;

@@ -22,7 +22,8 @@ public sealed partial class TopicDetailViewModel
       ? UiMessageKey.NativeDotnetDynamicUnmuteSource
       : UiMessageKey.NativeDotnetDynamicMuteSource);
 
-  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Topic?.Provenance, localization);
+  public string? LocalizedProvenanceLabel =>
+      PublicProvenanceLabels.Resolve(isSourceDetail ? SourceProvenance : Topic?.Provenance, localization);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
 

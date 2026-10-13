@@ -199,6 +199,32 @@ public sealed class PublicEntityProvenanceRenderingTests
   }
 
   [Fact]
+  public async Task SourceDetailHeaderRendersRssFeedProvenanceInsteadOfItsTopicProvenance()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    InstallPageStyles();
+    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var topic = JsonNode.Parse(Fixture("entity-provenance.topics"))!["topics"]!["topic-1-mcp"]!.DeepClone();
+    topic["topic_type"] = "rss_feed";
+    topic["provenance"] = JsonNode.Parse("""
+        {"via":"api","app":{"kind":"verified","client_id":"topic-agent","client_name":"Topic Agent"}}
+        """);
+    var client = Client(
+        new JsonObject { ["topic"] = topic }.ToJsonString(),
+        Fixture("entity-provenance.rss-feeds"));
+    using var model = new TopicDetailViewModel(new ApiTopicsService(client));
+    var page = new TopicDetailPage(model, new AnonymousSessionStore(), "topic-1-mcp", Recovery(locale));
+
+    await model.LoadAsync("topic-1-mcp", followSource: true, TestContext.Current.CancellationToken);
+
+    var label = Assert.Single(Descendants<Label>(page), item =>
+        item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
+    Assert.True(label.IsVisible);
+    Assert.DoesNotContain("Topic Agent", label.Text, StringComparison.Ordinal);
+  }
+
+  [Fact]
   public async Task FullRssSourceCardRendersProvenanceButAbsentSourceDoesNot()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());

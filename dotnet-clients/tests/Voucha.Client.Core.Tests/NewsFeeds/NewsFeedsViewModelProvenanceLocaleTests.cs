@@ -90,6 +90,59 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   }
 
   [Fact]
+  public async Task ConcurrentReadTogglesForTheSameArticleAreIgnoredWhileMutationIsPending()
+  {
+    var item = new NewsFeedItem(
+        "article-1",
+        "Article",
+        "Fixture source",
+        "Summary",
+        null,
+        DateTimeOffset.UnixEpoch);
+    var feed = new HeldContinuationFeedService(item);
+    var readStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var readResult = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var readCalls = 0;
+    feed.ReadHandler = async (_, _, cancellationToken) =>
+    {
+      if (Interlocked.Increment(ref readCalls) > 1) return;
+      readStarted.TrySetResult();
+      var error = await readResult.Task.WaitAsync(cancellationToken);
+      if (error is not null) throw error;
+    };
+    using var viewModel = new NewsFeedsViewModel(feed, NewsFeedScope.AllNews);
+    using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    Task? mutation = null;
+    try
+    {
+      await viewModel.LoadAsync(cancellation.Token);
+      var staleItem = Assert.Single(viewModel.Items);
+      mutation = viewModel.ToggleReadAsync(staleItem, cancellation.Token);
+      await readStarted.Task.WaitAsync(cancellation.Token);
+
+      await viewModel.ToggleReadAsync(staleItem, cancellation.Token);
+      Assert.Equal(1, Volatile.Read(ref readCalls));
+      Assert.True(Assert.Single(viewModel.Items).IsRead);
+
+      readResult.TrySetResult(new InvalidOperationException("Read failed."));
+      await mutation;
+
+      Assert.False(Assert.Single(viewModel.Items).IsRead);
+      Assert.Equal("Read failed.", viewModel.ErrorMessage);
+
+      await viewModel.ToggleReadAsync(viewModel.Items[0], cancellation.Token);
+      Assert.Equal(2, Volatile.Read(ref readCalls));
+      Assert.True(Assert.Single(viewModel.Items).IsRead);
+    }
+    finally
+    {
+      cancellation.Cancel();
+      readResult.TrySetResult(new OperationCanceledException("Test cleanup."));
+      if (mutation is not null) await mutation;
+    }
+  }
+
+  [Fact]
   public async Task FailedSaveAfterLocaleChangeRollsBackTheOptimisticState()
   {
     using var controller = new UiLocaleController(new DeviceLanguage("en"));

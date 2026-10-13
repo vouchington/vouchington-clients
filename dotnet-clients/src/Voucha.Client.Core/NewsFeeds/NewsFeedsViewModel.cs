@@ -20,6 +20,7 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   private string? errorMessage;
   private readonly HashSet<string> togglingSourceIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> togglingTopicIds = new(StringComparer.Ordinal);
+  private readonly HashSet<string> togglingReadIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> togglingArticleIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> votingArticleIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> startingStoryDiscussionStoryIds = new(StringComparer.Ordinal);

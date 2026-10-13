@@ -11,6 +11,8 @@ internal sealed class HeldContinuationFeedService(NewsFeedItem primary, params N
 
   public TaskCompletionSource ContinuationStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+  public Func<string, bool, CancellationToken, Task>? ReadHandler { get; set; }
+
   public string? StoryContinuationCursor { get; private set; }
 
   public void ReleaseContinuation(NewsFeedPage page) => continuation.TrySetResult(page);
@@ -60,7 +62,8 @@ internal sealed class HeldContinuationFeedService(NewsFeedItem primary, params N
 
   public Task SetSourceFollowAsync(string sourceId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
   public Task SetTopicFollowAsync(string topicId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
-  public Task SetReadAsync(string itemId, bool read, CancellationToken cancellationToken = default) => Task.CompletedTask;
+  public Task SetReadAsync(string itemId, bool read, CancellationToken cancellationToken = default) =>
+      ReadHandler?.Invoke(itemId, read, cancellationToken) ?? Task.CompletedTask;
   public Task VoteRssFeedItemAsync(string itemId, int score, CancellationToken cancellationToken = default) => Task.CompletedTask;
   public Task VoteTopicAsync(string topicId, int score, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

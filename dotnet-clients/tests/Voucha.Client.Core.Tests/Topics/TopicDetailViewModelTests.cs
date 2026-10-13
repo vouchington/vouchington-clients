@@ -50,6 +50,58 @@ public sealed class TopicDetailViewModelTests
     Assert.True(viewModel.IsFollowingSource);
     Assert.True(viewModel.CanFollowSource);
   }
+
+  [Fact]
+  public async Task SourceDetailUsesTheLoadedRssFeedProvenanceInsteadOfTopicProvenance()
+  {
+    var service = new RecordingTopicsService
+    {
+      TopicResponse = new TopicResponse(
+          new Topic(
+              "topic-1",
+              "Rewards",
+              "rewards",
+              "rss_feed",
+              Provenance: new("api", new("verified", ClientName: "Topic Agent")))),
+      RssFeedsResponse = new RssFeedsResponse(
+          [
+            new RssFeedSource(
+                "feed-1",
+                "Rewards Feed",
+                NewsFeedSourceType.Article,
+                new RssFeedUrl(new Uri("https://example.com/feed.xml")),
+                new RssFeedUrl(new Uri("https://example.com")),
+                new RssFeedHostname("example.com"),
+                new Topic("topic-1", "Rewards", "rewards", "rss_feed"),
+                Provenance: new("mcp", new("verified", ClientName: "Feed Agent"))),
+          ],
+          new PageInfo(null, false, null)),
+    };
+    var viewModel = new TopicDetailViewModel(service);
+
+    await viewModel.LoadAsync("rewards-feed", followSource: true, TestContext.Current.CancellationToken);
+
+    Assert.Equal("feed-1", viewModel.SourceRssFeedId);
+    Assert.Contains("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+    Assert.DoesNotContain("Topic Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+
+    service.RssFeedsResponse = new RssFeedsResponse(
+        [
+          new RssFeedSource(
+              "feed-1",
+              "Rewards Feed",
+              NewsFeedSourceType.Article,
+              new RssFeedUrl(new Uri("https://example.com/feed.xml")),
+              null,
+              new RssFeedHostname("example.com"),
+              new Topic("topic-1", "Rewards", "rewards", "rss_feed")),
+        ],
+        new PageInfo(null, false, null));
+    await viewModel.LoadAsync("rewards-feed", followSource: true, TestContext.Current.CancellationToken);
+
+    Assert.Null(viewModel.LocalizedProvenanceLabel);
+  }
+
   [Fact]
   public async Task ToggleFollowAsyncUsesTopicBookmarkEndpoints()
   {
@@ -159,7 +211,7 @@ public sealed class TopicDetailViewModelTests
 
     public TopicResponse? TopicResponse { get; init; }
 
-    public RssFeedsResponse? RssFeedsResponse { get; init; }
+    public RssFeedsResponse? RssFeedsResponse { get; set; }
 
     public bool ThrowOnTopicFollow { get; init; }
 
