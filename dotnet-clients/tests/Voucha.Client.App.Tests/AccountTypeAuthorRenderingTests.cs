@@ -8,6 +8,7 @@ using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.LandingPages;
 using Voucha.Client.Core.Localization;
@@ -93,6 +94,159 @@ public sealed class AccountTypeAuthorRenderingTests
     Assert.Equal(expected, badge.Text);
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public void RejectedFeedAndProfileCardsRenderViewerSpecificNoticeAndControls(bool profile)
+  {
+    InstallPageResources();
+    var page = profile ? (ContentPage)new ProfilePage() : new PostsPage();
+    var collection = Named<CollectionView>(page, "authored-post-collection");
+    var card = Assert.IsAssignableFrom<View>(collection.ItemTemplate.CreateContent());
+    var notice = Named<Label>(card, "authored-post-notice");
+    var appeals = Named<Button>(card, "authored-post-appeals");
+    var body = Named<VisualElement>(card, "authored-post-body");
+    var embed = Named<VisualElement>(card, "authored-post-embed");
+    var thumbnail = Assert.Single(Descendants<Image>(embed));
+
+    foreach (var (viewer, staff, showAppeals, showBody, showEmbed) in new[]
+    {
+      ("user-1", false, true, false, false),
+      ("other", false, false, false, false),
+      ("user-1", true, true, false, true),
+      ("other", true, false, true, true),
+    })
+    {
+      card.BindingContext = RejectedRow(viewer, staff);
+      Assert.Equal(showAppeals, appeals.IsVisible);
+      Assert.Equal(showBody, body.IsVisible);
+      Assert.Equal(showEmbed, embed.IsVisible);
+      Assert.Equal(showEmbed, thumbnail.Source is not null);
+      Assert.Equal(!staff || viewer == "user-1", notice.IsVisible);
+      Assert.Equal(!staff || viewer == "user-1", notice.Text is not null);
+    }
+  }
+
+  [Fact]
+  public void RejectedDetailRootRendersAuthorNoticeAndHidesBodyAndEmbed()
+  {
+    InstallPageResources();
+    var page = new PostDetailPage();
+    var binding = new PostDetailPageBinding(
+        new CommentThreadViewModel(Proxy<ICommentThreadService>(), "post"),
+        new AnonymousSessionStore());
+    var rootProperty = typeof(PostDetailPageBinding).GetProperty(nameof(PostDetailPageBinding.RootRow))!;
+    rootProperty.SetValue(binding, RejectedDetailRow("user-1", false) with { CanReply = true });
+    page.BindingContext = binding;
+    var notice = Named<Label>(page, "authored-post-notice");
+    var appeals = Named<Button>(page, "authored-post-appeals");
+    var body = Named<VisualElement>(page, "authored-post-body");
+    var embed = Named<VisualElement>(page, "authored-post-embed");
+    var thumbnail = Assert.Single(Descendants<Image>(embed));
+    var quote = Named<Button>(page, "authored-post-quote");
+    Assert.True(notice.IsVisible);
+    Assert.True(appeals.IsVisible);
+    Assert.False(body.IsVisible);
+    Assert.False(embed.IsVisible);
+    Assert.Null(thumbnail.Source);
+    Assert.False(quote.IsVisible);
+
+    rootProperty.SetValue(binding, RejectedDetailRow("other", true) with { CanReply = true });
+    Assert.False(notice.IsVisible);
+    Assert.False(appeals.IsVisible);
+    Assert.True(body.IsVisible);
+    Assert.True(embed.IsVisible);
+    Assert.NotNull(thumbnail.Source);
+    Assert.True(quote.IsVisible);
+
+    var comments = Assert.Single(Descendants<CollectionView>(page), view =>
+        ReferenceEquals(view.ItemsSource, binding.CommentRows));
+    var card = Assert.IsAssignableFrom<View>(comments.ItemTemplate.CreateContent());
+    var commentQuote = Named<Button>(card, "authored-comment-quote");
+    var commentThumbnail = Assert.Single(Descendants<Image>(card));
+    card.BindingContext = RejectedDetailRow("other", false) with { CanReply = true };
+    Assert.False(commentQuote.IsVisible);
+    Assert.Null(commentThumbnail.Source);
+    card.BindingContext = RejectedDetailRow("other", true) with { CanReply = true };
+    Assert.True(commentQuote.IsVisible);
+    Assert.NotNull(commentThumbnail.Source);
+
+    var ancestors = Assert.Single(Descendants<CollectionView>(page), view =>
+        ReferenceEquals(view.ItemsSource, binding.AncestorRows));
+    var ancestorCard = Assert.IsAssignableFrom<View>(ancestors.ItemTemplate.CreateContent());
+    var ancestorThumbnail = Assert.Single(Descendants<Image>(ancestorCard));
+    ancestorCard.BindingContext = RejectedDetailRow("other", false);
+    Assert.Null(ancestorThumbnail.Source);
+    ancestorCard.BindingContext = RejectedDetailRow("other", true);
+    Assert.NotNull(ancestorThumbnail.Source);
+  }
+
+  [Fact]
+  public async Task FeedSessionChangeHidesRejectedBodyBeforeHeldRefreshFinishes()
+  {
+    InstallPageResources();
+    var service = DispatchProxy.Create<IPostsService, FeedPostsProxy>();
+    ((FeedPostsProxy)(object)service).Response = new PostsFeedResponse(
+        [new EntityReference(null, null, "post", null, null, null, null, null, null, null, null)],
+        new PageInfo(null, false, null),
+        new Dictionary<string, Post>
+        {
+          ["post"] = Post(null) with { ClearanceStatus = "rejected" },
+        },
+        new Dictionary<string, User>(),
+        new Dictionary<string, Community>());
+    using var model = new PostsListViewModel(service);
+    await model.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
+    var session = new MutableSessionStore(new SessionSnapshot(new User(
+        "staff", "staff", Roles: ["moderator"])));
+    var heldRefresh = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var binding = new PostsPageBinding(model, session, () => heldRefresh.Task);
+    var page = new PostsPage { BindingContext = binding };
+    var collection = Named<CollectionView>(page, "authored-post-collection");
+    Assert.True(Assert.Single(binding.Items).ShowBodyContent);
+    var itemsChanged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    binding.PropertyChanged += (_, args) =>
+    {
+      if (args.PropertyName == nameof(binding.Items)) itemsChanged.TrySetResult();
+    };
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var refreshTask = binding.RefreshAfterSessionChangedAsync();
+    await itemsChanged.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+    Assert.False(heldRefresh.Task.IsCompleted);
+    var row = Assert.Single(Assert.IsAssignableFrom<IEnumerable>(collection.ItemsSource).Cast<PostRow>());
+    var card = Assert.IsAssignableFrom<View>(collection.ItemTemplate.CreateContent());
+    card.BindingContext = row;
+    Assert.False(Named<VisualElement>(card, "authored-post-body").IsVisible);
+    Assert.True(Named<Label>(card, "authored-post-notice").IsVisible);
+    heldRefresh.SetResult();
+    await refreshTask;
+  }
+
+  private static readonly UrlEmbedPreview Preview = new("preview", null, null,
+      new Uri("https://cdn.example.test/private-preview.png"), null, null);
+
+  private static PostRow RejectedRow(string viewer, bool staff) =>
+      PostRows.From(Post(null) with { ClearanceStatus = "rejected", ClearanceReason = "Public reason" },
+          null, null, null) with
+      {
+        ViewerId = viewer,
+        IsStaffViewer = staff,
+        EmbedPreview = Preview,
+      };
+
+  private static PostDetailPageRow RejectedDetailRow(string viewer, bool staff) =>
+      DetailRow(null) with
+      {
+        Post = Post(null) with { ClearanceStatus = "rejected", ClearanceReason = "Public reason" },
+        ViewerId = viewer,
+        IsStaffViewer = staff,
+        EmbedPreview = Preview,
+      };
+
+  private static T Named<T>(Element root, string id) where T : VisualElement =>
+      Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
+
   private static User Author(AccountType? type) =>
       new("user-1", "alice", AccountType: type);
 
@@ -113,6 +267,24 @@ public sealed class AccountTypeAuthorRenderingTests
   {
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
         throw new NotSupportedException(targetMethod?.Name);
+  }
+
+  public class FeedPostsProxy : DispatchProxy
+  {
+    public PostsFeedResponse Response { get; set; } = null!;
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+        targetMethod?.Name == nameof(IPostsService.FetchFeedAsync)
+            ? Task.FromResult(Response)
+            : throw new NotSupportedException(targetMethod?.Name);
+  }
+
+  private sealed class MutableSessionStore(SessionSnapshot initial) : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
+    public SessionSnapshot Current { get; private set; } = initial;
+    public void SetCurrent(SessionSnapshot next) => Current = next;
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>

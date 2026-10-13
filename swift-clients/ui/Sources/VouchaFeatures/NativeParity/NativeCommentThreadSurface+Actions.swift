@@ -56,6 +56,7 @@ extension NativeCommentThreadSurface {
             showSignIn()
             return
         }
+        guard !quote || canShowBody(post) else { return }
         composer = .init(kind: .reply(parentId: post.id), markdown: quote ? quoteMarkdown(post) : "")
     }
 
@@ -138,9 +139,17 @@ extension NativeCommentThreadSurface {
     }
 
     func quoteMarkdown(_ post: Post) -> String {
+        guard canShowBody(post) else { return "" }
         let markdown = post.markdown ?? post.title ?? ""
         let quoted = markdown.split(separator: "\n").map { "> \($0)" }.joined(separator: "\n")
         return quoted.isEmpty ? "" : "\(quoted)\n\n"
+    }
+
+    func canShowBody(_ post: Post) -> Bool {
+        switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
+        case .content, .underReviewForStaff: true
+        case .removedForAuthor, .unavailable: false
+        }
     }
 
     func noteOrNil(_ note: String) -> String? {

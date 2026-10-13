@@ -36,7 +36,10 @@ extension NativeCommentThreadSurface {
                         onEdit: rootPost.canEditContent == true ? { startEdit(post: rootPost) } : nil,
                         onDelete: rootPost.canDelete == true ? { startDelete(post: rootPost) } : nil,
                         onLock: rootPost.canLock == true ? { handleLock(post: rootPost) } : nil,
-                        isSaved: viewModel.bookmarksByPostId[rootPost.id]?["save"] ?? false
+                        isSaved: viewModel.bookmarksByPostId[rootPost.id]?["save"] ?? false,
+                        currentUserId: currentUserId,
+                        isStaffViewer: isStaffViewer,
+                        onViewAppeals: { onNavigate("/my/appeals") }
                     )
                     if let client, canDistribute(rootPost) {
                         HStack {
@@ -49,10 +52,12 @@ extension NativeCommentThreadSurface {
                         }
                     }
 
-                    HnDiscussionsPanel(
-                        urls: HnDiscussionURLCollector.extract(fromMarkdown: rootPost.markdown),
-                        client: client
-                    )
+                    if canShowBody(rootPost) {
+                        HnDiscussionsPanel(
+                            urls: HnDiscussionURLCollector.extract(fromMarkdown: rootPost.markdown),
+                            client: client
+                        )
+                    }
 
                     ancestorPaginationControl
 
@@ -82,7 +87,10 @@ extension NativeCommentThreadSurface {
                                     onEdit: post.canEditContent == true ? { startEdit(post: post) } : nil,
                                     onDelete: post.canDelete == true ? { startDelete(post: post) } : nil,
                                     onLock: post.canLock == true ? { handleLock(post: post) } : nil,
-                                    isSaved: viewModel.bookmarksByPostId[post.id]?["save"] ?? false
+                                    isSaved: viewModel.bookmarksByPostId[post.id]?["save"] ?? false,
+                                    currentUserId: currentUserId,
+                                    isStaffViewer: isStaffViewer,
+                                    onViewAppeals: { onNavigate("/my/appeals") }
                                 )
                             }
                         }
@@ -109,6 +117,8 @@ extension NativeCommentThreadSurface {
                                     canCreateVote: canCreateVote,
                                     showSignIn: showSignIn,
                                     currentUserId: currentUserId,
+                                    isStaffViewer: isStaffViewer,
+                                    onNavigate: onNavigate,
                                     hideDownCount: hideDownCount,
                                     inFlightVotePostIds: viewModel.inFlightVotePostIds,
                                     bookmarksByPostId: viewModel.bookmarksByPostId,

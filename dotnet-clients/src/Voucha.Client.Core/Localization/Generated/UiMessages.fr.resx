@@ -290,6 +290,10 @@
   <data name="native.apiKeys.rotationConflict" xml:space="preserve"><value>Cette clé ne peut pas être renouvelée. Actualisez son état ou révoquez-la.</value></data>
   <data name="native.apiKeys.rotationNotFound" xml:space="preserve"><value>Cette clé n’est plus disponible. Actualisez vos clés.</value></data>
   <data name="native.auth.emailAddress" xml:space="preserve"><value>Adresse e-mail</value></data>
+  <data name="native.authoredPost.noAdditionalReason" xml:space="preserve"><value>Aucune raison supplémentaire n&apos;a été fournie.</value></data>
+  <data name="native.authoredPost.removed" xml:space="preserve"><value>Ce contenu a été supprimé par un modérateur.</value></data>
+  <data name="native.authoredPost.unavailable" xml:space="preserve"><value>Ce contenu n&apos;est pas disponible.</value></data>
+  <data name="native.authoredPost.viewAppeals" xml:space="preserve"><value>Voir les appels</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} article associé</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} articles associés</value></data>
   <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ articles associés</value></data>

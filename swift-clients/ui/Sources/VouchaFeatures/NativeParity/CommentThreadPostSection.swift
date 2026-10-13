@@ -27,6 +27,9 @@ struct CommentThreadPostSection: View {
     let onDelete: (() -> Void)?
     let onLock: (() -> Void)?
     let isSaved: Bool
+    var currentUserId: String?
+    var isStaffViewer = false
+    var onViewAppeals: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -54,15 +57,9 @@ struct CommentThreadPostSection: View {
                 Spacer(minLength: 0)
             }
 
-            if let markdown = post.markdown, !markdown.isEmpty {
-                NativeHtmlContent(
-                    html: post.html,
-                    fallback: markdown,
-                    declaredLanguage: post.declaredLanguage,
-                    detectedLanguage: post.linguaRsDetectedLanguage
-                )
-            }
-            if let embed {
+            postBody
+            if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
+               let embed {
                 ProviderEmbedPreview(embed: embed)
             }
             NativeCommentThreadActionRow(
@@ -77,6 +74,7 @@ struct CommentThreadPostSection: View {
                 showSignIn: showSignIn,
                 onReply: onReply,
                 onQuote: onQuote,
+                canQuote: showsBodyContent,
                 onSave: onSave,
                 onReport: onReport,
                 onEdit: onEdit,
@@ -87,5 +85,47 @@ struct CommentThreadPostSection: View {
         .padding(Spacing.md)
         .background(Colors.background.opacity(0.75))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var showsBodyContent: Bool {
+        switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
+        case .content, .underReviewForStaff: true
+        case .removedForAuthor, .unavailable: false
+        }
+    }
+
+    @ViewBuilder
+    private var postBody: some View {
+        switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
+        case .removedForAuthor:
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(UiMessages.string(.nativeAuthoredPostRemoved, locale: nativeUiLocale))
+                if let reason = post.clearanceReason, !reason.isEmpty {
+                    Text(verbatim: UiMessages.string(.protocolValue(reason), locale: nativeUiLocale))
+                } else {
+                    Text(UiMessages.string(.nativeAuthoredPostNoAdditionalReason, locale: nativeUiLocale))
+                }
+                Button(UiMessages.string(.nativeAuthoredPostViewAppeals, locale: nativeUiLocale), action: onViewAppeals)
+            }
+        case .unavailable:
+            Text(UiMessages.string(.nativeAuthoredPostUnavailable, locale: nativeUiLocale))
+        case .underReviewForStaff:
+            Text(UiMessages.string(.nativeTaxonomyModerationInReview, locale: nativeUiLocale))
+            postMarkdown
+        case .content:
+            postMarkdown
+        }
+    }
+
+    @ViewBuilder
+    private var postMarkdown: some View {
+        if let markdown = post.markdown, !markdown.isEmpty {
+            NativeHtmlContent(
+                html: post.html,
+                fallback: markdown,
+                declaredLanguage: post.declaredLanguage,
+                detectedLanguage: post.linguaRsDetectedLanguage
+            )
+        }
     }
 }

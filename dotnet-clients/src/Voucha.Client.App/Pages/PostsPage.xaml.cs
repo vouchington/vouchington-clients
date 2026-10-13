@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.FollowerDistributions;
+using Voucha.Client.Core.Moderation;
 using Voucha.Client.App.Controls;
 
 namespace Voucha.Client.App.Pages;
@@ -98,6 +99,12 @@ public partial class PostsPage : ContentPage
   private async void OnComposeClicked(object? sender, EventArgs e)
   {
     await Navigation.PushAsync(serviceProvider.GetRequiredService<PostComposePage>());
+  }
+
+  private async void OnAppealsClicked(object? sender, EventArgs e)
+  {
+    await Navigation.PushAsync(serviceProvider.GetRequiredService<MemberAppealsPageFactory>()
+        .Create(MemberAppealsRoute.Tracking));
   }
 
   private async void OnPostClicked(object? sender, TappedEventArgs e)

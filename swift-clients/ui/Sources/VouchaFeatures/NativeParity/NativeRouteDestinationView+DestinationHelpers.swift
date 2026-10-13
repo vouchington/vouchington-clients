@@ -59,6 +59,8 @@ extension NativeRouteDestinationSurface {
                 canCreateVote: canCastPublicVotes,
                 hideDownCount: hideDownCount,
                 turnstileSiteKey: resolvedTurnstileSiteKey,
+                isStaffViewer: isAdministrator || isSiteModerator,
+                onNavigate: onNavigateToTargetPath,
                 showSignIn: showSignIn
             )
         }
@@ -87,6 +89,8 @@ extension NativeRouteDestinationSurface {
             viewModel: viewModel,
             isSignedIn: isSignedIn,
             isAdministrator: isAdministrator,
+            currentUserId: currentUserId,
+            isStaffViewer: isAdministrator || isSiteModerator,
             canCastPublicVotes: canCastPublicVotes,
             hideDownCount: hideDownCount,
             turnstileSiteKey: resolvedTurnstileSiteKey,

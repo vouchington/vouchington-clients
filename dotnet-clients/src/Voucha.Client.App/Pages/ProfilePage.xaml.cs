@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.App;
 using Voucha.Client.Core.Api;
@@ -18,6 +19,8 @@ public partial class ProfilePage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly string? idOrUsername;
   private readonly NativeUserProfileScope initialScope;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
+  private bool isSessionChangedAttached;
   private bool hasLoaded;
 
   public ProfilePage(
@@ -31,6 +34,10 @@ public partial class ProfilePage : ContentPage
     InitializeComponent();
     this.viewModel = viewModel;
     this.sessionStore = sessionStore;
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() =>
+    {
+      if (isSessionChangedAttached) RefreshViewerState();
+    });
     this.serviceProvider = serviceProvider;
     emailRecovery = serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>();
     this.idOrUsername = idOrUsername;
@@ -56,13 +63,10 @@ public partial class ProfilePage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    AttachSessionChanged();
     try
     {
-      viewModel.SetCurrentViewer(
-          sessionStore.Current.Identity?.Id,
-          sessionStore.Current.Identity?.Username,
-          sessionStore.Current.CanCastPublicVotes(),
-          sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true));
+      RefreshViewerState();
       if (string.IsNullOrWhiteSpace(idOrUsername))
       {
         await viewModel.LoadOwnAsync();
@@ -86,10 +90,36 @@ public partial class ProfilePage : ContentPage
 
   protected override void OnDisappearing()
   {
+    DetachSessionChanged();
     avatarPreviewGeneration++;
     avatarPreviewCancellation.CancelCurrent();
     ClearLocalAvatarPreview();
     base.OnDisappearing();
+  }
+
+  private void RefreshViewerState()
+  {
+    viewModel.SetCurrentViewer(
+        sessionStore.Current.Identity?.Id,
+        sessionStore.Current.Identity?.Username,
+        sessionStore.Current.CanCastPublicVotes(),
+        sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true),
+        isStaffViewer: sessionStore.Current.Identity?.Roles?.Any(role =>
+            role is "administrator" or "moderator") == true);
+  }
+
+  private void AttachSessionChanged()
+  {
+    if (isSessionChangedAttached) return;
+    sessionStore.SessionChanged += sessionChangedHandler;
+    isSessionChangedAttached = true;
+  }
+
+  private void DetachSessionChanged()
+  {
+    if (!isSessionChangedAttached) return;
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    isSessionChangedAttached = false;
   }
 
   private async void OnUserAdminClicked(object? sender, EventArgs e)

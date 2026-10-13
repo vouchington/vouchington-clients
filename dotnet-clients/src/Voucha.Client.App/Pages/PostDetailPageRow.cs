@@ -2,6 +2,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
 using Voucha.Client.Core.FollowerDistributions;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.App.Pages;
 
@@ -29,7 +30,9 @@ public sealed record PostDetailPageRow(
     ElectionVoteChoice? CurrentVoteChoice,
     IUiLocalization Localization,
     string? BodyHtml = null,
-    UrlEmbedPreview? EmbedPreview = null)
+    UrlEmbedPreview? EmbedPreview = null,
+    string? ViewerId = null,
+    bool IsStaffViewer = false)
 {
   public bool CanInteractWithVotes => CanCreateVote || CanClearVote;
 
@@ -49,6 +52,30 @@ public sealed record PostDetailPageRow(
   public string? ProvenanceLabel => PublicProvenanceLabels.Resolve(Post.Provenance, Localization);
 
   public bool HasProvenance => ProvenanceLabel is not null;
+
+  public PostContentPresentation ContentPresentation => PostContentPolicy.For(Post, ViewerId, IsStaffViewer);
+  public bool ShowBodyContent => ContentPresentation is PostContentPresentation.Content or PostContentPresentation.UnderReviewForStaff;
+  public bool CanQuote => CanReply && ShowBodyContent;
+  public bool ShowAppealsAction => ContentPresentation == PostContentPresentation.RemovedForAuthor;
+  public bool ShowNotice => ContentPresentation is PostContentPresentation.RemovedForAuthor or PostContentPresentation.Unavailable;
+  public string? LocalizedNotice => ContentPresentation switch
+  {
+    PostContentPresentation.RemovedForAuthor => Localization.Localize(UiMessageKey.NativeAuthoredPostRemoved),
+    PostContentPresentation.Unavailable => Localization.Localize(UiMessageKey.NativeAuthoredPostUnavailable),
+    _ => null,
+  };
+  public string? LocalizedRemovalReason => ShowAppealsAction
+      ? string.IsNullOrWhiteSpace(Post.ClearanceReason)
+          ? Localization.Localize(UiMessageKey.NativeAuthoredPostNoAdditionalReason)
+          : Localization.Resolve(UiText.ProtocolValue(Post.ClearanceReason))
+      : null;
+  public string? LocalizedReviewBadge => ContentPresentation == PostContentPresentation.UnderReviewForStaff
+      ? Localization.Localize(UiMessageKey.NativeDotnetModerationInReview)
+      : null;
+  public bool HasEmbedPreview => PostContentPolicy.CanShowMedia(Post.ClearanceStatus, IsStaffViewer) && EmbedPreview?.HasPreview == true;
+  public UrlEmbedPreview? VisibleEmbedPreview => HasEmbedPreview ? EmbedPreview : null;
+  public bool CanPlayEmbed => HasEmbedPreview && EmbedPreview?.CanPlay == true;
+  public bool HasEmbedSource => HasEmbedPreview && EmbedPreview?.HasSource == true;
 
   public string BodyText => Post.Markdown ?? Post.Html ?? string.Empty;
 

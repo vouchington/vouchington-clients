@@ -13,6 +13,8 @@ struct NativeCommentThreadNodeView: View {
     let canCreateVote: Bool
     let showSignIn: () -> Void
     let currentUserId: String?
+    var isStaffViewer = false
+    var onNavigate: (String) -> Void = { _ in }
     let hideDownCount: Bool
     let inFlightVotePostIds: Set<String>
     let bookmarksByPostId: [String: [String: Bool]]
@@ -55,7 +57,10 @@ struct NativeCommentThreadNodeView: View {
                 onEdit: canEdit(post: post) ? { onEdit(post) } : nil,
                 onDelete: canDelete(post: post) ? { onDelete(post) } : nil,
                 onLock: canLock(post: post) ? { onLock(post) } : nil,
-                isSaved: bookmarksByPostId[post.id]?["save"] ?? false
+                isSaved: bookmarksByPostId[post.id]?["save"] ?? false,
+                currentUserId: currentUserId,
+                isStaffViewer: isStaffViewer,
+                onViewAppeals: { onNavigate("/my/appeals") }
             )
 
             if !isCollapsed {
@@ -70,6 +75,8 @@ struct NativeCommentThreadNodeView: View {
                         canCreateVote: canCreateVote,
                         showSignIn: showSignIn,
                         currentUserId: currentUserId,
+                        isStaffViewer: isStaffViewer,
+                        onNavigate: onNavigate,
                         hideDownCount: hideDownCount,
                         inFlightVotePostIds: inFlightVotePostIds,
                         bookmarksByPostId: bookmarksByPostId,

@@ -157,6 +157,10 @@
 "native.auth.verified" = "Verificado";
 "native.auth.verify" = "Verificar";
 "native.auth.verifyCode" = "Verificar código";
+"native.authoredPost.noAdditionalReason" = "Nenhuma razão adicional foi fornecida.";
+"native.authoredPost.removed" = "Este conteúdo foi removido por um moderador.";
+"native.authoredPost.unavailable" = "Este conteúdo não está disponível.";
+"native.authoredPost.viewAppeals" = "Ver apelações";
 "native.common.done" = "Concluído";
 "native.common.ok" = "OK";
 "native.common.relatedArticles.__plural.one" = "{count} artigo relacionado";

@@ -36,7 +36,12 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
 
   public string? CurrentUserId => sessionStore.Current.Identity?.Id;
 
-  public override IReadOnlyList<PostRow> Items => viewModel.Items;
+  public override IReadOnlyList<PostRow> Items => viewModel.Items.Select(row => row with
+  {
+    ViewerId = CurrentUserId,
+    IsStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
+        role is "administrator" or "moderator") == true,
+  }).ToArray();
 
   public override bool HasError => viewModel.HasError;
 
@@ -64,12 +69,13 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
     isSessionChangedAttached = false;
   }
 
-  private async Task RefreshAfterSessionChangedAsync()
+  internal async Task RefreshAfterSessionChangedAsync()
   {
     OnPropertyChanged(nameof(CanVote));
     OnPropertyChanged(nameof(CanClearVote));
     OnPropertyChanged(nameof(CanRelate));
     OnPropertyChanged(nameof(CurrentUserId));
+    OnPropertyChanged(nameof(Items));
     OnPropertyChanged(nameof(CanCompose));
     try
     {

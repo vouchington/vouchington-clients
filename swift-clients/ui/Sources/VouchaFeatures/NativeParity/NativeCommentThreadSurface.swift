@@ -12,6 +12,8 @@ struct NativeCommentThreadSurface: View {
     let hideDownCount: Bool
     let turnstileSiteKey: String?
     let showSignIn: () -> Void
+    let isStaffViewer: Bool
+    let onNavigate: (String) -> Void
     @State
     var viewModel: NativeCommentThreadViewModel
     @State
@@ -34,6 +36,8 @@ struct NativeCommentThreadSurface: View {
         hideDownCount: Bool = false,
         turnstileSiteKey: String? = nil,
         composer: NativeCommentThreadComposerState? = nil,
+        isStaffViewer: Bool = false,
+        onNavigate: @escaping (String) -> Void = { _ in },
         showSignIn: @escaping () -> Void
     ) {
         self.client = client
@@ -44,6 +48,8 @@ struct NativeCommentThreadSurface: View {
         self.hideDownCount = hideDownCount
         self.turnstileSiteKey = turnstileSiteKey
         self.showSignIn = showSignIn
+        self.isStaffViewer = isStaffViewer
+        self.onNavigate = onNavigate
         _composer = State(initialValue: composer)
         _viewModel = State(
             initialValue: NativeCommentThreadViewModel(
