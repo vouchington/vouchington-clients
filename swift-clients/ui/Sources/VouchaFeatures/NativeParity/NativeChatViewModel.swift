@@ -10,6 +10,7 @@ import VouchaModels
 final class NativeChatViewModel {
     let client: APIClient?
     let mcpSession: NativeChatMCPAgentSession?
+    var currentMemberId: String?
     @ObservationIgnored
     let titleProviderResolver: any NativeChatTitleProviderResolving
     private let initialConversationId: String?
@@ -99,10 +100,12 @@ final class NativeChatViewModel {
         client: APIClient?,
         routeMatch: NativeRouteMatch?,
         titleProviderResolver: any NativeChatTitleProviderResolving = NativeChatLiveTitleProviderResolver(),
-        mcpSession: NativeChatMCPAgentSession? = nil
+        mcpSession: NativeChatMCPAgentSession? = nil,
+        currentMemberId: String? = nil
     ) {
         self.client = client
         self.mcpSession = mcpSession
+        self.currentMemberId = currentMemberId
         self.titleProviderResolver = titleProviderResolver
         initialConversationId = routeMatch?.param("id")
         selectedConversationId = initialConversationId

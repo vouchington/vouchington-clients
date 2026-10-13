@@ -16,7 +16,9 @@ extension NativeChatViewModel {
 
         let mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = if case .openAICompatible = context
             .providerSelection {
-            mcpSession?.connectedSnapshot()
+            mcpSession?.connectedSnapshot().flatMap {
+                $0.accountId == currentMemberId ? $0 : nil
+            }
         } else {
             nil
         }
@@ -37,7 +39,7 @@ extension NativeChatViewModel {
                     ?? .message(.nativeSwiftChatUnableToPersistOnDeviceResponse)
             )
         } catch {
-            if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+            if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
                 abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
                 return
             }
@@ -77,7 +79,7 @@ extension NativeChatViewModel {
             )
             return
         }
-        if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
             abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
             return
         }
@@ -96,12 +98,16 @@ extension NativeChatViewModel {
             && streamingUserMessageId == context.userMessageId
     }
 
+    func isCurrentMCPSnapshot(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Bool {
+        currentMemberId == snapshot.accountId && mcpSession?.isCurrent(snapshot) == true
+    }
+
     func abortInvalidatedMCPTurn(
         context: NativeChatDraftSendContext,
         snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
     ) {
         if isCurrentLocalGeneration(context),
-           mcpSession?.accountId == snapshot.accountId,
+           currentMemberId == snapshot.accountId,
            !draftEditedDuringSend {
             draftMessage = context.text
         }

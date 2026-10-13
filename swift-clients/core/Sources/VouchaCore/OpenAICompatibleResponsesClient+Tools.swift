@@ -90,6 +90,9 @@ public extension OpenAICompatibleResponsesClient {
             }
             try Self.recordUniqueCallIDs(calls, seen: &usedCallIDs)
             try Self.consumeCallBudget(calls.count, remaining: &callsRemaining)
+            // A single Responses turn requests serial tool use. Reject an unexpected batch
+            // before the first call can mutate state and a later call fails admission.
+            try Self.requireSingleCall(calls)
             input.append(contentsOf: output)
             for call in calls {
                 try Task.checkCancellation()
@@ -104,6 +107,10 @@ public extension OpenAICompatibleResponsesClient {
     private static func consumeCallBudget(_ count: Int, remaining: inout Int) throws {
         guard count <= remaining else { throw LocalLLMToolLoopFailure.tooManyCalls }
         remaining -= count
+    }
+
+    private static func requireSingleCall(_ calls: [LocalLLMFunctionCall]) throws {
+        guard calls.count == 1 else { throw LocalLLMToolLoopFailure.invalidResponse }
     }
 
     private static func recordUniqueCallIDs(
@@ -138,6 +145,11 @@ public extension OpenAICompatibleResponsesClient {
     private static func functionCalls(_ output: [[String: Any]]) throws -> [LocalLLMFunctionCall] {
         try output.compactMap { item in
             guard item["type"] as? String == "function_call" else { return nil }
+            if let status = item["status"] {
+                guard status as? String == "completed" else {
+                    throw LocalLLMToolLoopFailure.invalidResponse
+                }
+            }
             guard let callID = item["call_id"] as? String, !callID.isEmpty,
                   let name = item["name"] as? String, !name.isEmpty,
                   let arguments = item["arguments"] as? String

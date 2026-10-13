@@ -197,6 +197,58 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         }
     }
 
+    func testIncompleteFunctionCallNeverExecutesEvenWithValidArguments() async throws {
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Update it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "write", description: "Write", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        for status in ["incomplete", "in_progress"] {
+            ToolLoopURLProtocol.reset(responses: [
+                #"{"output":[{"type":"function_call","status":"\#(status)","call_id":"call-1","name":"write","arguments":"{}"}]}"#
+            ])
+            do {
+                _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                    XCTFail("A non-completed call must never execute")
+                    return "{}"
+                }
+                XCTFail("Expected incomplete call rejection")
+            } catch {
+                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+            }
+            XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+        }
+    }
+
+    func testUnexpectedCallBatchCannotPartiallyMutateBeforeLaterInvalidCall() async throws {
+        ToolLoopURLProtocol.reset(responses: [
+            #"{"output":[{"type":"function_call","status":"completed","call_id":"write-1","name":"write","arguments":"{}"},{"type":"function_call","status":"completed","call_id":"bad-2","name":"unknown","arguments":"{}"}]}"#
+        ])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Update it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "write", description: "Write", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        do {
+            _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                XCTFail("An unexpected batch must be rejected before any mutation")
+                return "{}"
+            }
+            XCTFail("Expected call batch rejection")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+        }
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
+
     func testDuplicateFunctionCallIDsNeverExecuteAnAmbiguousCall() async throws {
         let call = #"{"type":"function_call","call_id":"repeat","name":"read","arguments":"{}"}"#
         let singleCall = #"{"output":[\#(call)]}"#

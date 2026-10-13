@@ -102,7 +102,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let viewModel = try NativeChatViewModel(
             client: makeClient(), routeMatch: nil,
             titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
-            mcpSession: session
+            mcpSession: session, currentMemberId: "member-a"
         )
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Hello"
@@ -129,7 +129,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let viewModel = try NativeChatViewModel(
             client: makeClient(), routeMatch: nil,
             titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
-            mcpSession: session
+            mcpSession: session, currentMemberId: "member-a"
         )
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Keep this prompt"
@@ -159,19 +159,75 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let viewModel = try NativeChatViewModel(
             client: makeClient(), routeMatch: nil,
             titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
-            mcpSession: session
+            mcpSession: session, currentMemberId: "member-a"
         )
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Old member prompt"
 
         let send = Task { await viewModel.sendDraftMessage() }
         await hold.waitForStart()
+        viewModel.currentMemberId = "member-b"
         await session.useAccount("member-b")
         await hold.release()
         await send.value
 
         XCTAssertEqual(viewModel.draftMessage, "")
         XCTAssertTrue(viewModel.messages.isEmpty)
+    }
+
+    func testMcpSnapshotIsNotGivenToNewMemberBeforeSessionSwitchFinishes() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-b"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "New member prompt"
+
+        await viewModel.sendDraftMessage()
+
+        XCTAssertEqual(provider.generationCount, 1)
+        XCTAssertFalse(provider.receivedMcpSnapshot)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+    }
+
+    func testSameMemberRefreshAfterPersistenceAcknowledgementKeepsServerTurnVisible() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Persist this"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        _ = try await barrier.wait()
+        XCTAssertTrue(provider.receivedMcpSnapshot)
+        try await session.refreshTools()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+        XCTAssertTrue(viewModel.messages.contains { $0.content == "Local assistant answer" })
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
     }
 
     func testTypingNextDraftDuringHeldPersistencePreservesTheNewDraftAfterFailure() async throws {
@@ -303,6 +359,7 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     var titleHold: HeldTitleGeneration?
     var mcpHold: HeldTitleGeneration?
     private(set) var generationCount = 0
+    private(set) var receivedMcpSnapshot = false
 
     var status: NativeChatTitleProviderStatus {
         .init(isAvailable: available, detail: nil)
@@ -323,8 +380,9 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
     func generateAssistantResponse(
         to message: String, history: [NativeChatTimelineMessage],
         mcpSession _: NativeChatMCPAgentSession?,
-        mcpSnapshot _: NativeChatMCPAgentSession.ConnectedSnapshot?
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws -> NativeChatAssistantResponse? {
+        receivedMcpSnapshot = mcpSnapshot != nil
         if let mcpHold {
             await mcpHold.waitUntilReleased()
             throw CancellationError()

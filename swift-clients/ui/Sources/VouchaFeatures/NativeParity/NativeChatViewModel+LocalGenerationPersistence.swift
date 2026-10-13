@@ -12,7 +12,7 @@ extension NativeChatViewModel {
         response: NativeChatAssistantResponse,
         mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = nil
     ) async throws {
-        if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
             pendingLocalTurn = nil
             abortStreaming()
             return
@@ -25,9 +25,19 @@ extension NativeChatViewModel {
             assistantContent: response.content,
             model: (provider: response.modelProvider, name: response.modelName)
         ))
-        if let mcpSnapshot, mcpSession?.isCurrent(mcpSnapshot) != true {
+        if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
             pendingLocalTurn = nil
-            abortStreaming()
+            if currentMemberId == mcpSnapshot.accountId,
+               isCurrentLocalGeneration(context) {
+                // The server acknowledged this turn. A same-member MCP refresh or
+                // disconnect cannot undo that write, so show the persisted result.
+                await finishPersistedLocalTurn(
+                    context: context, assistantMessageId: assistantMessageId,
+                    response: persistedResponse
+                )
+            } else {
+                abortStreaming()
+            }
             return
         }
         guard isCurrentLocalGeneration(context) else {
@@ -40,14 +50,25 @@ extension NativeChatViewModel {
         if pendingLocalTurn?.context.userMessageId == context.userMessageId {
             pendingLocalTurn = nil
         }
+        await finishPersistedLocalTurn(
+            context: context, assistantMessageId: assistantMessageId,
+            response: persistedResponse
+        )
+    }
+
+    private func finishPersistedLocalTurn(
+        context: NativeChatDraftSendContext,
+        assistantMessageId: String,
+        response: ClientGeneratedChatResponse
+    ) async {
         reconcileClientGeneratedMessages(
             userMessageId: context.userMessageId,
             assistantMessageId: assistantMessageId,
-            response: persistedResponse
+            response: response
         )
         await finishStream(
             conversationId: context.conversationId,
-            userMessageId: persistedResponse.userMessage.id,
+            userMessageId: response.userMessage.id,
             createdConversation: context.createdConversation
         )
     }

@@ -11,7 +11,7 @@ extension NativeChatViewModel {
               pendingLocalTurn.context.conversationId == selectedConversationId,
               pendingLocalTurn.context.providerSelection == providerSelection
         else { return nil }
-        if let snapshot = pendingLocalTurn.mcpSnapshot, mcpSession?.isCurrent(snapshot) != true {
+        if let snapshot = pendingLocalTurn.mcpSnapshot, !isCurrentMCPSnapshot(snapshot) {
             self.pendingLocalTurn = nil
             return nil
         }
@@ -35,7 +35,7 @@ extension NativeChatViewModel {
               pendingLocalTurn.context.userMessageId == context.userMessageId,
               pendingLocalTurn.context.conversationId == context.conversationId
         else { return false }
-        if let snapshot = pendingLocalTurn.mcpSnapshot, mcpSession?.isCurrent(snapshot) != true {
+        if let snapshot = pendingLocalTurn.mcpSnapshot, !isCurrentMCPSnapshot(snapshot) {
             self.pendingLocalTurn = nil
             abortStreaming()
             return true

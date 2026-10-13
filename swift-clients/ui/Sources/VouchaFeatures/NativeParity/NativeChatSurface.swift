@@ -17,7 +17,8 @@ struct NativeChatSurface: View {
         currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil
     ) {
         _viewModel = State(initialValue: NativeChatViewModel(
-            client: client, routeMatch: routeMatch, mcpSession: mcpSession
+            client: client, routeMatch: routeMatch, mcpSession: mcpSession,
+            currentMemberId: currentUserId
         ))
         self.currentUserId = currentUserId
         self.mcpSession = mcpSession
@@ -39,6 +40,10 @@ struct NativeChatSurface: View {
         .background(NativeChatMCPWindowReader { mcpPresentationWindow.value = $0 })
         .task {
             await viewModel.load()
+        }
+        .onChange(of: currentUserId) { _, memberId in
+            viewModel.currentMemberId = memberId
+            viewModel.abortStreaming()
         }
     }
 
