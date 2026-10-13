@@ -36,9 +36,9 @@ public sealed partial class MemberMcpSession
     if (activeCancellation is not null) _ = activeCancellation.CancelAsync();
     Tools = null;
     Status = MemberMcpSessionStatus.Disconnected;
-    Changed?.Invoke(this, EventArgs.Empty);
     var previous = cleanupTail;
     cleanupTail = CleanupAfterAsync(previous, priorAccount);
+    Changed?.Invoke(this, EventArgs.Empty);
     return cleanupTail;
   }
 
