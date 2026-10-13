@@ -36,6 +36,8 @@ public sealed class TopicDetailPageSourceCrawlsTests
     Assert.Contains("HasSourceCrawlHistoryRequestError", markup, StringComparison.Ordinal);
     Assert.Contains("SourceCrawlHistoryRequestErrorMessage", markup, StringComparison.Ordinal);
     Assert.Contains("resolution.Match?.Template is \"/source/:idOrSlug/crawls\"", routeSource, StringComparison.Ordinal);
+    Assert.Contains("isSourceDetail: resolution.DestinationId == NativeRouteDestinationId.SourceDetail", routeSource, StringComparison.Ordinal);
+    Assert.Contains("followSource: true, isSourceDetail: isSourceDetail", pageSource, StringComparison.Ordinal);
     Assert.Contains("canManageSourceCrawls", routeSource, StringComparison.Ordinal);
     Assert.Contains("requiresAuthoritativeSourceCrawlMembership: true", routeSource, StringComparison.Ordinal);
     Assert.Contains("apiClient: apiClient", topicsPage, StringComparison.Ordinal);

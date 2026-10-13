@@ -1,18 +1,30 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Communities;
 
-public sealed partial class CommunityBrowseViewModel : ObservableObject
+public sealed partial class CommunityBrowseViewModel : ObservableObject, IUiLocaleChangeListener
 {
   private readonly ICommunitiesService service;
+  private readonly IUiLocalization localization;
   private string query = "";
   private IReadOnlyList<CommunityBrowseRow> results = [];
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
 
-  public CommunityBrowseViewModel(ICommunitiesService service) =>
-      this.service = service ?? throw new ArgumentNullException(nameof(service));
+  public CommunityBrowseViewModel(
+      ICommunitiesService service,
+      IUiLocalization? localization = null,
+      IUiLocaleController? localeController = null)
+  {
+    this.service = service ?? throw new ArgumentNullException(nameof(service));
+    this.localization = localization ?? UiLocalization.English;
+    // The locale controller stores weak listeners; avoid making this root-resolved transient disposable.
+    _ = localeController?.SubscribeLocaleChanges(this);
+  }
+
+  public void OnUiLocaleChanged() => Results = Results.Select(row => row with { Localization = localization }).ToArray();
 
   public string Query
   {
@@ -70,7 +82,7 @@ public sealed partial class CommunityBrowseViewModel : ObservableObject
 
             response.CommunityMetrics.TryGetValue(community.Id, out var metrics);
             response.Users.TryGetValue(community.CreatedById, out var owner);
-            return CommunityBrowseRow.FromCommunity(community, metrics, owner);
+            return CommunityBrowseRow.FromCommunity(community, metrics, owner, localization);
           })
           .Where(row => row is not null)
           .Select(row => row!)
@@ -105,9 +117,16 @@ public sealed record CommunityBrowseRow(
     string Slug,
     int MemberCount,
     int PostCount,
-    bool Archived)
+    bool Archived,
+    PublicContentProvenance? Provenance = null,
+    IUiLocalization? Localization = null)
 {
-  public static CommunityBrowseRow FromCommunity(Community community, CommunityMetrics? metrics, CommunityOwner? owner)
+  public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization ?? UiLocalization.English);
+
+  public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
+  public static CommunityBrowseRow FromCommunity(
+      Community community, CommunityMetrics? metrics, CommunityOwner? owner, IUiLocalization? localization = null)
   {
     ArgumentNullException.ThrowIfNull(community);
 
@@ -117,6 +136,8 @@ public sealed record CommunityBrowseRow(
         community.Slug,
         metrics?.MemberCount ?? 0,
         metrics?.PostCount ?? 0,
-        community.ArchivedAt is not null);
+        community.ArchivedAt is not null,
+        community.Provenance,
+        localization);
   }
 }

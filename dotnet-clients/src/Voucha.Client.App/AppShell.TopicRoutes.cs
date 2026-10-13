@@ -72,7 +72,8 @@ public sealed partial class AppShell
           topicId,
           serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>(),
           resolution.Match?.Template is "/source/:idOrSlug/crawls" or "/source/:idOrSlug/crawls/:crawlId",
-          resolution.Match?.Param("crawlId")));
+          resolution.Match?.Param("crawlId"),
+          isSourceDetail: resolution.DestinationId == NativeRouteDestinationId.SourceDetail));
     }
 
     return null;

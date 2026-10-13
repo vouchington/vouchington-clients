@@ -1,6 +1,7 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Topics;
 using Xunit;
 
@@ -50,6 +51,99 @@ public sealed class TopicDetailViewModelTests
     Assert.True(viewModel.IsFollowingSource);
     Assert.True(viewModel.CanFollowSource);
   }
+
+  [Fact]
+  public async Task SourceDetailUsesTheLoadedRssFeedProvenanceInsteadOfTopicProvenance()
+  {
+    var service = new RecordingTopicsService
+    {
+      TopicResponse = new TopicResponse(
+          new Topic(
+              "topic-1",
+              "Rewards",
+              "rewards",
+              "rss_feed",
+              Provenance: new("api", new("verified", ClientName: "Topic Agent")))),
+      RssFeedsResponse = new RssFeedsResponse(
+          [
+            new RssFeedSource(
+                "feed-1",
+                "Rewards Feed",
+                NewsFeedSourceType.Article,
+                new RssFeedUrl(new Uri("https://example.com/feed.xml")),
+                new RssFeedUrl(new Uri("https://example.com")),
+                new RssFeedHostname("example.com"),
+                new Topic("topic-1", "Rewards", "rewards", "rss_feed"),
+                Provenance: new("mcp", new("verified", ClientName: "Feed Agent"))),
+          ],
+          new PageInfo(null, false, null)),
+    };
+    var viewModel = new TopicDetailViewModel(service);
+
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: false, TestContext.Current.CancellationToken);
+
+    Assert.Contains("Topic Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+    Assert.DoesNotContain("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
+
+    Assert.Equal("feed-1", viewModel.SourceRssFeedId);
+    Assert.Contains("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+    Assert.DoesNotContain("Topic Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+
+    service.RssFeedsResponse = new RssFeedsResponse(
+        [
+          new RssFeedSource(
+              "feed-1",
+              "Rewards Feed",
+              NewsFeedSourceType.Article,
+              new RssFeedUrl(new Uri("https://example.com/feed.xml")),
+              null,
+              new RssFeedHostname("example.com"),
+              new Topic("topic-1", "Rewards", "rewards", "rss_feed")),
+        ],
+        new PageInfo(null, false, null));
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
+
+    Assert.Null(viewModel.LocalizedProvenanceLabel);
+  }
+
+  [Fact]
+  public async Task ReloadingSourceDetailDoesNotExposeTopicProvenanceWhileRefreshing()
+  {
+    var service = new RecordingTopicsService
+    {
+      TopicResponse = new TopicResponse(new Topic(
+          "topic-1", "Rewards", "rewards", "rss_feed",
+          Provenance: new("api", new("verified", ClientName: "Topic Agent")))),
+      RssFeedsResponse = new RssFeedsResponse(
+          [new RssFeedSource(
+              "feed-1", "Rewards Feed", NewsFeedSourceType.Article,
+              new RssFeedUrl(new Uri("https://example.com/feed.xml")),
+              null,
+              new RssFeedHostname("example.com"),
+              new Topic("topic-1", "Rewards", "rewards", "rss_feed"),
+              Provenance: new("mcp", new("verified", ClientName: "Feed Agent")))],
+          new PageInfo(null, false, null)),
+    };
+    var viewModel = new TopicDetailViewModel(service);
+    await viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
+    Assert.Contains("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+
+    service.PendingTopicResponse = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    var reload = viewModel.LoadAsync("rewards-feed", followSource: true, isSourceDetail: true, TestContext.Current.CancellationToken);
+
+    Assert.Equal(LoadState.Loading, viewModel.State);
+    Assert.Null(viewModel.LocalizedProvenanceLabel);
+    service.PendingTopicResponse.SetResult(new TopicResponse(new Topic(
+        "topic-1", "Updated Rewards", "updated-rewards", "rss_feed",
+        Provenance: new("api", new("verified", ClientName: "Updated Topic Agent")))));
+    await reload;
+
+    Assert.Contains("Feed Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+    Assert.DoesNotContain("Updated Topic Agent", viewModel.LocalizedProvenanceLabel, StringComparison.Ordinal);
+  }
+
   [Fact]
   public async Task ToggleFollowAsyncUsesTopicBookmarkEndpoints()
   {
@@ -159,7 +253,9 @@ public sealed class TopicDetailViewModelTests
 
     public TopicResponse? TopicResponse { get; init; }
 
-    public RssFeedsResponse? RssFeedsResponse { get; init; }
+    public TaskCompletionSource<TopicResponse>? PendingTopicResponse { get; set; }
+
+    public RssFeedsResponse? RssFeedsResponse { get; set; }
 
     public bool ThrowOnTopicFollow { get; init; }
 
@@ -181,6 +277,7 @@ public sealed class TopicDetailViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastTopicId = topicIdOrSlug;
+      if (PendingTopicResponse is { } pending) return pending.Task;
       return Task.FromResult(TopicResponse ?? throw new InvalidOperationException("Missing topic."));
     }
 

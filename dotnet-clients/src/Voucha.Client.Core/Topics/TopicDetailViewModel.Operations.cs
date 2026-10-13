@@ -7,19 +7,29 @@ namespace Voucha.Client.Core.Topics;
 public sealed partial class TopicDetailViewModel
 {
   public Task LoadAsync(string topicIdOrSlug, CancellationToken cancellationToken = default) =>
-      LoadAsync(topicIdOrSlug, followSource: true, cancellationToken);
+      LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: false, cancellationToken);
+
+  public Task LoadAsync(
+      string topicIdOrSlug,
+      bool followSource,
+      CancellationToken cancellationToken = default) =>
+      LoadAsync(topicIdOrSlug, followSource, isSourceDetail: false, cancellationToken);
 
   public async Task LoadAsync(
       string topicIdOrSlug,
       bool followSource,
+      bool isSourceDetail,
       CancellationToken cancellationToken = default)
   {
+    SetSourceDetailMode(isSourceDetail);
+    SourceProvenance = null;
     State = LoadState.Loading;
     ErrorMessage = null;
     try
     {
       var response = await topicsService.FetchTopicAsync(topicIdOrSlug, cancellationToken).ConfigureAwait(true);
       ApplyTopicResponse(response);
+      SetSourceDetailMode(isSourceDetail && response.Topic.TopicType == "rss_feed");
       if (followSource && response.Topic.TopicType == "rss_feed")
       {
         await LoadSourceAsync(response.Topic.Id, cancellationToken).ConfigureAwait(true);
@@ -30,6 +40,8 @@ public sealed partial class TopicDetailViewModel
     {
       State = ex is OperationCanceledException ? LoadState.Idle : LoadState.Error;
       ErrorMessage = ex is OperationCanceledException ? null : ex.Message;
+      SetSourceDetailMode(false);
+      SourceProvenance = null;
       Topic = null;
     }
   }
@@ -127,6 +139,7 @@ public sealed partial class TopicDetailViewModel
     var feeds = await topicsService.FetchRssFeedsForTopicAsync(topicId, cancellationToken: cancellationToken).ConfigureAwait(true);
     var feed = feeds.Results.Count > 0 ? feeds.Results[0] : null;
     SourceRssFeedId = feed?.Id;
+    SourceProvenance = feed?.Provenance;
     IsFollowingSource = feed is not null &&
         BookmarkSidecar.IsActive(feeds.Bookmarks, feed.Id, BookmarkPredicate.Follow);
     IsMutedSource = feed is not null &&

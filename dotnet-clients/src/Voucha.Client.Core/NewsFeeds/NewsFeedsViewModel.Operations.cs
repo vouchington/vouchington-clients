@@ -84,34 +84,42 @@ public sealed partial class NewsFeedsViewModel
   {
     ArgumentNullException.ThrowIfNull(item);
     if (item.Kind is not (NewsFeedItemKind.Article or NewsFeedItemKind.Media)) return;
-
-    var previousItems = Items;
-    var mutationScope = SelectedScope;
-    var mutationLoadRequestId = loadRequestId;
-    var isRead = !item.IsRead;
-    if (FindStoryPeer(item.Id) is { } related)
-    {
-      await MutateStoryPeerAsync(related, item, peer => peer with { IsRead = isRead }, false,
-          () => newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken)).ConfigureAwait(true);
-      return;
-    }
-    Items = ToggleRead(previousItems, item.Id, isRead);
-    var optimisticItems = Items;
-    ErrorMessage = null;
+    if (!togglingReadIds.Add(item.Id)) return;
 
     try
     {
-      await newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken).ConfigureAwait(true);
-      if (SelectedScope == mutationScope && loadRequestId == mutationLoadRequestId)
-        Items = ToggleRead(Items, item.Id, isRead);
+      var previousItems = Items;
+      var mutationScope = SelectedScope;
+      var mutationLoadRequestId = loadRequestId;
+      var isRead = !item.IsRead;
+      if (FindStoryPeer(item.Id) is { } related)
+      {
+        await MutateStoryPeerAsync(related, item, peer => peer with { IsRead = isRead }, false,
+            () => newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken)).ConfigureAwait(true);
+        return;
+      }
+      Items = ToggleRead(previousItems, item.Id, isRead);
+      var optimisticItems = Items;
+      ErrorMessage = null;
+
+      try
+      {
+        await newsFeedService.SetReadAsync(item.Id, isRead, cancellationToken).ConfigureAwait(true);
+        if (SelectedScope == mutationScope && loadRequestId == mutationLoadRequestId)
+          Items = ToggleRead(Items, item.Id, isRead);
+      }
+      catch (OperationCanceledException)
+      {
+        RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, null);
+      }
+      catch (Exception ex)
+      {
+        RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
+      }
     }
-    catch (OperationCanceledException)
+    finally
     {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, null);
-    }
-    catch (Exception ex)
-    {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
+      togglingReadIds.Remove(item.Id);
     }
   }
 
@@ -162,7 +170,7 @@ public sealed partial class NewsFeedsViewModel
       IReadOnlyList<NewsFeedItem> previousItems,
       string? rollbackErrorMessage)
   {
-    if (SelectedScope != mutationScope || loadRequestId != mutationLoadRequestId || !ReferenceEquals(Items, optimisticItems))
+    if (SelectedScope != mutationScope || loadRequestId != mutationLoadRequestId || !Items.SequenceEqual(optimisticItems))
     {
       return;
     }

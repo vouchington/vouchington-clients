@@ -16,6 +16,8 @@ public sealed partial class TopicDetailViewModel : ObservableObject, IDisposable
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
   private string? sourceRssFeedId;
+  private PublicContentProvenance? sourceProvenance;
+  private bool isSourceDetail;
   private bool isFollowingTopic;
   private bool isFollowingSource;
   private bool isMutedTopic;

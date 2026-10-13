@@ -60,6 +60,7 @@
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
                                 <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Description}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />
                                 <Label Text="{Binding Slug}" Style="{StaticResource Metadata}" />
                                 <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasVoteCounts}">
