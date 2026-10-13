@@ -174,7 +174,8 @@ public sealed partial class MemberMcpSessionTests
     var factory = new FakeFactory { HoldRefresh = true };
     using var session = new MemberMcpSession(identity, store, factory);
     await session.ConnectAsync(TestContext.Current.CancellationToken);
-    var refreshing = session.RefreshToolsAsync(TestContext.Current.CancellationToken);
+    var controls = new MemberMcpControlsViewModel(session);
+    var refreshing = controls.RefreshToolsAsync(TestContext.Current.CancellationToken);
     await factory.Connections[0].RefreshEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
 
     identity.SetAccount("account-b");
@@ -183,6 +184,29 @@ public sealed partial class MemberMcpSessionTests
 
     Assert.Null(session.Tools);
     Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+    Assert.False(controls.HasError);
+    Assert.True(controls.CanConnect);
+  }
+
+  [Fact]
+  public async Task TransientConnectFailureRetainsGrantAndOffersRetry()
+  {
+    var store = new FakeStore();
+    await store.SaveAsync(Scope("account-a"), Tokens);
+    var factory = new FakeFactory { FailConnect = true };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    var controls = new MemberMcpControlsViewModel(session);
+
+    await Assert.ThrowsAsync<IOException>(() => controls.ConnectAsync(TestContext.Current.CancellationToken));
+    controls.MarkError();
+    Assert.True(controls.HasError);
+    Assert.True(controls.CanConnect);
+    Assert.NotNull(await store.LoadAsync(Scope("account-a")));
+
+    factory.FailConnect = false;
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.True(controls.IsConnected);
+    Assert.Equal(2, factory.Created);
   }
 
   [Fact]
@@ -415,18 +439,19 @@ public sealed partial class MemberMcpSessionTests
     public int Created => Connections.Count;
     public bool HoldConnect { get; set; }
     public bool HoldRefresh { get; set; }
+    public bool FailConnect { get; set; }
     public bool FailDisconnect { get; set; }
     public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
     {
       var hold = Connections.Count < disconnectHolds.Length ? disconnectHolds[Connections.Count] : null;
-      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailDisconnect);
+      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, FailDisconnect);
       Connections.Add(connection);
       return Task.FromResult<IMemberMcpSessionConnection>(connection);
     }
   }
 
   private sealed class FakeConnection(TaskCompletionSource? disconnectHold, bool holdConnect, bool holdRefresh,
-      bool failDisconnect)
+      bool failConnect, bool failDisconnect)
       : IMemberMcpSessionConnection
   {
     public bool FailRefresh { get; set; }
@@ -440,6 +465,7 @@ public sealed partial class MemberMcpSessionTests
     {
       ConnectEntered.TrySetResult();
       if (holdConnect) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      if (failConnect) throw new IOException("Transient discovery failure");
       return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
     public async Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken)

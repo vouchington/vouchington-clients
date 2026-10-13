@@ -145,7 +145,7 @@ public sealed class MemberMcpTokenLifecycleReviewTests
     using var client = NewClient(new GrantHandler());
     var manager = new MemberMcpTokenManager("member-1", store, client);
 
-    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
 
     Assert.Equal("member-1", store.LastScope?.AccountId);
     Assert.Equal("https://example.test", store.LastScope?.IssuerIdentifier);

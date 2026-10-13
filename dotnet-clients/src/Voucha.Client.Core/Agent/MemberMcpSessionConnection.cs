@@ -72,7 +72,7 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
     {
       try
       {
-        await client.CloseAsync(await tokens.AccessTokenAsync().ConfigureAwait(false), cancellationToken)
+        await client.CloseAsync(await tokens.AccessTokenAsync(cancellationToken).ConfigureAwait(false), cancellationToken)
             .ConfigureAwait(false);
       }
       catch (McpUnauthorizedException) { }
@@ -80,10 +80,10 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
     finally { await tokens.SignOutAsync(cancellationToken).ConfigureAwait(false); }
   }
 
-  public ValueTask DisposeAsync()
+  public async ValueTask DisposeAsync()
   {
+    await tokens.BeginLocalSignOutAsync().ConfigureAwait(false);
     client.Dispose();
     tokenClient.Dispose();
-    return ValueTask.CompletedTask;
   }
 }

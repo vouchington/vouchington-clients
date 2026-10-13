@@ -10,7 +10,8 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   public bool HasMemberSession => session.HasMemberSession;
   public bool IsConnected => session.Status == MemberMcpSessionStatus.Connected;
   public bool IsBusy => session.Status == MemberMcpSessionStatus.Connecting;
-  public bool CanConnect => HasMemberSession && !IsConnected && !IsBusy && !HasError;
+  public bool CanConnect => HasMemberSession && !IsConnected && !IsBusy &&
+      (!hasError || session.Status == MemberMcpSessionStatus.Error);
   public bool CanDisconnect => IsBusy || IsConnected || HasError;
   public bool HasError => hasError || session.Status == MemberMcpSessionStatus.Error;
 
@@ -26,7 +27,7 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   {
     hasError = false;
     try { await session.RefreshToolsAsync(cancellationToken).ConfigureAwait(true); }
-    catch
+    catch (Exception error) when (error is not OperationCanceledException)
     {
       hasError = true;
       Refresh();

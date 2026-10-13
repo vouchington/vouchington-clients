@@ -87,7 +87,7 @@ public sealed class MemberMcpTokenManagerTests
       var second = manager.ClearAsync();
       Assert.Same(first, second);
       Assert.Equal(1, store.ClearCount);
-      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
       store.ReleaseClear.TrySetResult();
       await Task.WhenAll(first, second);
       Assert.Equal(1, store.ClearCount);
@@ -142,7 +142,7 @@ public sealed class MemberMcpTokenManagerTests
         new Uri("https://example.test/api/v1/mcp"), handler);
     var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
 
-    Assert.Equal("new-access", await manager.AccessTokenAsync());
+    Assert.Equal("new-access", await manager.AccessTokenAsync(TestContext.Current.CancellationToken));
     Assert.Equal(1, handler.CallCount);
     Assert.Equal("new-refresh", store.Current?.RefreshToken);
     var persisted = System.Text.Json.JsonSerializer.Deserialize<MemberMcpOAuthTokens>(
@@ -179,7 +179,7 @@ public sealed class MemberMcpTokenManagerTests
       await signOut;
       await Assert.ThrowsAsync<McpUnauthorizedException>(() => pending);
       Assert.Null(store.Current);
-      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
     }
     finally
     {
@@ -205,7 +205,7 @@ public sealed class MemberMcpTokenManagerTests
         Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
         new Uri("https://example.test/api/v1/mcp"), handler);
     var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
-    var access = manager.AccessTokenAsync();
+    var access = manager.AccessTokenAsync(TestContext.Current.CancellationToken);
     await store.SaveEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
 
     var draining = manager.BeginLocalSignOutAsync();
@@ -214,7 +214,7 @@ public sealed class MemberMcpTokenManagerTests
     await draining;
 
     Assert.Equal("new-refresh", store.Current?.RefreshToken);
-    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
     await Assert.ThrowsAsync<McpUnauthorizedException>(() => access);
   }
 

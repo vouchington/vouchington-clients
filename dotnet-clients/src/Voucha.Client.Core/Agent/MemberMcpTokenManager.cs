@@ -20,14 +20,14 @@ public sealed partial class MemberMcpTokenManager(
   private bool signedOut;
   private bool clearing;
 
-  public async Task<string> AccessTokenAsync()
+  public async Task<string> AccessTokenAsync(CancellationToken cancellationToken = default)
   {
     lock (gate) { if (signedOut || clearing) throw new McpUnauthorizedException(); }
     var tokens = await store.LoadAsync(scope).ConfigureAwait(false)
         ?? throw new McpUnauthorizedException();
     lock (gate) { if (signedOut || clearing) throw new McpUnauthorizedException(); }
     if (tokens.AcquiredAt.AddSeconds(tokens.ExpiresIn - 30) <= DateTimeOffset.UtcNow)
-      return await RefreshAsync().ConfigureAwait(false);
+      return await RefreshAsync(cancellationToken).ConfigureAwait(false);
     return tokens.AccessToken;
   }
 
