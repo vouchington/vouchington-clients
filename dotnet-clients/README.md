@@ -150,7 +150,7 @@ Unlike ordinary development, this lock boundary uses a fresh job-scoped SDK root
 exact `sdk.version` declared in the repository-root `global.json`; this prevents `latestPatch` from selecting a newer SDK
 left by an earlier job on a persistent runner.
 
-Windows packaging can be built locally on Windows. The macOS app head is the supported compile-check proxy on the current runner fleet.
+Windows packaging can be built locally on Windows. CI compiles the actual Windows MAUI app on `windows-latest` for relevant source and toolchain changes, without packaging or signing. Mac Catalyst remains the rendered App test host.
 
 ## Structure
 
