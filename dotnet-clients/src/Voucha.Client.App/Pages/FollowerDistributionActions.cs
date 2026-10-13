@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.FollowerDistributions;
@@ -45,7 +46,11 @@ internal static class FollowerDistributionActions
       return;
     }
     if (choice == send && sessionStore.Current.IsAuthenticated && sessionStore.Current.Identity?.Id == userId)
-      await page.Navigation.PushModalAsync(new FollowerDistributionSendPage(state, userId, sessionStore)).ConfigureAwait(true);
+      await page.Navigation.PushModalAsync(new FollowerDistributionSendPage(
+          state,
+          userId,
+          sessionStore,
+          services.GetRequiredService<AppConfig>())).ConfigureAwait(true);
     else state.Dispose();
   }
 }

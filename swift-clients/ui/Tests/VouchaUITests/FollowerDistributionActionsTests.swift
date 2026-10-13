@@ -2,6 +2,8 @@ import Foundation
 import SwiftUI
 import ViewInspector
 import VouchaAPI
+import VouchaCore
+import VouchaDesignSystem
 @testable import VouchaFeatures
 import XCTest
 
@@ -111,6 +113,46 @@ final class FollowerDistributionActionsTests: XCTestCase {
         }
     }
 
+    func testRenderedRecipientRowsUseOnlyPlacementImagesAndKeepSelectedAvatar() async throws {
+        let followersPath = "/api/v1/users/viewer-1/users/followers"
+        let baseURL = try XCTUnwrap(URL(string: "http://localhost:2999"))
+        let imageBaseURL = try XCTUnwrap(URL(string: "https://images.test"))
+        let config = AppConfig(
+            baseURL: baseURL,
+            imageBaseURL: imageBaseURL
+        )
+        let page = try followersPageWithPlacement()
+        CannedFeedURLProtocol.handlers[followersPath] = (page, 200)
+        let viewModel = makeViewModel()
+        let sut = FollowerDistributionSendSheet(viewModel: viewModel, imageConfig: config)
+            .environment(\.locale, Locale(identifier: "en_US"))
+
+        try await ViewHosting.host(sut) {
+            try sut.inspect().find(ViewType.Picker.self).select(value: false)
+            try sut.inspect().find(ViewType.TextField.self).setInput("alex")
+            await waitUntil { viewModel.recipients.count == 2 }
+
+            let avatars = try sut.inspect().findAll(Avatar.self)
+            XCTAssertEqual(avatars.count, 2)
+            let firstAvatar = try avatars[0].actualView()
+            XCTAssertEqual(
+                firstAvatar.imageURL,
+                "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"
+            )
+            let legacyAvatar = try avatars[1].actualView()
+            XCTAssertNil(legacyAvatar.imageURL, "Legacy image IDs must not be used as avatar URLs")
+
+            try sut.inspect().find(ViewType.Toggle.self, containing: "friend").tap()
+            XCTAssertEqual(viewModel.selectedRecipientIds, ["friend-1"])
+            let selectedAvatar = try sut.inspect().findAll(Avatar.self).first
+            let selected = try XCTUnwrap(selectedAvatar).actualView()
+            XCTAssertEqual(
+                selected.imageURL,
+                "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"
+            )
+        }
+    }
+
     func testRenderedSendSheetKeepsSelectedRecipientsVisibleAcrossSearches() async throws {
         let followersPath = "/api/v1/users/viewer-1/users/followers"
         CannedFeedURLProtocol.queuedHandlers[followersPath] = [
@@ -170,6 +212,27 @@ final class FollowerDistributionActionsTests: XCTestCase {
         return Data(
             #"{"results":[\#(users)],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(cursor)}}"#.utf8
         )
+    }
+
+    private func followersPageWithPlacement() throws -> Data {
+        var response = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: ApiFixtureLoader.data("swift.users.followers.default")) as? [String: Any]
+        )
+        var results = try XCTUnwrap(response["results"] as? [[String: Any]])
+        // The claimed fixture omits this optional field; exercise its positive path with a
+        // test-local descriptor while keeping the second result legacy-only.
+        results[0]["profile_image_placement"] = [
+            "image_id": "00000000-0000-7000-8000-000000000201",
+            "placement_id": "00000000-0000-7000-8000-000000000301",
+            "placement_revision": 2
+        ]
+        results.append([
+            "id": recipientId(2),
+            "username": "bob",
+            "profile_image_id": "legacy-only"
+        ])
+        response["results"] = results
+        return try JSONSerialization.data(withJSONObject: response, options: [.sortedKeys])
     }
 
     private func acceptedResponse() -> Data {

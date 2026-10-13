@@ -3,18 +3,28 @@ using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.FollowerDistributions;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core;
 
 namespace Voucha.Client.App.Pages;
 
-internal sealed class FollowerDistributionSendPage : ContentPage
+internal sealed partial class FollowerDistributionSendPage : ContentPage
 {
   private readonly FollowerDistributionViewModel state;
   private readonly string userId;
   private readonly ISessionStore sessionStore;
+  private readonly AppConfig config;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly VerticalStackLayout recipients = new() { Spacing = 6 };
-  private readonly VerticalStackLayout selectedRecipients = new() { Spacing = 6 };
-  private readonly Entry search = new() { Placeholder = T(UiMessageKey.NativeSwiftFollowerDistributionSearchFollowers) };
+  private readonly VerticalStackLayout selectedRecipients = new()
+  {
+    Spacing = 6,
+    AutomationId = "follower-distribution-selected-recipients"
+  };
+  private readonly Entry search = new()
+  {
+    Placeholder = T(UiMessageKey.NativeSwiftFollowerDistributionSearchFollowers),
+    AutomationId = "follower-distribution-search"
+  };
   private readonly Button selected = new() { Text = T(UiMessageKey.NativeSwiftFollowerDistributionSelectedFollowers) };
   private readonly Button all = new() { Text = T(UiMessageKey.NativeSwiftFollowerDistributionAllFollowers) };
   private readonly Button send = new() { Text = UiCopy.Localize(UiMessageKey.NativeSwiftCommonSend) };
@@ -24,9 +34,13 @@ internal sealed class FollowerDistributionSendPage : ContentPage
   private bool isSessionChangedAttached;
   private bool isDismissing;
 
-  public FollowerDistributionSendPage(FollowerDistributionViewModel state, string userId, ISessionStore sessionStore)
+  public FollowerDistributionSendPage(
+      FollowerDistributionViewModel state,
+      string userId,
+      ISessionStore sessionStore,
+      AppConfig config)
   {
-    this.state = state; this.userId = userId; this.sessionStore = sessionStore;
+    this.state = state; this.userId = userId; this.sessionStore = sessionStore; this.config = config;
     sessionChangedHandler = (_, args) =>
     {
       if (args.Snapshot.Identity?.Id != userId)
@@ -85,7 +99,11 @@ internal sealed class FollowerDistributionSendPage : ContentPage
 
   private View Recipient(User user)
   {
-    var checkbox = new CheckBox { IsChecked = state.SelectedIds.Contains(user.Id) };
+    var checkbox = new CheckBox
+    {
+      IsChecked = state.SelectedIds.Contains(user.Id),
+      AutomationId = $"follower-recipient-checkbox-{user.Id}"
+    };
     checkbox.CheckedChanged += (_, _) =>
     {
       var changed = state.ToggleSelection(user);
@@ -95,7 +113,7 @@ internal sealed class FollowerDistributionSendPage : ContentPage
     return new HorizontalStackLayout
     {
       Spacing = 8,
-      Children = { checkbox, new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center } }
+      Children = { checkbox, Avatar(user), new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center } }
     };
   }
 
@@ -106,7 +124,7 @@ internal sealed class FollowerDistributionSendPage : ContentPage
     return new HorizontalStackLayout
     {
       Spacing = 8,
-      Children = { new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center }, remove }
+      Children = { Avatar(user), new Label { Text = Name(user), VerticalOptions = LayoutOptions.Center }, remove }
     };
   }
 

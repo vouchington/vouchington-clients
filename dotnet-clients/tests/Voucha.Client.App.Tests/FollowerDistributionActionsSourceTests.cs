@@ -70,7 +70,8 @@ public sealed class FollowerDistributionActionsSourceTests
     var page = Source("FollowerDistributionSendPage.cs");
 
     Assert.Contains("sessionStore.Current.Identity?.Id == userId", actions, StringComparison.Ordinal);
-    Assert.Contains("new FollowerDistributionSendPage(state, userId, sessionStore)", actions, StringComparison.Ordinal);
+    Assert.Contains("new FollowerDistributionSendPage(", actions, StringComparison.Ordinal);
+    Assert.Contains("services.GetRequiredService<AppConfig>()", actions, StringComparison.Ordinal);
     Assert.Contains("sessionStore.SessionChanged += sessionChangedHandler", page, StringComparison.Ordinal);
     Assert.Contains("sessionStore.SessionChanged -= sessionChangedHandler", page, StringComparison.Ordinal);
     Assert.Contains("args.Snapshot.Identity?.Id != userId", page, StringComparison.Ordinal);
