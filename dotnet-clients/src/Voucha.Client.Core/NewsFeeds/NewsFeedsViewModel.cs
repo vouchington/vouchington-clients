@@ -103,14 +103,7 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   public IReadOnlyList<NewsFeedItem> Items
   {
     get => items;
-    private set
-    {
-      if (ReferenceEquals(items, value)) return;
-      items = value;
-      feedPages.ReplaceItems(value);
-      OnPropertyChanged();
-      OnPropertyChanged(nameof(HasItems));
-    }
+    private set => SetItems(value);
   }
 
   public bool HasItems => Items.Count > 0;
@@ -159,7 +152,16 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   public void OnUiLocaleChanged()
   {
     foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
-    Items = Items.Select(Localized).ToArray();
+    SetItems(Items.Select(Localized).ToArray(), synchronizeFeedPages: feedPages.HasLoadedPage || !feedPages.IsLoading);
+  }
+
+  private void SetItems(IReadOnlyList<NewsFeedItem> value, bool synchronizeFeedPages = true)
+  {
+    if (ReferenceEquals(items, value)) return;
+    items = value;
+    if (synchronizeFeedPages) feedPages.ReplaceItems(value);
+    OnPropertyChanged(nameof(Items));
+    OnPropertyChanged(nameof(HasItems));
   }
 
   private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

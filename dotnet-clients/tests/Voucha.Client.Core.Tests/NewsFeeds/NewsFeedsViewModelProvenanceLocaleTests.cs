@@ -39,6 +39,57 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   }
 
   [Fact]
+  public async Task LocaleChangeDuringReplacementDoesNotRestoreRowsIntoTheResetPage()
+  {
+    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    var localization = new UiLocalization(controller);
+    var oldItem = new NewsFeedItem(
+        "deleted-article",
+        "Deleted article",
+        "Fixture source",
+        "Summary",
+        null,
+        DateTimeOffset.UnixEpoch,
+        Provenance: new("mcp", new("verified", ClientName: "Old Agent")));
+    var newItem = new NewsFeedItem(
+        "current-article",
+        "Current article",
+        "Fixture source",
+        "Summary",
+        null,
+        DateTimeOffset.UnixEpoch);
+    var feed = new HeldContinuationFeedService(oldItem);
+    using var viewModel = new NewsFeedsViewModel(
+        feed,
+        NewsFeedKind.News,
+        NewsFeedScope.AllNews,
+        localization: localization,
+        localeController: controller);
+    using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    Task? refresh = null;
+    try
+    {
+      await viewModel.LoadAsync(cancellation.Token);
+      refresh = viewModel.LoadAsync(cancellation.Token);
+      await feed.ContinuationStarted.Task.WaitAsync(cancellation.Token);
+
+      controller.ApplySavedLocale("es");
+      Assert.Equal("deleted-article", Assert.Single(viewModel.Items).Id);
+
+      feed.ReleaseContinuation(new NewsFeedPage([newItem], new("cursor-2", false, null)));
+      await refresh;
+
+      Assert.Equal("current-article", Assert.Single(viewModel.Items).Id);
+    }
+    finally
+    {
+      cancellation.Cancel();
+      feed.ReleaseContinuation(new NewsFeedPage([], new(null, false, null)));
+      if (refresh is not null) await refresh;
+    }
+  }
+
+  [Fact]
   public async Task FailedSaveAfterLocaleChangeRollsBackTheOptimisticState()
   {
     using var controller = new UiLocaleController(new DeviceLanguage("en"));
