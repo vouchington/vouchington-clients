@@ -107,6 +107,7 @@ public sealed class AccountTypeAuthorRenderingTests
     var appeals = Named<Button>(card, "authored-post-appeals");
     var body = Named<VisualElement>(card, "authored-post-body");
     var embed = Named<VisualElement>(card, "authored-post-embed");
+    var thumbnail = Assert.Single(Descendants<Image>(embed));
 
     foreach (var (viewer, staff, showAppeals, showBody, showEmbed) in new[]
     {
@@ -120,6 +121,7 @@ public sealed class AccountTypeAuthorRenderingTests
       Assert.Equal(showAppeals, appeals.IsVisible);
       Assert.Equal(showBody, body.IsVisible);
       Assert.Equal(showEmbed, embed.IsVisible);
+      Assert.Equal(showEmbed, thumbnail.Source is not null);
       Assert.Equal(!staff || viewer == "user-1", notice.IsVisible);
       Assert.Equal(!staff || viewer == "user-1", notice.Text is not null);
     }
@@ -140,11 +142,13 @@ public sealed class AccountTypeAuthorRenderingTests
     var appeals = Named<Button>(page, "authored-post-appeals");
     var body = Named<VisualElement>(page, "authored-post-body");
     var embed = Named<VisualElement>(page, "authored-post-embed");
+    var thumbnail = Assert.Single(Descendants<Image>(embed));
     var quote = Named<Button>(page, "authored-post-quote");
     Assert.True(notice.IsVisible);
     Assert.True(appeals.IsVisible);
     Assert.False(body.IsVisible);
     Assert.False(embed.IsVisible);
+    Assert.Null(thumbnail.Source);
     Assert.False(quote.IsVisible);
 
     rootProperty.SetValue(binding, RejectedDetailRow("other", true) with { CanReply = true });
@@ -152,16 +156,29 @@ public sealed class AccountTypeAuthorRenderingTests
     Assert.False(appeals.IsVisible);
     Assert.True(body.IsVisible);
     Assert.True(embed.IsVisible);
+    Assert.NotNull(thumbnail.Source);
     Assert.True(quote.IsVisible);
 
     var comments = Assert.Single(Descendants<CollectionView>(page), view =>
         ReferenceEquals(view.ItemsSource, binding.CommentRows));
     var card = Assert.IsAssignableFrom<View>(comments.ItemTemplate.CreateContent());
     var commentQuote = Named<Button>(card, "authored-comment-quote");
+    var commentThumbnail = Assert.Single(Descendants<Image>(card));
     card.BindingContext = RejectedDetailRow("other", false) with { CanReply = true };
     Assert.False(commentQuote.IsVisible);
+    Assert.Null(commentThumbnail.Source);
     card.BindingContext = RejectedDetailRow("other", true) with { CanReply = true };
     Assert.True(commentQuote.IsVisible);
+    Assert.NotNull(commentThumbnail.Source);
+
+    var ancestors = Assert.Single(Descendants<CollectionView>(page), view =>
+        ReferenceEquals(view.ItemsSource, binding.AncestorRows));
+    var ancestorCard = Assert.IsAssignableFrom<View>(ancestors.ItemTemplate.CreateContent());
+    var ancestorThumbnail = Assert.Single(Descendants<Image>(ancestorCard));
+    ancestorCard.BindingContext = RejectedDetailRow("other", false);
+    Assert.Null(ancestorThumbnail.Source);
+    ancestorCard.BindingContext = RejectedDetailRow("other", true);
+    Assert.NotNull(ancestorThumbnail.Source);
   }
 
   [Fact]
@@ -206,7 +223,8 @@ public sealed class AccountTypeAuthorRenderingTests
     await refreshTask;
   }
 
-  private static readonly UrlEmbedPreview Preview = new("preview", null, null, null, null, null);
+  private static readonly UrlEmbedPreview Preview = new("preview", null, null,
+      new Uri("https://cdn.example.test/private-preview.png"), null, null);
 
   private static PostRow RejectedRow(string viewer, bool staff) =>
       PostRows.From(Post(null) with { ClearanceStatus = "rejected", ClearanceReason = "Public reason" },

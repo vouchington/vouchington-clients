@@ -73,6 +73,7 @@ public sealed record PostDetailPageRow(
       ? Localization.Localize(UiMessageKey.NativeDotnetModerationInReview)
       : null;
   public bool HasEmbedPreview => PostContentPolicy.CanShowMedia(Post.ClearanceStatus, IsStaffViewer) && EmbedPreview?.HasPreview == true;
+  public UrlEmbedPreview? VisibleEmbedPreview => HasEmbedPreview ? EmbedPreview : null;
   public bool CanPlayEmbed => HasEmbedPreview && EmbedPreview?.CanPlay == true;
   public bool HasEmbedSource => HasEmbedPreview && EmbedPreview?.HasSource == true;
 

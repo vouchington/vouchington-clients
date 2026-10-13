@@ -63,6 +63,7 @@ public sealed record PostRow(
   public bool ShowAppealsAction => ContentPresentation == PostContentPresentation.RemovedForAuthor;
   public bool ShowNotice => ContentPresentation is PostContentPresentation.RemovedForAuthor or PostContentPresentation.Unavailable;
   public bool ShowEmbed => PostContentPolicy.CanShowMedia(ClearanceStatus, IsStaffViewer) && EmbedPreview?.HasPreview == true;
+  public UrlEmbedPreview? VisibleEmbedPreview => ShowEmbed ? EmbedPreview : null;
   public bool CanPlayEmbed => ShowEmbed && EmbedPreview?.CanPlay == true;
   public bool HasEmbedSource => ShowEmbed && EmbedPreview?.HasSource == true;
   public string? LocalizedNotice => ContentPresentation switch

@@ -75,10 +75,10 @@
                                         MaxLines="3" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout AutomationId="authored-post-embed" Spacing="4" IsVisible="{Binding ShowEmbed}">
-                                    <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
-                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
-                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
-                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                    <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
                                 </VerticalStackLayout>
                                 <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />

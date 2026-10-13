@@ -34,10 +34,10 @@
                     <Button AutomationId="authored-post-appeals" Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding RootRow.ShowAppealsAction}" Clicked="OnAppealsClicked" />
                     <controls:NativeHtmlContentView AutomationId="authored-post-body" Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" IsRightToLeft="{Binding RootRow.ContentIsRightToLeft}" IsVisible="{Binding RootRow.ShowBodyContent}" />
                     <VerticalStackLayout AutomationId="authored-post-embed" Spacing="4" IsVisible="{Binding RootRow.HasEmbedPreview}">
-                        <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.EmbedPreview.ThumbnailUrl}" />
-                        <Label Text="{Binding RootRow.EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
-                        <Label Text="{Binding RootRow.EmbedPreview.Title}" Style="{StaticResource Headline}" />
-                        <Label Text="{Binding RootRow.EmbedPreview.Description}" Style="{StaticResource Body}" />
+                        <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.VisibleEmbedPreview.ThumbnailUrl}" />
+                        <Label Text="{Binding RootRow.VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                        <Label Text="{Binding RootRow.VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
+                        <Label Text="{Binding RootRow.VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
                         <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.CanPlayEmbed}" />
                         <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding RootRow}" IsVisible="{Binding RootRow.HasEmbedSource}" />
                     </VerticalStackLayout>
@@ -108,10 +108,10 @@
                                 <Label Text="{Binding LocalizedRemovalReason}" IsVisible="{Binding ShowAppealsAction}" Style="{StaticResource Metadata}" />
                                 <Button Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding ShowAppealsAction}" Clicked="OnAppealsClicked" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding HasEmbedPreview}">
-                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
-                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
-                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
-                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
                                     <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanPlayEmbed}" />
                                     <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasEmbedSource}" />
                                 </VerticalStackLayout>
@@ -154,10 +154,10 @@
                                 <Button Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding ShowAppealsAction}" Clicked="OnAppealsClicked" />
                                 <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" IsRightToLeft="{Binding ContentIsRightToLeft}" IsVisible="{Binding ShowBodyContent}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding HasEmbedPreview}">
-                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
-                                    <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
-                                    <Label Text="{Binding EmbedPreview.Title}" Style="{StaticResource Headline}" />
-                                    <Label Text="{Binding EmbedPreview.Description}" Style="{StaticResource Body}" />
+                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
+                                    <Label Text="{Binding VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
                                     <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanPlayEmbed}" />
                                     <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasEmbedSource}" />
                                 </VerticalStackLayout>
