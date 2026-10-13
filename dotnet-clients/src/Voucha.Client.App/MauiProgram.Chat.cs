@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.App.Chat;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Chat;
 using Voucha.Client.Core.Localization;
