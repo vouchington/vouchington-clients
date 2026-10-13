@@ -232,6 +232,7 @@ public sealed class PublicEntityProvenanceRenderingTests
     locale.ApplySavedLocale("es");
 
     var refreshedItems = Assert.IsAssignableFrom<IReadOnlyList<NewsFeedItem>>(collection.ItemsSource);
+    Assert.NotSame(originalItems, refreshedItems);
     Assert.Same(model.Items, refreshedItems);
     var refreshed = Assert.Single(refreshedItems, row => row.Provenance?.App?.ClientName == "Fixture Agent");
     Assert.NotSame(verified, refreshed);

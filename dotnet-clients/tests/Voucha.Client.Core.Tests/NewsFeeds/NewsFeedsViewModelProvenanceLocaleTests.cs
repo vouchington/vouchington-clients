@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Tests.Api;
@@ -31,6 +32,7 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
 
     var refreshedItems = viewModel.Items;
     var refreshed = Assert.Single(refreshedItems, item => item.Provenance?.App?.ClientName == "Fixture Agent");
+    Assert.NotSame(originalItems, refreshedItems);
     Assert.NotSame(original, refreshed);
     Assert.NotEqual(englishLabel, refreshed.LocalizedProvenanceLabel);
     Assert.Single(handler.Requests);
@@ -85,8 +87,74 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
     }
   }
 
+  [Fact]
+  public async Task FailedSaveDoesNotRollBackOverANewerItemMutation()
+  {
+    var first = new NewsFeedItem("article-1", "First", "Fixture", "", null, DateTimeOffset.UnixEpoch);
+    var second = new NewsFeedItem("article-2", "Second", "Fixture", "", null, DateTimeOffset.UnixEpoch);
+    var bookmarks = new ConcurrentBookmarkService(expectedRequests: 2);
+    using var viewModel = new NewsFeedsViewModel(
+        new HeldContinuationFeedService(first, second),
+        NewsFeedKind.News,
+        NewsFeedScope.AllNews,
+        bookmarks);
+    using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    Task? firstMutation = null;
+    Task? secondMutation = null;
+    try
+    {
+      await viewModel.LoadAsync(cancellation.Token);
+      firstMutation = viewModel.ToggleSaveAsync(viewModel.Items[0], cancellation.Token);
+      secondMutation = viewModel.ToggleSaveAsync(viewModel.Items[1], cancellation.Token);
+      await bookmarks.RequestsStarted.Task.WaitAsync(cancellation.Token);
+
+      bookmarks.Complete("article-1", new InvalidOperationException("First save failed."));
+      await firstMutation;
+
+      Assert.True(Assert.Single(viewModel.Items, item => item.Id == "article-2").IsSaved);
+
+      bookmarks.Complete("article-2");
+      await secondMutation;
+
+      Assert.True(Assert.Single(viewModel.Items, item => item.Id == "article-2").IsSaved);
+    }
+    finally
+    {
+      cancellation.Cancel();
+      bookmarks.Complete("article-1", new OperationCanceledException("Test cleanup."));
+      bookmarks.Complete("article-2", new OperationCanceledException("Test cleanup."));
+      if (firstMutation is not null) await firstMutation;
+      if (secondMutation is not null) await secondMutation;
+    }
+  }
+
   private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
   {
     public IReadOnlyList<string> PreferredLanguages { get; } = [language];
+  }
+
+  private sealed class ConcurrentBookmarkService(int expectedRequests) : IBookmarkService
+  {
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<Exception?>> requests = new(StringComparer.Ordinal);
+    private int requestCount;
+
+    public TaskCompletionSource RequestsStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Complete(string itemId, Exception? error = null) => Request(itemId).TrySetResult(error);
+
+    public async Task SetAsync(
+        string entityType,
+        string entityId,
+        BookmarkPredicate predicate,
+        bool active,
+        CancellationToken cancellationToken = default)
+    {
+      if (Interlocked.Increment(ref requestCount) == expectedRequests) RequestsStarted.TrySetResult();
+      var error = await Request(entityId).Task.WaitAsync(cancellationToken);
+      if (error is not null) throw error;
+    }
+
+    private TaskCompletionSource<Exception?> Request(string itemId) =>
+        requests.GetOrAdd(itemId, _ => new(TaskCreationOptions.RunContinuationsAsynchronously));
   }
 }

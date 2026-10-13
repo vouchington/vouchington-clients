@@ -162,7 +162,7 @@ public sealed partial class NewsFeedsViewModel
       IReadOnlyList<NewsFeedItem> previousItems,
       string? rollbackErrorMessage)
   {
-    if (SelectedScope != mutationScope || loadRequestId != mutationLoadRequestId || !ReferenceEquals(Items, optimisticItems))
+    if (SelectedScope != mutationScope || loadRequestId != mutationLoadRequestId || !Items.SequenceEqual(optimisticItems))
     {
       return;
     }
