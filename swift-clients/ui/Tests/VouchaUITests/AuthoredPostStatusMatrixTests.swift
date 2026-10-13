@@ -15,14 +15,15 @@ final class AuthoredPostStatusMatrixTests: XCTestCase {
     func testEverySupportedTypeHidesRejectedBodyFromOtherViewers() throws {
         for type in supportedTypes {
             let post = try fixturePost(type: type, status: "rejected")
-            let other = PostCard(post: post, variant: .expanded, currentUserId: "other")
-            let author = PostCard(post: post, variant: .expanded, currentUserId: "user-1")
+            let other = PostCard(post: post, variant: .expanded, currentUserId: "other", onViewAppeals: {})
+            let author = PostCard(post: post, variant: .expanded, currentUserId: "user-1", onViewAppeals: {})
             let staff = PostCard(post: post, variant: .expanded, currentUserId: "other", isStaffViewer: true)
 
             XCTAssertNoThrow(try other.inspect().find(text: "This content is unavailable."), type)
             XCTAssertThrowsError(try other.inspect().find(text: "Authored profile review"), type)
             XCTAssertThrowsError(try other.inspect().find(button: "View appeals"), type)
             XCTAssertNoThrow(try author.inspect().find(text: "This content was removed by a moderator."), type)
+            XCTAssertNoThrow(try author.inspect().find(button: "View appeals"), type)
             XCTAssertThrowsError(try author.inspect().find(text: "Authored profile review"), type)
             XCTAssertNoThrow(try staff.inspect().find(text: "In review"), type)
             XCTAssertNoThrow(try staff.inspect().find(text: "Authored profile review"), type)
