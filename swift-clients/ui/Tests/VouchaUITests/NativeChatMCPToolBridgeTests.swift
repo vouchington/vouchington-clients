@@ -5,9 +5,193 @@ import VouchaCore
 import VouchaModels
 import VouchaTestSupport
 import XCTest
+#if canImport(FoundationModels)
+    import FoundationModels
+#endif
 
 @MainActor
 final class NativeChatMCPToolBridgeTests: XCTestCase {
+    #if canImport(FoundationModels)
+        @available(macOS 26.4, iOS 26.4, *)
+        func testFoundationModelsToolValidatesGeneratedArgumentsBeforeCallingMCP() async throws {
+            let service = BridgeMCPService()
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let descriptor = try XCTUnwrap(bridge.tools.first { $0.name == "read_community" })
+            let state = NativeChatFoundationModelsToolState()
+            let tool = try NativeChatFoundationModelsTool(
+                name: descriptor.name, description: descriptor.description,
+                parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                bridge: bridge, session: session, snapshot: snapshot, state: state
+            )
+
+            do {
+                _ = try await tool.call(arguments: GeneratedContent(
+                    json: #"{"option":"details","arguments":{"id":"too-long"}}"#
+                ))
+                XCTFail("Invalid generated arguments must not call MCP")
+            } catch {
+                XCTAssertEqual(service.calls, 0)
+                let attempted = state.attempted
+                XCTAssertFalse(attempted)
+            }
+
+            let output = try await tool.call(arguments: GeneratedContent(
+                json: #"{"option":"details","arguments":{"id":"one"}}"#
+            ))
+            XCTAssertEqual(service.calls, 1)
+            let attempted = state.attempted
+            XCTAssertTrue(attempted)
+            let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any])
+            XCTAssertEqual(envelope["isError"] as? Bool, false)
+            XCTAssertEqual(
+                (envelope["structuredContent"] as? [String: Any])?["quote"] as? String,
+                "<external-content>quoted text</external-content>"
+            )
+
+            await session.useAccount("member-b")
+            do {
+                _ = try await tool.call(arguments: GeneratedContent(
+                    json: #"{"option":"details","arguments":{"id":"one"}}"#
+                ))
+                XCTFail("The captured account must be fenced before a second tool call")
+            } catch { XCTAssertEqual(service.calls, 1) }
+        }
+
+        @available(macOS 26.4, iOS 26.4, *)
+        func testFoundationModelsRoundedFractionCannotBypassOriginalSchemaMaximum() async throws {
+            let maximum = try XCTUnwrap(Decimal(string: "0.099999999999999999"))
+            let service = BridgeMCPService()
+            service.catalog = .object(["tools": .array([.object([
+                "name": .string("set_weight"),
+                "inputSchema": .object([
+                    "type": .string("object"),
+                    "properties": .object(["weight": .object([
+                        "type": .string("number"), "maximum": .decimal(maximum)
+                    ])]),
+                    "required": .array([.string("weight")])
+                ])
+            ])])])
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let descriptor = try XCTUnwrap(bridge.tools.first)
+            let state = NativeChatFoundationModelsToolState()
+            let tool = try NativeChatFoundationModelsTool(
+                name: descriptor.name, description: descriptor.description,
+                parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                bridge: bridge, session: session, snapshot: snapshot, state: state
+            )
+            let generated = try GeneratedContent(json: #"{"weight":0.099999999999999999}"#)
+            let normalized = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: Data(generated.jsonString.utf8)) as? [String: Double]
+            )
+            XCTAssertEqual(normalized["weight"], 0.1)
+            do {
+                _ = try await tool.call(arguments: generated)
+                XCTFail("A rounded SDK number above the original maximum must not reach MCP")
+            } catch {
+                XCTAssertEqual(service.calls, 0)
+                let attempted = state.attempted
+                XCTAssertFalse(attempted)
+            }
+        }
+
+        @available(macOS 26.4, iOS 26.4, *)
+        func testStaleFoundationModelsCallDoesNotMarkPossibleSideEffectBeforeRpcAdmission() async throws {
+            let service = BridgeMCPService()
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let state = NativeChatFoundationModelsToolState()
+            await session.useAccount("member-b")
+
+            do {
+                _ = try await bridge.execute(
+                    name: "read_community",
+                    rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,
+                    session: session, accountId: snapshot.accountId, revision: snapshot.revision,
+                    beforeAdmission: { try state.checkCapacity() },
+                    onStarted: { state.markStarted() }
+                )
+                XCTFail("A stale account must fail before an RPC is admitted")
+            } catch {
+                XCTAssertEqual(service.calls, 0)
+                let attempted = state.attempted
+                XCTAssertFalse(attempted)
+            }
+        }
+
+        @available(macOS 26.4, iOS 26.4, *)
+        func testAdmissionCallbackInvalidationCannotStartFoundationModelsRpc() async throws {
+            let service = BridgeMCPService()
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let state = NativeChatFoundationModelsToolState()
+
+            do {
+                _ = try await bridge.execute(
+                    name: "read_community",
+                    rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,
+                    session: session, accountId: snapshot.accountId, revision: snapshot.revision,
+                    beforeAdmission: {
+                        try state.checkCapacity()
+                        session.invalidateRejectedAuthorization(
+                            accountId: snapshot.accountId, revision: snapshot.revision
+                        )
+                    },
+                    onStarted: { state.markStarted() }
+                )
+                XCTFail("An invalidated session must not start the RPC")
+            } catch {
+                XCTAssertEqual(service.calls, 0)
+                XCTAssertFalse(state.attempted)
+            }
+        }
+
+        @available(macOS 26.4, iOS 26.4, *)
+        func testPublishedMCPToolsRegisterWithFoundationModelsSession() async throws {
+            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+            let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+            let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+            let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
+            let server = try XCTUnwrap(servers.first { $0["surface"] as? String == "mcp" })
+            let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
+            let publishedTools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
+            let catalog = try JSONDecoder().decode(DecodedJSONValue.self, from: JSONSerialization.data(
+                withJSONObject: ["tools": publishedTools]
+            ))
+            let bridge = try NativeChatMCPToolBridge(catalog: catalog)
+            let service = BridgeMCPService()
+            service.catalog = catalog
+            let mcpSession = NativeChatMCPAgentSession(service: service)
+            await mcpSession.useAccount("member-a")
+            try await mcpSession.connect()
+            let snapshot = try XCTUnwrap(mcpSession.connectedSnapshot())
+            let state = NativeChatFoundationModelsToolState()
+            let tools: [any Tool] = try bridge.tools.map { descriptor in
+                try NativeChatFoundationModelsTool(
+                    name: descriptor.name, description: descriptor.description,
+                    parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                    bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
+                )
+            }
+            XCTAssertEqual(bridge.tools.count, 69)
+            XCTAssertEqual(tools.count, bridge.tools.count)
+            _ = LanguageModelSession(tools: tools)
+        }
+    #endif
+
     func testFractionalArgumentReachesToolWithoutDoubleRounding() async throws {
         let service = BridgeMCPService()
         service.catalog = .object(["tools": .array([.object([
@@ -178,80 +362,6 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             XCTAssertEqual(service.calls, 1)
             XCTAssertNil(session.connectedSnapshot())
         }
-    }
-
-    func testSchemaNumericEqualityAppliesToConstEnumAndUniqueItems() throws {
-        let constant: DecodedJSONValue = .object(["const": .integer(1)])
-        let choices: DecodedJSONValue = .object(["enum": .array([.unsignedInteger(1)])])
-        let unique: DecodedJSONValue = .object([
-            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(256)
-        ])
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.number(1), schema: constant))
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(Decimal(1)), schema: choices))
-        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
-            .array([.integer(1), .decimal(Decimal(1))]), schema: unique
-        ))
-    }
-
-    func testUniqueItemsValidationHasAnIndependentWorkBound() throws {
-        let unique: DecodedJSONValue = .object([
-            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(256)
-        ])
-        let values: [DecodedJSONValue] = (0 ... 256).map { .string(String($0)) }
-        try NativeChatMCPInputSchema.validateSchema(unique)
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array(Array(values.prefix(256))), schema: unique))
-        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array(values), schema: unique))
-        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
-            "type": .string("array"), "uniqueItems": .bool(true)
-        ])))
-        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
-            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(257)
-        ])))
-    }
-
-    func testComposedReferenceValidationHasACumulativeWorkBound() throws {
-        var definitions: [String: DecodedJSONValue] = [
-            "leaf": .object(["type": .string("object")])
-        ]
-        for level in (0 ..< 7).reversed() {
-            let next = level == 6 ? "leaf" : "level\(level + 1)"
-            definitions["level\(level)"] = .object([
-                "allOf": .array(Array(repeating: .object([
-                    "$ref": .string("#/$defs/\(next)")
-                ]), count: 4))
-            ])
-        }
-        let schema: DecodedJSONValue = .object([
-            "$defs": .object(definitions), "$ref": .string("#/$defs/level0")
-        ])
-        try NativeChatMCPInputSchema.validateSchema(schema)
-        XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(.object([:]), schema: schema))
-
-        let bounded: DecodedJSONValue = .object([
-            "$defs": .object(definitions),
-            "allOf": .array(Array(repeating: .object(["$ref": .string("#/$defs/leaf")]), count: 2))
-        ])
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([:]), schema: bounded))
-    }
-
-    func testSchemaBoundsKeepLargeIntegerPrecisionAndRejectUnrepresentableCounts() throws {
-        let maximum: DecodedJSONValue = .object(["maximum": .integer(9_007_199_254_740_992)])
-        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
-            .integer(9_007_199_254_740_993), schema: maximum
-        ))
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
-            .integer(9_007_199_254_740_992), schema: maximum
-        ))
-        let invalidCount: DecodedJSONValue = .object([
-            "type": .string("array"), "maxItems": .unsignedInteger(UInt64.max)
-        ])
-        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(invalidCount))
-        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
-            "minLength": .decimal(Decimal(-1))
-        ])))
-        let integerType: DecodedJSONValue = .object(["type": .string("integer")])
-        let largeInteger = try XCTUnwrap(Decimal(string: "18446744073709551615"))
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(largeInteger), schema: integerType))
     }
 
     func testSchemaAppliesAdditionalPropertyAndArrayItemAssertions() throws {

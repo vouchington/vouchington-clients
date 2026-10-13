@@ -50,11 +50,14 @@ struct NativeChatMCPToolBridge {
     func execute(
         name: String, rawArguments: String,
         session: NativeChatMCPAgentSession,
-        accountId: String, revision: Int
+        accountId: String, revision: Int,
+        beforeAdmission: (@MainActor () throws -> Void)? = nil,
+        onStarted: (@MainActor () -> Void)? = nil
     ) async throws -> String {
         let object = try validatedArguments(name: name, rawArguments: rawArguments)
         let result = try await session.callTool(
-            name: name, arguments: object, accountId: accountId, revision: revision
+            name: name, arguments: object, accountId: accountId, revision: revision,
+            beforeAdmission: beforeAdmission, onStarted: onStarted
         )
         let envelope: DecodedJSONValue = .object([
             "structuredContent": result.structuredContent ?? .null,

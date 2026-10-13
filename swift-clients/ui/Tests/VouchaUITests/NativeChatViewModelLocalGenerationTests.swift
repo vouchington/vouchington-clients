@@ -6,6 +6,28 @@ import XCTest
 
 @MainActor
 final class NativeChatViewModelLocalGenerationTests: NativeRouteSurfaceViewModelTestCase {
+    func testAppleLocalGenerationReceivesCurrentMCPAccountSnapshot() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.selectTitleProvider(.appleFoundationModels)
+        viewModel.draftMessage = "Read my MCP data"
+
+        await viewModel.sendDraftMessage()
+
+        XCTAssertTrue(provider.receivedMcpSnapshot)
+        XCTAssertEqual(provider.generationCount, 1)
+    }
+
     func testLocalTurnIdentifiersAreOrderedLowercaseUuidV7() {
         let ids = NativeChatMessageIDs.nextLocalTurn()
         let pattern = #"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"#
