@@ -70,6 +70,8 @@ describe('GitHub-hosted runner policy', () => {
     assertRunner(workflows['native-contract-tests.yml'], 'native-dto-fixture-parity', 'ubuntu-slim')
     assertRunner(workflows['native-contract-tests.yml'], 'dotnet-portable', 'ubuntu-latest')
     assertRunner(workflows['native-contract-tests.yml'], 'test-swift-core', 'macos-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'build-swift-android', 'macos-latest')
+    assertRunner(workflows['native-contract-tests.yml'], 'test-swift-android', 'ubuntu-slim')
     assertRunner(workflows['dependabot-automerge.yml'], 'automerge', 'ubuntu-slim')
     assertRunner(workflows['dependabot-automerge.yml'], 'prepare', 'ubuntu-slim')
     assertRunner(workflows['dependabot-automerge.yml'], 'publish-swift-android', 'ubuntu-slim')

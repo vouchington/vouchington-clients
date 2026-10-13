@@ -62,6 +62,16 @@ misread it. Unpinned, the lockfile stays one document.
 action release and one `latest-<major>` across every call site. To change the major, update every
 `pnpm/action-setup` call in the same change.
 
+## Android validation
+
+Swift Android APK assembly and native test-library preparation run in parallel on separate
+macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
+they do not share a SwiftPM build directory. The stable `Swift Android Skip` check requires
+both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
+validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
+individual phases for CI. This compiles the app and packages Android test libraries without
+a device; it does not claim device test execution.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do

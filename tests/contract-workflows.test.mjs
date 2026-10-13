@@ -233,7 +233,7 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-core',
       'periphery-swift-ui',
       'test-swift-core',
-      'test-swift-android',
+      'build-swift-android',
       'test-swift-ui',
       'build-macos-app',
     ])
@@ -381,7 +381,7 @@ describe('native contract workflow boundary', () => {
 
   it('restores checksummed Android archives and the Skip Gradle user home', async () => {
     const workflow = await readWorkflow('native-contract-tests.yml')
-    const skip = jobBlock(workflow, 'test-swift-android')
+    const skip = jobBlock(workflow, 'build-swift-android')
     const androidCore = jobBlock(workflow, 'build-android-core')
     const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
 
@@ -401,9 +401,10 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(skip, /restore-keys:/u)
     assert.doesNotMatch(androidCore, /restore-keys:/u)
     assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
+    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
     assert.match(
       skip,
-      /name: Restore Gradle user home[\s\S]*name: Build and test Android application without a device/u,
+      /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,
     )
     assert.match(
       skip,

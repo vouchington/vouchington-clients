@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App;
@@ -21,6 +22,10 @@ public partial class App : Application
         InitializeComponent();
         this.serviceProvider = serviceProvider;
         this.localization = localization;
+#if WINDOWS
+        // Construct before navigation so sign-out/account-switch cleanup also works before chat opens.
+        _ = serviceProvider.GetRequiredService<MemberMcpSession>();
+#endif
         localeController.AttachSession(sessionStore);
         localeController.LocaleChanged += OnLocaleChanged;
         Resources["UiLocaleVersion"] = new UiLocaleVersion(localeController);

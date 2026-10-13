@@ -78,6 +78,34 @@ public sealed class MemberMcpAuthorizedClientTests
     Assert.Equal("new-refresh", store.Current?.RefreshToken);
   }
 
+  [Fact]
+  public async Task CancelledCatalogRequestStopsWaitingForProactiveExpiredTokenRefresh()
+  {
+    var handler = new AuthHandler(false) { HoldRefresh = true };
+    var store = new MemoryStore();
+    store.Expire();
+    var origin = new Uri("https://example.test");
+    var metadata = new MemberMcpOAuthMetadata("https://example.test",
+        new Uri(origin, "/authorize"), new Uri(origin, "/token"), new Uri(origin, "/revoke"));
+    using var tokenClient = new MemberMcpOAuthTokenClient(metadata,
+        new Uri(origin, "/api/v1/oauth/native-clients/windows"),
+        new Uri(origin, "/api/v1/mcp"), handler);
+    using var mcp = new MemberMcpClient(origin, handler);
+    var authorized = new MemberMcpAuthorizedClient(mcp,
+        new MemberMcpTokenManager("member-1", store, tokenClient));
+    using var cancel = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    var listing = authorized.ListToolsAsync(cancel.Token);
+    try
+    {
+      await handler.RefreshEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+      cancel.Cancel();
+      await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+          listing.WaitAsync(TestContext.Current.CancellationToken));
+      Assert.Equal(0, handler.McpCalls);
+    }
+    finally { handler.ReleaseRefresh.TrySetResult(); }
+  }
+
   private sealed class LateUnauthorizedHandler : HttpMessageHandler
   {
     private readonly object gate = new();
@@ -133,6 +161,7 @@ public sealed class MemberMcpAuthorizedClientTests
   {
     public MemberMcpOAuthTokens? Current { get; private set; } =
         new("old-access", "old-refresh", 3600, "mcp.user:read", "Bearer");
+    public void Expire() => Current = Current! with { AcquiredAt = DateTimeOffset.UtcNow.AddHours(-2) };
     public Task<MemberMcpOAuthTokens?> LoadAsync(MemberMcpOAuthTokenScope scope) => Task.FromResult(Current);
     public Task SaveAsync(MemberMcpOAuthTokenScope scope, MemberMcpOAuthTokens tokens)
     {
@@ -148,6 +177,9 @@ public sealed class MemberMcpAuthorizedClientTests
 
   private sealed class AuthHandler(bool secondUnauthorized) : HttpMessageHandler
   {
+    public bool HoldRefresh { get; set; }
+    public TaskCompletionSource RefreshEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource ReleaseRefresh { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public int McpCalls { get; private set; }
     public int RefreshCalls { get; private set; }
     public List<string> Bearers { get; } = [];
@@ -158,6 +190,11 @@ public sealed class MemberMcpAuthorizedClientTests
       if (request.RequestUri!.AbsolutePath == "/token")
       {
         RefreshCalls++;
+        if (HoldRefresh)
+        {
+          RefreshEntered.TrySetResult();
+          await ReleaseRefresh.Task.WaitAsync(cancellationToken);
+        }
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
           Content = new StringContent(

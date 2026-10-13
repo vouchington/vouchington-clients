@@ -521,8 +521,12 @@ jobs:
           mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
-  test-swift-android:
-    name: Swift Android Skip
+  build-swift-android:
+    name: Swift Android ${{ matrix.phase }}
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [app, test-libs]
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 40
@@ -612,19 +616,36 @@ jobs:
           mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
+        if: matrix.phase == 'app'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
-      - name: Build and test Android application without a device
+      - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+          ANDROID_BUILD_PHASE: ${{ matrix.phase }}
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+  test-swift-android:
+    name: Swift Android Skip
+    needs: [verify, build-swift-android]
+    if: ${{ always() }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require both Android validation phases
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          ANDROID_PHASES_RESULT: ${{ needs.build-swift-android.result }}
+        run: |
+          test "$VERIFY_RESULT" = success
+          test "$ANDROID_PHASES_RESULT" = success
   test-swift-ui:
     name: Swift UI tests and coverage
     needs: verify

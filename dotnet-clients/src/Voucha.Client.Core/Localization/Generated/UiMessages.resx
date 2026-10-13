@@ -448,6 +448,11 @@
   <data name="native.dotnet.bookmarks.viewedPodcasts" xml:space="preserve"><value>Recently Viewed Podcasts</value></data>
   <data name="native.dotnet.bookmarks.viewedTopics" xml:space="preserve"><value>Recently Viewed Topics</value></data>
   <data name="native.dotnet.bookmarks.viewedVideos" xml:space="preserve"><value>Recently Viewed Videos</value></data>
+  <data name="native.dotnet.chat.mcpConnect" xml:space="preserve"><value>Connect Voucha tools</value></data>
+  <data name="native.dotnet.chat.mcpConnected" xml:space="preserve"><value>Voucha tools connected</value></data>
+  <data name="native.dotnet.chat.mcpConnectionFailed" xml:space="preserve"><value>Something went wrong. Try again.</value></data>
+  <data name="native.dotnet.chat.mcpDisconnect" xml:space="preserve"><value>Disconnect Voucha tools</value></data>
+  <data name="native.dotnet.chat.mcpRefresh" xml:space="preserve"><value>Refresh tools</value></data>
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Choose a local model.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Send a message to start the conversation.</value></data>
   <data name="native.dotnet.chatConversation.enterLocalResponsesEndpoint" xml:space="preserve"><value>Enter a local Responses API endpoint.</value></data>

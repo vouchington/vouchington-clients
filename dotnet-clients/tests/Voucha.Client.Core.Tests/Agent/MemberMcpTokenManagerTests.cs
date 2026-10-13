@@ -87,7 +87,7 @@ public sealed class MemberMcpTokenManagerTests
       var second = manager.ClearAsync();
       Assert.Same(first, second);
       Assert.Equal(1, store.ClearCount);
-      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
       store.ReleaseClear.TrySetResult();
       await Task.WhenAll(first, second);
       Assert.Equal(1, store.ClearCount);
@@ -142,7 +142,7 @@ public sealed class MemberMcpTokenManagerTests
         new Uri("https://example.test/api/v1/mcp"), handler);
     var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
 
-    Assert.Equal("new-access", await manager.AccessTokenAsync());
+    Assert.Equal("new-access", await manager.AccessTokenAsync(TestContext.Current.CancellationToken));
     Assert.Equal(1, handler.CallCount);
     Assert.Equal("new-refresh", store.Current?.RefreshToken);
     var persisted = System.Text.Json.JsonSerializer.Deserialize<MemberMcpOAuthTokens>(
@@ -179,7 +179,7 @@ public sealed class MemberMcpTokenManagerTests
       await signOut;
       await Assert.ThrowsAsync<McpUnauthorizedException>(() => pending);
       Assert.Null(store.Current);
-      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync());
+      await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
     }
     finally
     {
@@ -187,6 +187,60 @@ public sealed class MemberMcpTokenManagerTests
       await signOut;
       try { await pending; } catch (McpUnauthorizedException) { }
     }
+  }
+
+  [Fact]
+  public async Task LocalSignOutDrainsRotationBeforeAccountTakeAndRejectsLaterAccess()
+  {
+    var handler = new DeferredGrantHandler();
+    handler.Release.TrySetResult();
+    var store = new DeferredStore
+    {
+      Current = new MemberMcpOAuthTokens("expired", "old-refresh", 3600, "mcp.user:read", "Bearer")
+      {
+        AcquiredAt = DateTimeOffset.UtcNow.AddHours(-2)
+      }
+    };
+    using var tokenClient = new MemberMcpOAuthTokenClient(
+        Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
+        new Uri("https://example.test/api/v1/mcp"), handler);
+    var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
+    var access = manager.AccessTokenAsync(TestContext.Current.CancellationToken);
+    await store.SaveEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    var draining = manager.BeginLocalSignOutAsync();
+    Assert.False(draining.IsCompleted);
+    store.ReleaseSave.SetResult();
+    await draining;
+
+    Assert.Equal("new-refresh", store.Current?.RefreshToken);
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => manager.AccessTokenAsync(TestContext.Current.CancellationToken));
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => access);
+  }
+
+  [Fact]
+  public async Task LocalSignOutDoesNotWaitForStalledRefreshOrAllowItsLateSave()
+  {
+    var handler = new DeferredGrantHandler { IgnoreCancellation = true };
+    var store = new DeferredStore
+    {
+      Current = new MemberMcpOAuthTokens("old-access", "old-refresh", 3600, "mcp.user:read", "Bearer")
+    };
+    using var tokenClient = new MemberMcpOAuthTokenClient(
+        Metadata, new Uri("https://example.test/api/v1/oauth/native-clients/windows"),
+        new Uri("https://example.test/api/v1/mcp"), handler);
+    var manager = new MemberMcpTokenManager("member-1", store, tokenClient);
+    var refresh = manager.RefreshAsync(TestContext.Current.CancellationToken);
+    await handler.Entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    await manager.BeginLocalSignOutAsync().WaitAsync(TestContext.Current.CancellationToken);
+    await store.ClearAsync(tokenClient.ScopeFor("member-1"));
+    handler.Release.SetResult();
+
+    var error = await Record.ExceptionAsync(() => refresh);
+    Assert.True(error is OperationCanceledException or McpUnauthorizedException);
+    Assert.Null(store.Current);
+    Assert.Equal(0, store.SaveCount);
   }
 
   private static MemberMcpOAuthMetadata Metadata => new(
@@ -226,6 +280,7 @@ public sealed class MemberMcpTokenManagerTests
   private sealed class DeferredGrantHandler : HttpMessageHandler
   {
     public bool InvalidGrant { get; init; }
+    public bool IgnoreCancellation { get; init; }
     public int CallCount { get; private set; }
     public string Body { get; private set; } = "";
     public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -237,7 +292,11 @@ public sealed class MemberMcpTokenManagerTests
       CallCount++;
       Body = await request.Content!.ReadAsStringAsync(cancellationToken);
       Entered.TrySetResult();
-      await Release.Task.WaitAsync(cancellationToken);
+      if (IgnoreCancellation)
+      {
+        await Release.Task;
+      }
+      else await Release.Task.WaitAsync(cancellationToken);
       return new HttpResponseMessage(InvalidGrant ? HttpStatusCode.BadRequest : HttpStatusCode.OK)
       {
         Content = new StringContent(InvalidGrant

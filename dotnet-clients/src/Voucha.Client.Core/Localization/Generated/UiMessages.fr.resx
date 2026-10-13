@@ -448,6 +448,11 @@
   <data name="native.dotnet.bookmarks.viewedPodcasts" xml:space="preserve"><value>Podcasts consultés récemment</value></data>
   <data name="native.dotnet.bookmarks.viewedTopics" xml:space="preserve"><value>Sujets consultés récemment</value></data>
   <data name="native.dotnet.bookmarks.viewedVideos" xml:space="preserve"><value>Vidéos consultées récemment</value></data>
+  <data name="native.dotnet.chat.mcpConnect" xml:space="preserve"><value>Connecter les outils Voucha</value></data>
+  <data name="native.dotnet.chat.mcpConnected" xml:space="preserve"><value>Outils Voucha connectés</value></data>
+  <data name="native.dotnet.chat.mcpConnectionFailed" xml:space="preserve"><value>Un problème est survenu. Réessayez.</value></data>
+  <data name="native.dotnet.chat.mcpDisconnect" xml:space="preserve"><value>Déconnecter les outils Voucha</value></data>
+  <data name="native.dotnet.chat.mcpRefresh" xml:space="preserve"><value>Actualiser les outils</value></data>
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Choisissez un modèle local.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Envoyez un message pour démarrer la conversation.</value></data>
   <data name="native.dotnet.chatConversation.enterLocalResponsesEndpoint" xml:space="preserve"><value>Saisissez un point de terminaison local de l’API Responses.</value></data>
