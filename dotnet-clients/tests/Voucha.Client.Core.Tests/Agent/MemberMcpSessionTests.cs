@@ -175,6 +175,28 @@ public sealed class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task RefreshRemovesOldCatalogBeforeDiscoveryCompletes()
+  {
+    var factory = new FakeFactory { HoldRefresh = true };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(session.Tools);
+    var changed = 0;
+    session.Changed += (_, _) => changed++;
+
+    var refresh = session.RefreshToolsAsync(TestContext.Current.CancellationToken);
+    await factory.Connections[0].RefreshEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    Assert.Null(session.Tools);
+    Assert.Equal(1, changed);
+    Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
+
+    factory.Connections[0].ReleaseRefresh.SetResult();
+    await refresh;
+    Assert.NotNull(session.Tools);
+    Assert.Equal(2, changed);
+  }
+
+  [Fact]
   public async Task DisposeCancelsHeldConnectAndSettlesCleanupBeforeReleasingOwnedState()
   {
     var store = new FakeStore();
@@ -320,6 +342,7 @@ public sealed class MemberMcpSessionTests
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource RefreshEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource ReleaseRefresh { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
     {
       ConnectEntered.TrySetResult();
@@ -329,7 +352,7 @@ public sealed class MemberMcpSessionTests
     public async Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken)
     {
       RefreshEntered.TrySetResult();
-      if (holdRefresh) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
       if (FailRefresh) throw new IOException("Tool discovery failed");
       return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }

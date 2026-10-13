@@ -147,9 +147,11 @@ public sealed partial class MemberMcpSession : IDisposable
       {
         ThrowIfDisposed();
         connection = active ?? throw new InvalidOperationException("MCP is not connected.");
-        revision = generation;
+        Tools = null;
+        revision = ++generation;
         sessionToken = activeCancellation?.Token ?? throw new InvalidOperationException("MCP is not connected.");
       }
+      Changed?.Invoke(this, EventArgs.Empty);
       using var linked = CancellationTokenSource.CreateLinkedTokenSource(wait.Token, sessionToken);
       JsonElement tools;
       try { tools = await connection.ListToolsAsync(linked.Token).ConfigureAwait(false); }
@@ -160,7 +162,6 @@ public sealed partial class MemberMcpSession : IDisposable
         {
           if (generation == revision && ReferenceEquals(active, connection))
           {
-            Tools = null;
             generation++;
             invalidated = true;
           }
