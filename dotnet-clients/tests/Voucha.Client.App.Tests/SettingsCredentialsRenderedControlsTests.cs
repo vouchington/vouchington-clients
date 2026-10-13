@@ -73,7 +73,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
   }
 
   [Fact]
-  public async Task RenderedGrantActionUsesPageHandlerAndRetainsGrantWhenRevocationFails()
+  public async Task RenderedGrantActionRetainsGrantWhenRevocationFails()
   {
     PrepareMaui();
     var grant = Grant("grant-1");
@@ -85,6 +85,8 @@ public sealed class SettingsCredentialsRenderedControlsTests
     using var model = new SettingsViewModel(service);
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var page = new SettingsPage(model);
+    Descendants<SettingsOAuthGrantsView>(page).Single().ConfirmRevocationAsync =
+        (_, _, _, _) => Task.FromResult(true);
     Assert.Single(model.LocalizedOAuthGrants);
     var button = Descendants<Button>(page.ConnectedApps).Single(item => item.CommandParameter is SettingsOAuthGrantRow);
     Assert.Equal("grant-1", Assert.IsType<SettingsOAuthGrantRow>(button.CommandParameter).ProtocolValue.Id);
