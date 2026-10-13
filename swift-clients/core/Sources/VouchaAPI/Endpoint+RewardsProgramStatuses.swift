@@ -30,11 +30,7 @@ public struct UpdateRewardsProgramStatusBody: Encodable, Sendable {
 
 public extension Endpoint {
     static func rewardsProgramStatuses(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/rewards-program-statuses", queryItems: queryItems)
+        pagedGet(path: "/api/v1/my/rewards-program-statuses", after: after, limit: limit)
     }
 
     static func createRewardsProgramStatus(body: CreateRewardsProgramStatusBody) -> Endpoint {

@@ -48,10 +48,10 @@ public extension Endpoint {
         after: String?,
         limit: Int
     ) -> Endpoint {
-        var items = [URLQueryItem(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/users/\(pathSegment(userId))/\(path)", queryItems: items)
+        pagedGet(
+            path: "/api/v1/users/\(pathSegment(userId))/\(path)",
+            after: after,
+            limit: limit
+        )
     }
 }

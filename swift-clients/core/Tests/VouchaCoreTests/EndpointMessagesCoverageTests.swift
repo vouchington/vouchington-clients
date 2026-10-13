@@ -58,14 +58,14 @@ final class EndpointMessagesCoverageTests: XCTestCase {
             body: ["participant_add_policy": "all_members"]
         )
 
-        let search = Endpoint.myMessageUserSearch(query: "bo", limit: 10)
+        let search = Endpoint.searchUsers(query: "bo", limit: 10)
         XCTAssertEqual(search.path, "/api/v1/users")
         XCTAssertEqual(search.queryItems, [
             URLQueryItem(name: "q", value: "bo"),
             URLQueryItem(name: "limit", value: "10")
         ])
 
-        let searchNextPage = Endpoint.myMessageUserSearch(query: "bo", after: "cursor-1", limit: 10)
+        let searchNextPage = Endpoint.searchUsers(query: "bo", after: "cursor-1", limit: 10)
         XCTAssertEqual(searchNextPage.queryItems, [
             URLQueryItem(name: "q", value: "bo"),
             URLQueryItem(name: "after", value: "cursor-1"),

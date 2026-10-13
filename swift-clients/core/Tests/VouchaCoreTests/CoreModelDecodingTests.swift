@@ -1,5 +1,4 @@
 import Foundation
-@testable import VouchaAuth
 @testable import VouchaModels
 import XCTest
 

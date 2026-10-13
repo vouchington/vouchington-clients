@@ -5,14 +5,7 @@ public typealias CurrencyPage = Page<Currency>
 
 public extension Endpoint {
     static func currencies(after: String? = nil, limit: Int? = nil) -> Endpoint {
-        var queryItems: [URLQueryItem] = []
-        if let limit {
-            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
-        }
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/currencies", queryItems: queryItems)
+        pagedGet(path: "/api/v1/currencies", after: after, limit: limit)
     }
 }
 

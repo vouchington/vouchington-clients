@@ -44,14 +44,14 @@ struct PointValuationDraft: Equatable {
 
     static func format(_ value: ScaledMoney, locale: Locale) -> String {
         let majorUnits = value.majorUnitDecimal
-        return decimalFormatter(locale: locale).string(from: NSDecimalNumber(decimal: majorUnits)) ??
+        return DraftDecimalFormatter.make(locale: locale).string(from: NSDecimalNumber(decimal: majorUnits)) ??
             NSDecimalNumber(decimal: majorUnits).stringValue
     }
 
     private func parsedValue() throws -> ScaledMoney {
         let trimmed = valuePerPointText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw PointValuationDraftError.invalidValuePerPoint }
-        let formatter = Self.decimalFormatter(locale: locale)
+        let formatter = DraftDecimalFormatter.make(locale: locale)
         guard Self.hasAtMostScaleFractionDigits(trimmed, formatter: formatter) else {
             throw PointValuationDraftError.invalidValuePerPoint
         }
@@ -84,16 +84,6 @@ struct PointValuationDraft: Equatable {
         let fractionalPart = value[separatorRange.upperBound...]
         return fractionalPart.range(of: decimalSeparator) == nil &&
             fractionalPart.count <= ScaledMoney.scale
-    }
-
-    private static func decimalFormatter(locale: Locale) -> NumberFormatter {
-        let formatter = NumberFormatter()
-        formatter.locale = locale
-        formatter.numberStyle = .decimal
-        formatter.generatesDecimalNumbers = true
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 38
-        return formatter
     }
 }
 

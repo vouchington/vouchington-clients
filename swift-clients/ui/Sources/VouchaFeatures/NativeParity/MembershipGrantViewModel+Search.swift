@@ -50,7 +50,7 @@ extension MembershipGrantViewModel {
             guard generation == searchGeneration else { return .success(matches) }
             do {
                 let response: Page<MembershipGrantUser> = try await client.send(
-                    .membershipGrantUserSearch(query: query, after: after, limit: membershipGrantSearchPageLimit)
+                    .searchUsers(query: query, after: after, limit: membershipGrantSearchPageLimit)
                 )
                 matches.append(contentsOf: response.results)
                 guard matches.count < membershipGrantSearchPageLimit,

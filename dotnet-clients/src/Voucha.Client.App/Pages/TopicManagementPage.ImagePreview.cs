@@ -1,4 +1,3 @@
-using System.Net;
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.App.Support;
 using Voucha.Client.Core.Api;
@@ -131,7 +130,7 @@ public partial class TopicManagementPage
           throw new InvalidOperationException(state.UploadError ?? UiCopy.Localize(UiMessageKey.NativeDotnetCsharpImageUploadFailed));
         if (state.Ready) return state;
       }
-      catch (Exception ex) when (IsTransientUploadFailure(ex) && attempt + 1 < UploadPollAttempts)
+      catch (Exception ex) when (ImageUploadPolling.IsTransientFailure(ex) && attempt + 1 < UploadPollAttempts)
       {
       }
       if (attempt + 1 < UploadPollAttempts)
@@ -139,19 +138,6 @@ public partial class TopicManagementPage
     }
     throw new TimeoutException(UiCopy.Localize(UiMessageKey.NativeDotnetCsharpImageUploadTimedOut));
   }
-
-  private static bool IsTransientUploadFailure(Exception exception) => exception switch
-  {
-    VouchaApiException apiException when apiException.StatusCode is HttpStatusCode statusCode =>
-        IsTransientStatus(statusCode),
-    HttpRequestException requestException when requestException.StatusCode is null => true,
-    HttpRequestException requestException when requestException.StatusCode is HttpStatusCode statusCode =>
-        IsTransientStatus(statusCode),
-    _ => false,
-  };
-
-  private static bool IsTransientStatus(HttpStatusCode statusCode) =>
-      (int)statusCode is 429 or >= 500 and <= 599;
 
   private (int Generation, CancellationTokenSource Cancellation)? BeginImageUpload(bool isLogo)
   {

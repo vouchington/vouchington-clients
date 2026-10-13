@@ -15,16 +15,9 @@ public extension Endpoint {
 }
 
 private func postCollection(_ postId: String, _ collection: String, after: String?, limit: Int?) -> Endpoint {
-    var queryItems: [URLQueryItem] = []
-    if let limit {
-        queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
-    }
-    if let after {
-        queryItems.append(URLQueryItem(name: "after", value: after))
-    }
-    return Endpoint(
-        .GET,
+    Endpoint.pagedGet(
         path: "/api/v1/posts/\(Endpoint.pathSegment(postId))/\(collection)",
-        queryItems: queryItems
+        after: after,
+        limit: limit
     )
 }

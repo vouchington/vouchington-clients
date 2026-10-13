@@ -216,14 +216,7 @@ public extension Endpoint {
     }
 
     static func myConversations(after: String? = nil, limit: Int? = nil) -> Endpoint {
-        var items: [URLQueryItem] = []
-        if let limit {
-            items.append(.init(name: "limit", value: "\(limit)"))
-        }
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/conversations", queryItems: items)
+        pagedGet(path: "/api/v1/my/conversations", after: after, limit: limit)
     }
 
     static func myConversationMessages(

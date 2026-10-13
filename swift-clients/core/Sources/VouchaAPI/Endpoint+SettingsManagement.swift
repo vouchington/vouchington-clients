@@ -51,7 +51,7 @@ private struct CompleteNativeBlueskyLinkBody: Encodable {
 
 public extension Endpoint {
     static func authSessions(after: String? = nil, limit: Int = 25) -> Endpoint {
-        settingsPage(path: "/api/v1/auth/sessions", after: after, limit: limit)
+        pagedGet(path: "/api/v1/auth/sessions", after: after, limit: limit)
     }
 
     static func revokeAuthSession(id: String) -> Endpoint {
@@ -98,7 +98,7 @@ public extension Endpoint {
     }
 
     static func myApiKeys(after: String? = nil, limit: Int = 25) -> Endpoint {
-        settingsPage(path: "/api/v1/my/api-keys", after: after, limit: limit)
+        pagedGet(path: "/api/v1/my/api-keys", after: after, limit: limit)
     }
 
     static func createMyApiKey(
@@ -145,7 +145,7 @@ public extension Endpoint {
     }
 
     static func myPushSubscriptions(after: String? = nil, limit: Int = 25) -> Endpoint {
-        settingsPage(path: "/api/v1/my/notifications/push-subscriptions", after: after, limit: limit)
+        pagedGet(path: "/api/v1/my/notifications/push-subscriptions", after: after, limit: limit)
     }
 
     static func createMyPushSubscription(
@@ -171,12 +171,4 @@ public extension Endpoint {
     static func revokeMyPushSubscription(id: String) -> Endpoint {
         Endpoint(.DELETE, path: "/api/v1/my/notifications/push-subscriptions/\(pathSegment(id))")
     }
-}
-
-private func settingsPage(path: String, after: String?, limit: Int) -> Endpoint {
-    var queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
-    if let after {
-        queryItems.append(URLQueryItem(name: "after", value: after))
-    }
-    return Endpoint(.GET, path: path, queryItems: queryItems)
 }

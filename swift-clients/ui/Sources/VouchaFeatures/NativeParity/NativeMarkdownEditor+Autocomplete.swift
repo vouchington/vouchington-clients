@@ -82,7 +82,7 @@ extension NativeMarkdownEditor {
         for _ in 0 ... userAutocompleteMaxAdditionalPages {
             guard !Task.isCancelled,
                   let response: Page<PublicUser> = try? await client.send(
-                      .myMessageUserSearch(query: query, after: after, limit: userAutocompletePageLimit)
+                      .searchUsers(query: query, after: after, limit: userAutocompletePageLimit)
                   )
             else { return matches }
             matches.append(contentsOf: response.results)

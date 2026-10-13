@@ -25,11 +25,7 @@ public struct UpdatePointValuationBody: Encodable, Sendable {
 
 public extension Endpoint {
     static func pointValuations(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
-        if let after {
-            queryItems.append(URLQueryItem(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/rewards-program-point-valuations", queryItems: queryItems)
+        pagedGet(path: "/api/v1/my/rewards-program-point-valuations", after: after, limit: limit)
     }
 
     static func createPointValuation(body: CreatePointValuationBody) -> Endpoint {

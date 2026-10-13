@@ -86,7 +86,7 @@ public sealed partial class PostComposeViewModel
             completion = await imageUploadService.CompleteAsync(upload.Upload.ImageId, cancellationToken).ConfigureAwait(true);
             break;
           }
-          catch (Exception ex) when (IsTransientImageUploadFailure(ex) && attempt + 1 < imageUploadPollAttempts)
+          catch (Exception ex) when (ImageUploadPolling.IsTransientFailure(ex) && attempt + 1 < imageUploadPollAttempts)
           {
             await DelayForImageUploadPollAsync(cancellationToken).ConfigureAwait(true);
           }

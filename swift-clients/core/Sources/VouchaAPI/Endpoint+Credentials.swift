@@ -6,9 +6,7 @@ public extension Endpoint {
     }
 
     static func myOAuthGrants(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
-        if let after { queryItems.append(URLQueryItem(name: "after", value: after)) }
-        return Endpoint(.GET, path: "/api/v1/my/oauth-grants", queryItems: queryItems)
+        pagedGet(path: "/api/v1/my/oauth-grants", after: after, limit: limit)
     }
 
     static func revokeMyOAuthGrant(id: String) -> Endpoint {

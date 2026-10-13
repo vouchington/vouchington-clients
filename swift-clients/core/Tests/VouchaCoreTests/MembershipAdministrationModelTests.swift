@@ -33,7 +33,7 @@ final class MembershipAdministrationModelTests: XCTestCase {
     }
 
     func testGrantSearchUsesTheAdministratorSearchContract() {
-        let endpoint = Endpoint.membershipGrantUserSearch(query: "private", limit: 8)
+        let endpoint = Endpoint.searchUsers(query: "private", limit: 8)
 
         XCTAssertEqual(endpoint.path, "/api/v1/users")
         XCTAssertEqual(endpoint.queryItems, [
@@ -43,7 +43,7 @@ final class MembershipAdministrationModelTests: XCTestCase {
     }
 
     func testGrantSearchForwardsTheContinuationCursor() {
-        let endpoint = Endpoint.membershipGrantUserSearch(query: "private", after: "cursor-1", limit: 8)
+        let endpoint = Endpoint.searchUsers(query: "private", after: "cursor-1", limit: 8)
 
         XCTAssertEqual(endpoint.queryItems, [
             URLQueryItem(name: "q", value: "private"),

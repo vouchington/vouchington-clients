@@ -50,7 +50,7 @@ struct PaymentCardDraft: Equatable {
     private func parsedCreditLimit() throws -> Money? {
         let trimmed = creditLimitText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        let formatter = Self.decimalFormatter(locale: creditLimitLocale)
+        let formatter = DraftDecimalFormatter.make(locale: creditLimitLocale)
         var parsedValue: AnyObject?
         var parsedRange = NSRange(location: 0, length: trimmed.utf16.count)
         try formatter.getObjectValue(&parsedValue, for: trimmed, range: &parsedRange)
@@ -73,7 +73,7 @@ struct PaymentCardDraft: Equatable {
     }
 
     static func formatCreditLimit(_ value: Money, locale: Locale) -> String {
-        let formatter = decimalFormatter(locale: locale)
+        let formatter = DraftDecimalFormatter.make(locale: locale)
         guard let exponent = Currency.minorUnitExponent(for: value.currency) else {
             return ""
         }
@@ -84,15 +84,6 @@ struct PaymentCardDraft: Equatable {
 
     private static func powerOfTen(_ exponent: Int) -> Decimal {
         (0 ..< exponent).reduce(1) { value, _ in value * 10 }
-    }
-
-    private static func decimalFormatter(locale: Locale) -> NumberFormatter {
-        let formatter = NumberFormatter()
-        formatter.locale = locale
-        formatter.numberStyle = .decimal
-        formatter.generatesDecimalNumbers = true
-        formatter.maximumFractionDigits = 38
-        return formatter
     }
 
     private func patch<T: Encodable & Equatable & Sendable>(

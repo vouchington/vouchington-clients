@@ -64,7 +64,7 @@ extension DirectMessagesViewModel {
         for _ in 0 ... userSearchMaxAdditionalPages {
             guard isCurrent() else { return matches }
             guard let page: Page<PublicUser> = try? await client.send(
-                .myMessageUserSearch(query: query, after: after, limit: userSearchPageLimit)
+                .searchUsers(query: query, after: after, limit: userSearchPageLimit)
             ) else { return matches }
             for user in page.results where !excludeIds.contains(user.id) {
                 matches.append(user)
