@@ -34,6 +34,14 @@ public sealed partial class ChatConversationViewModel
       pending.ConversationId == ConversationId &&
       !string.Equals(pending.Body.Message, text, StringComparison.Ordinal);
 
+  private bool RejectConflictingCompletedMcpTurn(string text)
+  {
+    if (!HasConflictingCompletedMcpTurn(text)) return false;
+    ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatMcpPendingTurnRetryRequired);
+    State = LoadState.Error;
+    return true;
+  }
+
   private bool RejectInvalidatedCompletedMcpAccount(string text, ILocalChatProvider provider)
   {
     if (pendingLocalTurn is not { McpSnapshot: { } snapshot } pending ||

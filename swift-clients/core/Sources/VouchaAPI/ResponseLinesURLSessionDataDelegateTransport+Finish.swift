@@ -171,7 +171,7 @@ extension ResponseLinesTransport {
 
     func makeLineStream(from data: Data) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
-            let lineBuffer = ResponseLineBuffer()
+            let lineBuffer = ResponseLineBuffer(maximumLineBytes: maximumLineBytes)
             do {
                 try lineBuffer.append(data) { continuation.yield($0) }
                 if let line = lineBuffer.flush() {

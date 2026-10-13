@@ -76,7 +76,7 @@ public extension OpenAICompatibleResponsesClient {
             try Task.checkCancellation()
             guard await isCurrent() else { throw CancellationError() }
             let body = try Self.requestBody(model: model, input: input, definitions: definitions)
-            guard body.count <= 1_000_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
+            guard body.count <= 20_000_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
             let data = try await send(body: body, to: url, apiKey: request.apiKey)
             guard await isCurrent() else { throw CancellationError() }
             let response = try Self.decodedToolResponse(data)
@@ -104,7 +104,9 @@ public extension OpenAICompatibleResponsesClient {
                     call, hadPreviousExecution: attemptedToolExecution, execute: execute
                 )
                 attemptedToolExecution = true
-                guard result.utf8.count <= 256_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
+                guard result.utf8.count <= Self.maximumToolResultBytes else {
+                    throw LocalLLMToolLoopFailure.resultTooLarge
+                }
                 input.append(["type": "function_call_output", "call_id": call.callID, "output": result])
             }
         } } catch {

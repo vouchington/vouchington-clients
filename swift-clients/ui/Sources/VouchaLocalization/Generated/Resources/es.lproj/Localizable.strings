@@ -2277,6 +2277,7 @@
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
 "shared.accountType.system" = "Sistema";
+"shared.chat.mcpPossibleSideEffect" = "Es posible que una herramienta conectada haya completado esta solicitud. Comprueba el resultado antes de volver a enviarla.";
 "shared.countLabel.format.__select.action.one" = "{count} acción";
 "shared.countLabel.format.__select.action.other" = "{count} acciones";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";

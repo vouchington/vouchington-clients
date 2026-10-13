@@ -452,6 +452,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetChatMcpConnected = new("native.dotnet.chat.mcpConnected");
     public static readonly UiMessageKey NativeDotnetChatMcpConnectionFailed = new("native.dotnet.chat.mcpConnectionFailed");
     public static readonly UiMessageKey NativeDotnetChatMcpDisconnect = new("native.dotnet.chat.mcpDisconnect");
+    public static readonly UiMessageKey NativeDotnetChatMcpPendingTurnRetryRequired = new("native.dotnet.chat.mcpPendingTurnRetryRequired");
     public static readonly UiMessageKey NativeDotnetChatMcpRefresh = new("native.dotnet.chat.mcpRefresh");
     public static readonly UiMessageKey NativeDotnetChatConversationChooseLocalModel = new("native.dotnet.chatConversation.chooseLocalModel");
     public static readonly UiMessageKey NativeDotnetChatConversationEmpty = new("native.dotnet.chatConversation.empty");
@@ -2003,6 +2004,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey SharedAccountTypeAiAgent = new("shared.accountType.aiAgent");
     public static readonly UiMessageKey SharedAccountTypeOfficial = new("shared.accountType.official");
     public static readonly UiMessageKey SharedAccountTypeSystem = new("shared.accountType.system");
+    public static readonly UiMessageKey SharedChatMcpPossibleSideEffect = new("shared.chat.mcpPossibleSideEffect");
     public static readonly UiMessageKey SharedCountLabelFormat = new("shared.countLabel.format");
     public static readonly UiMessageKey SharedProvenanceViaApi = new("shared.provenance.viaApi");
     public static readonly UiMessageKey SharedProvenanceViaApp = new("shared.provenance.viaApp");
@@ -2458,6 +2460,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetChatMcpConnected,
         NativeDotnetChatMcpConnectionFailed,
         NativeDotnetChatMcpDisconnect,
+        NativeDotnetChatMcpPendingTurnRetryRequired,
         NativeDotnetChatMcpRefresh,
         NativeDotnetChatConversationChooseLocalModel,
         NativeDotnetChatConversationEmpty,
@@ -4009,6 +4012,7 @@ public readonly record struct UiMessageKey(string Value)
         SharedAccountTypeAiAgent,
         SharedAccountTypeOfficial,
         SharedAccountTypeSystem,
+        SharedChatMcpPossibleSideEffect,
         SharedCountLabelFormat,
         SharedProvenanceViaApi,
         SharedProvenanceViaApp,

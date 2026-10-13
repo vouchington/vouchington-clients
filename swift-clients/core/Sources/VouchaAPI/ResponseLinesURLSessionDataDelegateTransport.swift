@@ -15,7 +15,12 @@ enum ResponseLineBufferError: Error, Equatable {
 
 final class ResponseLineBuffer {
     static let maximumLineBytes = 1_024 * 1_024
+    private let limit: Int
     private var data = Data()
+
+    init(maximumLineBytes: Int = 1_024 * 1_024) {
+        limit = maximumLineBytes
+    }
 
     func append(_ chunk: Data, emit: (String) -> Void) throws {
         var start = chunk.startIndex
@@ -34,7 +39,7 @@ final class ResponseLineBuffer {
     }
 
     private func append(_ segment: Data.SubSequence) throws {
-        guard data.count + segment.count <= Self.maximumLineBytes else {
+        guard data.count + segment.count <= limit else {
             data.removeAll(keepingCapacity: false)
             throw ResponseLineBufferError.lineTooLarge
         }
@@ -63,12 +68,15 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
     var session: URLSession?
     var task: URLSessionDataTask?
     var mode = ResponseLinesMode.undetermined
-    var lineBuffer = ResponseLineBuffer()
+    var lineBuffer: ResponseLineBuffer
     var cleanupPerformed = false
     private let followRedirects: Bool
+    let maximumLineBytes: Int
 
-    init(followRedirects: Bool = true) {
+    init(followRedirects: Bool = true, maximumLineBytes: Int = ResponseLineBuffer.maximumLineBytes) {
         self.followRedirects = followRedirects
+        self.maximumLineBytes = maximumLineBytes
+        lineBuffer = ResponseLineBuffer(maximumLineBytes: maximumLineBytes)
         delegateQueue = OperationQueue()
         delegateQueue.maxConcurrentOperationCount = 1
         super.init()

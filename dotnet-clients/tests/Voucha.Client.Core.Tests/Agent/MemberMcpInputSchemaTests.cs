@@ -159,6 +159,24 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void ProducerBoundedHtmlUnicodeAndSlashesSurviveNativeResultEnvelope()
+  {
+    var text = string.Concat(Enumerable.Repeat("<é/\u0080\u2028", 100_000));
+    using var producer = JsonDocument.Parse(
+        "{\"content\":[{\"type\":\"text\",\"text\":\"" + text + "\"}]}");
+    var producerBytes = System.Text.Encoding.UTF8.GetByteCount(producer.RootElement.GetRawText());
+    Assert.InRange(producerBytes, 256_001, 1_048_576);
+    var result = new McpToolResult(producer.RootElement.GetProperty("content").Clone(), null, false);
+
+    var envelope = MemberMcpToolBridge.SerializeResultEnvelope(result);
+
+    Assert.InRange(System.Text.Encoding.UTF8.GetByteCount(envelope), 256_001,
+        MemberMcpToolBridge.MaximumEnvelopeBytes);
+    using var decoded = JsonDocument.Parse(envelope);
+    Assert.Equal(text, decoded.RootElement.GetProperty("content")[0].GetProperty("text").GetString());
+  }
+
+  [Fact]
   public void DuplicateObjectMembersCannotSatisfyPropertyCountsOrOverrideValidatedValues()
   {
     using var schema = JsonDocument.Parse("""{"type":"object","properties":{"payload":{"type":"object","minProperties":2,"properties":{"id":{"type":"string","maxLength":3}}}}}""");

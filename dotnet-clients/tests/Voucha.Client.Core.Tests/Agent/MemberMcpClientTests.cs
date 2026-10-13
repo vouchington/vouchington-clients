@@ -206,7 +206,7 @@ public sealed class MemberMcpClientTests
 
     await Assert.ThrowsAsync<InvalidDataException>(
         () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
-    Assert.InRange(stream.BytesRead, 1_048_577, 1_052_672);
+    Assert.InRange(stream.BytesRead, 1_100_001, 1_104_096);
   }
 
   [Theory]

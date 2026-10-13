@@ -8,6 +8,9 @@ public sealed record MemberMcpFunctionTool(string Name, string Description, Json
 /// <summary>Validates one immutable server catalog before projecting it to a local model.</summary>
 public sealed class MemberMcpToolBridge
 {
+  // The producer bounds the complete MCP result at 1 MiB. The native envelope adds
+  // three fields; raw validated JSON preserves that bound without re-escaping Unicode.
+  public const int MaximumEnvelopeBytes = 1_100_000;
   private readonly Dictionary<string, JsonElement> schemas = new(StringComparer.Ordinal);
   public IReadOnlyList<MemberMcpFunctionTool> Tools { get; }
 
@@ -58,15 +61,29 @@ public sealed class MemberMcpToolBridge
     var arguments = ValidatedArguments(name, rawArguments);
     var result = await session.CallToolAsync(snapshot, name, arguments, onAdmitted, cancellationToken)
         .ConfigureAwait(false);
-    var envelope = JsonSerializer.Serialize(new
+    return SerializeResultEnvelope(result);
+  }
+
+  internal static string SerializeResultEnvelope(McpToolResult result)
+  {
+    if (result.Content.ValueKind != JsonValueKind.Array)
+      throw new InvalidDataException("Invalid MCP tool result content.");
+    using var envelopeBytes = new MemoryStream();
+    using (var writer = new Utf8JsonWriter(envelopeBytes))
     {
-      structuredContent = result.StructuredContent,
-      content = result.Content,
-      isError = result.IsError == true,
-    });
-    if (Encoding.UTF8.GetByteCount(envelope) > 256_000)
+      writer.WriteStartObject();
+      writer.WritePropertyName("structuredContent");
+      if (result.StructuredContent is { } structured)
+        writer.WriteRawValue(structured.GetRawText());
+      else writer.WriteNullValue();
+      writer.WritePropertyName("content");
+      writer.WriteRawValue(result.Content.GetRawText());
+      writer.WriteBoolean("isError", result.IsError == true);
+      writer.WriteEndObject();
+    }
+    if (envelopeBytes.Length > MaximumEnvelopeBytes)
       throw new InvalidDataException("MCP tool result too large.");
-    return envelope;
+    return Encoding.UTF8.GetString(envelopeBytes.GetBuffer().AsSpan(0, (int)envelopeBytes.Length));
   }
 
   public void Validate(string name, string rawArguments) => _ = ValidatedArguments(name, rawArguments);

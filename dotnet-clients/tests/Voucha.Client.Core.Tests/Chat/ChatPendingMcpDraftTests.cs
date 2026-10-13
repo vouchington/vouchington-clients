@@ -50,7 +50,7 @@ public sealed partial class ChatViewModelProviderTests
     Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
     viewModel.NotifyDraftEdited("Different request");
     Assert.False(await viewModel.TrySendAsync("Different request", TestContext.Current.CancellationToken));
-    Assert.Equal("Response lost.", viewModel.ErrorMessage);
+    Assert.Equal("Retry the previous message before sending a different one.", viewModel.ErrorMessage);
     Assert.Equal(Voucha.Client.Core.Support.LoadState.Error, viewModel.State);
     Assert.Single(bodies);
     Assert.Equal(1, provider.Generations);

@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import VouchaTestSupport
@@ -30,6 +31,36 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             return XCTFail("Fractional MCP argument was rounded before tool execution")
         }
         XCTAssertEqual(NSDecimalNumber(decimal: weight).stringValue, "0.099999999999999999")
+    }
+
+    func testProducerSizedHtmlUnicodeAndSlashesSurviveActualBridgeEncoding() async throws {
+        let service = BridgeMCPService()
+        let text = String(repeating: "<é/\u{007F}\u{0080}\u{2028}", count: 100_000)
+        let producer = Data(#"{"content":[{"type":"text","text":""#.utf8) +
+            Data(text.utf8) + Data(#""}],"isError":false}"#.utf8)
+        XCTAssertTrue(producer.count <= 1_048_576)
+        service.toolResult = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: producer)
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+
+        let output = try await bridge.execute(
+            name: "read_community", rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,
+            session: session, accountId: snapshot.accountId, revision: snapshot.revision
+        )
+
+        XCTAssertEqual(service.calls, 1)
+        XCTAssertTrue(output.utf8.count <= OpenAICompatibleResponsesClient.maximumToolResultBytes)
+        let decoded = try JSONDecoder().decode(DecodedJSONValue.self, from: Data(output.utf8))
+        guard case let .object(object) = decoded,
+              case let .array(content)? = object["content"],
+              case let .object(first)? = content.first,
+              case let .string(actual)? = first["text"] else {
+            return XCTFail("Actual bridge output lost MCP content")
+        }
+        XCTAssertEqual(actual, text)
     }
 
     func testPublishedUserSchemasProjectWithoutDroppingOptionRefs() throws {
@@ -287,6 +318,7 @@ private final class BridgeMCPService: NativeChatMCPServicing {
     private(set) var calls = 0
     private(set) var lastArguments: [String: DecodedJSONValue]?
     var holdCalls = false
+    var toolResult: MemberMCPClient.ToolResult?
     var catalog = BridgeMCPService.defaultCatalog
     private var pendingCall: CheckedContinuation<Void, Never>?
     private var callStarted: CheckedContinuation<Void, Never>?
@@ -320,6 +352,7 @@ private final class BridgeMCPService: NativeChatMCPServicing {
         callStarted = nil
         if holdCalls { await withCheckedContinuation { pendingCall = $0 } }
         try Task.checkCancellation()
+        if let toolResult { return toolResult }
         return try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: Data(
             #"{"content":[],"structuredContent":{"quote":"<external-content>quoted text</external-content>"},"isError":false}"#
                 .utf8

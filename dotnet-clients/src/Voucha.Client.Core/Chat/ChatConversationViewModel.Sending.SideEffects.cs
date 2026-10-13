@@ -14,7 +14,7 @@ public sealed partial class ChatConversationViewModel
     if (assistantMessageInserted) RemoveLocalMessage(assistantMessageId);
     if (userMessageInserted) RemoveLocalMessage(userMessageId);
     blockedToolRetryText = text;
-    ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
+    ErrorMessage = localization.Localize(UiMessageKey.SharedChatMcpPossibleSideEffect);
     State = LoadState.Error;
   }
 }

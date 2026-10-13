@@ -17,8 +17,8 @@ public sealed class PossibleMcpToolSideEffectException : Exception
 
 public sealed partial class OpenAICompatibleResponsesClient
 {
-  // MCP outputs are JSON envelopes; their controls and non-ASCII characters are already escaped.
-  // Relaxed outer encoding leaves only quotes and backslashes to expand, by at most 2x.
+  // Transport JSON never places tool output in HTML. Its encoder still escapes some
+  // Unicode scalar values, so continuation admission reserves six bytes per result byte.
   private static readonly JsonSerializerOptions ToolRequestJson = new()
   {
     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -87,7 +87,7 @@ public sealed partial class OpenAICompatibleResponsesClient
         cancellationToken.ThrowIfCancellationRequested();
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
         var body = RequestBody();
-        if (body.Length > 1_000_000) throw new InvalidDataException("Local model request too large.");
+        if (body.Length > 20_000_000) throw new InvalidDataException("Local model request too large.");
         using var response = await SendToolRequestAsync(uri, body, apiKey, cancellationToken).ConfigureAwait(false);
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
         if (!response.RootElement.TryGetProperty("output", out var output) ||
@@ -113,17 +113,17 @@ public sealed partial class OpenAICompatibleResponsesClient
             await validate(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
           cancellationToken.ThrowIfCancellationRequested();
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-          // The bridge returns a JSON envelope with escaped controls. Backslashes reserve
-          // the maximum outer-JSON expansion of every allowed per-call result byte.
+          // A valid result may contain producer-supplied Unicode. Reserve six outer-JSON
+          // bytes per UTF-8 result byte before the service can perform a side effect.
           input.Add(new
           {
             type = "function_call_output",
             call_id = call.CallId,
-            output = new string('\\', 256_000),
+            output = new string('\\', MemberMcpToolBridge.MaximumEnvelopeBytes * 3),
           });
           try
           {
-            if (RequestBody().Length > 1_000_000)
+            if (RequestBody().Length > 20_000_000)
               throw new InvalidDataException("Local model continuation too large.");
           }
           finally { input.RemoveAt(input.Count - 1); }
@@ -132,7 +132,7 @@ public sealed partial class OpenAICompatibleResponsesClient
           var result = await execute(call.Name, call.Arguments, cancellationToken,
               () => attemptedToolExecution = true).ConfigureAwait(false);
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-          if (Encoding.UTF8.GetByteCount(result) > 256_000)
+          if (Encoding.UTF8.GetByteCount(result) > MemberMcpToolBridge.MaximumEnvelopeBytes)
             throw new InvalidDataException("MCP tool output too large.");
           input.Add(new { type = "function_call_output", call_id = call.CallId, output = result });
         }

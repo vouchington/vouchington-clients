@@ -126,7 +126,7 @@ final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
         )
         do {
             _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
-                String(repeating: "x", count: 256_001)
+                String(repeating: "x", count: OpenAICompatibleResponsesClient.maximumToolResultBytes + 1)
             }
             XCTFail("Expected bounded tool-result failure")
         } catch {
@@ -453,7 +453,15 @@ final class ToolLoopURLProtocol: URLProtocol {
         Self.captured.append(request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream) ?? Data())
         let next = Self.pending.isEmpty ? nil : Self.pending.removeFirst()
         Self.lock.unlock()
-        guard let next, let url = request.url,
+        guard let next else {
+            deliveryLock.lock()
+            if !stopped {
+                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            }
+            deliveryLock.unlock()
+            return
+        }
+        guard let url = request.url,
               let response = HTTPURLResponse(
                   url: url, statusCode: 200, httpVersion: nil,
                   headerFields: ["Content-Type": "application/json"]

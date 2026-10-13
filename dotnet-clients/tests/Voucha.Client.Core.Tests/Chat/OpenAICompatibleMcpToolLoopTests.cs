@@ -135,7 +135,7 @@ public sealed class OpenAICompatibleMcpToolLoopTests
   }
 
   [Fact]
-  public async Task ContinuationReservesAllowedToolResultBeforeMutation()
+  public async Task ProducerSizedToolResultCanContinueAfterLargeModelOutput()
   {
     var ignored = new string('x', 800_000);
     var reply = "{\"output\":[{\"type\":\"reasoning\",\"summary\":\"" + ignored +
@@ -145,13 +145,50 @@ public sealed class OpenAICompatibleMcpToolLoopTests
     using var client = new OpenAICompatibleResponsesClient(handler);
     using var schema = JsonDocument.Parse("""{"type":"object"}""");
     var executed = 0;
+    var toolText = string.Concat(Enumerable.Repeat("<é/\u007F\u0080\u2028", 100_000));
+    using var producer = JsonDocument.Parse(
+        "{\"content\":[{\"type\":\"text\",\"text\":\"" + toolText + "\"}]}");
+    Assert.InRange(System.Text.Encoding.UTF8.GetByteCount(producer.RootElement.GetRawText()),
+        256_001, 1_048_576);
+    var result = new McpToolResult(producer.RootElement.GetProperty("content").Clone(), null, false);
+    var envelope = MemberMcpToolBridge.SerializeResultEnvelope(result);
+    var envelopeBytes = System.Text.Encoding.UTF8.GetByteCount(envelope);
+    Assert.InRange(envelopeBytes, 256_001, MemberMcpToolBridge.MaximumEnvelopeBytes);
 
-    await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
+    var answer = await client.GenerateAssistantContentWithToolsAsync(
         "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
-        (_, _, _) => { executed++; return Task.FromResult(new string('x', 256_000)); },
-        TestContext.Current.CancellationToken));
+        (_, _, _) => { executed++; return Task.FromResult(envelope); },
+        TestContext.Current.CancellationToken);
 
-    Assert.Equal(0, executed);
+    Assert.Equal("unexpected", answer);
+    Assert.Equal(1, executed);
+    Assert.Equal(2, handler.Bodies.Count);
+    var continuationBytes = System.Text.Encoding.UTF8.GetByteCount(handler.Bodies[1]);
+    Assert.True(continuationBytes > 1_000_000);
+    Assert.True(continuationBytes <= 20_000_000);
+    Assert.True(continuationBytes - System.Text.Encoding.UTF8.GetByteCount(handler.Bodies[0])
+        <= envelopeBytes * 6 + 1_024);
+  }
+
+  [Fact]
+  public async Task ResultBeyondBoundAfterToolAdmissionNeverStartsAnotherModelRequest()
+  {
+    using var handler = new RepliesHandler(
+        """{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+
+    await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() =>
+        client.GenerateAssistantContentWithToolsAsync(
+            "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true,
+            null, (_, _, _) =>
+            {
+              executed++;
+              return Task.FromResult(new string('x', MemberMcpToolBridge.MaximumEnvelopeBytes + 1));
+            }, TestContext.Current.CancellationToken));
+
+    Assert.Equal(1, executed);
     Assert.Single(handler.Bodies);
   }
 
@@ -167,7 +204,7 @@ public sealed class OpenAICompatibleMcpToolLoopTests
 
     var answer = await client.GenerateAssistantContentWithToolsAsync(
         "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
-        (_, _, _) => Task.FromResult(new string('x', ++executed == 1 ? 150_000 : 256_000)),
+        (_, _, _) => Task.FromResult(new string('x', ++executed == 1 ? 900_000 : 1_000_000)),
         TestContext.Current.CancellationToken);
 
     Assert.Equal("Done", answer);

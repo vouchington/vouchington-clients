@@ -32,7 +32,7 @@ public sealed partial class ChatConversationViewModel
     ArgumentNullException.ThrowIfNull(message);
     var trimmed = message.Trim();
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
-    if (HasConflictingCompletedMcpTurn(trimmed)) return false;
+    if (RejectConflictingCompletedMcpTurn(trimmed)) return false;
     if (blockedToolRetryText == trimmed) return false;
     blockedToolRetryText = null;
     var selectedProvider = ProviderForPendingMcpRetry(trimmed);

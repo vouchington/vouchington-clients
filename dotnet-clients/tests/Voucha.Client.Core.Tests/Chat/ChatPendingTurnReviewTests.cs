@@ -3,6 +3,7 @@ using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Localization;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Chat;
@@ -16,10 +17,15 @@ public sealed partial class ChatViewModelProviderTests
     {
       Failure = new PossibleMcpToolSideEffectException(),
     };
+    var locale = new UiLocaleController(new FrenchDeviceLanguage());
+    var localization = new UiLocalization(locale);
     var viewModel = new ChatConversationViewModel(
-        new FakeChatService(), new TestChatProviderResolver(provider.Status), provider);
+        new FakeChatService(), new TestChatProviderResolver(provider.Status), provider,
+        localization, locale);
 
     Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+    Assert.Equal(localization.Localize(UiMessageKey.SharedChatMcpPossibleSideEffect),
+        viewModel.ErrorMessage);
     Assert.True(viewModel.PossibleToolSideEffect);
     Assert.Empty(viewModel.Messages);
     Assert.Equal(1, provider.Generations);
@@ -105,6 +111,10 @@ public sealed partial class ChatViewModelProviderTests
     var viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
 
     Assert.False(await viewModel.TrySendAsync("Mutate once", TestContext.Current.CancellationToken));
+    Assert.False(await viewModel.TrySendAsync("Different request", TestContext.Current.CancellationToken));
+    Assert.Equal("Retry the previous message before sending a different one.", viewModel.ErrorMessage);
+    Assert.Equal(1, provider.Generations);
+    Assert.Single(bodies);
     provider.Status = provider.Status with { ModelName = "replacement-model" };
     viewModel.SelectedProviderStatus = provider.Status with
     {
