@@ -101,6 +101,33 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void PatternUsesEcmaCharacterClassesBeforeToolAdmission()
+  {
+    using var digits = JsonDocument.Parse("""{"type":"string","pattern":"^\\d+$"}""");
+    using var nonWhitespace = JsonDocument.Parse("""{"type":"string","pattern":"^\\S+$"}""");
+    using var whitespace = JsonDocument.Parse("""{"type":"string","pattern":"^\\s$"}""");
+    using var dot = JsonDocument.Parse("""{"type":"string","pattern":"^.$"}""");
+
+    Assert.True(Accepts("\"123\"", digits));
+    Assert.False(Accepts("\"١٢٣\"", digits));
+    Assert.False(Accepts("\"123\\n\"", digits));
+    Assert.True(Accepts("\"\\u0085\"", nonWhitespace));
+    Assert.False(Accepts("\"\\u00A0\"", nonWhitespace));
+    Assert.True(Accepts("\"\\u00A0\"", whitespace));
+    Assert.False(Accepts("\"\\u2028\"", dot));
+  }
+
+  [Fact]
+  public void UnsupportedEcmaBoundaryAndClassEscapesFailCatalogAdmission()
+  {
+    foreach (var pattern in new[] { "\\bword\\b", "[\\d]", "[a-[b]]", "\\A", "\\Z", "\\x1", "\\u123" })
+    {
+      using var schema = JsonDocument.Parse(JsonSerializer.Serialize(new { type = "string", pattern }));
+      Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(schema.RootElement));
+    }
+  }
+
+  [Fact]
   public void UnsupportedModelFunctionNameFailsCatalogBeforeModelRequest()
   {
     using var catalog = JsonDocument.Parse("""{"tools":[{"name":"unsafe.tool","inputSchema":{"type":"object"}}]}""");
