@@ -54,7 +54,7 @@ public sealed class PublicEntityProvenanceSurfaceTests
         "responses/entity-provenance.communities.json")));
     var communityClient = new VouchaApiClient(new HttpClient(communityHandler)
     { BaseAddress = new Uri("https://api.test") });
-    using var communities = new CommunityBrowseViewModel(new ApiCommunitiesService(communityClient));
+    var communities = new CommunityBrowseViewModel(new ApiCommunitiesService(communityClient));
     communities.Query = "test";
     await communities.SearchAsync(TestContext.Current.CancellationToken);
 

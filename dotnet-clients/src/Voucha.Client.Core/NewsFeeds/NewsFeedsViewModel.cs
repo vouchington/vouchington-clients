@@ -106,7 +106,9 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
     private set
     {
       if (ReferenceEquals(items, value)) return;
-      items = value;
+      var nextItems = value as List<NewsFeedItem> ?? value.ToList();
+      if (ReferenceEquals(items, nextItems)) return;
+      items = nextItems;
       feedPages.ReplaceItems(value);
       OnPropertyChanged();
       OnPropertyChanged(nameof(HasItems));
@@ -159,6 +161,15 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   public void OnUiLocaleChanged()
   {
     foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
+    if (items is List<NewsFeedItem> currentItems)
+    {
+      for (var index = 0; index < currentItems.Count; index++) currentItems[index] = Localized(currentItems[index]);
+      feedPages.ReplaceItems(currentItems);
+      OnPropertyChanged(nameof(Items));
+      OnPropertyChanged(nameof(HasItems));
+      return;
+    }
+
     Items = Items.Select(Localized).ToArray();
   }
 

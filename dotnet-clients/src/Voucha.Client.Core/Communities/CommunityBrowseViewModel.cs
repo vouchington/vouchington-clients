@@ -4,11 +4,10 @@ using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Communities;
 
-public sealed partial class CommunityBrowseViewModel : ObservableObject, IUiLocaleChangeListener, IDisposable
+public sealed partial class CommunityBrowseViewModel : ObservableObject, IUiLocaleChangeListener
 {
   private readonly ICommunitiesService service;
   private readonly IUiLocalization localization;
-  private readonly IDisposable? localeSubscription;
   private string query = "";
   private IReadOnlyList<CommunityBrowseRow> results = [];
   private LoadState state = LoadState.Idle;
@@ -21,12 +20,11 @@ public sealed partial class CommunityBrowseViewModel : ObservableObject, IUiLoca
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     this.localization = localization ?? UiLocalization.English;
-    localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    // The locale controller stores weak listeners; avoid making this root-resolved transient disposable.
+    _ = localeController?.SubscribeLocaleChanges(this);
   }
 
   public void OnUiLocaleChanged() => Results = Results.Select(row => row with { Localization = localization }).ToArray();
-
-  public void Dispose() => localeSubscription?.Dispose();
 
   public string Query
   {
