@@ -49,20 +49,21 @@ public sealed partial class OpenAICompatibleResponsesClient
     var remainingOutputBytes = 256_000;
     var seenCallIds = new HashSet<string>(StringComparer.Ordinal);
     var attemptedToolExecution = false;
+    byte[] RequestBody() => JsonSerializer.SerializeToUtf8Bytes(new
+    {
+      model,
+      instructions = UntrustedToolInstructions,
+      input,
+      tools = definitions,
+      parallel_tool_calls = false,
+    });
     try
     {
       while (true)
       {
         cancellationToken.ThrowIfCancellationRequested();
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-        var body = JsonSerializer.SerializeToUtf8Bytes(new
-        {
-          model,
-          instructions = UntrustedToolInstructions,
-          input,
-          tools = definitions,
-          parallel_tool_calls = false,
-        });
+        var body = RequestBody();
         if (body.Length > 1_000_000) throw new InvalidDataException("Local model request too large.");
         using var response = await SendToolRequestAsync(uri, body, apiKey, cancellationToken).ConfigureAwait(false);
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
@@ -87,6 +88,20 @@ public sealed partial class OpenAICompatibleResponsesClient
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
           if (validate is not null)
             await validate(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
+          // The bridge returns a JSON envelope with escaped controls. Backslashes reserve
+          // the maximum outer-JSON expansion of every remaining allowed result byte.
+          input.Add(new
+          {
+            type = "function_call_output",
+            call_id = call.CallId,
+            output = new string('\\', remainingOutputBytes),
+          });
+          try
+          {
+            if (RequestBody().Length > 1_000_000)
+              throw new InvalidDataException("Local model continuation too large.");
+          }
+          finally { input.RemoveAt(input.Count - 1); }
           attemptedToolExecution = true;
           var result = await execute(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");

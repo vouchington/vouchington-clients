@@ -135,6 +135,27 @@ public sealed class OpenAICompatibleMcpToolLoopTests
   }
 
   [Fact]
+  public async Task ContinuationReservesAllowedToolResultBeforeMutation()
+  {
+    var ignored = new string('x', 800_000);
+    var reply = "{\"output\":[{\"type\":\"reasoning\",\"summary\":\"" + ignored +
+        "\"},{\"type\":\"function_call\",\"call_id\":\"one\",\"name\":\"write\",\"arguments\":\"{}\"}]}";
+    Assert.True(System.Text.Encoding.UTF8.GetByteCount(reply) < 1_000_000);
+    using var handler = new RepliesHandler(reply, """{"output_text":"unexpected","output":[]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+
+    await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(new string('x', 256_000)); },
+        TestContext.Current.CancellationToken));
+
+    Assert.Equal(0, executed);
+    Assert.Single(handler.Bodies);
+  }
+
+  [Fact]
   public async Task DuplicateCallIdAcrossResponsesNeverExecutesTwice()
   {
     var call = """{"type":"function_call","call_id":"same","name":"write","arguments":"{}"}""";
