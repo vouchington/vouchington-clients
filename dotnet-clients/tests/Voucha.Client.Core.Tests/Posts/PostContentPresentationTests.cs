@@ -88,4 +88,33 @@ public sealed class PostContentPresentationTests
     Assert.True(row.ShowEmbed);
     Assert.False((row with { IsStaffViewer = false }).ShowEmbed);
   }
+
+  [Fact]
+  public void LateRejectionAndRecoveryReprojectTheSamePostForEachViewer()
+  {
+    var post = new Post("post-1", "review", "Title", "Body", "author-1",
+        ClearanceStatus: "approved");
+    foreach (var (status, authorBody, otherBody) in new[]
+    {
+      ("approved", true, true),
+      ("rejected", false, false),
+      ("in_review", true, true),
+      ("rejected", false, false),
+      ("approved", true, true),
+    })
+    {
+      var row = PostRows.From(post with { ClearanceStatus = status },
+          elections: null, votes: null, bookmarks: null);
+      var author = row with { ViewerId = "author-1" };
+      var other = row with { ViewerId = "other" };
+
+      Assert.Equal("post-1", row.Id);
+      Assert.Equal(authorBody, author.ShowBodyContent);
+      Assert.Equal(otherBody, other.ShowBodyContent);
+      Assert.Equal(!authorBody, author.ShowAppealsAction);
+      Assert.Equal(!otherBody, other.ShowNotice);
+      Assert.Equal(!authorBody, author.ShowNotice);
+      Assert.Equal(!otherBody, other.LocalizedNotice == "This content is unavailable.");
+    }
+  }
 }
