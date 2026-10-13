@@ -3,6 +3,123 @@ import Foundation
 import XCTest
 
 final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
+    func testMalformedModelOutputAndToolSchemaFailBeforeToolExecution() async throws {
+        ToolLoopURLProtocol.reset(responses: [#"{"output_text":"missing output array"}"#])
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let validTool = LocalLLMFunctionTool(
+            name: "read", description: "Read", parameters: Data(#"{"type":"object"}"#.utf8)
+        )
+        let request = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil, tools: [validTool]
+        )
+        do {
+            _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                XCTFail("Malformed output must not execute a tool")
+                return "{}"
+            }
+            XCTFail("Expected invalid model output")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+        }
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+
+        let invalidSchema = LocalLLMFunctionTool(name: "read", description: "Read", parameters: Data("[]".utf8))
+        let invalidRequest = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil, tools: [invalidSchema]
+        )
+        do {
+            _ = try await client.generateAssistantResponseWithTools(
+                request: invalidRequest, isCurrent: { true }
+            ) { _, _ in
+                XCTFail("Invalid schema must not execute a tool")
+                return "{}"
+            }
+            XCTFail("Expected invalid tool schema")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+        }
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
+
+    func testOutputTextIsTrimmedAndBlankTextProducesNoAssistantResponse() async throws {
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil, tools: []
+        )
+        let cases: [(String, String?)] = [
+            (#"{"output":[],"output_text":"  Found it  "}"#, "Found it"),
+            (#"{"output":[],"output_text":"  \n "}"#, nil)
+        ]
+        for (response, expected) in cases {
+            ToolLoopURLProtocol.reset(responses: [response])
+            let result = try await client.generateAssistantResponseWithTools(
+                request: request, isCurrent: { true }
+            ) { _, _ in
+                XCTFail("Text-only output must not execute a tool")
+                return "{}"
+            }
+            XCTAssertEqual(result, expected)
+            XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+        }
+    }
+
+    func testMalformedFunctionCallCannotExecuteANameWithoutACallID() async throws {
+        ToolLoopURLProtocol.reset(responses: [
+            #"{"output":[{"type":"function_call","name":"read","arguments":"{}"}]}"#
+        ])
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "read", description: "Read", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        do {
+            _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                XCTFail("A call without an ID must not execute")
+                return "{}"
+            }
+            XCTFail("Expected invalid function call")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .invalidResponse)
+        }
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
+
+    func testOversizedToolResultCannotReachTheNextModelRequest() async throws {
+        ToolLoopURLProtocol.reset(responses: [
+            #"{"output":[{"type":"function_call","call_id":"call-1","name":"read","arguments":"{}"}]}"#
+        ])
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let endpoint = LocalLLMEndpointProfile(
+            id: UUID(), endpoint: "http://localhost:2999/v1", modelNames: ["gpt-oss"],
+            selectedModelName: "gpt-oss"
+        )
+        let request = LocalLLMToolRequest(
+            message: "Find it", history: [], endpoint: endpoint, apiKey: nil,
+            tools: [.init(name: "read", description: "Read", parameters: Data(#"{"type":"object"}"#.utf8))]
+        )
+        do {
+            _ = try await client.generateAssistantResponseWithTools(request: request, isCurrent: { true }) { _, _ in
+                String(repeating: "x", count: 256_001)
+            }
+            XCTFail("Expected bounded tool-result failure")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .resultTooLarge)
+        }
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
+
     func testFunctionCallCarriesExactSchemaAndCallIDIntoContinuation() async throws {
         ToolLoopURLProtocol.reset(responses: [
             #"{"output":[{"type":"function_call","call_id":"call-1","name":"read_community","arguments":"{\"option\":\"details\",\"arguments\":{\"community_id\":\"one\"}}"}]}"#,

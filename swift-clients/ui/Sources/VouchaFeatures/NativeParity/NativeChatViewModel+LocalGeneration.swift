@@ -2,7 +2,6 @@ import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaLocalization
-import VouchaModels
 
 extension NativeChatViewModel {
     func generateLocalDraftMessage(
