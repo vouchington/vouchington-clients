@@ -51,6 +51,10 @@ public final class SessionManager {
         return nil
     }
 
+    public var canCastPublicVotes: Bool {
+        isSignedIn && currentUserAccountType == nil
+    }
+
     /// The signed-in user's ID, or `nil` when anonymous.
     public var currentUserId: String? {
         if case let .signedIn(userId, _, _, _, _) = state {

@@ -8,6 +8,7 @@ import Foundation
 public struct UserSearchResult: Codable, Identifiable, Sendable {
     public let id: String
     public let username: String?
+    public let accountType: AccountType?
     public let name: String?
     public let emailAddress: String?
     public let suspendedAt: Date?

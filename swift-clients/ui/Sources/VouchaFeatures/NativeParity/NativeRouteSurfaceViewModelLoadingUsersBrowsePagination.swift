@@ -27,18 +27,19 @@ extension NativeRouteSurfaceViewModel {
         )
         let detail = usersBrowseDetail(for: user)
         guard isAdministrator else {
-            return forwardRow(id: user.id, icon: "person", title: title, detail: detail)
+            return forwardRow(id: user.id, icon: "person", title: title, detail: detail, accountType: user.accountType)
         }
         let target = user.username?.ifNotEmpty ?? user.id
         guard !target.isEmpty else {
-            return forwardRow(id: user.id, icon: "person", title: title, detail: detail)
+            return forwardRow(id: user.id, icon: "person", title: title, detail: detail, accountType: user.accountType)
         }
         return forwardRow(
             id: user.id,
             icon: "person.badge.shield.checkmark",
             title: title,
             detail: detail,
-            targetPath: NativeUserProfileNavigationTarget.userAdmin(target)
+            targetPath: NativeUserProfileNavigationTarget.userAdmin(target),
+            accountType: user.accountType
         )
     }
 

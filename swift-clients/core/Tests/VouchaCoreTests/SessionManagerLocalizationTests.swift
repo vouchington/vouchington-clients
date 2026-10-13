@@ -26,10 +26,11 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertEqual(sessionManager.currentUserId, "user-abc")
         XCTAssertEqual(sessionManager.currentUserRoles, ["user"])
         XCTAssertNil(sessionManager.currentUserAccountType)
+        XCTAssertTrue(sessionManager.canCastPublicVotes)
         XCTAssertEqual(sessionManager.uiLocale, "es")
     }
 
-    func testRefreshRetainsAccountType() async throws {
+    func testRefreshUsesEveryAccountClassificationForPublicVoteEligibility() async throws {
         let cases: [AccountType?] = [.official, .system, .aiAgent, nil]
         for accountType in cases {
             MockURLProtocol.handlers["/api/v1/my/identity"] = try (
@@ -42,6 +43,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
 
             XCTAssertTrue(refreshed)
             XCTAssertEqual(sessionManager.currentUserAccountType, accountType)
+            XCTAssertEqual(sessionManager.canCastPublicVotes, accountType == nil)
         }
     }
 
@@ -54,6 +56,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
 
         XCTAssertFalse(refreshed)
         XCTAssertFalse(sessionManager.isSignedIn)
+        XCTAssertFalse(sessionManager.canCastPublicVotes)
         XCTAssertNil(sessionManager.currentUserId)
         XCTAssertTrue(sessionManager.currentUserRoles.isEmpty)
         XCTAssertNil(sessionManager.uiLocale)

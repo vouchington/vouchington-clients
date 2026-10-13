@@ -26,10 +26,11 @@ public sealed class PublicVotePolicyTests
   }
 
   [Theory]
-  [InlineData(AccountType.Official)]
-  [InlineData(AccountType.System)]
-  [InlineData(AccountType.AiAgent)]
-  public void PublicVotePolicyExcludesPlatformAccounts(AccountType accountType)
+  [InlineData(AccountType.Official, false)]
+  [InlineData(AccountType.System, false)]
+  [InlineData(AccountType.AiAgent, false)]
+  [InlineData(null, true)]
+  public void PublicVotePolicyUsesEveryAccountClassification(AccountType? accountType, bool expected)
   {
     var session = new SessionSnapshot(new User(
         "agent-1",
@@ -37,7 +38,7 @@ public sealed class PublicVotePolicyTests
         Roles: ["user"],
         AccountType: accountType));
 
-    Assert.False(session.CanCastPublicVotes());
+    Assert.Equal(expected, session.CanCastPublicVotes());
   }
 
   [Fact]

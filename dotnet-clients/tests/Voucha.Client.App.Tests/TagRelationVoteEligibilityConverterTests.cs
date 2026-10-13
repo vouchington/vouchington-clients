@@ -46,6 +46,21 @@ public sealed class TagRelationVoteEligibilityConverterTests
     Assert.True((bool)administrator.Convert([null, false], typeof(bool), null, null!));
   }
 
+  [Theory]
+  [InlineData(AccountType.Official, false)]
+  [InlineData(AccountType.System, false)]
+  [InlineData(AccountType.AiAgent, false)]
+  [InlineData(null, true)]
+  public void UserTagVoteControlUsesEveryAccountClassification(AccountType? accountType, bool expected)
+  {
+    var converter = new TagRelationVoteEligibilityConverter(
+        new SessionStore(new SessionSnapshot(new User("user-1", "alice", Roles: ["user"], AccountType: accountType))),
+        () => true,
+        ElectionVoteChoice.Confirm);
+
+    Assert.Equal(expected, converter.Convert([null, false], typeof(bool), null, null!));
+  }
+
   [Fact]
   public void OfficialSessionCanClearAHydratedBallot()
   {

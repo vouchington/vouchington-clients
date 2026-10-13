@@ -103,4 +103,25 @@ final class UserSearchResultTests: XCTestCase {
         XCTAssertEqual(page.results.map(\.username), ["alice"])
         XCTAssertFalse(page.pageInfo.hasNextPage)
     }
+
+    func testStagedUserSearchProjectionPreservesEveryAccountClassification() throws {
+        let original = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: ApiFixtureLoader.data("native.messages.user-search.default"))
+                as? [String: Any]
+        )
+        let cases: [AccountType?] = [.official, .system, .aiAgent, nil]
+        for accountType in cases {
+            var response = original
+            var results = try XCTUnwrap(response["results"] as? [[String: Any]])
+            results[0]["account_type"] = accountType?.rawValue as Any? ?? NSNull()
+            response["results"] = results
+
+            let page = try makeVouchaDecoder().decode(
+                Page<UserSearchResult>.self,
+                from: JSONSerialization.data(withJSONObject: response)
+            )
+
+            XCTAssertEqual(page.results.first?.accountType, accountType)
+        }
+    }
 }
