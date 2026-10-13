@@ -19,12 +19,9 @@ struct MemberAppealTrackingCard: View {
             )
             LabeledContent(
                 UiMessages.string(.nativeSwiftModerationAppealsCreated, locale: locale),
-                value: UiMessages.date(
+                value: UiMessages.abbreviatedDateTime(
                     appeal.createdAt,
-                    date: .abbreviated,
-                    time: .shortened,
-                    locale: locale,
-                    timeZone: .current
+                    locale: locale
                 )
             )
             if let publicResponse = appeal.publicResponse {
@@ -64,12 +61,9 @@ struct MemberAppealTrackingCard: View {
     private func lifecycleRow(_ key: UiMessageKey, date: Date) -> some View {
         LabeledContent(
             UiMessages.string(key, locale: locale),
-            value: UiMessages.date(
+            value: UiMessages.abbreviatedDateTime(
                 date,
-                date: .abbreviated,
-                time: .shortened,
-                locale: locale,
-                timeZone: .current
+                locale: locale
             )
         )
     }

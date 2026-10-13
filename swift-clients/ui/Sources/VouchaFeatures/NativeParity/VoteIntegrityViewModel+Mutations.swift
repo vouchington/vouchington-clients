@@ -76,45 +76,4 @@ extension VoteIntegrityViewModel {
             mutationErrorMessages[flagId] = integrityErrorMessage(error)
         }
     }
-
-    private func confirm(_ flag: VoteIntegrityFlag) {
-        loadGeneration += 1
-        isLoading = false
-        isLoadingMore = false
-        let matches = selectedStatus == .all
-            || (selectedStatus == .pending) == (flag.resolvedAt == nil)
-        guard matches else {
-            flags.removeAll { $0.id == flag.id }
-            return
-        }
-        if let index = flags.firstIndex(where: { $0.id == flag.id }) {
-            flags[index] = flag
-        } else {
-            flags.insert(flag, at: 0)
-        }
-    }
-
-    private func withMutation(_ flagId: String, operation: () async throws -> Void) async {
-        guard mutatingFlagIds.insert(flagId).inserted else { return }
-        mutationErrorMessages[flagId] = nil
-        defer { mutatingFlagIds.remove(flagId) }
-        do {
-            try await operation()
-        } catch {
-            guard integrityMutationIsAmbiguous(error) else {
-                mutationErrorMessages[flagId] = integrityErrorMessage(error)
-                return
-            }
-            reconciliationRequiredFlagIds.insert(flagId)
-            mutationErrorMessages[flagId] = integrityErrorMessage(error)
-            mutatingFlagIds.remove(flagId)
-            await reconcile(flagId)
-        }
-    }
-
-    private func canOperate(_ flag: VoteIntegrityFlag) -> Bool {
-        canAccess && flag.resolvedAt == nil && flags.contains { $0.id == flag.id }
-            && !mutatingFlagIds.contains(flag.id) && !reconcilingFlagIds.contains(flag.id)
-            && !reconciliationRequiredFlagIds.contains(flag.id)
-    }
 }

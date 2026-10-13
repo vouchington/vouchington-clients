@@ -30,10 +30,8 @@ struct NativeReferralClickRows: View {
         locale: Locale,
         timeZone: TimeZone
     ) -> String {
-        UiMessages.date(
+        UiMessages.abbreviatedDateTime(
             click.createdAt,
-            date: .abbreviated,
-            time: .shortened,
             locale: locale,
             timeZone: timeZone
         )

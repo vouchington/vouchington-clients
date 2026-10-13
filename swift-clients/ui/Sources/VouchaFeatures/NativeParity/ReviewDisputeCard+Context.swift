@@ -135,12 +135,9 @@ extension ReviewDisputeCard {
     }
 
     private func localizedDate(_ date: Date) -> String {
-        UiMessages.date(
+        UiMessages.abbreviatedDateTime(
             date,
-            date: .abbreviated,
-            time: .shortened,
-            locale: nativeUiLocale,
-            timeZone: .current
+            locale: nativeUiLocale
         )
     }
 }

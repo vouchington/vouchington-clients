@@ -25,12 +25,9 @@ extension DirectMessagesSurface {
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text(label(for: conversation))
                                 .font(Typography.headline)
-                            Text(UiMessages.date(
+                            Text(UiMessages.abbreviatedDateTime(
                                 conversation.updatedAt,
-                                date: .abbreviated,
-                                time: .shortened,
-                                locale: nativeUiLocale,
-                                timeZone: .current
+                                locale: nativeUiLocale
                             ))
                             .font(Typography.caption)
                             .foregroundStyle(Colors.secondaryLabel)

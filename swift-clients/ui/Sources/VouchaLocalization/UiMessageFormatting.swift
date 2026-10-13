@@ -133,4 +133,20 @@ public extension UiMessages {
     ) -> String {
         self.date(value, date: date, time: time, locale: resolvedLocale(locale), timeZone: timeZone)
     }
+
+    static func abbreviatedDateTime(
+        _ value: Date,
+        locale: UiLocale,
+        timeZone: TimeZone = .current
+    ) -> String {
+        date(value, date: .abbreviated, time: .shortened, locale: locale, timeZone: timeZone)
+    }
+
+    static func abbreviatedDateTime(
+        _ value: Date,
+        locale: Locale,
+        timeZone: TimeZone = .current
+    ) -> String {
+        date(value, date: .abbreviated, time: .shortened, locale: locale, timeZone: timeZone)
+    }
 }

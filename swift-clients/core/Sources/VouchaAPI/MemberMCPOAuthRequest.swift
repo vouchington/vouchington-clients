@@ -1,5 +1,6 @@
 import Crypto
 import Foundation
+import VouchaCore
 
 public enum MemberMCPApp: String, Sendable {
     case ios, macos, windows
@@ -120,12 +121,5 @@ public struct MemberMCPOAuthRequest: Sendable {
     private static func randomToken(using generator: inout SystemRandomNumberGenerator) -> String {
         let bytes = (0 ..< 32).map { _ in UInt8.random(in: .min ... .max, using: &generator) }
         return Data(bytes).base64URLEncodedString()
-    }
-}
-
-private extension Data {
-    func base64URLEncodedString() -> String {
-        base64EncodedString().replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 }

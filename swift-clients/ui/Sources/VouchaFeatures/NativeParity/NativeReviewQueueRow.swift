@@ -67,10 +67,8 @@ struct NativeReviewQueueRow: View {
         locale: Locale,
         timeZone: TimeZone
     ) -> String {
-        UiMessages.date(
+        UiMessages.abbreviatedDateTime(
             item.post.createdAt,
-            date: .abbreviated,
-            time: .shortened,
             locale: locale,
             timeZone: timeZone
         )

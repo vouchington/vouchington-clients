@@ -101,12 +101,9 @@ extension ModerationAppealCard {
     func lifecycleRow(label: UiMessageKey, date: Date, actorId: String? = nil) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(UiMessages.string(label, locale: nativeUiLocale)).font(Typography.subheadline)
-            Text(UiMessages.date(
+            Text(UiMessages.abbreviatedDateTime(
                 date,
-                date: .abbreviated,
-                time: .shortened,
-                locale: nativeUiLocale,
-                timeZone: .current
+                locale: nativeUiLocale
             ))
             .font(Typography.caption)
             .foregroundStyle(Colors.secondaryLabel)
