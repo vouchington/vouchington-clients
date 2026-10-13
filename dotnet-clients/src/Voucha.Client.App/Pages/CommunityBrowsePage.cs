@@ -35,7 +35,7 @@ public sealed class CommunityBrowsePage : ContentPage
       var provenance = new Label { FontSize = 12 };
       provenance.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.LocalizedProvenanceLabel));
       provenance.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProvenance));
-      var staffChannel = new Label { FontSize = 12 };
+      var staffChannel = new Label { FontSize = 12, AutomationId = "CommunityStaffChannel" };
       staffChannel.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.StaffChannelLabel));
       staffChannel.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasStaffChannel));
       var counts = new Label();
@@ -68,6 +68,7 @@ public sealed class CommunityBrowsePage : ContentPage
   {
     base.OnAppearing();
     sessionStore.SessionChanged += sessionChangedHandler;
+    Render();
     if (viewModel.Results.Count == 0)
     {
       await RunSearchAsync().ConfigureAwait(true);

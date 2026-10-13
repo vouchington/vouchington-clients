@@ -91,6 +91,7 @@ public sealed class NewsFeedsPageBinding : BindableObject
     if (isSessionChangedAttached) return;
     sessionStore.SessionChanged += sessionChangedHandler;
     isSessionChangedAttached = true;
+    OnPropertyChanged(nameof(Items));
   }
 
   public void DetachSessionChanged()

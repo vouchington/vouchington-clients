@@ -103,6 +103,8 @@ public sealed class ListsPageBinding : BindableObject
     if (isSessionChangedAttached) return;
     sessionStore.SessionChanged += sessionChangedHandler;
     isSessionChangedAttached = true;
+    OnPropertyChanged(nameof(Lists));
+    OnPropertyChanged(nameof(SelectedList));
   }
 
   public void DetachSessionChanged()

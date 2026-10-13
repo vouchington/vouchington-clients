@@ -1,0 +1,134 @@
+using System.Reflection;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Dispatching;
+using Voucha.Client.App.Pages;
+using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Communities;
+using Voucha.Client.Core.Lists;
+using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Topics;
+using Xunit;
+
+namespace Voucha.Client.App.Tests;
+
+public sealed partial class PublicEntityProvenanceRenderingTests
+{
+  [Fact]
+  public async Task CommunityBrowseReappearingAfterStaffSignOutClearsCachedStaffChannel()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var session = new MutableStaffSessionStore();
+    var model = new CommunityBrowseViewModel(new ApiCommunitiesService(Client(
+        Fixture("entity-provenance.communities.staff"))));
+    await model.SearchAsync(TestContext.Current.CancellationToken);
+    Assert.NotEmpty(model.Results);
+    var page = new CommunityBrowsePage(model, session);
+    var collection = Assert.Single(Descendants<CollectionView>(page));
+
+    InvokeLifecycle(page, "OnAppearing");
+    var staffRow = Assert.Single(
+        Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(collection.ItemsSource),
+        row => row.Id == "community-1-mcp");
+    Assert.True(staffRow.HasStaffChannel);
+
+    InvokeLifecycle(page, "OnDisappearing");
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    Assert.True(Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(
+        collection.ItemsSource), row => row.Id == "community-1-mcp").HasStaffChannel);
+    InvokeLifecycle(page, "OnAppearing");
+    var anonymousRows = Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(collection.ItemsSource);
+    var anonymousRow = Assert.Single(anonymousRows, row => row.Id == "community-1-mcp");
+    Assert.False(anonymousRow.HasStaffChannel);
+    Assert.All(anonymousRows, row => Assert.False(row.HasStaffChannel));
+    var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
+    card.BindingContext = anonymousRow;
+    var staffLabel = Assert.Single(card.Children.OfType<Label>(), label =>
+        label.AutomationId == "CommunityStaffChannel");
+    Assert.False(staffLabel.IsVisible);
+    Assert.Null(staffLabel.Text);
+  }
+
+  [Fact]
+  public async Task ListsReattachPublishesCachedRowsUnderCurrentViewer()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    using var model = new ListsViewModel(Client(Fixture("entity-provenance.lists.staff"),
+        Fixture("native.list-items.default")));
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var session = new MutableStaffSessionStore();
+    var page = new ListsPage(model, session);
+    var binding = Assert.IsType<ListsPageBinding>(page.BindingContext);
+    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+        view.ItemsSource is IReadOnlyList<ListSummaryRow>);
+
+    binding.AttachSessionChanged();
+    Assert.True(Assert.Single(binding.Lists, row => row.Id == "list-1-mcp").HasStaffChannel);
+    binding.DetachSessionChanged();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var published = false;
+    binding.PropertyChanged += (_, args) =>
+    {
+      if (args.PropertyName == nameof(ListsPageBinding.Lists)) published = true;
+    };
+    binding.AttachSessionChanged();
+    Assert.True(published);
+    Assert.All(binding.Lists, row => Assert.False(row.HasStaffChannel));
+    Assert.All(Assert.IsAssignableFrom<IReadOnlyList<ListSummaryRow>>(
+        collection.ItemsSource), row => Assert.False(row.HasStaffChannel));
+  }
+
+  [Fact]
+  public async Task FeedAndTopicReattachPublishCachedStaffRowsUnderCurrentViewer()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var session = new MutableStaffSessionStore();
+    using var feedsModel = new NewsFeedsViewModel(new ApiNewsFeedService(Client(
+        Fixture("entity-provenance.rss-feeds.staff"))), NewsFeedKind.News, NewsFeedScope.AllSources);
+    await feedsModel.LoadAsync(TestContext.Current.CancellationToken);
+    var feeds = new NewsFeedsPageBinding(feedsModel, session);
+    using var topicsModel = new TopicsViewModel(new ApiTopicsService(Client(
+        Fixture("entity-provenance.topics.staff"))));
+    await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
+    var topics = new TopicsPageBinding(topicsModel, session);
+    Assert.Contains(feeds.Items, row => row.HasStaffChannel);
+    Assert.Contains(topics.Items, row => row.HasStaffChannel);
+
+    feeds.AttachSessionChanged();
+    topics.AttachSessionChanged();
+    feeds.DetachSessionChanged();
+    topics.DetachSessionChanged();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var feedPublished = false;
+    var topicPublished = false;
+    feeds.PropertyChanged += (_, args) => feedPublished |= args.PropertyName == nameof(NewsFeedsPageBinding.Items);
+    topics.PropertyChanged += (_, args) => topicPublished |= args.PropertyName == nameof(TopicsPageBinding.Items);
+    feeds.AttachSessionChanged();
+    topics.AttachSessionChanged();
+
+    Assert.True(feedPublished);
+    Assert.True(topicPublished);
+    Assert.All(feeds.Items, row => Assert.False(row.HasStaffChannel));
+    Assert.All(topics.Items, row => Assert.False(row.HasStaffChannel));
+  }
+
+  private static void InvokeLifecycle(CommunityBrowsePage page, string method) =>
+      typeof(CommunityBrowsePage).GetMethod(method,
+          BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!.Invoke(page, null);
+
+  private sealed class MutableStaffSessionStore : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged;
+    public SessionSnapshot Current { get; private set; } = new(new User("staff-1", "staff", Roles: ["moderator"]));
+    public void SetCurrent(SessionSnapshot next)
+    {
+      Current = next;
+      SessionChanged?.Invoke(this, new SessionChangedEventArgs(next));
+    }
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+  }
+}

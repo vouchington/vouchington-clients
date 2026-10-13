@@ -23,7 +23,7 @@ using Xunit;
 namespace Voucha.Client.App.Tests;
 
 [Collection(MauiPageTestCollection.Name)]
-public sealed class PublicEntityProvenanceRenderingTests
+public sealed partial class PublicEntityProvenanceRenderingTests
 {
   [Fact]
   public void CommunityBrowseCardRendersTrustedAppAndHidesAbsentProvenance()

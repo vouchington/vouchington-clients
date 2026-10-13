@@ -28,6 +28,7 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicRow>
     if (isSessionChangedAttached) return;
     sessionStore.SessionChanged += sessionChangedHandler;
     isSessionChangedAttached = true;
+    OnPropertyChanged(nameof(Items));
   }
 
   public void DetachSessionChanged()
