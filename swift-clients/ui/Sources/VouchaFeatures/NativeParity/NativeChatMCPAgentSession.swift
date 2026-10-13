@@ -52,11 +52,11 @@ public final class NativeChatMCPAgentSession {
     public private(set) var lastError: UiVerbatimText?
     public private(set) var revision = 0
 
-    private let service: any NativeChatMCPServicing
+    let service: any NativeChatMCPServicing
     private var generation = 0
     private var operation: Task<DecodedJSONValue, Error>?
     private var pendingCleanupAccountIds: [String] = []
-    private var inFlightCalls: [UUID: Task<MemberMCPClient.ToolResult, Error>] = [:]
+    var inFlightCalls: [UUID: Task<MemberMCPClient.ToolResult, Error>] = [:]
 
     public init(service: any NativeChatMCPServicing) {
         self.service = service
@@ -215,32 +215,4 @@ public final class NativeChatMCPAgentSession {
         }
     }
 
-    public func callTool(
-        name: String, arguments: [String: DecodedJSONValue],
-        accountId expectedAccountId: String, revision expectedRevision: Int
-    ) async throws -> MemberMCPClient.ToolResult {
-        guard accountId == expectedAccountId, revision == expectedRevision,
-              status == .connected, toolCatalog != nil else { throw CancellationError() }
-        let id = UUID()
-        let task = Task {
-            try await service.callTool(accountId: expectedAccountId, name: name, arguments: arguments)
-        }
-        inFlightCalls[id] = task
-        defer { inFlightCalls.removeValue(forKey: id) }
-        let result = try await withTaskCancellationHandler {
-            try await task.value
-        } onCancel: {
-            task.cancel()
-        }
-        guard accountId == expectedAccountId, revision == expectedRevision,
-              status == .connected else { throw CancellationError() }
-        return result
-    }
-
-    private func cancelCalls() {
-        for task in inFlightCalls.values {
-            task.cancel()
-        }
-        inFlightCalls.removeAll()
-    }
 }
