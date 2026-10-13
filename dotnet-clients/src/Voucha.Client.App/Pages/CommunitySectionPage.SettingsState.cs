@@ -36,7 +36,9 @@ public abstract partial class CommunitySectionPage
             post.Id,
             UiText.UserContent(post.Title),
             UiText.ProtocolValue(post.PostType),
-            Date(post.CreatedAt))).ToArray(),
+            Date(post.CreatedAt), post.StaffProvenance,
+            sessionStore.Current.Identity?.Roles?.Any(role =>
+                role is "administrator" or "moderator") == true)).ToArray(),
         CommunityDetailSurfaceSection.News => viewModel.News,
         CommunityDetailSurfaceSection.Lists => viewModel.ListItemCounts is { } counts
             ? [
@@ -69,8 +71,11 @@ public abstract partial class CommunitySectionPage
       string id,
       UiText title,
       UiText subtitle,
-      UiText? detail = null) =>
-      new(id, title, subtitle, detail, UiCopy.CurrentLocalization);
+      UiText? detail = null,
+      Voucha.Client.Core.Api.StaffContentProvenance? staffProvenance = null,
+      bool isStaffViewer = false) =>
+      new(id, title, subtitle, detail, UiCopy.CurrentLocalization,
+          StaffProvenance: staffProvenance, IsStaffViewer: isStaffViewer);
 
   private static UiText? Date(DateTimeOffset? value) =>
       value is { } date ? UiText.Verbatim(UiCopy.FormatDateTime(date)) : null;
@@ -92,6 +97,9 @@ public abstract partial class CommunitySectionPage
     subtitle.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Subtitle));
     var detail = new Label();
     detail.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Detail));
+    var staffChannel = new Label { FontSize = 12, AutomationId = "CommunityPostStaffChannel" };
+    staffChannel.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.StaffChannelLabel));
+    staffChannel.SetBinding(IsVisibleProperty, nameof(CommunitySummaryRow.HasStaffChannel));
     var image = new Image { HeightRequest = 160, Aspect = Aspect.AspectFit };
     image.SetBinding(Image.SourceProperty, "EmbedPreview.ThumbnailUrl");
     var provider = new Label { FontSize = 12 };
@@ -111,7 +119,7 @@ public abstract partial class CommunitySectionPage
     return new VerticalStackLayout
     {
       Spacing = 3,
-      Children = { title, authoredContent, subtitle, detail, embed },
+      Children = { title, authoredContent, subtitle, detail, staffChannel, embed },
     };
   }
 }

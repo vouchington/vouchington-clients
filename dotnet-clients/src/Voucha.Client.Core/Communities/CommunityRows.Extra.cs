@@ -13,7 +13,9 @@ public sealed record CommunitySummaryRow(
     UrlEmbedPreview? EmbedPreview = null,
     string? TitleDeclaredLanguage = null,
     string? TitleDetectedLanguage = null,
-    AuthoredContentText? Content = null)
+    AuthoredContentText? Content = null,
+    StaffContentProvenance? StaffProvenance = null,
+    bool IsStaffViewer = false)
 {
   public CommunitySummaryRow(string id, string title, string subtitle, string? detail = null)
       : this(
@@ -43,4 +45,9 @@ public sealed record CommunitySummaryRow(
           Content.LinguaRsDetectedLanguage).Direction?.ToString();
 
   public bool HasAuthoredContent => !string.IsNullOrWhiteSpace(AuthoredContent);
+
+  public string? StaffChannelLabel =>
+      StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, Localization);
+
+  public bool HasStaffChannel => StaffChannelLabel is not null;
 }

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Nodes;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -14,6 +15,69 @@ namespace Voucha.Client.App.Tests;
 
 public sealed partial class PublicEntityProvenanceRenderingTests
 {
+  [Fact]
+  public async Task RoutedCommunitySectionReprojectsStaffFactsOnActiveAndHiddenSessionChanges()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var detail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
+    detail["community"]!["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":{"client_id":"internal-client-42","client_name":"Fixture Agent","metadata_url":null,"verified":true}}
+        """);
+    var posts = JsonNode.Parse(Fixture("web.communities.posts.default"))!;
+    posts["posts"]!["post-1"]!["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":{"client_id":"internal-client-42","client_name":"Fixture Agent","metadata_url":null,"verified":true}}
+        """);
+    var session = new MutableStaffSessionStore();
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
+        detail.ToJsonString(), Fixture("web.communities.members.default"), posts.ToJsonString(),
+        Fixture("web.communities.list-items.counts.default"))), session);
+    var overview = new CommunityOverviewPage(model, session);
+    var postsPage = new CommunityPostsPage(model, session);
+    await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
+    InvokeLifecycle(overview, "OnAppearing");
+    InvokeLifecycle(postsPage, "OnAppearing");
+
+    var channel = Assert.Single(Descendants<Label>(overview), label =>
+        label.AutomationId == "CommunitySectionStaffChannel");
+    var client = Assert.Single(Descendants<Label>(overview), label =>
+        label.AutomationId == "CommunitySectionStaffClient");
+    var verified = Assert.Single(Descendants<Label>(overview), label =>
+        label.AutomationId == "CommunitySectionStaffVerification");
+    Assert.True(channel.IsVisible);
+    Assert.True(client.IsVisible);
+    Assert.True(verified.IsVisible);
+    Assert.Contains("Fixture Agent", client.Text, StringComparison.Ordinal);
+    Assert.Contains("internal-client-42", client.Text, StringComparison.Ordinal);
+
+    var rows = Assert.Single(Descendants<CollectionView>(postsPage), view =>
+        view.ItemsSource is IReadOnlyList<CommunitySummaryRow>);
+    var staffPost = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CommunitySummaryRow>>(
+        rows.ItemsSource), row => row.Id == "post-1");
+    Assert.True(staffPost.HasStaffChannel);
+
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    Assert.False(channel.IsVisible);
+    Assert.False(client.IsVisible);
+    Assert.False(verified.IsVisible);
+    Assert.All(Assert.IsAssignableFrom<IReadOnlyList<CommunitySummaryRow>>(
+        rows.ItemsSource), row => Assert.False(row.HasStaffChannel));
+
+    session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
+    Assert.True(channel.IsVisible);
+    InvokeLifecycle(overview, "OnDisappearing");
+    InvokeLifecycle(postsPage, "OnDisappearing");
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    Assert.True(channel.IsVisible);
+    InvokeLifecycle(overview, "OnAppearing");
+    InvokeLifecycle(postsPage, "OnAppearing");
+    Assert.False(channel.IsVisible);
+    Assert.False(client.IsVisible);
+    Assert.False(verified.IsVisible);
+    Assert.All(Assert.IsAssignableFrom<IReadOnlyList<CommunitySummaryRow>>(
+        rows.ItemsSource), row => Assert.False(row.HasStaffChannel));
+  }
+
   [Fact]
   public async Task CommunityBrowseReappearingAfterStaffSignOutClearsCachedStaffChannel()
   {
@@ -117,6 +181,10 @@ public sealed partial class PublicEntityProvenanceRenderingTests
 
   private static void InvokeLifecycle(CommunityBrowsePage page, string method) =>
       typeof(CommunityBrowsePage).GetMethod(method,
+          BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!.Invoke(page, null);
+
+  private static void InvokeLifecycle(CommunitySectionPage page, string method) =>
+      typeof(CommunitySectionPage).GetMethod(method,
           BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!.Invoke(page, null);
 
   private sealed class MutableStaffSessionStore : ISessionStore

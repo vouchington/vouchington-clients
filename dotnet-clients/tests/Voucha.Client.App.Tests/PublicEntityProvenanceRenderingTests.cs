@@ -100,7 +100,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         detail.ToJsonString(), Fixture("web.communities.members.default"),
         Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"))),
         localization: localization, localeController: controller);
-    var page = new CommunityOverviewPage(model);
+    var page = new CommunityOverviewPage(model, new AnonymousSessionStore());
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
