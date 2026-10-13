@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:agent="clr-namespace:Voucha.Client.Core.Agent;assembly=Voucha.Client.Core"
+    xmlns:localization="clr-namespace:Voucha.Client.Core.Localization;assembly=Voucha.Client.Core"
     x:DataType="agent:MemberMcpControlsViewModel"
     IsVisible="{Binding HasMemberSession}">
     <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
@@ -13,6 +14,14 @@
         <VerticalStackLayout Spacing="8">
             <Label Text="{DynamicResource native.taxonomy.settings.mcp}" Style="{StaticResource Metadata}" />
             <Label Text="{DynamicResource native.dotnet.chat.mcpConnected}" IsVisible="{Binding IsConnected}" />
+            <CollectionView AutomationId="member-mcp-tools" ItemsSource="{Binding ToolNames}"
+                            IsVisible="{Binding IsConnected}" MaximumHeightRequest="160" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="localization:UiText">
+                        <Label Text="{Binding VerbatimValue}" Style="{StaticResource Metadata}" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
             <Label Text="{DynamicResource native.dotnet.chat.mcpConnectionFailed}" IsVisible="{Binding HasError}" />
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
             <HorizontalStackLayout Spacing="8">

@@ -236,16 +236,18 @@ public sealed partial class MemberMcpSessionTests
     var factory = new FakeFactory();
     using var session = new MemberMcpSession(identity, store, factory);
     await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var controls = new MemberMcpControlsViewModel(session);
 
     factory.Connections[0].UnauthorizedRefresh = true;
-    await Assert.ThrowsAsync<McpUnauthorizedException>(() =>
-        session.RefreshToolsAsync(TestContext.Current.CancellationToken));
+    await controls.RefreshToolsAsync(TestContext.Current.CancellationToken);
     await session.WhenSettledAsync();
 
     Assert.Null(session.Tools);
     Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
     Assert.Null(await store.LoadAsync(Scope("account-a")));
-    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.False(controls.HasError);
+    Assert.True(controls.CanConnect);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
     Assert.Equal(2, factory.Created);
   }
 

@@ -7,6 +7,7 @@ using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Localization;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -34,7 +35,8 @@ public sealed class ChatMemberMcpControlsTests
         ["native.dotnet.chat.mcpDisconnect"] = "Disconnect",
       },
     };
-    using var session = new MemberMcpSession(new MemberSession(), new EmptyStore(), new ConnectionFactory());
+    var connection = new Connection();
+    using var session = new MemberMcpSession(new MemberSession(), new EmptyStore(), new ConnectionFactory(connection));
     var service = new UnusedChatService();
     var page = new ChatConversationPage(new ChatConversationViewModel(service), service, session);
     var view = Assert.Single(page.GetVisualTreeDescendants().OfType<ChatMemberMcpControlsView>());
@@ -50,6 +52,20 @@ public sealed class ChatMemberMcpControlsTests
     Assert.True(Assert.Single(buttons, button => button.Text == "Refresh").IsVisible);
     Assert.True(Assert.Single(buttons, button => button.Text == "Disconnect").IsVisible);
     Assert.Equal(1, session.Tools?.GetProperty("tools").GetArrayLength());
+    var catalog = Assert.Single(view.GetVisualTreeDescendants().OfType<CollectionView>());
+    Assert.Equal("read_profile", RenderedToolName(catalog));
+
+    connection.ToolName = "read_account";
+    await session.RefreshToolsAsync(TestContext.Current.CancellationToken);
+    Assert.Equal("read_account", RenderedToolName(catalog));
+  }
+
+  private static string? RenderedToolName(CollectionView catalog)
+  {
+    var tool = Assert.Single(catalog.ItemsSource!.Cast<UiText>());
+    var label = Assert.IsType<Label>(catalog.ItemTemplate.CreateContent());
+    label.BindingContext = tool;
+    return label.Text;
   }
 
   [Fact]
@@ -136,17 +152,18 @@ public sealed class ChatMemberMcpControlsTests
     public Task ClearAllAccountsExceptAsync(string? accountId) => Task.CompletedTask;
   }
 
-  private sealed class ConnectionFactory : IMemberMcpSessionConnectionFactory
+  private sealed class ConnectionFactory(Connection connection) : IMemberMcpSessionConnectionFactory
   {
     public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken) =>
-        Task.FromResult<IMemberMcpSessionConnection>(new Connection());
+        Task.FromResult<IMemberMcpSessionConnection>(connection);
   }
 
   private sealed class Connection : IMemberMcpSessionConnection
   {
+    public string ToolName { get; set; } = "read_profile";
     public Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken) => ListToolsAsync(cancellationToken);
     public Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken) => Task.FromResult(
-        JsonDocument.Parse("{\"tools\":[{\"name\":\"read_profile\"}]}").RootElement.Clone());
+        JsonDocument.Parse(JsonSerializer.Serialize(new { tools = new[] { new { name = ToolName } } })).RootElement.Clone());
     public Task DisconnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
   }
