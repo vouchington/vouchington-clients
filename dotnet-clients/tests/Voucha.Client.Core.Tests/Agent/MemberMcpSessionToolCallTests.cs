@@ -52,4 +52,26 @@ public sealed partial class MemberMcpSessionTests
     Assert.NotNull(session.ConnectedSnapshot());
     Assert.Equal(2, factory.Created);
   }
+
+  [Fact]
+  public async Task ExpiredMcpSessionClearsCatalogAndAllowsReconnect()
+  {
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].ExpireToolCall = true;
+    using var arguments = JsonDocument.Parse("{}");
+
+    await Assert.ThrowsAsync<HttpRequestException>(() => session.CallToolAsync(
+        snapshot, "read_profile", arguments.RootElement, TestContext.Current.CancellationToken));
+    Assert.False(session.IsCurrent(snapshot));
+    Assert.Null(session.ConnectedSnapshot());
+    Assert.Null(session.Tools);
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+    await session.WhenSettledAsync();
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(session.ConnectedSnapshot());
+    Assert.Equal(2, factory.Created);
+  }
 }

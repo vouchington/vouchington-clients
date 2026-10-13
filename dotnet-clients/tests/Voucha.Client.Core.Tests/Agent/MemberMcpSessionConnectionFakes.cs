@@ -30,6 +30,7 @@ public sealed partial class MemberMcpSessionTests
     public bool FailRefresh { get; set; }
     public bool UnauthorizedRefresh { get; set; }
     public bool RejectToolCall { get; set; }
+    public bool ExpireToolCall { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -57,6 +58,8 @@ public sealed partial class MemberMcpSessionTests
       ToolEntered.TrySetResult();
       if (holdToolCall) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
       if (RejectToolCall) throw new McpUnauthorizedException();
+      if (ExpireToolCall)
+        throw new HttpRequestException("MCP session expired.", null, System.Net.HttpStatusCode.NotFound);
       return new(JsonDocument.Parse("[]").RootElement.Clone(), null, false);
     }
     public async Task DisconnectAsync(CancellationToken cancellationToken)

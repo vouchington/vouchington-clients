@@ -34,6 +34,17 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void LocalReferenceDecodesJsonPointerEscapesWithoutAdmittingMalformedPaths()
+  {
+    using var schema = JsonDocument.Parse(
+        """{"type":"object","properties":{"slash":{"$ref":"#/$defs/a~1b"},"tilde":{"$ref":"#/$defs/a~0b"},"literal":{"$ref":"#/$defs/a~01b"}},"$defs":{"a/b":{"type":"string","minLength":2},"a~b":{"type":"string","maxLength":2},"a~1b":{"type":"string","minLength":3}}}""");
+    Assert.True(Accepts("""{"slash":"ab","tilde":"ab","literal":"abc"}""", schema));
+    Assert.False(Accepts("""{"slash":"a","tilde":"abc","literal":"ab"}""", schema));
+    using var malformed = JsonDocument.Parse("""{"$ref":"#/$defs/a~2b","$defs":{"a~2b":{"type":"string"}}}""");
+    Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(malformed.RootElement));
+  }
+
+  [Fact]
   public void SelectedOptionAndNestedArgumentsMustMatchSameBranch()
   {
     using var schema = JsonDocument.Parse("""{"type":"object","oneOf":[{"type":"object","properties":{"option":{"enum":["details"]},"arguments":{"type":"object","required":["id"],"properties":{"id":{"type":"string"}},"additionalProperties":false}},"required":["option","arguments"],"additionalProperties":false},{"type":"object","properties":{"option":{"enum":["list"]},"arguments":{"type":"object","properties":{"after":{"type":"string"}},"additionalProperties":false}},"required":["option","arguments"],"additionalProperties":false}]}""");
@@ -202,6 +213,8 @@ public sealed class MemberMcpInputSchemaTests
     using var rejected = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 257)));
     Assert.True(MemberMcpInputSchema.Accepts(accepted.RootElement, bounded.RootElement));
     Assert.False(MemberMcpInputSchema.Accepts(rejected.RootElement, bounded.RootElement));
+    Assert.False(Accepts("[1e100,10e99]", bounded));
+    Assert.False(Accepts("""[{"value":1e100},{"value":10e99}]""", bounded));
   }
 
   [Fact]

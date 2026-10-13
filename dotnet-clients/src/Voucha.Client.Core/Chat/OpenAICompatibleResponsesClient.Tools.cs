@@ -161,13 +161,23 @@ public sealed partial class OpenAICompatibleResponsesClient
     if (!response.IsSuccessStatusCode)
       throw new HttpRequestException($"The local model request failed with status {(int)response.StatusCode}.",
           null, response.StatusCode);
-    var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+    Stream stream;
+    try { stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false); }
+    catch (Exception error) when (error is IOException or HttpIOException)
+    {
+      throw new HttpRequestException("The local model response stream failed.", error);
+    }
     await using var streamLifetime = stream.ConfigureAwait(false);
     using var bounded = new MemoryStream();
     var buffer = new byte[16_384];
     while (true)
     {
-      var count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+      int count;
+      try { count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false); }
+      catch (Exception error) when (error is IOException or HttpIOException)
+      {
+        throw new HttpRequestException("The local model response stream failed.", error);
+      }
       if (count == 0) break;
       if (bounded.Length + count > 1_000_000) throw new InvalidDataException("Local model response too large.");
       await bounded.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);

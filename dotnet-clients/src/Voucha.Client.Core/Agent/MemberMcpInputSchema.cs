@@ -112,8 +112,21 @@ internal static partial class MemberMcpInputSchema
     if (item.ValueKind != JsonValueKind.String || item.GetString() is not { } path ||
         !path.StartsWith("#/$defs/", StringComparison.Ordinal) || path.Length <= 8 ||
         path.AsSpan(8).Contains('/')) throw new InvalidDataException("Unsupported MCP schema reference.");
+    var encoded = path.AsSpan(8);
+    var name = new System.Text.StringBuilder(encoded.Length);
+    for (var index = 0; index < encoded.Length; index++)
+    {
+      if (encoded[index] != '~') { name.Append(encoded[index]); continue; }
+      if (++index == encoded.Length) throw new InvalidDataException("Invalid MCP schema reference escape.");
+      name.Append(encoded[index] switch
+      {
+        '0' => '~',
+        '1' => '/',
+        _ => throw new InvalidDataException("Invalid MCP schema reference escape."),
+      });
+    }
     if (!root.TryGetProperty("$defs", out var defs) || defs.ValueKind != JsonValueKind.Object ||
-        !defs.TryGetProperty(path[8..], out var target))
+        !defs.TryGetProperty(name.ToString(), out var target))
       throw new InvalidDataException("Missing MCP schema definition.");
     return target;
   }

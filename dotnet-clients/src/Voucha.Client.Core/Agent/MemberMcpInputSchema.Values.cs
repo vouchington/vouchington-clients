@@ -65,7 +65,12 @@ internal static partial class MemberMcpInputSchema
   private static bool Same(JsonElement left, JsonElement right)
   {
     if (left.ValueKind == JsonValueKind.Number && right.ValueKind == JsonValueKind.Number)
-      return Number(left, out var a) && Number(right, out var b) && a == b;
+    {
+      if (!CanonicalNumber(left.GetRawText(), out var leftSign, out var leftDigits, out var leftExponent) ||
+          !CanonicalNumber(right.GetRawText(), out var rightSign, out var rightDigits, out var rightExponent))
+        throw new InvalidDataException("Unsupported MCP numeric equality.");
+      return leftSign == rightSign && leftDigits == rightDigits && leftExponent == rightExponent;
+    }
     if (left.ValueKind != right.ValueKind) return false;
     return left.ValueKind switch
     {

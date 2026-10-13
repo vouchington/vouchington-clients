@@ -72,6 +72,15 @@ public sealed partial class MemberMcpSession
         }
         throw;
       }
+      catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound &&
+          error.Message == "MCP session expired.")
+      {
+        lock (gate)
+        {
+          if (IsCurrentLocked(snapshot)) _ = QueueCleanup(accountId);
+        }
+        throw;
+      }
       linked.Token.ThrowIfCancellationRequested();
       lock (gate)
       {
