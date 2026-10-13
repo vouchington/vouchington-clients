@@ -56,7 +56,15 @@ for project_kind in app core; do
   done
 done
 
+# Restore the real Windows app graph cross-platform; compilation remains Windows-only.
+ArtifactsPath="$artifacts_root/app-win-x64" dotnet restore "${restore_mode[@]}" \
+  -p:Configuration=Release -p:TargetFramework=net10.0-windows10.0.26100.0 \
+  -p:RuntimeIdentifier=win-x64 -p:EnableWindowsTargeting=true -p:RestorePackagesWithLockFile=true \
+  src/Voucha.Client.App/Voucha.Client.App.csproj
+
 locks=(
+  src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
+  src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
   src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-arm64.lock.json
   src/Voucha.Client.App/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
   src/Voucha.Client.Core/packages.lock.json

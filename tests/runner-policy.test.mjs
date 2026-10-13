@@ -50,10 +50,13 @@ describe('GitHub-hosted runner policy', () => {
         assert.ok(allowedLabels.has(label), `${name} uses disallowed runs-on ${label}`)
       }
       if (name === 'native-contract-tests.yml') {
-        assert.equal(labels.filter(label => label === 'windows-latest').length, 1)
+        assert.equal(labels.filter(label => label === 'windows-latest').length, 2)
         const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
         assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)
         assert.match(windowsJob, /timeout-minutes: 15/u)
+        const mauiJob = jobBlock(workflow, 'dotnet-windows-maui')
+        assert.match(mauiJob, /if: needs\.verify\.outputs\.windows-maui == 'true'/u)
+        assert.match(mauiJob, /timeout-minutes: 30/u)
       }
     }
   })

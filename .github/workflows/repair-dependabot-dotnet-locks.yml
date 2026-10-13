@@ -14,6 +14,8 @@ on:
       - 'dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json'
       - 'dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json'
       - 'dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json'
 
 permissions:
   contents: read
@@ -139,7 +141,7 @@ jobs:
           dotnet workload install maui-maccatalyst
           --version "$(jq -er '.sdk.workloadVersion' global.json)"
           --configfile dotnet-clients/NuGet.config
-      - name: Regenerate all nine locks without credentials
+      - name: Regenerate all eleven locks without credentials
         env:
           BASE_SHA: ${{ steps.live.outputs.base-sha }}
           EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
@@ -178,6 +180,8 @@ jobs:
             dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
           )
           for lock in "${locks[@]}"; do
             [[ -f "$lock" && ! -L "$lock" ]]
@@ -256,6 +260,8 @@ jobs:
             dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
           )
           for lock in "${locks[@]}"; do [[ -f "repair-artifact/$lock" && ! -L "repair-artifact/$lock" ]]; done
           [[ -f repair-artifact/provenance.json && ! -L repair-artifact/provenance.json ]]
