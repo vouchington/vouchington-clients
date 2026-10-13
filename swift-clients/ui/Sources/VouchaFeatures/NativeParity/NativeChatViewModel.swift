@@ -89,11 +89,7 @@ final class NativeChatViewModel {
     var streamedContent = ""
     var conversationTitleDraft = ""
     var titleProviderSelection: NativeChatTitleProviderKind {
-        didSet {
-            if pendingLocalTurn?.context.providerSelection != titleProviderSelection {
-                pendingLocalTurn = nil
-            }
-        }
+        didSet { clearPendingTurnIfProviderChanged() }
     }
 
     init(

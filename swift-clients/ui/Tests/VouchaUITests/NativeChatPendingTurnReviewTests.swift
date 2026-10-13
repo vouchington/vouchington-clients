@@ -120,7 +120,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(provider.generationCount, 1)
     }
 
-    func testFailedMCPPersistenceRetriesCompletedTurnAfterSameMemberRefreshAndModelChange() async throws {
+    func testFailedMCPPersistenceRetriesCompletedTurnAfterSameMemberRefreshAndProviderChange() async throws {
         let path = "/api/v1/conversations/conversation-1/client-generated-chat"
         CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
         let provider = MutableRetryDraftProvider()
@@ -142,6 +142,7 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
 
         try await session.refreshTools()
         provider.model = "model-b"
+        viewModel.selectTitleProvider(.appleFoundationModels)
         CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
         await viewModel.sendDraftMessage()
         let requests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }

@@ -1,15 +1,24 @@
 import VouchaAPI
 
 extension NativeChatViewModel {
+    func clearPendingTurnIfProviderChanged() {
+        guard let pendingLocalTurn,
+              pendingLocalTurn.mcpSnapshot == nil,
+              pendingLocalTurn.context.providerSelection != titleProviderSelection else { return }
+        self.pendingLocalTurn = nil
+    }
+
     func pendingTurn(
         for text: String,
         providerSelection: NativeChatTitleProviderKind,
         provider: any NativeChatTitleProviding
     ) -> NativeChatPendingLocalTurn? {
-        guard let pendingLocalTurn,
-              pendingLocalTurn.context.text == text,
+        guard let pendingLocalTurn else { return nil }
+        let matchesProvider = pendingLocalTurn.context.providerSelection == providerSelection
+            || pendingLocalTurn.mcpSnapshot != nil
+        guard pendingLocalTurn.context.text == text,
               pendingLocalTurn.context.conversationId == selectedConversationId,
-              pendingLocalTurn.context.providerSelection == providerSelection
+              matchesProvider
         else { return nil }
         if let snapshot = pendingLocalTurn.mcpSnapshot, !matchesMCPAccount(snapshot) {
             self.pendingLocalTurn = nil
