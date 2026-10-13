@@ -7,6 +7,7 @@ public interface IMcpLocalChatProvider : ILocalChatProvider
 {
   MemberMcpConnectedSnapshot? ConnectedMcpSnapshot();
   bool IsCurrent(MemberMcpConnectedSnapshot snapshot);
+  bool MatchesAccount(string accountId);
   Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
       string message, IReadOnlyList<LocalLLMResponseInput> history,
       MemberMcpConnectedSnapshot? snapshot, CancellationToken cancellationToken);

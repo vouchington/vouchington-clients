@@ -79,6 +79,8 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
 
   public bool IsCurrent(MemberMcpConnectedSnapshot snapshot) => mcpSession?.IsCurrent(snapshot) == true;
 
+  public bool MatchesAccount(string accountId) => mcpSession?.MatchesAccount(accountId) == true;
+
   public async Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
       string message, IReadOnlyList<LocalLLMResponseInput> history,
       MemberMcpConnectedSnapshot? snapshot, CancellationToken cancellationToken)
@@ -107,6 +109,11 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
       response = await responsesClient.GenerateAssistantContentWithToolsAsync(
           message, history, profile, key, bridge.Tools,
           () => session.IsCurrent(snapshot),
+          (name, arguments, _) =>
+          {
+            bridge.Validate(name, arguments);
+            return Task.CompletedTask;
+          },
           (name, arguments, token) => bridge.ExecuteAsync(name, arguments, session, snapshot, token),
           cancellationToken).ConfigureAwait(false);
     }

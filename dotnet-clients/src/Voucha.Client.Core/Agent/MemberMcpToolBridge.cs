@@ -25,7 +25,9 @@ public sealed class MemberMcpToolBridge
       if (tool.ValueKind != JsonValueKind.Object ||
           !tool.TryGetProperty("name", out var nameValue) || nameValue.ValueKind != JsonValueKind.String ||
           nameValue.GetString() is not { Length: > 0 } name ||
-          Encoding.UTF8.GetByteCount(name) > 128 || schemas.ContainsKey(name) ||
+          name.Length > 64 || !name.All(character =>
+              char.IsAsciiLetterOrDigit(character) || character is '_' or '-') ||
+          schemas.ContainsKey(name) ||
           !tool.TryGetProperty("inputSchema", out var schema) || schema.ValueKind != JsonValueKind.Object ||
           Encoding.UTF8.GetByteCount(schema.GetRawText()) > 32_000)
         throw new InvalidDataException("Invalid MCP tool definition.");
@@ -47,14 +49,8 @@ public sealed class MemberMcpToolBridge
   {
     ArgumentNullException.ThrowIfNull(session);
     ArgumentNullException.ThrowIfNull(snapshot);
-    if (!schemas.TryGetValue(name, out var schema)) throw new InvalidDataException("Unknown MCP tool.");
-    if (Encoding.UTF8.GetByteCount(rawArguments) > 64_000)
-      throw new InvalidDataException("MCP tool arguments too large.");
-    using var parsed = JsonDocument.Parse(rawArguments, new JsonDocumentOptions { MaxDepth = 32 });
-    if (parsed.RootElement.ValueKind != JsonValueKind.Object ||
-        !MemberMcpInputSchema.Accepts(parsed.RootElement, schema))
-      throw new InvalidDataException("Invalid MCP tool arguments.");
-    var result = await session.CallToolAsync(snapshot, name, parsed.RootElement, cancellationToken)
+    var arguments = ValidatedArguments(name, rawArguments);
+    var result = await session.CallToolAsync(snapshot, name, arguments, cancellationToken)
         .ConfigureAwait(false);
     var envelope = JsonSerializer.Serialize(new
     {
@@ -65,5 +61,19 @@ public sealed class MemberMcpToolBridge
     if (Encoding.UTF8.GetByteCount(envelope) > 256_000)
       throw new InvalidDataException("MCP tool result too large.");
     return envelope;
+  }
+
+  public void Validate(string name, string rawArguments) => _ = ValidatedArguments(name, rawArguments);
+
+  private JsonElement ValidatedArguments(string name, string rawArguments)
+  {
+    if (!schemas.TryGetValue(name, out var schema)) throw new InvalidDataException("Unknown MCP tool.");
+    if (Encoding.UTF8.GetByteCount(rawArguments) > 64_000)
+      throw new InvalidDataException("MCP tool arguments too large.");
+    using var parsed = JsonDocument.Parse(rawArguments, new JsonDocumentOptions { MaxDepth = 32 });
+    if (parsed.RootElement.ValueKind != JsonValueKind.Object ||
+        !MemberMcpInputSchema.Accepts(parsed.RootElement, schema))
+      throw new InvalidDataException("Invalid MCP tool arguments.");
+    return parsed.RootElement.Clone();
   }
 }

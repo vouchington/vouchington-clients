@@ -22,7 +22,7 @@ public sealed class OpenAICompatibleMcpToolLoopTests
     var calls = new List<(string Name, string Arguments)>();
 
     var answer = await client.GenerateAssistantContentWithToolsAsync(
-        "Who am I?", [], Profile(), null, [tool], () => true,
+        "Who am I?", [], Profile(), null, [tool], () => true, null,
         (name, arguments, _) =>
         {
           calls.Add((name, arguments));
@@ -62,11 +62,11 @@ public sealed class OpenAICompatibleMcpToolLoopTests
     var answer = client.GenerateAssistantContentWithToolsAsync(
         "Hello", [], Profile(), null,
         [new MemberMcpFunctionTool("read_profile", "", schema.RootElement.Clone())],
-        () => valid,
+        () => valid, null,
         (_, _, _) => { valid = false; return Task.FromResult(Wrapped); },
         TestContext.Current.CancellationToken);
 
-    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => answer);
+    await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => answer);
     Assert.Single(handler.Bodies);
   }
 
@@ -83,12 +83,91 @@ public sealed class OpenAICompatibleMcpToolLoopTests
     await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
         "Hello", [], Profile(), null,
         [new MemberMcpFunctionTool("read_profile", "", schema.RootElement.Clone())],
-        () => true,
+        () => true, null,
         (_, _, _) => { executed++; return Task.FromResult(Wrapped); },
         TestContext.Current.CancellationToken));
 
     Assert.Equal(0, executed);
     Assert.Single(handler.Bodies);
+  }
+
+  [Theory]
+  [InlineData("in_progress")]
+  [InlineData("incomplete")]
+  public async Task NoncompletedFunctionCallNeverExecutes(string status)
+  {
+    using var handler = new RepliesHandler($$"""{"output":[{"type":"function_call","status":"{{status}}","call_id":"one","name":"write","arguments":"{}"}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+    await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(Wrapped); }, TestContext.Current.CancellationToken));
+    Assert.Equal(0, executed);
+  }
+
+  [Theory]
+  [InlineData("""{"status":"in_progress","output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""")]
+  [InlineData("""{"output":[{"type":"message","status":"incomplete","content":[{"text":"not final"}]}]}""")]
+  public async Task NoncompletedResponseOrMessageCannotBecomeAFinalTurn(string reply)
+  {
+    using var handler = new RepliesHandler(reply);
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+    await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(Wrapped); }, TestContext.Current.CancellationToken));
+    Assert.Equal(0, executed);
+  }
+
+  [Fact]
+  public async Task UnexpectedBatchIsRejectedBeforeFirstMutation()
+  {
+    using var handler = new RepliesHandler("""{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"},{"type":"function_call","call_id":"two","name":"unknown","arguments":"{}"}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+    await Assert.ThrowsAsync<InvalidDataException>(() => client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(Wrapped); }, TestContext.Current.CancellationToken));
+    Assert.Equal(0, executed);
+  }
+
+  [Fact]
+  public async Task DuplicateCallIdAcrossResponsesNeverExecutesTwice()
+  {
+    var call = """{"type":"function_call","call_id":"same","name":"write","arguments":"{}"}""";
+    using var handler = new RepliesHandler($$"""{"output":[{{call}}]}""", $$"""{"output":[{{call}}]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+    await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(Wrapped); }, TestContext.Current.CancellationToken));
+    Assert.Equal(1, executed);
+    Assert.Equal(2, handler.Bodies.Count);
+  }
+
+  [Fact]
+  public async Task PreflightFailureIsRetryableOnlyBeforeAnyToolAttempt()
+  {
+    var first = """{"output":[{"type":"function_call","call_id":"one","name":"write","arguments":"{}"}]}""";
+    var invalid = """{"output":[{"type":"function_call","call_id":"two","name":"bad","arguments":"{}"}]}""";
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    foreach (var replies in new[] { new[] { invalid }, new[] { first, invalid } })
+    {
+      using var handler = new RepliesHandler(replies);
+      using var client = new OpenAICompatibleResponsesClient(handler);
+      var executed = 0;
+      var action = () => client.GenerateAssistantContentWithToolsAsync(
+          "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true,
+          (name, _, _) => name == "bad" ? Task.FromException(new InvalidDataException("Bad tool.")) : Task.CompletedTask,
+          (_, _, _) => { executed++; return Task.FromResult(Wrapped); }, TestContext.Current.CancellationToken);
+      if (replies.Length == 1) await Assert.ThrowsAsync<InvalidDataException>(action);
+      else await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(action);
+      Assert.Equal(replies.Length - 1, executed);
+    }
   }
 
   private static LocalLLMEndpointProfile Profile() =>

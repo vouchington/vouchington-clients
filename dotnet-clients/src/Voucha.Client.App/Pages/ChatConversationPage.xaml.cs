@@ -67,7 +67,7 @@ public partial class ChatConversationPage : ContentPage
     initialMessage = null;
     var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
     conversationId = viewModel.ConversationId;
-    if (!sent && string.IsNullOrWhiteSpace(MessageEditor.Text))
+    if (!sent && !viewModel.PossibleToolSideEffect && string.IsNullOrWhiteSpace(MessageEditor.Text))
     {
       MessageEditor.Text = message;
     }
@@ -142,7 +142,7 @@ public partial class ChatConversationPage : ContentPage
       if (message.Length == 0) return;
       var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
       conversationId = viewModel.ConversationId;
-      if (!sent) return;
+      if (!sent && !viewModel.PossibleToolSideEffect) return;
       MessageEditor.Text = string.Empty;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)

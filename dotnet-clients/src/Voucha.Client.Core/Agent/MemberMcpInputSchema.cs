@@ -18,13 +18,17 @@ internal static partial class MemberMcpInputSchema
   public static bool Accepts(JsonElement value, JsonElement schema)
   {
     Inspect(schema);
-    return Check(value, schema, schema, 0);
+    var remainingWork = 4_096;
+    return Check(value, schema, schema, 0, ref remainingWork);
   }
 
   private static void InspectNode(JsonElement schema, JsonElement root, int depth)
   {
     if (depth >= MaxDepth || schema.ValueKind != JsonValueKind.Object)
       throw new InvalidDataException("Unsupported MCP input schema.");
+    if (schema.TryGetProperty("uniqueItems", out var unique) && unique.ValueKind == JsonValueKind.True &&
+        (!schema.TryGetProperty("maxItems", out var maximum) || !Count(maximum, out var count) || count > 256))
+      throw new InvalidDataException("Unbounded MCP uniqueItems schema.");
     foreach (var field in schema.EnumerateObject())
     {
       var item = field.Value;

@@ -5,11 +5,12 @@ namespace Voucha.Client.Core.Agent;
 
 internal static partial class MemberMcpInputSchema
 {
-  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth)
+  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
   {
-    if (depth >= MaxDepth) throw new InvalidDataException("MCP schema reference depth exceeded.");
+    if (depth >= MaxDepth || remainingWork-- <= 0)
+      throw new InvalidDataException("MCP schema validation work exceeded.");
     if (schema.TryGetProperty("$ref", out var reference) &&
-        !Check(value, Reference(reference, root), root, depth + 1)) return false;
+        !Check(value, Reference(reference, root), root, depth + 1, ref remainingWork)) return false;
     if (schema.TryGetProperty("type", out var type) && !MatchesType(value, type)) return false;
     if (schema.TryGetProperty("const", out var constant) && !Same(value, constant)) return false;
     if (schema.TryGetProperty("enum", out var choices) &&
@@ -17,14 +18,16 @@ internal static partial class MemberMcpInputSchema
     foreach (var keyword in new[] { "allOf", "anyOf", "oneOf" })
     {
       if (!schema.TryGetProperty(keyword, out var branches)) continue;
-      var matches = branches.EnumerateArray().Count(branch => Check(value, branch, root, depth + 1));
+      var matches = 0;
+      foreach (var branch in branches.EnumerateArray())
+        if (Check(value, branch, root, depth + 1, ref remainingWork)) matches++;
       if (keyword == "allOf" && matches != branches.GetArrayLength() ||
           keyword == "anyOf" && matches == 0 || keyword == "oneOf" && matches != 1) return false;
     }
     return value.ValueKind switch
     {
-      JsonValueKind.Object => CheckObject(value, schema, root, depth),
-      JsonValueKind.Array => CheckArray(value, schema, root, depth),
+      JsonValueKind.Object => CheckObject(value, schema, root, depth, ref remainingWork),
+      JsonValueKind.Array => CheckArray(value, schema, root, depth, ref remainingWork),
       JsonValueKind.String => CheckString(value.GetString()!, schema),
       JsonValueKind.Number => CheckNumber(value, schema),
       _ => true,
@@ -48,7 +51,7 @@ internal static partial class MemberMcpInputSchema
     };
   }
 
-  private static bool CheckObject(JsonElement value, JsonElement schema, JsonElement root, int depth)
+  private static bool CheckObject(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
   {
     var fields = value.EnumerateObject().ToArray();
     if (!Within(fields.Length, schema, "minProperties", "maxProperties")) return false;
@@ -60,28 +63,33 @@ internal static partial class MemberMcpInputSchema
     {
       if (hasProperties && properties.TryGetProperty(field.Name, out var declared))
       {
-        if (!Check(field.Value, declared, root, depth + 1)) return false;
+        if (!Check(field.Value, declared, root, depth + 1, ref remainingWork)) return false;
       }
       else if (hasAdditional)
       {
         if (additional.ValueKind == JsonValueKind.False ||
             additional.ValueKind == JsonValueKind.Object &&
-            !Check(field.Value, additional, root, depth + 1)) return false;
+            !Check(field.Value, additional, root, depth + 1, ref remainingWork)) return false;
       }
     }
     return true;
   }
 
-  private static bool CheckArray(JsonElement value, JsonElement schema, JsonElement root, int depth)
+  private static bool CheckArray(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
   {
     var items = value.EnumerateArray().ToArray();
     if (!Within(items.Length, schema, "minItems", "maxItems")) return false;
     if (schema.TryGetProperty("uniqueItems", out var unique) && unique.ValueKind == JsonValueKind.True)
+    {
+      if (items.Length > 256) return false;
       for (var i = 0; i < items.Length; i++)
         for (var j = i + 1; j < items.Length; j++)
           if (Same(items[i], items[j])) return false;
-    return !schema.TryGetProperty("items", out var itemSchema) ||
-        items.All(item => Check(item, itemSchema, root, depth + 1));
+    }
+    if (!schema.TryGetProperty("items", out var itemSchema)) return true;
+    foreach (var item in items)
+      if (!Check(item, itemSchema, root, depth + 1, ref remainingWork)) return false;
+    return true;
   }
 
   private static bool CheckString(string text, JsonElement schema)
@@ -90,7 +98,7 @@ internal static partial class MemberMcpInputSchema
     if (schema.TryGetProperty("format", out var format))
     {
       if (format.GetString() == "uuid" && !Guid.TryParse(text, out _)) return false;
-      if (format.GetString() == "uri" && !Uri.TryCreate(text, UriKind.Absolute, out _)) return false;
+      if (format.GetString() == "uri" && !StrictUri(text)) return false;
     }
     if (schema.TryGetProperty("pattern", out var pattern))
     {
@@ -110,6 +118,22 @@ internal static partial class MemberMcpInputSchema
     if (schema.TryGetProperty("maximum", out var maximum) && Number(maximum, out var upper) && number > upper)
       return false;
     return true;
+  }
+
+  private static bool StrictUri(string text)
+  {
+    const string punctuation = "-._~:/?#[]@!$&'()*+,;=%";
+    for (var index = 0; index < text.Length; index++)
+    {
+      var character = text[index];
+      if (!char.IsAsciiLetterOrDigit(character) &&
+          !punctuation.Contains(character, StringComparison.Ordinal)) return false;
+      if (character != '%') continue;
+      if (index + 2 >= text.Length || !Uri.IsHexDigit(text[index + 1]) ||
+          !Uri.IsHexDigit(text[index + 2])) return false;
+      index += 2;
+    }
+    return Uri.TryCreate(text, UriKind.Absolute, out _);
   }
 
   private static bool Within(int count, JsonElement schema, string minimum, string maximum) =>

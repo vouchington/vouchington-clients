@@ -32,6 +32,8 @@ public sealed partial class ChatConversationViewModel
     ArgumentNullException.ThrowIfNull(message);
     var trimmed = message.Trim();
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
+    if (blockedToolRetryText == trimmed) return false;
+    blockedToolRetryText = null;
 
     var selectedProvider = SelectedProviderStatus;
     ILocalChatProvider selectedLocalProvider;
@@ -135,6 +137,12 @@ public sealed partial class ChatConversationViewModel
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       State = LoadState.Loaded;
       return true;
+    }
+    catch (PossibleMcpToolSideEffectException)
+    {
+      HandlePossibleToolSideEffect(currentRequest, localAssistantMessageId,
+          assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
+      return false;
     }
     catch (OperationCanceledException)
     {

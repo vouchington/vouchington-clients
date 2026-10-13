@@ -25,6 +25,7 @@ public sealed partial class ChatConversationViewModel :
   private LoadState state = LoadState.Idle;
   private int requestId;
   private int sendInFlight;
+  private string? blockedToolRetryText;
   private ChatProviderStatus? selectedProviderStatus;
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
@@ -118,6 +119,8 @@ public sealed partial class ChatConversationViewModel :
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
+
+  public bool PossibleToolSideEffect => blockedToolRetryText is not null;
 
   public bool IsLoading => State == LoadState.Loading;
 

@@ -22,7 +22,7 @@ public sealed partial class ChatConversationViewModel
         pending.Body.Message == text &&
         SameProviderIdentity(pending.Provider, provider) &&
         (pending.McpSnapshot is null || localProvider is IMcpLocalChatProvider mcp &&
-            mcp.IsCurrent(pending.McpSnapshot)))
+            mcp.MatchesAccount(pending.McpSnapshot.AccountId)))
     {
       return pending;
     }
@@ -32,6 +32,9 @@ public sealed partial class ChatConversationViewModel
 
   public void NotifyDraftEdited(string? text)
   {
+    if (blockedToolRetryText is not null &&
+        !string.Equals(text?.Trim(), blockedToolRetryText, StringComparison.Ordinal))
+      blockedToolRetryText = null;
     if (pendingLocalTurn is { } pending &&
         !string.Equals(text?.Trim(), pending.Body.Message, StringComparison.Ordinal))
     {

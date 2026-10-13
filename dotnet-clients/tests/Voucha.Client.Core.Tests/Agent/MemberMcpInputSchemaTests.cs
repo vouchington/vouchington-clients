@@ -71,6 +71,73 @@ public sealed class MemberMcpInputSchemaTests
     Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
   }
 
+  [Fact]
+  public void UnsupportedModelFunctionNameFailsCatalogBeforeModelRequest()
+  {
+    using var catalog = JsonDocument.Parse("""{"tools":[{"name":"unsafe.tool","inputSchema":{"type":"object"}}]}""");
+    Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
+  }
+
+  [Fact]
+  public void UriFormatRejectsHostNormalizationAndInvalidPercentEscapes()
+  {
+    using var schema = JsonDocument.Parse("""{"type":"string","format":"uri"}""");
+    Assert.True(Accepts("\"https://example.com/a%20b\"", schema));
+    Assert.False(Accepts("\"https://example.com/a b\"", schema));
+    Assert.False(Accepts("\"https://example.com/%zz\"", schema));
+  }
+
+  [Fact]
+  public void UniqueItemsRequiresAnExplicitLocallyBoundedSchema()
+  {
+    foreach (var schema in new[]
+    {
+      """{"type":"array","uniqueItems":true}""",
+      """{"type":"array","uniqueItems":true,"maxItems":257}""",
+    })
+    {
+      using var document = JsonDocument.Parse(schema);
+      Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(document.RootElement));
+    }
+    using var bounded = JsonDocument.Parse("""{"type":"array","uniqueItems":true,"maxItems":256}""");
+    using var accepted = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 256)));
+    using var rejected = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 257)));
+    Assert.True(MemberMcpInputSchema.Accepts(accepted.RootElement, bounded.RootElement));
+    Assert.False(MemberMcpInputSchema.Accepts(rejected.RootElement, bounded.RootElement));
+  }
+
+  [Fact]
+  public void ComposedReferenceDagHasACumulativeValidationWorkBound()
+  {
+    var definitions = new Dictionary<string, object> { ["leaf"] = new { type = "object" } };
+    for (var level = 6; level >= 0; level--)
+    {
+      var next = level == 6 ? "leaf" : $"level{level + 1}";
+      definitions[$"level{level}"] = new
+      {
+        allOf = Enumerable.Range(0, 4)
+            .Select(_ => new Dictionary<string, string> { ["$ref"] = $"#/$defs/{next}" }).ToArray(),
+      };
+    }
+    using var schema = JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, object>
+    {
+      ["$defs"] = definitions,
+      ["$ref"] = "#/$defs/level0",
+    }));
+    using var value = JsonDocument.Parse("{} ");
+    Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Accepts(value.RootElement, schema.RootElement));
+
+    using var shortSchema = JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, object>
+    {
+      ["$defs"] = definitions,
+      ["allOf"] = Enumerable.Range(0, 2).Select(_ => new Dictionary<string, string>
+      {
+        ["$ref"] = "#/$defs/leaf",
+      }).ToArray(),
+    }));
+    Assert.True(MemberMcpInputSchema.Accepts(value.RootElement, shortSchema.RootElement));
+  }
+
   private static bool Accepts(string rawValue, JsonDocument schema)
   {
     using var value = JsonDocument.Parse(rawValue);

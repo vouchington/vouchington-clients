@@ -5,6 +5,15 @@ using Voucha.Client.Core.Agent;
 
 namespace Voucha.Client.Core.Chat;
 
+public sealed class PossibleMcpToolSideEffectException : Exception
+{
+  private const string DefaultMessage = "A tool call may have completed; do not repeat this request automatically.";
+  public PossibleMcpToolSideEffectException() : base(DefaultMessage) { }
+  public PossibleMcpToolSideEffectException(string message) : base(message) { }
+  public PossibleMcpToolSideEffectException(string message, Exception innerException) : base(message, innerException) { }
+  internal PossibleMcpToolSideEffectException(Exception innerException) : base(DefaultMessage, innerException) { }
+}
+
 public sealed partial class OpenAICompatibleResponsesClient
 {
   private const string UntrustedToolInstructions =
@@ -16,6 +25,7 @@ public sealed partial class OpenAICompatibleResponsesClient
   public async Task<string?> GenerateAssistantContentWithToolsAsync(
       string message, IReadOnlyList<LocalLLMResponseInput> history, LocalLLMEndpointProfile profile,
       string? apiKey, IReadOnlyList<MemberMcpFunctionTool> tools, Func<bool> isCurrent,
+      Func<string, string, CancellationToken, Task>? validate,
       Func<string, string, CancellationToken, Task<string>> execute,
       CancellationToken cancellationToken = default)
   {
@@ -37,38 +47,58 @@ public sealed partial class OpenAICompatibleResponsesClient
     }).ToArray();
     var remainingCalls = 4;
     var remainingOutputBytes = 256_000;
-    while (true)
+    var seenCallIds = new HashSet<string>(StringComparer.Ordinal);
+    var attemptedToolExecution = false;
+    try
     {
-      cancellationToken.ThrowIfCancellationRequested();
-      if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-      var body = JsonSerializer.SerializeToUtf8Bytes(new
-      {
-        model,
-        instructions = UntrustedToolInstructions,
-        input,
-        tools = definitions,
-        parallel_tool_calls = false,
-      });
-      if (body.Length > 1_000_000) throw new InvalidDataException("Local model request too large.");
-      using var response = await SendToolRequestAsync(uri, body, apiKey, cancellationToken).ConfigureAwait(false);
-      if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-      if (!response.RootElement.TryGetProperty("output", out var output) ||
-          output.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Invalid local model response.");
-      var calls = ToolCalls(output);
-      if (calls.Count == 0) return ToolResponseText(response.RootElement, output);
-      if (calls.Count > remainingCalls) throw new InvalidDataException("Too many MCP tool calls.");
-      remainingCalls -= calls.Count;
-      foreach (var item in output.EnumerateArray()) input.Add(item.Clone());
-      foreach (var call in calls)
+      while (true)
       {
         cancellationToken.ThrowIfCancellationRequested();
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-        var result = await execute(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
+        var body = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+          model,
+          instructions = UntrustedToolInstructions,
+          input,
+          tools = definitions,
+          parallel_tool_calls = false,
+        });
+        if (body.Length > 1_000_000) throw new InvalidDataException("Local model request too large.");
+        using var response = await SendToolRequestAsync(uri, body, apiKey, cancellationToken).ConfigureAwait(false);
         if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-        remainingOutputBytes -= Encoding.UTF8.GetByteCount(result);
-        if (remainingOutputBytes < 0) throw new InvalidDataException("MCP tool output too large.");
-        input.Add(new { type = "function_call_output", call_id = call.CallId, output = result });
+        if (!response.RootElement.TryGetProperty("output", out var output) ||
+            output.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Invalid local model response.");
+        RequireCompletedStatuses(response.RootElement, output);
+        var calls = ToolCalls(output, seenCallIds);
+        if (calls.Count == 0)
+        {
+          var text = ToolResponseText(response.RootElement, output);
+          if (attemptedToolExecution && text is null)
+            throw new InvalidDataException("Empty local model response after a tool call.");
+          return text;
+        }
+        if (calls.Count > remainingCalls) throw new InvalidDataException("Too many MCP tool calls.");
+        if (calls.Count != 1) throw new InvalidDataException("Unexpected parallel MCP tool calls.");
+        remainingCalls -= calls.Count;
+        foreach (var item in output.EnumerateArray()) input.Add(item.Clone());
+        foreach (var call in calls)
+        {
+          cancellationToken.ThrowIfCancellationRequested();
+          if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
+          if (validate is not null)
+            await validate(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
+          attemptedToolExecution = true;
+          var result = await execute(call.Name, call.Arguments, cancellationToken).ConfigureAwait(false);
+          if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
+          remainingOutputBytes -= Encoding.UTF8.GetByteCount(result);
+          if (remainingOutputBytes < 0) throw new InvalidDataException("MCP tool output too large.");
+          input.Add(new { type = "function_call_output", call_id = call.CallId, output = result });
+        }
       }
+    }
+    catch (Exception error) when (attemptedToolExecution && error is not PossibleMcpToolSideEffectException)
+    {
+      throw new PossibleMcpToolSideEffectException(error);
     }
   }
 

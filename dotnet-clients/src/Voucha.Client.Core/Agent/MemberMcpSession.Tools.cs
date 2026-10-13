@@ -24,6 +24,13 @@ public sealed partial class MemberMcpSession
     lock (gate) return IsCurrentLocked(snapshot);
   }
 
+  public bool MatchesAccount(string candidateAccountId)
+  {
+    ArgumentException.ThrowIfNullOrWhiteSpace(candidateAccountId);
+    lock (gate)
+      return !disposed && sessionStore.Current.Identity?.Id == candidateAccountId;
+  }
+
   private bool IsCurrentLocked(MemberMcpConnectedSnapshot snapshot) =>
       !disposed && Status == MemberMcpSessionStatus.Connected && active is not null &&
       accountId == snapshot.AccountId && generation == snapshot.Revision &&

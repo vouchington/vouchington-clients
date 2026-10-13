@@ -83,6 +83,37 @@ public sealed class ChatConversationPagePendingRetryTests
     Assert.Equal(service.Attempts[0], service.Attempts[1]);
   }
 
+  [Fact]
+  public async Task PossibleToolSideEffectDoesNotRestoreInitialMessageForOneTapRetry()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+    var service = new AmbiguousFirstTurnService();
+    var provider = new AvailableProvider { Failure = new PossibleMcpToolSideEffectException() };
+    var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
+    var page = new ChatConversationPage(viewModel, service);
+    page.SetContext(initialMessage: "Mutate once");
+    var editor = Assert.Single(Descendants<Editor>(page));
+
+    var initialSend = Assert.IsAssignableFrom<Task>(typeof(ChatConversationPage)
+        .GetMethod("SendInitialMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(page, null));
+    await initialSend;
+
+    Assert.True(string.IsNullOrEmpty(editor.Text));
+    Assert.True(viewModel.PossibleToolSideEffect);
+    Assert.Empty(service.Attempts);
+  }
+
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element
   {
     foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
@@ -100,13 +131,16 @@ public sealed class ChatConversationPagePendingRetryTests
 
   private sealed class AvailableProvider : ILocalChatProvider
   {
+    public Exception? Failure { get; set; }
     public string Id => "windows-system-language-model";
     public ChatProviderStatus Status { get; } = new(
         ChatProviderKind.Local, "Windows local", true, "Ready", "windows-system-language-model", "windows-system-language-model");
 
     public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
         string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"));
+        Failure is null
+            ? Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"))
+            : Task.FromException<LocalChatGenerationResult>(Failure);
   }
 
   private sealed class AmbiguousFirstTurnService : IChatService

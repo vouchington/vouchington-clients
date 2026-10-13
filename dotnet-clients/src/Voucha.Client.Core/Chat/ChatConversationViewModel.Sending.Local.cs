@@ -20,18 +20,23 @@ public sealed partial class ChatConversationViewModel
     ResetStreamingState();
     var streamingTokenSource = await ResetStreamingTokenAsync(cancellationToken).ConfigureAwait(true);
     var mcpProvider = provider as IMcpLocalChatProvider;
-    var mcpSnapshot = retry is null ? mcpProvider?.ConnectedMcpSnapshot() : retry.McpSnapshot;
-    using var accountTokenSource = mcpSnapshot is null ? null :
+    var mcpSnapshot = retry?.McpSnapshot ?? mcpProvider?.ConnectedMcpSnapshot();
+    if (retry?.McpSnapshot is { } savedSnapshot &&
+        mcpProvider?.MatchesAccount(savedSnapshot.AccountId) != true)
+      throw new OperationCanceledException("MCP account is unavailable for persistence retry.");
+    using var accountTokenSource = retry is not null || mcpSnapshot is null ? null :
         CancellationTokenSource.CreateLinkedTokenSource(streamingTokenSource.Token,
             mcpSnapshot.AccountCancellation);
     var generationToken = accountTokenSource?.Token ?? streamingTokenSource.Token;
+
+    EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var generation = retry is null
         ? await GenerateWithSnapshotAsync(provider, mcpProvider, trimmed, history, mcpSnapshot,
             generationToken).ConfigureAwait(true)
         : null;
     if (currentRequest != Volatile.Read(ref requestId)) return false;
-    EnsureCurrentMcpSnapshot(mcpProvider, mcpSnapshot, generationToken);
+    EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var body = retry?.Body ?? new CreateClientGeneratedChatBody(
         trimmed,
@@ -52,12 +57,12 @@ public sealed partial class ChatConversationViewModel
 
     try
     {
-      EnsureCurrentMcpSnapshot(mcpProvider, mcpSnapshot, generationToken);
+      EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
       await chatService.CreateClientGeneratedChatAsync(
           conversationId,
           body,
-          generationToken).ConfigureAwait(true);
-      EnsureCurrentMcpSnapshot(mcpProvider, mcpSnapshot, generationToken);
+          streamingTokenSource.Token).ConfigureAwait(true);
+      EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
       if (ReferenceEquals(pendingLocalTurn, pending)) pendingLocalTurn = null;
     }
     catch
@@ -76,13 +81,11 @@ public sealed partial class ChatConversationViewModel
       mcpProvider is null ? provider.GenerateAssistantContentAsync(message, history, token) :
           mcpProvider.GenerateAssistantContentAsync(message, history, snapshot, token);
 
-  private static void EnsureCurrentMcpSnapshot(
-      IMcpLocalChatProvider? provider, MemberMcpConnectedSnapshot? snapshot,
-      CancellationToken cancellationToken)
+  private static void EnsureCurrentMcpAccount(
+      IMcpLocalChatProvider? provider, MemberMcpConnectedSnapshot? snapshot)
   {
-    cancellationToken.ThrowIfCancellationRequested();
-    if (snapshot is not null && provider?.IsCurrent(snapshot) != true)
-      throw new OperationCanceledException("MCP account or catalog changed.");
+    if (snapshot is not null && provider?.MatchesAccount(snapshot.AccountId) != true)
+      throw new OperationCanceledException("MCP account changed.");
   }
 
   private void ResetStreamingState() => IsStreaming = true;
