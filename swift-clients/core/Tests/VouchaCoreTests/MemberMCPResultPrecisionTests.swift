@@ -4,6 +4,18 @@ import VouchaModels
 import XCTest
 
 final class MemberMCPResultPrecisionTests: XCTestCase {
+    func testRepresentableFractionalArgumentDoesNotRoundThroughDouble() throws {
+        let value = try JSONDecoder().decode(
+            DecodedJSONValue.self, from: Data("0.099999999999999999".utf8)
+        )
+        guard case let .decimal(decimal) = value else {
+            return XCTFail("Fractional MCP arguments must preserve supported decimal precision")
+        }
+        XCTAssertEqual(NSDecimalNumber(decimal: decimal).stringValue, "0.099999999999999999")
+        let encoded = try JSONEncoder().encode(value)
+        XCTAssertEqual(String(decoding: encoded, as: UTF8.self), "0.099999999999999999")
+    }
+
     func testStructuredResultPreservesLargeIntegerPrecision() throws {
         let json = Data(#"{"content":[],"structuredContent":{"id":9007199254740993}}"#.utf8)
         let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: json)

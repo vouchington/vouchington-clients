@@ -24,7 +24,9 @@ public enum DecodedJSONValue: Codable, Sendable {
                   value > 9_007_199_254_740_992 {
             self = .unsignedInteger(value)
         } else if let value = try? container.decode(Decimal.self),
-                  value > Decimal(9_007_199_254_740_992) || value < Decimal(-9_007_199_254_740_992) {
+                  value > Decimal(9_007_199_254_740_992) ||
+                  value < Decimal(-9_007_199_254_740_992) ||
+                  (try? container.decode(Double.self)).map({ Decimal($0) != value }) ?? true {
             self = .decimal(value)
         } else if let value = try? container.decode(Double.self) {
             self = .number(value)

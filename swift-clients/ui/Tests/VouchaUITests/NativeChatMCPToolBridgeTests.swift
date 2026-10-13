@@ -7,6 +7,31 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPToolBridgeTests: XCTestCase {
+    func testFractionalArgumentReachesToolWithoutDoubleRounding() async throws {
+        let service = BridgeMCPService()
+        service.catalog = .object(["tools": .array([.object([
+            "name": .string("set_weight"),
+            "inputSchema": .object([
+                "type": .string("object"),
+                "properties": .object(["weight": .object(["type": .string("number")])]),
+                "required": .array([.string("weight")])
+            ])
+        ])])])
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+        _ = try await bridge.execute(
+            name: "set_weight", rawArguments: #"{"weight":0.099999999999999999}"#,
+            session: session, accountId: snapshot.accountId, revision: snapshot.revision
+        )
+        guard case let .decimal(weight)? = service.lastArguments?["weight"] else {
+            return XCTFail("Fractional MCP argument was rounded before tool execution")
+        }
+        XCTAssertEqual(NSDecimalNumber(decimal: weight).stringValue, "0.099999999999999999")
+    }
+
     func testPublishedUserSchemasProjectWithoutDroppingOptionRefs() throws {
         let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
         let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
@@ -260,7 +285,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 @MainActor
 private final class BridgeMCPService: NativeChatMCPServicing {
     private(set) var calls = 0
+    private(set) var lastArguments: [String: DecodedJSONValue]?
     var holdCalls = false
+    var catalog = BridgeMCPService.defaultCatalog
     private var pendingCall: CheckedContinuation<Void, Never>?
     private var callStarted: CheckedContinuation<Void, Never>?
 
@@ -275,19 +302,20 @@ private final class BridgeMCPService: NativeChatMCPServicing {
     }
 
     func connect(accountId _: String) async throws -> DecodedJSONValue {
-        Self.catalog
+        catalog
     }
 
     func refreshTools(accountId _: String) async throws -> DecodedJSONValue {
-        Self.catalog
+        catalog
     }
 
     func disconnect(accountId _: String) async throws {}
 
     func callTool(
-        accountId _: String, name _: String, arguments _: [String: DecodedJSONValue]
+        accountId _: String, name _: String, arguments: [String: DecodedJSONValue]
     ) async throws -> MemberMCPClient.ToolResult {
         calls += 1
+        lastArguments = arguments
         callStarted?.resume()
         callStarted = nil
         if holdCalls { await withCheckedContinuation { pendingCall = $0 } }
@@ -298,7 +326,7 @@ private final class BridgeMCPService: NativeChatMCPServicing {
         ))
     }
 
-    private static let catalog: DecodedJSONValue = .object(["tools": .array([.object([
+    private static let defaultCatalog: DecodedJSONValue = .object(["tools": .array([.object([
         "name": .string("read_community"), "description": .string("Read community"),
         "inputSchema": .object([
             "type": .string("object"), "$defs": .object(["Id": .object(["type": .string("string")])]),

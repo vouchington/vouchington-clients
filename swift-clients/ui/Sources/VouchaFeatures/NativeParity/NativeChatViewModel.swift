@@ -58,7 +58,7 @@ final class NativeChatViewModel {
             if isSendingDraft {
                 draftEditedDuringSend = true
             }
-            if !isSendingDraft, let pendingLocalTurn,
+            if !isSendingDraft, let pendingLocalTurn, pendingLocalTurn.mcpSnapshot == nil,
                draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) != pendingLocalTurn.context.text {
                 self.pendingLocalTurn = nil
             }

@@ -134,7 +134,6 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         )
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Run once"
-
         await viewModel.sendDraftMessage()
         let first = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
         XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
@@ -143,10 +142,11 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         try await session.refreshTools()
         provider.model = "model-b"
         viewModel.selectTitleProvider(.appleFoundationModels)
+        viewModel.draftMessage = "Run once, edited"
+        viewModel.draftMessage = "Run once"
         CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
         await viewModel.sendDraftMessage()
         let requests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }
-
         XCTAssertEqual(requests.count, 2)
         let firstBody = try XCTUnwrap(first.body?.data(using: .utf8))
         let retriedBody = try XCTUnwrap(requests.last?.body?.data(using: .utf8))
