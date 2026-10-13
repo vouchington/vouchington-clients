@@ -93,7 +93,10 @@ internal static partial class MemberMcpInputSchema
         case "pattern":
           if (item.ValueKind != JsonValueKind.String) throw new InvalidDataException("Invalid MCP pattern.");
           try { _ = BoundedPattern(item.GetString()!); }
-          catch (ArgumentException error) { throw new InvalidDataException("Invalid MCP pattern.", error); }
+          catch (Exception error) when (error is ArgumentException or NotSupportedException)
+          {
+            throw new InvalidDataException("Unsupported MCP pattern.", error);
+          }
           break;
         case "const":
           break;

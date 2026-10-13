@@ -176,6 +176,35 @@ public sealed class OpenAICompatibleMcpToolLoopTests
   }
 
   [Fact]
+  public async Task QuoteHeavyAllowedEnvelopeFitsReservedContinuationBeforeMutation()
+  {
+    var ignored = new string('x', 400_000);
+    var reply = "{\"output\":[{\"type\":\"reasoning\",\"summary\":\"" + ignored +
+        "\"},{\"type\":\"function_call\",\"call_id\":\"one\",\"name\":\"write\",\"arguments\":\"{}\"}]}";
+    var envelope = JsonSerializer.Serialize(new
+    {
+      structuredContent = Enumerable.Repeat("a", 50_000).ToArray(),
+      content = Array.Empty<object>(),
+      isError = false,
+    });
+    Assert.True(System.Text.Encoding.UTF8.GetByteCount(envelope) <= 256_000);
+    using var handler = new RepliesHandler(reply, """{"output_text":"Done","output":[]}""");
+    using var client = new OpenAICompatibleResponsesClient(handler);
+    using var schema = JsonDocument.Parse("""{"type":"object"}""");
+    var executed = 0;
+
+    var answer = await client.GenerateAssistantContentWithToolsAsync(
+        "Write", [], Profile(), null, [new("write", "", schema.RootElement.Clone())], () => true, null,
+        (_, _, _) => { executed++; return Task.FromResult(envelope); },
+        TestContext.Current.CancellationToken);
+
+    Assert.Equal("Done", answer);
+    Assert.Equal(1, executed);
+    Assert.Equal(2, handler.Bodies.Count);
+    Assert.True(System.Text.Encoding.UTF8.GetByteCount(handler.Bodies[1]) <= 1_000_000);
+  }
+
+  [Fact]
   public async Task CompletedRefusalAfterToolIsDeliveredWithoutRetryingTool()
   {
     using var handler = new RepliesHandler(

@@ -72,6 +72,14 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void UnsupportedNonBacktrackingPatternFailsCatalogBeforeModelRequest()
+  {
+    using var catalog = JsonDocument.Parse("""{"tools":[{"name":"unsafe","inputSchema":{"type":"object","properties":{"name":{"type":"string","pattern":"^(?=a)"}}}}]}""");
+
+    Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
+  }
+
+  [Fact]
   public void UnsupportedModelFunctionNameFailsCatalogBeforeModelRequest()
   {
     using var catalog = JsonDocument.Parse("""{"tools":[{"name":"unsafe.tool","inputSchema":{"type":"object"}}]}""");
