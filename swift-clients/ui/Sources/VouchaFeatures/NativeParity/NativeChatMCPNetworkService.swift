@@ -5,9 +5,9 @@ import VouchaModels
 /// The browser callback is supplied by the Apple app, keeping presentation in the app layer.
 @MainActor
 public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
-    public enum Failure: Error { case accountMismatch }
+    public enum Failure: Error { case accountMismatch, invalidToolCatalog }
 
-    public typealias BrowserCode = @MainActor (MemberMCPOAuthRequest) async throws -> String
+    public typealias BrowserCode = @MainActor (MemberMCPOAuthRequest, AnyObject?) async throws -> String
 
     private struct Context {
         let accountId: String
@@ -45,15 +45,27 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
     }
 
     public func connect(accountId: String) async throws -> DecodedJSONValue {
+        try await connect(accountId: accountId, presentationWindow: nil)
+    }
+
+    public func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue {
         if let pendingDisconnect { try await pendingDisconnect.value }
         try Task.checkCancellation()
         guard activeAccountId == nil || activeAccountId == accountId else { throw Failure.accountMismatch }
         activeAccountId = accountId
         generation += 1
         let expectedGeneration = generation
-        let current = try await contextForAccount(accountId, generation: expectedGeneration)
+        let current: Context
         do {
-            let tools = try await current.authorized.listTools()
+            current = try await contextForAccount(accountId, generation: expectedGeneration)
+        } catch {
+            if generation == expectedGeneration, activeAccountId == accountId, context == nil {
+                activeAccountId = nil
+            }
+            throw error
+        }
+        do {
+            let tools = try await listAllTools(current.authorized, accountId: accountId, generation: expectedGeneration)
             try assertCurrent(accountId, generation: expectedGeneration)
             return tools
         } catch MemberMCPTokenManager.Failure.notAuthorized {
@@ -64,13 +76,13 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
                 authorizationEndpoint: current.metadata.authorizationEndpoint,
                 redirectURI: siteOrigin.appendingPathComponent("oauth/native/\(app.rawValue)/callback")
             )
-            let code = try await browserCode(request)
+            let code = try await browserCode(request, presentationWindow)
             try assertCurrent(accountId, generation: expectedGeneration)
             _ = try await current.tokens.redeem(
                 code: code, verifier: request.verifier, redirectURI: request.redirectURI
             )
             try assertCurrent(accountId, generation: expectedGeneration)
-            let tools = try await current.authorized.listTools()
+            let tools = try await listAllTools(current.authorized, accountId: accountId, generation: expectedGeneration)
             try assertCurrent(accountId, generation: expectedGeneration)
             return tools
         }
@@ -79,7 +91,7 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
     public func refreshTools(accountId: String) async throws -> DecodedJSONValue {
         guard let context, context.accountId == accountId else { throw Failure.accountMismatch }
         let expectedGeneration = generation
-        let tools = try await context.authorized.listTools()
+        let tools = try await listAllTools(context.authorized, accountId: accountId, generation: expectedGeneration)
         try assertCurrent(accountId, generation: expectedGeneration)
         return tools
     }
@@ -99,7 +111,10 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
                 }
                 try await current.tokens.signOut()
             } else {
-                try await signOutPersistedGrant(accountId: accountId)
+                try await NativeChatMCPPersistedGrantCleanup.signOut(.init(
+                    accountId: accountId, siteOrigin: siteOrigin, app: app, discovery: discovery,
+                    tokenStore: tokenStore, protocolClasses: protocolClasses
+                ))
             }
         }
         pendingDisconnectId += 1
@@ -109,26 +124,6 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
             if pendingDisconnectId == disconnectId { pendingDisconnect = nil }
         }
         try await task.value
-    }
-
-    private func signOutPersistedGrant(accountId: String) async throws {
-        do {
-            let metadata = try await discovery.discover()
-            let tokenClient = try MemberMCPOAuthTokenClient(
-                metadata: metadata,
-                clientId: siteOrigin.appendingPathComponent("api/v1/oauth/native-clients/\(app.rawValue)"),
-                resource: siteOrigin.appendingPathComponent("api/v1/mcp"),
-                protocolClasses: protocolClasses
-            )
-            try await MemberMCPTokenManager(
-                accountId: accountId, store: tokenStore, tokenClient: tokenClient
-            ).signOut()
-        } catch {
-            guard let accountClearing = tokenStore as? any MemberMCPOAuthAccountClearing else {
-                throw error
-            }
-            try await accountClearing.clearAccount(accountId)
-        }
     }
 
     private func contextForAccount(_ accountId: String, generation: Int) async throws -> Context {
@@ -158,6 +153,14 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
         try Task.checkCancellation()
         guard self.generation == generation, context?.accountId == accountId else {
             throw CancellationError()
+        }
+    }
+
+    private func listAllTools(
+        _ authorized: MemberMCPAuthorizedClient, accountId: String, generation: Int
+    ) async throws -> DecodedJSONValue {
+        try await NativeChatMCPToolCatalog.listAll(authorized: authorized) {
+            try self.assertCurrent(accountId, generation: generation)
         }
     }
 }

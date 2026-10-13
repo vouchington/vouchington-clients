@@ -6,6 +6,8 @@ public struct NativeRouteFamilyDetailView: View {
     public let group: NativeRouteFamilyGroup
     private let client: APIClient?
     private let isSignedIn: Bool
+    private let currentUserId: String?
+    private let nativeChatMCPSession: NativeChatMCPAgentSession?
     private let isAdministrator: Bool
     private let canOverrideFeatureFlags: Bool
     private let isSiteModerator: Bool
@@ -19,6 +21,8 @@ public struct NativeRouteFamilyDetailView: View {
         group: NativeRouteFamilyGroup,
         client: APIClient? = nil,
         isSignedIn: Bool = true,
+        currentUserId: String? = nil,
+        nativeChatMCPSession: NativeChatMCPAgentSession? = nil,
         isAdministrator: Bool = false,
         canOverrideFeatureFlags: Bool = false,
         isSiteModerator: Bool = false,
@@ -31,6 +35,8 @@ public struct NativeRouteFamilyDetailView: View {
         self.group = group
         self.client = client
         self.isSignedIn = isSignedIn
+        self.currentUserId = currentUserId
+        self.nativeChatMCPSession = nativeChatMCPSession
         self.isAdministrator = isAdministrator
         self.canOverrideFeatureFlags = canOverrideFeatureFlags
         self.isSiteModerator = isSiteModerator
@@ -53,6 +59,8 @@ public struct NativeRouteFamilyDetailView: View {
                             client: client,
                             routeMatch: NativeRouteCatalog.matchingRoute(for: entry.representativePath)?.match,
                             isSignedIn: isSignedIn,
+                            currentUserId: currentUserId,
+                            nativeChatMCPSession: nativeChatMCPSession,
                             isAdministrator: isAdministrator,
                             canOverrideFeatureFlags: canOverrideFeatureFlags,
                             isSiteModerator: isSiteModerator,

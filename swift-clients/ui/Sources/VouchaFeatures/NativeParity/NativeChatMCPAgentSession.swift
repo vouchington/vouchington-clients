@@ -1,12 +1,20 @@
 import Foundation
 import Observation
+import VouchaLocalization
 import VouchaModels
 
 @MainActor
 public protocol NativeChatMCPServicing: AnyObject {
     func connect(accountId: String) async throws -> DecodedJSONValue
+    func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
     func refreshTools(accountId: String) async throws -> DecodedJSONValue
     func disconnect(accountId: String) async throws
+}
+
+public extension NativeChatMCPServicing {
+    func connect(accountId: String, presentationWindow _: AnyObject?) async throws -> DecodedJSONValue {
+        try await connect(accountId: accountId)
+    }
 }
 
 /// Keeps an agent's MCP grant and discovered tools scoped to the signed-in member.
@@ -24,6 +32,7 @@ public final class NativeChatMCPAgentSession {
     public private(set) var accountId: String?
     public private(set) var status: Status = .disconnected
     public private(set) var toolCatalog: DecodedJSONValue?
+    public private(set) var lastError: UiVerbatimText?
 
     private let service: any NativeChatMCPServicing
     private var generation = 0
@@ -42,6 +51,7 @@ public final class NativeChatMCPAgentSession {
         let previousAccountId = accountId
         accountId = nextAccountId
         toolCatalog = nil
+        lastError = nil
         status = previousAccountId == nil ? .disconnected : .switchingAccount
         if let previousAccountId {
             try? await service.disconnect(accountId: previousAccountId)
@@ -50,23 +60,26 @@ public final class NativeChatMCPAgentSession {
         status = .disconnected
     }
 
-    public func connect() async throws {
+    public func connect(presentationWindow: AnyObject? = nil) async throws {
         guard let accountId, status != .switchingAccount, status != .connecting else { return }
         generation += 1
         let currentGeneration = generation
         operation?.cancel()
         status = .connecting
-        let task = Task { try await service.connect(accountId: accountId) }
+        lastError = nil
+        let task = Task { try await service.connect(accountId: accountId, presentationWindow: presentationWindow) }
         operation = task
         do {
             let catalog = try await task.value
             guard generation == currentGeneration, self.accountId == accountId else { return }
             toolCatalog = catalog
+            lastError = nil
             status = .connected
             operation = nil
         } catch {
             guard generation == currentGeneration, self.accountId == accountId else { return }
             toolCatalog = nil
+            lastError = .verbatim(error.localizedDescription)
             status = .failed
             operation = nil
             throw error
@@ -84,10 +97,12 @@ public final class NativeChatMCPAgentSession {
             let catalog = try await task.value
             guard generation == currentGeneration, self.accountId == accountId else { return }
             toolCatalog = catalog
+            lastError = nil
             operation = nil
         } catch {
             guard generation == currentGeneration, self.accountId == accountId else { return }
             toolCatalog = nil
+            lastError = .verbatim(error.localizedDescription)
             status = .failed
             operation = nil
             throw error
@@ -101,6 +116,7 @@ public final class NativeChatMCPAgentSession {
         operation?.cancel()
         operation = nil
         toolCatalog = nil
+        lastError = nil
         status = .switchingAccount
         do {
             try await service.disconnect(accountId: accountId)
@@ -109,6 +125,7 @@ public final class NativeChatMCPAgentSession {
         } catch {
             guard generation == currentGeneration, self.accountId == accountId else { return }
             status = .failed
+            lastError = .verbatim(error.localizedDescription)
             throw error
         }
     }

@@ -9,6 +9,8 @@ public struct NativeRouteFamilyDirectoryView: View {
     public let groups: [NativeRouteFamilyGroup]
     private let client: APIClient?
     private let isSignedIn: Bool
+    private let currentUserId: String?
+    private let nativeChatMCPSession: NativeChatMCPAgentSession?
     private let isAdministrator: Bool
     private let canOverrideFeatureFlags: Bool
     private let isSiteModerator: Bool
@@ -22,6 +24,8 @@ public struct NativeRouteFamilyDirectoryView: View {
         groups: [NativeRouteFamilyGroup],
         client: APIClient? = nil,
         isSignedIn: Bool = true,
+        currentUserId: String? = nil,
+        nativeChatMCPSession: NativeChatMCPAgentSession? = nil,
         isAdministrator: Bool = false,
         canOverrideFeatureFlags: Bool = false,
         isSiteModerator: Bool = false,
@@ -34,6 +38,8 @@ public struct NativeRouteFamilyDirectoryView: View {
         self.groups = groups
         self.client = client
         self.isSignedIn = isSignedIn
+        self.currentUserId = currentUserId
+        self.nativeChatMCPSession = nativeChatMCPSession
         self.isAdministrator = isAdministrator
         self.canOverrideFeatureFlags = canOverrideFeatureFlags
         self.isSiteModerator = isSiteModerator
@@ -60,6 +66,8 @@ public struct NativeRouteFamilyDirectoryView: View {
                                 group: group,
                                 client: client,
                                 isSignedIn: isSignedIn,
+                                currentUserId: currentUserId,
+                                nativeChatMCPSession: nativeChatMCPSession,
                                 isAdministrator: isAdministrator,
                                 canOverrideFeatureFlags: canOverrideFeatureFlags,
                                 isSiteModerator: isSiteModerator,

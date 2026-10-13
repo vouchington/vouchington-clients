@@ -13,19 +13,6 @@ import VouchaFeatures
     @MainActor
     enum NativeChatMCPPresentationAnchor {
         enum Failure: Error { case unavailable }
-
-        static var current: ASPresentationAnchor? {
-            #if os(macOS)
-                NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible)
-            #elseif os(iOS)
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .flatMap(\.windows)
-                    .first(where: \.isKeyWindow)
-            #else
-                nil
-            #endif
-        }
     }
 
 #endif
@@ -45,8 +32,8 @@ extension ViewModelFactory {
                 siteOrigin: config.baseURL,
                 app: app,
                 tokenStore: KeychainMemberMCPOAuthTokenStore(accessGroup: accessGroup),
-                browserCode: { request in
-                    guard let anchor = NativeChatMCPPresentationAnchor.current else {
+                browserCode: { request, window in
+                    guard let anchor = window as? ASPresentationAnchor else {
                         throw NativeChatMCPPresentationAnchor.Failure.unavailable
                     }
                     return try await MemberMCPAppleAuthorizationSession().code(

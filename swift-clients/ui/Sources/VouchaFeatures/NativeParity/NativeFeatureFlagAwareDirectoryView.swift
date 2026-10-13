@@ -7,6 +7,8 @@ public struct NativeFeatureFlagAwareDirectoryView: View {
     private let section: AppSection
     private let client: APIClient?
     private let isSignedIn: Bool
+    private let currentUserId: String?
+    private let nativeChatMCPSession: NativeChatMCPAgentSession?
     private let userRoles: [String]
     private let canCastPublicVotes: Bool
     private let turnstileSiteKey: String?
@@ -18,6 +20,8 @@ public struct NativeFeatureFlagAwareDirectoryView: View {
         section: AppSection,
         client: APIClient? = nil,
         isSignedIn: Bool,
+        currentUserId: String? = nil,
+        nativeChatMCPSession: NativeChatMCPAgentSession? = nil,
         userRoles: [String],
         canCastPublicVotes: Bool = false,
         turnstileSiteKey: String? = nil,
@@ -28,6 +32,8 @@ public struct NativeFeatureFlagAwareDirectoryView: View {
         self.section = section
         self.client = client
         self.isSignedIn = isSignedIn
+        self.currentUserId = currentUserId
+        self.nativeChatMCPSession = nativeChatMCPSession
         self.userRoles = userRoles
         self.canCastPublicVotes = canCastPublicVotes
         self.turnstileSiteKey = turnstileSiteKey
@@ -61,6 +67,8 @@ public struct NativeFeatureFlagAwareDirectoryView: View {
                 ),
                 client: client,
                 isSignedIn: isSignedIn,
+                currentUserId: currentUserId,
+                nativeChatMCPSession: nativeChatMCPSession,
                 isAdministrator: userRoles.contains("administrator"),
                 canOverrideFeatureFlags: FeatureFlagState.canManageDeviceOverrides(
                     userRoles: userRoles

@@ -6,6 +6,60 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPNetworkServiceTests: XCTestCase {
+    func testDiscoveryFailureDoesNotPinDifferentAccount() async throws {
+        MCPAgentURLProtocol.configure(discoveryUnavailable: true)
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: HeldClearMCPTokenStore(holdClear: false),
+            browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+        do {
+            _ = try await service.connect(accountId: "member-a")
+            XCTFail("Discovery should fail")
+        } catch NativeChatMCPNetworkService.Failure.accountMismatch {
+            XCTFail("Discovery failure must not pin the account")
+        } catch {}
+        MCPAgentURLProtocol.configure()
+        _ = try await service.connect(accountId: "member-b")
+    }
+
+    func testConnectAndRefreshCollectAllCatalogPages() async throws {
+        MCPAgentURLProtocol.configure(paginatedTools: true)
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: HeldClearMCPTokenStore(holdClear: false),
+            browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+        for catalog in try await [
+            service.connect(accountId: "member-a"),
+            service.refreshTools(accountId: "member-a")
+        ] {
+            guard case let .object(result) = catalog,
+                  case let .array(tools)? = result["tools"] else {
+                return XCTFail("Expected merged tool catalog")
+            }
+            XCTAssertEqual(tools.count, 2)
+            XCTAssertNil(result["nextCursor"])
+        }
+    }
+
+    func testOAuthReceivesTheWindowPassedByTheInitiatingChat() async throws {
+        MCPAgentURLProtocol.configure()
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let initiatingWindow = NSObject()
+        var receivedWindow: AnyObject?
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: HeldClearMCPTokenStore(holdClear: false),
+            browserCode: { _, window in
+                receivedWindow = window
+                return "new-code"
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+
+        _ = try await service.connect(accountId: "member-a", presentationWindow: initiatingWindow)
+        XCTAssertTrue(receivedWindow === initiatingWindow)
+    }
+
     func testReconnectWaitsForPreviousGrantCleanupAndPreservesNewGrant() async throws {
         MCPAgentURLProtocol.configure()
         let site = try XCTUnwrap(URL(string: "https://example.test"))
@@ -24,7 +78,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         var browserCalls = 0
         let service = try NativeChatMCPNetworkService(
             siteOrigin: site, app: .macos, tokenStore: store,
-            browserCode: { _ in browserCalls += 1
+            browserCode: { _, _ in browserCalls += 1
                 return "new-code"
             },
             protocolClasses: [MCPAgentURLProtocol.self]
@@ -62,7 +116,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         }
         let service = try NativeChatMCPNetworkService(
             siteOrigin: site, app: .macos, tokenStore: store,
-            browserCode: { _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
+            browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
         )
         _ = try await service.connect(accountId: "member-a")
         let first = Task { try await service.disconnect(accountId: "member-a") }
@@ -94,7 +148,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         )
         let service = try NativeChatMCPNetworkService(
             siteOrigin: site, app: .macos, tokenStore: store,
-            browserCode: { _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
+            browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
         )
         _ = try await service.connect(accountId: "member-a")
         let disconnect = Task { try await service.disconnect(accountId: "member-a") }
@@ -127,7 +181,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         )
         let service = try NativeChatMCPNetworkService(
             siteOrigin: site, app: .macos, tokenStore: store,
-            browserCode: { _ in XCTFail("Sign-out must not present a browser")
+            browserCode: { _, _ in XCTFail("Sign-out must not present a browser")
                 return ""
             },
             protocolClasses: [MCPAgentURLProtocol.self]
@@ -161,7 +215,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         try await store.save(credentials, scope: other)
         let service = try NativeChatMCPNetworkService(
             siteOrigin: site, app: .macos, tokenStore: store,
-            browserCode: { _ in XCTFail("Sign-out must not present a browser")
+            browserCode: { _, _ in XCTFail("Sign-out must not present a browser")
                 return ""
             },
             protocolClasses: [MCPAgentURLProtocol.self]
@@ -235,13 +289,15 @@ private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAc
 private final class MCPAgentURLProtocol: URLProtocol {
     private static let stateLock = NSLock()
     private static var unavailable = false
+    private static var paginatedTools = false
     private static var revoked = 0
     private let deliveryLock = NSRecursiveLock()
     private var stopped = false
 
-    static func configure(discoveryUnavailable: Bool = false) {
+    static func configure(discoveryUnavailable: Bool = false, paginatedTools: Bool = false) {
         stateLock.lock()
         unavailable = discoveryUnavailable
+        self.paginatedTools = paginatedTools
         revoked = 0
         stateLock.unlock()
     }
@@ -268,9 +324,11 @@ private final class MCPAgentURLProtocol: URLProtocol {
         let body = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
         let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
+        let cursor = (rpc?["params"] as? [String: Any])?["cursor"] as? String
         let id = rpc?["id"] as? String ?? "1"
         Self.stateLock.lock()
         let discoveryUnavailable = Self.unavailable
+        let paginatedTools = Self.paginatedTools
         if path == "/revoke" { Self.revoked += 1 }
         Self.stateLock.unlock()
         let payload: String
@@ -301,7 +359,13 @@ private final class MCPAgentURLProtocol: URLProtocol {
             payload = ""
             status = 202
         case "/api/v1/mcp" where method == "tools/list":
-            payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_post"}]}}"#
+            if paginatedTools, cursor == nil {
+                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_post"}],"nextCursor":"page-2"}}"#
+            } else if paginatedTools, cursor == "page-2" {
+                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_profile"}]}}"#
+            } else {
+                payload = #"{"jsonrpc":"2.0","id":"\#(id)","result":{"tools":[{"name":"read_post"}]}}"#
+            }
             status = 200
         default:
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))

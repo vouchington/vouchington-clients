@@ -86,6 +86,7 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
 
         XCTAssertEqual(session.status, .failed)
         XCTAssertNil(session.toolCatalog)
+        XCTAssertNotNil(session.lastError)
         XCTAssertEqual(service.refreshedAccounts, ["member-a"])
     }
 
@@ -122,13 +123,30 @@ final class NativeChatMCPAgentSessionTests: XCTestCase {
 
         let connect = Task { try await session.connect() }
         await service.waitForConnect()
-        service.finishConnect(with: .object(["tools": .array([])]))
+        service.finishConnect(with: .object(["tools": .array([
+            .object(["name": .string("read_post")])
+        ])]))
         try await connect.value
 
         let connected = try chat.mcpControls().inspect()
         XCTAssertNoThrow(try connected.find(text: uiEnglish(.nativeSwiftChatMcpConnected)))
         XCTAssertNoThrow(try connected.find(button: uiEnglish(.nativeSwiftChatMcpRefresh)))
         XCTAssertNoThrow(try connected.find(button: uiEnglish(.nativeSwiftChatMcpDisconnect)))
+        XCTAssertNoThrow(try connected.find(text: "read_post"))
+    }
+
+    func testMessagesDirectoryChatDestinationKeepsMemberMcpControls() async throws {
+        let session = NativeChatMCPAgentSession(service: SuspendedMCPService())
+        await session.useAccount("member-a")
+        let directory = NativeRouteFamilyDirectoryView(
+            groups: [AppSection.messages.nativeParityGroups[1]], isSignedIn: true,
+            currentUserId: "member-a", nativeChatMCPSession: session
+        )
+
+        let chat = try directory.inspect().find(NativeChatSurface.self).actualView()
+        XCTAssertNoThrow(
+            try chat.mcpControls().inspect().find(button: uiEnglish(.nativeSwiftChatMcpConnect))
+        )
     }
 }
 
