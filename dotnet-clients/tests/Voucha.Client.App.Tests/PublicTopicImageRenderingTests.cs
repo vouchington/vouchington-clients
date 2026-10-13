@@ -68,6 +68,8 @@ public sealed class PublicTopicImageRenderingTests
     var image = page.FindByName<Image>("TopicLogoImage");
     var title = Assert.Single(Descendants<Label>(page), label => label.Text == withImage.Name);
     Assert.True(image.IsVisible);
+    Assert.Equal(144, image.WidthRequest);
+    Assert.Equal(144, image.HeightRequest);
     Assert.Equal(new Uri("https://images.test/images/placements/placement-4/3/image-7?w=320"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.Equal(withImage.Name, title.Text);

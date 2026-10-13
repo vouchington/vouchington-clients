@@ -11,7 +11,7 @@
     Title="{DynamicResource native.swift.topicRecommendation.topic}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="14">
-            <Image x:Name="TopicLogoImage" AutomationId="topic-logo-image" HeightRequest="144" Aspect="AspectFill" IsVisible="False" SemanticProperties.Description="{Binding Topic.Name}" />
+            <Image x:Name="TopicLogoImage" AutomationId="topic-logo-image" WidthRequest="144" HeightRequest="144" HorizontalOptions="Start" Aspect="AspectFill" IsVisible="False" SemanticProperties.Description="{Binding Topic.Name}" />
             <Label Text="{Binding Topic.Name}" Style="{StaticResource Headline}" />
             <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
             <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
