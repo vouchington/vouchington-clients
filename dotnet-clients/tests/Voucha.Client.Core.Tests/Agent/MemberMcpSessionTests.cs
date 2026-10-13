@@ -296,6 +296,31 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task DefinitiveUnauthorizedToolCallClearsCatalogAndAllowsFreshAuthorization()
+  {
+    var store = new FakeStore();
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].RejectToolCall = true;
+    using var arguments = JsonDocument.Parse("{}");
+
+    await Assert.ThrowsAsync<McpUnauthorizedException>(() => session.CallToolAsync(
+        snapshot, "read_profile", arguments.RootElement, TestContext.Current.CancellationToken));
+
+    Assert.False(session.IsCurrent(snapshot));
+    Assert.Null(session.ConnectedSnapshot());
+    Assert.Null(session.Tools);
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
+    await session.WhenSettledAsync();
+    Assert.Contains("account-a", store.ClearedAccounts);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.NotNull(session.ConnectedSnapshot());
+    Assert.Equal(2, factory.Created);
+  }
+
+  [Fact]
   public async Task DisposeCancelsHeldConnectAndSettlesCleanupBeforeReleasingOwnedState()
   {
     var store = new FakeStore();
@@ -481,6 +506,7 @@ public sealed partial class MemberMcpSessionTests
   {
     public bool FailRefresh { get; set; }
     public bool UnauthorizedRefresh { get; set; }
+    public bool RejectToolCall { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -507,6 +533,7 @@ public sealed partial class MemberMcpSessionTests
     {
       ToolEntered.TrySetResult();
       if (holdToolCall) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      if (RejectToolCall) throw new McpUnauthorizedException();
       return new(JsonDocument.Parse("[]").RootElement.Clone(), null, false);
     }
     public async Task DisconnectAsync(CancellationToken cancellationToken)

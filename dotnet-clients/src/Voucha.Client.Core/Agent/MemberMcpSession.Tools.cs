@@ -55,7 +55,16 @@ public sealed partial class MemberMcpSession
         sessionToken = activeCancellation!.Token;
       }
       using var linked = CancellationTokenSource.CreateLinkedTokenSource(wait.Token, sessionToken);
-      var result = await connection.CallToolAsync(name, arguments, linked.Token).ConfigureAwait(false);
+      McpToolResult result;
+      try { result = await connection.CallToolAsync(name, arguments, linked.Token).ConfigureAwait(false); }
+      catch (McpUnauthorizedException)
+      {
+        lock (gate)
+        {
+          if (IsCurrentLocked(snapshot)) _ = QueueCleanup(accountId);
+        }
+        throw;
+      }
       linked.Token.ThrowIfCancellationRequested();
       lock (gate)
       {
