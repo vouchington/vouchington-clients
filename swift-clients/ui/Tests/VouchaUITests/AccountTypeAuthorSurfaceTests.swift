@@ -65,7 +65,7 @@ final class AccountTypeAuthorSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func assertLabel(_ view: some View, expected: String?) throws {
-        let badge = try view.inspect().find(AccountTypeBadge.self)
+        let badge = try view.environment(\.locale, uiEnglishTestLocale).inspect().find(AccountTypeBadge.self)
         if let expected {
             XCTAssertEqual(try badge.find(text: expected).string(), expected)
         } else {
