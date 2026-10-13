@@ -9,7 +9,7 @@ final class FinancialMcpManifestContractTests: XCTestCase {
         let manifest = try object(JSONSerialization.jsonObject(with: Data(contentsOf: url)))
         let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
         let tools = try XCTUnwrap(servers.first?["tools"] as? [[String: Any]])
-        let general = try tool("get_my_profile", in: tools)
+        let general = try tool("read_my_profile", in: tools)
         let financial = try tool("get_my_financial_profile", in: tools)
 
         XCTAssertEqual(try requiredScopes(general), ["profile:read"])

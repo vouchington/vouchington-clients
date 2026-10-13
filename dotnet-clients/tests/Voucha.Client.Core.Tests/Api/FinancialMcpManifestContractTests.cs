@@ -10,7 +10,7 @@ public sealed class FinancialMcpManifestContractTests
   {
     using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
     var tools = manifest.RootElement.GetProperty("servers")[0].GetProperty("tools");
-    var general = Tool(tools, "get_my_profile");
+    var general = Tool(tools, "read_my_profile");
     var financial = Tool(tools, "get_my_financial_profile");
 
     Assert.Equal(["profile:read"], RequiredScopes(general));
