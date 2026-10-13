@@ -7,6 +7,18 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPAgentSessionTests: XCTestCase {
+    func testSignOutBeforeChatConnectionClearsKnownAccount() async throws {
+        let service = SuspendedMCPService()
+        let session = NativeChatMCPAgentSession(service: service)
+
+        try await session.prepareForSignOut(accountId: "member-a")
+
+        XCTAssertEqual(service.disconnectedAccounts, ["member-a"])
+        XCTAssertNil(session.accountId)
+        XCTAssertNil(session.toolCatalog)
+        XCTAssertEqual(session.status, .disconnected)
+    }
+
     func testAccountSwitchDiscardsDelayedToolsAndRevokesPreviousGrant() async throws {
         let service = SuspendedMCPService()
         let session = NativeChatMCPAgentSession(service: service)

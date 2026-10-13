@@ -5,7 +5,7 @@ import VouchaModels
 /// The browser callback is supplied by the Apple app, keeping presentation in the app layer.
 @MainActor
 public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
-    public enum Failure: Error { case accountMismatch, invalidToolCatalog }
+    public enum Failure: Error { case accountMismatch, invalidToolCatalog, accountClearingUnavailable }
 
     public typealias BrowserCode = @MainActor (MemberMCPOAuthRequest, AnyObject?) async throws -> String
 
@@ -106,12 +106,7 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
         let task = Task {
             if let previousDisconnect { _ = try? await previousDisconnect.value }
             if let current {
-                if let accessToken = try? await current.tokens.cachedAccessTokenForClose() {
-                    // The producer does not retain an MCP session; remote close is best effort.
-                    // Never hold local grant removal behind a stalled DELETE response.
-                    _ = Task { try? await current.client.close(accessToken: accessToken) }
-                }
-                try await current.tokens.signOut()
+                try await clearLiveGrant(current, accountId: accountId)
             } else {
                 try await NativeChatMCPPersistedGrantCleanup.signOut(.init(
                     accountId: accountId, siteOrigin: siteOrigin, app: app, discovery: discovery,
@@ -164,5 +159,22 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
         try await NativeChatMCPToolCatalog.listAll(authorized: authorized) {
             try self.assertCurrent(accountId, generation: generation)
         }
+    }
+}
+
+private extension NativeChatMCPNetworkService {
+    private func clearLiveGrant(_ current: Context, accountId: String) async throws {
+        let drain = await current.tokens.beginLocalSignOut()
+        guard let accountClearing = tokenStore as? any MemberMCPOAuthAccountClearing else {
+            throw Failure.accountClearingUnavailable
+        }
+        var grants = try await accountClearing.takeAccount(accountId)
+        await drain.value
+        grants += try await accountClearing.takeAccount(accountId)
+        NativeChatMCPRemoteGrantCleanup.start(.init(
+            grants: grants, accountId: accountId, siteOrigin: siteOrigin,
+            app: app, discovery: discovery, protocolClasses: protocolClasses,
+            knownMetadata: current.metadata, activeClient: current.client
+        ))
     }
 }

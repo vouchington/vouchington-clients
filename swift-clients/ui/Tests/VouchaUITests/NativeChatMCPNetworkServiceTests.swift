@@ -36,22 +36,24 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
     }
 
     func testConnectAndRefreshCollectAllCatalogPages() async throws {
-        MCPAgentURLProtocol.configure(paginatedTools: true)
-        let site = try XCTUnwrap(URL(string: "https://example.test"))
-        let service = try NativeChatMCPNetworkService(
-            siteOrigin: site, app: .macos, tokenStore: HeldClearMCPTokenStore(holdClear: false),
-            browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
-        )
-        for catalog in try await [
-            service.connect(accountId: "member-a"),
-            service.refreshTools(accountId: "member-a")
-        ] {
-            guard case let .object(result) = catalog,
-                  case let .array(tools)? = result["tools"] else {
-                return XCTFail("Expected merged tool catalog")
+        for emptyCursor in [false, true] {
+            MCPAgentURLProtocol.configure(paginatedTools: true, emptyContinuationCursor: emptyCursor)
+            let site = try XCTUnwrap(URL(string: "https://example.test"))
+            let service = try NativeChatMCPNetworkService(
+                siteOrigin: site, app: .macos, tokenStore: HeldClearMCPTokenStore(holdClear: false),
+                browserCode: { _, _ in "new-code" }, protocolClasses: [MCPAgentURLProtocol.self]
+            )
+            for catalog in try await [
+                service.connect(accountId: "member-a"),
+                service.refreshTools(accountId: "member-a")
+            ] {
+                guard case let .object(result) = catalog,
+                      case let .array(tools)? = result["tools"] else {
+                    return XCTFail("Expected merged tool catalog")
+                }
+                XCTAssertEqual(tools.count, 2)
+                XCTAssertNil(result["nextCursor"])
             }
-            XCTAssertEqual(tools.count, 2)
-            XCTAssertNil(result["nextCursor"])
         }
     }
 
@@ -203,7 +205,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
 
         let saved = try await store.load(scope: scope)
         XCTAssertNil(saved)
-        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 1)
+        await expectRevokeCount(1)
     }
 
     func testStalledRemoteCloseDoesNotDelayLocalGrantRemoval() async throws {
@@ -268,7 +270,47 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         let cleared = try await store.load(scope: accountScope)
         XCTAssertNil(cleared)
         XCTAssertEqual(MCPAgentURLProtocol.tokenRequestCount, 0)
-        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 1)
+        await expectRevokeCount(1)
+    }
+
+    func testLiveSignOutClearsOldIssuerScopesBeforeStalledRemoteRevoke() async throws {
+        MCPAgentURLProtocol.configure(holdRevoke: true)
+        defer { MCPAgentURLProtocol.releaseHeldRevoke() }
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let store = HeldClearMCPTokenStore(holdClear: false)
+        let currentScope = scope(for: "member-a", site: site)
+        let olderScope = MemberMCPOAuthTokenScope(
+            accountId: "member-a", issuerIdentifier: "https://old-issuer.test",
+            resource: currentScope.resource, clientId: currentScope.clientId
+        )
+        let otherScope = scope(for: "member-b", site: site)
+        let credentials = MemberMCPOAuthTokens(
+            accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
+            scope: "mcp.user:read", tokenType: "Bearer"
+        )
+        for storedScope in [currentScope, olderScope, otherScope] {
+            try await store.save(credentials, scope: storedScope)
+        }
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: store,
+            browserCode: { _, _ in XCTFail("Existing grant must avoid browser authorization")
+                return ""
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+        _ = try await service.connect(accountId: "member-a")
+
+        try await service.disconnect(accountId: "member-a")
+
+        let currentGrant = try await store.load(scope: currentScope)
+        let olderGrant = try await store.load(scope: olderScope)
+        let otherGrant = try await store.load(scope: otherScope)
+        XCTAssertNil(currentGrant)
+        XCTAssertNil(olderGrant)
+        XCTAssertNotNil(otherGrant)
+        for _ in 0 ..< 100 where !MCPAgentURLProtocol.isRevokeHeld {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(MCPAgentURLProtocol.isRevokeHeld)
     }
 
     func testOfflineColdSignOutClearsOnlyFormerAccountGrant() async throws {
@@ -304,7 +346,6 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         let retained = try await store.load(scope: other)
         XCTAssertNil(cleared)
         XCTAssertNotNil(retained)
-        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 0)
     }
 
     func testColdSignOutClearsOldIssuerGrantAfterCurrentMetadataChanges() async throws {
@@ -339,7 +380,33 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
         let retained = try await store.load(scope: otherAccountScope)
         XCTAssertNil(cleared)
         XCTAssertNotNil(retained)
-        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, 0)
+    }
+
+    func testColdSignOutClearsGrantBeforeStalledOAuthDiscovery() async throws {
+        MCPAgentURLProtocol.configure(holdDiscovery: true)
+        defer { MCPAgentURLProtocol.releaseHeldDiscovery() }
+        let site = try XCTUnwrap(URL(string: "https://example.test"))
+        let store = HeldClearMCPTokenStore(holdClear: false)
+        let currentScope = scope(for: "member-a", site: site)
+        try await store.save(.init(
+            accessToken: "old-access", refreshToken: "old-refresh", expiresIn: 3_600,
+            scope: "mcp.user:read", tokenType: "Bearer"
+        ), scope: currentScope)
+        let service = try NativeChatMCPNetworkService(
+            siteOrigin: site, app: .macos, tokenStore: store,
+            browserCode: { _, _ in XCTFail("Sign-out must not present a browser")
+                return ""
+            }, protocolClasses: [MCPAgentURLProtocol.self]
+        )
+
+        try await service.disconnect(accountId: "member-a")
+
+        let cleared = try await store.load(scope: currentScope)
+        XCTAssertNil(cleared)
+        for _ in 0 ..< 100 where !MCPAgentURLProtocol.isDiscoveryHeld {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(MCPAgentURLProtocol.isDiscoveryHeld)
     }
 
     private func scope(for account: String, site: URL) -> MemberMCPOAuthTokenScope {
@@ -349,6 +416,13 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
             clientId: site.appendingPathComponent("api/v1/oauth/native-clients/macos")
         )
     }
+
+    private func expectRevokeCount(_ expected: Int) async {
+        for _ in 0 ..< 100 where MCPAgentURLProtocol.revokeCount < expected {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(MCPAgentURLProtocol.revokeCount, expected)
+    }
 }
 
 private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAccountClearing {
@@ -357,6 +431,7 @@ private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAc
     private var started: [String: CheckedContinuation<Void, Never>] = [:]
     private var releases: [String: CheckedContinuation<Void, Never>] = [:]
     private var clearingAccounts: Set<String> = []
+    private var heldOnce: Set<String> = []
     private(set) var prematureLoadCount = 0
 
     init(holdClear: Bool = true) {
@@ -386,6 +461,20 @@ private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAc
 
     func clearAccount(_ accountId: String) throws {
         values = values.filter { $0.key.accountId != accountId }
+    }
+
+    func takeAccount(_ accountId: String) async -> [MemberMCPOAuthStoredGrant] {
+        if holdClear, heldOnce.insert(accountId).inserted {
+            clearingAccounts.insert(accountId)
+            started.removeValue(forKey: accountId)?.resume()
+            await withCheckedContinuation { releases[accountId] = $0 }
+            clearingAccounts.remove(accountId)
+        }
+        let grants = values.compactMap { scope, tokens -> MemberMCPOAuthStoredGrant? in
+            scope.accountId == accountId ? .init(scope: scope, tokens: tokens) : nil
+        }
+        values = values.filter { $0.key.accountId != accountId }
+        return grants
     }
 
     func waitForClear(accountId: String) async {

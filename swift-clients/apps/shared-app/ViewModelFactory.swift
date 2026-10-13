@@ -100,10 +100,18 @@ public final class ViewModelFactory {
             nativeOAuthAuthorizationStore: NativeOAuthAuthorizationStore()
         )
         factory.nativeChatMCPSession = makeNativeChatMCPSession(config: config, accessGroup: keychainAccessGroup)
+        factory.installMCPSignOutCleanup()
         #if canImport(DeviceCheck)
             factory.appAttestationService = appAttestationService
         #endif
         return factory
+    }
+
+    private func installMCPSignOutCleanup() {
+        guard let nativeChatMCPSession else { return }
+        sessionManager.setBeforeSignOut { accountId in
+            try await nativeChatMCPSession.prepareForSignOut(accountId: accountId)
+        }
     }
 
     private static func keychainAccessGroup() -> String? {

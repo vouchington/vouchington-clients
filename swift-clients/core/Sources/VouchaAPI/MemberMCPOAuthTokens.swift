@@ -72,4 +72,23 @@ public protocol MemberMCPOAuthTokenStore: Sendable {
 /// Removes every credential owned by one member when issuer discovery is unavailable at sign-out.
 public protocol MemberMCPOAuthAccountClearing: Sendable {
     func clearAccount(_ accountId: String) async throws
+    /// Removes all of the member's local credentials before returning any grants for best-effort revocation.
+    func takeAccount(_ accountId: String) async throws -> [MemberMCPOAuthStoredGrant]
+}
+
+public struct MemberMCPOAuthStoredGrant: Sendable {
+    public let scope: MemberMCPOAuthTokenScope
+    public let tokens: MemberMCPOAuthTokens
+
+    public init(scope: MemberMCPOAuthTokenScope, tokens: MemberMCPOAuthTokens) {
+        self.scope = scope
+        self.tokens = tokens
+    }
+}
+
+public extension MemberMCPOAuthAccountClearing {
+    func takeAccount(_ accountId: String) async throws -> [MemberMCPOAuthStoredGrant] {
+        try await clearAccount(accountId)
+        return []
+    }
 }

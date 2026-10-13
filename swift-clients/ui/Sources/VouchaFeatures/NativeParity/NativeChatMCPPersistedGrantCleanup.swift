@@ -15,21 +15,14 @@ enum NativeChatMCPPersistedGrantCleanup {
     }
 
     static func signOut(_ input: Input) async throws {
-        do {
-            let metadata = try await input.discovery.discover()
-            let tokenClient = try MemberMCPOAuthTokenClient(
-                metadata: metadata,
-                clientId: input.siteOrigin.appendingPathComponent("api/v1/oauth/native-clients/\(input.app.rawValue)"),
-                resource: input.siteOrigin.appendingPathComponent("api/v1/mcp"),
-                protocolClasses: input.protocolClasses
-            )
-            try await MemberMCPTokenManager(
-                accountId: input.accountId, store: input.tokenStore, tokenClient: tokenClient
-            ).signOut()
-        } catch { /* Remote discovery and revocation are best effort; local account deletion is mandatory. */ }
         guard let accountClearing = input.tokenStore as? any MemberMCPOAuthAccountClearing else {
             throw Failure.accountClearingUnavailable
         }
-        try await accountClearing.clearAccount(input.accountId)
+        let grants = try await accountClearing.takeAccount(input.accountId)
+        NativeChatMCPRemoteGrantCleanup.start(.init(
+            grants: grants, accountId: input.accountId, siteOrigin: input.siteOrigin,
+            app: input.app, discovery: input.discovery, protocolClasses: input.protocolClasses,
+            knownMetadata: nil, activeClient: nil
+        ))
     }
 }

@@ -67,6 +67,30 @@ public final class NativeChatMCPAgentSession {
         status = .disconnected
     }
 
+    /// Completes local grant removal while the app still knows which member is signing out.
+    public func prepareForSignOut(accountId signingOutAccountId: String) async throws {
+        generation += 1
+        let currentGeneration = generation
+        operation?.cancel()
+        operation = nil
+        if let accountId { enqueueCleanup(accountId) }
+        enqueueCleanup(signingOutAccountId)
+        accountId = nil
+        toolCatalog = nil
+        lastError = nil
+        status = .switchingAccount
+        do {
+            try await drainPendingCleanup()
+            guard generation == currentGeneration else { return }
+            status = .disconnected
+        } catch {
+            guard generation == currentGeneration else { throw error }
+            status = .failed
+            lastError = .verbatim(error.localizedDescription)
+            throw error
+        }
+    }
+
     public func connect(presentationWindow: AnyObject? = nil) async throws {
         guard let accountId, status != .switchingAccount, status != .connecting else { return }
         generation += 1

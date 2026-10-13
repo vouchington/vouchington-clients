@@ -23,7 +23,7 @@ enum NativeChatMCPToolCatalog {
             switch result["nextCursor"] {
             case .none, .some(.null):
                 cursor = nil
-            case let .some(.string(next)) where !next.isEmpty:
+            case let .some(.string(next)):
                 guard seenCursors.insert(next).inserted, seenCursors.count <= 100 else {
                     throw NativeChatMCPNetworkService.Failure.invalidToolCatalog
                 }

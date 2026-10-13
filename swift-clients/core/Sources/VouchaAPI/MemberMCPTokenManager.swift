@@ -33,16 +33,6 @@ public actor MemberMCPTokenManager {
         return tokens.accessToken
     }
 
-    /// Reads an already valid token for optional remote session cleanup without refreshing it.
-    public func cachedAccessTokenForClose() async throws -> String? {
-        guard !signedOut, !clearing, let tokens = try await store.load(scope: scope) else { return nil }
-        guard tokens.expiresIn > 30,
-              tokens.acquiredAt.addingTimeInterval(TimeInterval(tokens.expiresIn - 30)) > Date() else {
-            return nil
-        }
-        return tokens.accessToken
-    }
-
     public func redeem(code: String, verifier: String, redirectURI: URL) async throws -> String {
         guard !signedOut, !clearing, redeemTask == nil else { throw Failure.notAuthorized }
         let previousRefresh = refreshTask
@@ -65,6 +55,19 @@ public actor MemberMCPTokenManager {
 
     public func signOut() async throws {
         try await beginSignOut().value
+    }
+
+    /// Stops a live session from saving another rotated grant while the caller clears the account store.
+    public func beginLocalSignOut() -> Task<Void, Never> {
+        signedOut = true
+        refreshTask?.cancel()
+        redeemTask?.cancel()
+        let refresh = refreshTask
+        let redeem = redeemTask
+        return Task {
+            if let refresh { _ = try? await refresh.value }
+            if let redeem { _ = try? await redeem.value }
+        }
     }
 
     func beginSignOut() -> Task<Void, Error> {
