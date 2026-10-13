@@ -130,13 +130,18 @@ public sealed class SettingsCredentialsRenderedControlsTests
         .Single(control => control.PaginationId == "settings-oauth-grants");
     Assert.True(pagination.HasMore);
     var pageChanged = When(model, nameof(model.OAuthGrants), () => model.OAuthGrants.Count == 2);
+    var rendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    pagination.LoadingCompleted += (_, _) => rendered.TrySetResult();
     Descendants<Button>(pagination).Single().SendClicked();
 
     await fake.NextGrantPageStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal("opaque/+cursor", fake.LastGrantCursor);
     nextPage.SetResult(new OAuthGrantListResponse([second], new PageInfo(null, false, null)));
     await pageChanged.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    await rendered.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal(["grant-1", "grant-2"], model.OAuthGrants.Select(item => item.Id));
+    Assert.Contains(Descendants<Button>(page.ConnectedApps), button =>
+        button.CommandParameter is SettingsOAuthGrantRow row && row.ProtocolValue.Id == "grant-2");
   }
 
   private static ScopeCatalogEntry Scope(string name, string? requires = null, string audience = "user") =>
