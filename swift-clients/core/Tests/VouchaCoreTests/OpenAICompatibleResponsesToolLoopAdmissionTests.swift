@@ -61,4 +61,32 @@ final class OpenAICompatibleResponsesToolLoopAdmissionTests: XCTestCase {
         XCTAssertEqual(count, 0)
         XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
     }
+
+    func testContinuationReservesAllowedResultBeforeMutation() async throws {
+        let ignored = String(repeating: "x", count: 800_000)
+        let response: [String: Any] = ["output": [
+            ["type": "reasoning", "summary": [["type": "summary_text", "text": ignored]]],
+            ["type": "function_call", "call_id": "write-1", "name": "write", "arguments": "{}"]
+        ]]
+        let data = try JSONSerialization.data(withJSONObject: response)
+        XCTAssertLessThan(data.count, 1_000_000)
+        let responseText = try XCTUnwrap(String(data: data, encoding: .utf8))
+        ToolLoopURLProtocol.reset(responses: [responseText, #"{"output":[],"output_text":"unexpected"}"#])
+        let client = OpenAICompatibleResponsesClient(protocolClasses: [ToolLoopURLProtocol.self])
+        let invocations = ToolInvocationCounter()
+        do {
+            _ = try await client.generateAssistantResponseWithTools(
+                request: request(), isCurrent: { true }
+            ) { _, _ in
+                await invocations.record()
+                return String(repeating: "x", count: 256_000)
+            }
+            XCTFail("A tool result could overflow the next request after mutation")
+        } catch {
+            XCTAssertEqual(error as? LocalLLMToolLoopFailure, .resultTooLarge)
+        }
+        let count = await invocations.count
+        XCTAssertEqual(count, 0)
+        XCTAssertEqual(ToolLoopURLProtocol.bodies().count, 1)
+    }
 }

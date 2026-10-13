@@ -83,7 +83,6 @@ public extension OpenAICompatibleResponsesClient {
             let response = try Self.decodedToolResponse(data)
             let output = try Self.responseOutput(response)
             try Self.requireCompletedResponse(response, output: output)
-
             let calls = try Self.functionCalls(output)
             if calls.isEmpty {
                 return try Self.completedToolResponseText(
@@ -98,7 +97,9 @@ public extension OpenAICompatibleResponsesClient {
             input.append(contentsOf: output)
             for call in calls {
                 try await Self.preflight(
-                    call, model: model, input: input, definitions: definitions, validate: validate
+                    call, input: input,
+                    context: .init(model: model, definitions: definitions, remainingResultBytes: outputBytesRemaining),
+                    validate: validate
                 )
                 let result = try await Self.invokeTool(
                     call, hadPreviousExecution: attemptedToolExecution, execute: execute

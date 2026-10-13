@@ -1,6 +1,12 @@
 import Foundation
 
 extension OpenAICompatibleResponsesClient {
+    struct ToolPreflightContext {
+        let model: String
+        let definitions: [[String: Any]]
+        let remainingResultBytes: Int
+    }
+
     static func requestBody(
         model: String, input: [[String: Any]], definitions: [[String: Any]]
     ) throws -> Data {
@@ -12,18 +18,20 @@ extension OpenAICompatibleResponsesClient {
     }
 
     static func preflight(
-        _ call: LocalLLMFunctionCall, model: String, input: [[String: Any]],
-        definitions: [[String: Any]], validate: @Sendable (String, String) async throws -> Void
+        _ call: LocalLLMFunctionCall, input: [[String: Any]],
+        context: ToolPreflightContext,
+        validate: @Sendable (String, String) async throws -> Void
     ) async throws {
         try Task.checkCancellation()
         try await validate(call.name, call.arguments)
-        // Response items other than the call also enter the next request. Reject a
-        // continuation that cannot fit even an empty result before invoking a tool.
-        let minimalInput = input + [[
-            "type": "function_call_output", "call_id": call.callID, "output": ""
+        // The bridge returns a JSON-encoded envelope without literal control characters.
+        // Backslashes reserve the maximum outer-JSON escaping for every allowed result byte.
+        let reservedInput = input + [[
+            "type": "function_call_output", "call_id": call.callID,
+            "output": String(repeating: "\\", count: context.remainingResultBytes)
         ]]
         guard try requestBody(
-            model: model, input: minimalInput, definitions: definitions
+            model: context.model, input: reservedInput, definitions: context.definitions
         ).count <= 1_000_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
     }
 
