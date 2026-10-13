@@ -113,6 +113,8 @@ public final class SettingsViewModel {
     let now: @Sendable () -> Date
     @ObservationIgnored
     private var blueskyResultObserver: NSObjectProtocol?
+    /// Installed synchronously by the result observer so callers can wait for that exact reload.
+    private nonisolated let blueskyResultTasks = BlueskyLinkResultTasks()
     var uiLocaleController: UiLocaleController?
 
     public init(
@@ -139,11 +141,14 @@ public final class SettingsViewModel {
         blueskyResultObserver = NotificationCenter.default.addObserver(
             forName: .blueskyLinkResultDidChange,
             object: nil,
-            queue: .main
+            queue: nil
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.consumeBlueskyLinkResult()
+            let task = Task { @MainActor [weak self] in
+                if let self {
+                    await consumeBlueskyLinkResult()
+                }
             }
+            self?.blueskyResultTasks.set(task)
         }
     }
 
@@ -151,6 +156,10 @@ public final class SettingsViewModel {
         if let blueskyResultObserver {
             NotificationCenter.default.removeObserver(blueskyResultObserver)
         }
+    }
+
+    func waitForBlueskyLinkResultConsumption() async {
+        await blueskyResultTasks.wait()
     }
 }
 
