@@ -91,6 +91,8 @@ jobs:
           cache: false
           install: false
       - name: Install the pinned portable lint tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: >-
           mise install actionlint shellcheck github:boyter/scc zizmor
           aqua:gitleaks/gitleaks aqua:lycheeverse/lychee
@@ -117,6 +119,8 @@ jobs:
           cache: false
           install: false
       - name: Install the pinned secret scanner
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: mise install aqua:gitleaks/gitleaks
       - name: Scan repository history
         run: |
