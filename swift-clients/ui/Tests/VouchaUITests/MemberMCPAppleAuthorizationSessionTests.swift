@@ -68,12 +68,31 @@
             XCTAssertEqual(code, "retry-code")
         }
 
+        func testUnsupportedCallbackHostFailsBeforeOpeningBrowser() async throws {
+            guard #available(macOS 14.4, *) else { throw XCTSkip("HTTPS browser callbacks require macOS 14.4") }
+            let request = try MemberMCPOAuthRequest(
+                siteOrigin: XCTUnwrap(URL(string: "https://staging.voucha.ai")), app: .macos,
+                issuerIdentifier: "https://staging.voucha.ai",
+                authorizationEndpoint: XCTUnwrap(URL(string: "https://staging.voucha.ai/authorize")),
+                redirectURI: XCTUnwrap(URL(string: "https://staging.voucha.ai/oauth/native/macos/callback"))
+            )
+            let model = MemberMCPAppleAuthorizationSession { _, _ in
+                XCTFail("Unsupported callback host opened the browser")
+                return MemberMCPBrowserSession(start: { false }, cancel: {}, setPresentationContext: { _ in })
+            }
+            let anchor = ASPresentationAnchor(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+            do {
+                _ = try await model.code(for: request, presentationAnchor: anchor)
+                XCTFail("Unsupported callback host was accepted")
+            } catch MemberMCPOAuthRequest.Failure.invalidMetadata {}
+        }
+
         private func request() throws -> MemberMCPOAuthRequest {
             try MemberMCPOAuthRequest(
-                siteOrigin: XCTUnwrap(URL(string: "https://example.test")), app: .macos,
-                issuerIdentifier: "https://example.test",
-                authorizationEndpoint: XCTUnwrap(URL(string: "https://example.test/authorize")),
-                redirectURI: XCTUnwrap(URL(string: "https://example.test/oauth/native/macos/callback"))
+                siteOrigin: XCTUnwrap(URL(string: "https://voucha.ai")), app: .macos,
+                issuerIdentifier: "https://voucha.ai",
+                authorizationEndpoint: XCTUnwrap(URL(string: "https://voucha.ai/authorize")),
+                redirectURI: XCTUnwrap(URL(string: "https://voucha.ai/oauth/native/macos/callback"))
             )
         }
 

@@ -2,6 +2,7 @@ public enum DecodedJSONValue: Codable, Sendable {
     case null
     case bool(Bool)
     case number(Double)
+    case integer(Int64)
     case string(String)
     case array([DecodedJSONValue])
     case object([String: DecodedJSONValue])
@@ -12,6 +13,9 @@ public enum DecodedJSONValue: Codable, Sendable {
             self = .null
         } else if let value = try? container.decode(Bool.self) {
             self = .bool(value)
+        } else if let value = try? container.decode(Int64.self),
+                  value > 9_007_199_254_740_992 || value < -9_007_199_254_740_992 {
+            self = .integer(value)
         } else if let value = try? container.decode(Double.self) {
             self = .number(value)
         } else if let value = try? container.decode(String.self) {
@@ -32,6 +36,8 @@ public enum DecodedJSONValue: Codable, Sendable {
         case let .bool(value):
             try container.encode(value)
         case let .number(value):
+            try container.encode(value)
+        case let .integer(value):
             try container.encode(value)
         case let .string(value):
             try container.encode(value)

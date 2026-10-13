@@ -4,19 +4,6 @@ import Foundation
 #endif
 import VouchaModels
 
-struct MCPRPCReply<Result: Decodable & Sendable>: Decodable {
-    struct RPCError: Decodable {
-        let code: Int
-        let message: String
-    }
-
-    let jsonrpc: String
-    let id: String?
-    let method: String?
-    let result: Result?
-    let error: RPCError?
-}
-
 /// A bearer-only transport for the member MCP resource. It never shares the app's cookie session.
 public actor MemberMCPClient {
     public enum Failure: Error, Sendable {
@@ -25,6 +12,7 @@ public actor MemberMCPClient {
         case rateLimited(retryAfterSeconds: Int?)
         case httpStatus(Int)
         case invalidResponse
+        case sessionExpired
         case rpc(code: Int, message: String)
     }
 
@@ -34,9 +22,13 @@ public actor MemberMCPClient {
         public let isError: Bool?
     }
 
-    private let endpoint: URL
-    private let configuration: URLSessionConfiguration
+    let endpoint: URL
+    let configuration: URLSessionConfiguration
     private var nextRequestId = 0
+    var protocolVersion: String?
+    var sessionId: String?
+    var initialized = false
+    var initialization: Task<Void, Error>?
 
     public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil) throws {
         let origin = URLComponents(url: siteOrigin, resolvingAgainstBaseURL: false)
@@ -54,8 +46,9 @@ public actor MemberMCPClient {
         configuration = config
     }
 
-    public func listTools(accessToken: String) async throws -> DecodedJSONValue {
-        try await send(method: "tools/list", params: .object([:]), token: accessToken)
+    public func listTools(accessToken: String, cursor: String? = nil) async throws -> DecodedJSONValue {
+        let params: DecodedJSONValue = cursor.map { .object(["cursor": .string($0)]) } ?? .object([:])
+        return try await send(method: "tools/list", params: params, token: accessToken)
     }
 
     public func callTool(
@@ -92,6 +85,20 @@ public actor MemberMCPClient {
         params: DecodedJSONValue,
         token: String
     ) async throws -> Result {
+        try await ensureInitialized(token: token)
+        do {
+            return try await sendRPC(method: method, params: params, token: token)
+        } catch Failure.sessionExpired {
+            try await ensureInitialized(token: token)
+            return try await sendRPC(method: method, params: params, token: token)
+        }
+    }
+
+    func sendRPC<Result: Decodable & Sendable>(
+        method: String,
+        params: DecodedJSONValue,
+        token: String
+    ) async throws -> Result {
         nextRequestId += 1
         let id = String(nextRequestId)
         let body: DecodedJSONValue = .object([
@@ -103,6 +110,9 @@ public actor MemberMCPClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let protocolVersion { request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version") }
+        let requestSession = sessionId
+        if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
         request.httpBody = try JSONEncoder().encode(body)
         let transport = ResponseLinesTransport(followRedirects: false)
         defer { transport.cancel() }
@@ -110,28 +120,30 @@ public actor MemberMCPClient {
         let response = responseLines.response
         guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
         if http.statusCode == 401 { throw Failure.unauthorized }
+        if http.statusCode == 404, let requestSession {
+            if sessionId == requestSession {
+                initialized = false
+                protocolVersion = nil
+                sessionId = nil
+            }
+            throw Failure.sessionExpired
+        }
         if http.statusCode == 429 {
             throw Failure.rateLimited(retryAfterSeconds: Self.retryDelay(
                 http.value(forHTTPHeaderField: "Retry-After")
             ))
         }
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
-        return try await MCPResponseReader.read(
+        let result: Result = try await MCPResponseReader.read(
             responseLines.lines,
             contentType: http.value(forHTTPHeaderField: "Content-Type"), id: id
         )
+        if method == "initialize", let session = http.value(forHTTPHeaderField: "Mcp-Session-Id") {
+            guard !session.isEmpty, session.utf8.allSatisfy({ 0x21 ... 0x7E ~= $0 })
+            else { throw Failure.invalidResponse }
+            sessionId = session
+        }
+        return result
     }
 
-    private static func retryDelay(_ value: String?) -> Int? {
-        guard let value else { return nil }
-        if let seconds = Int(value), seconds > 0 { return seconds }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
-        guard let date = formatter.date(from: value) else { return nil }
-        let seconds = date.timeIntervalSinceNow
-        guard seconds > 0, seconds < Double(Int.max) else { return nil }
-        return Int(ceil(seconds))
-    }
 }

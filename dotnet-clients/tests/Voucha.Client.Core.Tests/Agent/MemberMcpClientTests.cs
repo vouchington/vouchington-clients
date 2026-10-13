@@ -12,7 +12,7 @@ public sealed class MemberMcpClientTests
   public async Task CallUsesBearerOnlyMcpAndRetainsWrappedAndStructuredContent()
   {
     var handler = new StubHandler(HttpStatusCode.OK,
-        """{"jsonrpc":"2.0","id":"1","result":{"content":[{"type":"text","text":"<untrusted>member text</untrusted>"}],"structuredContent":{"post_id":"post-1"},"isError":false}}""");
+        """{"jsonrpc":"2.0","id":"2","result":{"content":[{"type":"text","text":"<untrusted>member text</untrusted>"}],"structuredContent":{"post_id":"post-1"},"isError":false}}""");
     using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
     var arguments = JsonDocument.Parse("""{"id":"post-1"}""").RootElement;
 
@@ -22,6 +22,9 @@ public sealed class MemberMcpClientTests
     Assert.Equal("Bearer access-1", handler.Authorization);
     Assert.Null(handler.Cookie);
     Assert.Equal("application/json, text/event-stream", handler.Accept);
+    Assert.Equal("2025-06-18", handler.ProtocolVersion);
+    Assert.Equal("test-session", handler.SessionId);
+    Assert.Equal(["initialize", "notifications/initialized", "tools/call"], handler.Methods);
     using var body = JsonDocument.Parse(Assert.IsType<string>(handler.Body));
     Assert.Equal("tools/call", body.RootElement.GetProperty("method").GetString());
     Assert.Equal("read_post", body.RootElement.GetProperty("params").GetProperty("name").GetString());
@@ -43,13 +46,27 @@ public sealed class MemberMcpClientTests
   }
 
   [Fact]
+  public async Task ToolListingForwardsOpaqueCursor()
+  {
+    var handler = new StubHandler(HttpStatusCode.OK,
+        """{"jsonrpc":"2.0","id":"2","result":{"tools":[],"nextCursor":"next/+"}}""");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+
+    var result = await client.ListToolsAsync("access-1", "opaque/+", TestContext.Current.CancellationToken);
+
+    using var body = JsonDocument.Parse(Assert.IsType<string>(handler.Body));
+    Assert.Equal("opaque/+", body.RootElement.GetProperty("params").GetProperty("cursor").GetString());
+    Assert.Equal("next/+", result.GetProperty("nextCursor").GetString());
+  }
+
+  [Fact]
   public async Task InBandRateLimitRetainsRetryAfter()
   {
     var inner = """{"error":{"status":429,"code":"RATE_LIMIT","retryAfterSeconds":17}}""";
     var body = JsonSerializer.Serialize(new
     {
       jsonrpc = "2.0",
-      id = "1",
+      id = "2",
       result = new { isError = true, content = new[] { new { type = "text", text = inner } } }
     });
     var handler = new StubHandler(HttpStatusCode.OK, body);
@@ -65,7 +82,7 @@ public sealed class MemberMcpClientTests
   [Fact]
   public async Task MalformedInBandErrorRemainsWrappedAndHttpDateWaitIsPositive()
   {
-    var malformed = """{"jsonrpc":"2.0","id":"1","result":{"isError":true,"content":[{"type":"text","text":"{\"error\":[]}"}]}}""";
+    var malformed = """{"jsonrpc":"2.0","id":"2","result":{"isError":true,"content":[{"type":"text","text":"{\"error\":[]}"}]}}""";
     using (var client = new MemberMcpClient(new Uri("https://example.test"),
         new StubHandler(HttpStatusCode.OK, malformed)))
     {
@@ -90,7 +107,7 @@ public sealed class MemberMcpClientTests
     var events = ": heartbeat\n\n" +
         "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\"}\n\n" +
         "data: {\"jsonrpc\":\"2.0\",\"id\":\"other\",\"result\":{}}\n\n" +
-        "data: {\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"tools\":[{\"name\":\"read_post\"}]}}\n\n";
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"2\",\"result\":{\"tools\":[{\"name\":\"read_post\"}]}}\n\n";
     using var client = new MemberMcpClient(new Uri("https://example.test"),
         new StubHandler(HttpStatusCode.OK, events) { ContentType = "text/event-stream" });
 
@@ -119,6 +136,9 @@ public sealed class MemberMcpClientTests
     public string? Cookie { get; private set; }
     public string? Accept { get; private set; }
     public string? Body { get; private set; }
+    public string? ProtocolVersion { get; private set; }
+    public string? SessionId { get; private set; }
+    public List<string> Methods { get; } = [];
     public int? RetryAfterSeconds { get; init; }
     public DateTimeOffset? RetryAfterDate { get; init; }
     public string ContentType { get; init; } = "application/json";
@@ -131,6 +151,24 @@ public sealed class MemberMcpClientTests
       Cookie = request.Headers.TryGetValues("Cookie", out var cookies) ? cookies.Single() : null;
       Accept = string.Join(", ", request.Headers.Accept.Select(value => value.ToString()));
       Body = await request.Content!.ReadAsStringAsync(cancellationToken);
+      using var rpc = JsonDocument.Parse(Body);
+      var method = rpc.RootElement.GetProperty("method").GetString()!;
+      Methods.Add(method);
+      if (method == "initialize")
+      {
+        var init = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+          Content = new StringContent(
+              """{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"1"}}}""",
+              Encoding.UTF8, "application/json")
+        };
+        init.Headers.TryAddWithoutValidation("Mcp-Session-Id", "test-session");
+        return init;
+      }
+      ProtocolVersion = request.Headers.TryGetValues("MCP-Protocol-Version", out var versions) ? versions.Single() : null;
+      SessionId = request.Headers.TryGetValues("Mcp-Session-Id", out var sessions) ? sessions.Single() : null;
+      if (method == "notifications/initialized")
+        return new HttpResponseMessage(HttpStatusCode.Accepted);
       var response = new HttpResponseMessage(status)
       {
         Content = new StringContent(responseBody, Encoding.UTF8, ContentType)

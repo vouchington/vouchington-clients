@@ -6,18 +6,21 @@ namespace Voucha.Client.Core.Agent;
 public sealed class MemberMcpAuthorizedClient(MemberMcpClient client, MemberMcpTokenManager tokens)
 {
   public async Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken = default)
+      => await ListToolsAsync(null, cancellationToken).ConfigureAwait(false);
+
+  public async Task<JsonElement> ListToolsAsync(string? cursor, CancellationToken cancellationToken = default)
   {
     var access = await tokens.AccessTokenAsync().ConfigureAwait(false);
     try
     {
-      return await client.ListToolsAsync(access, cancellationToken).ConfigureAwait(false);
+      return await client.ListToolsAsync(access, cursor, cancellationToken).ConfigureAwait(false);
     }
     catch (McpUnauthorizedException)
     {
       var refreshed = await tokens.RefreshIfCurrentAsync(access, cancellationToken).ConfigureAwait(false);
       try
       {
-        return await client.ListToolsAsync(refreshed, cancellationToken).ConfigureAwait(false);
+        return await client.ListToolsAsync(refreshed, cursor, cancellationToken).ConfigureAwait(false);
       }
       catch (McpUnauthorizedException)
       {

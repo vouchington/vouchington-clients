@@ -115,6 +115,7 @@ private final class LateMCPURLProtocol: URLProtocol {
 
     private let deliveryLock = NSRecursiveLock()
     private var stopped = false
+    private var rpcID = "2"
 
     static func configure(arrival: XCTestExpectation, firstRetry: XCTestExpectation) {
         lock.lock()
@@ -158,6 +159,17 @@ private final class LateMCPURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
+        let rpc = Self.rpcRequest(request)
+        let method = rpc.method
+        rpcID = rpc.id ?? "2"
+        if method == "initialize" {
+            complete(status: 200, body: #"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#)
+            return
+        }
+        if method == "notifications/initialized" {
+            complete(status: 202, body: "")
+            return
+        }
         Self.lock.lock()
         let isToken = request.url?.path == "/token"
         let bearer = request.value(forHTTPHeaderField: "Authorization") ?? ""
@@ -183,7 +195,7 @@ private final class LateMCPURLProtocol: URLProtocol {
                 body: #"{"access_token":"new-access","refresh_token":"new-refresh","expires_in":3600,"scope":"mcp.user:read","token_type":"Bearer"}"#
             )
         } else {
-            complete(status: 200, body: #"{"jsonrpc":"2.0","id":"2","result":[]}"#)
+            complete(status: 200, body: "{\"jsonrpc\":\"2.0\",\"id\":\"\(rpcID)\",\"result\":[]}")
         }
     }
 
@@ -204,6 +216,26 @@ private final class LateMCPURLProtocol: URLProtocol {
         deliveryLock.lock()
         stopped = true
         deliveryLock.unlock()
+    }
+
+    private static func rpcRequest(_ request: URLRequest) -> (method: String?, id: String?) {
+        guard let body = request.httpBody ?? request.httpBodyStream.map(readBodyStream),
+              let rpc = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+        else { return (nil, nil) }
+        return (rpc["method"] as? String, rpc["id"] as? String)
+    }
+
+    private static func readBodyStream(_ stream: InputStream) -> Data {
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var bytes = [UInt8](repeating: 0, count: 4_096)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&bytes, maxLength: bytes.count)
+            if count <= 0 { break }
+            data.append(contentsOf: bytes[..<count])
+        }
+        return data
     }
 }
 
@@ -256,6 +288,31 @@ private final class AuthorizedMCPURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
+        let bodyData = request.httpBody ?? request.httpBodyStream.map { stream -> Data in
+            stream.open()
+            defer { stream.close() }
+            var data = Data()
+            var bytes = [UInt8](repeating: 0, count: 4_096)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&bytes, maxLength: bytes.count)
+                if count <= 0 { break }
+                data.append(contentsOf: bytes[..<count])
+            }
+            return data
+        }
+        let rpc = bodyData.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
+        let method = rpc?["method"] as? String
+        if method == "initialize" {
+            respond(
+                status: 200,
+                body: Data(#"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#.utf8)
+            )
+            return
+        }
+        if method == "notifications/initialized" {
+            respond(status: 202, body: Data())
+            return
+        }
         Self.lock.lock()
         let isToken = request.url?.path == "/token"
         let status: Int
@@ -271,9 +328,14 @@ private final class AuthorizedMCPURLProtocol: URLProtocol {
             Self.mcpCalls += 1
             Self.bearers.append(request.value(forHTTPHeaderField: "Authorization") ?? "")
             status = Self.mcpCalls == 1 || Self.secondUnauthorized ? 401 : 200
-            body = Data(#"{"jsonrpc":"2.0","id":"2","result":[]}"#.utf8)
+            let id = rpc?["id"] as? String ?? "2"
+            body = Data("{\"jsonrpc\":\"2.0\",\"id\":\"\(id)\",\"result\":[]}".utf8)
         }
         Self.lock.unlock()
+        respond(status: status, body: body)
+    }
+
+    private func respond(status: Int, body: Data) {
         let response = HTTPURLResponse(
             url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"]

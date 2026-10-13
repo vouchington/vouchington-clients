@@ -7,6 +7,41 @@ import VouchaModels
 import XCTest
 
 final class MemberMCPClientTests: XCTestCase {
+    func testStructuredResultPreservesLargeIntegerPrecision() throws {
+        let json = Data(#"{"content":[],"structuredContent":{"id":9007199254740993}}"#.utf8)
+        let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: json)
+        guard case let .object(fields)? = result.structuredContent,
+              case let .integer(id)? = fields["id"] else {
+            return XCTFail("Large MCP integer lost its integer representation")
+        }
+        XCTAssertEqual(id, 9_007_199_254_740_993)
+        let encoded = try JSONEncoder().encode(result.structuredContent)
+        XCTAssertTrue(String(decoding: encoded, as: UTF8.self).contains("9007199254740993"))
+    }
+
+    func testToolListingForwardsOpaqueCursor() async throws {
+        MCPTestURLProtocol.configure(
+            data: Data(#"{"jsonrpc":"2.0","id":"2","result":{"tools":[],"nextCursor":"next/+"}}"#.utf8),
+            status: 200
+        )
+        let client = try MemberMCPClient(
+            siteOrigin: XCTUnwrap(URL(string: "https://example.test")),
+            protocolClasses: [MCPTestURLProtocol.self]
+        )
+
+        let result = try await client.listTools(accessToken: "access-1", cursor: "opaque/+")
+
+        let body = try XCTUnwrap(MCPTestURLProtocol.bodySnapshot())
+        let rpc = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let params = try XCTUnwrap(rpc["params"] as? [String: Any])
+        XCTAssertEqual(params["cursor"] as? String, "opaque/+")
+        if case let .object(fields) = result, case let .string(next)? = fields["nextCursor"] {
+            XCTAssertEqual(next, "next/+")
+        } else {
+            XCTFail("The next cursor was not returned")
+        }
+    }
+
     override func tearDown() {
         MCPTestURLProtocol.configure(data: Data(), status: 200)
         super.tearDown()
@@ -15,7 +50,7 @@ final class MemberMCPClientTests: XCTestCase {
     func testCallUsesBearerOnlyMCPAndPreservesWrappedAndStructuredContent() async throws {
         MCPTestURLProtocol.configure(data: Data(#"""
         {
-        "jsonrpc":"2.0","id":"1","result":{
+        "jsonrpc":"2.0","id":"2","result":{
           "content":[{"type":"text","text":"<untrusted>member text</untrusted>"}],
           "structuredContent":{"post_id":"post-1"},"isError":false
         }}
@@ -34,6 +69,9 @@ final class MemberMCPClientTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-1")
         XCTAssertNil(request.value(forHTTPHeaderField: "Cookie"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json, text/event-stream")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "MCP-Protocol-Version"), "2025-06-18")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Mcp-Session-Id"), "test-session")
+        XCTAssertEqual(MCPTestURLProtocol.methodHistory(), ["initialize", "notifications/initialized", "tools/call"])
         let body = try XCTUnwrap(MCPTestURLProtocol.bodySnapshot())
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(object["method"] as? String, "tools/call")
@@ -61,7 +99,7 @@ final class MemberMCPClientTests: XCTestCase {
 
         data: {"jsonrpc":"2.0","id":"other","result":{}}
 
-        data: {"jsonrpc":"2.0","id":"1","result":{"tools":[{"name":"read_post"}]}}
+        data: {"jsonrpc":"2.0","id":"2","result":{"tools":[{"name":"read_post"}]}}
 
         """
         MCPTestURLProtocol.configure(data: Data(events.utf8), status: 200, contentType: "text/event-stream")
@@ -86,7 +124,7 @@ final class MemberMCPClientTests: XCTestCase {
         let events = """
         data: {"jsonrpc":"2.0","id":"other","result":{"unrelated":true}}
 
-        data: {"jsonrpc":"2.0","id":"1","result":{"content":[],"isError":false}}
+        data: {"jsonrpc":"2.0","id":"2","result":{"content":[],"isError":false}}
 
         """
         MCPTestURLProtocol.configure(data: Data(events.utf8), status: 200, contentType: "text/event-stream")
@@ -117,7 +155,7 @@ final class MemberMCPClientTests: XCTestCase {
     func testInBandRateLimitKeepsRetryAfter() async throws {
         let inner = #"{"error":{"status":429,"code":"RATE_LIMIT","retryAfterSeconds":17}}"#
         let wrapped = try JSONSerialization.data(withJSONObject: [
-            "jsonrpc": "2.0", "id": "1",
+            "jsonrpc": "2.0", "id": "2",
             "result": ["isError": true, "content": [["type": "text", "text": inner]]]
         ])
         MCPTestURLProtocol.configure(data: wrapped, status: 200)
@@ -239,6 +277,7 @@ private final class MCPTestURLProtocol: URLProtocol {
     private static var capturedBody: Data?
     private static var metadata: [String: Data] = [:]
     private static var requestedPaths: [String] = []
+    private static var methods: [String] = []
 
     static func configure(
         data: Data, status: Int, retryAfter: String? = nil,
@@ -253,6 +292,7 @@ private final class MCPTestURLProtocol: URLProtocol {
         capturedBody = nil
         metadata = [:]
         requestedPaths = []
+        methods = []
         lock.unlock()
     }
 
@@ -273,6 +313,12 @@ private final class MCPTestURLProtocol: URLProtocol {
         lock.lock()
         defer { lock.unlock() }
         return requestedPaths
+    }
+
+    static func methodHistory() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return methods
     }
 
     static func snapshot() -> URLRequest? {
@@ -297,17 +343,27 @@ private final class MCPTestURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.lock.lock()
-        Self.captured = request
-        Self.capturedBody = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
+        let body = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
+        let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
+        let method = rpc?["method"] as? String
+        if let method { Self.methods.append(method) }
+        if method != "initialize", method != "notifications/initialized" {
+            Self.captured = request
+            Self.capturedBody = body
+        }
         let data = Self.data
         let path = request.url?.path ?? ""
         Self.requestedPaths.append(path)
-        let selected = Self.metadata[path] ?? data
-        let status = Self.status
+        let selected = method == "initialize"
+            ? Data(#"{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18"}}"#.utf8)
+            : method == "notifications/initialized" ? Data() : Self.metadata[path] ?? data
+        let status = method == "notifications/initialized" ? 202 : method == "initialize" ? 200 : Self.status
         let retryAfter = Self.retryAfter
-        let contentType = Self.contentType
+        let contentType = method == "initialize" || method == "notifications/initialized"
+            ? "application/json" : Self.contentType
         Self.lock.unlock()
         var headers = ["Content-Type": contentType]
+        if method == "initialize" { headers["Mcp-Session-Id"] = "test-session" }
         if let retryAfter { headers["Retry-After"] = retryAfter }
         let response = HTTPURLResponse(
             url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers

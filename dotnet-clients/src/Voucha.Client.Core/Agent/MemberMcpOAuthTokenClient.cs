@@ -95,7 +95,8 @@ public sealed class MemberMcpOAuthTokenClient : IDisposable
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP OAuth token grant failed.", null, response.StatusCode);
     var tokens = await response.Content.ReadFromJsonAsync<MemberMcpOAuthTokens>(cancellationToken).ConfigureAwait(false);
-    if (tokens is null || tokens.TokenType != "Bearer" || tokens.ExpiresIn <= 0 ||
+    if (tokens is null || !string.Equals(tokens.TokenType, "Bearer", StringComparison.OrdinalIgnoreCase) ||
+        tokens.ExpiresIn <= 0 ||
         string.IsNullOrEmpty(tokens.AccessToken) || string.IsNullOrEmpty(tokens.RefreshToken))
       throw new InvalidDataException("MCP OAuth token grant returned invalid tokens.");
     return tokens;

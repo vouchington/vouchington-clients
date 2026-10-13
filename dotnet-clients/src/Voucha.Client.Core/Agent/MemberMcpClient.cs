@@ -11,6 +11,10 @@ public sealed partial class MemberMcpClient : IDisposable
   private readonly HttpClient client;
   private readonly Uri endpoint;
   private long nextRequestId;
+  private readonly SemaphoreSlim initializeGate = new(1, 1);
+  private string? protocolVersion;
+  private string? sessionId;
+  private bool initialized;
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "HttpClient owns and disposes the handler.")]
   public MemberMcpClient(Uri siteOrigin, HttpMessageHandler? handler = null)
@@ -26,7 +30,11 @@ public sealed partial class MemberMcpClient : IDisposable
   }
 
   public Task<JsonElement> ListToolsAsync(string accessToken, CancellationToken cancellationToken = default) =>
-      SendAsync("tools/list", new { }, accessToken, cancellationToken);
+      ListToolsAsync(accessToken, null, cancellationToken);
+
+  public Task<JsonElement> ListToolsAsync(
+      string accessToken, string? cursor, CancellationToken cancellationToken = default) =>
+      SendAsync("tools/list", cursor is null ? new { } : (object)new { cursor }, accessToken, cancellationToken);
 
   public async Task<McpToolResult> CallToolAsync(
       string name,
@@ -73,6 +81,22 @@ public sealed partial class MemberMcpClient : IDisposable
       string accessToken,
       CancellationToken cancellationToken)
   {
+    await EnsureInitializedAsync(accessToken, cancellationToken).ConfigureAwait(false);
+    try
+    {
+      return await SendRpcAsync(method, parameters, accessToken, cancellationToken).ConfigureAwait(false);
+    }
+    catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound &&
+        error.Message == "MCP session expired.")
+    {
+      await EnsureInitializedAsync(accessToken, cancellationToken).ConfigureAwait(false);
+      return await SendRpcAsync(method, parameters, accessToken, cancellationToken).ConfigureAwait(false);
+    }
+  }
+
+  private async Task<JsonElement> SendRpcAsync(
+      string method, object parameters, string accessToken, CancellationToken cancellationToken)
+  {
     var id = Interlocked.Increment(ref nextRequestId).ToString(System.Globalization.CultureInfo.InvariantCulture);
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
@@ -83,9 +107,22 @@ public sealed partial class MemberMcpClient : IDisposable
     };
     request.Headers.Accept.ParseAdd("application/json, text/event-stream");
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    if (protocolVersion is { } version) request.Headers.TryAddWithoutValidation("MCP-Protocol-Version", version);
+    var requestSession = sessionId;
+    if (requestSession is not null) request.Headers.TryAddWithoutValidation("Mcp-Session-Id", requestSession);
     using var response = await client.SendAsync(
         request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
+    if (response.StatusCode == HttpStatusCode.NotFound && requestSession is not null)
+    {
+      if (sessionId == requestSession)
+      {
+        initialized = false;
+        protocolVersion = null;
+        sessionId = null;
+      }
+      throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
+    }
     if (response.StatusCode == HttpStatusCode.TooManyRequests)
     {
       var retry = response.Headers.RetryAfter;
@@ -95,10 +132,22 @@ public sealed partial class MemberMcpClient : IDisposable
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 
-    return await ReadReplyAsync(response.Content, id, cancellationToken).ConfigureAwait(false);
+    var result = await ReadReplyAsync(response.Content, id, cancellationToken).ConfigureAwait(false);
+    if (method == "initialize" && response.Headers.TryGetValues("Mcp-Session-Id", out var values))
+    {
+      var proposed = values.SingleOrDefault();
+      if (string.IsNullOrEmpty(proposed) || proposed.Any(character => character < 0x21 || character > 0x7E))
+        throw new InvalidDataException("MCP server returned an invalid session ID.");
+      sessionId = proposed;
+    }
+    return result;
   }
 
-  public void Dispose() => client.Dispose();
+  public void Dispose()
+  {
+    client.Dispose();
+    initializeGate.Dispose();
+  }
 }
 
 public sealed record McpToolResult(

@@ -16,9 +16,9 @@ public sealed class MemberMcpLoopbackCallbackTests
     Assert.Equal("/oauth/native/windows/callback", callback.RedirectUri.AbsolutePath);
 
     using var browser = new HttpClient();
-    var receive = callback.ReceiveAsync(TestContext.Current.CancellationToken);
+    var receive = callback.ReceiveAsync("state-1", "https://example.test", TestContext.Current.CancellationToken);
     await Assert.ThrowsAsync<InvalidOperationException>(
-        () => callback.ReceiveAsync(TestContext.Current.CancellationToken));
+        () => callback.ReceiveAsync("state-1", "https://example.test", TestContext.Current.CancellationToken));
     var request = browser.GetAsync(
         new Uri(callback.RedirectUri + "?code=one%2Btwo&state=state-1&iss=https%3A%2F%2Fexample.test"),
         TestContext.Current.CancellationToken);
@@ -29,7 +29,7 @@ public sealed class MemberMcpLoopbackCallbackTests
       Assert.Equal(HttpStatusCode.OK, response.StatusCode);
       Assert.Contains("code=one%2Btwo", result.Query, StringComparison.Ordinal);
       await Assert.ThrowsAsync<InvalidOperationException>(
-          () => callback.ReceiveAsync(TestContext.Current.CancellationToken));
+          () => callback.ReceiveAsync("state-1", "https://example.test", TestContext.Current.CancellationToken));
     }
     finally
     {
@@ -43,7 +43,7 @@ public sealed class MemberMcpLoopbackCallbackTests
   {
     await using var callback = MemberMcpLoopbackCallback.Start();
     using var browser = new HttpClient();
-    var receive = callback.ReceiveAsync(TestContext.Current.CancellationToken);
+    var receive = callback.ReceiveAsync("expected", "https://example.test", TestContext.Current.CancellationToken);
     var request = browser.GetAsync(new Uri(callback.RedirectUri, "/wrong?code=code-1"),
         TestContext.Current.CancellationToken);
     try
@@ -51,8 +51,17 @@ public sealed class MemberMcpLoopbackCallbackTests
       using var response = await request;
       Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
       Assert.False(receive.IsCompleted);
+      using var probe = await browser.GetAsync(
+          new Uri(callback.RedirectUri + "?probe=1"), TestContext.Current.CancellationToken);
+      Assert.Equal(HttpStatusCode.BadRequest, probe.StatusCode);
+      using var wrongState = await browser.GetAsync(
+          new Uri(callback.RedirectUri + "?code=probe&state=wrong&iss=https%3A%2F%2Fexample.test"),
+          TestContext.Current.CancellationToken);
+      Assert.Equal(HttpStatusCode.BadRequest, wrongState.StatusCode);
+      Assert.False(receive.IsCompleted);
       using var valid = await browser.GetAsync(
-          new Uri(callback.RedirectUri + "?code=real&state=expected"), TestContext.Current.CancellationToken);
+          new Uri(callback.RedirectUri + "?code=real&state=expected&iss=https%3A%2F%2Fexample.test"),
+          TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
       Assert.Contains("code=real", (await receive).Query, StringComparison.Ordinal);
     }
@@ -68,7 +77,7 @@ public sealed class MemberMcpLoopbackCallbackTests
   {
     await using var callback = MemberMcpLoopbackCallback.Start();
     using var cancel = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-    var receive = callback.ReceiveAsync(cancel.Token);
+    var receive = callback.ReceiveAsync("expected", "https://example.test", cancel.Token);
     cancel.Cancel();
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => receive);
   }

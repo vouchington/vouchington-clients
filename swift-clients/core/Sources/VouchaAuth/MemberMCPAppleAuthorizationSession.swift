@@ -30,7 +30,7 @@
             presentationAnchor: ASPresentationAnchor
         ) async throws -> String {
             guard session == nil else { throw Failure.alreadyAuthorizing }
-            guard request.redirectURI.scheme == "https", request.redirectURI.host != nil
+            guard request.redirectURI.scheme == "https", request.redirectURI.host == "voucha.ai"
             else { throw MemberMCPOAuthRequest.Failure.invalidMetadata }
             let authorizationId = UUID()
             self.authorizationId = authorizationId

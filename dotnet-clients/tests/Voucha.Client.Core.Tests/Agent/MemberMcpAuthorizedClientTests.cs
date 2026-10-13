@@ -107,7 +107,10 @@ public sealed class MemberMcpAuthorizedClientTests
       }
       var bearer = request.Headers.Authorization?.Parameter ?? "";
       using var rpc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+      var method = rpc.RootElement.GetProperty("method").GetString();
+      if (method == "notifications/initialized") return new HttpResponseMessage(HttpStatusCode.Accepted);
       var id = rpc.RootElement.GetProperty("id").GetString();
+      if (method == "initialize") return InitializeReply(id);
       int oldOrdinal = 0;
       lock (gate)
       {
@@ -149,28 +152,47 @@ public sealed class MemberMcpAuthorizedClientTests
     public int RefreshCalls { get; private set; }
     public List<string> Bearers { get; } = [];
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
       if (request.RequestUri!.AbsolutePath == "/token")
       {
         RefreshCalls++;
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        return new HttpResponseMessage(HttpStatusCode.OK)
         {
           Content = new StringContent(
               """{"access_token":"new-access","refresh_token":"new-refresh","expires_in":3600,"scope":"mcp.user:read","token_type":"Bearer"}""",
               Encoding.UTF8, "application/json")
-        });
+        };
       }
+      using var rpc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+      var method = rpc.RootElement.GetProperty("method").GetString();
+      if (method == "initialize") return InitializeReply(rpc.RootElement.GetProperty("id").GetString());
+      if (method == "notifications/initialized") return new HttpResponseMessage(HttpStatusCode.Accepted);
       McpCalls++;
       Bearers.Add(request.Headers.Authorization?.Parameter ?? "");
       var status = McpCalls == 1 || secondUnauthorized ? HttpStatusCode.Unauthorized : HttpStatusCode.OK;
-      return Task.FromResult(new HttpResponseMessage(status)
+      return new HttpResponseMessage(status)
       {
         Content = new StringContent(
-            """{"jsonrpc":"2.0","id":"2","result":[]}""",
+            JsonSerializer.Serialize(new { jsonrpc = "2.0", id = rpc.RootElement.GetProperty("id").GetString(), result = Array.Empty<object>() }),
             Encoding.UTF8, "application/json")
-      });
+      };
     }
   }
+
+  private static HttpResponseMessage InitializeReply(string? id) => new(HttpStatusCode.OK)
+  {
+    Content = new StringContent(JsonSerializer.Serialize(new
+    {
+      jsonrpc = "2.0",
+      id,
+      result = new
+      {
+        protocolVersion = "2025-06-18",
+        capabilities = new { tools = new { } },
+        serverInfo = new { name = "test", version = "1" }
+      }
+    }), Encoding.UTF8, "application/json")
+  };
 }

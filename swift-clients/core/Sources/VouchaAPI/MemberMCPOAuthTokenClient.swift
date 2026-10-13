@@ -95,7 +95,7 @@ public actor MemberMCPOAuthTokenClient {
            error.error == "invalid_grant" { throw Failure.invalidGrant }
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
         let tokens = try JSONDecoder().decode(MemberMCPOAuthTokens.self, from: body)
-        guard tokens.tokenType == "Bearer", !tokens.accessToken.isEmpty,
+        guard tokens.tokenType.caseInsensitiveCompare("Bearer") == .orderedSame, !tokens.accessToken.isEmpty,
               !tokens.refreshToken.isEmpty, tokens.expiresIn > 0
         else { throw Failure.invalidResponse }
         return tokens

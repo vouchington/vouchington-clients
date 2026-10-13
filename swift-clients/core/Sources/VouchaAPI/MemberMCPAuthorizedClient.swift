@@ -11,14 +11,14 @@ public actor MemberMCPAuthorizedClient {
         self.tokens = tokens
     }
 
-    public func listTools() async throws -> DecodedJSONValue {
+    public func listTools(cursor: String? = nil) async throws -> DecodedJSONValue {
         let access = try await tokens.accessToken()
         do {
-            return try await client.listTools(accessToken: access)
+            return try await client.listTools(accessToken: access, cursor: cursor)
         } catch MemberMCPClient.Failure.unauthorized {
             let refreshed = try await tokens.refresh(rejectedAccessToken: access)
             do {
-                return try await client.listTools(accessToken: refreshed)
+                return try await client.listTools(accessToken: refreshed, cursor: cursor)
             } catch MemberMCPClient.Failure.unauthorized {
                 try await tokens.clear()
                 throw MemberMCPTokenManager.Failure.notAuthorized

@@ -1,6 +1,23 @@
 import Foundation
 import VouchaModels
 
+struct MCPRPCReply<Result: Decodable & Sendable>: Decodable {
+    struct RPCError: Decodable {
+        let code: Int
+        let message: String
+    }
+
+    let jsonrpc: String
+    let id: String?
+    let method: String?
+    let result: Result?
+    let error: RPCError?
+}
+
+struct MCPInitializationResult: Decodable {
+    let protocolVersion: String
+}
+
 enum MCPResponseReader {
     private static let maximumBodyBytes = 1_024 * 1_024
 
