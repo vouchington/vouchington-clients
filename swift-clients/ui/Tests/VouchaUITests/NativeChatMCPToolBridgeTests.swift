@@ -118,7 +118,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
     func testSchemaNumericEqualityAppliesToConstEnumAndUniqueItems() throws {
         let constant: DecodedJSONValue = .object(["const": .integer(1)])
         let choices: DecodedJSONValue = .object(["enum": .array([.unsignedInteger(1)])])
-        let unique: DecodedJSONValue = .object(["type": .string("array"), "uniqueItems": .bool(true)])
+        let unique: DecodedJSONValue = .object([
+            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(256)
+        ])
         XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.number(1), schema: constant))
         XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(Decimal(1)), schema: choices))
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
@@ -127,10 +129,19 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
     }
 
     func testUniqueItemsValidationHasAnIndependentWorkBound() throws {
-        let unique: DecodedJSONValue = .object(["type": .string("array"), "uniqueItems": .bool(true)])
+        let unique: DecodedJSONValue = .object([
+            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(256)
+        ])
         let values: [DecodedJSONValue] = (0 ... 256).map { .string(String($0)) }
+        try NativeChatMCPInputSchema.validateSchema(unique)
         XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array(Array(values.prefix(256))), schema: unique))
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array(values), schema: unique))
+        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
+            "type": .string("array"), "uniqueItems": .bool(true)
+        ])))
+        XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
+            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(257)
+        ])))
     }
 
     func testSchemaBoundsKeepLargeIntegerPrecisionAndRejectUnrepresentableCounts() throws {
