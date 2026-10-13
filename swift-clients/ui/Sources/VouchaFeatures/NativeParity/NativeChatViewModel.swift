@@ -32,6 +32,8 @@ final class NativeChatViewModel {
     @ObservationIgnored
     let titleProviderPersistenceState = NativeChatTitleProviderPersistenceState()
     var titleProviderPersistenceTask: Task<Void, Never>?
+    @ObservationIgnored
+    var deferredTitleProviderRollback: (revision: Int, selection: NativeChatTitleProviderKind)?
 
     var conversationPagination = CursorPaginationState<ChatConversation>()
     var conversations: [ChatConversation] {
@@ -62,16 +64,25 @@ final class NativeChatViewModel {
     }
 
     @ObservationIgnored
-    var pendingLocalTurn: NativeChatPendingLocalTurn?
+    var pendingLocalTurn: NativeChatPendingLocalTurn? {
+        didSet { applyDeferredTitleProviderRollbackIfSafe() }
+    }
+
     var listErrorMessage: UiVerbatimText?
     var detailErrorMessage: UiVerbatimText?
     var streamErrorMessage: UiVerbatimText?
     var isLoadingList = false
     var isLoadingDetail = false
     var isLoadingOlderMessages = false
-    var isSendingDraft = false
+    var isSendingDraft = false {
+        didSet { applyDeferredTitleProviderRollbackIfSafe() }
+    }
+
     var draftEditedDuringSend = false
-    var isStreaming = false
+    var isStreaming = false {
+        didSet { applyDeferredTitleProviderRollbackIfSafe() }
+    }
+
     var isGeneratingTitle = false
     var streamedContent = ""
     var conversationTitleDraft = ""
@@ -93,20 +104,6 @@ final class NativeChatViewModel {
         initialConversationId = routeMatch?.param("id")
         selectedConversationId = initialConversationId
         titleProviderSelection = titleProviderResolver.defaultSelection()
-    }
-
-    var selectedConversation: ChatConversation? {
-        guard let selectedConversationId else { return nil }
-        return conversations.first { $0.id == selectedConversationId }
-    }
-
-    var selectedConversationTitle: UiVerbatimText {
-        guard let title = selectedConversation?.title.trimmingCharacters(in: .whitespacesAndNewlines),
-              title.isEmpty == false
-        else {
-            return .message(.nativeSwiftChatNewConversation)
-        }
-        return .verbatim(title)
     }
 
     var canLoadMoreConversations: Bool {

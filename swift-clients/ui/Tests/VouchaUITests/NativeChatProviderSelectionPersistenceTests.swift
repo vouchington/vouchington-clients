@@ -61,6 +61,11 @@ final class NativeChatProviderSelectionPersistenceTests: XCTestCase {
 
         XCTAssertEqual(viewModel.titleProviderSelection, .androidAICore)
         XCTAssertEqual(viewModel.pendingLocalTurn?.context.userMessageId, "user-1")
+
+        viewModel.isSendingDraft = false
+        XCTAssertEqual(viewModel.titleProviderSelection, .androidAICore)
+        viewModel.pendingLocalTurn = nil
+        XCTAssertEqual(viewModel.titleProviderSelection, .appleFoundationModels)
     }
 
     func testSelectingAndroidAICorePersistsItsPersistedIDThroughTheResolver() async {

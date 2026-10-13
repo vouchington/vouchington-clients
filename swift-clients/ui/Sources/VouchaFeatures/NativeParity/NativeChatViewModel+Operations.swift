@@ -1,9 +1,24 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
 extension NativeChatViewModel {
+    var selectedConversation: ChatConversation? {
+        guard let selectedConversationId else { return nil }
+        return conversations.first { $0.id == selectedConversationId }
+    }
+
+    var selectedConversationTitle: UiVerbatimText {
+        guard let title = selectedConversation?.title.trimmingCharacters(in: .whitespacesAndNewlines),
+              title.isEmpty == false
+        else {
+            return .message(.nativeSwiftChatNewConversation)
+        }
+        return .verbatim(title)
+    }
+
     func loadConversation(id: String, revision: Int) async {
         guard let client else { return }
         guard activeConversationDetailLoadRevision == revision else { return }

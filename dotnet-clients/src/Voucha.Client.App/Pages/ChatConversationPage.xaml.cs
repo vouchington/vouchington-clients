@@ -46,10 +46,7 @@ public partial class ChatConversationPage : ContentPage
       await LoadConversationAsync().ConfigureAwait(true);
       if (!hasLoaded && !string.IsNullOrWhiteSpace(initialMessage))
       {
-        var message = initialMessage;
-        initialMessage = null;
-        await viewModel.SendAsync(message!).ConfigureAwait(true);
-        conversationId = viewModel.ConversationId;
+        await SendInitialMessageAsync().ConfigureAwait(true);
       }
 
       hasLoaded = true;
@@ -57,6 +54,19 @@ public partial class ChatConversationPage : ContentPage
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
       System.Diagnostics.Debug.WriteLine(ex);
+    }
+  }
+
+  private async Task SendInitialMessageAsync()
+  {
+    var message = initialMessage;
+    if (string.IsNullOrWhiteSpace(message)) return;
+    initialMessage = null;
+    var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+    conversationId = viewModel.ConversationId;
+    if (!sent && string.IsNullOrWhiteSpace(MessageEditor.Text))
+    {
+      MessageEditor.Text = message;
     }
   }
 

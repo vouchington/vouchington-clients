@@ -47,6 +47,42 @@ public sealed class ChatConversationPagePendingRetryTests
     Assert.Equal("conversation-1", service.LastFetchedConversationId);
   }
 
+  [Fact]
+  public async Task FailedInitialMessageReturnsToComposerForExactRetry()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+    var service = new AmbiguousFirstTurnService();
+    var provider = new AvailableProvider();
+    var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
+    var page = new ChatConversationPage(viewModel, service);
+    page.SetContext(initialMessage: "Hello");
+    var editor = Assert.Single(Descendants<Editor>(page));
+
+    var initialSend = Assert.IsAssignableFrom<Task>(typeof(ChatConversationPage)
+        .GetMethod("SendInitialMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(page, null));
+    await initialSend;
+
+    Assert.Equal("Hello", editor.Text);
+    Assert.Equal("conversation-1", viewModel.ConversationId);
+    Assert.Equal(LoadState.Error, viewModel.State);
+    Assert.Single(service.Attempts);
+
+    Assert.False(await viewModel.TrySendAsync(editor.Text, TestContext.Current.CancellationToken));
+    Assert.Equal(2, service.Attempts.Count);
+    Assert.Equal(service.Attempts[0], service.Attempts[1]);
+  }
+
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element
   {
     foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
@@ -76,6 +112,7 @@ public sealed class ChatConversationPagePendingRetryTests
   private sealed class AmbiguousFirstTurnService : IChatService
   {
     public string? LastFetchedConversationId { get; private set; }
+    public List<CreateClientGeneratedChatBody> Attempts { get; } = [];
 
     public Task<ChatConversationListResponse> FetchMyConversationsAsync(
         string? after = null, int limit = 50, CancellationToken cancellationToken = default) =>
@@ -94,8 +131,11 @@ public sealed class ChatConversationPagePendingRetryTests
     }
 
     public Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(
-        string conversationId, CreateClientGeneratedChatBody body, CancellationToken cancellationToken = default) =>
-        Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+        string conversationId, CreateClientGeneratedChatBody body, CancellationToken cancellationToken = default)
+    {
+      Attempts.Add(body);
+      return Task.FromException<ClientGeneratedChatResponse>(new HttpRequestException("Response lost."));
+    }
 
     public Task<ChatConversationResponse> UpdateConversationTitleAsync(
         string conversationId, string title, CancellationToken cancellationToken = default) => throw new NotImplementedException();
