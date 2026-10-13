@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 
 namespace Voucha.Client.Core.Agent;
@@ -61,9 +62,9 @@ public sealed class MemberMcpOAuthRequest
 
     RedirectUri = redirectUri;
     IssuerIdentifier = issuerIdentifier;
-    State = Base64Url(RandomNumberGenerator.GetBytes(32));
-    Verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
-    var challenge = Base64Url(SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(Verifier)));
+    State = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+    Verifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+    var challenge = Base64Url.EncodeToString(SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(Verifier)));
     var query = new Dictionary<string, string>
     {
       ["response_type"] = "code",
@@ -114,9 +115,6 @@ public sealed class MemberMcpOAuthRequest
       throw new InvalidDataException("OAuth callback has no code.");
     return code;
   }
-
-  private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes)
-      .TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
   private static string DecodeFormComponent(string value) =>
       Uri.UnescapeDataString(value.Replace('+', ' '));
