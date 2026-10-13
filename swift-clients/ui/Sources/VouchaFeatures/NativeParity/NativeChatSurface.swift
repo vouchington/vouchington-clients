@@ -16,7 +16,10 @@ struct NativeChatSurface: View {
         client: APIClient?, routeMatch: NativeRouteMatch?,
         currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil
     ) {
-        _viewModel = State(initialValue: NativeChatViewModel(client: client, routeMatch: routeMatch))
+        _viewModel = State(initialValue: NativeChatViewModel(
+            client: client, routeMatch: routeMatch, mcpSession: mcpSession,
+            currentMemberId: currentUserId
+        ))
         self.currentUserId = currentUserId
         self.mcpSession = mcpSession
     }
@@ -37,6 +40,10 @@ struct NativeChatSurface: View {
         .background(NativeChatMCPWindowReader { mcpPresentationWindow.value = $0 })
         .task {
             await viewModel.load()
+        }
+        .onChange(of: currentUserId) { _, memberId in
+            viewModel.currentMemberId = memberId
+            Task { await viewModel.loadConversations(reset: true) }
         }
     }
 

@@ -2,7 +2,6 @@ import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaLocalization
-import VouchaModels
 
 extension NativeChatViewModel {
     func generateLocalDraftMessage(
@@ -15,39 +14,29 @@ extension NativeChatViewModel {
             return
         }
 
-        let history = localGenerationHistory(excluding: context.userMessageId)
+        let mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = if case .openAICompatible = context
+            .providerSelection {
+            mcpSession?.connectedSnapshot().flatMap {
+                $0.accountId == currentMemberId ? $0 : nil
+            }
+        } else {
+            nil
+        }
         let assistantMessageId = context.assistantMessageId ?? NativeChatMessageIDs.nextLocalTurn().assistant
         pendingLocalAssistantMessageId = assistantMessageId
         ensureAssistantMessage(id: assistantMessageId)
 
         do {
-            if try await persistPendingLocalTurnIfAny(
-                client: client, context: context, assistantMessageId: assistantMessageId
-            ) { return }
-            guard let response = try await provider.generateAssistantResponse(
-                to: context.text,
-                history: history
-            ) else {
-                failLocalGeneration(
-                    context: context,
-                    assistantMessageId: assistantMessageId,
-                    message: provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
-                )
-                return
-            }
-            guard isCurrentLocalGeneration(context) else {
-                discardStaleLocalTurn(
-                    userMessageId: context.userMessageId,
-                    assistantMessageId: assistantMessageId
-                )
-                return
-            }
-
-            try await persistLocalGenerationResponse(
-                client: client,
+            try await performLocalGeneration(
+                client: client, provider: provider, context: context,
+                assistantMessageId: assistantMessageId, mcpSnapshot: mcpSnapshot
+            )
+        } catch LocalLLMToolLoopFailure.partialExecution {
+            failLocalGeneration(
                 context: context,
                 assistantMessageId: assistantMessageId,
-                response: response
+                message: .message(.nativeSwiftChatOnDeviceUnavailable),
+                restoreDraft: false
             )
         } catch let error as VouchaError {
             failLocalGeneration(
@@ -57,6 +46,10 @@ extension NativeChatViewModel {
                     ?? .message(.nativeSwiftChatUnableToPersistOnDeviceResponse)
             )
         } catch {
+            if let mcpSnapshot, !isCurrentMCPSnapshot(mcpSnapshot) {
+                abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
+                return
+            }
             failLocalGeneration(
                 context: context,
                 assistantMessageId: assistantMessageId,
@@ -65,20 +58,27 @@ extension NativeChatViewModel {
         }
     }
 
-    func persistLocalGenerationResponse(
-        client: APIClient,
+    private func performLocalGeneration(
+        client: APIClient, provider: any NativeChatTitleProviding,
         context: NativeChatDraftSendContext,
-        assistantMessageId: String,
-        response: NativeChatAssistantResponse
+        assistantMessageId: String, mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) async throws {
-        pendingLocalTurn = .init(context: context, response: response)
-        let persistedResponse: ClientGeneratedChatResponse = try await client.send(.clientGeneratedChat(
-            conversationId: context.conversationId,
-            message: context.text,
-            messageIds: (user: context.userMessageId, assistant: assistantMessageId),
-            assistantContent: response.content,
-            model: (provider: response.modelProvider, name: response.modelName)
-        ))
+        if try await persistPendingLocalTurnIfAny(
+            client: client, context: context, assistantMessageId: assistantMessageId
+        ) { return }
+        guard let response = try await provider.generateAssistantResponse(
+            to: context.text,
+            history: localGenerationHistory(excluding: context.userMessageId),
+            mcpSession: mcpSession,
+            mcpSnapshot: mcpSnapshot
+        ) else {
+            failLocalGeneration(
+                context: context,
+                assistantMessageId: assistantMessageId,
+                message: provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
+            )
+            return
+        }
         guard isCurrentLocalGeneration(context) else {
             discardStaleLocalTurn(
                 userMessageId: context.userMessageId,
@@ -86,24 +86,43 @@ extension NativeChatViewModel {
             )
             return
         }
-        if pendingLocalTurn?.context.userMessageId == context.userMessageId {
-            pendingLocalTurn = nil
+        if let mcpSnapshot, !matchesMCPAccount(mcpSnapshot) {
+            abortInvalidatedMCPTurn(context: context, snapshot: mcpSnapshot)
+            return
         }
-        reconcileClientGeneratedMessages(
-            userMessageId: context.userMessageId,
+
+        try await persistLocalGenerationResponse(
+            client: client,
+            context: context,
             assistantMessageId: assistantMessageId,
-            response: persistedResponse
-        )
-        await finishStream(
-            conversationId: context.conversationId,
-            userMessageId: persistedResponse.userMessage.id,
-            createdConversation: context.createdConversation
+            response: response,
+            mcpSnapshot: mcpSnapshot
         )
     }
 
     func isCurrentLocalGeneration(_ context: NativeChatDraftSendContext) -> Bool {
         streamingConversationId == context.conversationId
             && streamingUserMessageId == context.userMessageId
+    }
+
+    func isCurrentMCPSnapshot(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Bool {
+        currentMemberId == snapshot.accountId && mcpSession?.isCurrent(snapshot) == true
+    }
+
+    func matchesMCPAccount(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Bool {
+        currentMemberId == snapshot.accountId && mcpSession?.accountId == snapshot.accountId
+    }
+
+    func abortInvalidatedMCPTurn(
+        context: NativeChatDraftSendContext,
+        snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
+    ) {
+        if isCurrentLocalGeneration(context),
+           currentMemberId == snapshot.accountId,
+           !draftEditedDuringSend {
+            draftMessage = context.text
+        }
+        abortStreaming()
     }
 
     func discardStaleLocalTurn(userMessageId: String, assistantMessageId: String?) {
@@ -129,7 +148,8 @@ extension NativeChatViewModel {
     private func failLocalGeneration(
         context: NativeChatDraftSendContext,
         assistantMessageId: String,
-        message: UiVerbatimText
+        message: UiVerbatimText,
+        restoreDraft: Bool = true
     ) {
         guard isCurrentLocalGeneration(context) else {
             discardStaleLocalTurn(
@@ -141,14 +161,16 @@ extension NativeChatViewModel {
         failUnpersistedLocalGeneration(
             context: context,
             assistantMessageId: assistantMessageId,
-            message: message
+            message: message,
+            restoreDraft: restoreDraft
         )
     }
 
     func failUnpersistedLocalGeneration(
         context: NativeChatDraftSendContext,
         assistantMessageId: String?,
-        message: UiVerbatimText
+        message: UiVerbatimText,
+        restoreDraft: Bool = true
     ) {
         guard isCurrentLocalGeneration(context) else {
             discardConversationMessage(id: context.userMessageId)
@@ -159,7 +181,7 @@ extension NativeChatViewModel {
         if let assistantMessageId {
             discardConversationMessage(id: assistantMessageId)
         }
-        if !draftEditedDuringSend { draftMessage = context.text }
+        if restoreDraft, !draftEditedDuringSend { draftMessage = context.text }
         if streamingUserMessageId == context.userMessageId {
             streamingUserMessageId = nil
         }
@@ -174,27 +196,5 @@ extension NativeChatViewModel {
         streamingConversationId = nil
         streamedContent = ""
         streamTask = nil
-    }
-
-    private func reconcileClientGeneratedMessages(
-        userMessageId: String,
-        assistantMessageId: String,
-        response: ClientGeneratedChatResponse
-    ) {
-        updateConversationMessage(id: userMessageId) { message in
-            message.id = response.userMessage.id
-            message.content = response.userMessage.content.displayText
-            message.error = response.userMessage.content.error.map(UiVerbatimText.verbatim)
-        }
-        updateConversationMessage(id: assistantMessageId) { message in
-            message.id = response.assistantMessage.id
-            message.content = response.assistantMessage.content.displayText
-            message.error = response.assistantMessage.content.error.map(UiVerbatimText.verbatim)
-            message.isStreaming = false
-        }
-        streamingUserMessageId = response.userMessage.id
-        streamingAssistantMessageId = response.assistantMessage.id
-        pendingLocalAssistantMessageId = nil
-        streamedContent = response.assistantMessage.content.displayText
     }
 }

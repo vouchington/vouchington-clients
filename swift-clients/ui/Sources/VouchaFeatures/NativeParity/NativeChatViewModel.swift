@@ -9,6 +9,11 @@ import VouchaModels
 @MainActor
 final class NativeChatViewModel {
     let client: APIClient?
+    let mcpSession: NativeChatMCPAgentSession?
+    var currentMemberId: String? {
+        didSet { if oldValue != currentMemberId { resetForMemberChange() } }
+    }
+
     @ObservationIgnored
     let titleProviderResolver: any NativeChatTitleProviderResolving
     private let initialConversationId: String?
@@ -44,8 +49,13 @@ final class NativeChatViewModel {
     var detailPageInfo: NativePaginationState?
     var selectedConversationId: String? {
         didSet {
-            if pendingLocalTurn?.context.conversationId != selectedConversationId {
-                pendingLocalTurn = nil
+            if let pendingLocalTurn, pendingLocalTurn.context.conversationId != selectedConversationId {
+                // A completed MCP turn may already have changed server state. When
+                // discarding its retry cache, discard the restored prompt too.
+                if pendingLocalTurn.mcpSnapshot != nil {
+                    draftMessage = ""
+                }
+                self.pendingLocalTurn = nil
             }
         }
     }
@@ -56,7 +66,7 @@ final class NativeChatViewModel {
             if isSendingDraft {
                 draftEditedDuringSend = true
             }
-            if !isSendingDraft, let pendingLocalTurn,
+            if !isSendingDraft, let pendingLocalTurn, pendingLocalTurn.mcpSnapshot == nil,
                draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) != pendingLocalTurn.context.text {
                 self.pendingLocalTurn = nil
             }
@@ -87,19 +97,19 @@ final class NativeChatViewModel {
     var streamedContent = ""
     var conversationTitleDraft = ""
     var titleProviderSelection: NativeChatTitleProviderKind {
-        didSet {
-            if pendingLocalTurn?.context.providerSelection != titleProviderSelection {
-                pendingLocalTurn = nil
-            }
-        }
+        didSet { clearPendingTurnIfProviderChanged() }
     }
 
     init(
         client: APIClient?,
         routeMatch: NativeRouteMatch?,
-        titleProviderResolver: any NativeChatTitleProviderResolving = NativeChatLiveTitleProviderResolver()
+        titleProviderResolver: any NativeChatTitleProviderResolving = NativeChatLiveTitleProviderResolver(),
+        mcpSession: NativeChatMCPAgentSession? = nil,
+        currentMemberId: String? = nil
     ) {
         self.client = client
+        self.mcpSession = mcpSession
+        self.currentMemberId = currentMemberId
         self.titleProviderResolver = titleProviderResolver
         initialConversationId = routeMatch?.param("id")
         selectedConversationId = initialConversationId
@@ -119,10 +129,7 @@ final class NativeChatViewModel {
     }
 
     func load() async {
-        await loadConversations(reset: true)
-        if let initialConversationId {
-            await selectConversation(id: initialConversationId)
-        }
+        await loadInitialConversation(initialConversationId)
     }
 
     func selectConversation(id: String?) async {

@@ -5,7 +5,7 @@ import VouchaModels
 
 extension NativeChatViewModel {
     func sendDraftMessage() async {
-        guard let text = normalizedDraftMessage else { return }
+        guard !discardInvalidatedCompletedMCPTurn(), let text = normalizedDraftMessage else { return }
         guard let client else { return }
         guard isLoadingDetail == false else { return }
         guard !isSendingDraft, !isStreaming else { return }

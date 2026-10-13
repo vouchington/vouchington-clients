@@ -1,4 +1,5 @@
 import Foundation
+import VouchaAPI
 @testable import VouchaCore
 @testable import VouchaFeatures
 @testable import VouchaModels
@@ -6,6 +7,28 @@ import XCTest
 
 @MainActor
 final class NativeChatLocalTitleProviderTests: XCTestCase {
+    func testDisconnectedSnapshotDoesNotAdoptConnectionEstablishedBeforeProviderRuns() async throws {
+        LocalLLMTestURLProtocol.reset()
+        let session = NativeChatMCPAgentSession(service: LateConnectedMCPService())
+        await session.useAccount("member-a")
+        let capturedSnapshot = session.connectedSnapshot()
+        XCTAssertNil(capturedSnapshot)
+        try await session.connect()
+
+        let provider = await NativeChatLocalTitleProvider(
+            settingsStore: makeLocalLLMSettingsStore(configuration: makeLocalLLMConfiguration()),
+            featurePolicy: LocalLLMFeaturePolicy(environment: ["VOUCHA_NATIVE_LOCAL_LLM_ENABLED": "true"]),
+            responsesClient: OpenAICompatibleResponsesClient(protocolClasses: [LocalLLMTestURLProtocol.self])
+        )
+        let response = try await provider.generateAssistantResponse(
+            to: "Hello", history: [], mcpSession: session, mcpSnapshot: capturedSnapshot
+        )
+        XCTAssertEqual(response?.content, "Local answer")
+        let body = try XCTUnwrap(LocalLLMTestURLProtocol.capturedBody)
+        let request = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertNil(request["tools"])
+    }
+
     func testStatusAndGenerationUseOpenAICompatibleSettings() async throws {
         LocalLLMTestURLProtocol.reset(responseData: Data(#"{"output_text":"\"Local title\""}"#.utf8))
         let store = await makeLocalLLMSettingsStore(
@@ -129,4 +152,21 @@ final class NativeChatLocalTitleProviderTests: XCTestCase {
         XCTAssertNil(platformDisabledTitle)
         XCTAssertNil(LocalLLMTestURLProtocol.capturedRequest)
     }
+}
+
+@MainActor
+private final class LateConnectedMCPService: NativeChatMCPServicing {
+    func connect(accountId _: String) async throws -> DecodedJSONValue {
+        .object(["tools": .array([.object([
+            "name": .string("read_community"),
+            "description": .string("Read a community"),
+            "inputSchema": .object(["type": .string("object")])
+        ])])])
+    }
+
+    func refreshTools(accountId: String) async throws -> DecodedJSONValue {
+        try await connect(accountId: accountId)
+    }
+
+    func disconnect(accountId _: String) async throws {}
 }

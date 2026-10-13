@@ -70,6 +70,47 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
         )
     }
 
+    func generateAssistantResponse(
+        to message: String,
+        history: [NativeChatTimelineMessage],
+        mcpSession: NativeChatMCPAgentSession?,
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
+    ) async throws -> NativeChatAssistantResponse? {
+        guard let endpoint = availableEndpoint,
+              let mcpSession,
+              let snapshot = mcpSnapshot
+        else { return try await generateAssistantResponse(to: message, history: history) }
+        let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+        guard !bridge.tools.isEmpty else {
+            return try await generateAssistantResponse(to: message, history: history)
+        }
+        let localHistory = history
+            .filter { !$0.isStreaming && !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { LocalLLMChatMessage(role: $0.role.rawValue, content: $0.content) }
+        let apiKey = await settingsStore.readAPIKey(for: endpoint.id)
+        let request = LocalLLMToolRequest(
+            message: message, history: localHistory, endpoint: endpoint,
+            apiKey: apiKey, tools: bridge.tools
+        )
+        let content = try await responsesClient.generateAssistantResponseWithTools(
+            request: request,
+            isCurrent: { await mcpSession.isCurrent(snapshot) },
+            validate: { name, arguments in
+                try bridge.validate(name: name, rawArguments: arguments)
+            },
+            execute: { name, arguments in
+                try await bridge.execute(
+                    name: name, rawArguments: arguments, session: mcpSession,
+                    accountId: snapshot.accountId, revision: snapshot.revision
+                )
+            }
+        )
+        guard let content else { return nil }
+        return NativeChatAssistantResponse(
+            content: content, modelProvider: "openai_compatible", modelName: endpoint.selectedModel
+        )
+    }
+
     func generateTitle(from messages: [NativeChatTimelineMessage]) async throws -> String? {
         guard let endpoint = availableEndpoint else { return nil }
         let prompt = """

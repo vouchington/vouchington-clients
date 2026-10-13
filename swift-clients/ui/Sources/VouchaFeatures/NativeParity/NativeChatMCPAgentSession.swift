@@ -1,26 +1,19 @@
 import Foundation
 import Observation
+import VouchaAPI
 import VouchaLocalization
 import VouchaModels
-
-@MainActor
-public protocol NativeChatMCPServicing: AnyObject {
-    func connect(accountId: String) async throws -> DecodedJSONValue
-    func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
-    func refreshTools(accountId: String) async throws -> DecodedJSONValue
-    func disconnect(accountId: String) async throws
-}
-
-public extension NativeChatMCPServicing {
-    func connect(accountId: String, presentationWindow _: AnyObject?) async throws -> DecodedJSONValue {
-        try await connect(accountId: accountId)
-    }
-}
 
 /// Keeps an agent's MCP grant and discovered tools scoped to the signed-in member.
 @MainActor
 @Observable
 public final class NativeChatMCPAgentSession {
+    public struct ConnectedSnapshot: Sendable {
+        public let accountId: String
+        public let revision: Int
+        public let catalog: DecodedJSONValue
+    }
+
     public enum Status: Equatable {
         case disconnected
         case connecting
@@ -30,25 +23,38 @@ public final class NativeChatMCPAgentSession {
     }
 
     public private(set) var accountId: String?
-    public private(set) var status: Status = .disconnected
-    public private(set) var toolCatalog: DecodedJSONValue?
-    public private(set) var lastError: UiVerbatimText?
+    public internal(set) var status: Status = .disconnected
+    public internal(set) var toolCatalog: DecodedJSONValue?
+    public internal(set) var lastError: UiVerbatimText?
+    public internal(set) var revision = 0
 
-    private let service: any NativeChatMCPServicing
+    let service: any NativeChatMCPServicing
     private var generation = 0
     private var operation: Task<DecodedJSONValue, Error>?
     private var pendingCleanupAccountIds: [String] = []
+    var inFlightCalls: [UUID: Task<MemberMCPClient.ToolResult, Error>] = [:]
 
     public init(service: any NativeChatMCPServicing) {
         self.service = service
     }
 
+    public func connectedSnapshot() -> ConnectedSnapshot? {
+        guard status == .connected, let accountId, let toolCatalog else { return nil }
+        return .init(accountId: accountId, revision: revision, catalog: toolCatalog)
+    }
+
+    public func isCurrent(_ snapshot: ConnectedSnapshot) -> Bool {
+        status == .connected && accountId == snapshot.accountId && revision == snapshot.revision
+    }
+
     public func useAccount(_ nextAccountId: String?) async {
         guard nextAccountId != accountId || !pendingCleanupAccountIds.isEmpty else { return }
         generation += 1
+        revision += 1
         let currentGeneration = generation
         operation?.cancel()
         operation = nil
+        cancelCalls()
         let previousAccountId = accountId
         accountId = nextAccountId
         toolCatalog = nil
@@ -67,35 +73,13 @@ public final class NativeChatMCPAgentSession {
         status = .disconnected
     }
 
-    /// Completes local grant removal while the app still knows which member is signing out.
-    public func prepareForSignOut(accountId signingOutAccountId: String) async throws {
-        generation += 1
-        let currentGeneration = generation
-        operation?.cancel()
-        operation = nil
-        if let accountId { enqueueCleanup(accountId) }
-        enqueueCleanup(signingOutAccountId)
-        accountId = nil
-        toolCatalog = nil
-        lastError = nil
-        status = .switchingAccount
-        do {
-            try await drainPendingCleanup()
-            guard generation == currentGeneration else { return }
-            status = .disconnected
-        } catch {
-            guard generation == currentGeneration else { throw error }
-            status = .failed
-            lastError = .verbatim(error.localizedDescription)
-            throw error
-        }
-    }
-
     public func connect(presentationWindow: AnyObject? = nil) async throws {
         guard let accountId, status != .switchingAccount, status != .connecting else { return }
         generation += 1
+        revision += 1
         let currentGeneration = generation
         operation?.cancel()
+        cancelCalls()
         status = .connecting
         lastError = nil
         let task = Task {
@@ -124,8 +108,11 @@ public final class NativeChatMCPAgentSession {
     public func refreshTools() async throws {
         guard let accountId, status == .connected else { return }
         generation += 1
+        revision += 1
         let currentGeneration = generation
         operation?.cancel()
+        cancelCalls()
+        toolCatalog = nil
         let task = Task { try await service.refreshTools(accountId: accountId) }
         operation = task
         do {
@@ -147,9 +134,11 @@ public final class NativeChatMCPAgentSession {
     public func disconnect() async throws {
         guard let accountId else { return }
         generation += 1
+        revision += 1
         let currentGeneration = generation
         operation?.cancel()
         operation = nil
+        cancelCalls()
         toolCatalog = nil
         lastError = nil
         status = .switchingAccount
@@ -176,6 +165,35 @@ public final class NativeChatMCPAgentSession {
         while let accountId = pendingCleanupAccountIds.first {
             try await service.disconnect(accountId: accountId)
             pendingCleanupAccountIds.removeAll { $0 == accountId }
+        }
+    }
+
+}
+
+public extension NativeChatMCPAgentSession {
+    /// Completes local grant removal while the app still knows which member is signing out.
+    func prepareForSignOut(accountId signingOutAccountId: String) async throws {
+        generation += 1
+        revision += 1
+        let currentGeneration = generation
+        operation?.cancel()
+        operation = nil
+        cancelCalls()
+        if let accountId { enqueueCleanup(accountId) }
+        enqueueCleanup(signingOutAccountId)
+        accountId = nil
+        toolCatalog = nil
+        lastError = nil
+        status = .switchingAccount
+        do {
+            try await drainPendingCleanup()
+            guard generation == currentGeneration else { return }
+            status = .disconnected
+        } catch {
+            guard generation == currentGeneration else { throw error }
+            status = .failed
+            lastError = .verbatim(error.localizedDescription)
+            throw error
         }
     }
 }

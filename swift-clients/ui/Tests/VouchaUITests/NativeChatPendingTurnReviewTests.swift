@@ -1,4 +1,6 @@
 import Foundation
+import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 @testable import VouchaModels
 import XCTest
@@ -89,6 +91,208 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         let restoredPayload = try payload(afterRestoringOldModel)
         XCTAssertNotEqual(restoredPayload, secondPayload)
         XCTAssertEqual(provider.generationCount, 3)
+    }
+
+    func testFailedMCPPersistenceCannotRetryAfterAccountSwitch() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Hello"
+
+        await viewModel.sendDraftMessage()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+        XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
+
+        await session.useAccount("member-b")
+        provider.available = false
+        await viewModel.sendDraftMessage()
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+        XCTAssertEqual(provider.generationCount, 1)
+    }
+
+    func testFailedMCPPersistenceRetriesCompletedTurnAfterSameMemberRefreshAndProviderChange() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTestFixtures.errorData, 400)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Run once"
+        await viewModel.sendDraftMessage()
+        let first = try XCTUnwrap(CannedFeedURLProtocol.capturedRequests.last { $0.url.path == path })
+        XCTAssertNotNil(viewModel.pendingLocalTurn?.mcpSnapshot)
+        XCTAssertEqual(provider.generationCount, 1)
+
+        try await session.refreshTools()
+        provider.model = "model-b"
+        viewModel.selectTitleProvider(.appleFoundationModels)
+        viewModel.draftMessage = "Run once, edited"
+        viewModel.draftMessage = "Run once"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        await viewModel.sendDraftMessage()
+        let requests = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }
+        XCTAssertEqual(requests.count, 2)
+        let firstBody = try XCTUnwrap(first.body?.data(using: .utf8))
+        let retriedBody = try XCTUnwrap(requests.last?.body?.data(using: .utf8))
+        let firstPayload = try XCTUnwrap(JSONSerialization.jsonObject(with: firstBody) as? NSDictionary)
+        let retriedPayload = try XCTUnwrap(JSONSerialization.jsonObject(with: retriedBody) as? NSDictionary)
+        XCTAssertEqual(retriedPayload, firstPayload)
+        XCTAssertEqual(provider.generationCount, 1)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+    }
+
+    func testPossibleToolSideEffectNeverRestoresDraftForOrdinaryRetry() async throws {
+        let provider = MutableRetryDraftProvider()
+        provider.mcpFailure = LocalLLMToolLoopFailure.partialExecution
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Mutate once"
+
+        await viewModel.sendDraftMessage()
+
+        XCTAssertTrue(provider.receivedMcpSnapshot)
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertNotNil(viewModel.streamErrorMessage)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path.hasSuffix("/client-generated-chat")
+        })
+    }
+
+    func testMcpRefreshDuringGenerationRestoresSameMemberDraft() async throws {
+        let hold = HeldTitleGeneration()
+        let provider = MutableRetryDraftProvider()
+        provider.mcpHold = hold
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Keep this prompt"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        await hold.waitForStart()
+        try await session.refreshTools()
+        await hold.release()
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "Keep this prompt")
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.url.path.hasSuffix("/client-generated-chat")
+        })
+    }
+
+    func testMcpAccountSwitchDuringGenerationDoesNotRestoreOldMemberDraft() async throws {
+        let hold = HeldTitleGeneration()
+        let provider = MutableRetryDraftProvider()
+        provider.mcpHold = hold
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Old member prompt"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        await hold.waitForStart()
+        viewModel.currentMemberId = "member-b"
+        await session.useAccount("member-b")
+        await hold.release()
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertTrue(viewModel.messages.isEmpty)
+    }
+
+    func testMcpSnapshotIsNotGivenToNewMemberBeforeSessionSwitchFinishes() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-b"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "New member prompt"
+
+        await viewModel.sendDraftMessage()
+
+        XCTAssertEqual(provider.generationCount, 1)
+        XCTAssertFalse(provider.receivedMcpSnapshot)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
+    }
+
+    func testSameMemberRefreshAfterPersistenceAcknowledgementKeepsServerTurnVisible() async throws {
+        let path = "/api/v1/conversations/conversation-1/client-generated-chat"
+        CannedFeedURLProtocol.handlers[path] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        let provider = MutableRetryDraftProvider()
+        let session = NativeChatMCPAgentSession(service: PendingTurnMCPService())
+        await session.useAccount("member-a")
+        try await session.connect()
+        let viewModel = try NativeChatViewModel(
+            client: makeClient(), routeMatch: nil,
+            titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+            mcpSession: session, currentMemberId: "member-a"
+        )
+        viewModel.selectedConversationId = "conversation-1"
+        viewModel.draftMessage = "Persist this"
+
+        let send = Task { await viewModel.sendDraftMessage() }
+        _ = try await barrier.wait()
+        XCTAssertTrue(provider.receivedMcpSnapshot)
+        try await session.refreshTools()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await send.value
+
+        XCTAssertEqual(viewModel.draftMessage, "")
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertNil(viewModel.pendingLocalTurn)
+        XCTAssertEqual(viewModel.messages.map(\.role), [.user, .assistant])
+        XCTAssertTrue(viewModel.messages.contains { $0.content == "Local assistant answer" })
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == path }.count, 1)
     }
 
     func testTypingNextDraftDuringHeldPersistencePreservesTheNewDraftAfterFailure() async throws {
@@ -196,16 +400,32 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
     }
 }
 
+@MainActor
+final class PendingTurnMCPService: NativeChatMCPServicing {
+    func connect(accountId _: String) async throws -> DecodedJSONValue {
+        .object(["tools": .array([])])
+    }
+
+    func refreshTools(accountId _: String) async throws -> DecodedJSONValue {
+        .object(["tools": .array([])])
+    }
+
+    func disconnect(accountId _: String) async throws {}
+}
+
 private func payload(_ request: CannedFeedURLProtocol.CapturedRequest) throws -> NSDictionary {
     let data = try XCTUnwrap(request.body?.data(using: .utf8))
     return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? NSDictionary)
 }
 
-private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
+final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
     var model = "model-a"
     var available = true
     var titleHold: HeldTitleGeneration?
+    var mcpHold: HeldTitleGeneration?
+    var mcpFailure: Error?
     private(set) var generationCount = 0
+    private(set) var receivedMcpSnapshot = false
 
     var status: NativeChatTitleProviderStatus {
         .init(isAvailable: available, detail: nil)
@@ -223,13 +443,27 @@ private final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchec
         return .init(content: "Reply \(generationCount)", modelProvider: "openai_compatible", modelName: model)
     }
 
+    func generateAssistantResponse(
+        to message: String, history: [NativeChatTimelineMessage],
+        mcpSession _: NativeChatMCPAgentSession?,
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
+    ) async throws -> NativeChatAssistantResponse? {
+        receivedMcpSnapshot = mcpSnapshot != nil
+        if let mcpFailure { throw mcpFailure }
+        if let mcpHold {
+            await mcpHold.waitUntilReleased()
+            throw CancellationError()
+        }
+        return try await generateAssistantResponse(to: message, history: history)
+    }
+
     func generateTitle(from _: [NativeChatTimelineMessage]) async throws -> String? {
         if let titleHold { await titleHold.waitUntilReleased() }
         return nil
     }
 }
 
-private actor HeldTitleGeneration {
+actor HeldTitleGeneration {
     private var started = false
     private var startWaiter: CheckedContinuation<Void, Never>?
     private var releaseWaiter: CheckedContinuation<Void, Never>?
@@ -252,7 +486,7 @@ private actor HeldTitleGeneration {
     }
 }
 
-private struct RetryDraftProviderResolver: NativeChatTitleProviderResolving {
+struct RetryDraftProviderResolver: NativeChatTitleProviderResolving {
     let endpointID: UUID
     let provider: MutableRetryDraftProvider
 

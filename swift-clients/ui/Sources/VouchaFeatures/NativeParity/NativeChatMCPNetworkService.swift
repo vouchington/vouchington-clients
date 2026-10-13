@@ -178,3 +178,16 @@ private extension NativeChatMCPNetworkService {
         ))
     }
 }
+
+public extension NativeChatMCPNetworkService {
+    func callTool(
+        accountId: String, name: String, arguments: [String: DecodedJSONValue]
+    ) async throws -> MemberMCPClient.ToolResult {
+        guard let context, context.accountId == accountId,
+              activeAccountId == accountId else { throw Failure.accountMismatch }
+        let expectedGeneration = generation
+        let result = try await context.authorized.callTool(name: name, arguments: arguments)
+        try assertCurrent(accountId, generation: expectedGeneration)
+        return result
+    }
+}
