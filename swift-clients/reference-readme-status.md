@@ -6,8 +6,9 @@
 
 - **macOS**: Active native client with authenticated member, content, messaging, settings, media,
   and role-gated staff surfaces
-- **iOS/iPadOS**: Generated app shell sharing the macOS SwiftUI capability sources; its CI launch
-  smoke remains disabled pending #6705
+- **iOS/iPadOS**: Generated app shell sharing the macOS SwiftUI capability sources; CI compiles the
+  app for a generic iOS Simulator destination. The launch-smoke UI test target is not run by this
+  compile-only check.
 - **Android**: A [Skip Fuse 1.9+ shell](apps/android/README.md) cross-compiles with the Swift Android SDK,
   uses ML Kit Prompt API for explicit-download on-device generation, and stores endpoint secrets
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
@@ -66,11 +67,11 @@ Xcode: Product → Scheme → Edit → Run → Arguments → Environment Variabl
 
 ## Workflow
 
-CI runs the macOS app-shell build smoke (`xcodebuild build` in `build-macos-app` in
-`tests-swift-clients.yml`) and cross-compiles `core/` for Android in the Linux Docker
-`build-android-core` gate via `./tooling/harness.sh --checks build-android`. `build-ios-app` stays
-commented out pending #6705 (runner CoreSimulator/Xcode fix), so iOS Simulator-only failures do not
-fail PRs; the iOS launch-smoke target is wired in `project.yml` for later enablement.
+CI builds the macOS app shell and compiles the generated iOS app for a generic iOS Simulator
+destination in `build-macos-app` and `build-ios-app` in
+`.github/workflows/native-contract-tests.yml`. The iOS job does not launch the app or run its UI
+launch-smoke target. CI also cross-compiles `core/` for Android in the Linux Docker
+`build-android-core` gate via `./tooling/harness.sh --checks build-android`.
 
 Run lock-aware package and app checks from the repository root:
 
