@@ -19,7 +19,7 @@ final class DirectMessagesParticipantAvatarTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(avatars.count, 2)
         XCTAssertNil(try avatars[0].actualView().imageURL)
         XCTAssertTrue(try XCTUnwrap(avatars[1].actualView().imageURL).contains(
-            "/images/placements/dm-alice-profile-placement/3/image-alice?w=96"
+            "/images/placements/00000000-0000-7000-8000-000000000311/3/00000000-0000-7000-8000-000000000211?w=96"
         ))
         XCTAssertNoThrow(try surface.participantSection.inspect().find(text: "@alice"))
         XCTAssertNoThrow(try surface.participantSection.inspect().find(text: "Member"))
