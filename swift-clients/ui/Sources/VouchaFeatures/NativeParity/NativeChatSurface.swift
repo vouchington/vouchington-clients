@@ -43,7 +43,7 @@ struct NativeChatSurface: View {
         }
         .onChange(of: currentUserId) { _, memberId in
             viewModel.currentMemberId = memberId
-            viewModel.abortStreaming()
+            Task { await viewModel.loadConversations(reset: true) }
         }
     }
 

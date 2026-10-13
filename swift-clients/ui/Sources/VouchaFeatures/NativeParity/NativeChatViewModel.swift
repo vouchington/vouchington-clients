@@ -10,7 +10,10 @@ import VouchaModels
 final class NativeChatViewModel {
     let client: APIClient?
     let mcpSession: NativeChatMCPAgentSession?
-    var currentMemberId: String?
+    var currentMemberId: String? {
+        didSet { if oldValue != currentMemberId { resetForMemberChange() } }
+    }
+
     @ObservationIgnored
     let titleProviderResolver: any NativeChatTitleProviderResolving
     private let initialConversationId: String?
@@ -49,8 +52,7 @@ final class NativeChatViewModel {
             if let pendingLocalTurn, pendingLocalTurn.context.conversationId != selectedConversationId {
                 // A completed MCP turn may already have changed server state. When
                 // discarding its retry cache, discard the restored prompt too.
-                if pendingLocalTurn.mcpSnapshot != nil,
-                   draftMessage.trimmingCharacters(in: .whitespacesAndNewlines) == pendingLocalTurn.context.text {
+                if pendingLocalTurn.mcpSnapshot != nil {
                     draftMessage = ""
                 }
                 self.pendingLocalTurn = nil
