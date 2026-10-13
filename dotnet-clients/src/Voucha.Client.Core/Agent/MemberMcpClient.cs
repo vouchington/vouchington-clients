@@ -94,8 +94,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     {
       return await SendRpcAsync(method, parameters, accessToken, cancellationToken).ConfigureAwait(false);
     }
-    catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound &&
-        error.Message == "MCP session expired.")
+    catch (McpSessionExpiredException)
     {
       await EnsureInitializedAsync(accessToken, cancellationToken).ConfigureAwait(false);
       return await SendRpcAsync(method, parameters, accessToken, cancellationToken).ConfigureAwait(false);
@@ -121,7 +120,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     {
       ObjectDisposedException.ThrowIf(closed, this);
       if (method != "initialize" && !initialized)
-        throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
+        throw new McpSessionExpiredException();
       version = protocolVersion;
       requestSession = sessionId;
       if (initialized && requestSession is not null && sessionId == requestSession)
@@ -144,7 +143,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
           sessionAccessToken = null;
         }
       }
-      throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
+      throw new McpSessionExpiredException();
     }
     if (response.StatusCode == HttpStatusCode.TooManyRequests)
     {

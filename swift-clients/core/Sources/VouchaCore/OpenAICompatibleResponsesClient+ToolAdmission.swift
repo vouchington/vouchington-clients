@@ -27,14 +27,17 @@ extension OpenAICompatibleResponsesClient {
         try await validate(call.name, call.arguments)
         try Task.checkCancellation()
         // A producer result may contain Unicode that expands during outer JSON encoding.
-        // Backslashes reserve six output bytes per allowed UTF-8 result byte.
+        // Reserve six output bytes per allowed UTF-8 result byte without materializing it.
         let reservedInput = input + [[
             "type": "function_call_output", "call_id": call.callID,
-            "output": String(repeating: "\\", count: maximumToolResultBytes * 3)
+            "output": ""
         ]]
-        guard try requestBody(
+        let emptyOutputBytes = try requestBody(
             model: context.model, input: reservedInput, definitions: context.definitions
-        ).count <= 20_000_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
+        ).count
+        guard emptyOutputBytes <= 20_000_000 - maximumToolResultBytes * 6 else {
+            throw LocalLLMToolLoopFailure.resultTooLarge
+        }
     }
 
     static func invokeTool(

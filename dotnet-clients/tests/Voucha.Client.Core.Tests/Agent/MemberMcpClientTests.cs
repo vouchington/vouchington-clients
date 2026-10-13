@@ -46,6 +46,19 @@ public sealed class MemberMcpClientTests
   }
 
   [Fact]
+  public async Task ExpiredSessionAfterRetryUsesTypedTransportError()
+  {
+    var handler = new StubHandler(HttpStatusCode.NotFound, "");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler);
+
+    var error = await Assert.ThrowsAsync<McpSessionExpiredException>(
+        () => client.ListToolsAsync("access-1", TestContext.Current.CancellationToken));
+
+    Assert.Equal(HttpStatusCode.NotFound, error.StatusCode);
+    Assert.Equal(2, handler.Methods.Count(method => method == "tools/list"));
+  }
+
+  [Fact]
   public async Task ToolListingForwardsOpaqueCursor()
   {
     var handler = new StubHandler(HttpStatusCode.OK,
@@ -274,10 +287,13 @@ public sealed class MemberMcpClientTests
       Methods.Add(method);
       if (method == "initialize")
       {
+        var requestId = rpc.RootElement.GetProperty("id").GetString();
+        var initialReply = """{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"1"}}}"""
+            .Replace("\"id\":\"1\"", $"\"id\":\"{requestId}\"", StringComparison.Ordinal);
         var init = new HttpResponseMessage(HttpStatusCode.OK)
         {
           Content = new StringContent(
-              InitializeEvents ?? """{"jsonrpc":"2.0","id":"1","result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"1"}}}""",
+              InitializeEvents ?? initialReply,
               Encoding.UTF8, InitializeEvents is null ? "application/json" : "text/event-stream")
         };
         init.Headers.TryAddWithoutValidation("Mcp-Session-Id", "test-session");

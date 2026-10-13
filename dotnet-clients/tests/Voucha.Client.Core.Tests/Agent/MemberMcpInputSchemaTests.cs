@@ -131,6 +131,18 @@ public sealed class MemberMcpInputSchemaTests
   }
 
   [Fact]
+  public void RepeatedPatternValidationKeepsTheSameConstraintAcrossArrayItems()
+  {
+    using var schema = JsonDocument.Parse(
+        """{"type":"array","items":{"type":"string","pattern":"^item-[0-9]+$"}}""");
+    var values = Enumerable.Repeat("item-42", 512).ToArray();
+
+    Assert.True(Accepts(JsonSerializer.Serialize(values), schema));
+    values[^1] = "item-nope";
+    Assert.False(Accepts(JsonSerializer.Serialize(values), schema));
+  }
+
+  [Fact]
   public void UnsupportedEcmaBoundaryAndClassEscapesFailCatalogAdmission()
   {
     foreach (var pattern in new[] { "\\bword\\b", "[\\d]", "[a-[b]]", "\\A", "\\Z", "\\x1", "\\u123",

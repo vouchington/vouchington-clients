@@ -50,7 +50,7 @@ public sealed partial class MemberMcpClient
           sessionAccessToken = null;
         }
       }
-      throw new HttpRequestException("MCP session expired.", null, HttpStatusCode.NotFound);
+      throw new McpSessionExpiredException();
     }
     if (response.StatusCode != HttpStatusCode.Accepted)
       throw new HttpRequestException("MCP server rejected a JSON-RPC response.", null, response.StatusCode);

@@ -63,7 +63,7 @@ public sealed partial class MemberMcpSessionTests
     factory.Connections[0].ExpireToolCall = true;
     using var arguments = JsonDocument.Parse("{}");
 
-    await Assert.ThrowsAsync<HttpRequestException>(() => session.CallToolAsync(
+    await Assert.ThrowsAsync<McpSessionExpiredException>(() => session.CallToolAsync(
         snapshot, "read_profile", arguments.RootElement, TestContext.Current.CancellationToken));
     Assert.False(session.IsCurrent(snapshot));
     Assert.Null(session.ConnectedSnapshot());
@@ -73,5 +73,24 @@ public sealed partial class MemberMcpSessionTests
     await session.ConnectAsync(TestContext.Current.CancellationToken);
     Assert.NotNull(session.ConnectedSnapshot());
     Assert.Equal(2, factory.Created);
+  }
+
+  [Fact]
+  public async Task UnrelatedNotFoundDoesNotInvalidateConnectedCatalog()
+  {
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].NotFoundToolCall = true;
+    using var arguments = JsonDocument.Parse("{}");
+
+    await Assert.ThrowsAsync<HttpRequestException>(() => session.CallToolAsync(
+        snapshot, "read_profile", arguments.RootElement, TestContext.Current.CancellationToken));
+
+    Assert.True(session.IsCurrent(snapshot));
+    Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
+    Assert.NotNull(session.Tools);
+    Assert.Equal(1, factory.Created);
   }
 }

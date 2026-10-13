@@ -72,8 +72,7 @@ public sealed partial class MemberMcpSession
         }
         throw;
       }
-      catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound &&
-          error.Message == "MCP session expired.")
+      catch (McpSessionExpiredException)
       {
         lock (gate)
         {

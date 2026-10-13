@@ -7,6 +7,9 @@ namespace Voucha.Client.Core.Agent;
 
 internal static partial class MemberMcpInputSchema
 {
+  private const int PatternCacheCapacity = 1024;
+  private static readonly Lock patternCacheGate = new();
+  private static readonly Dictionary<string, Regex> patternCache = new(StringComparer.Ordinal);
   private static bool Number(JsonElement value, out decimal number)
   {
     number = 0;
@@ -93,8 +96,15 @@ internal static partial class MemberMcpInputSchema
   private static Regex BoundedPattern(string pattern)
   {
     if (pattern.Length > 4096) throw new ArgumentException("MCP pattern too long.", nameof(pattern));
-    return new Regex(EcmaPattern(pattern), RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
-        TimeSpan.FromMilliseconds(100));
+    lock (patternCacheGate)
+    {
+      if (patternCache.TryGetValue(pattern, out var cached)) return cached;
+      var compiled = new Regex(EcmaPattern(pattern),
+          RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, TimeSpan.FromMilliseconds(100));
+      if (patternCache.Count == PatternCacheCapacity) patternCache.Clear();
+      patternCache.Add(pattern, compiled);
+      return compiled;
+    }
   }
 
   private const string EcmaWhitespace = @"\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF";

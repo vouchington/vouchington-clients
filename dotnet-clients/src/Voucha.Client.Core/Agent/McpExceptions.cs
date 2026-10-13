@@ -1,5 +1,14 @@
 namespace Voucha.Client.Core.Agent;
 
+public sealed class McpSessionExpiredException : HttpRequestException
+{
+  public McpSessionExpiredException() : this("MCP session expired.") { }
+  public McpSessionExpiredException(string message)
+      : base(message, null, System.Net.HttpStatusCode.NotFound) { }
+  public McpSessionExpiredException(string message, Exception innerException)
+      : base(message, innerException, System.Net.HttpStatusCode.NotFound) { }
+}
+
 public sealed class McpUnauthorizedException : Exception
 {
   public McpUnauthorizedException() : base("MCP authorization is required.") { }
