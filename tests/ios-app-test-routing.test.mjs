@@ -32,11 +32,24 @@ describe('iOS Simulator launch smoke fan-in', () => {
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
     assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
-    assert.match(iosJob, /xcrun simctl bootstatus "\$simulator_id" -b/u)
+    assert.match(
+      iosJob,
+      /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
+    )
     assert.ok(
-      iosJob.indexOf('- name: Boot iPhone Simulator for launch smoke') <
+      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
+        iosJob.indexOf('- name: Build iOS app for Simulator'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Build iOS app for Simulator') <
+        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
     )
+    assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 12/u)
+    assert.match(iosJob, /\n\s+timeout-minutes: 40\n/u)
     assert.match(
       iosJob,
       /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,

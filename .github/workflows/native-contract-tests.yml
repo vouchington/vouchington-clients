@@ -852,7 +852,7 @@ jobs:
     name: Swift iOS Simulator launch smoke
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       actions: read
       contents: read
@@ -885,17 +885,8 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
-      - name: Build iOS app for Simulator
-        timeout-minutes: 20
-        working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
-        run: |
-          ./swift-clients/tooling/generate.sh iOS
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Boot iPhone Simulator for launch smoke
-        timeout-minutes: 4
+      - name: Start iPhone Simulator for launch smoke
+        timeout-minutes: 3
         working-directory: candidate-clients
         run: |
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
@@ -912,6 +903,20 @@ jobs:
             Booted) ;;
             *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
+      - name: Build iOS app for Simulator
+        timeout-minutes: 20
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
+        run: |
+          ./swift-clients/tooling/generate.sh iOS
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Wait for iPhone Simulator readiness
+        timeout-minutes: 12
+        working-directory: candidate-clients
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iOS app on Simulator
         timeout-minutes: 10
