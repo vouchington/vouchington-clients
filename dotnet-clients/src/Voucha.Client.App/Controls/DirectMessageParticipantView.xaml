@@ -3,10 +3,20 @@
     x:Class="Voucha.Client.App.Controls.DirectMessageParticipantView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
     xmlns:messages="clr-namespace:Voucha.Client.Core.Messages;assembly=Voucha.Client.Core"
     x:DataType="messages:DirectMessageParticipantRow">
-    <Grid ColumnDefinitions="36,*" ColumnSpacing="8">
-        <Image AutomationId="direct-message-participant-avatar" HeightRequest="36" WidthRequest="36" Aspect="AspectFill"
+    <Grid ColumnSpacing="0">
+        <Grid.Resources>
+            <controls:DirectMessageParticipantAvatarColumnWidthConverter x:Key="AvatarColumnWidth" />
+        </Grid.Resources>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{Binding HasProfileImage, Converter={StaticResource AvatarColumnWidth}}" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Image AutomationId="direct-message-participant-avatar" AutomationProperties.IsInAccessibleTree="False"
+               HeightRequest="36" WidthRequest="36" Margin="0,0,8,0"
+               IsVisible="{Binding HasProfileImage}" Aspect="AspectFill"
                Source="{Binding ProfileImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
         <VerticalStackLayout Grid.Column="1">
             <Label Text="{Binding Label}" Style="{StaticResource Body}" />

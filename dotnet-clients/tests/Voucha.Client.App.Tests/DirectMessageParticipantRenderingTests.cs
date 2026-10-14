@@ -30,16 +30,32 @@ public sealed class DirectMessageParticipantRenderingTests
     view.BindingContext = row;
 
     var image = Assert.Single(view.GetVisualTreeDescendants().OfType<Image>());
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    var grid = Assert.Single(view.GetVisualTreeDescendants().OfType<Grid>());
     Assert.Equal(new Uri("https://images.test/images/placements/participant-placement/2/avatar-1?w=96"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.True(image.IsVisible);
+    Assert.Equal(new GridLength(44), grid.ColumnDefinitions[0].Width);
     Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "@alice");
     Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "Member");
 
     view.BindingContext = row with { ProfileImagePlacement = null };
 
     Assert.Null(image.Source);
+    Assert.False(image.IsVisible);
+    Assert.Equal(new GridLength(0), grid.ColumnDefinitions[0].Width);
     Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "@alice");
     Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "Member");
+
+    view.BindingContext = row with
+    {
+      ProfileImagePlacement = new TopicImagePlacement("avatar-1", "", 2),
+    };
+
+    Assert.Null(image.Source);
+    Assert.False(image.IsVisible);
+    Assert.Equal(new GridLength(0), grid.ColumnDefinitions[0].Width);
+    Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "@alice");
   }
 
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider

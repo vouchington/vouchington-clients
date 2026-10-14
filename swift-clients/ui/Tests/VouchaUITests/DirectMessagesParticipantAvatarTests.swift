@@ -1,6 +1,7 @@
 import Foundation
 import ViewInspector
 @testable import VouchaAPI
+import VouchaCore
 import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaModels
@@ -11,16 +12,24 @@ final class DirectMessagesParticipantAvatarTests: NativeRouteSurfaceViewModelTes
     func testRosterUsesCanonicalPlacementAndKeepsRoleWhenPlacementClears() throws {
         let fixture = ApiFixtureLoader.data("native.messages.participants.default")
         let response = try APIClient.makeDecoder().decode(Page<ConversationParticipant>.self, from: fixture)
-        let model = try DirectMessagesViewModel(client: makeClient(), currentUserId: "fixtureuser")
+        let apiBaseURL = try XCTUnwrap(URL(string: "http://localhost:2999"))
+        let imageBaseURL = try XCTUnwrap(URL(string: "https://images.self-hosted.test"))
+        let client = APIClient(
+            config: AppConfig(baseURL: apiBaseURL, imageBaseURL: imageBaseURL),
+            cookieStorage: HTTPCookieStorage(),
+            protocolClasses: [CannedFeedURLProtocol.self]
+        )
+        let model = DirectMessagesViewModel(client: client, currentUserId: "fixtureuser")
         model.participants = response.results
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/messages/conversation-1"))
         let surface = DirectMessagesSurface(viewModel: model, routeMatch: route.match)
         let avatars = try surface.participantSection.inspect().findAll(Avatar.self)
         XCTAssertEqual(avatars.count, 2)
         XCTAssertNil(try avatars[0].actualView().imageURL)
-        XCTAssertTrue(try XCTUnwrap(avatars[1].actualView().imageURL).contains(
-            "/images/placements/00000000-0000-7000-8000-000000000311/3/00000000-0000-7000-8000-000000000211?w=96"
-        ))
+        XCTAssertEqual(
+            try avatars[1].actualView().imageURL,
+            "https://images.self-hosted.test/images/placements/00000000-0000-7000-8000-000000000311/3/00000000-0000-7000-8000-000000000211?w=96"
+        )
         XCTAssertNoThrow(try surface.participantSection.inspect().find(text: "@alice"))
         XCTAssertNoThrow(try surface.participantSection.inspect().find(text: "Member"))
 

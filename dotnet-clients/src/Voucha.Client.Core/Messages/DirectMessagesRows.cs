@@ -30,6 +30,10 @@ public sealed record DirectMessageParticipantRow(
     IUiLocalization Localization,
     TopicImagePlacement? ProfileImagePlacement = null)
 {
+  public bool HasProfileImage => ProfileImagePlacement is { } placement &&
+      !string.IsNullOrWhiteSpace(placement.PlacementId) &&
+      !string.IsNullOrWhiteSpace(placement.ImageId);
+
   public string Label => Localization.Resolve(LabelText);
 
   public string Role => Localization.Resolve(RoleText);

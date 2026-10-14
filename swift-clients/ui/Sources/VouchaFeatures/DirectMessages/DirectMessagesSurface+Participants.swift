@@ -10,7 +10,10 @@ extension DirectMessagesSurface {
             ForEach(viewModel.participants, id: \.id) { participant in
                 HStack {
                     Avatar(
-                        imageURL: AppConfig.shared.imageURL(for: participant.profileImagePlacement, width: 96),
+                        imageURL: AppConfig(
+                            baseURL: viewModel.client.baseURL,
+                            imageBaseURL: viewModel.client.imageBaseURL
+                        ).imageURL(for: participant.profileImagePlacement, width: 96),
                         username: participant.username ?? participant.id
                     )
                     .accessibilityHidden(true)
