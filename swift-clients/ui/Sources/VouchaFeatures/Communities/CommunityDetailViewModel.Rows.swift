@@ -110,7 +110,7 @@ extension CommunityDetailViewModel {
                 id: result.id,
                 row: .init(
                     icon: "person",
-                    avatarURL: AppConfig.shared.imageURL(
+                    avatarURL: AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL).imageURL(
                         for: response.users[member.userId]?.profileImagePlacement,
                         width: 96
                     ),

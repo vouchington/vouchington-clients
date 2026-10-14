@@ -126,7 +126,10 @@ public sealed class CommunityPlacementRenderingTests
     Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(avatarImage.Source).Uri);
     Assert.True(avatar.IsVisible);
-    Assert.Equal("Test User", SemanticProperties.GetDescription(avatarImage));
+    Assert.IsType<Microsoft.Maui.Controls.Shapes.Ellipse>(avatar.StrokeShape);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatarImage));
+    Assert.Contains(Descendants<Label>(row), label => label.Text == "Test User");
     row.BindingContext = member with { ProfileImagePlacement = null };
     Assert.Null(avatarImage.Source);
     Assert.False(avatar.IsVisible);

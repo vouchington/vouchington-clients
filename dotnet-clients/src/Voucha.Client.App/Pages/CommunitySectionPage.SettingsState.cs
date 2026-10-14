@@ -96,7 +96,7 @@ public abstract partial class CommunitySectionPage
     avatarImage.SetBinding(
         Image.SourceProperty,
         new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new PlacementImageSourceConverter(config, 96)));
-    avatarImage.SetBinding(SemanticProperties.DescriptionProperty, nameof(CommunitySummaryRow.Title));
+    AutomationProperties.SetIsInAccessibleTree(avatarImage, false);
     var avatar = new Border
     {
       WidthRequest = 40,
@@ -106,6 +106,7 @@ public abstract partial class CommunitySectionPage
       Content = avatarImage,
       AutomationId = "community-member-avatar",
     };
+    AutomationProperties.SetIsInAccessibleTree(avatar, false);
     avatar.SetBinding(
         IsVisibleProperty,
         new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new HasProfileImagePlacementConverter()));
