@@ -2,6 +2,7 @@ import Foundation
 @testable import VouchaAPI
 @testable import VouchaAuth
 @testable import VouchaCore
+import VouchaTestSupport
 import XCTest
 
 private final class StubAppAttestProvider: AppAttestProviding, @unchecked Sendable {
@@ -49,7 +50,7 @@ private final class RoutingURLProtocol: URLProtocol {
             data = Data(#"{"challengeId":"chal-1","challenge":"nonce-abc"}"#.utf8)
         } else if request.value(forHTTPHeaderField: "x-app-attest-key-id") != nil {
             statusCode = Self.bypassStatusCode
-            Self.bypassBodies.append(Self.capturedBody(from: request))
+            Self.bypassBodies.append(URLRequestHTTPBody.utf8String(from: request))
             // Real bodies per `verifyCaptchaOrAttestation`/`assertion.mts`: a bypass-disabled 403
             // carries `BYPASS_DISABLED`. `ATTESTATION_REJECTED` is used on both a 403 (the
             // assertion itself is invalid/replayed/device-mismatched -- the key is genuinely bad)
@@ -67,7 +68,7 @@ private final class RoutingURLProtocol: URLProtocol {
             }
         } else {
             statusCode = Self.turnstileStatusCode
-            Self.turnstileBodies.append(Self.capturedBody(from: request))
+            Self.turnstileBodies.append(URLRequestHTTPBody.utf8String(from: request))
             data = Data("{}".utf8)
         }
         let response = HTTPURLResponse(
@@ -82,27 +83,6 @@ private final class RoutingURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
-
-    private static func capturedBody(from request: URLRequest) -> String? {
-        if let body = request.httpBody {
-            return String(data: body, encoding: .utf8)
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let bufferSize = 1_024
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let read = stream.read(buffer, maxLength: bufferSize)
-            if read <= 0 {
-                break
-            }
-            data.append(buffer, count: read)
-        }
-        return String(data: data, encoding: .utf8)
-    }
 }
 
 @MainActor

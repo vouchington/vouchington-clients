@@ -3,6 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 @testable import VouchaAPI
+import VouchaTestSupport
 import XCTest
 
 final class MemberMCPTokenManagerTests: XCTestCase {
@@ -396,7 +397,7 @@ private final class MCPTokenURLProtocol: URLProtocol {
     override func startLoading() {
         Self.lock.lock()
         Self.requests += 1
-        Self.capturedBody = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
+        Self.capturedBody = URLRequestHTTPBody.data(from: request)
         let status = Self.status
         let body = Self.capturedBody.flatMap { String(data: $0, encoding: .utf8) } ?? ""
         let data = body.contains("grant_type=authorization_code") ? Self.redeemData ?? Self.data : Self.data
@@ -411,19 +412,6 @@ private final class MCPTokenURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var body = Data()
-        var buffer = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            if count <= 0 { break }
-            body.append(buffer, count: count)
-        }
-        return body
-    }
 }
 
 private let testMCPScope = MemberMCPOAuthTokenScope(

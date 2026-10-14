@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 final class ImageUploadURLProtocol: URLProtocol {
     static var handlers: [String: (Data, Int)] = [:]
@@ -69,25 +70,6 @@ final class ImageUploadURLProtocol: URLProtocol {
 
     static func capturedBody(at index: Int) -> String? {
         guard capturedRequests.indices.contains(index) else { return nil }
-        let request = capturedRequests[index]
-        if let body = request.httpBody {
-            return String(data: body, encoding: .utf8)
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 1_024)
-        while stream.hasBytesAvailable {
-            let read = buffer.withUnsafeMutableBufferPointer { pointer in
-                guard let baseAddress = pointer.baseAddress else { return 0 }
-                return stream.read(baseAddress, maxLength: pointer.count)
-            }
-            if read <= 0 {
-                break
-            }
-            data.append(buffer, count: read)
-        }
-        return String(data: data, encoding: .utf8)
+        return URLRequestHTTPBody.utf8String(from: capturedRequests[index])
     }
 }

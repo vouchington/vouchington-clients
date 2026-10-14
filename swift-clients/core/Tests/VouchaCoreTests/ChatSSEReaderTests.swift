@@ -2,6 +2,7 @@ import Foundation
 @testable import VouchaAPI
 @testable import VouchaCore
 @testable import VouchaModels
+import VouchaTestSupport
 import XCTest
 
 final class ChatSSEReaderTests: XCTestCase {
@@ -379,29 +380,8 @@ private final class EventStreamURLProtocol: URLProtocol {
     ) -> (data: Data, status: Int, contentType: String) {
         lock.lock()
         defer { lock.unlock() }
-        capturedBodies.append(capturedBody(from: request))
+        capturedBodies.append(URLRequestHTTPBody.utf8String(from: request))
         capturedHeaders.append(request.allHTTPHeaderFields ?? [:])
         return handlers[path] ?? (Data("{}".utf8), 200, "text/event-stream")
-    }
-
-    private static func capturedBody(from request: URLRequest) -> String? {
-        if let body = request.httpBody {
-            return String(data: body, encoding: .utf8)
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let bufferSize = 1_024
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let read = stream.read(buffer, maxLength: bufferSize)
-            if read <= 0 {
-                break
-            }
-            data.append(buffer, count: read)
-        }
-        return String(data: data, encoding: .utf8)
     }
 }

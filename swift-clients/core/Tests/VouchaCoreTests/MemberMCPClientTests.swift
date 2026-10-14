@@ -4,6 +4,7 @@ import Foundation
 #endif
 @testable import VouchaAPI
 import VouchaModels
+import VouchaTestSupport
 import XCTest
 
 final class MemberMCPClientTests: XCTestCase {
@@ -435,7 +436,7 @@ final class MCPTestURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.lock.lock()
-        let body = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
+        let body = URLRequestHTTPBody.data(from: request)
         let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
         if let method { Self.methods.append(method) }
@@ -483,18 +484,5 @@ final class MCPTestURLProtocol: URLProtocol {
         Self.lock.lock()
         if Self.holdToolResponse { Self.heldResponseStopped = true }
         Self.lock.unlock()
-    }
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var bytes = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&bytes, maxLength: bytes.count)
-            if count <= 0 { break }
-            data.append(bytes, count: count)
-        }
-        return data
     }
 }

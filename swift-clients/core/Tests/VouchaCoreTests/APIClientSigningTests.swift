@@ -3,6 +3,7 @@ import Foundation
 @testable import VouchaAPI
 @testable import VouchaAuth
 @testable import VouchaCore
+import VouchaTestSupport
 import XCTest
 
 private final class StubRequestSigner: RequestSigning, @unchecked Sendable {
@@ -202,7 +203,7 @@ private final class BodyCapturingURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
-        Self.capturedBodies.append(capturedBody(from: request))
+        Self.capturedBodies.append(URLRequestHTTPBody.utf8String(from: request))
         let response = HTTPURLResponse(
             url: request.url!,
             statusCode: 200,
@@ -215,28 +216,6 @@ private final class BodyCapturingURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
-
-    private func capturedBody(from request: URLRequest) -> String? {
-        if let body = request.httpBody {
-            return String(data: body, encoding: .utf8)
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 1_024)
-        while stream.hasBytesAvailable {
-            let read = buffer.withUnsafeMutableBufferPointer { pointer in
-                guard let baseAddress = pointer.baseAddress else { return 0 }
-                return stream.read(baseAddress, maxLength: pointer.count)
-            }
-            if read <= 0 {
-                break
-            }
-            data.append(buffer, count: read)
-        }
-        return String(data: data, encoding: .utf8)
-    }
 }
 
 private final class BodyCapturingSignerWrapper: RequestSigning, @unchecked Sendable {
