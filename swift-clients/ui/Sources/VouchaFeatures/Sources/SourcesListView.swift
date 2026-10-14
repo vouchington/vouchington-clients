@@ -6,14 +6,14 @@ import VouchaModels
 /// A source list for one scope (Your Sources or All Sources).
 ///
 /// The `scope` parameter drives which scope is active on the view model via
-/// `.task(id: scope)`. The caller (macOS: NavigationSplitView column 2; iOS: toolbar
+/// `.task(id:)`. The caller (macOS: NavigationSplitView column 2; iOS: toolbar
 /// picker in VerticalContainerView) is responsible for switching the scope.
 public struct SourcesListView: View {
     @Environment(\.locale)
     var nativeUiLocale
     @Bindable
     public var viewModel: SourcesListViewModel
-    /// The scope to display. When this changes, `.task(id: scope)` re-fires and loads.
+    /// The scope to display. Scope and viewer-tier changes refetch the current rows.
     public let scope: SourceScope
     public let navigationTitle: String
     public let isSignedIn: Bool
@@ -55,9 +55,9 @@ public struct SourcesListView: View {
             }
         }
         .navigationTitle(navigationTitle)
-        .task(id: scope) {
+        .task(id: SourceLoadIdentity(scope: scope, isStaffViewer: isStaffViewer)) {
             viewModel.scope = scope
-            await viewModel.load()
+            await viewModel.reload()
         }
         .refreshable { await viewModel.reload() }
     }
@@ -140,4 +140,9 @@ public struct SourcesListView: View {
         case .all: .message(.nativeSwiftEmptyStateNoSourcesAvailableMessage)
         }
     }
+}
+
+struct SourceLoadIdentity: Hashable {
+    let scope: SourceScope
+    let isStaffViewer: Bool
 }

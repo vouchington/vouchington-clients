@@ -4,6 +4,7 @@ namespace Voucha.Client.App.Pages;
 
 public abstract partial class CommunitySectionPage
 {
+  private bool lastLoadedAsStaff;
   private readonly Label staffChannelLabel = new() { AutomationId = "CommunitySectionStaffChannel" };
   private readonly Label staffClientLabel = new() { AutomationId = "CommunitySectionStaffClient" };
   private readonly Label staffVerificationLabel = new() { AutomationId = "CommunitySectionStaffVerification" };
@@ -16,8 +17,21 @@ public abstract partial class CommunitySectionPage
     if (!string.IsNullOrWhiteSpace(Slug))
     {
       await LoadAsync(Slug).ConfigureAwait(true);
+      lastLoadedAsStaff = IsStaffViewer();
     }
   }
+
+  private async Task RefreshAfterSessionChangedAsync()
+  {
+    Render();
+    if (lastLoadedAsStaff == IsStaffViewer() || string.IsNullOrWhiteSpace(Slug)) return;
+    var requestedAsStaff = IsStaffViewer();
+    await LoadAsync(Slug).ConfigureAwait(true);
+    lastLoadedAsStaff = requestedAsStaff;
+  }
+
+  private bool IsStaffViewer() => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
 
   protected override void OnDisappearing()
   {
@@ -28,8 +42,7 @@ public abstract partial class CommunitySectionPage
   private void RenderStaffProvenance()
   {
     var staff = viewModel.Community?.StaffProvenance;
-    var isStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
-        role is "administrator" or "moderator") == true;
+    var isStaffViewer = IsStaffViewer();
     staffChannelLabel.Text = StaffProvenanceLabels.Channel(staff, isStaffViewer, UiCopy.CurrentLocalization);
     staffClientLabel.Text = StaffProvenanceLabels.Client(staff, isStaffViewer, true, UiCopy.CurrentLocalization);
     staffVerificationLabel.Text = StaffProvenanceLabels.Verification(staff, isStaffViewer, true, UiCopy.CurrentLocalization);

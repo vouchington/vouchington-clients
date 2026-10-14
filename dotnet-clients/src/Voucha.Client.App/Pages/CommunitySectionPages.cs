@@ -43,7 +43,7 @@ public abstract partial class CommunitySectionPage : ContentPage
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(Render);
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     this.section = section;
     this.serviceProvider = serviceProvider;
     paginationControl = new HybridPaginationControl

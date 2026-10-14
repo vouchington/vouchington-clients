@@ -23,7 +23,7 @@ public sealed class CommunityBrowsePage : ContentPage
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
     lastSearchWasStaff = IsStaffViewer();
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(Render);
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunities.Value);
     viewModel.PropertyChanged += OnPropertyChanged;
@@ -105,6 +105,12 @@ public sealed class CommunityBrowsePage : ContentPage
     await viewModel.SearchAsync().ConfigureAwait(true);
     if (viewModel.State == LoadState.Loaded) lastSearchWasStaff = requestedAsStaff;
     Render();
+  }
+
+  private async Task RefreshAfterSessionChangedAsync()
+  {
+    Render();
+    if (lastSearchWasStaff != IsStaffViewer()) await RunSearchAsync().ConfigureAwait(true);
   }
 
   private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e) => Render();

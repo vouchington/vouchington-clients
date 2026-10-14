@@ -29,12 +29,14 @@ public sealed partial class CommunityDetailPage : ContentPage
   private readonly VerticalStackLayout membersLayout = new() { Spacing = 6 };
   private readonly VerticalStackLayout postsLayout = new() { Spacing = 6 };
   private string? slug;
+  private bool lastLoadedAsStaff;
 
   public CommunityDetailPage(CommunityDetailViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(Render);
+    lastLoadedAsStaff = IsStaffViewer();
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunities.Value);
     viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -114,9 +116,20 @@ public sealed partial class CommunityDetailPage : ContentPage
       return;
     }
 
+    var requestedAsStaff = IsStaffViewer();
     await viewModel.LoadAsync(nextSlug).ConfigureAwait(true);
+    lastLoadedAsStaff = requestedAsStaff;
     Render();
   }
+
+  private async Task RefreshAfterSessionChangedAsync()
+  {
+    Render();
+    if (lastLoadedAsStaff != IsStaffViewer()) await LoadCurrentSlugAsync().ConfigureAwait(true);
+  }
+
+  private bool IsStaffViewer() => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
 
   private async Task MutateAsync(Func<CancellationToken, Task<bool>> action)
   {
@@ -132,8 +145,7 @@ public sealed partial class CommunityDetailPage : ContentPage
     provenanceLabel.Text = PublicProvenanceLabels.Resolve(viewModel.Community?.Provenance, UiCopy.CurrentLocalization);
     provenanceLabel.IsVisible = provenanceLabel.Text is not null;
     var staff = viewModel.Community?.StaffProvenance;
-    var isStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
-        role is "administrator" or "moderator") == true;
+    var isStaffViewer = IsStaffViewer();
     staffChannelLabel.Text = StaffProvenanceLabels.Channel(staff, isStaffViewer, UiCopy.CurrentLocalization);
     staffClientLabel.Text = StaffProvenanceLabels.Client(staff, isStaffViewer, true, UiCopy.CurrentLocalization);
     staffVerificationLabel.Text = StaffProvenanceLabels.Verification(staff, isStaffViewer, true, UiCopy.CurrentLocalization);
