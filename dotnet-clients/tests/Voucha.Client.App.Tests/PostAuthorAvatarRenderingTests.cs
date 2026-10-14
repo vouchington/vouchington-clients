@@ -33,6 +33,8 @@ public sealed class PostAuthorAvatarRenderingTests
     rootProperty.SetValue(binding, Row(Post(Author(Placement))));
     Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
+    AssertDecorative(image);
+    Assert.Contains(Descendants<Label>(page), label => label.Text == "Alice");
 
     foreach (var post in new[]
     {
@@ -79,6 +81,14 @@ public sealed class PostAuthorAvatarRenderingTests
     template.BindingContext = Row(Post(Author(Placement)));
     Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
+    AssertDecorative(image);
+    Assert.Contains(Descendants<Label>(template), label => label.Text == "Alice");
+  }
+
+  private static void AssertDecorative(Image image)
+  {
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    Assert.Null(SemanticProperties.GetDescription(image));
   }
 
   private static void AssertNoAvatar(Image image)

@@ -32,7 +32,7 @@
                             HeightRequest="28"
                             Aspect="AspectFill"
                             IsVisible="{Binding RootRow.HasAuthorImage}"
-                            SemanticProperties.Description="{Binding RootRow.AuthorText}"
+                            AutomationProperties.IsInAccessibleTree="False"
                             Source="{Binding RootRow.AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
                         <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" VerticalTextAlignment="Center" />
                     </HorizontalStackLayout>
@@ -120,7 +120,7 @@
                                         HeightRequest="24"
                                         Aspect="AspectFill"
                                         IsVisible="{Binding HasAuthorImage}"
-                                        SemanticProperties.Description="{Binding AuthorText}"
+                                        AutomationProperties.IsInAccessibleTree="False"
                                         Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
@@ -173,7 +173,7 @@
                                         HeightRequest="24"
                                         Aspect="AspectFill"
                                         IsVisible="{Binding HasAuthorImage}"
-                                        SemanticProperties.Description="{Binding AuthorText}"
+                                        AutomationProperties.IsInAccessibleTree="False"
                                         Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />

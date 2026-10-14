@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -8,6 +9,7 @@ struct CommentThreadPostSection: View {
     private var nativeUiLocale
     let title: UiVerbatimText
     let post: Post
+    var imageConfig: AppConfig = .shared
     let embed: UrlEmbed?
     let pathText: String
     let voteChoice: ElectionVoteChoice?
@@ -44,7 +46,7 @@ struct CommentThreadPostSection: View {
                     if isRoot {
                         if showsAuthorAvatar, let username = post.createdBy?.username {
                             HStack(spacing: Spacing.xs) {
-                                PostAuthorAvatar(post: post)
+                                PostAuthorAvatar(post: post, imageConfig: imageConfig)
                                 Text(verbatim: username)
                                     .font(Typography.caption)
                             }
@@ -52,7 +54,7 @@ struct CommentThreadPostSection: View {
                         postTitle
                     } else {
                         HStack(spacing: Spacing.xs) {
-                            PostAuthorAvatar(post: post)
+                            PostAuthorAvatar(post: post, imageConfig: imageConfig)
                             postTitle
                         }
                     }

@@ -18,6 +18,7 @@ extension NativeCommentThreadSurface {
                             ?? rootPost.slug.map(UiVerbatimText.verbatim)
                             ?? .message(.nativeSwiftPresentationValuesCommentThread),
                         post: rootPost,
+                        imageConfig: imageConfig,
                         embed: viewModel.postEmbedsByPostId[rootPost.id],
                         pathText: "/\(threadRootType(rootPost))/\(viewModel.rootPostId)",
                         voteChoice: viewModel.voteChoicesByPostId[rootPost.id],
@@ -69,6 +70,7 @@ extension NativeCommentThreadSurface {
                                 CommentThreadPostSection(
                                     title: authorName(for: post),
                                     post: post,
+                                    imageConfig: imageConfig,
                                     embed: viewModel.postEmbedsByPostId[post.id],
                                     pathText: "/\(threadRootType(rootPost))/\(viewModel.rootPostId)/comment/\(post.id)",
                                     voteChoice: viewModel.voteChoicesByPostId[post.id],
@@ -109,6 +111,7 @@ extension NativeCommentThreadSurface {
                             ForEach(viewModel.commentTree) { node in
                                 NativeCommentThreadNodeView(
                                     node: node,
+                                    imageConfig: imageConfig,
                                     rootPostId: viewModel.rootPostId,
                                     rootPostType: threadRootType(rootPost),
                                     depth: 0,

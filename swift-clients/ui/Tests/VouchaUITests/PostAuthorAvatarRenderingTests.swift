@@ -56,6 +56,46 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
         }
     }
 
+    func testThreadUsesActiveClientImageHostAndHidesDecorativeAvatarFromAccessibility() throws {
+        let decoder = fixtureDecoder()
+        let root = try decoder.decode(
+            PostEnvelope.self,
+            from: ApiFixtureLoader.data("native.comments.post-detail.default")
+        ).post
+        let descendants = try decoder.decode(
+            PostThreadEnvelope.self,
+            from: ApiFixtureLoader.data("native.comments.descendants.default")
+        )
+        let ancestors = try decoder.decode(
+            PostThreadEnvelope.self,
+            from: ApiFixtureLoader.data("native.comments.ancestors.permalink")
+        )
+        let imageHost = try XCTUnwrap(URL(string: "https://images.self-hosted.example"))
+        let config = try AppConfig(
+            baseURL: XCTUnwrap(URL(string: "https://api.self-hosted.example")),
+            imageBaseURL: imageHost
+        )
+        let client = APIClient(config: config, protocolClasses: [])
+        let surface = NativeCommentThreadSurface(
+            client: client,
+            routeMatch: nil,
+            isSignedIn: false,
+            showSignIn: {}
+        )
+        surface.viewModel.rootPost = root
+        surface.viewModel.ancestorPosts = try [XCTUnwrap(ancestors.posts["comment-a"])]
+        surface.viewModel.commentTree = try [
+            NativeCommentThreadNode(post: XCTUnwrap(descendants.posts["comment-a"]))
+        ]
+
+        let images = try surface.inspect().findAll(ViewType.View<AsyncImageView>.self)
+        XCTAssertEqual(images.count, 3)
+        for image in images {
+            XCTAssertTrue(try image.accessibilityHidden())
+            XCTAssertTrue(try XCTUnwrap(image.actualView().resolvedURLString).hasPrefix(imageHost.absoluteString))
+        }
+    }
+
     private func fixtureDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -68,10 +108,16 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
         XCTAssertEqual(try image.actualView().resolvedURLString, expectedURL, file: file, line: line)
     }
 
-    private func section(for post: Post, isRoot: Bool, title: String) -> CommentThreadPostSection {
+    private func section(
+        for post: Post,
+        isRoot: Bool,
+        title: String,
+        imageConfig: AppConfig = .shared
+    ) -> CommentThreadPostSection {
         CommentThreadPostSection(
             title: .verbatim(title),
             post: post,
+            imageConfig: imageConfig,
             embed: nil,
             pathText: "/discussion/root/comment/\(post.id)",
             voteChoice: nil,
