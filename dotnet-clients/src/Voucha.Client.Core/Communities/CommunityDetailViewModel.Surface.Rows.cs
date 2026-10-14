@@ -68,12 +68,30 @@ public sealed partial class CommunityDetailViewModel
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.Moderation:
+        var requestCommunity = communityIdOrSlug;
+        var requestRevision = Volatile.Read(ref communityContextRevision);
         var statsTask = LoadModeratorStatsIfAvailableAsync(cancellationToken);
-        await Task.WhenAll(
-            statsTask,
-            LoadModerationQueueAsync(cancellationToken),
-            LoadAutomodFlagsAsync(cancellationToken),
-            LoadPendingReportsAsync(cancellationToken)).ConfigureAwait(true);
+        try
+        {
+          await Task.WhenAll(
+              statsTask,
+              LoadModerationQueueAsync(cancellationToken),
+              LoadAutomodFlagsAsync(cancellationToken),
+              LoadPendingReportsAsync(cancellationToken)).ConfigureAwait(true);
+        }
+        catch (HttpRequestException) when (!IsCurrentModeratorStatsContext(requestCommunity, requestRevision))
+        {
+          return true;
+        }
+        catch (InvalidOperationException) when (!IsCurrentModeratorStatsContext(requestCommunity, requestRevision))
+        {
+          return true;
+        }
+        catch (OperationCanceledException) when (!IsCurrentModeratorStatsContext(requestCommunity, requestRevision))
+        {
+          return true;
+        }
+        if (!IsCurrentModeratorStatsContext(requestCommunity, requestRevision)) return true;
         var stats = await statsTask.ConfigureAwait(true);
         var users = stats?.Users;
         Moderation = [
@@ -99,6 +117,11 @@ public sealed partial class CommunityDetailViewModel
         return false;
     }
   }
+
+  private bool IsCurrentModeratorStatsContext(string community, long revision) =>
+      string.Equals(communityIdOrSlug, community, StringComparison.Ordinal) &&
+      revision == Volatile.Read(ref communityContextRevision) &&
+      SelectedSection == CommunityDetailSurfaceSection.Moderation;
 
   private async Task<CommunityModeratorStatsResponse?> LoadModeratorStatsIfAvailableAsync(
       CancellationToken cancellationToken)

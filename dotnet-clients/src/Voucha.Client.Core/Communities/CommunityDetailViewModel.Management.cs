@@ -64,7 +64,11 @@ public sealed partial class CommunityDetailViewModel
 
   public async Task LoadModerationQueueAsync(CancellationToken cancellationToken = default)
   {
-    var response = await service.FetchModerationQueuePageAsync(communityIdOrSlug, null, 20, cancellationToken).ConfigureAwait(true);
+    var community = communityIdOrSlug;
+    var revision = Volatile.Read(ref communityContextRevision);
+    var response = await service.FetchModerationQueuePageAsync(community, null, 20, cancellationToken).ConfigureAwait(true);
+    if (!string.Equals(communityIdOrSlug, community, StringComparison.Ordinal) ||
+        revision != Volatile.Read(ref communityContextRevision)) return;
     ModerationRows = response.Entries.Select(CommunityModerationRow.FromQueueEntry).ToArray();
     OnPropertyChanged(nameof(ModerationRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);
