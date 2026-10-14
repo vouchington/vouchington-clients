@@ -1,5 +1,6 @@
 import Foundation
 import ViewInspector
+import VouchaAPI
 import VouchaCore
 import VouchaDesignSystem
 @testable import VouchaFeatures
@@ -8,11 +9,20 @@ import XCTest
 @MainActor
 final class PublicTopicImageRenderingTests: NativeRouteSurfaceViewModelTestCase {
     func testPublicTopicListAndDetailRenderClaimedPlacementFixtures() async throws {
+        let config = try AppConfig(
+            baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
+            imageBaseURL: XCTUnwrap(URL(string: "https://topic-cdn.self-hosted.example"))
+        )
+        let client = APIClient(
+            config: config,
+            cookieStorage: HTTPCookieStorage(),
+            protocolClasses: [CannedFeedURLProtocol.self]
+        )
         CannedFeedURLProtocol.handlers["/api/v1/topics"] = (
             ApiFixtureLoader.data("web.topics.search.default"), 200
         )
         let listViewModel = try NativeRouteSurfaceViewModel(
-            entry: entry(for: .topicsBrowse), client: makeClient()
+            entry: entry(for: .topicsBrowse), client: client
         )
 
         await listViewModel.load()
@@ -26,7 +36,7 @@ final class PublicTopicImageRenderingTests: NativeRouteSurfaceViewModelTestCase 
         )
         let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/test-topic/posts")?.match)
         let detailViewModel = try NativeRouteSurfaceViewModel(
-            entry: entry(for: .topicDetail), client: makeClient(), routeMatch: match
+            entry: entry(for: .topicDetail), client: client, routeMatch: match
         )
 
         await detailViewModel.load()
@@ -90,7 +100,7 @@ final class PublicTopicImageRenderingTests: NativeRouteSurfaceViewModelTestCase 
     ) throws {
         XCTAssertEqual(
             row.imageURL,
-            "https://images.voucha.ai/images/placements/00000000-0000-7000-8000-000000000306/3/00000000-0000-7000-8000-000000000205?w=96",
+            "https://topic-cdn.self-hosted.example/images/placements/00000000-0000-7000-8000-000000000306/3/00000000-0000-7000-8000-000000000205?w=96",
             file: file,
             line: line
         )
