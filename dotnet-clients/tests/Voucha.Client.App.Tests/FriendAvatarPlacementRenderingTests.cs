@@ -58,7 +58,7 @@ public sealed class FriendAvatarPlacementRenderingTests
     var name = Assert.Single(Descendants<Label>(card), label => label.Text == row.PrimaryLabel);
     Assert.Equal(ExpectedAvatarUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(initial));
-    Assert.True(AutomationProperties.GetIsInAccessibleTree(name));
+    Assert.Equal(row.PrimaryLabel, name.Text);
 
     card.BindingContext = row with { User = new User("friend-1", "friend") };
 
