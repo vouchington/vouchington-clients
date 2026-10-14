@@ -33,7 +33,11 @@
                             Aspect="AspectFill"
                             IsVisible="{Binding RootRow.HasAuthorImage}"
                             AutomationProperties.IsInAccessibleTree="False"
-                            Source="{Binding RootRow.AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
+                            Source="{Binding RootRow.AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                            <Image.Clip>
+                                <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14" />
+                            </Image.Clip>
+                        </Image>
                         <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" VerticalTextAlignment="Center" />
                     </HorizontalStackLayout>
                     <Label Text="{Binding RootRow.AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
@@ -121,7 +125,11 @@
                                         Aspect="AspectFill"
                                         IsVisible="{Binding HasAuthorImage}"
                                         AutomationProperties.IsInAccessibleTree="False"
-                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                                        <Image.Clip>
+                                            <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
+                                        </Image.Clip>
+                                    </Image>
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
@@ -174,7 +182,11 @@
                                         Aspect="AspectFill"
                                         IsVisible="{Binding HasAuthorImage}"
                                         AutomationProperties.IsInAccessibleTree="False"
-                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}" />
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                                        <Image.Clip>
+                                            <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
+                                        </Image.Clip>
+                                    </Image>
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />

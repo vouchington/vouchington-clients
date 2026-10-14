@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
@@ -34,6 +35,7 @@ public sealed class PostAuthorAvatarRenderingTests
     Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
     AssertDecorative(image);
+    AssertCircular(image, 14);
     Assert.Contains(Descendants<Label>(page), label => label.Text == "Alice");
 
     foreach (var post in new[]
@@ -82,6 +84,7 @@ public sealed class PostAuthorAvatarRenderingTests
     Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
     AssertDecorative(image);
+    AssertCircular(image, 12);
     Assert.Contains(Descendants<Label>(template), label => label.Text == "Alice");
   }
 
@@ -89,6 +92,15 @@ public sealed class PostAuthorAvatarRenderingTests
   {
     Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
     Assert.Null(SemanticProperties.GetDescription(image));
+  }
+
+  private static void AssertCircular(Image image, double radius)
+  {
+    var clip = Assert.IsType<EllipseGeometry>(image.Clip);
+    Assert.Equal(radius, clip.Center.X);
+    Assert.Equal(radius, clip.Center.Y);
+    Assert.Equal(radius, clip.RadiusX);
+    Assert.Equal(radius, clip.RadiusY);
   }
 
   private static void AssertNoAvatar(Image image)

@@ -44,10 +44,10 @@ struct CommentThreadPostSection: View {
                 }
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     if isRoot {
-                        if showsAuthorAvatar, let username = post.createdBy?.username {
+                        if showsAuthorAvatar {
                             HStack(spacing: Spacing.xs) {
                                 PostAuthorAvatar(post: post, imageConfig: imageConfig)
-                                Text(verbatim: username)
+                                Text(UiMessages.string(authorName, locale: nativeUiLocale))
                                     .font(Typography.caption)
                             }
                         }
@@ -112,6 +112,12 @@ struct CommentThreadPostSection: View {
 
     private var showsAuthorAvatar: Bool {
         post.deletedAt == nil && !post.isAnonymous && post.createdBy != nil
+    }
+
+    private var authorName: UiVerbatimText {
+        post.createdBy?.username.map(UiVerbatimText.verbatim)
+            ?? post.createdById.map(UiVerbatimText.verbatim)
+            ?? .message(.nativeSwiftPresentationValuesDeleted)
     }
 
     private var postTitle: some View {

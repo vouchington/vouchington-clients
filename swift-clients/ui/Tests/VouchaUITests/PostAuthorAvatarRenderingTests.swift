@@ -56,6 +56,45 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
         }
     }
 
+    func testRootBylineFallsBackToCreatedByIdWhenUsernameIsMissing() throws {
+        let author = try fixtureDecoder().decode(
+            PublicUser.self,
+            from: Data(
+                """
+                {"id":"author-id","profile_image_placement":{"image_id":"00000000-0000-7000-8000-000000000201","placement_id":"00000000-0000-7000-8000-000000000301","placement_revision":2}}
+                """.utf8
+            )
+        )
+        let post = Post(
+            id: "post-without-username",
+            slug: nil,
+            postType: .discussion,
+            title: "Root post",
+            markdown: nil,
+            html: nil,
+            parentId: nil,
+            rootId: "post-without-username",
+            createdById: "author-id",
+            createdAt: Date(),
+            broadcast: .everyone,
+            privacy: .public,
+            isAnonymous: false,
+            communityId: nil,
+            clearanceStatus: nil,
+            createdBy: author
+        )
+
+        let rendered = try section(for: post, isRoot: true, title: "Root post")
+            .environment(\.locale, Locale(identifier: "en"))
+            .inspect()
+
+        XCTAssertNoThrow(try rendered.find(text: "author-id"))
+        XCTAssertEqual(
+            try rendered.find(ViewType.View<AsyncImageView>.self).actualView().resolvedURLString,
+            expectedURL
+        )
+    }
+
     func testThreadUsesActiveClientImageHostAndHidesDecorativeAvatarFromAccessibility() throws {
         let decoder = fixtureDecoder()
         let root = try decoder.decode(
