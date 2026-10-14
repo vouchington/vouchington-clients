@@ -40,11 +40,11 @@ public extension Endpoint {
     }
 
     static func communityInvites(idOrSlug: String, after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/communities/\(pathSegment(idOrSlug))/invites", queryItems: items)
+        pagedGet(
+            path: "/api/v1/communities/\(pathSegment(idOrSlug))/invites",
+            after: after,
+            limit: limit
+        )
     }
 
     static func revokeCommunityInvite(idOrSlug: String, inviteId: String) -> Endpoint {

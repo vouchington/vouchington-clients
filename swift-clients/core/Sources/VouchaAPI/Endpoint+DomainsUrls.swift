@@ -73,11 +73,7 @@ public extension Endpoint {
     }
 
     static func urlCrawls(urlId: String, after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/urls/\(pathSegment(urlId))/crawls", queryItems: items)
+        pagedGet(path: "/api/v1/urls/\(pathSegment(urlId))/crawls", after: after, limit: limit)
     }
 
     static func urlCrawl(urlId: String, crawlId: String) -> Endpoint {

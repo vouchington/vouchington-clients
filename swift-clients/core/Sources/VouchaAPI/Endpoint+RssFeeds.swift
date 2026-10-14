@@ -33,11 +33,7 @@ public extension Endpoint {
     }
 
     static func rssFeedCrawls(id: String, after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/rss-feeds/\(pathSegment(id))/crawls", queryItems: items)
+        pagedGet(path: "/api/v1/rss-feeds/\(pathSegment(id))/crawls", after: after, limit: limit)
     }
 
     static func rssFeedCrawl(id: String, crawlId: String) -> Endpoint {

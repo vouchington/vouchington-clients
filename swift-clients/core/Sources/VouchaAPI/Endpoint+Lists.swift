@@ -20,11 +20,7 @@ private struct ImportCommunityListBody: Encodable {
 
 public extension Endpoint {
     static func lists(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/lists", queryItems: items)
+        pagedGet(path: "/api/v1/lists", after: after, limit: limit)
     }
 
     static func createList(name: String, description: String? = nil, visibility: String = "private") -> Endpoint {
