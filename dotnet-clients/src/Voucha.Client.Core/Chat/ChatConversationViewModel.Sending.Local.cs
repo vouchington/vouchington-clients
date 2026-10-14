@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Agent;
 
 namespace Voucha.Client.Core.Chat;
 
@@ -18,11 +19,24 @@ public sealed partial class ChatConversationViewModel
   {
     ResetStreamingState();
     var streamingTokenSource = await ResetStreamingTokenAsync(cancellationToken).ConfigureAwait(true);
+    var mcpProvider = provider as IMcpLocalChatProvider;
+    var mcpSnapshot = retry?.McpSnapshot ?? mcpProvider?.ConnectedMcpSnapshot();
+    if (retry?.McpSnapshot is { } savedSnapshot &&
+        mcpProvider?.MatchesAccount(savedSnapshot.AccountId) != true)
+      throw new OperationCanceledException("MCP account is unavailable for persistence retry.");
+    using var accountTokenSource = retry is not null || mcpSnapshot is null ? null :
+        CancellationTokenSource.CreateLinkedTokenSource(streamingTokenSource.Token,
+            mcpSnapshot.AccountCancellation);
+    var generationToken = accountTokenSource?.Token ?? streamingTokenSource.Token;
+
+    EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var generation = retry is null
-        ? await provider.GenerateAssistantContentAsync(trimmed, history, streamingTokenSource.Token).ConfigureAwait(true)
+        ? await GenerateWithSnapshotAsync(provider, mcpProvider, trimmed, history, mcpSnapshot,
+            generationToken).ConfigureAwait(true)
         : null;
     if (currentRequest != Volatile.Read(ref requestId)) return false;
+    EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var body = retry?.Body ?? new CreateClientGeneratedChatBody(
         trimmed,
@@ -31,7 +45,8 @@ public sealed partial class ChatConversationViewModel
         localUserMessageId,
         localAssistantMessageId,
         generation.ModelName);
-    var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body);
+    var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot,
+        mcpSnapshot is null ? null : mcpProvider);
     pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(
@@ -43,10 +58,12 @@ public sealed partial class ChatConversationViewModel
 
     try
     {
+      EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
       await chatService.CreateClientGeneratedChatAsync(
           conversationId,
           body,
           streamingTokenSource.Token).ConfigureAwait(true);
+      EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
       if (ReferenceEquals(pendingLocalTurn, pending)) pendingLocalTurn = null;
     }
     catch
@@ -56,6 +73,20 @@ public sealed partial class ChatConversationViewModel
     }
 
     return true;
+  }
+
+  private static Task<LocalChatGenerationResult> GenerateWithSnapshotAsync(
+      ILocalChatProvider provider, IMcpLocalChatProvider? mcpProvider,
+      string message, IReadOnlyList<LocalLLMResponseInput> history,
+      MemberMcpConnectedSnapshot? snapshot, CancellationToken token) =>
+      mcpProvider is null ? provider.GenerateAssistantContentAsync(message, history, token) :
+          mcpProvider.GenerateAssistantContentAsync(message, history, snapshot, token);
+
+  private static void EnsureCurrentMcpAccount(
+      IMcpLocalChatProvider? provider, MemberMcpConnectedSnapshot? snapshot)
+  {
+    if (snapshot is not null && provider?.MatchesAccount(snapshot.AccountId) != true)
+      throw new OperationCanceledException("MCP account changed.");
   }
 
   private void ResetStreamingState() => IsStreaming = true;

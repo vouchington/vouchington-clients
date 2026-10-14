@@ -157,10 +157,15 @@ public sealed partial class MemberMcpSessionTests
     identity.SetAccount("account-a");
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
     await store.ClearEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
-    Assert.False(waiting.IsCompleted);
-    Assert.Equal(1, factory.Created);
-
-    store.ReleaseClear.SetResult();
+    var completedWhileHeld = waiting.IsCompleted;
+    var statusWhileHeld = waiting.Status;
+    var errorWhileHeld = waiting.Exception?.ToString();
+    var createdWhileHeld = factory.Created;
+    store.ReleaseClear.TrySetResult();
+    Assert.False(completedWhileHeld,
+        $"Queued connect completed while account-B cleanup was held: status={statusWhileHeld}, " +
+        $"created={createdWhileHeld}, error={errorWhileHeld}");
+    Assert.Equal(1, createdWhileHeld);
     await waiting;
     Assert.Equal(2, factory.Created);
     Assert.Equal(MemberMcpSessionStatus.Connected, session.Status);
@@ -435,56 +440,4 @@ public sealed partial class MemberMcpSessionTests
     }
   }
 
-  private sealed class FakeFactory(params TaskCompletionSource[] disconnectHolds) : IMemberMcpSessionConnectionFactory
-  {
-    public List<FakeConnection> Connections { get; } = [];
-    public int Created => Connections.Count;
-    public bool HoldConnect { get; set; }
-    public bool HoldRefresh { get; set; }
-    public bool FailConnect { get; set; }
-    public bool FailDisconnect { get; set; }
-    public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
-    {
-      var hold = Connections.Count < disconnectHolds.Length ? disconnectHolds[Connections.Count] : null;
-      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, FailDisconnect);
-      Connections.Add(connection);
-      return Task.FromResult<IMemberMcpSessionConnection>(connection);
-    }
-  }
-
-  private sealed class FakeConnection(TaskCompletionSource? disconnectHold, bool holdConnect, bool holdRefresh,
-      bool failConnect, bool failDisconnect)
-      : IMemberMcpSessionConnection
-  {
-    public bool FailRefresh { get; set; }
-    public bool UnauthorizedRefresh { get; set; }
-    public int DisconnectCalls { get; private set; }
-    public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public TaskCompletionSource RefreshEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public TaskCompletionSource ReleaseRefresh { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
-    {
-      ConnectEntered.TrySetResult();
-      if (holdConnect) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-      if (failConnect) throw new IOException("Transient discovery failure");
-      return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
-    }
-    public async Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken)
-    {
-      RefreshEntered.TrySetResult();
-      if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
-      if (UnauthorizedRefresh) throw new McpUnauthorizedException();
-      if (FailRefresh) throw new IOException("Tool discovery failed");
-      return JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
-    }
-    public async Task DisconnectAsync(CancellationToken cancellationToken)
-    {
-      DisconnectCalls++;
-      DisconnectEntered.TrySetResult();
-      if (disconnectHold is not null) await disconnectHold.Task;
-      if (failDisconnect) throw new IOException("Offline remote close");
-    }
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-  }
 }

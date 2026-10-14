@@ -1,8 +1,9 @@
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Agent;
 
 namespace Voucha.Client.Core.Chat;
 
-public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
+public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
 {
   private readonly ILocalLLMConfigurationStore configurationStore;
   private readonly ILocalLLMSecretStore secretStore;
@@ -10,6 +11,7 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
   private readonly LocalLLMFeaturePolicy featurePolicy;
   private readonly IUiLocalization localization;
   private readonly Guid profileId;
+  private readonly MemberMcpSession? mcpSession;
 
   public OpenAICompatibleLocalChatProvider(
       ILocalLLMConfigurationStore configurationStore,
@@ -17,7 +19,7 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
       OpenAICompatibleResponsesClient responsesClient,
       LocalLLMFeaturePolicy featurePolicy,
       Guid profileId,
-      IUiLocalization? localization = null)
+      IUiLocalization? localization = null, MemberMcpSession? mcpSession = null)
   {
     this.configurationStore = configurationStore ?? throw new ArgumentNullException(nameof(configurationStore));
     this.secretStore = secretStore ?? throw new ArgumentNullException(nameof(secretStore));
@@ -25,6 +27,7 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
     this.featurePolicy = featurePolicy ?? throw new ArgumentNullException(nameof(featurePolicy));
     this.profileId = profileId;
     this.localization = localization ?? UiLocalization.English;
+    this.mcpSession = mcpSession;
   }
 
   public string Id => LocalChatProviderIds.OpenAICompatible(profileId);
@@ -70,6 +73,17 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
       string message,
       IReadOnlyList<LocalLLMResponseInput> history,
       CancellationToken cancellationToken = default)
+      => await GenerateAssistantContentAsync(message, history, null, cancellationToken).ConfigureAwait(false);
+
+  public MemberMcpConnectedSnapshot? ConnectedMcpSnapshot() => mcpSession?.ConnectedSnapshot();
+
+  public bool IsCurrent(MemberMcpConnectedSnapshot snapshot) => mcpSession?.IsCurrent(snapshot) == true;
+
+  public bool MatchesAccount(string accountId) => mcpSession?.MatchesAccount(accountId) == true;
+
+  public async Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
+      string message, IReadOnlyList<LocalLLMResponseInput> history,
+      MemberMcpConnectedSnapshot? snapshot, CancellationToken cancellationToken)
   {
     ArgumentNullException.ThrowIfNull(history);
 
@@ -85,12 +99,33 @@ public sealed class OpenAICompatibleLocalChatProvider : ILocalChatProvider
     }
     var model = profile.SelectedModel
         ?? throw LocalizedException(UiMessageKey.NativeDotnetChatConversationChooseLocalModel);
-    var response = await responsesClient.GenerateAssistantContentAsync(
-        message,
-        history,
-        profile,
-        await secretStore.ReadApiKeyAsync(profileId, cancellationToken).ConfigureAwait(false),
-        cancellationToken).ConfigureAwait(false);
+    var key = await secretStore.ReadApiKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
+    string? response;
+    if (snapshot is not null)
+    {
+      var session = mcpSession ?? throw new OperationCanceledException("MCP session is unavailable.");
+      if (!session.IsCurrent(snapshot)) throw new OperationCanceledException("MCP account or catalog changed.");
+      var bridge = new MemberMcpToolBridge(snapshot.Catalog);
+      response = bridge.Tools.Count == 0
+          ? await responsesClient.GenerateAssistantContentAsync(
+              message, history, profile, key, cancellationToken).ConfigureAwait(false)
+          : await responsesClient.GenerateAssistantContentWithToolsAsync(
+          message, history, profile, key, bridge.Tools,
+          () => session.IsCurrent(snapshot),
+          (name, arguments, _) =>
+          {
+            bridge.Validate(name, arguments);
+            return Task.CompletedTask;
+          },
+          (name, arguments, token, admitted) =>
+              bridge.ExecuteAsync(name, arguments, session, snapshot, admitted, token),
+          cancellationToken).ConfigureAwait(false);
+    }
+    else
+    {
+      response = await responsesClient.GenerateAssistantContentAsync(
+          message, history, profile, key, cancellationToken).ConfigureAwait(false);
+    }
     if (string.IsNullOrWhiteSpace(response))
     {
       throw LocalizedException(UiMessageKey.NativeDotnetChatConversationLocalModelEmptyResponse);

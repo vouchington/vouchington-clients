@@ -1,6 +1,8 @@
 import Foundation
 
 extension OpenAICompatibleResponsesClient {
+    public static let maximumToolResultBytes = 1_100_000
+
     struct ToolPreflightContext {
         let model: String
         let definitions: [[String: Any]]
@@ -13,7 +15,7 @@ extension OpenAICompatibleResponsesClient {
             "model": model, "instructions": toolResultInstructions,
             "input": input, "tools": definitions,
             "parallel_tool_calls": false
-        ])
+        ], options: [.withoutEscapingSlashes])
     }
 
     static func preflight(
@@ -24,15 +26,18 @@ extension OpenAICompatibleResponsesClient {
         try Task.checkCancellation()
         try await validate(call.name, call.arguments)
         try Task.checkCancellation()
-        // The bridge returns a JSON-encoded envelope without literal control characters.
-        // Backslashes reserve the maximum outer-JSON escaping for every allowed result byte.
+        // A producer result may contain Unicode that expands during outer JSON encoding.
+        // Reserve six output bytes per allowed UTF-8 result byte without materializing it.
         let reservedInput = input + [[
             "type": "function_call_output", "call_id": call.callID,
-            "output": String(repeating: "\\", count: 256_000)
+            "output": ""
         ]]
-        guard try requestBody(
+        let emptyOutputBytes = try requestBody(
             model: context.model, input: reservedInput, definitions: context.definitions
-        ).count <= 1_000_000 else { throw LocalLLMToolLoopFailure.resultTooLarge }
+        ).count
+        guard emptyOutputBytes <= 20_000_000 - maximumToolResultBytes * 6 else {
+            throw LocalLLMToolLoopFailure.resultTooLarge
+        }
     }
 
     static func invokeTool(

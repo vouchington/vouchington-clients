@@ -5,6 +5,8 @@ namespace Voucha.Client.Core.Agent;
 /// <summary>Collects the server's bounded, opaque-cursor MCP catalog before publication.</summary>
 internal static class MemberMcpToolCatalog
 {
+  internal const int MaximumTools = 128;
+
   public static async Task<JsonElement> ListAllAsync(
       Func<string?, CancellationToken, Task<JsonElement>> request,
       CancellationToken cancellationToken)
@@ -20,7 +22,7 @@ internal static class MemberMcpToolCatalog
       var page = await request(cursor, cancellationToken).ConfigureAwait(false);
       if (page.ValueKind != JsonValueKind.Object ||
           !page.TryGetProperty("tools", out var pageTools) || pageTools.ValueKind != JsonValueKind.Array ||
-          tools.Count + pageTools.GetArrayLength() > 1_024)
+          tools.Count + pageTools.GetArrayLength() > MaximumTools)
         throw new InvalidDataException("Invalid MCP tool catalog.");
       result ??= page.EnumerateObject().ToDictionary(
           property => property.Name, property => (object?)property.Value.Clone(), StringComparer.Ordinal);

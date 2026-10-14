@@ -2,6 +2,7 @@ import Foundation
 import VouchaAPI
 import VouchaCore
 @testable import VouchaFeatures
+import VouchaLocalization
 @testable import VouchaModels
 import XCTest
 
@@ -171,14 +172,13 @@ final class NativeChatPendingTurnReviewTests: NativeRouteSurfaceViewModelTestCas
         )
         viewModel.selectedConversationId = "conversation-1"
         viewModel.draftMessage = "Mutate once"
-
         await viewModel.sendDraftMessage()
 
         XCTAssertTrue(provider.receivedMcpSnapshot)
         XCTAssertEqual(viewModel.draftMessage, "")
         XCTAssertTrue(viewModel.messages.isEmpty)
         XCTAssertNil(viewModel.pendingLocalTurn)
-        XCTAssertNotNil(viewModel.streamErrorMessage)
+        XCTAssertEqual(viewModel.streamErrorMessage, .message(.sharedChatMcpPossibleSideEffect))
         XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
             $0.url.path.hasSuffix("/client-generated-chat")
         })

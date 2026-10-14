@@ -3,6 +3,16 @@ import VouchaModels
 
 @MainActor
 enum NativeChatMCPToolCatalog {
+    nonisolated static let maximumTools = 128
+
+    static func validatedCapacity(_ catalog: DecodedJSONValue) throws -> DecodedJSONValue {
+        guard case let .object(result) = catalog,
+              case let .array(tools)? = result["tools"], tools.count <= maximumTools else {
+            throw NativeChatMCPNetworkService.Failure.invalidToolCatalog
+        }
+        return catalog
+    }
+
     static func listAll(
         authorized: MemberMCPAuthorizedClient,
         assertCurrent: () throws -> Void
@@ -16,7 +26,7 @@ enum NativeChatMCPToolCatalog {
             try assertCurrent()
             guard case let .object(result) = page,
                   case let .array(tools)? = result["tools"],
-                  allTools.count + tools.count <= 1_024
+                  allTools.count + tools.count <= maximumTools
             else { throw NativeChatMCPNetworkService.Failure.invalidToolCatalog }
             if firstPage == nil { firstPage = result }
             allTools.append(contentsOf: tools)

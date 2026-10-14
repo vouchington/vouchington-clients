@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -31,26 +32,21 @@ public sealed partial class ChatConversationViewModel
     ArgumentNullException.ThrowIfNull(message);
     var trimmed = message.Trim();
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
-
-    var selectedProvider = SelectedProviderStatus;
+    if (RejectConflictingCompletedMcpTurn(trimmed)) return false;
+    if (blockedToolRetryText == trimmed) return false;
+    blockedToolRetryText = null;
+    var selectedProvider = ProviderForPendingMcpRetry(trimmed);
     ILocalChatProvider selectedLocalProvider;
     try
     {
-      if (providerResolver is ILocalChatProviderResolver localResolver)
+      var resolvedProvider = LocalProviderForSend(trimmed, selectedProvider);
+      if (resolvedProvider is null)
       {
-        var resolvedProvider = localResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty);
-        if (resolvedProvider is null)
-        {
-          ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
-          State = LoadState.Error;
-          return false;
-        }
-        selectedLocalProvider = resolvedProvider;
+        ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
+        State = LoadState.Error;
+        return false;
       }
-      else
-      {
-        selectedLocalProvider = localChatProvider;
-      }
+      selectedLocalProvider = resolvedProvider;
       selectedProvider = selectedLocalProvider.Status;
       SelectedProviderStatus = selectedProvider;
     }
@@ -60,9 +56,9 @@ public sealed partial class ChatConversationViewModel
       State = LoadState.Error;
       return false;
     }
-
     var conversationId = ConversationId;
-    var retry = RetryableTurn(conversationId, trimmed, selectedProvider);
+    if (RejectInvalidatedCompletedMcpAccount(trimmed, selectedLocalProvider)) return false;
+    var retry = RetryableTurn(conversationId, trimmed, selectedProvider, selectedLocalProvider);
     if (retry is null && !selectedProvider.IsAvailable)
     {
       ErrorMessage = selectedProvider.StatusText;
@@ -90,7 +86,7 @@ public sealed partial class ChatConversationViewModel
         Title = created.Conversation.Title;
       }
 
-      if (providerResolver is ILocalChatProviderResolver refreshedResolver)
+      if (retry is null && providerResolver is ILocalChatProviderResolver refreshedResolver)
       {
         selectedLocalProvider = refreshedResolver.GetLocalProvider(selectedProvider.ModelProvider ?? string.Empty)
             ?? throw new InvalidOperationException(
@@ -135,6 +131,12 @@ public sealed partial class ChatConversationViewModel
       State = LoadState.Loaded;
       return true;
     }
+    catch (PossibleMcpToolSideEffectException)
+    {
+      HandlePossibleToolSideEffect(currentRequest, localAssistantMessageId,
+          assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
+      return false;
+    }
     catch (OperationCanceledException)
     {
       if (currentRequest == Volatile.Read(ref requestId))
@@ -156,7 +158,9 @@ public sealed partial class ChatConversationViewModel
 
       return false;
     }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
+    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or
+        InvalidDataException or McpUnauthorizedException or McpRateLimitException or McpRpcException or
+        System.Text.Json.JsonException)
     {
       if (currentRequest == Volatile.Read(ref requestId))
       {
@@ -168,7 +172,10 @@ public sealed partial class ChatConversationViewModel
           }
           if (userMessageInserted) RemoveLocalMessage(localUserMessageId);
         }
-        ErrorMessage = ex.Message;
+        var isMcpProvider = selectedLocalProvider is IMcpLocalChatProvider;
+        var hasMcpSnapshot = selectedLocalProvider is IMcpLocalChatProvider mcp &&
+            (retry?.McpSnapshot is not null || mcp.ConnectedMcpSnapshot() is not null);
+        ErrorMessage = PresentSendError(ex, isMcpProvider, hasMcpSnapshot);
         State = LoadState.Error;
       }
 

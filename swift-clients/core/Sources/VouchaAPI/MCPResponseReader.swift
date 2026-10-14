@@ -19,7 +19,8 @@ struct MCPInitializationResult: Decodable {
 }
 
 enum MCPResponseReader {
-    private static let maximumBodyBytes = 1_024 * 1_024
+    /// The producer permits a 1 MiB result; leave room for its JSON-RPC wrapper.
+    private static let maximumBodyBytes = 1_100_000
 
     static func read<Result: Decodable & Sendable>(
         _ lines: AsyncThrowingStream<String, Error>, contentType: String?, id: String,

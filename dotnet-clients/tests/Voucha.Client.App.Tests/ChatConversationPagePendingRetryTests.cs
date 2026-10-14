@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Chat;
 using Voucha.Client.Core.Support;
 using Xunit;
@@ -12,8 +13,84 @@ using Xunit;
 namespace Voucha.Client.App.Tests;
 
 [Collection(MauiPageTestCollection.Name)]
-public sealed class ChatConversationPagePendingRetryTests
+public sealed partial class ChatConversationPagePendingRetryTests
 {
+  [Fact]
+  public async Task RoutingTheSamePageToAnotherConversationClearsTheRestoredComposer()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+    var service = new AmbiguousFirstTurnService();
+    var provider = new AvailableProvider();
+    var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
+    var page = new ChatConversationPage(viewModel, service);
+    var editor = Assert.Single(Descendants<Editor>(page));
+    editor.Text = "Mutate once";
+    Assert.False(await viewModel.TrySendAsync(editor.Text, TestContext.Current.CancellationToken));
+    editor.Text = "Mutate once, edited";
+
+    await page.ApplyRouteAsync("conversation-2", "Other");
+
+    Assert.Equal(string.Empty, editor.Text);
+    Assert.Equal("conversation-2", viewModel.ConversationId);
+    Assert.Single(service.Attempts);
+  }
+
+  [Fact]
+  public async Task MountedAndReturningChatPageClearsThePreviousMembersComposer()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+    var service = new AmbiguousFirstTurnService();
+    var provider = new AvailableProvider();
+    var session = new MutableSessionStore(new(new User("member-a", "a")));
+    var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
+    var page = new ChatConversationPage(viewModel, service, sessionStore: session);
+    await page.ApplyRouteAsync("conversation-1", "First");
+    var editor = Assert.Single(Descendants<Editor>(page));
+    editor.Text = "Mutate once";
+    Assert.False(await viewModel.TrySendAsync(editor.Text, TestContext.Current.CancellationToken));
+    typeof(ChatConversationPage).GetMethod("OnAppearing", BindingFlags.Instance | BindingFlags.NonPublic,
+        binder: null, types: Type.EmptyTypes, modifiers: null)!
+        .Invoke(page, null);
+
+    session.SetCurrent(new(new User("member-b", "b")));
+    Assert.Equal(string.Empty, editor.Text);
+    Assert.Null(viewModel.ConversationId);
+    Assert.Empty(viewModel.Messages);
+    Assert.Single(service.Attempts);
+
+    editor.Text = "Private draft from B";
+    typeof(ChatConversationPage).GetMethod("OnDisappearing", BindingFlags.Instance | BindingFlags.NonPublic,
+        binder: null, types: Type.EmptyTypes, modifiers: null)!
+        .Invoke(page, null);
+    session.SetCurrent(new(new User("member-c", "c")));
+    Assert.Equal("Private draft from B", editor.Text);
+    typeof(ChatConversationPage).GetMethod("OnAppearing", BindingFlags.Instance | BindingFlags.NonPublic,
+        binder: null, types: Type.EmptyTypes, modifiers: null)!
+        .Invoke(page, null);
+    Assert.Equal(string.Empty, editor.Text);
+    Assert.Single(service.Attempts);
+  }
+
   [Fact]
   public async Task FailedFirstTurnReloadsItsCreatedConversation()
   {
@@ -83,6 +160,37 @@ public sealed class ChatConversationPagePendingRetryTests
     Assert.Equal(service.Attempts[0], service.Attempts[1]);
   }
 
+  [Fact]
+  public async Task PossibleToolSideEffectDoesNotRestoreInitialMessageForOneTapRetry()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application
+    {
+      Resources =
+      {
+        ["Headline"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+        ["Eyebrow"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+      },
+    };
+    var service = new AmbiguousFirstTurnService();
+    var provider = new AvailableProvider { Failure = new PossibleMcpToolSideEffectException() };
+    var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
+    var page = new ChatConversationPage(viewModel, service);
+    page.SetContext(initialMessage: "Mutate once");
+    var editor = Assert.Single(Descendants<Editor>(page));
+
+    var initialSend = Assert.IsAssignableFrom<Task>(typeof(ChatConversationPage)
+        .GetMethod("SendInitialMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .Invoke(page, null));
+    await initialSend;
+
+    Assert.True(string.IsNullOrEmpty(editor.Text));
+    Assert.True(viewModel.PossibleToolSideEffect);
+    Assert.Empty(service.Attempts);
+  }
+
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element
   {
     foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
@@ -98,25 +206,48 @@ public sealed class ChatConversationPagePendingRetryTests
     public ChatProviderStatus GetDefaultProviderStatus() => status;
   }
 
+  private sealed class MutableSessionStore(SessionSnapshot initial) : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged;
+    public SessionSnapshot Current { get; private set; } = initial;
+
+    public void SetCurrent(SessionSnapshot snapshot)
+    {
+      Current = snapshot;
+      SessionChanged?.Invoke(this, new SessionChangedEventArgs(snapshot));
+    }
+
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+  }
+
   private sealed class AvailableProvider : ILocalChatProvider
   {
+    public Exception? Failure { get; set; }
+    public int Generations { get; private set; }
     public string Id => "windows-system-language-model";
     public ChatProviderStatus Status { get; } = new(
         ChatProviderKind.Local, "Windows local", true, "Ready", "windows-system-language-model", "windows-system-language-model");
 
     public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
-        string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"));
+        string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default)
+    {
+      Generations++;
+      return Failure is null
+          ? Task.FromResult(new LocalChatGenerationResult("Reply", "windows_foundry", "windows-system-language-model"))
+          : Task.FromException<LocalChatGenerationResult>(Failure);
+    }
   }
 
   private sealed class AmbiguousFirstTurnService : IChatService
   {
+    public Func<Task<ChatConversationListResponse>>? ConversationList { get; set; }
     public string? LastFetchedConversationId { get; private set; }
     public List<CreateClientGeneratedChatBody> Attempts { get; } = [];
 
     public Task<ChatConversationListResponse> FetchMyConversationsAsync(
         string? after = null, int limit = 50, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ChatConversationListResponse([], new PageInfo(null, false, null)));
+        ConversationList?.Invoke() ?? Task.FromResult(new ChatConversationListResponse([], new PageInfo(null, false, null)));
 
     public Task<ChatConversationResponse> CreateConversationAsync(
         CreateChatConversationBody body, CancellationToken cancellationToken = default) =>

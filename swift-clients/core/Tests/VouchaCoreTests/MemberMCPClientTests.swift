@@ -314,7 +314,7 @@ final class MemberMCPClientTests: XCTestCase {
     }
 }
 
-private final class MCPTestURLProtocol: URLProtocol {
+final class MCPTestURLProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var data = Data()
     private static var status = 200

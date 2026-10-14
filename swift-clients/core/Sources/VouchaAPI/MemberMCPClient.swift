@@ -122,7 +122,7 @@ public actor MemberMCPClient {
         let requestVersion = method == "initialize" ? "2025-06-18" : protocolVersion
         if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
         request.httpBody = try JSONEncoder().encode(body)
-        let transport = ResponseLinesTransport(followRedirects: false)
+        let transport = ResponseLinesTransport(followRedirects: false, maximumLineBytes: 1_100_000)
         let deadline = responseDeadline(for: transport)
         defer {
             deadline.cancel()

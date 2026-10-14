@@ -5,7 +5,8 @@ namespace Voucha.Client.Core.Agent;
 
 public sealed partial class MemberMcpClient
 {
-  private const int MaximumResponseChars = 1_048_576;
+  // A producer-bounded 1 MiB result arrives inside a JSON-RPC response envelope.
+  private const int MaximumResponseChars = 1_100_000;
 
   private async Task<JsonElement> ReadReplyAsync(
       HttpContent content, string id, string accessToken, string? requestSession,

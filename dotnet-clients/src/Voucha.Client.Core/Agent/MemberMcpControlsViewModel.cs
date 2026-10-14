@@ -17,7 +17,7 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   public bool HasError => hasError || session.Status == MemberMcpSessionStatus.Error;
   public IReadOnlyList<UiText> ToolNames => session.Tools is { ValueKind: System.Text.Json.JsonValueKind.Object } catalog &&
       catalog.TryGetProperty("tools", out var tools) && tools.ValueKind == System.Text.Json.JsonValueKind.Array
-          ? tools.EnumerateArray().Take(128).Where(tool => tool.ValueKind == System.Text.Json.JsonValueKind.Object &&
+          ? tools.EnumerateArray().Where(tool => tool.ValueKind == System.Text.Json.JsonValueKind.Object &&
               tool.TryGetProperty("name", out var name) && name.ValueKind == System.Text.Json.JsonValueKind.String)
               .Select(tool => UiText.ProtocolValue(tool.GetProperty("name").GetString())).ToArray()
           : [];

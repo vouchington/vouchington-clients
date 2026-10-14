@@ -14,7 +14,7 @@ struct NativeChatMCPToolBridge {
         let catalogData = try JSONEncoder().encode(catalog)
         guard catalogData.count <= 512_000 else { throw Failure.invalidCatalog }
         guard case let .object(body) = catalog,
-              case let .array(entries)? = body["tools"], entries.count <= 128 else {
+              case let .array(entries)? = body["tools"], entries.count <= NativeChatMCPToolCatalog.maximumTools else {
             throw Failure.invalidCatalog
         }
         var projected: [LocalLLMFunctionTool] = []
@@ -61,8 +61,11 @@ struct NativeChatMCPToolBridge {
             "content": .array(result.content),
             "isError": .bool(result.isError == true)
         ])
-        let output = try JSONEncoder().encode(envelope)
-        guard output.count <= 256_000, let text = String(data: output, encoding: .utf8) else {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        let output = try encoder.encode(envelope)
+        guard output.count <= OpenAICompatibleResponsesClient.maximumToolResultBytes,
+              let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
         return text

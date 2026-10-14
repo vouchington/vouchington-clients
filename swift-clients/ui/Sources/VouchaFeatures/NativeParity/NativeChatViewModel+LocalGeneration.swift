@@ -35,7 +35,7 @@ extension NativeChatViewModel {
             failLocalGeneration(
                 context: context,
                 assistantMessageId: assistantMessageId,
-                message: .message(.nativeSwiftChatOnDeviceUnavailable),
+                message: .message(.sharedChatMcpPossibleSideEffect),
                 restoreDraft: false
             )
         } catch let error as VouchaError {

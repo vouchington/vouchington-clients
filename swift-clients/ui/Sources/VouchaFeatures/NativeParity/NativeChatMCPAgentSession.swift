@@ -91,7 +91,7 @@ public final class NativeChatMCPAgentSession {
         do {
             let catalog = try await task.value
             guard generation == currentGeneration, self.accountId == accountId else { return }
-            toolCatalog = catalog
+            toolCatalog = try NativeChatMCPToolCatalog.validatedCapacity(catalog)
             lastError = nil
             status = .connected
             operation = nil
@@ -118,7 +118,7 @@ public final class NativeChatMCPAgentSession {
         do {
             let catalog = try await task.value
             guard generation == currentGeneration, self.accountId == accountId else { return }
-            toolCatalog = catalog
+            toolCatalog = try NativeChatMCPToolCatalog.validatedCapacity(catalog)
             lastError = nil
             operation = nil
         } catch {

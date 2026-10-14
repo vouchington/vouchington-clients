@@ -16,5 +16,6 @@ public interface IMemberMcpSessionConnection : IAsyncDisposable
 {
   Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken);
   Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken);
+  Task<McpToolResult> CallToolAsync(string name, JsonElement arguments, CancellationToken cancellationToken);
   Task DisconnectAsync(CancellationToken cancellationToken);
 }

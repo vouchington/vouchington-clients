@@ -452,6 +452,7 @@
   <data name="native.dotnet.chat.mcpConnected" xml:space="preserve"><value>Outils Voucha connectés</value></data>
   <data name="native.dotnet.chat.mcpConnectionFailed" xml:space="preserve"><value>Un problème est survenu. Réessayez.</value></data>
   <data name="native.dotnet.chat.mcpDisconnect" xml:space="preserve"><value>Déconnecter les outils Voucha</value></data>
+  <data name="native.dotnet.chat.mcpPendingTurnRetryRequired" xml:space="preserve"><value>Réessayez d’envoyer le message précédent avant d’en envoyer un autre.</value></data>
   <data name="native.dotnet.chat.mcpRefresh" xml:space="preserve"><value>Actualiser les outils</value></data>
   <data name="native.dotnet.chatConversation.chooseLocalModel" xml:space="preserve"><value>Choisissez un modèle local.</value></data>
   <data name="native.dotnet.chatConversation.empty" xml:space="preserve"><value>Envoyez un message pour démarrer la conversation.</value></data>
@@ -2013,6 +2014,7 @@
   <data name="shared.accountType.aiAgent" xml:space="preserve"><value>Agent IA</value></data>
   <data name="shared.accountType.official" xml:space="preserve"><value>Officiel</value></data>
   <data name="shared.accountType.system" xml:space="preserve"><value>Système</value></data>
+  <data name="shared.chat.mcpPossibleSideEffect" xml:space="preserve"><value>Un outil connecté a peut-être terminé cette demande. Vérifiez le résultat avant de la renvoyer.</value></data>
   <data name="shared.countLabel.format.__select.action.one" xml:space="preserve"><value>{count} action</value></data>
   <data name="shared.countLabel.format.__select.action.other" xml:space="preserve"><value>{count} actions</value></data>
   <data name="shared.countLabel.format.__select.alias.one" xml:space="preserve"><value>{count} alias</value></data>

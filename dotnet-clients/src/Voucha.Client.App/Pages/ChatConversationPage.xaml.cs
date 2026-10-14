@@ -3,6 +3,7 @@ using System.Net.Http;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Chat;
 using Voucha.Client.Core.Agent;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
@@ -15,12 +16,24 @@ public partial class ChatConversationPage : ContentPage
   private string? conversationTitle;
   private string? initialMessage;
   private bool hasLoaded;
+  private bool suppressDraftChange;
+  private long contextVersion;
 
   public ChatConversationPage(
-      ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null)
+      ChatConversationViewModel viewModel, IChatService chatService, MemberMcpSession? mcpSession = null,
+      ISessionStore? sessionStore = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+    if (sessionStore is not null)
+    {
+      memberSession = new ChatConversationMemberSession(sessionStore, viewModel, action =>
+      {
+        if (Dispatcher.IsDispatchRequired) Dispatcher.Dispatch(action);
+        else action();
+      });
+      memberSession.MemberChanged += OnMemberChanged;
+    }
     InitializeComponent();
     BindingContext = viewModel;
     if (mcpSession is not null) McpControlsHost.Content = new ChatMemberMcpControlsView(mcpSession);
@@ -28,6 +41,7 @@ public partial class ChatConversationPage : ContentPage
 
   public void SetContext(string? conversationId = null, string? conversationTitle = null, string? initialMessage = null)
   {
+    _ = Interlocked.Increment(ref contextVersion);
     this.conversationId = conversationId;
     this.conversationTitle = conversationTitle;
     this.initialMessage = initialMessage;
@@ -35,6 +49,7 @@ public partial class ChatConversationPage : ContentPage
 
   public async Task ApplyRouteAsync(string? conversationId, string? conversationTitle = null)
   {
+    if (viewModel.ConversationId != conversationId) MessageEditor.Text = string.Empty;
     SetContext(conversationId, conversationTitle);
     hasLoaded = true;
     await LoadConversationAsync().ConfigureAwait(true);
@@ -44,9 +59,12 @@ public partial class ChatConversationPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    memberSession?.Attach();
+    var version = contextVersion;
     try
     {
       await LoadConversationAsync().ConfigureAwait(true);
+      if (version != contextVersion) return;
       if (!hasLoaded && !string.IsNullOrWhiteSpace(initialMessage))
       {
         await SendInitialMessageAsync().ConfigureAwait(true);
@@ -65,9 +83,11 @@ public partial class ChatConversationPage : ContentPage
     var message = initialMessage;
     if (string.IsNullOrWhiteSpace(message)) return;
     initialMessage = null;
+    var version = contextVersion;
     var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+    if (version != contextVersion) return;
     conversationId = viewModel.ConversationId;
-    if (!sent && string.IsNullOrWhiteSpace(MessageEditor.Text))
+    if (!sent && !viewModel.PossibleToolSideEffect && string.IsNullOrWhiteSpace(MessageEditor.Text))
     {
       MessageEditor.Text = message;
     }
@@ -140,10 +160,14 @@ public partial class ChatConversationPage : ContentPage
     {
       var message = MessageEditor.Text?.Trim() ?? string.Empty;
       if (message.Length == 0) return;
+      var version = contextVersion;
       var sent = await viewModel.TrySendAsync(message).ConfigureAwait(true);
+      if (version != contextVersion) return;
       conversationId = viewModel.ConversationId;
-      if (!sent) return;
-      MessageEditor.Text = string.Empty;
+      if (!sent && !viewModel.PossibleToolSideEffect) return;
+      suppressDraftChange = viewModel.PossibleToolSideEffect;
+      try { MessageEditor.Text = string.Empty; }
+      finally { suppressDraftChange = false; }
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
@@ -151,8 +175,10 @@ public partial class ChatConversationPage : ContentPage
     }
   }
 
-  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e) =>
-      viewModel.NotifyDraftEdited(e.NewTextValue);
+  private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
+  {
+    if (!suppressDraftChange) viewModel.NotifyDraftEdited(e.NewTextValue);
+  }
 
   private async void OnStopClicked(object? sender, EventArgs e) => await viewModel.StopStreamingAsync();
 
@@ -162,24 +188,4 @@ public partial class ChatConversationPage : ContentPage
   private async void OnSetUpWindowsModelClicked(object? sender, EventArgs e)
     => await viewModel.SetUpSelectedWindowsSystemLanguageModelAsync();
 
-  private async Task LoadConversationAsync()
-  {
-    var title = conversationTitle;
-    if (conversationId is { Length: > 0 } && string.IsNullOrWhiteSpace(title))
-    {
-      try
-      {
-        title = await ChatListViewModel.ResolveConversationTitleAsync(chatService, conversationId)
-            .ConfigureAwait(true);
-      }
-      catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
-      {
-        System.Diagnostics.Debug.WriteLine(ex);
-      }
-
-      conversationTitle = title;
-    }
-
-    await viewModel.LoadAsync(conversationId, title).ConfigureAwait(true);
-  }
 }

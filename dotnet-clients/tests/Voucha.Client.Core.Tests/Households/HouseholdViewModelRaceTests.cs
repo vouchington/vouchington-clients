@@ -31,21 +31,23 @@ public sealed class HouseholdViewModelRaceTests
       releaseStaleApply.Wait();
     };
 
-    var staleLoad = Task.Run(() => viewModel.LoadAsync(cancellationToken), cancellationToken);
-    var staleSetter = Task.Run(() => staleMemberResponse.SetResult(FakeHouseholdService.Page(
-        FakeHouseholdService.Household("stale", "other"))), cancellationToken);
-    await staleApplyReachedGate.Task.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken);
+    // The synchronous apply gate must not occupy the shared test ThreadPool.
+    var staleLoad = Task.Factory.StartNew(() => viewModel.LoadAsync(cancellationToken),
+        cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+    var staleSetter = Task.Factory.StartNew(() => staleMemberResponse.SetResult(FakeHouseholdService.Page(
+        FakeHouseholdService.Household("stale", "other"))),
+        cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     try
     {
+      await staleApplyReachedGate.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken);
       await viewModel.LoadAsync(cancellationToken);
       Assert.Equal(["fresh"], viewModel.Sections.Select(section => section.Id));
     }
     finally
     {
       releaseStaleApply.Set();
+      await Task.WhenAll(staleLoad, staleSetter);
     }
-
-    await Task.WhenAll(staleLoad, staleSetter);
     Assert.Equal(["fresh"], viewModel.Sections.Select(section => section.Id));
   }
 

@@ -49,7 +49,7 @@ public sealed class MemberMcpToolCatalogTests
   {
     var page = JsonSerializer.SerializeToElement(new
     {
-      tools = Enumerable.Range(0, 1_025).Select(index => new { name = $"tool-{index}" })
+      tools = Enumerable.Range(0, 129).Select(index => new { name = $"tool-{index}" })
     });
     var requests = 0;
 
