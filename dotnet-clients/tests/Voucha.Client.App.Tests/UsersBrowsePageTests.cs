@@ -228,19 +228,6 @@ public sealed class UsersBrowsePageTests
     public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
-
   private sealed class Service : IUsersSearchService
   {
     public Task<UsersSearchResponse> SearchUsersAsync(SearchUsersRequest request, CancellationToken cancellationToken = default) =>

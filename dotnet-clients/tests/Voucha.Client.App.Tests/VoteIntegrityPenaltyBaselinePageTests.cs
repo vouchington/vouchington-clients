@@ -265,17 +265,4 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
         revoked ? DateTimeOffset.UtcNow : null, revoked ? "admin-2" : null,
         DateTimeOffset.UtcNow);
   }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
 }

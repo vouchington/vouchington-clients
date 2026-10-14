@@ -230,17 +230,4 @@ public sealed class ReportIntegrityReconciliationPageTests
         JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("{}")!,
         null, null, null, DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
   }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
 }
