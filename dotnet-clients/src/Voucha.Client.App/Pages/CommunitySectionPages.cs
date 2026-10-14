@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Voucha.Client.App.Controls;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
@@ -39,13 +40,15 @@ public abstract partial class CommunitySectionPage : ContentPage
       ISessionStore sessionStore,
       CommunityDetailSurfaceSection section,
       UiMessageKey title,
-      IServiceProvider? serviceProvider = null)
+      IServiceProvider? serviceProvider = null,
+      AppConfig? config = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
     sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     this.section = section;
     this.serviceProvider = serviceProvider;
+    this.config = config ?? AppConfig.FromEnvironment();
     paginationControl = new HybridPaginationControl
     {
       PaginationId = $"community-{section.ToString().ToLowerInvariant()}",
@@ -84,6 +87,7 @@ public abstract partial class CommunitySectionPage : ContentPage
         Children =
         {
           titleLabel,
+          CommunityImagesView(),
           metaLabel,
           provenanceLabel,
           staffChannelLabel,
@@ -147,26 +151,10 @@ public abstract partial class CommunitySectionPage : ContentPage
     }
   }
 
-  private static bool AffectsRenderedSurface(string? propertyName) =>
-      propertyName is null or nameof(CommunityDetailViewModel.Community) or nameof(CommunityDetailViewModel.State) or
-          nameof(CommunityDetailViewModel.ErrorMessage) or nameof(CommunityDetailViewModel.IsArchived) or
-          nameof(CommunityDetailViewModel.CanJoin) or nameof(CommunityDetailViewModel.CanLeave) or
-          nameof(CommunityDetailViewModel.CanArchive) or nameof(CommunityDetailViewModel.CanUnarchive) or
-          nameof(CommunityDetailViewModel.CanModerateCommunity) or nameof(CommunityDetailViewModel.CanManageCommunity) or
-          nameof(CommunityDetailViewModel.CanManageMembers) or
-          nameof(CommunityDetailViewModel.CanUseModmail) or
-          nameof(CommunityDetailViewModel.CanViewRawModerationAnalytics) or
-          nameof(CommunityDetailViewModel.CanLoadMoreCommunityList) or
-          nameof(CommunityDetailViewModel.CommunityListPaginationErrorMessage) or
-          nameof(CommunityDetailViewModel.TransparencyPaginationError) or
-          nameof(CommunityDetailViewModel.Members) or
-          nameof(CommunityDetailViewModel.Posts) or nameof(CommunityDetailViewModel.ListItemCounts) or
-          nameof(CommunityDetailViewModel.News) or nameof(CommunityDetailViewModel.PinnedPosts) or
-          nameof(CommunityDetailViewModel.Applications) or nameof(CommunityDetailViewModel.Invites) or
-          nameof(CommunityDetailViewModel.Moderation);
   private void Render()
   {
     RefreshLocalizedPickers();
+    RenderCommunityImages();
     titleLabel.Text = viewModel.Community?.Name ?? Title;
     metaLabel.Text = viewModel.Community is null
         ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualCommunity)

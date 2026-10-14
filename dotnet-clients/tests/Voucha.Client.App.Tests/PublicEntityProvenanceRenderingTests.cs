@@ -34,7 +34,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new CommunityBrowsePage(new CommunityBrowseViewModel(new ApiCommunitiesService(client)), new AnonymousSessionStore());
     var collection = Assert.Single(Descendants<CollectionView>(page));
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
-    var label = card.Children.OfType<Label>().ElementAt(2);
+    var label = Assert.Single(Descendants<Label>(card), label => label.AutomationId == "CommunityPublicProvenance");
     var trusted = new CommunityBrowseRow("community-1", "Community", "community", 0, 0, false,
         new PublicContentProvenance("mcp", new PublicProvenanceApp("verified", ClientName: "Fixture Agent")));
 
@@ -295,7 +295,8 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         new CommunityBrowseViewModel(new ApiCommunitiesService(Client("{}"))), new AnonymousSessionStore());
     var communityCollection = Assert.Single(Descendants<CollectionView>(communities));
     var communityCard = Assert.IsType<VerticalStackLayout>(communityCollection.ItemTemplate.CreateContent());
-    var communityLabel = communityCard.Children.OfType<Label>().ElementAt(3);
+    var communityLabel = Assert.Single(Descendants<Label>(communityCard), label =>
+        label.AutomationId == "CommunityStaffChannel");
     var community = new CommunityBrowseRow("id", "Community", "community", 0, 0, false,
         StaffProvenance: facts, IsStaffViewer: true);
     communityCard.BindingContext = community;

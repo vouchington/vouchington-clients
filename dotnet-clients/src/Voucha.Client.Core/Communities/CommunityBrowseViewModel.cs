@@ -121,8 +121,13 @@ public sealed record CommunityBrowseRow(
     PublicContentProvenance? Provenance = null,
     IUiLocalization? Localization = null,
     StaffContentProvenance? StaffProvenance = null,
-    bool IsStaffViewer = false)
+    bool IsStaffViewer = false,
+    TopicImagePlacement? ProfileImagePlacement = null)
 {
+  public bool HasProfileImage =>
+      !string.IsNullOrWhiteSpace(ProfileImagePlacement?.PlacementId) &&
+      !string.IsNullOrWhiteSpace(ProfileImagePlacement.ImageId);
+
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization ?? UiLocalization.English);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
@@ -145,6 +150,7 @@ public sealed record CommunityBrowseRow(
         community.ArchivedAt is not null,
         community.Provenance,
         localization,
-        community.StaffProvenance);
+        community.StaffProvenance,
+        ProfileImagePlacement: community.ProfileImagePlacement);
   }
 }

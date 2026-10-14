@@ -22,6 +22,8 @@ public sealed partial class CommunityDetailViewModel
         {
           Provenance = updated.Provenance ?? existing.Provenance,
           StaffProvenance = updated.StaffProvenance ?? existing.StaffProvenance,
+          ProfileImagePlacement = updated.ProfileImagePlacement ?? existing.ProfileImagePlacement,
+          BannerImagePlacement = updated.BannerImagePlacement ?? existing.BannerImagePlacement,
         }
         : updated;
   }

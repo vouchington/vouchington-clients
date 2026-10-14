@@ -46,8 +46,10 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
                       "should_allow_review_posts": true,
                       "should_allow_data_point_posts": true,
                       "trusted_at": null,
-                      "profile_image_id": null,
-                      "banner_image_id": null,
+                      "profile_image_id": "profile-1",
+                      "banner_image_id": "banner-1",
+                      "profile_image_placement": { "image_id": "profile-1", "placement_id": "community-profile", "placement_revision": 3 },
+                      "banner_image_placement": { "image_id": "banner-1", "placement_id": "community-banner", "placement_revision": 4 },
                       "created_by_id": "user-1",
                       "created_at": "2026-01-01T00:00:00Z",
                       "updated_at": "2026-01-01T00:00:00Z",
@@ -77,6 +79,14 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         let viewModel = try CommunityBrowseViewModel(client: makeClient())
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let expectedPlacement = try decoder.decode(
+            ImagePlacement.self,
+            from: Data(
+                #"{"image_id":"profile-1","placement_id":"community-profile","placement_revision":3}"#.utf8
+            )
+        )
 
         await viewModel.search(query: "native")
 
@@ -85,7 +95,8 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
                 id: "community-1",
                 title: "Native Builders",
                 detail: "SwiftUI community",
-                metrics: .count(7, item: "member")
+                metrics: .count(7, item: "member"),
+                profileImagePlacement: expectedPlacement
             )
         ])
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.query, "limit=25&q=native")

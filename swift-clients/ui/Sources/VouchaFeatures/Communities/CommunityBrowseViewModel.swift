@@ -17,6 +17,13 @@ final class CommunityBrowseViewModel {
 
     private let client: APIClient?
 
+    var imageConfig: AppConfig {
+        AppConfig(
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL,
+            imageBaseURL: client?.imageBaseURL ?? AppConfig.shared.imageBaseURL
+        )
+    }
+
     init(client: APIClient?) {
         self.client = client
     }
@@ -52,7 +59,8 @@ final class CommunityBrowseViewModel {
                     detail: community.markdown ?? community.slug,
                     metrics: .count(metrics?.memberCount ?? 0, item: "member"),
                     provenance: community.provenance,
-                    staffProvenance: community.staffProvenance
+                    staffProvenance: community.staffProvenance,
+                    profileImagePlacement: community.profileImagePlacement
                 )
             }
             guard pagination.complete(

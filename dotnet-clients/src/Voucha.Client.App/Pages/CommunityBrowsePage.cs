@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Auth;
@@ -11,6 +12,7 @@ public sealed class CommunityBrowsePage : ContentPage
 {
   private readonly CommunityBrowseViewModel viewModel;
   private readonly ISessionStore sessionStore;
+  private readonly AppConfig config;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Entry queryEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeSwiftCommunitiesSearchCommunities);
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
@@ -18,10 +20,11 @@ public sealed class CommunityBrowsePage : ContentPage
   private readonly CollectionView resultsView = new() { ItemSizingStrategy = ItemSizingStrategy.MeasureAllItems };
   private bool lastSearchWasStaff;
 
-  public CommunityBrowsePage(CommunityBrowseViewModel viewModel, ISessionStore sessionStore)
+  public CommunityBrowsePage(CommunityBrowseViewModel viewModel, ISessionStore sessionStore, AppConfig? config = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    this.config = config ?? AppConfig.FromEnvironment();
     lastSearchWasStaff = IsStaffViewer();
     sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;
@@ -31,11 +34,23 @@ public sealed class CommunityBrowsePage : ContentPage
 
     resultsView.ItemTemplate = new DataTemplate(() =>
     {
+      var avatar = new Image
+      {
+        WidthRequest = 56,
+        HeightRequest = 56,
+        Aspect = Aspect.AspectFill,
+        AutomationId = "community-profile-image",
+      };
+      avatar.SetBinding(Image.SourceProperty, new Binding(
+          nameof(CommunityBrowseRow.ProfileImagePlacement),
+          converter: new PlacementImageSourceConverter(this.config, 96)));
+      avatar.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProfileImage));
+      AutomationProperties.SetIsInAccessibleTree(avatar, false);
       var title = new Label { FontAttributes = FontAttributes.Bold };
       title.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.Name));
       var subtitle = new Label();
       subtitle.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.Slug));
-      var provenance = new Label { FontSize = 12 };
+      var provenance = new Label { FontSize = 12, AutomationId = "CommunityPublicProvenance" };
       provenance.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.LocalizedProvenanceLabel));
       provenance.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProvenance));
       var staffChannel = new Label { FontSize = 12, AutomationId = "CommunityStaffChannel" };
@@ -49,7 +64,14 @@ public sealed class CommunityBrowsePage : ContentPage
       {
         Spacing = 4,
         Padding = 0,
-        Children = { title, subtitle, provenance, staffChannel, counts, postCount },
+        Children =
+        {
+          new HorizontalStackLayout { Spacing = 8, Children = { avatar, new VerticalStackLayout { Children = { title, subtitle } } } },
+          provenance,
+          staffChannel,
+          counts,
+          postCount,
+        },
       };
     });
 
