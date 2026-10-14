@@ -41,6 +41,12 @@ class NativeRouteSurfaceViewModelTestCase: XCTestCase {
         )
     }
 
+    func registerEmptyCommunityModeratorStatsResponse(slug: String) {
+        CannedFeedURLProtocol.handlers["/api/v1/communities/\(slug)/moderator-stats"] = (
+            Data(#"{"window":30,"stats":[],"users":{}}"#.utf8), 200
+        )
+    }
+
     func entry(for destination: NativeRouteDestinationIdentifier) throws -> NativeRouteCatalogEntry {
         try XCTUnwrap(NativeRouteCatalog.includedEntries.first { $0.destinationIdentifier == destination })
     }

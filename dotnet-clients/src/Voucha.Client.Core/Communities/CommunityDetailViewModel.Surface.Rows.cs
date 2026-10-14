@@ -68,25 +68,51 @@ public sealed partial class CommunityDetailViewModel
             .ToArray();
         return true;
       case CommunityDetailSurfaceSection.Moderation:
-        var statsTask = service.FetchModeratorStatsAsync(
-            communityIdOrSlug,
-            cancellationToken: cancellationToken);
+        var statsTask = LoadModeratorStatsIfAvailableAsync(cancellationToken);
         await Task.WhenAll(
             statsTask,
             LoadModerationQueueAsync(cancellationToken),
             LoadAutomodFlagsAsync(cancellationToken),
             LoadPendingReportsAsync(cancellationToken)).ConfigureAwait(true);
+        var stats = await statsTask.ConfigureAwait(true);
+        var users = stats?.Users;
         Moderation = [
-          .. (await statsTask.ConfigureAwait(true)).Stats.Select(stat => Summary(
-              stat.ActorId,
-              UiText.Verbatim(stat.ActorId),
-              UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesModeratorStats),
-              UiText.Verbatim(localization.FormatNumber(stat.Total)))),
+          .. (stats?.Stats ?? []).Select(stat =>
+          {
+            PublicUser? user = null;
+            if (users is not null)
+              users.TryGetValue(stat.ActorId, out user);
+            var title = user?.Username ?? (stat.ActorId.Length <= 8 ? stat.ActorId : stat.ActorId[..8]);
+            return Summary(
+                stat.ActorId,
+                UiText.Verbatim(title),
+                UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesModeratorStats),
+                UiText.Verbatim(localization.FormatNumber(stat.Total))) with
+            {
+              ProfileImagePlacement = user?.ProfileImagePlacement,
+            };
+          }),
           .. ModerationRows.Select(ModerationSummary),
         ];
         return true;
       default:
         return false;
+    }
+  }
+
+  private async Task<CommunityModeratorStatsResponse?> LoadModeratorStatsIfAvailableAsync(
+      CancellationToken cancellationToken)
+  {
+    try
+    {
+      return await service.FetchModeratorStatsAsync(
+          communityIdOrSlug,
+          cancellationToken: cancellationToken).ConfigureAwait(true);
+    }
+    catch (VouchaApiException exception) when (
+        exception.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.NotFound)
+    {
+      return null;
     }
   }
 

@@ -90,7 +90,7 @@ public sealed record CommunityModeratorStatEntry(
 public sealed record CommunityModeratorStatsResponse(
     [property: JsonPropertyName("window")] int Window,
     [property: JsonPropertyName("stats")] IReadOnlyList<CommunityModeratorStatEntry> Stats,
-    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, User> Users);
+    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser> Users);
 
 public sealed record CommunityPinnedPost(
     [property: JsonPropertyName("community_id")] string CommunityId,

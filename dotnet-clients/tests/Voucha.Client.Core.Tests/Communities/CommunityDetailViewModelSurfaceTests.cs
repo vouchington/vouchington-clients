@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
@@ -9,6 +11,50 @@ namespace Voucha.Client.Core.Tests.Communities;
 
 public sealed class CommunityDetailViewModelSurfaceTests
 {
+  [Fact]
+  public async Task ForbiddenModeratorStatsPreservesPendingQueueRows()
+  {
+    var (viewModel, _) = CreateViewModel(
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.show.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.members.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.posts.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.list-items.counts.default")),
+        new RecordedResponse("{}", HttpStatusCode.Forbidden),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("native.community.pending-reports.paginated")));
+
+    await viewModel.LoadSurfaceAsync(
+        "community-1",
+        CommunityDetailSurfaceSection.Moderation,
+        TestContext.Current.CancellationToken);
+
+    Assert.DoesNotContain(viewModel.Moderation, row => row.Id == "user-1");
+    Assert.Contains(viewModel.Moderation, row => row.Id == "queue-1");
+  }
+
+  [Fact]
+  public async Task MissingModeratorUserUsesShortActorFallbackWithoutAvatar()
+  {
+    var (viewModel, _) = CreateViewModel(
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.show.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.members.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.posts.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.list-items.counts.default")),
+        new RecordedResponse(ModeratorStatsFixtureWithoutUser()),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default")),
+        new RecordedResponse(ApiFixtureLoader.LoadResponse("native.community.pending-reports.paginated")));
+
+    await viewModel.LoadSurfaceAsync(
+        "community-1",
+        CommunityDetailSurfaceSection.Moderation,
+        TestContext.Current.CancellationToken);
+
+    var stat = Assert.Single(viewModel.Moderation, row => row.Id == "00000000-0000-7000-8000-000000000499");
+    Assert.Equal("00000000", stat.Title);
+    Assert.Null(stat.ProfileImagePlacement);
+    Assert.Contains(viewModel.Moderation, row => row.Id == "queue-1");
+  }
+
   [Fact]
   public async Task LoadSurfaceAsyncHydratesEachCommunitySection()
   {
@@ -32,26 +78,7 @@ public sealed class CommunityDetailViewModelSurfaceTests
             """),
         new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.applications.default")),
         new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.invites.default")),
-        new RecordedResponse("""
-            {
-              "window": 30,
-              "stats": [
-                {
-                  "actor_id": "user-1",
-                  "total": 2,
-                  "counts": { "approve": 2 }
-                }
-              ],
-              "users": {
-                "user-1": {
-                  "id": "user-1",
-                  "username": "owner",
-                  "roles": ["user"],
-                  "name": "Owner"
-                }
-              }
-            }
-            """),
+        new RecordedResponse(ModeratorStatsFixtureWithMemberPlacement()),
         new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default")),
         new RecordedResponse(ApiFixtureLoader.LoadResponse("native.community.pending-reports.paginated")));
 
@@ -66,6 +93,10 @@ public sealed class CommunityDetailViewModelSurfaceTests
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
     Assert.Equal(CommunityDetailSurfaceSection.Moderation, viewModel.SelectedSection);
+    var statRow = Assert.Single(viewModel.Moderation, row => row.Id == "user-1");
+    Assert.Equal("testuser", statRow.Title);
+    Assert.Equal("3", statRow.Detail);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", statRow.ProfileImagePlacement?.PlacementId);
 
     Assert.Collection(
         handler.Requests,
@@ -318,6 +349,23 @@ public sealed class CommunityDetailViewModelSurfaceTests
       params RecordedResponse[] responses)
   {
     return CreateViewModelCore(sessionStore: null, responses);
+  }
+
+  private static string ModeratorStatsFixtureWithMemberPlacement()
+  {
+    var stats = JsonNode.Parse(ApiFixtureLoader.LoadResponse("web.communities.moderator-stats.default"))!;
+    var members = JsonNode.Parse(ApiFixtureLoader.LoadResponse("web.communities.members.default"))!;
+    stats["users"]!["user-1"]!["profile_image_placement"] =
+        members["users"]!["user-1"]!["profile_image_placement"]!.DeepClone();
+    return stats.ToJsonString();
+  }
+
+  private static string ModeratorStatsFixtureWithoutUser()
+  {
+    var stats = JsonNode.Parse(ApiFixtureLoader.LoadResponse("web.communities.moderator-stats.default"))!;
+    stats["stats"]!.AsArray()[0]!["actor_user_id"] = "00000000-0000-7000-8000-000000000499";
+    stats["users"]!.AsObject().Remove("user-1");
+    return stats.ToJsonString();
   }
 
   private static (CommunityDetailViewModel ViewModel, RecordingHandler Handler) CreateAdministratorViewModel(

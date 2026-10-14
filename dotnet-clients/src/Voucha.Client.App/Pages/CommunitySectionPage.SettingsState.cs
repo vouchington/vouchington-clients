@@ -127,7 +127,7 @@ public abstract partial class CommunitySectionPage
       Spacing = 3,
       Children = { title, authoredContent, subtitle, detail, staffChannel, embed },
     };
-    if (section != CommunityDetailSurfaceSection.Members)
+    if (section is not (CommunityDetailSurfaceSection.Members or CommunityDetailSurfaceSection.Moderation))
     {
       return text;
     }
@@ -136,7 +136,9 @@ public abstract partial class CommunitySectionPage
     var avatarImage = new Image
     {
       Aspect = Aspect.AspectFill,
-      AutomationId = "community-member-avatar-image",
+      AutomationId = section == CommunityDetailSurfaceSection.Members
+          ? "community-member-avatar-image"
+          : "community-moderator-avatar-image",
     };
     avatarImage.SetBinding(
         Image.SourceProperty,
@@ -149,7 +151,9 @@ public abstract partial class CommunitySectionPage
       StrokeThickness = 0,
       StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
       Content = avatarImage,
-      AutomationId = "community-member-avatar",
+      AutomationId = section == CommunityDetailSurfaceSection.Members
+          ? "community-member-avatar"
+          : "community-moderator-avatar",
     };
     AutomationProperties.SetIsInAccessibleTree(avatar, false);
     avatar.SetBinding(
