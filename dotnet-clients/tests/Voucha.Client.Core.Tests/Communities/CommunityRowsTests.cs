@@ -22,6 +22,21 @@ public sealed class CommunityRowsTests
   }
 
   [Fact]
+  public void CommunityMemberRowCarriesOnlyThePublicUsersCanonicalImagePlacement()
+  {
+    var placement = new TopicImagePlacement("image-1", "placement-1", 3);
+    var row = CommunityMemberRow.FromMember(
+        new CommunityMember("member-1", "community-1", "user-1", "moderator"),
+        new PublicUser("user-1", "moderator", ProfileImagePlacement: placement));
+
+    Assert.Equal("Moderator", row.Role);
+    Assert.Equal(placement, row.ProfileImagePlacement);
+    Assert.Null(CommunityMemberRow.FromMember(
+        new CommunityMember("member-2", "community-1", "user-2", "member"),
+        new PublicUser("user-2", "member", ProfileImageId: "legacy-only")).ProfileImagePlacement);
+  }
+
+  [Fact]
   public void CommunityPostRowUsesTitleSlugAndIdFallbacks()
   {
     var titled = CommunityPostRow.FromPost(

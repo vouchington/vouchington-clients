@@ -46,6 +46,8 @@ public sealed class CommunityApiModelCoverageTests
     Assert.Equal("community-1", members.CommunityMembers["community-member-1"].CommunityId);
     Assert.Equal("owner", members.CommunityMembers["community-member-1"].Role);
     Assert.Equal("Test User", members.Users["user-1"].Name);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", members.Users["user-1"].ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, members.Users["user-1"].ProfileImagePlacement?.PlacementRevision);
     Assert.Equal("post-1", posts.Results[0].Id);
     Assert.Equal("post-1", posts.Posts["post-1"].Id);
     Assert.Equal(0, posts.PostsMetrics["post-1"].Count.Descendants);

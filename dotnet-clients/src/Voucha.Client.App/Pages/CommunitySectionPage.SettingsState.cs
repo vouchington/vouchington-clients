@@ -1,3 +1,6 @@
+using System.Globalization;
+using Voucha.Client.Core;
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
@@ -31,7 +34,8 @@ public abstract partial class CommunitySectionPage
             member.Id,
             UiText.UserContent(member.DisplayName),
             UiText.ProtocolValue(member.Role),
-            Date(member.CreatedAt))).ToArray(),
+            Date(member.CreatedAt),
+            profileImagePlacement: member.ProfileImagePlacement)).ToArray(),
         CommunityDetailSurfaceSection.Posts => viewModel.Posts.Select(post => Row(
             post.Id,
             UiText.UserContent(post.Title),
@@ -73,9 +77,11 @@ public abstract partial class CommunitySectionPage
       UiText subtitle,
       UiText? detail = null,
       Voucha.Client.Core.Api.StaffContentProvenance? staffProvenance = null,
-      bool isStaffViewer = false) =>
+      bool isStaffViewer = false,
+      TopicImagePlacement? profileImagePlacement = null) =>
       new(id, title, subtitle, detail, UiCopy.CurrentLocalization,
-          StaffProvenance: staffProvenance, IsStaffViewer: isStaffViewer);
+          StaffProvenance: staffProvenance, IsStaffViewer: isStaffViewer,
+          ProfileImagePlacement: profileImagePlacement);
 
   private static UiText? Date(DateTimeOffset? value) =>
       value is { } date ? UiText.Verbatim(UiCopy.FormatDateTime(date)) : null;
@@ -116,10 +122,73 @@ public abstract partial class CommunitySectionPage
     open.Clicked += OnEmbedOpenClicked;
     var embed = new VerticalStackLayout { Spacing = 3, Children = { image, provider, embedTitle, description, play, open } };
     embed.SetBinding(IsVisibleProperty, "EmbedPreview.HasPreview");
-    return new VerticalStackLayout
+    var text = new VerticalStackLayout
     {
       Spacing = 3,
       Children = { title, authoredContent, subtitle, detail, staffChannel, embed },
     };
+    if (section != CommunityDetailSurfaceSection.Members)
+    {
+      return text;
+    }
+
+    title.LineBreakMode = LineBreakMode.WordWrap;
+    var avatarImage = new Image
+    {
+      Aspect = Aspect.AspectFill,
+      AutomationId = "community-member-avatar-image",
+    };
+    avatarImage.SetBinding(
+        Image.SourceProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new PlacementImageSourceConverter(config, 96)));
+    AutomationProperties.SetIsInAccessibleTree(avatarImage, false);
+    var avatar = new Border
+    {
+      WidthRequest = 40,
+      HeightRequest = 40,
+      StrokeThickness = 0,
+      StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+      Content = avatarImage,
+      AutomationId = "community-member-avatar",
+    };
+    AutomationProperties.SetIsInAccessibleTree(avatar, false);
+    avatar.SetBinding(
+        IsVisibleProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new HasProfileImagePlacementConverter(config, 96)));
+    var avatarColumn = new ColumnDefinition(new GridLength(40));
+    var row = new Grid
+    {
+      ColumnDefinitions =
+      {
+        avatarColumn,
+        new ColumnDefinition(GridLength.Star),
+      },
+      ColumnSpacing = 8,
+      Children = { avatar, text },
+    };
+    void UpdateAvatarLayout(object? sender, EventArgs args)
+    {
+      var hasImage = row.BindingContext is CommunitySummaryRow { ProfileImagePlacement: { } placement } &&
+          HasImageUrl(placement, config, 96);
+      avatarColumn.Width = new GridLength(hasImage ? 40 : 0);
+      row.ColumnSpacing = hasImage ? 8 : 0;
+    }
+    row.BindingContextChanged += UpdateAvatarLayout;
+    UpdateAvatarLayout(row, EventArgs.Empty);
+    Grid.SetColumn(text, 1);
+    return row;
   }
+
+  private sealed class HasProfileImagePlacementConverter(AppConfig config, int width) : IValueConverter
+  {
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        HasImageUrl(value, config, width);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+  }
+
+  private static bool HasImageUrl(object? value, AppConfig config, int width) =>
+      value is TopicImagePlacement { } placement &&
+      config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, width) is not null;
 }
