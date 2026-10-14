@@ -34,6 +34,8 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.StoryDiscussions.cs" Link="Pages/NewsFeedsPage.StoryDiscussions.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.StoryPages.cs" Link="Pages/NewsFeedsPage.StoryPages.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.FollowerDistribution.cs" Link="Pages/NewsFeedsPage.FollowerDistribution.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionSendPage.cs" Link="Pages/FollowerDistributionSendPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionSendPage.Avatars.cs" Link="Pages/FollowerDistributionSendPage.Avatars.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.EmbedPreview.cs" Link="Pages/NewsFeedsPage.EmbedPreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml" Link="Pages/TopicManagementPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicManagementPage.xaml.cs" Link="Pages/TopicManagementPage.xaml.cs" />

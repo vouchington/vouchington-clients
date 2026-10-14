@@ -12,11 +12,12 @@ public sealed class FollowerDistributionActionsSourceTests
   {
     var actions = Source("FollowerDistributionActions.cs");
     var picker = Source("FollowerDistributionSendPage.cs");
+    var rows = Source("FollowerDistributionSendPage.Avatars.cs");
     Assert.Contains("NativeSwiftFollowerDistributionShareWithFollowers", actions, StringComparison.Ordinal);
     Assert.Contains("NativeSwiftFollowerDistributionSendToFollowers", actions, StringComparison.Ordinal);
     Assert.Contains("SearchFollowersAsync", picker, StringComparison.Ordinal);
     Assert.Contains("LoadMoreFollowersAsync", picker, StringComparison.Ordinal);
-    Assert.Contains("ToggleSelection", picker, StringComparison.Ordinal);
+    Assert.Contains("ToggleSelection", rows, StringComparison.Ordinal);
     Assert.Contains("SubmitAsync", picker, StringComparison.Ordinal);
   }
 
@@ -55,12 +56,13 @@ public sealed class FollowerDistributionActionsSourceTests
   public void SendModalKeepsSelectedRecipientsVisibleAndRemovableAcrossSearches()
   {
     var page = Source("FollowerDistributionSendPage.cs");
+    var rows = Source("FollowerDistributionSendPage.Avatars.cs");
 
     Assert.Contains("state.SelectedRecipients", page, StringComparison.Ordinal);
-    Assert.Contains("selectedRecipients.Children.Clear()", page, StringComparison.Ordinal);
-    Assert.Contains("SelectedRecipient(user)", page, StringComparison.Ordinal);
-    Assert.Contains("UiMessageKey.NativeSwiftCommonRemove", page, StringComparison.Ordinal);
-    Assert.Contains("state.ToggleSelection(user.Id); Refresh()", page, StringComparison.Ordinal);
+    Assert.Contains("RefreshRows(selectedRecipients, state.SelectedRecipients", page, StringComparison.Ordinal);
+    Assert.Contains("RefreshRows(recipients, state.Followers", page, StringComparison.Ordinal);
+    Assert.Contains("UiMessageKey.NativeSwiftCommonRemove", rows, StringComparison.Ordinal);
+    Assert.Contains("state.ToggleSelection(user.Id); Refresh()", rows, StringComparison.Ordinal);
   }
 
   [Fact]
@@ -70,7 +72,8 @@ public sealed class FollowerDistributionActionsSourceTests
     var page = Source("FollowerDistributionSendPage.cs");
 
     Assert.Contains("sessionStore.Current.Identity?.Id == userId", actions, StringComparison.Ordinal);
-    Assert.Contains("new FollowerDistributionSendPage(state, userId, sessionStore)", actions, StringComparison.Ordinal);
+    Assert.Contains("new FollowerDistributionSendPage(", actions, StringComparison.Ordinal);
+    Assert.Contains("services.GetRequiredService<AppConfig>()", actions, StringComparison.Ordinal);
     Assert.Contains("sessionStore.SessionChanged += sessionChangedHandler", page, StringComparison.Ordinal);
     Assert.Contains("sessionStore.SessionChanged -= sessionChangedHandler", page, StringComparison.Ordinal);
     Assert.Contains("args.Snapshot.Identity?.Id != userId", page, StringComparison.Ordinal);

@@ -1,5 +1,7 @@
 import SwiftUI
 import VouchaAPI
+import VouchaCore
+import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
 
@@ -12,10 +14,12 @@ public struct FollowerDistributionActions: View {
     private var isShareFailurePresented = false
     @State
     private var viewModel: FollowerDistributionViewModel
+    private let client: APIClient
     private let currentUserId: String?
     private let target: FollowerDistributionTarget
 
     public init(client: APIClient, currentUserId: String?, target: FollowerDistributionTarget) {
+        self.client = client
         self.currentUserId = currentUserId
         self.target = target
         _viewModel = State(initialValue: .init(client: client, currentUserId: currentUserId, target: target))
@@ -52,7 +56,7 @@ public struct FollowerDistributionActions: View {
             Text(message(.unableToShare))
         }
         .sheet(isPresented: $isSendSheetPresented, onDismiss: viewModel.resetSendSheet) {
-            FollowerDistributionSendSheet(viewModel: viewModel)
+            Self.sendSheet(viewModel: viewModel, client: client)
         }
         .onChange(of: currentUserId) { _, nextUserId in
             isShareFailurePresented = false
@@ -67,6 +71,16 @@ public struct FollowerDistributionActions: View {
     private func message(_ key: FollowerDistributionCopy) -> String {
         UiMessages.string(key.messageKey, locale: nativeUiLocale)
     }
+
+    static func sendSheet(
+        viewModel: FollowerDistributionViewModel,
+        client: APIClient
+    ) -> FollowerDistributionSendSheet {
+        FollowerDistributionSendSheet(
+            viewModel: viewModel,
+            imageConfig: AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+        )
+    }
 }
 
 struct FollowerDistributionSendSheet: View {
@@ -75,6 +89,12 @@ struct FollowerDistributionSendSheet: View {
     @Environment(\.locale)
     private var nativeUiLocale
     @Bindable var viewModel: FollowerDistributionViewModel
+    let imageConfig: AppConfig
+
+    init(viewModel: FollowerDistributionViewModel, imageConfig: AppConfig = .shared) {
+        self.viewModel = viewModel
+        self.imageConfig = imageConfig
+    }
 
     var body: some View {
         NavigationStack {
@@ -86,22 +106,6 @@ struct FollowerDistributionSendSheet: View {
                 .pickerStyle(.segmented)
 
                 if !viewModel.sendsToAllFollowers {
-                    if !viewModel.selectedRecipients.isEmpty {
-                        Section(message(.selectedFollowers)) {
-                            ForEach(viewModel.selectedRecipients) { recipient in
-                                Toggle(
-                                    UiMessages.string(
-                                        .verbatim(recipient.name ?? recipient.username ?? recipient.id),
-                                        locale: nativeUiLocale
-                                    ),
-                                    isOn: Binding(
-                                        get: { viewModel.selectedRecipientIds.contains(recipient.id) },
-                                        set: { _ in viewModel.toggleRecipient(recipient.id) }
-                                    )
-                                )
-                            }
-                        }
-                    }
                     TextField(
                         message(.searchFollowers),
                         text: Binding(
@@ -109,20 +113,9 @@ struct FollowerDistributionSendSheet: View {
                             set: { query in Task { await viewModel.searchRecipients(query: query) } }
                         )
                     )
-                    ForEach(
-                        viewModel.recipients.filter { !viewModel.selectedRecipientIds.contains($0.id) }
-                    ) { recipient in
-                        Toggle(
-                            UiMessages.string(
-                                .verbatim(recipient.name ?? recipient.username ?? recipient.id),
-                                locale: nativeUiLocale
-                            ),
-                            isOn: Binding(
-                                get: { viewModel.selectedRecipientIds.contains(recipient.id) },
-                                set: { _ in viewModel.toggleRecipient(recipient.id) }
-                            )
-                        )
-                        .disabled(!viewModel.canToggleRecipient(recipient.id))
+                    ForEach(displayedRecipients) { recipient in
+                        recipientToggle(recipient)
+                            .disabled(!viewModel.canToggleRecipient(recipient.id))
                     }
                     if viewModel.canLoadMoreRecipients {
                         Button(message(.loadMoreFollowers)) { Task { await viewModel.loadMoreRecipients() } }
@@ -163,9 +156,16 @@ struct FollowerDistributionSendSheet: View {
         })
     }
 
+    var displayedRecipients: [PublicUser] {
+        let selected = viewModel.selectedRecipients
+        let selectedIds = Set(selected.map(\.id))
+        return selected + viewModel.recipients.filter { !selectedIds.contains($0.id) }
+    }
+
     private func message(_ key: FollowerDistributionCopy) -> String {
         UiMessages.string(key.messageKey, locale: nativeUiLocale)
     }
+
 }
 
 private enum FollowerDistributionCopy {
