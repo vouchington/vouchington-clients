@@ -83,7 +83,7 @@ public sealed partial class CommunityDetailViewModel
     try
     {
       var response = await mutation().ConfigureAwait(true);
-      Community = response.Community;
+      Community = PreserveCreationFacts(response.Community);
       CompleteLoad();
       return true;
     }

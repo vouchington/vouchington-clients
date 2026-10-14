@@ -159,6 +159,32 @@ public sealed class CommunityAutomodFlagLifecycleTests
     Assert.Equal("unpublish", service.SavedAutomodAction);
   }
 
+  [Fact]
+  public async Task PartialAutomodResponseRetainsCachedCreationFacts()
+  {
+    var service = new ScriptedCommunitiesService();
+    var detail = CreateDetailResponse(true, false, membershipRole: "moderator");
+    var publicFacts = new PublicContentProvenance("mcp", null);
+    var staffFacts = new StaffContentProvenance("mcp");
+    SeedLoadResponseSet(service, detail with
+    {
+      Community = detail.Community with { Provenance = publicFacts, StaffProvenance = staffFacts },
+    });
+    var model = new CommunityDetailViewModel(service, new TestSessionStore(SessionSnapshotForTests.Authenticated));
+    await model.LoadAsync("community-1", TestContext.Current.CancellationToken);
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
+    service.UpdateAutomodActionHandler = (_, _) => Task.FromResult(detail with
+    {
+      Community = detail.Community with { AutomodAction = "unpublish" },
+    });
+
+    Assert.True(await model.UpdateAutomodActionAsync("unpublish", TestContext.Current.CancellationToken));
+
+    Assert.Equal("unpublish", model.Community?.AutomodAction);
+    Assert.Equal(publicFacts, model.Community?.Provenance);
+    Assert.Equal(staffFacts, model.Community?.StaffProvenance);
+  }
+
   private static async Task<(CommunityDetailViewModel Model, ScriptedCommunitiesService Service)> ModeratorAsync(
       IUiLocalization? localization = null, IUiLocaleController? localeController = null)
   {

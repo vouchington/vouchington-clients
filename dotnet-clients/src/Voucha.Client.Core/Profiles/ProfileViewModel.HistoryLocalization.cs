@@ -18,6 +18,9 @@ public sealed partial class ProfileViewModel
     HistoryTabs = BuildTabs(userMetrics, SelectedHistoryTab);
     BuildScopeTabs();
     HistoryItems = HistoryItems.ToArray();
+    TopicItems = TopicItems.Select(row => row.WithLocalization(localization)).ToArray();
+    SourceItems = SourceItems.Select(row => row with { Localization = localization }).ToArray();
+    CommunityItems = CommunityItems.Select(row => row with { Localization = localization }).ToArray();
   }
 
   private IReadOnlyList<ProfileHistoryTabRow> BuildTabs(

@@ -21,7 +21,7 @@ public sealed partial class CommunityDetailViewModel
           cancellationToken).ConfigureAwait(true);
       if (!string.Equals(communityIdOrSlug, community, StringComparison.Ordinal) ||
           revision != Volatile.Read(ref communityContextRevision)) return false;
-      Community = response.Community;
+      Community = PreserveCreationFacts(response.Community);
       CompleteLoad();
       return true;
     }

@@ -1,6 +1,7 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.LandingPages;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Profiles;
 using Voucha.Client.Core.Settings;
@@ -325,7 +326,9 @@ public sealed partial class ProfileViewModelSafetyTests
       User user,
       RecordingProfileSafetyService? safety = null,
       RecordingPostsService? posts = null,
-      UserMetrics? metrics = null)
+      UserMetrics? metrics = null,
+      IUiLocalization? localization = null,
+      IUiLocaleController? localeController = null)
   {
     var viewModel = new ProfileViewModel(
         new RecordingSettingsService(user, metrics),
@@ -335,7 +338,9 @@ public sealed partial class ProfileViewModelSafetyTests
         new AppConfig(
             new Uri("https://api.example.test"),
             "site-key",
-            ImageBaseUrl: new Uri("https://images.example.test")));
+            ImageBaseUrl: new Uri("https://images.example.test")),
+        localization,
+        localeController);
     viewModel.ConfigureProfileSafetyService(safety ?? new RecordingProfileSafetyService());
     return viewModel;
   }
