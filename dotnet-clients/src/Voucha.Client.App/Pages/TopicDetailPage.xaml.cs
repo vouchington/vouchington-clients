@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.ComponentModel;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Topics;
@@ -20,7 +19,6 @@ public partial class TopicDetailPage : ContentPage
   private readonly string? sourceCrawlId;
   private bool lastStaffViewer;
   private bool isVisible;
-  private bool isTopicChangeAttached;
 
   public TopicDetailPage(
       TopicDetailViewModel viewModel,
@@ -105,28 +103,6 @@ public partial class TopicDetailPage : ContentPage
     {
       System.Diagnostics.Debug.WriteLine(ex);
     }
-  }
-
-  private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-  {
-    if (e.PropertyName == nameof(viewModel.Topic)) RefreshTopicLogo();
-  }
-
-  private void AttachTopicChanges()
-  {
-    if (isTopicChangeAttached) return;
-    viewModel.PropertyChanged += OnViewModelPropertyChanged;
-    isTopicChangeAttached = true;
-  }
-
-  private void RefreshTopicLogo()
-  {
-    var placement = viewModel.Topic?.LogoImagePlacement;
-    var url = placement is null
-        ? null
-        : config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, 320);
-    TopicLogoImage.Source = url is null ? null : ImageSource.FromUri(url);
-    TopicLogoImage.IsVisible = url is not null;
   }
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)

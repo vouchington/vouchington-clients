@@ -33,7 +33,12 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         new JsonObject { ["topic"] = staffTopic }.ToJsonString())));
     var session = new MutableStaffSessionStore();
     session.SetCurrent(SessionSnapshot.Anonymous);
-    var page = new TopicDetailPage(model, session, "topic-1-mcp", Recovery(locale));
+    var page = new TopicDetailPage(
+        model,
+        session,
+        "topic-1-mcp",
+        Recovery(locale),
+        new AppConfig(new Uri("https://api.test")));
     var initialLoad = WaitUntilLoadedAsync(model);
     Appear(page);
     await initialLoad;
