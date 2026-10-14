@@ -906,8 +906,37 @@ jobs:
             echo '::error::Pinned Xcode has no available iPhone Simulator for launch smoke'
             exit 1
           fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+      - name: Collect failed iOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          diagnostics="$RUNNER_TEMP/ios-launch-diagnostics"
+          mkdir -p "$diagnostics"
+          xcrun simctl list devices available -j > "$diagnostics/simulators.json" || true
+          if [ -f "$RUNNER_TEMP/ios-launch-simulator-id" ]; then
+            simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
+          fi
+          reports_dir="$HOME/Library/Logs/DiagnosticReports"
+          if [ -d "$reports_dir" ]; then
+            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
+          fi
+      - name: Upload failed iOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        with:
+          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ios-launch-smoke.xcresult
+            ${{ runner.temp }}/ios-launch-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
 
   dotnet-maui:
     name: .NET MAUI Mac Catalyst

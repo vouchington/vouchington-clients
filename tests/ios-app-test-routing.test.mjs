@@ -38,6 +38,11 @@ describe('iOS Simulator launch smoke fan-in', () => {
       /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1/u,
     )
     assert.match(iosJob, /CODE_SIGNING_ALLOWED=NO/u)
+    assert.match(
+      iosJob,
+      /if: \$\{\{ failure\(\) \}\}[\s\S]*?xcrun simctl spawn "\$simulator_id" log show/u,
+    )
+    assert.match(iosJob, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?ios-launch-smoke\.xcresult/u)
     const selector = iosJob.match(
       /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r '([^']+)'\)"/u,
     )?.[1]
