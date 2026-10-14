@@ -160,10 +160,12 @@ import Foundation
                 fields, allowing: ["type", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
             )
             let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
-            var guides: [GenerationGuide<Decimal>] = []
-            if let minimum = bounds.minimum { guides.append(.minimum(minimum)) }
-            if let maximum = bounds.maximum { guides.append(.maximum(maximum)) }
-            return .init(type: Decimal.self, guides: guides)
+            // GeneratedContent converts numbers through Double, whose integral values must fit JSON's safe range.
+            let safe = Decimal(9_007_199_254_740_991)
+            let minimum = Swift.max(bounds.minimum ?? -safe, -safe)
+            let maximum = Swift.min(bounds.maximum ?? safe, safe)
+            guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            return .init(type: Decimal.self, guides: [.minimum(minimum), .maximum(maximum)])
         }
     }
 #endif

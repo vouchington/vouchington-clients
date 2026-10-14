@@ -10,13 +10,6 @@ import VouchaCore
     enum NativeChatFoundationModelsSchema {
         enum Failure: Error { case unsupported }
 
-        static func inferredType(_ fields: [String: Any]) -> String {
-            if fields["properties"] != nil { return "object" }
-            if fields["items"] != nil { return "array" }
-            if fields["const"] is String { return "string" }
-            return ""
-        }
-
         static func project(_ data: Data) throws -> GenerationSchema {
             guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw Failure.unsupported
@@ -35,10 +28,14 @@ import VouchaCore
 
             mutating func schema(_ fields: [String: Any]) throws -> GenerationSchema {
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
-                let dependencies = try definitions.keys.sorted().map { key -> DynamicGenerationSchema in
+                let reachable = try reachableDefinitions(in: fields, definitions: definitions)
+                let dependencies = try reachable.sorted().map { key -> DynamicGenerationSchema in
                     guard let value = definitions[key] else { throw Failure.unsupported }
                     try NativeChatFoundationModelsSchema.validateStringConstraints(value)
                     if let properties = value["properties"] as? [String: [String: Any]] {
+                        guard value["type"] == nil || value["type"] as? String == "object" else {
+                            throw Failure.unsupported
+                        }
                         try NativeChatFoundationModelsSchema.validateKeywords(
                             value, allowing: [
                                 "type",
@@ -65,6 +62,9 @@ import VouchaCore
                         })
                     }
                     if let values = value["enum"] as? [String] {
+                        guard value["type"] == nil || value["type"] as? String == "string" else {
+                            throw Failure.unsupported
+                        }
                         try NativeChatFoundationModelsSchema.validateKeywords(value, allowing: ["type", "enum"])
                         return .init(name: key, anyOf: values)
                     }
