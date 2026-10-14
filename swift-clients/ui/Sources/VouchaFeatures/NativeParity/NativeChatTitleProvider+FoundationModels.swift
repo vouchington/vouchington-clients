@@ -11,6 +11,12 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
     private static let assistantInstruction =
         "You are Voucha's chat assistant. Answer the latest user message using the conversation context."
     private static let latestMessageHeading = "\n\nLatest user message:\n"
+    struct BoundedAssistantContext {
+        let transcript: String
+        let selectionHistory: String
+        let latestMessage: String
+    }
+
     private let featurePolicy: LocalLLMFeaturePolicy
 
     init(featurePolicy: LocalLLMFeaturePolicy = LocalLLMFeaturePolicy()) {
@@ -61,7 +67,7 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
                 messages,
                 maximumCharacters: Self.maximumAssistantPromptCharacters - 72,
                 maximumMessages: 8
-            )
+            ).prompt
             let session = LanguageModelSession(model: SystemLanguageModel.default)
             let response = try await session.respond(to: """
             Suggest a concise conversation title of six words or fewer.
@@ -88,23 +94,26 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
         message: String,
         history: [NativeChatTimelineMessage],
         maximumCharacters: Int
-    ) -> (transcript: String, latestMessage: String) {
+    ) -> BoundedAssistantContext {
         let fixedCharacters = assistantInstruction.count + 2 + latestMessageHeading.count
         let contentBudget = max(0, maximumCharacters - fixedCharacters)
         let latestMessage = String(message.trimmingCharacters(in: .whitespacesAndNewlines).prefix(contentBudget))
         let transcriptBudget = max(0, contentBudget - latestMessage.count)
         let transcript = boundedTranscript(history, maximumCharacters: transcriptBudget, maximumMessages: 12)
-        return (transcript, latestMessage)
+        return BoundedAssistantContext(
+            transcript: transcript.prompt, selectionHistory: transcript.selection, latestMessage: latestMessage
+        )
     }
 
     private static func boundedTranscript(
         _ messages: [NativeChatTimelineMessage],
         maximumCharacters: Int,
         maximumMessages: Int
-    ) -> String {
-        guard maximumCharacters > 0 else { return "" }
+    ) -> (prompt: String, selection: String) {
+        guard maximumCharacters > 0 else { return ("", "") }
         var remaining = maximumCharacters
         var selected: [String] = []
+        var selection: [String] = []
         for message in (messages
             .filter { !$0.isStreaming && !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .suffix(maximumMessages)
@@ -113,10 +122,15 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
             let available = remaining - separatorLength
             guard available > 0 else { break }
             let line = chatTranscriptLine(message)
-            selected.append(String(line.prefix(available)))
+            let truncated = String(line.prefix(available))
+            selected.append(truncated)
+            let rolePrefix = "\(message.role.rawValue): "
+            if truncated.hasPrefix(rolePrefix) {
+                selection.append(String(truncated.dropFirst(rolePrefix.count)))
+            }
             remaining -= separatorLength + min(line.count, available)
         }
-        return selected.reversed().joined(separator: "\n")
+        return (selected.reversed().joined(separator: "\n"), selection.reversed().joined(separator: "\n"))
     }
 
     private static func chatTranscriptLine(_ message: NativeChatTimelineMessage) -> String {

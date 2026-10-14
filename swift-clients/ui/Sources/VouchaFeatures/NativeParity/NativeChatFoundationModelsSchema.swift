@@ -25,10 +25,10 @@ import VouchaCore
             return try projection.schema(root)
         }
 
-        private struct Projection {
+        struct Projection {
             private var nextID = 0
 
-            private mutating func name() -> String {
+            mutating func name() -> String {
                 nextID += 1
                 return "MCPNode_\(nextID)"
             }
@@ -39,13 +39,21 @@ import VouchaCore
                     guard let value = definitions[key] else { throw Failure.unsupported }
                     try NativeChatFoundationModelsSchema.validateStringConstraints(value)
                     if let properties = value["properties"] as? [String: [String: Any]] {
+                        try NativeChatFoundationModelsSchema.validateKeywords(
+                            value, allowing: [
+                                "type",
+                                "properties",
+                                "required",
+                                "additionalProperties",
+                                "minProperties",
+                                "maxProperties"
+                            ]
+                        )
                         guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
                         else { throw Failure.unsupported }
-                        guard (value["minProperties"] as? Int ?? 0) <= properties.count else {
-                            throw Failure.unsupported
-                        }
                         let required = Set(value["required"] as? [String] ?? [])
                         guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
+                        try validateObjectBounds(value, requiredCount: required.count, propertyCount: properties.count)
                         return try .init(name: key, properties: properties.keys.sorted().map { field in
                             guard let property = properties[field] else { throw Failure.unsupported }
                             return try .init(
@@ -56,31 +64,27 @@ import VouchaCore
                             )
                         })
                     }
-                    if let values = value["enum"] as? [String] { return .init(name: key, anyOf: values) }
+                    if let values = value["enum"] as? [String] {
+                        try NativeChatFoundationModelsSchema.validateKeywords(value, allowing: ["type", "enum"])
+                        return .init(name: key, anyOf: values)
+                    }
                     return try .init(name: key, anyOf: [project(value)])
                 }
                 return try GenerationSchema(root: project(fields), dependencies: dependencies)
             }
 
-            private mutating func project(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+            mutating func project(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
                 try NativeChatFoundationModelsSchema.validateConstant(fields)
                 try NativeChatFoundationModelsSchema.validateStringConstraints(fields)
                 if NativeChatFoundationModelsSchema.isIntegerType(fields) {
                     try NativeChatFoundationModelsSchema.validateSafeIntegerRange(fields)
                 }
-                if let path = fields["$ref"] as? String {
-                    guard path.hasPrefix("#/$defs/") else { throw Failure.unsupported }
-                    return .init(referenceTo: String(path.dropFirst(8)))
-                }
-                for key in ["anyOf", "oneOf"] {
-                    if let choices = fields[key] as? [[String: Any]] {
-                        return try .init(name: name(), anyOf: choices.map { try project($0) })
-                    }
-                }
+                if let alternative = try projectReferenceOrChoices(fields) { return alternative }
                 if let types = fields["type"] as? [String] {
                     return try projectTypeUnion(fields, types: types)
                 }
                 if fields["type"] == nil, let values = fields["enum"] as? [Any] {
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["enum", "$defs"])
                     let strings = values.compactMap { $0 as? String }
                     let hasNull = values.contains { $0 is NSNull }
                     guard strings.count + (hasNull ? 1 : 0) == values.count else { throw Failure.unsupported }
@@ -91,38 +95,48 @@ import VouchaCore
                 return try projectType(fields)
             }
 
-            private mutating func projectTypeUnion(
-                _ fields: [String: Any], types: [String]
-            ) throws -> DynamicGenerationSchema {
-                guard Set(fields.keys).isSubset(of: ["type", "description", "title"]) else {
-                    throw Failure.unsupported
-                }
-                return try .init(name: name(), anyOf: types.map { try project(["type": $0]) })
-            }
-
             private mutating func projectType(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
                 switch fields["type"] as? String ?? NativeChatFoundationModelsSchema.inferredType(fields) {
                 case "object": return try projectObject(fields)
                 case "array": return try projectArray(fields)
-                case "string": return projectString(fields)
-                case "integer": return .init(type: Int.self)
-                case "number": return .init(type: Decimal.self)
-                case "boolean": return .init(type: Bool.self)
-                case "null": return .null
+                case "string":
+                    try NativeChatFoundationModelsSchema.validateKeywords(
+                        fields,
+                        allowing: ["type", "enum", "const", "$defs"]
+                    )
+                    guard fields["enum"] == nil || fields["const"] == nil else { throw Failure.unsupported }
+                    return projectString(fields)
+                case "integer": return try projectInteger(fields)
+                case "number": return try projectNumber(fields)
+                case "boolean":
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "$defs"])
+                    return .init(type: Bool.self)
+                case "null":
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "$defs"])
+                    return .null
                 default: throw Failure.unsupported
                 }
             }
 
             private mutating func projectObject(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+                try NativeChatFoundationModelsSchema.validateKeywords(
+                    fields, allowing: [
+                        "type",
+                        "properties",
+                        "required",
+                        "additionalProperties",
+                        "minProperties",
+                        "maxProperties",
+                        "$defs"
+                    ]
+                )
                 guard fields["additionalProperties"] == nil || fields["additionalProperties"] as? Bool == false else {
                     throw Failure.unsupported
                 }
                 let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
-                guard (fields["minProperties"] as? Int ?? 0) <= properties.count else {
-                    throw Failure.unsupported
-                }
                 let required = Set(fields["required"] as? [String] ?? [])
                 guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
+                try validateObjectBounds(fields, requiredCount: required.count, propertyCount: properties.count)
                 return try .init(name: name(), properties: properties.keys.sorted().map { key in
                     guard let property = properties[key] else { throw Failure.unsupported }
                     return try .init(
@@ -135,6 +149,12 @@ import VouchaCore
             }
 
             private mutating func projectArray(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+                try NativeChatFoundationModelsSchema.validateKeywords(
+                    fields, allowing: ["type", "items", "minItems", "maxItems", "uniqueItems", "$defs"]
+                )
+                guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false else {
+                    throw Failure.unsupported
+                }
                 guard let item = fields["items"] as? [String: Any] else { throw Failure.unsupported }
                 return try .init(
                     arrayOf: project(item),
@@ -143,11 +163,6 @@ import VouchaCore
                 )
             }
 
-            private mutating func projectString(_ fields: [String: Any]) -> DynamicGenerationSchema {
-                if let values = fields["enum"] as? [String] { return .init(name: name(), anyOf: values) }
-                if let value = fields["const"] as? String { return .init(name: name(), anyOf: [value]) }
-                return .init(type: String.self)
-            }
         }
     }
 #endif

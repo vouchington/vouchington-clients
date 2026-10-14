@@ -57,12 +57,23 @@ import VouchaCore
                 }.joined(separator: "\n")
             let structured = envelope?["structuredContent"]
             let structuredText = (structured as? String) ?? structured.flatMap { value -> String? in
+                guard !(value is NSNull) else { return nil }
                 guard let data = try? JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed) else {
                     return nil
                 }
                 return String(data: data, encoding: .utf8)
             }
-            let previewSource = !textContent.isEmpty ? textContent : (structuredText ?? result)
+            let nonTextContent = (envelope?["content"] as? [[String: Any]] ?? [])
+                .first { $0["type"] as? String != "text" }
+                .flatMap { item -> String? in
+                    if let type = item["type"] as? String {
+                        let mimeType = item["mimeType"] as? String
+                        return [type, mimeType].compactMap { $0 }.joined(separator: " ")
+                    }
+                    guard let data = try? JSONSerialization.data(withJSONObject: item) else { return nil }
+                    return String(data: data, encoding: .utf8)
+                }
+            let previewSource = !textContent.isEmpty ? textContent : (structuredText ?? nonTextContent ?? result)
             for previewLimit in [280, 140, 70, 0] {
                 let preview = String(previewSource.prefix(previewLimit))
                 let bounded: [String: Any] = [

@@ -93,5 +93,27 @@ import XCTest
                 from: bridge, message: "Yes, do that", history: staleHistory
             ).isEmpty)
         }
+
+        func testTranscriptRoleLabelsDoNotSelectUnrequestedTools() throws {
+            let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([.object([
+                "name": .string("list_assistant_notes"),
+                "description": .string("Read assistant notes"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])]))
+            let history = [
+                NativeChatTimelineMessage(id: "first", role: .user, content: "What time is it?"),
+                NativeChatTimelineMessage(id: "second", role: .assistant, content: "It is noon.")
+            ]
+            let context = NativeChatAppleFoundationModelsProvider.boundedAssistantContext(
+                message: "Thanks", history: history,
+                maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+            )
+            XCTAssertTrue(context.transcript.contains("user:"))
+            XCTAssertFalse(context.selectionHistory.contains("user:"))
+            XCTAssertFalse(context.selectionHistory.contains("assistant:"))
+            XCTAssertTrue(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Thanks", history: history
+            ).isEmpty)
+        }
     }
 #endif

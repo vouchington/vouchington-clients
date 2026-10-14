@@ -31,7 +31,7 @@ extension NativeChatAppleFoundationModelsProvider {
                 maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
             )
             return NativeChatFoundationModelsToolSelection.select(
-                bridge, matching: "\(context.transcript)\n\(context.latestMessage)"
+                bridge, matching: "\(context.selectionHistory)\n\(context.latestMessage)"
             )
         }
     #endif

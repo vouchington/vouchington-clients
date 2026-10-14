@@ -41,7 +41,7 @@ import XCTest
                     .utf8
             )))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
-                #"{"type":"object","properties":{"id":{"type":"string"}},"minProperties":1}"#.utf8
+                #"{"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"minProperties":1}"#.utf8
             )))
         }
 
@@ -116,6 +116,50 @@ import XCTest
             )))
         }
 
+        func testSchemaProjectionKeepsNumericBoundsAndRejectsUnsupportedNumericAssertions() throws {
+            let bounded = try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"count":{"type":"integer","minimum":1,"maximum":4},"score":{"type":"number","minimum":0.5,"maximum":2.5}}}"#
+                    .utf8
+            ))
+            let encoded = try String(data: JSONEncoder().encode(bounded), encoding: .utf8)
+            XCTAssertTrue(try XCTUnwrap(encoded).contains("maximum"))
+            for property in [
+                #""enum":[1,2],"minimum":1"#,
+                #""const":2,"maximum":3"#,
+                #""exclusiveMinimum":1"#,
+                #""minimum":5,"maximum":1"#
+            ] {
+                let schema = #"{"type":"object","properties":{"count":{"type":"integer","# + property + #"}}}"#
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(schema.utf8)))
+            }
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"score":{"type":"number","exclusiveMaximum":2}}}"#.utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"score":{"type":"number","enum":[1,2],"minimum":1}}}"#.utf8
+            )))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"count":{"type":"integer","maximum":100000000000000000000}}}"#.utf8
+            )))
+        }
+
+        func testSchemaProjectionRejectsUniqueArraysAndUnsatisfiableObjectCounts() {
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"values":{"type":"array","items":{"type":"string"},"uniqueItems":true}}}"#
+                    .utf8
+            )))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"values":{"type":"array","items":{"type":"string"},"uniqueItems":false}}}"#
+                    .utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"id":{"type":"string"}},"minProperties":1}"#.utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"maxProperties":0}"#.utf8
+            )))
+        }
+
         func testToolSessionSeedsUntrustedResultInstructionBeforeCalls() throws {
             let session = NativeChatAppleFoundationModelsProvider.toolSession([])
             let instructions = try XCTUnwrap(session.transcript.first.flatMap { entry -> String? in
@@ -183,6 +227,23 @@ import XCTest
             let structuredPreview = try XCTUnwrap((structuredEnvelope["content"] as? [[String: String]])?
                 .first?["text"])
             XCTAssertTrue(structuredPreview.contains("Structured response"))
+        }
+
+        func testOversizedNullStructuredResultPreviewsNonTextContent() throws {
+            let data = try JSONSerialization.data(withJSONObject: [
+                "content": [["type": "image", "mimeType": "image/png", "data": String(repeating: "a", count: 2_000)]],
+                "structuredContent": NSNull(), "isError": true
+            ])
+            let output = try NativeChatFoundationModelsTool.contextBoundResult(XCTUnwrap(String(
+                data: data,
+                encoding: .utf8
+            )))
+            XCTAssertLessThanOrEqual(output.utf8.count, NativeChatFoundationModelsTool.maximumModelResultBytes)
+            let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any])
+            XCTAssertEqual(envelope["isError"] as? Bool, true)
+            let preview = try XCTUnwrap((envelope["content"] as? [[String: String]])?.first?["text"])
+            XCTAssertTrue(preview.contains("image/png"))
+            XCTAssertFalse(preview.contains("<external-content>null</external-content>"))
         }
 
         func testGeneratedArgumentsRejectNonObjectAndUnsafeInteger() throws {
