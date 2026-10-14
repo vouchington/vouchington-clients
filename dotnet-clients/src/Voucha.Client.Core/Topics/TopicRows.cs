@@ -17,7 +17,8 @@ public sealed record TopicRow(
     IUiLocalization? Localization = null,
     PublicContentProvenance? Provenance = null,
     StaffContentProvenance? StaffProvenance = null,
-    bool IsStaffViewer = false)
+    bool IsStaffViewer = false,
+    TopicImagePlacement? LogoImagePlacement = null)
 {
   public string LocalizedTopicType =>
       (Localization ?? UiLocalization.English).Resolve(TopicTypeText);

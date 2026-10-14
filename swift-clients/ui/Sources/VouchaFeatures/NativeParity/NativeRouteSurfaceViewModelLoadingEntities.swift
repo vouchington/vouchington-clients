@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -53,6 +54,7 @@ extension NativeRouteSurfaceViewModel {
         let response: NativeGenericListResponse = try await client.send(
             Endpoint(.GET, path: path, queryItems: [.init(name: "limit", value: "25")])
         )
+        let imageConfig = AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
         if response.results.isEmpty {
             return [row(icon, appText(title), appText(.nativeSwiftRouteSurfaceNoResults))]
         }
@@ -66,6 +68,7 @@ extension NativeRouteSurfaceViewModel {
                 topicBrowseDetail(for: entity, fallback: entity.displayDetail, response: response),
                 declaredLanguage: authoredTitle?.declaredLanguage,
                 detectedLanguage: authoredTitle?.detectedLanguage,
+                imageURL: imageConfig.imageURL(for: entity.logoImagePlacement, width: 96),
                 provenance: entity.provenance,
                 staffProvenance: entity.staffProvenance
             )
@@ -107,6 +110,7 @@ extension NativeRouteSurfaceViewModel {
         detailRelationBookmarks = relationBookmarks
         detailRelationIsSelfProfile = false
         let entity = response.topic
+        let imageConfig = AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
         let voteSummary = topicVoteSummary(for: entity.id)
         let voteDetail = voteSummary.map {
             .joined([
@@ -119,6 +123,7 @@ extension NativeRouteSurfaceViewModel {
                 "tag",
                 .verbatim(entity.displayTitle(fallback: routeEntityId)),
                 .verbatim(entity.displayDetail),
+                imageURL: imageConfig.imageURL(for: entity.logoImagePlacement, width: 96),
                 provenance: entity.provenance,
                 staffProvenance: entity.staffProvenance
             ),

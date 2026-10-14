@@ -22,5 +22,6 @@ public sealed partial class TopicsViewModel
           vote?.Choice,
           localization,
           topic.Provenance,
-          topic.StaffProvenance);
+          topic.StaffProvenance,
+          LogoImagePlacement: topic.LogoImagePlacement);
 }

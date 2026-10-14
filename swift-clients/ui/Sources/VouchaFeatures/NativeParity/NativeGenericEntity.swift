@@ -21,6 +21,7 @@ struct NativeGenericEntity: Decodable {
     let summary: String?
     let declaredLanguage: String?
     let linguaRsDetectedLanguage: String?
+    let logoImagePlacement: ImagePlacement?
 
     private enum CodingKeys: String, CodingKey {
         case provenance
@@ -43,6 +44,7 @@ struct NativeGenericEntity: Decodable {
         case summary
         case declaredLanguage
         case linguaRsDetectedLanguage
+        case logoImagePlacement
     }
 
     init(from decoder: any Decoder) throws {
@@ -66,6 +68,7 @@ struct NativeGenericEntity: Decodable {
         summary = try container.decodeIfPresent(String.self, forKey: .summary)
         declaredLanguage = try container.decodeIfPresent(String.self, forKey: .declaredLanguage)
         linguaRsDetectedLanguage = try container.decodeIfPresent(String.self, forKey: .linguaRsDetectedLanguage)
+        logoImagePlacement = try container.decodeIfPresent(ImagePlacement.self, forKey: .logoImagePlacement)
     }
 
     init(id: String) {
@@ -88,6 +91,7 @@ struct NativeGenericEntity: Decodable {
         summary = nil
         declaredLanguage = nil
         linguaRsDetectedLanguage = nil
+        logoImagePlacement = nil
     }
 
     init(
@@ -109,11 +113,13 @@ struct NativeGenericEntity: Decodable {
         declaredLanguage: String? = nil,
         linguaRsDetectedLanguage: String? = nil,
         provenance: PublicContentProvenance? = nil,
-        staffProvenance: StaffContentProvenance? = nil
+        staffProvenance: StaffContentProvenance? = nil,
+        logoImagePlacement: ImagePlacement? = nil
     ) {
         self.id = id
         self.provenance = provenance
         self.staffProvenance = staffProvenance
+        self.logoImagePlacement = logoImagePlacement
         self.slug = slug
         self.name = name
         self.title = title
