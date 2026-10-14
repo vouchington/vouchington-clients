@@ -32,6 +32,9 @@ import VouchaCore
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
                 let reachable = try reachableDefinitions(in: fields, definitions: definitions)
                 reservedNames = reachable
+                guard try minimumOutputNodes(fields, definitions: definitions) <= 256 else {
+                    throw Failure.unsupported
+                }
                 let dependencies = try reachable.sorted().map { key -> DynamicGenerationSchema in
                     guard let value = definitions[key] else { throw Failure.unsupported }
                     try NativeChatFoundationModelsSchema.validateStringConstraints(value)
@@ -92,9 +95,14 @@ import VouchaCore
                     let hasNull = values.contains { $0 is NSNull }
                     guard strings.count + (hasNull ? 1 : 0) == values.count else { throw Failure.unsupported }
                     if !hasNull { return .init(name: name(), anyOf: strings) }
+                    if strings.isEmpty { return .null }
                     return .init(name: name(), anyOf: [.init(name: name(), anyOf: strings), .null])
                 }
-                if fields.isEmpty { return .init(type: GeneratedContent.self) }
+                if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
+                   fields["type"] == nil {
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["$defs"])
+                    return .init(type: GeneratedContent.self)
+                }
                 return try projectType(fields)
             }
 

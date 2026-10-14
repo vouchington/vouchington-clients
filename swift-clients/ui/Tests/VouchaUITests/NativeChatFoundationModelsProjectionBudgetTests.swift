@@ -50,5 +50,47 @@ import XCTest
             XCTAssertTrue(encoded.contains("MCPNode_1"))
             XCTAssertTrue(encoded.contains("MCPNode_2"))
         }
+
+        func testNestedRequiredArraysShareOneOutputBudget() throws {
+            let excessive = Data(
+                #"{"type":"array","minItems":64,"items":{"type":"array","minItems":64,"items":{"type":"null"}}}"#.utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(excessive))
+
+            let bounded = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"items":{"type":"array","minItems":4,"items":{"type":"null"}}}}}"#
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(bounded))
+
+            let referenced = Data(
+                ##"{"type":"array","minItems":64,"items":{"$ref":"#/$defs/Row"},"$defs":{"Row":{"type":"array","minItems":64,"items":{"type":"null"}}}}"##
+                    .utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(referenced))
+        }
+
+        func testNullOnlyEnumAndAnnotationOnlySchemaRemainProjectable() throws {
+            let nullOnly = Data(#"{"enum":[null]}"#.utf8)
+            let nullSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: nullOnly)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: nullSchema))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: nullSchema))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(nullOnly))
+
+            let annotationOnly = Data(
+                #"{"description":"Arbitrary JSON payload","default":{"ok":true},"examples":[null,{"ok":true}]}"#.utf8
+            )
+            let arbitrarySchema = try JSONDecoder().decode(DecodedJSONValue.self, from: annotationOnly)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object(["ok": .bool(true)]), schema: arbitrarySchema))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(annotationOnly))
+
+            let nested = Data(
+                ##"{"type":"object","properties":{"choice":{"$ref":"#/$defs/NullChoice"},"payload":{"description":"Any JSON"}},"$defs":{"NullChoice":{"enum":[null]}}}"##
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(nested))
+
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(#"{"minimum":1}"#.utf8)))
+        }
     }
 #endif
