@@ -55,7 +55,7 @@ public struct SourcesListView: View {
             }
         }
         .navigationTitle(navigationTitle)
-        .task(id: SourceLoadIdentity(scope: scope, isStaffViewer: isStaffViewer)) {
+        .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
             viewModel.scope = scope
             await viewModel.reload()
         }
@@ -140,9 +140,4 @@ public struct SourcesListView: View {
         case .all: .message(.nativeSwiftEmptyStateNoSourcesAvailableMessage)
         }
     }
-}
-
-struct SourceLoadIdentity: Hashable {
-    let scope: SourceScope
-    let isStaffViewer: Bool
 }

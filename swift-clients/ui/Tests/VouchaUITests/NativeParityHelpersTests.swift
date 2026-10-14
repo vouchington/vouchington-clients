@@ -57,7 +57,17 @@ final class NativeParityHelpersTests: NativeRouteSurfaceViewModelTestCase {
             showSignIn: {}
         )
         XCTAssertEqual(webSearch.routeSearchQuery, "native swift")
-        XCTAssertEqual(webSearch.authLoadTaskId, "web-search||q=native%20swift|false")
+        XCTAssertEqual(webSearch.authLoadTaskId, "web-search||q=native%20swift|false|false")
+        let staffSearch = try NativeRouteDestinationSurface(
+            entry: entry(for: .webSearch),
+            client: nil,
+            routeMatch: nil,
+            routeQuery: "q=native%20swift",
+            isSignedIn: false,
+            isSiteModerator: true,
+            showSignIn: {}
+        )
+        XCTAssertNotEqual(webSearch.authLoadTaskId, staffSearch.authLoadTaskId)
 
         let referrals = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/my/referrals"))
         let referralLinks = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/my/referral-links"))

@@ -20,7 +20,7 @@ final class StaffTierListReloadTests: XCTestCase {
         ]
         let model = SourcesListViewModel(client: makeClient(), userId: nil, feedType: nil)
         let publicView = SourcesListView(viewModel: model, scope: .all, navigationTitle: "Sources")
-        try await publicView.inspect().group().callTask(id: SourceLoadIdentity(scope: .all, isStaffViewer: false))
+        try await publicView.inspect().group().callTask(id: "all|false")
         XCTAssertNil(model.allSources.first?.staffProvenance)
 
         let promotedView = SourcesListView(
@@ -29,8 +29,45 @@ final class StaffTierListReloadTests: XCTestCase {
             navigationTitle: "Sources",
             isStaffViewer: true
         )
-        try await promotedView.inspect().group().callTask(id: SourceLoadIdentity(scope: .all, isStaffViewer: true))
+        try await promotedView.inspect().group().callTask(id: "all|true")
         XCTAssertNotNil(model.allSources.first?.staffProvenance)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == path }.count, 2)
+    }
+
+    func testRetainedCommunityBrowseModelRefetchesWhenViewerGainsStaffAccess() async throws {
+        let path = "/api/v1/communities"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (ApiFixtureLoader.data("entity-provenance.communities"), 200, 0),
+            (ApiFixtureLoader.data("entity-provenance.communities.staff"), 200, 0)
+        ]
+        let model = CommunityBrowseViewModel(client: makeClient())
+        let publicView = CommunityBrowseSurface(viewModel: model)
+        try await publicView.inspect().vStack().callTask(id: false)
+        XCTAssertNil(model.rows.first?.staffProvenance)
+
+        let promotedView = CommunityBrowseSurface(viewModel: model, isStaffViewer: true)
+        try await promotedView.inspect().vStack().callTask(id: true)
+        XCTAssertNotNil(model.rows.first?.staffProvenance)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == path }.count, 2)
+    }
+
+    func testRetainedListsModelRefetchesWhenViewerGainsStaffAccess() async throws {
+        let path = "/api/v1/lists"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (ApiFixtureLoader.data("entity-provenance.lists"), 200, 0),
+            (ApiFixtureLoader.data("entity-provenance.lists.staff"), 200, 0)
+        ]
+        CannedFeedURLProtocol.handlers["/api/v1/lists/list-1-mcp/items"] = (
+            ApiFixtureLoader.data("native.list-items.default"), 200
+        )
+        let model = ListsViewModel(client: makeClient())
+        let publicView = ListsView(viewModel: model)
+        try await publicView.inspect().scrollView().callTask(id: false)
+        XCTAssertNil(model.selectedList?.staffProvenance)
+
+        let promotedView = ListsView(viewModel: model, isStaffViewer: true)
+        try await promotedView.inspect().scrollView().callTask(id: true)
+        XCTAssertNotNil(model.selectedList?.staffProvenance)
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == path }.count, 2)
     }
 

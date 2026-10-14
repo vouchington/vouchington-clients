@@ -65,7 +65,8 @@ extension NativeRouteDestinationSurface {
             entry.destinationIdentifier?.rawValue ?? entry.auditFamily,
             routeMatch?.path ?? "",
             routeQuery ?? "",
-            String(isSignedIn)
+            String(isSignedIn),
+            String(isAdministrator || isSiteModerator)
         ].joined(separator: "|")
     }
 

@@ -8,7 +8,8 @@ extension NativeCommentThreadSurface {
         [
             routeMatch?.path ?? "",
             routeMatch?.param("commentId") ?? "",
-            currentUserId ?? ""
+            currentUserId ?? "",
+            String(isStaffViewer)
         ].joined(separator: "|")
     }
 

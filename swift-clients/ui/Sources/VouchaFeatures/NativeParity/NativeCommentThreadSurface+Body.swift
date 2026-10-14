@@ -166,5 +166,12 @@ extension NativeCommentThreadSurface {
                 currentUserId: newValue
             )
         }
+        .onChange(of: isStaffViewer) { _, _ in
+            viewModel = NativeCommentThreadViewModel(
+                client: client,
+                rootPostId: viewModel.rootPostId,
+                currentUserId: currentUserId
+            )
+        }
     }
 }

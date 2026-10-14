@@ -39,6 +39,7 @@ struct CommunitySurface: View {
                 viewModel: CommunityBrowseViewModel(client: client),
                 isStaffViewer: isAdministrator || isSiteModerator
             )
+            .id(isAdministrator || isSiteModerator)
         case .create:
             if isSignedIn {
                 CommunityCreateSurface(
@@ -76,6 +77,7 @@ struct CommunitySurface: View {
                 showSignIn: showSignIn,
                 onNavigate: onNavigate
             )
+            .id("\(isAdministrator)|\(isSiteModerator)")
         }
     }
 }

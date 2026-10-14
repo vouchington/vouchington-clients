@@ -33,7 +33,7 @@ public struct ListsView: View {
             .padding(Spacing.md)
         }
         .navigationTitle(UiMessages.string(.nativeSwiftListsLists, locale: nativeUiLocale))
-        .task { await viewModel.load() }
+        .task(id: isStaffViewer) { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
         .sheet(isPresented: $showingCreate) {
             ListsCreateSheet { await viewModel.createList(name: $0) }
@@ -141,6 +141,7 @@ struct ListsRouteSurface: View {
             )
         } else if let client {
             ListsRouteLoadedSurface(client: client, isStaffViewer: isStaffViewer)
+                .id(isStaffViewer)
         }
     }
 }

@@ -45,6 +45,6 @@ struct CommunityBrowseSurface: View {
                 }
             }
         }
-        .task { await viewModel.load() }
+        .task(id: isStaffViewer) { await viewModel.load() }
     }
 }
