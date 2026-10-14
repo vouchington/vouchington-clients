@@ -57,7 +57,7 @@ final class NativeParityHelpersTests: NativeRouteSurfaceViewModelTestCase {
             showSignIn: {}
         )
         XCTAssertEqual(webSearch.routeSearchQuery, "native swift")
-        XCTAssertEqual(webSearch.authLoadTaskId, "web-search||q=native%20swift|false|false")
+        XCTAssertEqual(webSearch.authLoadTaskId, "web-search||q=native%20swift|false|false|false")
         let staffSearch = try NativeRouteDestinationSurface(
             entry: entry(for: .webSearch),
             client: nil,

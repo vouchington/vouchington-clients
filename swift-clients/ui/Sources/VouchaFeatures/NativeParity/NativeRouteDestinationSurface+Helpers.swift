@@ -66,7 +66,8 @@ extension NativeRouteDestinationSurface {
             routeMatch?.path ?? "",
             routeQuery ?? "",
             String(isSignedIn),
-            String(isAdministrator || isSiteModerator)
+            String(isAdministrator),
+            String(isSiteModerator)
         ].joined(separator: "|")
     }
 
