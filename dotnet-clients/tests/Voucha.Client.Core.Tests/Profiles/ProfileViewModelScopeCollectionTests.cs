@@ -20,6 +20,45 @@ public sealed partial class ProfileViewModelSafetyTests
   };
 
   [Theory]
+  [InlineData(NativeUserProfileCollectionKind.TopicsFollowing)]
+  [InlineData(NativeUserProfileCollectionKind.SourcesAll)]
+  [InlineData(NativeUserProfileCollectionKind.CommunitiesMember)]
+  public async Task ProfileCollectionRowsRetainServerProvenanceAndProjectCurrentStaffTier(
+      NativeUserProfileCollectionKind collection)
+  {
+    var service = new RecordingProfileCollectionsService { IncludeProvenance = true };
+    var viewModel = NewViewModel(new User("user-2", "bob", "Hello"));
+    viewModel.ConfigureProfileCollectionsService(service);
+    await viewModel.LoadPublicScopeAsync("bob",
+        new NativeUserProfileScope(SectionForTest(collection), collection), TestContext.Current.CancellationToken);
+
+    Assert.True(CollectionHasPublicProvenance(viewModel, collection));
+    Assert.False(CollectionHasStaffChannel(viewModel, collection));
+    viewModel.SetCurrentViewer("staff-1", "staff", isStaffViewer: true);
+    Assert.True(CollectionHasStaffChannel(viewModel, collection));
+    viewModel.SetCurrentViewer(null, null);
+    Assert.False(CollectionHasStaffChannel(viewModel, collection));
+  }
+
+  private static bool CollectionHasPublicProvenance(ProfileViewModel viewModel, NativeUserProfileCollectionKind collection) =>
+      collection switch
+      {
+        NativeUserProfileCollectionKind.TopicsFollowing => Assert.Single(viewModel.TopicItems).HasProvenance,
+        NativeUserProfileCollectionKind.SourcesAll => Assert.Single(viewModel.SourceItems).HasProvenance,
+        NativeUserProfileCollectionKind.CommunitiesMember => Assert.Single(viewModel.CommunityItems).HasProvenance,
+        _ => throw new ArgumentOutOfRangeException(nameof(collection)),
+      };
+
+  private static bool CollectionHasStaffChannel(ProfileViewModel viewModel, NativeUserProfileCollectionKind collection) =>
+      collection switch
+      {
+        NativeUserProfileCollectionKind.TopicsFollowing => Assert.Single(viewModel.TopicItems).HasStaffChannel,
+        NativeUserProfileCollectionKind.SourcesAll => Assert.Single(viewModel.SourceItems).HasStaffChannel,
+        NativeUserProfileCollectionKind.CommunitiesMember => Assert.Single(viewModel.CommunityItems).HasStaffChannel,
+        _ => throw new ArgumentOutOfRangeException(nameof(collection)),
+      };
+
+  [Theory]
   [MemberData(nameof(CollectionScopes))]
   public async Task EveryCollectionScopeSelectsExactServiceAndTypedRows(
       NativeUserProfileCollectionKind collection,
@@ -295,6 +334,7 @@ public sealed partial class ProfileViewModelSafetyTests
     public List<string?> Afters { get; } = [];
     public Exception? Failure { get; set; }
     public bool HasNextPage { get; set; }
+    public bool IncludeProvenance { get; init; }
     public Func<int, string?, ProfileCollectionPage<Topic>>? TopicsOverride { get; init; }
 
     public Task<ProfileCollectionPage<Topic>> FetchTopicsAsync(
@@ -304,7 +344,9 @@ public sealed partial class ProfileViewModelSafetyTests
     {
       if (TopicsOverride is null)
       {
-        return Result("topics", after, new Topic("topic-1", "Topic", "topic", "topic"));
+        return Result("topics", after, new Topic("topic-1", "Topic", "topic", "topic",
+            Provenance: IncludeProvenance ? new PublicContentProvenance("mcp", null) : null,
+            StaffProvenance: IncludeProvenance ? new StaffContentProvenance("mcp") : null));
       }
       Calls.Add("topics");
       Afters.Add(after);
@@ -319,12 +361,16 @@ public sealed partial class ProfileViewModelSafetyTests
 
     public Task<ProfileCollectionPage<RssFeedSource>> FetchSourcesAsync(
         string userId, string? feedType, string? after, CancellationToken cancellationToken = default) =>
-        Result($"sources:{feedType}", after, new RssFeedSource("source-1", "Source", null, null, null, null));
+        Result($"sources:{feedType}", after, new RssFeedSource("source-1", "Source", null, null, null, null,
+            Provenance: IncludeProvenance ? new PublicContentProvenance("mcp", null) : null,
+            StaffProvenance: IncludeProvenance ? new StaffContentProvenance("mcp") : null));
 
     public Task<ProfileCollectionPage<Community>> FetchCommunitiesAsync(string userId, string? after, CancellationToken cancellationToken = default) =>
         Result("communities", after, new Community(
             "community-1", "Community", "community", null, "public", "public", null,
-            null, null, false, false, "user-1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+            null, null, false, false, "user-1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
+            Provenance: IncludeProvenance ? new PublicContentProvenance("mcp", null) : null,
+            StaffProvenance: IncludeProvenance ? new StaffContentProvenance("mcp") : null));
 
     private Task<ProfileCollectionPage<T>> Result<T>(string call, string? after, T item)
     {

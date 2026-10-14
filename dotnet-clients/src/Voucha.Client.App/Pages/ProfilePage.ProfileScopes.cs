@@ -48,8 +48,8 @@ public partial class ProfilePage
 
   private async void OnProfileSourceClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: RssFeedSource row } && Shell.Current is AppShell shell)
-      await RunProfileActionAsync(() => shell.OpenNativePathAsync(ProfileNavigationTargets.Source(row)));
+    if (sender is Button { CommandParameter: ProfileSourceRow row } && Shell.Current is AppShell shell)
+      await RunProfileActionAsync(() => shell.OpenNativePathAsync(ProfileNavigationTargets.Source(row.Source)));
   }
 
   private async void OnProfileCommunityClicked(object? sender, EventArgs e)

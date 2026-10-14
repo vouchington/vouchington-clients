@@ -7,6 +7,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Lists;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Topics;
 using Xunit;
@@ -15,6 +16,33 @@ namespace Voucha.Client.App.Tests;
 
 public sealed partial class PublicEntityProvenanceRenderingTests
 {
+  [Fact]
+  public async Task MountedTopicDetailFetchesStaffFactsAfterViewerTierGain()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var publicTopic = JsonNode.Parse(Fixture("entity-provenance.topics"))!["topics"]!["topic-1-mcp"]!.DeepClone();
+    var staffTopic = publicTopic.DeepClone();
+    staffTopic["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":null}
+        """);
+    using var model = new TopicDetailViewModel(new ApiTopicsService(Client(
+        new JsonObject { ["topic"] = publicTopic }.ToJsonString(),
+        new JsonObject { ["topic"] = staffTopic }.ToJsonString())));
+    var session = new MutableStaffSessionStore();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var page = new TopicDetailPage(model, session, "topic-1-mcp", Recovery(locale));
+    var initialLoad = WaitUntilLoadedAsync(model);
+    Appear(page);
+    await initialLoad;
+    Assert.Null(model.StaffChannelLabel);
+
+    session.SetCurrentWithoutNotification(new SessionSnapshot(new User("staff", "staff", Roles: ["moderator"])));
+    await page.RefreshAfterSessionChangedAsync();
+    Assert.Equal("Channel: mcp", model.StaffChannelLabel);
+  }
+
   [Fact]
   public async Task EditableCommunityDetailReappearingAfterStaffSignOutClearsCachedFacts()
   {
@@ -223,6 +251,31 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   }
 
   [Fact]
+  public async Task MountedListsRefetchWhenViewerGainsStaffAccess()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var publicLists = JsonNode.Parse(Fixture("entity-provenance.lists.staff"))!;
+    foreach (var list in publicLists["lists"]!.AsObject().Select(entry => entry.Value))
+      list!.AsObject().Remove("staff_provenance");
+    using var model = new ListsViewModel(Client(publicLists.ToJsonString(),
+        Fixture("native.list-items.default"), Fixture("entity-provenance.lists.staff"),
+        Fixture("native.list-items.default")));
+    var session = new MutableStaffSessionStore();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var binding = new ListsPageBinding(model, session);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.False(Assert.Single(binding.Lists, row => row.Id == "list-1-mcp").HasStaffChannel);
+
+    binding.AttachSessionChanged();
+    session.SetCurrentWithoutNotification(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
+    await binding.RefreshAfterSessionChangedAsync();
+    Assert.True(Assert.Single(binding.Lists, row => row.Id == "list-1-mcp").HasStaffChannel);
+    binding.DetachSessionChanged();
+  }
+
+
+  [Fact]
   public async Task FeedAndTopicReattachPublishCachedStaffRowsUnderCurrentViewer()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -278,6 +331,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
       Current = next;
       SessionChanged?.Invoke(this, new SessionChangedEventArgs(next));
     }
+    public void SetCurrentWithoutNotification(SessionSnapshot next) => Current = next;
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }

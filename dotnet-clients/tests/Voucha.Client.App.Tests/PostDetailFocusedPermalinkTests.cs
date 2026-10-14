@@ -13,6 +13,26 @@ namespace Voucha.Client.App.Tests;
 public sealed class PostDetailFocusedPermalinkTests
 {
   [Fact]
+  public async Task MountedDetailRefetchesCreationFactsWhenViewerGainsStaffAccess()
+  {
+    var root = Post("root", null);
+    var service = new ThreadService(new PostResponse(root), Response([]), Response([root]))
+    {
+      NextRoot = new PostResponse(root with { StaffProvenance = new StaffContentProvenance("mcp") }),
+    };
+    var session = new SessionStore(SessionSnapshot.Anonymous);
+    var binding = new PostDetailPageBinding(new CommentThreadViewModel(service, root.Id), session);
+    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.False(Assert.IsType<PostDetailPageRow>(binding.RootRow).HasStaffChannel);
+
+    session.SetCurrent(new SessionSnapshot(new User("staff", "staff", Roles: ["moderator"])));
+    await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(2, service.RootFetchCount);
+    Assert.True(Assert.IsType<PostDetailPageRow>(binding.RootRow).HasStaffChannel);
+  }
+
+  [Fact]
   public async Task RejectedRootHnDiscussionsFollowViewerPermissionChanges()
   {
     var root = Post("root", null) with
@@ -171,9 +191,15 @@ public sealed class PostDetailFocusedPermalinkTests
 
   private sealed class ThreadService(PostResponse root, PostThreadResponse descendants, PostThreadResponse ancestors) : ICommentThreadService
   {
+    public PostResponse? NextRoot { get; init; }
+    public int RootFetchCount { get; private set; }
     public PostThreadResponse? NextDescendants { get; set; }
     public string? NextDescendantsCursor { get; private set; }
-    public Task<PostResponse> FetchPostAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(root);
+    public Task<PostResponse> FetchPostAsync(string id, CancellationToken cancellationToken = default)
+    {
+      RootFetchCount++;
+      return Task.FromResult(RootFetchCount > 1 ? NextRoot ?? root : root);
+    }
     public Task<PostThreadResponse> FetchPostDescendantsAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(descendants);
     public Task<PostThreadResponse> FetchPostDescendantsPageAsync(string id, string? after, int limit, CancellationToken cancellationToken = default)
     {

@@ -15,6 +15,8 @@ public partial class TopicDetailPage : ContentPage
   private readonly bool showSourceCrawls;
   private readonly bool isSourceDetail;
   private readonly string? sourceCrawlId;
+  private bool lastStaffViewer;
+  private bool isVisible;
 
   public TopicDetailPage(
       TopicDetailViewModel viewModel,
@@ -28,12 +30,13 @@ public partial class TopicDetailPage : ContentPage
     InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(RefreshViewerState);
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     this.topicIdOrSlug = topicIdOrSlug;
     this.emailRecovery = emailRecovery ?? throw new ArgumentNullException(nameof(emailRecovery));
     this.showSourceCrawls = showSourceCrawls;
     this.sourceCrawlId = sourceCrawlId;
     this.isSourceDetail = isSourceDetail;
+    lastStaffViewer = IsStaffViewer;
     BindingContext = viewModel;
   }
 
@@ -41,8 +44,10 @@ public partial class TopicDetailPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    isVisible = true;
     sessionStore.SessionChanged += sessionChangedHandler;
     RefreshViewerState();
+    lastStaffViewer = IsStaffViewer;
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
@@ -57,12 +62,35 @@ public partial class TopicDetailPage : ContentPage
 
   protected override void OnDisappearing()
   {
+    isVisible = false;
     sessionStore.SessionChanged -= sessionChangedHandler;
     base.OnDisappearing();
   }
 
-  private void RefreshViewerState() => viewModel.IsStaffViewer =
-      sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true;
+  private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
+
+  private void RefreshViewerState() => viewModel.IsStaffViewer = IsStaffViewer;
+
+  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI session handlers must not throw.")]
+  internal async Task RefreshAfterSessionChangedAsync()
+  {
+    var isStaffViewer = IsStaffViewer;
+    var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
+    lastStaffViewer = isStaffViewer;
+    RefreshViewerState();
+    if (!isVisible || !gainedStaffAccess) return;
+    try
+    {
+      await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
+      if (sourceCrawlId is not null) await viewModel.LoadSourceCrawlAsync(sourceCrawlId).ConfigureAwait(true);
+      else if (showSourceCrawls) await viewModel.LoadSourceCrawlsAsync().ConfigureAwait(true);
+    }
+    catch (Exception ex)
+    {
+      System.Diagnostics.Debug.WriteLine(ex);
+    }
+  }
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)
   {

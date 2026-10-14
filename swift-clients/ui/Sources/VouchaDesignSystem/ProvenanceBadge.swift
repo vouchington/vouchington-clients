@@ -33,8 +33,10 @@ public struct ProvenanceBadge: View {
         }
         if isStaffViewer, let staffProvenance {
             Text(verbatim: UiMessages.string(
-                .sharedProvenanceChannel,
-                parameters: ["channel": staffProvenance.createdVia],
+                UiMessage(
+                    .sharedProvenanceChannel,
+                    textParameters: ["channel": .protocolValue(staffProvenance.createdVia)]
+                ),
                 locale: locale
             ))
             .font(Typography.caption2)
@@ -42,8 +44,10 @@ public struct ProvenanceBadge: View {
             .accessibilityIdentifier("content-staff-provenance-channel")
             if showClient, let client = staffProvenance.oauthClient {
                 Text(verbatim: UiMessages.string(
-                    .sharedProvenanceClient,
-                    parameters: ["name": client.clientName, "clientId": client.clientId],
+                    UiMessage(.sharedProvenanceClient, textParameters: [
+                        "name": .userContent(client.clientName),
+                        "clientId": .protocolValue(client.clientId)
+                    ]),
                     locale: locale
                 ))
                 .font(Typography.caption2)
@@ -72,6 +76,11 @@ public struct ProvenanceBadge: View {
         default: nil // The reviewed known-app catalog currently has no entries.
         }
         guard let name, !name.isEmpty else { return channel }
-        return UiMessages.string(.sharedProvenanceViaApp, parameters: ["app": name], locale: locale)
+        return UiMessages.string(
+            UiMessage(.sharedProvenanceViaApp, textParameters: [
+                "app": app.kind == "hostname" ? .protocolValue(name) : .userContent(name)
+            ]),
+            locale: locale
+        )
     }
 }

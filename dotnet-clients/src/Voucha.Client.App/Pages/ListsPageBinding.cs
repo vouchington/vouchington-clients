@@ -9,6 +9,7 @@ public sealed class ListsPageBinding : BindableObject
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private bool isSessionChangedAttached;
+  private bool lastStaffViewer;
   private string cachedSelectedListDescription;
   private string cachedSelectedListName;
 
@@ -16,11 +17,8 @@ public sealed class ListsPageBinding : BindableObject
   {
     this.viewModel = viewModel;
     this.sessionStore = sessionStore;
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() =>
-    {
-      OnPropertyChanged(nameof(Lists));
-      OnPropertyChanged(nameof(SelectedList));
-    });
+    lastStaffViewer = IsStaffViewer;
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     cachedSelectedListDescription = viewModel.SelectedListDescription;
     cachedSelectedListName = viewModel.SelectedListName;
     viewModel.PropertyChanged += (_, e) =>
@@ -116,6 +114,19 @@ public sealed class ListsPageBinding : BindableObject
 
   private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
       role is "administrator" or "moderator") == true;
+
+  internal async Task RefreshAfterSessionChangedAsync()
+  {
+    var isStaffViewer = IsStaffViewer;
+    var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
+    lastStaffViewer = isStaffViewer;
+    OnPropertyChanged(nameof(Lists));
+    OnPropertyChanged(nameof(SelectedList));
+    if (isSessionChangedAttached && gainedStaffAccess)
+    {
+      await viewModel.LoadAsync().ConfigureAwait(true);
+    }
+  }
 
   public IReadOnlyList<ListSummaryRow> Lists => viewModel.Lists.Select(row => row with
   {
