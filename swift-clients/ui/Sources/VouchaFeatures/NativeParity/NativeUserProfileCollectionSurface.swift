@@ -5,6 +5,11 @@ import VouchaLocalization
 import VouchaModels
 
 extension NativeUserProfileSurface {
+    private var topicImageConfig: AppConfig {
+        guard let client = viewModel.client else { return .shared }
+        return AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+    }
+
     @ViewBuilder
     var scopedCollection: some View {
         switch viewModel.state {
@@ -77,7 +82,11 @@ extension NativeUserProfileSurface {
         case let .topics(topics):
             ForEach(topics) { topic in
                 Button { onNavigate(NativeUserProfileNavigationTarget.topic(topic)) } label: {
-                    NativeUserProfileTopicRow(topic: topic, isStaffViewer: isStaffViewer)
+                    NativeUserProfileTopicRow(
+                        topic: topic,
+                        isStaffViewer: isStaffViewer,
+                        imageConfig: topicImageConfig
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-topic-row")
@@ -105,14 +114,15 @@ extension NativeUserProfileSurface {
 private struct NativeUserProfileTopicRow: View {
     let topic: Topic
     let isStaffViewer: Bool
+    let imageConfig: AppConfig
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            if let logoURL = AppConfig.shared.imageURL(for: topic.logoImagePlacement, width: 80),
+            if let logoURL = imageConfig.imageURL(for: topic.logoImagePlacement, width: 80),
                let url = URL(string: logoURL) {
                 AsyncImageView(
                     urlString: url.absoluteString,
-                    baseURL: AppConfig.shared.imageBaseURL,
+                    baseURL: imageConfig.imageBaseURL,
                     contentMode: .fill
                 )
                 .frame(width: 40, height: 40)
