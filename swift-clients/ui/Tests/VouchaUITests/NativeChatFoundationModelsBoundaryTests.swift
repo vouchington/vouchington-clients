@@ -8,9 +8,9 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsBoundaryTests: XCTestCase {
-        func testSchemaProjectionAcceptsNullableChoiceAndNumericConstant() throws {
+        func testSchemaProjectionAcceptsNullableChoiceAndStringConstant() throws {
             let schema = Data(
-                #"{"type":"object","properties":{"choice":{"enum":["one",null]},"count":{"const":5}}}"#.utf8
+                #"{"type":"object","properties":{"choice":{"enum":["one",null]},"kind":{"const":"fixed"}}}"#.utf8
             )
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(schema))
         }
@@ -21,19 +21,36 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(unsupported))
         }
 
-        func testSchemaProjectionInfersBooleanConstAndRejectsUnprojectableMaps() throws {
-            let boolean = try XCTUnwrap(JSONSerialization
-                .jsonObject(with: Data(#"{"const":true}"#.utf8)) as? [String: Any])
-            let number = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(#"{"const":5}"#.utf8)) as? [String: Any])
-            XCTAssertEqual(NativeChatFoundationModelsSchema.inferredType(boolean), "boolean")
-            XCTAssertEqual(NativeChatFoundationModelsSchema.inferredType(number), "number")
-            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(#"{"const":true}"#.utf8)))
+        func testSchemaProjectionRejectsNonStringConstantsAndUnprojectableMaps() throws {
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(#"{"const":true}"#.utf8)))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(#"{"const":5}"#.utf8)))
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","additionalProperties":{"type":"string"}}"#.utf8
             )))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"id":{"type":"string"}},"additionalProperties":false}"#.utf8
             )))
+        }
+
+        func testSchemaProjectionRejectsImplicitOpenMapRequiredForMinimumProperties() {
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","minProperties":1}"#.utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                ##"{"type":"object","$defs":{"Map":{"type":"object","properties":{"id":{"type":"string"}},"minProperties":2}},"properties":{"value":{"$ref":"#/$defs/Map"}}}"##
+                    .utf8
+            )))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"id":{"type":"string"}},"minProperties":1}"#.utf8
+            )))
+        }
+
+        func testSchemaProjectionKeepsObjectDefinitionsAndBoundedArrays() {
+            let schema = Data(
+                ##"{"type":"object","$defs":{"Payload":{"type":"object","properties":{"name":{"type":"string"}},"required":["name"],"additionalProperties":false}},"properties":{"payload":{"$ref":"#/$defs/Payload"},"values":{"type":"array","items":{"type":"integer"},"minItems":1,"maxItems":3}},"required":["payload"]}"##
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(schema))
         }
 
         func testOversizedToolResultKeepsErrorStatusAndBoundedPreview() throws {

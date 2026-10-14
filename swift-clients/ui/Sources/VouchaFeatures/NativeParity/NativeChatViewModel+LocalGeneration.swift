@@ -95,7 +95,7 @@ extension NativeChatViewModel {
             context: context,
             assistantMessageId: assistantMessageId,
             response: response,
-            mcpSnapshot: mcpSnapshot
+            mcpSnapshot: response.persistenceSnapshot(mcpSnapshot, providerSelection: context.providerSelection)
         )
     }
 

@@ -92,6 +92,14 @@ struct NativeChatAssistantResponse: Equatable {
     let content: String
     let modelProvider: String
     let modelName: String?
+    let admittedMCPCall: Bool
+
+    init(content: String, modelProvider: String, modelName: String?, admittedMCPCall: Bool = false) {
+        self.content = content
+        self.modelProvider = modelProvider
+        self.modelName = modelName
+        self.admittedMCPCall = admittedMCPCall
+    }
 }
 
 protocol NativeChatTitleProviding: Sendable {

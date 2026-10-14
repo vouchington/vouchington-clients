@@ -1,4 +1,3 @@
-import CoreFoundation
 import Foundation
 import VouchaCore
 
@@ -15,9 +14,6 @@ import VouchaCore
             if fields["properties"] != nil { return "object" }
             if fields["items"] != nil { return "array" }
             if fields["const"] is String { return "string" }
-            if let value = fields["const"] as? NSNumber {
-                return CFGetTypeID(value) == CFBooleanGetTypeID() ? "boolean" : "number"
-            }
             return ""
         }
 
@@ -44,7 +40,11 @@ import VouchaCore
                     if let properties = value["properties"] as? [String: [String: Any]] {
                         guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
                         else { throw Failure.unsupported }
+                        guard (value["minProperties"] as? Int ?? 0) <= properties.count else {
+                            throw Failure.unsupported
+                        }
                         let required = Set(value["required"] as? [String] ?? [])
+                        guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
                         return try .init(name: key, properties: properties.keys.sorted().map { field in
                             guard let property = properties[field] else { throw Failure.unsupported }
                             return try .init(
@@ -62,6 +62,7 @@ import VouchaCore
             }
 
             private mutating func project(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+                if let constant = fields["const"], !(constant is String) { throw Failure.unsupported }
                 if let path = fields["$ref"] as? String {
                     guard path.hasPrefix("#/$defs/") else { throw Failure.unsupported }
                     return .init(referenceTo: String(path.dropFirst(8)))
@@ -103,7 +104,11 @@ import VouchaCore
                     throw Failure.unsupported
                 }
                 let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
+                guard (fields["minProperties"] as? Int ?? 0) <= properties.count else {
+                    throw Failure.unsupported
+                }
                 let required = Set(fields["required"] as? [String] ?? [])
+                guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
                 return try .init(name: name(), properties: properties.keys.sorted().map { key in
                     guard let property = properties[key] else { throw Failure.unsupported }
                     return try .init(

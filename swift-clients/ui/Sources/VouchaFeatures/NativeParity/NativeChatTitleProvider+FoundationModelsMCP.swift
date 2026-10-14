@@ -53,8 +53,9 @@ extension NativeChatAppleFoundationModelsProvider {
                 if await state.attempted { throw LocalLLMToolLoopFailure.partialExecution }
                 return nil
             }
-            return NativeChatAssistantResponse(
-                content: content, modelProvider: "apple_foundation", modelName: "apple-foundation-system"
+            return await NativeChatAssistantResponse(
+                content: content, modelProvider: "apple_foundation", modelName: "apple-foundation-system",
+                admittedMCPCall: state.attempted
             )
         #else
             return nil
