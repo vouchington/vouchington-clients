@@ -36,6 +36,8 @@ public sealed class CommunityPlacementRenderingTests
         Assert.IsType<UriImageSource>(images["community-profile-image"].Source).Uri);
     Assert.True(images["community-banner-image"].IsVisible);
     Assert.True(images["community-profile-image"].IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(images["community-profile-image"]));
+    Assert.Contains(Descendants<Label>(page), label => label.Text == "Test Community");
   }
 
   [Fact]
@@ -58,6 +60,7 @@ public sealed class CommunityPlacementRenderingTests
     Assert.Null(images["community-profile-image"].Source);
     Assert.False(images["community-banner-image"].IsVisible);
     Assert.False(images["community-profile-image"].IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(images["community-profile-image"]));
     Assert.Contains(Descendants<Label>(page), label => label.Text == "Test Community");
   }
 
@@ -79,6 +82,8 @@ public sealed class CommunityPlacementRenderingTests
 
     Assert.Equal(new Uri("https://images.test/images/placements/profile-placement/7/avatar-1?w=96"),
         Assert.IsType<UriImageSource>(avatar.Source).Uri);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
+    Assert.Contains(Descendants<Label>(card), label => label.Text == "Community");
     card.BindingContext = row with { ProfileImagePlacement = null };
     Assert.Null(avatar.Source);
     Assert.False(avatar.IsVisible);

@@ -34,7 +34,7 @@ struct CommunityBrowseSurface: View {
                                 detail: .joined([.verbatim(row.detail), row.metrics]),
                                 provenance: row.provenance,
                                 staffProvenance: row.staffProvenance
-                            ), isStaffViewer: isStaffViewer)
+                            ), isStaffViewer: isStaffViewer, showsLeadingIcon: false)
                         }
                     }
 

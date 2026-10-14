@@ -36,8 +36,8 @@ public abstract partial class CommunitySectionPage
     var images = communityImages.Children.OfType<Image>().ToArray();
     SetImage(images[0], community?.BannerImagePlacement, 960);
     SetImage(images[1], community?.ProfileImagePlacement, 96);
+    AutomationProperties.SetIsInAccessibleTree(images[1], false);
     communityImages.IsVisible = images.Any(image => image.IsVisible);
-    SemanticProperties.SetDescription(images[1], community?.Name);
   }
 
   private void SetImage(Image image, TopicImagePlacement? placement, int width)

@@ -9,6 +9,7 @@ struct NativeSurfaceRow: View {
     let row: NativeRouteDestinationRow
     var isStaffViewer = false
     var showStaffClient = false
+    var showsLeadingIcon = true
 
     var body: some View {
         if let externalURL = row.externalURL {
@@ -23,10 +24,12 @@ struct NativeSurfaceRow: View {
 
     private var rowContent: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: row.icon)
-                .font(.headline)
-                .foregroundStyle(Colors.primary)
-                .frame(width: 22)
+            if showsLeadingIcon {
+                Image(systemName: row.icon)
+                    .font(.headline)
+                    .foregroundStyle(Colors.primary)
+                    .frame(width: 22)
+            }
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(row.localizedTitle(locale: locale, timeZone: timeZone))
                     .font(Typography.headline)

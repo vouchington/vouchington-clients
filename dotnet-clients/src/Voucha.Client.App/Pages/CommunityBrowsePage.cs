@@ -45,7 +45,7 @@ public sealed class CommunityBrowsePage : ContentPage
           nameof(CommunityBrowseRow.ProfileImagePlacement),
           converter: new PlacementImageSourceConverter(this.config, 96)));
       avatar.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProfileImage));
-      avatar.SetBinding(SemanticProperties.DescriptionProperty, nameof(CommunityBrowseRow.Name));
+      AutomationProperties.SetIsInAccessibleTree(avatar, false);
       var title = new Label { FontAttributes = FontAttributes.Bold };
       title.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.Name));
       var subtitle = new Label();

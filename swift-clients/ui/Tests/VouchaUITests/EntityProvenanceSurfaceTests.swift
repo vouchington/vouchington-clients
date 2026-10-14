@@ -119,6 +119,15 @@ final class EntityProvenanceSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(viewModel.rows.count, 3)
         let rows = try CommunityBrowseSurface(viewModel: viewModel).inspect().findAll(NativeSurfaceRow.self)
         XCTAssertEqual(rows.count, 3)
+        for row in rows {
+            XCTAssertFalse(try row.actualView().showsLeadingIcon)
+        }
+        for row in rows {
+            XCTAssertTrue(row.findAll(ViewType.Image.self).isEmpty)
+        }
+        let avatars = try CommunityBrowseSurface(viewModel: viewModel).inspect()
+            .findAll(ViewType.View<CommunityPlacementAvatar>.self)
+        XCTAssertEqual(avatars.count, 3)
         try assertFixtureLabels(rows.map { try $0.actualView().row })
     }
 

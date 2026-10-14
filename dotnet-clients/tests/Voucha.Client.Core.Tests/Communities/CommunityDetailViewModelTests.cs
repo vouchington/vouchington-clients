@@ -88,6 +88,9 @@ public sealed class CommunityDetailViewModelTests
   {
     var initial = JsonNode.Parse(ApiFixtureLoader.LoadResponse(
         archive ? "web.communities.show.default" : "web.communities.archive.default"))!;
+    var imageDetail = JsonNode.Parse(ApiFixtureLoader.LoadResponse("web.communities.show.default"))!;
+    initial["community"]!["profile_image_placement"] = imageDetail["community"]!["profile_image_placement"]!.DeepClone();
+    initial["community"]!["banner_image_placement"] = imageDetail["community"]!["banner_image_placement"]!.DeepClone();
     initial["membership"] = JsonNode.Parse("""
         {"id":"community-member-1","community_id":"community-1","user_id":"user-1","role":"owner","__entity_type":"community_member"}
         """);
@@ -97,6 +100,8 @@ public sealed class CommunityDetailViewModelTests
         archive ? "web.communities.archive.default" : "web.communities.show.default"))!;
     partial["community"]!.AsObject().Remove("provenance");
     partial["community"]!.AsObject().Remove("staff_provenance");
+    partial["community"]!.AsObject().Remove("profile_image_placement");
+    partial["community"]!.AsObject().Remove("banner_image_placement");
     var (viewModel, _) = CreateViewModel(
         SessionSnapshotForTests.Authenticated,
         initial.ToJsonString(),
@@ -108,6 +113,8 @@ public sealed class CommunityDetailViewModelTests
     await viewModel.LoadAsync("test-community", TestContext.Current.CancellationToken);
     Assert.NotNull(viewModel.Community?.Provenance);
     Assert.NotNull(viewModel.Community?.StaffProvenance);
+    Assert.Equal("00000000-0000-7000-8000-000000000203", viewModel.Community?.ProfileImagePlacement?.ImageId);
+    Assert.Equal("00000000-0000-7000-8000-000000000204", viewModel.Community?.BannerImagePlacement?.ImageId);
 
     Assert.True(archive
         ? await viewModel.ArchiveAsync(TestContext.Current.CancellationToken)
@@ -115,6 +122,8 @@ public sealed class CommunityDetailViewModelTests
     Assert.Equal(archive, viewModel.IsArchived);
     Assert.NotNull(viewModel.Community?.Provenance);
     Assert.NotNull(viewModel.Community?.StaffProvenance);
+    Assert.Equal("00000000-0000-7000-8000-000000000203", viewModel.Community?.ProfileImagePlacement?.ImageId);
+    Assert.Equal("00000000-0000-7000-8000-000000000204", viewModel.Community?.BannerImagePlacement?.ImageId);
   }
 
   [Fact]
