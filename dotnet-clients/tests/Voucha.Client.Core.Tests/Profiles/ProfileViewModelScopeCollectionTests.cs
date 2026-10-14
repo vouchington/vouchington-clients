@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Profiles;
 using Voucha.Client.Core.Support;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Profiles;
@@ -313,6 +315,23 @@ public sealed partial class ProfileViewModelSafetyTests
     Assert.False(viewModel.CanLoadMore);
   }
 
+  [Fact]
+  public async Task FollowingScopeKeepsPlacementFromPublicUserFixture()
+  {
+    var response = JsonSerializer.Deserialize<UserFollowingResponse>(
+        ApiFixtureLoader.LoadResponse("swift.users.following.default"), VouchaApiJson.Options)!;
+    var service = new RecordingProfileCollectionsService { FriendOverride = Assert.Single(response.Results) };
+    var viewModel = NewViewModel(new User("user-2", "bob", "Hello"));
+    viewModel.ConfigureProfileCollectionsService(service);
+
+    await viewModel.LoadPublicScopeAsync(
+        "bob",
+        new NativeUserProfileScope(NativeUserProfileSection.Friends, NativeUserProfileCollectionKind.UsersFollowing),
+        TestContext.Current.CancellationToken);
+
+    Assert.Equal("00000000-0000-7000-8000-000000000301", Assert.Single(viewModel.FriendItems).ProfileImagePlacement?.PlacementId);
+  }
+
   private static ProfileCollectionPage<Topic> TopicPage(string id, string? cursor, bool hasNextPage) =>
       new([new Topic(id, id, id, "topic")], new PageInfo(cursor, hasNextPage, null));
 
@@ -335,6 +354,7 @@ public sealed partial class ProfileViewModelSafetyTests
     public Exception? Failure { get; set; }
     public bool HasNextPage { get; set; }
     public bool IncludeProvenance { get; init; }
+    public User? FriendOverride { get; init; }
     public Func<int, string?, ProfileCollectionPage<Topic>>? TopicsOverride { get; init; }
 
     public Task<ProfileCollectionPage<Topic>> FetchTopicsAsync(
@@ -354,7 +374,7 @@ public sealed partial class ProfileViewModelSafetyTests
     }
 
     public Task<ProfileCollectionPage<User>> FetchFollowingAsync(string userId, string? after, CancellationToken cancellationToken = default) =>
-        Result("following", after, new User("friend-1", "friend"));
+        Result("following", after, FriendOverride ?? new User("friend-1", "friend"));
 
     public Task<ProfileCollectionPage<User>> FetchFollowersAsync(string userId, string? after, CancellationToken cancellationToken = default) =>
         Result("followers", after, new User("friend-1", "friend"));

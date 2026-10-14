@@ -53,11 +53,24 @@
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="20" />
                                         </Border.StrokeShape>
-                                        <Label
-                                            Text="{Binding AvatarInitial}"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center"
-                                            Style="{StaticResource Headline}" />
+                                        <Grid>
+                                            <Label
+                                                Text="{Binding AvatarInitial}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center"
+                                                Style="{StaticResource Headline}"
+                                            AutomationProperties.IsInAccessibleTree="False" />
+                                            <Image
+                                                WidthRequest="40"
+                                                HeightRequest="40"
+                                                Aspect="AspectFill"
+                                                Source="{Binding ProfileImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}"
+                                                AutomationProperties.IsInAccessibleTree="False">
+                                                <Image.Clip>
+                                                    <EllipseGeometry Center="20,20" RadiusX="20" RadiusY="20" />
+                                                </Image.Clip>
+                                            </Image>
+                                        </Grid>
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="4">
                                         <Label Text="{Binding PrimaryLabel}" Style="{StaticResource Headline}" />

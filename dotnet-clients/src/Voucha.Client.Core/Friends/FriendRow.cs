@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Friends;
@@ -10,7 +11,8 @@ public sealed record FriendRow(
     string? ProfileImageId,
     bool IsFollowing,
     bool IsSelf,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    TopicImagePlacement? ProfileImagePlacement = null)
 {
   public bool CanToggleFollow => !IsSelf;
 

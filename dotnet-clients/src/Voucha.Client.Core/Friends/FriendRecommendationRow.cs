@@ -10,6 +10,8 @@ public sealed record FriendRecommendationRow(
 {
   public string Id => Recommendation.Id;
 
+  public TopicImagePlacement? ProfileImagePlacement => User?.ProfileImagePlacement;
+
   public string PrimaryLabel =>
       UserDisplayName(User) ??
       NonBlank(Recommendation.ProviderFriendName) ??
