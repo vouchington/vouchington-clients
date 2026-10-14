@@ -90,6 +90,11 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             method: .DELETE,
             path: "/api/v1/auth/oauth/linkedin/connect"
         )
+        assertEndpoint(
+            .disconnectOAuthAccount(provider: .microsoft),
+            method: .DELETE,
+            path: "/api/v1/auth/oauth/microsoft/connect"
+        )
 
         let capabilities = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
@@ -142,6 +147,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         )
         XCTAssertTrue(priorBroker.brokerCapabilities.github.supportsNative(.authenticate))
         XCTAssertFalse(priorBroker.brokerCapabilities.linkedin?.supportsNative(.authenticate) == true)
+        XCTAssertFalse(priorBroker.brokerCapabilities.microsoft?.supportsNative(.authenticate) == true)
 
         let rollingCompatibility = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
@@ -275,6 +281,11 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             "name": "Alice LinkedIn",
             "email_address": "linkedin@example.com"
         ]
+        identityObject["microsoft_account"] = [
+            "id": "microsoft-1",
+            "name": "Alice Microsoft",
+            "email_address": "microsoft@example.com"
+        ]
         identityEnvelope["identity"] = identityObject
         let identityData = try JSONSerialization.data(withJSONObject: identityEnvelope)
         let identity = try decoder.decode(NativeOAuthIdentityEnvelope.self, from: identityData).identity
@@ -283,6 +294,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertEqual(identity.xAccount?.id, "x-1")
         XCTAssertEqual(identity.githubAccount?.emailAddress, "github@example.com")
         XCTAssertEqual(identity.linkedinAccount?.name, "Alice LinkedIn")
+        XCTAssertEqual(identity.microsoftAccount?.name, "Alice Microsoft")
 
         let encodedIdentity = try JSONEncoder().encode(identity)
         let encodedObject = try XCTUnwrap(
@@ -304,7 +316,12 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             (encodedObject["linkedin_account"] as? [String: Any])?["id"] as? String,
             "linkedin-1"
         )
+        XCTAssertEqual(
+            (encodedObject["microsoft_account"] as? [String: Any])?["id"] as? String,
+            "microsoft-1"
+        )
         XCTAssertEqual(identity.withProfileImageId("image-1").linkedinAccount?.id, "linkedin-1")
+        XCTAssertEqual(identity.withProfileImageId("image-1").microsoftAccount?.id, "microsoft-1")
     }
 
     func testStoreClaimsOnlyMatchingFixedCallbackAndRejectsReplacement() throws {
