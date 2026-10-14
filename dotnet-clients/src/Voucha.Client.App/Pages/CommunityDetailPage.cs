@@ -3,6 +3,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -118,7 +119,7 @@ public sealed partial class CommunityDetailPage : ContentPage
 
     var requestedAsStaff = IsStaffViewer();
     await viewModel.LoadAsync(nextSlug).ConfigureAwait(true);
-    lastLoadedAsStaff = requestedAsStaff;
+    if (viewModel.State == LoadState.Loaded) lastLoadedAsStaff = requestedAsStaff;
     Render();
   }
 

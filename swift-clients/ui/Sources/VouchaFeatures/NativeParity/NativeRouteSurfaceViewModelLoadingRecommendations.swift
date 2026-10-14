@@ -23,15 +23,8 @@ extension NativeRouteSurfaceViewModel {
                 .topicRecommendation(id: recommendationId)
             )
             let post = response.post
-            let title = recommendationTitle(post)
             return [
-                row(
-                    "lightbulb",
-                    title.text,
-                    rawText(post.markdown ?? post.id),
-                    declaredLanguage: title.declaredLanguage,
-                    detectedLanguage: title.detectedLanguage
-                ),
+                recommendationRow(post),
                 row(
                     "square.and.pencil",
                     appText(.nativeSwiftRouteSurfaceEditRecommendation),
@@ -44,14 +37,7 @@ extension NativeRouteSurfaceViewModel {
         )
         return response.results.compactMap {
             guard let post = response.posts[$0.entityId ?? $0.id] else { return nil }
-            let title = recommendationTitle(post)
-            return row(
-                "lightbulb",
-                title.text,
-                rawText(post.markdown ?? post.id),
-                declaredLanguage: title.declaredLanguage,
-                detectedLanguage: title.detectedLanguage
-            )
+            return recommendationRow(post)
         }
     }
 }
@@ -75,6 +61,19 @@ private struct RecommendationTitle {
 }
 
 private extension NativeRouteSurfaceViewModel {
+    func recommendationRow(_ post: NativePostSummary) -> NativeRouteDestinationRow {
+        let title = recommendationTitle(post)
+        return row(
+            "lightbulb",
+            title.text,
+            rawText(post.markdown ?? post.id),
+            declaredLanguage: title.declaredLanguage,
+            detectedLanguage: title.detectedLanguage,
+            provenance: post.provenance,
+            staffProvenance: post.staffProvenance
+        )
+    }
+
     func recommendationTitle(_ post: NativePostSummary) -> RecommendationTitle {
         RecommendationTitle(post: post)
     }
