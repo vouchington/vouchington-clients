@@ -8,6 +8,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     public let accountType: AccountType?
     public let id: String
     public let icon: String
+    public let imageURL: String?
     public let title: String
     public let detail: String
     let titleText: UiVerbatimText
@@ -22,6 +23,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     public init(
         id: String = UUID().uuidString,
         icon: String,
+        imageURL: String? = nil,
         title: UiVerbatimText,
         detail: UiVerbatimText,
         declaredLanguage: String? = nil,
@@ -39,6 +41,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         self.accountType = accountType
         self.id = id
         self.icon = icon
+        self.imageURL = imageURL
         titleText = title
         detailText = detail
         self.title = UiMessages.string(title, locale: .english)
@@ -55,6 +58,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         self.init(
             id: UUID().uuidString,
             icon: icon,
+            imageURL: nil,
             title: .app(title),
             detail: .app(detail),
             externalURL: externalURL,
@@ -71,7 +75,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     }
 
     public static func == (lhs: NativeRouteDestinationRow, rhs: NativeRouteDestinationRow) -> Bool {
-        lhs.icon == rhs.icon && lhs.title == rhs.title && lhs.detail == rhs.detail
+        lhs.icon == rhs.icon && lhs.imageURL == rhs.imageURL && lhs.title == rhs.title && lhs.detail == rhs.detail
             && lhs.declaredLanguage == rhs.declaredLanguage && lhs.detectedLanguage == rhs.detectedLanguage
             && lhs.detailDeclaredLanguage == rhs.detailDeclaredLanguage
             && lhs.detailDetectedLanguage == rhs.detailDetectedLanguage
@@ -91,6 +95,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         hasher.combine(staffProvenance)
         hasher.combine(accountType)
         hasher.combine(icon)
+        hasher.combine(imageURL)
         hasher.combine(title)
         hasher.combine(detail)
         hasher.combine(declaredLanguage)

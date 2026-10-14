@@ -5,7 +5,6 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:app="clr-namespace:Voucha.Client.App"
-    xmlns:topics="clr-namespace:Voucha.Client.Core.Topics;assembly=Voucha.Client.Core"
     xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
     x:DataType="pages:TopicsPageBinding"
     Title="{DynamicResource native.swift.navigationTitles.topics}">
@@ -52,14 +51,26 @@
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="topics:TopicRow">
+                    <DataTemplate x:DataType="pages:TopicPageRow">
                         <Border Margin="0,0,0,12" Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Image
+                                        Source="{Binding LogoImageSource}"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        Aspect="AspectFill"
+                                        AutomationId="topic-logo-image"
+                                        IsVisible="{Binding HasLogo}"
+                                        SemanticProperties.Description="{Binding Name}" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                        <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
+                                        <Label Text="{Binding Name}" Style="{StaticResource Headline}" AutomationId="topic-name" />
+                                    </VerticalStackLayout>
+                                </Grid>
                                 <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Description}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />

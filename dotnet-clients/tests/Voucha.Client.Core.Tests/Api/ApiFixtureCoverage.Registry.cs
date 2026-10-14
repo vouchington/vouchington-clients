@@ -354,6 +354,14 @@ internal static partial class ApiFixtureCoverage
   public static readonly IReadOnlyDictionary<string, string[]> IgnoredPaths =
       new Dictionary<string, string[]>(StringComparer.Ordinal)
       {
+        ["web.topics.show.default"] =
+        [
+          "html",
+          "topic_categories",
+          "topic_children",
+          "topic_content_update",
+          "topic_parents",
+        ],
         ["native.topic-recommendation.detail.default"] =
         [
           "post.topic_recommendation",

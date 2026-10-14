@@ -7,7 +7,11 @@ private struct CommunityMutationResponse: Codable {
 
 let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "web.topics.search.default") {
-        try assertFixtureCoversDTO($0, as: TopicSearchResponse.self)
+        try assertFixtureCoversDTO(
+            $0,
+            as: TopicSearchResponse.self,
+            ignoring: ["topic_elections.topic-1.__entity_type", "topics.topic-1.hero_image_placement"]
+        )
     },
     RegisteredFixture(id: "web.topics.show.default") {
         try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)

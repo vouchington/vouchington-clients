@@ -24,9 +24,11 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/ListsPageBinding.cs" Link="Pages/ListsPageBinding.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicDetailPage.xaml" Link="Pages/TopicDetailPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicDetailPage.xaml.cs" Link="Pages/TopicDetailPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicDetailPage.Images.cs" Link="Pages/TopicDetailPage.Images.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TopicsPage.xaml" Link="Pages/TopicsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicsPage.xaml.cs" Link="Pages/TopicsPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TopicsPage.Binding.cs" Link="Pages/TopicsPage.Binding.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/TopicPageRow.cs" Link="Pages/TopicPageRow.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/SemanticVoteActionSheet.cs" Link="Controls/SemanticVoteActionSheet.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml" Link="Pages/NewsFeedsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml.cs" Link="Pages/NewsFeedsPage.xaml.cs" />

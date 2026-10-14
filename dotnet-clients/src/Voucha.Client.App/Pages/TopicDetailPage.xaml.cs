@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.App.Controls;
 
@@ -14,6 +15,7 @@ public partial class TopicDetailPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly bool showSourceCrawls;
   private readonly bool isSourceDetail;
+  private readonly AppConfig config;
   private readonly string? sourceCrawlId;
   private bool lastStaffViewer;
   private bool isVisible;
@@ -23,6 +25,7 @@ public partial class TopicDetailPage : ContentPage
       ISessionStore sessionStore,
       string topicIdOrSlug,
       EmailVerificationRecoveryCoordinator emailRecovery,
+      AppConfig config,
       bool showSourceCrawls = false,
       string? sourceCrawlId = null,
       bool isSourceDetail = false)
@@ -33,11 +36,14 @@ public partial class TopicDetailPage : ContentPage
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     this.topicIdOrSlug = topicIdOrSlug;
     this.emailRecovery = emailRecovery ?? throw new ArgumentNullException(nameof(emailRecovery));
+    this.config = config ?? throw new ArgumentNullException(nameof(config));
     this.showSourceCrawls = showSourceCrawls;
     this.sourceCrawlId = sourceCrawlId;
     this.isSourceDetail = isSourceDetail;
     lastStaffViewer = IsStaffViewer;
     BindingContext = viewModel;
+    AttachTopicChanges();
+    RefreshTopicLogo();
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI lifecycle handlers must not throw.")]
@@ -46,8 +52,10 @@ public partial class TopicDetailPage : ContentPage
     base.OnAppearing();
     isVisible = true;
     sessionStore.SessionChanged += sessionChangedHandler;
+    AttachTopicChanges();
     RefreshViewerState();
     lastStaffViewer = IsStaffViewer;
+    RefreshTopicLogo();
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);
@@ -64,6 +72,11 @@ public partial class TopicDetailPage : ContentPage
   {
     isVisible = false;
     sessionStore.SessionChanged -= sessionChangedHandler;
+    if (isTopicChangeAttached)
+    {
+      viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+      isTopicChangeAttached = false;
+    }
     base.OnDisappearing();
   }
 
@@ -162,7 +175,8 @@ public partial class TopicDetailPage : ContentPage
         emailRecovery,
         showSourceCrawls: true,
         sourceCrawlId: crawlId,
-        isSourceDetail: isSourceDetail));
+        isSourceDetail: isSourceDetail,
+        config: config));
   }
 
   private async void OnRetrySourceCrawlHistoryClicked(object? sender, EventArgs e)
