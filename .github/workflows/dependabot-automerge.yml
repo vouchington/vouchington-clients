@@ -61,7 +61,7 @@ jobs:
           persist-credentials: false
           ref: ${{ steps.live.outputs.base-sha }}
       - name: Set up trusted Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
       - name: Set up pnpm
@@ -144,7 +144,7 @@ jobs:
             "$RUNNER_TEMP/exact-dependabot-diff" "$output"
       - name: Upload verified Swift Android repair
         if: steps.classify.outputs.repair-kind == 'swift-android'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           if-no-files-found: error
           name: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
@@ -170,7 +170,7 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.base-sha }}
       - name: Set up trusted Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
       - name: Set up pnpm
@@ -180,7 +180,7 @@ jobs:
       - name: Install trusted repair dependencies
         run: pnpm install --frozen-lockfile
       - name: Download same-run Swift Android artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
           github-token: ${{ github.token }}
           name: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
@@ -278,7 +278,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Enable eligible Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@82a71223d6bb8d49bb4b2a88e57d14c071179f5f # v0.34.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@dc068a67fbd7137ff3b0448543b7e53c07149e5b # v0.37.2
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           expected_base_sha: ${{ needs.prepare.outputs.base-sha }}
@@ -295,6 +295,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Disable stale Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@82a71223d6bb8d49bb4b2a88e57d14c071179f5f # v0.34.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@dc068a67fbd7137ff3b0448543b7e53c07149e5b # v0.37.2
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
