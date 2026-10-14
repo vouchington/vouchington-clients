@@ -9,6 +9,13 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "web.topics.mutation.default") {
         try assertFixtureCoversDTO($0, as: TopicEnvelope.self)
     },
+    RegisteredFixture(id: "web.communities.show.default") {
+        try assertFixtureCoversDTO(
+            $0,
+            as: CommunityResponse.self,
+            ignoring: ["community_metrics.__entity_type", "membership"]
+        )
+    },
     RegisteredFixture(id: "web.communities.archive.default") {
         try assertFixtureCoversDTO(
             $0,
