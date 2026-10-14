@@ -9,7 +9,7 @@ public static class StaffProvenanceLabels
   {
     ArgumentNullException.ThrowIfNull(localization);
     return isStaffViewer && provenance is not null
-        ? localization.Format(UiMessageKey.SharedProvenanceChannel, ("channel", provenance.CreatedVia))
+        ? localization.Format(UiMessageKey.SharedProvenanceChannel, ("channel", UiText.ProtocolValue(provenance.CreatedVia)))
         : null;
   }
 
@@ -19,7 +19,7 @@ public static class StaffProvenanceLabels
     ArgumentNullException.ThrowIfNull(localization);
     var client = isStaffViewer && showClient ? provenance?.OAuthClient : null;
     return client is null ? null : localization.Format(UiMessageKey.SharedProvenanceClient,
-        ("name", client.ClientName), ("clientId", client.ClientId));
+        ("name", UiText.UserContent(client.ClientName)), ("clientId", UiText.ProtocolValue(client.ClientId)));
   }
 
   public static string? Verification(StaffContentProvenance? provenance, bool isStaffViewer,

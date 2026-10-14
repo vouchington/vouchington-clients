@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -15,11 +16,13 @@ public sealed class CommunityBrowsePage : ContentPage
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
   private readonly Button searchButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpSearch);
   private readonly CollectionView resultsView = new() { ItemSizingStrategy = ItemSizingStrategy.MeasureAllItems };
+  private bool lastSearchWasStaff;
 
   public CommunityBrowsePage(CommunityBrowseViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    lastSearchWasStaff = IsStaffViewer();
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(Render);
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunities.Value);
@@ -69,7 +72,7 @@ public sealed class CommunityBrowsePage : ContentPage
     base.OnAppearing();
     sessionStore.SessionChanged += sessionChangedHandler;
     Render();
-    if (viewModel.Results.Count == 0)
+    if (viewModel.Results.Count == 0 || lastSearchWasStaff != IsStaffViewer())
     {
       await RunSearchAsync().ConfigureAwait(true);
     }
@@ -97,8 +100,10 @@ public sealed class CommunityBrowsePage : ContentPage
 
   private async Task SearchAsync()
   {
+    var requestedAsStaff = IsStaffViewer();
     viewModel.Query = queryEntry.Text ?? string.Empty;
     await viewModel.SearchAsync().ConfigureAwait(true);
+    if (viewModel.State == LoadState.Loaded) lastSearchWasStaff = requestedAsStaff;
     Render();
   }
 
@@ -108,11 +113,13 @@ public sealed class CommunityBrowsePage : ContentPage
   {
     errorLabel.Text = viewModel.ErrorMessage ?? string.Empty;
     errorLabel.IsVisible = viewModel.HasError;
-    var isStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
-        role is "administrator" or "moderator") == true;
+    var isStaffViewer = IsStaffViewer();
     resultsView.ItemsSource = viewModel.Results.Select(row => row with
     {
       IsStaffViewer = isStaffViewer,
     }).ToArray();
   }
+
+  private bool IsStaffViewer() => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
 }

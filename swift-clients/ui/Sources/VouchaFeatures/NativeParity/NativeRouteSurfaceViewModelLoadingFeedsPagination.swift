@@ -44,7 +44,9 @@ extension NativeRouteSurfaceViewModel {
                 title: title?.text ?? post.slug.map(rawText) ?? postTypeText(post.postType),
                 detail: subtitle,
                 declaredLanguage: title?.declaredLanguage,
-                detectedLanguage: title?.detectedLanguage
+                detectedLanguage: title?.detectedLanguage,
+                provenance: post.provenance,
+                staffProvenance: post.staffProvenance
             )
         }
         return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)

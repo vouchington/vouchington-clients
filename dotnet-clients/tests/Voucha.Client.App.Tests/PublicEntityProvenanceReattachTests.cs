@@ -149,6 +149,50 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   }
 
   [Fact]
+  public async Task CommunityBrowseReappearingAsStaffReloadsPublicCachedRows()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var session = new MutableStaffSessionStore();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    var model = new CommunityBrowseViewModel(new ApiCommunitiesService(Client(
+        Fixture("entity-provenance.communities"), Fixture("entity-provenance.communities.staff"))));
+    await model.SearchAsync(TestContext.Current.CancellationToken);
+    var page = new CommunityBrowsePage(model, session);
+    var collection = Assert.Single(Descendants<CollectionView>(page));
+    InvokeLifecycle(page, "OnAppearing");
+    Assert.All(Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(
+        collection.ItemsSource), row => Assert.False(row.HasStaffChannel));
+
+    InvokeLifecycle(page, "OnDisappearing");
+    session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
+    var refreshed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    void OnResultsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+      if (args.PropertyName == nameof(CommunityBrowseViewModel.Results)
+          && model.Results.Any(row => row.StaffProvenance is not null)) refreshed.TrySetResult();
+    }
+    model.PropertyChanged += OnResultsChanged;
+    try
+    {
+      InvokeLifecycle(page, "OnAppearing");
+      await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
+    finally
+    {
+      model.PropertyChanged -= OnResultsChanged;
+    }
+
+    var staffRow = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(
+        collection.ItemsSource), row => row.Id == "community-1-mcp");
+    Assert.True(staffRow.HasStaffChannel);
+    InvokeLifecycle(page, "OnDisappearing");
+    InvokeLifecycle(page, "OnAppearing");
+    Assert.True(Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(
+        collection.ItemsSource), row => row.Id == "community-1-mcp").HasStaffChannel);
+  }
+
+  [Fact]
   public async Task ListsReattachPublishesCachedRowsUnderCurrentViewer()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
