@@ -22,6 +22,16 @@ final class ApiFixtureCoverageTests: XCTestCase {
         XCTAssertEqual(detail.topic.heroImagePlacement?.placementRevision, 4)
     }
 
+    func testTopicSearchAndDetailRegistryPreserveVerifiedResponseFields() throws {
+        let topicIds = Set(["web.topics.search.default", "web.topics.show.default"])
+        let fixtures = webCommunityApiFixtureCoverage.filter { topicIds.contains($0.id) }
+        XCTAssertEqual(Set(fixtures.map(\.id)), topicIds)
+
+        for fixture in fixtures {
+            try fixture.run(fixture.id)
+        }
+    }
+
     func testPrivateUserFixturePreservesRequiredContractFields() throws {
         let data = ApiFixtureLoader.data("swift.my.identity.default")
 

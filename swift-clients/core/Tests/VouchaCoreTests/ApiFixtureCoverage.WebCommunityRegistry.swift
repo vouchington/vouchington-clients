@@ -14,25 +14,7 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
         )
     },
     RegisteredFixture(id: "web.topics.show.default") {
-        try assertFixtureCoversDTO(
-            $0,
-            as: TopicEnvelope.self,
-            ignoring: [
-                "html",
-                "topic_categories",
-                "topic_children",
-                "topic_content_update",
-                "topic_election",
-                "topic_metrics",
-                "topic_parents",
-                "topic.hero_image_placement",
-                "topic_election.__entity_type",
-                "topic_election.id",
-                "topic_election.votes_count_down",
-                "topic_election.votes_count_up",
-                "topic_election.votes_score_net"
-            ]
-        )
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
     },
     RegisteredFixture(id: "web.topics.mutation.default") {
         try assertFixtureCoversDTO($0, as: TopicEnvelope.self)
