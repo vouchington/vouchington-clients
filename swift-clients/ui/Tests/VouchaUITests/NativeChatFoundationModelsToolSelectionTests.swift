@@ -60,5 +60,38 @@ import XCTest
             XCTAssertEqual(selected.map(\.descriptor.name), ["read_community"])
             XCTAssertTrue(NativeChatFoundationModelsToolSelection.select(bridge, matching: "translate French").isEmpty)
         }
+
+        func testContextualFollowUpSelectsToolFromBoundedPromptHistory() throws {
+            let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([.object([
+                "name": .string("get_my_cards"),
+                "description": .string("Read my cards"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])]))
+            let history: [NativeChatTimelineMessage] = [
+                .init(id: "request", role: .user, content: "Show my cards"),
+                .init(id: "answer", role: .assistant, content: "I can show them.")
+            ]
+            let context = NativeChatAppleFoundationModelsProvider.boundedAssistantContext(
+                message: "Yes, do that", history: history,
+                maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+            )
+            let selected = NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Yes, do that", history: history
+            )
+            XCTAssertEqual(selected.map(\.descriptor.name), ["get_my_cards"])
+            let prompt = NativeChatAppleFoundationModelsProvider.assistantPrompt(
+                message: "Yes, do that", history: history,
+                maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+            )
+            XCTAssertTrue(prompt.contains(context.transcript))
+            XCTAssertLessThanOrEqual(prompt.count, NativeChatFoundationModelsToolSelection.maximumPromptCharacters)
+
+            let staleHistory = [history[0]] + (0 ..< 12).map { index in
+                NativeChatTimelineMessage(id: "later-\(index)", role: .user, content: "Other topic")
+            }
+            XCTAssertTrue(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Yes, do that", history: staleHistory
+            ).isEmpty)
+        }
     }
 #endif

@@ -62,7 +62,10 @@ import VouchaCore
             }
 
             private mutating func project(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-                if let constant = fields["const"], !(constant is String) { throw Failure.unsupported }
+                try validateConstant(fields)
+                if isIntegerType(fields) {
+                    try validateSafeIntegerRange(fields)
+                }
                 if let path = fields["$ref"] as? String {
                     guard path.hasPrefix("#/$defs/") else { throw Failure.unsupported }
                     return .init(referenceTo: String(path.dropFirst(8)))
@@ -84,6 +87,39 @@ import VouchaCore
                 }
                 if fields.isEmpty { return .init(type: GeneratedContent.self) }
                 return try projectType(fields)
+            }
+
+            private func validateConstant(_ fields: [String: Any]) throws {
+                if let constant = fields["const"], !(constant is String) { throw Failure.unsupported }
+            }
+
+            private func isIntegerType(_ fields: [String: Any]) -> Bool {
+                if fields["type"] as? String == "integer" { return true }
+                return (fields["type"] as? [String])?.contains("integer") == true
+            }
+
+            private func validateSafeIntegerRange(_ fields: [String: Any]) throws {
+                let safeLimit = Decimal(9_007_199_254_740_991)
+                if let minimum = fields["minimum"] as? NSNumber {
+                    guard let value = Decimal(string: minimum.stringValue), value <= safeLimit else {
+                        throw Failure.unsupported
+                    }
+                }
+                if let maximum = fields["maximum"] as? NSNumber {
+                    guard let value = Decimal(string: maximum.stringValue), value >= -safeLimit else {
+                        throw Failure.unsupported
+                    }
+                }
+                if let minimum = fields["exclusiveMinimum"] as? NSNumber {
+                    guard let value = Decimal(string: minimum.stringValue), value < safeLimit else {
+                        throw Failure.unsupported
+                    }
+                }
+                if let maximum = fields["exclusiveMaximum"] as? NSNumber {
+                    guard let value = Decimal(string: maximum.stringValue), value > -safeLimit else {
+                        throw Failure.unsupported
+                    }
+                }
             }
 
             private mutating func projectType(_ fields: [String: Any]) throws -> DynamicGenerationSchema {

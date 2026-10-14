@@ -80,12 +80,21 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
         history: [NativeChatTimelineMessage],
         maximumCharacters: Int = maximumAssistantPromptCharacters
     ) -> String {
+        let context = boundedAssistantContext(message: message, history: history, maximumCharacters: maximumCharacters)
+        return "\(assistantInstruction)\n\n\(context.transcript)\(latestMessageHeading)\(context.latestMessage)"
+    }
+
+    static func boundedAssistantContext(
+        message: String,
+        history: [NativeChatTimelineMessage],
+        maximumCharacters: Int
+    ) -> (transcript: String, latestMessage: String) {
         let fixedCharacters = assistantInstruction.count + 2 + latestMessageHeading.count
         let contentBudget = max(0, maximumCharacters - fixedCharacters)
         let latestMessage = String(message.trimmingCharacters(in: .whitespacesAndNewlines).prefix(contentBudget))
         let transcriptBudget = max(0, contentBudget - latestMessage.count)
         let transcript = boundedTranscript(history, maximumCharacters: transcriptBudget, maximumMessages: 12)
-        return "\(assistantInstruction)\n\n\(transcript)\(latestMessageHeading)\(latestMessage)"
+        return (transcript, latestMessage)
     }
 
     private static func boundedTranscript(
