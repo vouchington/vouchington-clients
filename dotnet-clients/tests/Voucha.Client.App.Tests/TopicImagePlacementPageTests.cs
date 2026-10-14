@@ -420,18 +420,4 @@ public sealed class TopicImagePlacementPageTests
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
         throw new InvalidOperationException($"Unexpected call: {targetMethod?.Name}");
   }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance;
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
 }

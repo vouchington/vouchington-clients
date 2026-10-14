@@ -84,19 +84,6 @@ public sealed class NativeMarkdownEditorViewAutocompleteTests
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
 
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
-
   private sealed class QueuedResponseHandler : HttpMessageHandler
   {
     private readonly Queue<string> responses = new();

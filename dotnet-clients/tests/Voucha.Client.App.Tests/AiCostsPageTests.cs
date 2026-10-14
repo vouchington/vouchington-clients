@@ -109,16 +109,4 @@ public sealed class AiCostsPageTests
     public Task<ClearCacheResponse> ClearCacheAsync(string group, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<FlushValkeyResponse> FlushValkeyAsync(string concern, bool force = false, CancellationToken cancellationToken = default) => throw new NotSupportedException();
   }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  { public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance; }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
 }

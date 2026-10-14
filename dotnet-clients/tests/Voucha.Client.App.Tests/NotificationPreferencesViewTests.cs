@@ -349,11 +349,6 @@ public sealed partial class NotificationPreferencesViewTests
     }
   }
 
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance;
-  }
-
   private sealed class RecordingAccessibilityPlatform : INotificationAccessibilityPlatform
   {
     private readonly Queue<bool> focusResults;
@@ -386,15 +381,6 @@ public sealed partial class NotificationPreferencesViewTests
   private sealed record StubLanguageProvider(string Language) : IDeviceLanguageProvider
   {
     public IReadOnlyList<string> PreferredLanguages => [Language];
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
   }
 
   private sealed class SettingsService : ISettingsService, INotificationPreferencesService
