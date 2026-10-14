@@ -1,10 +1,32 @@
 import Foundation
+import VouchaModels
 
 #if canImport(FoundationModels)
     import FoundationModels
 
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema {
+        static func projectionFields(from data: Data) throws -> [String: Any] {
+            guard case let .object(fields) = try JSONDecoder().decode(DecodedJSONValue.self, from: data) else {
+                throw Failure.unsupported
+            }
+            return fields.mapValues(projectionValue)
+        }
+
+        private static func projectionValue(_ value: DecodedJSONValue) -> Any {
+            switch value {
+            case .null: NSNull()
+            case let .bool(value): value
+            case let .number(value): NSNumber(value: value)
+            case let .integer(value): NSNumber(value: value)
+            case let .unsignedInteger(value): NSNumber(value: value)
+            case let .decimal(value): NSDecimalNumber(decimal: value)
+            case let .string(value): value
+            case let .array(values): values.map(projectionValue)
+            case let .object(fields): fields.mapValues(projectionValue)
+            }
+        }
+
         static func inferredType(_ fields: [String: Any]) -> String {
             if fields["properties"] != nil { return "object" }
             if fields["items"] != nil { return "array" }

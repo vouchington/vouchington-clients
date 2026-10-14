@@ -11,24 +11,27 @@ import VouchaCore
         enum Failure: Error { case unsupported }
 
         static func project(_ data: Data) throws -> GenerationSchema {
-            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw Failure.unsupported
-            }
+            let root = try projectionFields(from: data)
             var projection = Projection()
             return try projection.schema(root)
         }
 
         struct Projection {
             private var nextID = 0
+            private var reservedNames: Set<String> = []
 
             mutating func name() -> String {
-                nextID += 1
-                return "MCPNode_\(nextID)"
+                while true {
+                    nextID += 1
+                    let candidate = "MCPNode_\(nextID)"
+                    if !reservedNames.contains(candidate) { return candidate }
+                }
             }
 
             mutating func schema(_ fields: [String: Any]) throws -> GenerationSchema {
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
                 let reachable = try reachableDefinitions(in: fields, definitions: definitions)
+                reservedNames = reachable
                 let dependencies = try reachable.sorted().map { key -> DynamicGenerationSchema in
                     guard let value = definitions[key] else { throw Failure.unsupported }
                     try NativeChatFoundationModelsSchema.validateStringConstraints(value)
@@ -146,21 +149,6 @@ import VouchaCore
                         isOptional: !required.contains(key)
                     )
                 })
-            }
-
-            private mutating func projectArray(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-                try NativeChatFoundationModelsSchema.validateKeywords(
-                    fields, allowing: ["type", "items", "minItems", "maxItems", "uniqueItems", "$defs"]
-                )
-                guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false else {
-                    throw Failure.unsupported
-                }
-                guard let item = fields["items"] as? [String: Any] else { throw Failure.unsupported }
-                return try .init(
-                    arrayOf: project(item),
-                    minimumElements: fields["minItems"] as? Int,
-                    maximumElements: fields["maxItems"] as? Int
-                )
             }
 
         }

@@ -155,17 +155,5 @@ import Foundation
             return Int(integer)
         }
 
-        func projectNumber(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-            try NativeChatFoundationModelsSchema.validateKeywords(
-                fields, allowing: ["type", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
-            )
-            let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
-            // GeneratedContent converts numbers through Double, whose integral values must fit JSON's safe range.
-            let safe = Decimal(9_007_199_254_740_991)
-            let minimum = Swift.max(bounds.minimum ?? -safe, -safe)
-            let maximum = Swift.min(bounds.maximum ?? safe, safe)
-            guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-            return .init(type: Decimal.self, guides: [.minimum(minimum), .maximum(maximum)])
-        }
     }
 #endif
