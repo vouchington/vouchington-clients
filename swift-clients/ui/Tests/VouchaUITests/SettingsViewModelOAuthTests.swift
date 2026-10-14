@@ -399,7 +399,7 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNil(fixture.viewModel.oauthErrorMessage)
     }
 
-    private func makeFixture() throws -> (
+    func makeFixture() throws -> (
         viewModel: SettingsViewModel,
         coordinator: NativeOAuthAuthorizationCoordinator
     ) {
@@ -423,11 +423,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         )
     }
 
-    private func seedCapabilities(linkedInNative: Bool = true) {
+    func seedCapabilities(linkedInNative: Bool = true, microsoftNative: Bool = false) {
         CannedFeedURLProtocol.handlers["/api/v1/auth/oauth/providers"] = (
             Data("""
             {
-              "providers": ["facebook", "x", "github", "linkedin"],
+              "providers": ["facebook", "x", "github", "linkedin", "microsoft"],
               "broker_capabilities": {
                 "facebook": {
                   "version": 1,
@@ -448,6 +448,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
                   "version": 1,
                   "modes": {"web": true, "native": \(linkedInNative)},
                   "purposes": ["authenticate", "connect"]
+                },
+                "microsoft": {
+                  "version": 1,
+                  "modes": {"web": true, "native": \(microsoftNative)},
+                  "purposes": ["authenticate", "connect"]
                 }
               }
             }
@@ -456,7 +461,7 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         )
     }
 
-    private func identityWithOAuthAccounts() -> Data {
+    func identityWithOAuthAccounts() -> Data {
         PrivateUserTestFixture.identityEnvelope(overrides: [
             "facebook_account": oauthAccount(
                 id: "facebook-1",
@@ -472,6 +477,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             "linkedin_account": oauthAccount(
                 id: "linkedin-1",
                 name: "LinkedIn Alice",
+                email: nil
+            ),
+            "microsoft_account": oauthAccount(
+                id: "microsoft-1",
+                name: "Microsoft Alice",
                 email: nil
             )
         ])

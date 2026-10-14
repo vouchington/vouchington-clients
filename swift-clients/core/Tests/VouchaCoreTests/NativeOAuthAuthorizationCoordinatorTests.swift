@@ -334,7 +334,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             NativeAuthorizationCompletionProof.fromVerifier("verifier").challenge,
             "iMnq5o6zALKXGivsnlom_0F5_WYda32GHkxlV7mq7hQ"
         )
-        XCTAssertEqual(NativeOAuthProvider.allCases.map(\.id), ["facebook", "x", "github", "linkedin"])
+        XCTAssertEqual(NativeOAuthProvider.allCases.map(\.id), ["facebook", "x", "github", "linkedin", "microsoft"])
 
         let capability = OAuthBrokerCapability(
             version: 2,
@@ -398,36 +398,6 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         return try XCTUnwrap(try store.claimCallback(for: XCTUnwrap(URL(
             string: "voucha://auth/oauth/callback?flow_id=\(flowId)&completion_token=token"
         )), now: now))
-    }
-
-    func capabilitiesData() -> Data {
-        Data("""
-        {
-          "providers": ["facebook", "x", "github", "linkedin"],
-          "broker_capabilities": {
-            "facebook": {
-              "version": 1,
-              "modes": {"web": true, "native": true},
-              "purposes": ["authenticate", "connect"]
-            },
-            "x": {
-              "version": 1,
-              "modes": {"web": true, "native": false},
-              "purposes": ["authenticate", "connect"]
-            },
-            "github": {
-              "version": 1,
-              "modes": {"web": true, "native": true},
-              "purposes": ["authenticate", "connect"]
-            },
-            "linkedin": {
-              "version": 1,
-              "modes": {"web": true, "native": true},
-              "purposes": ["authenticate", "connect"]
-            }
-          }
-        }
-        """.utf8)
     }
 
     func identityData(provider: NativeOAuthProvider? = nil) -> Data {
