@@ -118,4 +118,104 @@ final class PagedGetEndpointTests: XCTestCase {
             ]
         )
     }
+
+    func testRemainingLimitThenAfterPagesOmitAMissingCursor() {
+        let pages = [
+            Endpoint.notifications(limit: 2),
+            Endpoint.userFollowing(userId: "user/1", limit: 2),
+            Endpoint.lists(limit: 2),
+            Endpoint.rssFeedCrawls(id: "feed/1", limit: 2),
+            Endpoint.adminReviewQueue(limit: 2),
+            Endpoint.urlCrawls(urlId: "url/1", limit: 2),
+            Endpoint.communityPendingPosts(idOrSlug: "comm/1", limit: 2),
+            Endpoint.communityInvites(idOrSlug: "comm/1", limit: 2),
+            Endpoint.communityListItems(idOrSlug: "comm/1", itemType: .topic, limit: 2),
+            Endpoint.rssFeedItems(feedType: "any", limit: 2),
+            Endpoint.allRssFeedItems(limit: 2),
+            Endpoint.allRssFeeds(limit: 2),
+            Endpoint.userRssFeeds(userId: "user/1", listType: "muted", limit: 2)
+        ]
+
+        for page in pages {
+            XCTAssertEqual(page.method, .GET)
+            XCTAssertEqual(page.queryItems.map(\.name), ["limit"])
+            XCTAssertEqual(page.queryItems.map(\.value), ["2"])
+        }
+        XCTAssertEqual(
+            Endpoint.userFollowing(userId: "user/1", limit: 2).path,
+            "/api/v1/users/user%2F1/users/following"
+        )
+        XCTAssertEqual(Endpoint.rssFeedCrawls(id: "feed/1", limit: 2).path, "/api/v1/rss-feeds/feed%2F1/crawls")
+        XCTAssertEqual(Endpoint.urlCrawls(urlId: "url/1", limit: 2).path, "/api/v1/urls/url%2F1/crawls")
+        XCTAssertEqual(
+            Endpoint.communityPendingPosts(idOrSlug: "comm/1", limit: 2).path,
+            "/api/v1/communities/comm%2F1/posts/pending"
+        )
+        XCTAssertEqual(
+            Endpoint.communityInvites(idOrSlug: "comm/1", limit: 2).path,
+            "/api/v1/communities/comm%2F1/invites"
+        )
+        XCTAssertEqual(
+            Endpoint.communityListItems(idOrSlug: "comm/1", itemType: .topic, limit: 2).path,
+            "/api/v1/communities/comm%2F1/list-items/topics"
+        )
+        XCTAssertEqual(
+            Endpoint.userRssFeeds(userId: "user/1", listType: "muted", limit: 2).path,
+            "/api/v1/users/user%2F1/rss-feeds/muted"
+        )
+        XCTAssertEqual(Endpoint.notifications(limit: 2).path, "/api/v1/my/notifications")
+        XCTAssertEqual(Endpoint.adminReviewQueue(limit: 2).path, "/api/v1/posts/review-queue")
+        XCTAssertEqual(Endpoint.lists(limit: 2).path, "/api/v1/lists")
+        XCTAssertEqual(Endpoint.rssFeedItems(feedType: "any", limit: 2).path, "/api/v1/feeds/rss_feed_items/any")
+        XCTAssertEqual(Endpoint.allRssFeedItems(limit: 2).path, "/api/v1/rss-feed-items")
+        XCTAssertEqual(Endpoint.allRssFeeds(limit: 2).path, "/api/v1/rss-feeds")
+    }
+
+    func testRemainingLimitThenAfterPagesKeepCursorAndLaterFilters() {
+        let cursor = "opaque+/=cursor"
+        let pages = [
+            Endpoint.notifications(after: cursor, limit: 10),
+            Endpoint.userFollowing(userId: "ada", after: cursor, limit: 10),
+            Endpoint.lists(after: cursor, limit: 10),
+            Endpoint.rssFeedCrawls(id: "feed 1", after: cursor, limit: 10),
+            Endpoint.adminReviewQueue(after: cursor, limit: 10),
+            Endpoint.urlCrawls(urlId: "url 1", after: cursor, limit: 10),
+            Endpoint.communityPendingPosts(idOrSlug: "test community", after: cursor, limit: 10),
+            Endpoint.communityInvites(idOrSlug: "test community", after: cursor, limit: 10),
+            Endpoint.communityListItems(idOrSlug: "test community", itemType: .topic, after: cursor, limit: 10),
+            Endpoint.rssFeedItems(feedType: "any", after: cursor, limit: 10, mediaType: "audio"),
+            Endpoint.allRssFeedItems(after: cursor, limit: 10, mediaType: "audio"),
+            Endpoint.allRssFeeds(feedType: "podcast", after: cursor, limit: 10, category: "news"),
+            Endpoint.userRssFeeds(userId: "user 1", listType: "muted", feedType: "podcast", after: cursor, limit: 10)
+        ]
+
+        for page in pages {
+            XCTAssertEqual(Array(page.queryItems.map(\.name).prefix(2)), ["limit", "after"])
+            XCTAssertEqual(page.queryItems.first { $0.name == "after" }?.value, cursor)
+        }
+        XCTAssertEqual(
+            Endpoint.rssFeedItems(feedType: "any", after: cursor, limit: 10, mediaType: "audio").queryItems.map(\.name),
+            ["limit", "after", "media_type"]
+        )
+        XCTAssertEqual(
+            Endpoint.allRssFeedItems(after: cursor, limit: 10, mediaType: "audio").queryItems.map(\.value),
+            ["10", cursor, "audio"]
+        )
+        XCTAssertEqual(
+            Endpoint.allRssFeeds(feedType: "podcast", after: cursor, limit: 10, category: "news").queryItems,
+            [
+                URLQueryItem(name: "limit", value: "10"),
+                URLQueryItem(name: "after", value: cursor),
+                URLQueryItem(name: "feed_type", value: "podcast"),
+                URLQueryItem(name: "category", value: "news")
+            ]
+        )
+        XCTAssertEqual(
+            Endpoint.userRssFeeds(userId: "user 1", feedType: "podcast", limit: 8).queryItems,
+            [
+                URLQueryItem(name: "limit", value: "8"),
+                URLQueryItem(name: "feed_type", value: "podcast")
+            ]
+        )
+    }
 }

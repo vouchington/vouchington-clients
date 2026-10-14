@@ -75,14 +75,10 @@ public extension Endpoint {
         after: String? = nil,
         limit: Int = 25
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(
-            .GET,
+        pagedGet(
             path: "/api/v1/communities/\(pathSegment(idOrSlug))/list-items/\(itemType.routeSegment)",
-            queryItems: items
+            after: after,
+            limit: limit
         )
     }
 }

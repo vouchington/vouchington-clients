@@ -67,14 +67,16 @@ public extension Endpoint {
         limit: Int = 20,
         mediaType: String? = nil
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
+        var additional: [URLQueryItem] = []
         if let mediaType {
-            items.append(.init(name: "media_type", value: mediaType))
+            additional.append(.init(name: "media_type", value: mediaType))
         }
-        return Endpoint(.GET, path: "/api/v1/feeds/rss_feed_items/\(feedType)", queryItems: items)
+        return pagedGet(
+            path: "/api/v1/feeds/rss_feed_items/\(feedType)",
+            after: after,
+            limit: limit,
+            queryItems: additional
+        )
     }
 
     static func posts(
@@ -94,11 +96,7 @@ public extension Endpoint {
     }
 
     static func notifications(after: String? = nil, limit: Int = 20) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/notifications", queryItems: items)
+        pagedGet(path: "/api/v1/my/notifications", after: after, limit: limit)
     }
 
     static var myIdentity: Endpoint {
@@ -110,11 +108,11 @@ public extension Endpoint {
     }
 
     static func userFollowing(userId: String, after: String? = nil, limit: Int = 100) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/users/\(pathSegment(userId))/users/following", queryItems: items)
+        pagedGet(
+            path: "/api/v1/users/\(pathSegment(userId))/users/following",
+            after: after,
+            limit: limit
+        )
     }
 
     static func userFollowers(
@@ -189,30 +187,24 @@ public extension Endpoint {
 
     /// All RSS feed items — global feed, no personalization scope required.
     static func allRssFeedItems(after: String? = nil, limit: Int = 20, mediaType: String? = nil) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
+        var additional: [URLQueryItem] = []
         if let mediaType {
-            items.append(.init(name: "media_type", value: mediaType))
+            additional.append(.init(name: "media_type", value: mediaType))
         }
-        return Endpoint(.GET, path: "/api/v1/rss-feed-items", queryItems: items)
+        return pagedGet(path: "/api/v1/rss-feed-items", after: after, limit: limit, queryItems: additional)
     }
 
     /// Public RSS feed sources, optionally filtered by feed_type and paginated with a cursor.
     static func allRssFeeds(feedType: String? = nil, after: String? = nil, limit: Int = 100, category: String? = nil)
         -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
+        var additional: [URLQueryItem] = []
         if let feedType {
-            items.append(.init(name: "feed_type", value: feedType))
+            additional.append(.init(name: "feed_type", value: feedType))
         }
         if let category {
-            items.append(.init(name: "category", value: category))
+            additional.append(.init(name: "category", value: category))
         }
-        return Endpoint(.GET, path: "/api/v1/rss-feeds", queryItems: items)
+        return pagedGet(path: "/api/v1/rss-feeds", after: after, limit: limit, queryItems: additional)
     }
 
     /// RSS feeds associated with a user (following/subscribed/muted).
@@ -223,17 +215,15 @@ public extension Endpoint {
         after: String? = nil,
         limit: Int = 100
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
+        var additional: [URLQueryItem] = []
         if let feedType {
-            items.append(.init(name: "feed_type", value: feedType))
+            additional.append(.init(name: "feed_type", value: feedType))
         }
-        return Endpoint(
-            .GET,
+        return pagedGet(
             path: "/api/v1/users/\(pathSegment(userId))/rss-feeds/\(pathSegment(listType))",
-            queryItems: items
+            after: after,
+            limit: limit,
+            queryItems: additional
         )
     }
 
