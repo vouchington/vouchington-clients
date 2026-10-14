@@ -65,27 +65,15 @@ public extension Endpoint {
     }
 
     static func trendingCommunities(after: String? = nil, limit: Int = 10) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/trending-communities", queryItems: items)
+        pagedGet(path: "/api/v1/trending-communities", after: after, limit: limit)
     }
 
     static func trendingReferralPrograms(after: String? = nil, limit: Int = 10) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/trending-referral-programs", queryItems: items)
+        pagedGet(path: "/api/v1/trending-referral-programs", after: after, limit: limit)
     }
 
     static func referralLinksFeed(feedType: String, after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/feeds/referral_links/\(feedType)", queryItems: items)
+        pagedGet(path: "/api/v1/feeds/referral_links/\(feedType)", after: after, limit: limit)
     }
 
     static func recommendedTopics(
@@ -96,31 +84,29 @@ public extension Endpoint {
         spendingCategory: Bool? = nil,
         rssFeed: Bool? = nil
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
+        var additional: [URLQueryItem] = []
         if let topicTypes, !topicTypes.isEmpty {
-            items.append(.init(name: "topic_types", value: topicTypes.joined(separator: ",")))
+            additional.append(.init(name: "topic_types", value: topicTypes.joined(separator: ",")))
         }
         if let sort {
-            items.append(.init(name: "sort", value: sort.rawValue))
+            additional.append(.init(name: "sort", value: sort.rawValue))
         }
         if let spendingCategory {
-            items.append(.init(name: "spending_category", value: spendingCategory ? "true" : "false"))
+            additional.append(.init(name: "spending_category", value: spendingCategory ? "true" : "false"))
         }
         if let rssFeed {
-            items.append(.init(name: "rss_feed", value: rssFeed ? "true" : "false"))
+            additional.append(.init(name: "rss_feed", value: rssFeed ? "true" : "false"))
         }
-        return Endpoint(.GET, path: "/api/v1/recommended-topics", queryItems: items)
+        return pagedGet(
+            path: "/api/v1/recommended-topics",
+            after: after,
+            limit: limit,
+            queryItems: additional
+        )
     }
 
     static func topicRecommendations(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/topic-recommendations", queryItems: items)
+        pagedGet(path: "/api/v1/topic-recommendations", after: after, limit: limit)
     }
 
     static func topicRecommendation(id: String) -> Endpoint {
@@ -155,19 +141,11 @@ public extension Endpoint {
     }
 
     static func myReferralClicks(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/referral-clicks", queryItems: items)
+        pagedGet(path: "/api/v1/my/referral-clicks", after: after, limit: limit)
     }
 
     static func referralLinks(after: String? = nil, limit: Int = 25) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/referral-links", queryItems: items)
+        pagedGet(path: "/api/v1/referral-links", after: after, limit: limit)
     }
 
     static func createReferralLink(referralProgramId: String, url: String, label: String?) -> Endpoint {
@@ -224,14 +202,10 @@ public extension Endpoint {
         after: String? = nil,
         limit: Int = 50
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(
-            .GET,
+        pagedGet(
             path: "/api/v1/my/conversations/\(pathSegment(conversationId))/messages",
-            queryItems: items
+            after: after,
+            limit: limit
         )
     }
 
@@ -255,11 +229,7 @@ public extension Endpoint {
     }
 
     static func myMessages(after: String? = nil, limit: Int = 50) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(.GET, path: "/api/v1/my/messages", queryItems: items)
+        pagedGet(path: "/api/v1/my/messages", after: after, limit: limit)
     }
 
     static func myMessageConversationMessages(
@@ -267,14 +237,10 @@ public extension Endpoint {
         after: String? = nil,
         limit: Int = 50
     ) -> Endpoint {
-        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
-        if let after {
-            items.append(.init(name: "after", value: after))
-        }
-        return Endpoint(
-            .GET,
+        pagedGet(
             path: "/api/v1/my/messages/\(pathSegment(conversationId))/messages",
-            queryItems: items
+            after: after,
+            limit: limit
         )
     }
 
