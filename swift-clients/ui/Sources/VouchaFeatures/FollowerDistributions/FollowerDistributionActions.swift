@@ -106,13 +106,6 @@ struct FollowerDistributionSendSheet: View {
                 .pickerStyle(.segmented)
 
                 if !viewModel.sendsToAllFollowers {
-                    if !viewModel.selectedRecipients.isEmpty {
-                        Section(message(.selectedFollowers)) {
-                            ForEach(viewModel.selectedRecipients) { recipient in
-                                recipientToggle(recipient)
-                            }
-                        }
-                    }
                     TextField(
                         message(.searchFollowers),
                         text: Binding(
@@ -120,9 +113,7 @@ struct FollowerDistributionSendSheet: View {
                             set: { query in Task { await viewModel.searchRecipients(query: query) } }
                         )
                     )
-                    ForEach(
-                        viewModel.recipients.filter { !viewModel.selectedRecipientIds.contains($0.id) }
-                    ) { recipient in
+                    ForEach(displayedRecipients) { recipient in
                         recipientToggle(recipient)
                             .disabled(!viewModel.canToggleRecipient(recipient.id))
                     }
@@ -163,6 +154,12 @@ struct FollowerDistributionSendSheet: View {
                 viewModel.clearError()
             }
         })
+    }
+
+    var displayedRecipients: [PublicUser] {
+        let selected = viewModel.selectedRecipients
+        let selectedIds = Set(selected.map(\.id))
+        return selected + viewModel.recipients.filter { !selectedIds.contains($0.id) }
     }
 
     private func message(_ key: FollowerDistributionCopy) -> String {

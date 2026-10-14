@@ -151,6 +151,62 @@ final class FollowerDistributionActionsTests: XCTestCase {
                 selected.imageURL,
                 "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"
             )
+
+            try sut.inspect().find(ViewType.Toggle.self, containing: "friend").tap()
+            XCTAssertTrue(viewModel.selectedRecipientIds.isEmpty)
+            let deselectedAvatar = try XCTUnwrap(sut.inspect().findAll(Avatar.self).first).actualView()
+            XCTAssertEqual(deselectedAvatar.imageURL, selected.imageURL)
+        }
+    }
+
+    func testRenderedRecipientListKeepsStableIdsAcrossSelectionChanges() async throws {
+        let followersPath = "/api/v1/users/viewer-1/users/followers"
+        let firstResponse = try followersPageWithPlacement(placeSecondUser: true)
+        let filteredResponse = try followersPageWithPlacement(includeSecondUser: false)
+        CannedFeedURLProtocol.queuedHandlers[followersPath] = [
+            (firstResponse, 200, 0),
+            (filteredResponse, 200, 0)
+        ]
+        let viewModel = makeViewModel()
+        viewModel.sendsToAllFollowers = false
+        let friendId = "friend-1"
+        let secondRecipientId = recipientId(2)
+        let baseURL = try XCTUnwrap(URL(string: "http://localhost:2999"))
+        let imageBaseURL = try XCTUnwrap(URL(string: "https://images.test"))
+        let imageConfig = AppConfig(
+            baseURL: baseURL,
+            imageBaseURL: imageBaseURL
+        )
+        let sheet = FollowerDistributionSendSheet(viewModel: viewModel, imageConfig: imageConfig)
+        let sut = sheet.environment(\.locale, Locale(identifier: "en_US"))
+
+        try await ViewHosting.host(sut) {
+            try sut.inspect().find(ViewType.TextField.self).setInput("alex")
+            await waitUntil { viewModel.recipients.count == 2 }
+            let initialIds = sheet.displayedRecipients.map(\.id)
+            XCTAssertEqual(initialIds, [friendId, recipientId(2)])
+
+            try sut.inspect().find(ViewType.Toggle.self, containing: "bob").tap()
+            await waitUntil { viewModel.selectedRecipientIds.contains(secondRecipientId) }
+            XCTAssertEqual(sheet.displayedRecipients.map(\.id), [secondRecipientId, friendId])
+            XCTAssertEqual(sheet.displayedRecipients.filter { $0.id == secondRecipientId }.count, 1)
+            XCTAssertEqual(try sut.inspect().findAll(Avatar.self).count, 2)
+
+            try sut.inspect().find(ViewType.TextField.self).setInput("friend")
+            await waitUntil { viewModel.recipients.map(\.id) == [friendId] }
+            XCTAssertEqual(sheet.displayedRecipients.map(\.id), [secondRecipientId, friendId])
+            XCTAssertEqual(sheet.displayedRecipients.filter { $0.id == secondRecipientId }.count, 1)
+            XCTAssertEqual(try sut.inspect().findAll(Avatar.self).count, 2)
+            let selectedAvatar = try XCTUnwrap(sut.inspect().findAll(Avatar.self).first).actualView()
+            XCTAssertEqual(
+                selectedAvatar.imageURL,
+                "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"
+            )
+
+            try sut.inspect().find(ViewType.Toggle.self, containing: "bob").tap()
+            await waitUntil { !viewModel.selectedRecipientIds.contains(secondRecipientId) }
+            XCTAssertEqual(sheet.displayedRecipients.map(\.id), [friendId])
+            XCTAssertTrue(viewModel.selectedRecipientIds.isEmpty)
         }
     }
 
@@ -215,7 +271,10 @@ final class FollowerDistributionActionsTests: XCTestCase {
         )
     }
 
-    private func followersPageWithPlacement() throws -> Data {
+    private func followersPageWithPlacement(
+        includeSecondUser: Bool = true,
+        placeSecondUser: Bool = false
+    ) throws -> Data {
         var response = try XCTUnwrap(
             JSONSerialization.jsonObject(with: ApiFixtureLoader.data("swift.users.followers.default")) as? [String: Any]
         )
@@ -227,11 +286,17 @@ final class FollowerDistributionActionsTests: XCTestCase {
             "placement_id": "00000000-0000-7000-8000-000000000301",
             "placement_revision": 2
         ]
-        results.append([
-            "id": recipientId(2),
-            "username": "bob",
-            "profile_image_id": "legacy-only"
-        ])
+        if includeSecondUser {
+            var secondUser: [String: Any] = [
+                "id": recipientId(2),
+                "username": "bob",
+                "profile_image_id": "legacy-only"
+            ]
+            if placeSecondUser {
+                secondUser["profile_image_placement"] = results[0]["profile_image_placement"]
+            }
+            results.append(secondUser)
+        }
         response["results"] = results
         return try JSONSerialization.data(withJSONObject: response, options: [.sortedKeys])
     }
