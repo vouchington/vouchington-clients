@@ -47,7 +47,8 @@ public sealed record DirectMessageParticipant(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("removed_at")] DateTimeOffset? RemovedAt = null,
     [property: JsonPropertyName("username")] string? Username = null,
-    [property: JsonPropertyName("profile_image_id")] string? ProfileImageId = null);
+    [property: JsonPropertyName("profile_image_id")] string? ProfileImageId = null,
+    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null);
 
 public sealed record DirectMessageParticipantsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<DirectMessageParticipant> Results,
