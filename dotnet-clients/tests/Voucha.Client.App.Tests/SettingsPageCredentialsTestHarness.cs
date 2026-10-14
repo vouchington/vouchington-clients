@@ -24,6 +24,7 @@ public sealed partial class SettingsPage : ContentPage
   }
 
   public VerticalStackLayout ConnectedApps => ConnectedAppsSection;
+  public void RefreshOAuthForTest() => RefreshOAuthAccountsPresentation();
 
   private void RearmSettingsPagination(object? sender) { }
   private void OnSettingsViewportChanged(object? sender, EventArgs args) { }
