@@ -1,5 +1,6 @@
 import SwiftUI
 import VouchaAPI
+import VouchaCore
 
 struct NativeCommentThreadSurface: View {
     @Environment(\.locale)
@@ -19,6 +20,11 @@ struct NativeCommentThreadSurface: View {
     @State
     var composer: NativeCommentThreadComposerState?
     @State var showingTurnstile = false
+
+    var imageConfig: AppConfig {
+        guard let client else { return .shared }
+        return AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+    }
 
     var showingTurnstileBinding: Binding<Bool> {
         Binding(

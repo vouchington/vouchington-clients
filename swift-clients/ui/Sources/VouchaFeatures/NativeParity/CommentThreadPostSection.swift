@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -8,6 +9,7 @@ struct CommentThreadPostSection: View {
     private var nativeUiLocale
     let title: UiVerbatimText
     let post: Post
+    var imageConfig: AppConfig = .shared
     let embed: UrlEmbed?
     let pathText: String
     let voteChoice: ElectionVoteChoice?
@@ -41,12 +43,21 @@ struct CommentThreadPostSection: View {
                     .buttonStyle(.plain)
                 }
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
-                        .font(Typography.headline)
-                        .authoredContentLanguage(
-                            declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
-                            detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
-                        )
+                    if isRoot {
+                        if showsAuthorAvatar {
+                            HStack(spacing: Spacing.xs) {
+                                PostAuthorAvatar(post: post, imageConfig: imageConfig)
+                                Text(UiMessages.string(authorName, locale: nativeUiLocale))
+                                    .font(Typography.caption)
+                            }
+                        }
+                        postTitle
+                    } else {
+                        HStack(spacing: Spacing.xs) {
+                            PostAuthorAvatar(post: post, imageConfig: imageConfig)
+                            postTitle
+                        }
+                    }
                     AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
                         .accountType)
                     ProvenanceBadge(
@@ -97,6 +108,25 @@ struct CommentThreadPostSection: View {
         case .content, .underReviewForStaff: true
         case .removedForAuthor, .unavailable: false
         }
+    }
+
+    private var showsAuthorAvatar: Bool {
+        post.deletedAt == nil && !post.isAnonymous && post.createdBy != nil
+    }
+
+    private var authorName: UiVerbatimText {
+        post.createdBy?.username.map(UiVerbatimText.verbatim)
+            ?? post.createdById.map(UiVerbatimText.verbatim)
+            ?? .message(.nativeSwiftPresentationValuesDeleted)
+    }
+
+    private var postTitle: some View {
+        Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
+            .font(Typography.headline)
+            .authoredContentLanguage(
+                declared: isRoot && post.title != nil ? post.declaredLanguage : nil,
+                detected: isRoot && post.title != nil ? post.linguaRsDetectedLanguage : nil
+            )
     }
 
     @ViewBuilder

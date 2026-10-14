@@ -25,7 +25,21 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
-                    <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Image
+                            AutomationId="post-author-avatar-root"
+                            WidthRequest="28"
+                            HeightRequest="28"
+                            Aspect="AspectFill"
+                            IsVisible="{Binding RootRow.HasAuthorImage}"
+                            AutomationProperties.IsInAccessibleTree="False"
+                            Source="{Binding RootRow.AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                            <Image.Clip>
+                                <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14" />
+                            </Image.Clip>
+                        </Image>
+                        <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
                     <Label Text="{Binding RootRow.AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.ProvenanceLabel}" IsVisible="{Binding RootRow.HasProvenance}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.StaffChannelLabel}" IsVisible="{Binding RootRow.HasStaffChannel}" Style="{StaticResource Metadata}" />
@@ -37,7 +51,7 @@
                     <Button AutomationId="authored-post-appeals" Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding RootRow.ShowAppealsAction}" Clicked="OnAppealsClicked" />
                     <controls:NativeHtmlContentView AutomationId="authored-post-body" Html="{Binding RootRow.BodyHtml}" Fallback="{Binding RootRow.BodyText}" IsRightToLeft="{Binding RootRow.ContentIsRightToLeft}" IsVisible="{Binding RootRow.ShowBodyContent}" />
                     <VerticalStackLayout AutomationId="authored-post-embed" Spacing="4" IsVisible="{Binding RootRow.HasEmbedPreview}">
-                        <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.VisibleEmbedPreview.ThumbnailUrl}" />
+                        <Image AutomationId="authored-post-thumbnail" HeightRequest="180" Aspect="AspectFit" Source="{Binding RootRow.VisibleEmbedPreview.ThumbnailUrl}" />
                         <Label Text="{Binding RootRow.VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
                         <Label Text="{Binding RootRow.VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
                         <Label Text="{Binding RootRow.VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
@@ -103,7 +117,21 @@
                         <DataTemplate x:DataType="pages:PostDetailPageRow">
                             <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
                                 <Label Text="{Binding LocalizedTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Body}" />
-                                <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                    <Image
+                                        AutomationId="post-author-avatar-ancestor"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Aspect="AspectFill"
+                                        IsVisible="{Binding HasAuthorImage}"
+                                        AutomationProperties.IsInAccessibleTree="False"
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                                        <Image.Clip>
+                                            <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
+                                        </Image.Clip>
+                                    </Image>
+                                    <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                </HorizontalStackLayout>
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
@@ -112,7 +140,7 @@
                                 <Label Text="{Binding LocalizedRemovalReason}" IsVisible="{Binding ShowAppealsAction}" Style="{StaticResource Metadata}" />
                                 <Button Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding ShowAppealsAction}" Clicked="OnAppealsClicked" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding HasEmbedPreview}">
-                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
+                                    <Image AutomationId="authored-post-thumbnail" HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />
@@ -147,6 +175,18 @@
                             <VerticalStackLayout Spacing="6">
                                 <HorizontalStackLayout Spacing="8">
                                     <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" />
+                                    <Image
+                                        AutomationId="post-author-avatar-comment"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Aspect="AspectFill"
+                                        IsVisible="{Binding HasAuthorImage}"
+                                        AutomationProperties.IsInAccessibleTree="False"
+                                        Source="{Binding AuthorImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}">
+                                        <Image.Clip>
+                                            <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
+                                        </Image.Clip>
+                                    </Image>
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
@@ -159,7 +199,7 @@
                                 <Button Text="{DynamicResource native.authoredPost.viewAppeals}" IsVisible="{Binding ShowAppealsAction}" Clicked="OnAppealsClicked" />
                                 <controls:NativeHtmlContentView Html="{Binding BodyHtml}" Fallback="{Binding BodyText}" IsRightToLeft="{Binding ContentIsRightToLeft}" IsVisible="{Binding ShowBodyContent}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding HasEmbedPreview}">
-                                    <Image HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
+                                    <Image AutomationId="authored-post-thumbnail" HeightRequest="160" Aspect="AspectFit" Source="{Binding VisibleEmbedPreview.ThumbnailUrl}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Title}" Style="{StaticResource Headline}" />
                                     <Label Text="{Binding VisibleEmbedPreview.Description}" Style="{StaticResource Body}" />

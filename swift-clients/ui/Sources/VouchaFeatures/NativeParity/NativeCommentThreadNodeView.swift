@@ -1,10 +1,12 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
 
 struct NativeCommentThreadNodeView: View {
     let node: NativeCommentThreadNode
+    var imageConfig: AppConfig = .shared
     let rootPostId: String
     let rootPostType: String
     let depth: Int
@@ -39,6 +41,7 @@ struct NativeCommentThreadNodeView: View {
                     ?? post.createdById.map(UiVerbatimText.verbatim)
                     ?? .message(.nativeSwiftPresentationValuesDeleted),
                 post: post,
+                imageConfig: imageConfig,
                 embed: postEmbedsByPostId[post.id],
                 pathText: "/\(rootPostType)/\(rootPostId)/comment/\(post.id)",
                 voteChoice: voteChoiceByPostId[post.id],
@@ -67,6 +70,7 @@ struct NativeCommentThreadNodeView: View {
                 ForEach(node.children) { child in
                     NativeCommentThreadNodeView(
                         node: child,
+                        imageConfig: imageConfig,
                         rootPostId: rootPostId,
                         rootPostType: rootPostType,
                         depth: depth + 1,
