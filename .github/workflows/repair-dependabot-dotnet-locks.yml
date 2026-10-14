@@ -14,6 +14,8 @@ on:
       - 'dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json'
       - 'dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json'
       - 'dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json'
+      - 'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json'
 
 permissions:
   contents: read
@@ -57,7 +59,7 @@ jobs:
             (.head.ref | startswith("dependabot/")) and
             (.base.sha | test("^[a-f0-9]{40}$")) and
             (.head.sha | test("^[a-f0-9]{40}$")) and
-            (.changed_files >= 1 and .changed_files <= 10)
+            (.changed_files >= 1 and .changed_files <= 12)
           ' "$RUNNER_TEMP/live-pr.json" > /dev/null
           {
             printf 'base-sha=%s\n' "$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
@@ -139,7 +141,7 @@ jobs:
           dotnet workload install maui-maccatalyst
           --version "$(jq -er '.sdk.workloadVersion' global.json)"
           --configfile dotnet-clients/NuGet.config
-      - name: Regenerate all nine locks without credentials
+      - name: Regenerate all eleven locks without credentials
         env:
           BASE_SHA: ${{ steps.live.outputs.base-sha }}
           EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
@@ -178,6 +180,8 @@ jobs:
             dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
           )
           for lock in "${locks[@]}"; do
             [[ -f "$lock" && ! -L "$lock" ]]
@@ -256,10 +260,12 @@ jobs:
             dotnet-clients/tests/Voucha.Client.App.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.Core.Tests/packages.lock.json
             dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json
+            dotnet-clients/src/Voucha.Client.App/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
+            dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json
           )
           for lock in "${locks[@]}"; do [[ -f "repair-artifact/$lock" && ! -L "repair-artifact/$lock" ]]; done
           [[ -f repair-artifact/provenance.json && ! -L repair-artifact/provenance.json ]]
-          [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == 10 ]]
+          [[ "$(find repair-artifact -type f | wc -l | tr -d ' ')" == "$((${#locks[@]} + 1))" ]]
           [[ -z "$(find repair-artifact -type l -print -quit)" ]]
           node scripts/validate-dependabot-dotnet-repair.mjs provenance \
             repair-artifact/provenance.json "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_RUN_ID" \

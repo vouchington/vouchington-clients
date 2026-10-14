@@ -15,10 +15,12 @@ public sealed partial class MemberMcpSessionTests
     public bool HoldToolCall { get; set; }
     public bool FailDisconnect { get; set; }
     public JsonElement? Catalog { get; set; }
+    public TaskCompletionSource? ReleaseCanceledConnect { get; set; }
     public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
     {
       var hold = Connections.Count < disconnectHolds.Length ? disconnectHolds[Connections.Count] : null;
-      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, HoldToolCall, FailDisconnect)
+      var connection = new FakeConnection(hold, HoldConnect, HoldRefresh, FailConnect, HoldToolCall, FailDisconnect,
+          ReleaseCanceledConnect)
       {
         Catalog = Catalog,
       };
@@ -28,7 +30,7 @@ public sealed partial class MemberMcpSessionTests
   }
 
   private sealed class FakeConnection(TaskCompletionSource? disconnectHold, bool holdConnect, bool holdRefresh,
-      bool failConnect, bool holdToolCall, bool failDisconnect)
+      bool failConnect, bool holdToolCall, bool failDisconnect, TaskCompletionSource? releaseCanceledConnect)
       : IMemberMcpSessionConnection
   {
     public bool FailRefresh { get; set; }
@@ -39,6 +41,7 @@ public sealed partial class MemberMcpSessionTests
     public JsonElement? Catalog { get; set; }
     public int DisconnectCalls { get; private set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource CancellationEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource RefreshEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource ReleaseRefresh { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -46,7 +49,16 @@ public sealed partial class MemberMcpSessionTests
     public async Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken)
     {
       ConnectEntered.TrySetResult();
-      if (holdConnect) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      if (holdConnect)
+      {
+        try { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); }
+        catch (OperationCanceledException) when (releaseCanceledConnect is not null)
+        {
+          CancellationEntered.TrySetResult();
+          await releaseCanceledConnect.Task;
+          throw;
+        }
+      }
       if (failConnect) throw new IOException("Transient discovery failure");
       return Catalog ?? JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }

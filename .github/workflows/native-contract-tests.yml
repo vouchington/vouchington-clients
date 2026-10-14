@@ -4,7 +4,7 @@ run-name: >-
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
 
@@ -195,6 +195,7 @@ jobs:
       base-sha: ${{ steps.identity.outputs.base_sha }}
       revision-sha: ${{ steps.identity.outputs.revision_sha }}
       windows-image-preview: ${{ steps.windows-image-preview-route.outputs.windows-image-preview }}
+      windows-maui: ${{ steps.windows-maui-route.outputs.windows-maui }}
     steps:
       - name: Check out consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -294,6 +295,13 @@ jobs:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-image-preview-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
+      - name: Route Windows MAUI build from the exact candidate diff
+        id: windows-maui-route
+        working-directory: candidate-clients
+        env:
+          BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
+        run: node scripts/windows-maui-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
   dotnet-portable:
     name: .NET portable
     needs: verify
@@ -909,7 +917,7 @@ jobs:
         run: >-
           dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
-      - name: Verify all nine committed NuGet locks
+      - name: Verify all eleven committed NuGet locks
         working-directory: candidate-clients
         run: >-
           bash dotnet-clients/tooling/restore-locks.sh verify
@@ -1007,6 +1015,89 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
+  dotnet-windows-maui:
+    name: .NET MAUI Windows
+    needs: verify
+    if: needs.verify.outputs.windows-maui == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ runner.os }}-nuget-windows-maui-${{ hashFiles('candidate-clients/dotnet-clients/src/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-windows-maui-
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Install the pinned Windows MAUI workload
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        shell: pwsh
+        run: |
+          dotnet workload install maui-windows --configfile dotnet-clients/NuGet.config
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $expected = (Get-Content global.json | ConvertFrom-Json).sdk.workloadVersion
+          $actual = dotnet workload --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($actual.Trim() -ne $expected) { throw "Unexpected workload set: $actual (expected $expected)" }
+      - name: Restore the locked Windows app graph
+        timeout-minutes: 8
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: >-
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
+          --locked-mode --configfile dotnet-clients/NuGet.config
+          -p:TargetFramework=net10.0-windows10.0.26100.0 -p:RuntimeIdentifier=win-x64
+          -p:Configuration=Release -p:EnableWindowsTargeting=true
+      - name: Restore the referenced portable Core framework
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        # The app restore's global TargetFramework also reaches Core; build resolves Core as net10.0.
+        run: >-
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj
+          --locked-mode --configfile dotnet-clients/NuGet.config
+          -p:TargetFramework=net10.0 -p:Configuration=Release
+      - name: Compile the actual Windows MAUI app
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: >-
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
+          --configuration Release --framework net10.0-windows10.0.26100.0 --no-restore
+          -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
+          -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: always()
@@ -1046,6 +1137,7 @@ jobs:
       - build-macos-app
       - dotnet-maui
       - dotnet-windows-image-preview
+      - dotnet-windows-maui
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions: {}
@@ -1054,10 +1146,13 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
           WINDOWS_IMAGE_PREVIEW_ROUTE: ${{ needs.verify.outputs.windows-image-preview }}
+          WINDOWS_MAUI_ROUTE: ${{ needs.verify.outputs.windows-maui }}
         run: |
           set -euo pipefail
-          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" '
-            all(to_entries[] | select(.key != "dotnet-windows-image-preview"); .value.result == "success") and
+          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" '
+            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-maui"); .value.result == "success") and
             ((."dotnet-windows-image-preview".result == "success") or
-             ($route == "false" and ."dotnet-windows-image-preview".result == "skipped"))
+             ($route == "false" and ."dotnet-windows-image-preview".result == "skipped")) and
+            ((."dotnet-windows-maui".result == "success") or
+             ($maui == "false" and ."dotnet-windows-maui".result == "skipped"))
           ' <<<"$NEEDS_JSON"

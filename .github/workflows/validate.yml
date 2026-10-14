@@ -32,6 +32,8 @@ jobs:
           version: latest-12
       - name: Install pinned contract-test dependencies
         run: pnpm install --frozen-lockfile
+      - name: Require jq for workflow predicate tests
+        run: command -v jq
       - name: Test contract boundary
         run: pnpm run test:coverage
 
