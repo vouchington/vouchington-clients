@@ -87,8 +87,15 @@ import Foundation
             return try .init(name: name(), anyOf: types.map { try project(["type": $0]) })
         }
 
-        mutating func projectString(_ fields: [String: Any]) -> DynamicGenerationSchema {
-            if let values = fields["enum"] as? [String] { return .init(name: name(), anyOf: values) }
+        mutating func projectString(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+            if let enumValues = fields["enum"] {
+                guard let values = enumValues as? [Any] else {
+                    throw NativeChatFoundationModelsSchema.Failure.unsupported
+                }
+                let strings = values.compactMap { $0 as? String }
+                guard !strings.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                return .init(name: name(), anyOf: strings)
+            }
             if let value = fields["const"] as? String { return .init(name: name(), anyOf: [value]) }
             return .init(type: String.self)
         }
@@ -102,6 +109,9 @@ import Foundation
             for key in ["anyOf", "oneOf"] {
                 if let choices = fields[key] as? [[String: Any]] {
                     try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: [key, "type", "$defs"])
+                    if key == "oneOf", !NativeChatFoundationModelsSchema.branchesAreDisjoint(choices) {
+                        throw NativeChatFoundationModelsSchema.Failure.unsupported
+                    }
                     if let type = fields["type"] as? String {
                         guard choices.allSatisfy({ $0["type"] as? String == type }) else {
                             throw NativeChatFoundationModelsSchema.Failure.unsupported
@@ -126,18 +136,22 @@ import Foundation
             )
             let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
             let safe = 9_007_199_254_740_991
-            let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe) ?? -safe
-            let maximum = try integerBound(bounds.maximum, clampedTo: -safe ... safe) ?? safe
+            let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe, isMinimum: true) ?? -safe
+            let maximum = try integerBound(bounds.maximum, clampedTo: -safe ... safe, isMinimum: false) ?? safe
             guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             return .init(type: Int.self, guides: [.range(minimum ... maximum)])
         }
 
-        private func integerBound(_ value: Decimal?, clampedTo safe: ClosedRange<Int>) throws -> Int? {
+        private func integerBound(
+            _ value: Decimal?, clampedTo safe: ClosedRange<Int>, isMinimum: Bool
+        ) throws -> Int? {
             guard let value else { return nil }
             if value < Decimal(safe.lowerBound) { return safe.lowerBound }
             if value > Decimal(safe.upperBound) { return safe.upperBound }
             let integer = NSDecimalNumber(decimal: value).int64Value
-            guard Decimal(integer) == value else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            let candidate = Decimal(integer)
+            if isMinimum, candidate < value { return Int(integer + 1) }
+            if !isMinimum, candidate > value { return Int(integer - 1) }
             return Int(integer)
         }
 

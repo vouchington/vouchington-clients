@@ -105,7 +105,7 @@ import VouchaCore
                         allowing: ["type", "enum", "const", "$defs"]
                     )
                     guard fields["enum"] == nil || fields["const"] == nil else { throw Failure.unsupported }
-                    return projectString(fields)
+                    return try projectString(fields)
                 case "integer": return try projectInteger(fields)
                 case "number": return try projectNumber(fields)
                 case "boolean":

@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 #if canImport(FoundationModels)
@@ -140,6 +141,67 @@ import XCTest
             )))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"count":{"type":"integer","maximum":100000000000000000000}}}"#.utf8
+            )))
+        }
+
+        func testFractionalIntegerBoundsRoundToSameAcceptedIntegerSet() throws {
+            let raw = Data(#"{"type":"integer","minimum":1.5,"maximum":3.5}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(1), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(2), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(3), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(4), schema: authoritative))
+            let projected = try NativeChatFoundationModelsSchema.project(raw)
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(projected)
+            ) as? [String: Any])
+            XCTAssertEqual(encoded["minimum"] as? Int, 2)
+            XCTAssertEqual(encoded["maximum"] as? Int, 3)
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"integer","minimum":1.5,"maximum":1.5}"#.utf8
+            )))
+        }
+
+        func testOneOfProjectionRequiresProvablyDisjointBranches() throws {
+            let overlap = Data(
+                #"{"type":"object","properties":{"value":{"oneOf":[{"type":"integer"},{"type":"number"}]}}}"#.utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(overlap))
+            let objectOverlap = Data(
+                #"{"type":"object","properties":{"value":{"oneOf":[{"type":"object","properties":{"kind":{"enum":["same"]}},"required":["kind"]},{"type":"object","properties":{"kind":{"enum":["same"]}},"required":["kind"]}]}}}"#
+                    .utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(objectOverlap))
+            let disjoint = Data(
+                #"{"type":"object","properties":{"value":{"oneOf":[{"type":"object","properties":{"kind":{"enum":["a"]}},"required":["kind"]},{"type":"object","properties":{"kind":{"enum":["b"]}},"required":["kind"]}]}}}"#
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(disjoint))
+            let disjointAuthoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: disjoint)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                "value": .object(["kind": .string("a")])
+            ]), schema: disjointAuthoritative))
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: objectOverlap)
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
+                "value": .object(["kind": .string("same")])
+            ]), schema: authoritative))
+        }
+
+        func testTypedStringEnumDoesNotWidenMixedMembers() throws {
+            let raw = Data(#"{"type":"string","enum":["active",null]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("active"), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
+            let projected = try NativeChatFoundationModelsSchema.project(raw)
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(projected)
+            ) as? [String: Any])
+            let choices = try XCTUnwrap(encoded["anyOf"] as? [[String: Any]])
+            XCTAssertEqual(choices.count, 1)
+            XCTAssertEqual(choices[0]["enum"] as? [String], ["active"])
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"string","enum":[null,7]}"#.utf8
             )))
         }
 
