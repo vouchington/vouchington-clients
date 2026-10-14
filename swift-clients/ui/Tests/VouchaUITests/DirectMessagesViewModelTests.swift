@@ -464,7 +464,8 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             createdAt: Date(timeIntervalSince1970: 1_704_067_200),
             removedAt: nil,
             username: userId == "user-1" ? "alice" : "bob",
-            profileImageId: nil
+            profileImageId: nil,
+            profileImagePlacement: nil
         )
     }
 

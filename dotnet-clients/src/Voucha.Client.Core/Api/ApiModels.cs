@@ -177,6 +177,7 @@ public sealed record PublicUser(
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,
     [property: JsonPropertyName("display_account")] PublicDisplayAccount? DisplayAccount = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
-    [property: JsonPropertyName("__entity_type")] string? EntityType = null);
+    [property: JsonPropertyName("__entity_type")] string? EntityType = null,
+    [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null);
 
 #pragma warning restore CA1054, CA1056, CA1720

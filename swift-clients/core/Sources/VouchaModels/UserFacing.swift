@@ -181,4 +181,5 @@ public struct ConversationParticipant: Codable, Identifiable, Sendable {
     public let removedAt: Date?
     public let username: String?
     public let profileImageId: String?
+    public let profileImagePlacement: ImagePlacement?
 }
