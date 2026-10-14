@@ -158,9 +158,11 @@ public final class ListsViewModel {
     }
 
     private func replaceList(_ list: UserList, selectingIfCurrent requestListId: String) {
-        lists = lists.map { $0.id == list.id ? list : $0 }
+        let existing = lists.first { $0.id == list.id } ?? selectedList
+        let updated = existing.map { list.preservingCreationFacts(from: $0) } ?? list
+        lists = lists.map { $0.id == updated.id ? updated : $0 }
         if selectedList?.id == requestListId {
-            selectedList = list
+            selectedList = updated
         }
     }
 

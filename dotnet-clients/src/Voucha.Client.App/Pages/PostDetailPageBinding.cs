@@ -79,8 +79,11 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     }
   }
 
-  public Task LoadAsync(string? focusedCommentId = null, CancellationToken cancellationToken = default) =>
-      LoadInternalAsync(focusedCommentId, cancellationToken);
+  public Task LoadAsync(string? focusedCommentId = null, CancellationToken cancellationToken = default)
+  {
+    lastStaffViewer = IsStaffViewer;
+    return LoadInternalAsync(focusedCommentId, cancellationToken);
+  }
 
   public void RefreshRows()
   {

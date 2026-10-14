@@ -274,6 +274,35 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     binding.DetachSessionChanged();
   }
 
+  [Fact]
+  public async Task ListsReappearanceAfterDetachedDemotionAllowsMountedStaffRefetch()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var staffLists = Fixture("entity-provenance.lists.staff");
+    var publicLists = JsonNode.Parse(staffLists)!;
+    foreach (var list in publicLists["lists"]!.AsObject().Select(entry => entry.Value))
+      list!.AsObject().Remove("staff_provenance");
+    using var model = new ListsViewModel(Client(
+        staffLists, Fixture("native.list-items.default"),
+        publicLists.ToJsonString(), Fixture("native.list-items.default"),
+        staffLists, Fixture("native.list-items.default")));
+    var session = new MutableStaffSessionStore();
+    var binding = new ListsPageBinding(model, session);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    binding.AttachSessionChanged();
+    binding.DetachSessionChanged();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    binding.AttachSessionChanged();
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.False(Assert.Single(binding.Lists, row => row.Id == "list-1-mcp").HasStaffChannel);
+
+    session.SetCurrentWithoutNotification(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
+    await binding.RefreshAfterSessionChangedAsync();
+    Assert.True(Assert.Single(binding.Lists, row => row.Id == "list-1-mcp").HasStaffChannel);
+    binding.DetachSessionChanged();
+  }
+
 
   [Fact]
   public async Task FeedAndTopicReattachPublishCachedStaffRowsUnderCurrentViewer()

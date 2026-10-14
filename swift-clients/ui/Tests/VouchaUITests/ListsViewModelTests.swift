@@ -80,6 +80,38 @@ final class ListsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertThrowsError(try member.inspect().find(text: "Client: Fixture Agent (voucha_fixture_agent)"))
     }
 
+    func testPartialListUpdatePreservesCachedCreationFacts() async throws {
+        let fixture = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("entity-provenance.lists.staff")
+        ) as? [String: Any])
+        let lists = try XCTUnwrap(fixture["lists"] as? [String: [String: Any]])
+        var updatedList = try XCTUnwrap(lists["list-1-mcp"])
+        updatedList.removeValue(forKey: "provenance")
+        updatedList.removeValue(forKey: "staff_provenance")
+        updatedList["name"] = "Renamed Queue"
+        let patchData = try JSONSerialization.data(withJSONObject: ["list": updatedList])
+        CannedFeedURLProtocol.handlers["/api/v1/lists"] = (
+            ApiFixtureLoader.data("entity-provenance.lists.staff"), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/lists/list-1-mcp/items"] = (Self.itemsData, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/lists/list-1-mcp"] = (patchData, 200)
+        let viewModel = try ListsViewModel(client: makeClient())
+
+        await viewModel.load()
+        XCTAssertNotNil(viewModel.selectedList?.provenance)
+        XCTAssertNotNil(viewModel.selectedList?.staffProvenance)
+
+        await viewModel.updateSelectedList(name: "Renamed Queue", description: nil)
+
+        XCTAssertEqual(viewModel.selectedList?.name, "Renamed Queue")
+        XCTAssertNotNil(viewModel.selectedList?.provenance)
+        XCTAssertNotNil(viewModel.selectedList?.staffProvenance)
+        let collectionList = try XCTUnwrap(viewModel.lists.first { $0.id == "list-1-mcp" })
+        XCTAssertEqual(collectionList.name, "Renamed Queue")
+        XCTAssertNotNil(collectionList.provenance)
+        XCTAssertNotNil(collectionList.staffProvenance)
+    }
+
     func testListsViewRendersEmptyAndRouteStates() throws {
         let empty = try ListsView(viewModel: ListsViewModel(client: makeClient()))
         XCTAssertEqual(try empty.inspect().find(text: "No Lists").string(), "No Lists")

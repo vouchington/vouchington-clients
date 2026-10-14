@@ -99,6 +99,7 @@ public sealed class ListsPageBinding : BindableObject
   public void AttachSessionChanged()
   {
     if (isSessionChangedAttached) return;
+    lastStaffViewer = IsStaffViewer;
     sessionStore.SessionChanged += sessionChangedHandler;
     isSessionChangedAttached = true;
     OnPropertyChanged(nameof(Lists));

@@ -24,6 +24,17 @@ public struct UserList: Codable, Identifiable, Sendable {
     public let provenance: PublicContentProvenance?
     public let staffProvenance: StaffContentProvenance?
 
+    public func preservingCreationFacts(from existing: UserList) -> UserList {
+        guard id == existing.id else { return self }
+        return UserList(
+            id: id, entityType: entityType, ownerUserId: ownerUserId,
+            name: name, description: description, visibility: visibility,
+            createdAt: createdAt, updatedAt: updatedAt, removedAt: removedAt,
+            provenance: provenance ?? existing.provenance,
+            staffProvenance: staffProvenance ?? existing.staffProvenance
+        )
+    }
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
