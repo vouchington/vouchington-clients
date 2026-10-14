@@ -49,7 +49,9 @@ public sealed record TopicSearchResponse(
     [property: JsonPropertyName("topics")] IReadOnlyDictionary<string, Topic> Topics,
     [property: JsonPropertyName("topics_metrics")] IReadOnlyDictionary<string, object> TopicsMetrics,
     [property: JsonPropertyName("topic_elections")] IReadOnlyDictionary<string, TopicElection>? TopicElections = null,
-    [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null);
+    [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
+    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null,
+    [property: JsonPropertyName("markdown_to_html")] IReadOnlyDictionary<string, string>? MarkdownToHtml = null);
 
 public sealed record TopicMutationResponse([property: JsonPropertyName("topic")] Topic Topic);
 

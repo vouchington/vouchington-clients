@@ -37,6 +37,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.dynamic-config.update.no-op"] = VouchaApiEndpoints.UpdateDynamicConfigField("feature-flags", "fediverse", DynamicConfigValues.From(false)),
         ["native.dynamic-config.history.default"] = VouchaApiEndpoints.DynamicConfigHistory("feature-flags"),
         ["web.topics.search.default"] = VouchaApiEndpoints.SearchTopics("tech"),
+        ["web.topics.show.default"] = VouchaApiEndpoints.Topic("test-topic"),
         ["web.topics.mutation.default"] = VouchaApiEndpoints.CreateTopic(new CreateTopicRequest("Tech", "tech", "topic")),
         ["web.rss-feed-items.feed.default"] = VouchaApiEndpoints.RssFeedItems(limit: 25, mediaType: "article"),
         ["native.rss-feed-item.detail.default"] =

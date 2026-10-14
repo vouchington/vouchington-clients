@@ -420,7 +420,12 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
 
     private static func topicEnvelope(name: String) -> Data {
         let topic = String(data: topicJson(name: name), encoding: .utf8)!
-        return Data(#"{"topic":\#(topic)}"#.utf8)
+        return Data(
+            #"""
+            {"topic":\#(topic),"html":"","topic_metrics":{},"topic_election":null,"election_vote":null,
+             "topic_categories":[],"topic_children":[],"topic_parents":[],"topic_content_update":null}
+            """#.utf8
+        )
     }
 
     private static func topicJson(name: String) -> Data {

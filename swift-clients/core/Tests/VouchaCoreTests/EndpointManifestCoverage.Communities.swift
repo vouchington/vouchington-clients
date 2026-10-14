@@ -171,6 +171,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "web.topics.search.default") {
             Endpoint.topics(query: "tech")
         },
+        ManifestRegisteredEndpoint(id: "web.topics.show.default") {
+            Endpoint.topic(id: "test-topic")
+        },
         ManifestRegisteredEndpoint(id: "web.topics.mutation.default") {
             Endpoint.createTopic(body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic"))
         },

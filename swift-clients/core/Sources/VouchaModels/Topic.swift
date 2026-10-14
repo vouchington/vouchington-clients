@@ -18,7 +18,9 @@ public struct Topic: Codable, Identifiable, Sendable {
     public var logoImageId: String?
     @RequiredNullable
     public var heroImageId: String?
+    @TolerantNullable
     public var logoImagePlacement: ImagePlacement?
+    @TolerantNullable
     public var heroImagePlacement: ImagePlacement?
     @RequiredNullable
     public var homepageUrlId: String?
@@ -138,6 +140,10 @@ public struct TopicSearchResponse: Codable, Sendable {
     public let topicMetrics: [String: DecodedJSONValue]?
     public let topicElections: [String: RssFeedElectionSummary]?
     public let electionVotes: [String: ElectionVote]?
+    @TolerantNullable
+    public var bookmarks: [String: [String: Bool]]?
+    @TolerantNullable
+    public var markdownToHtml: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case results
@@ -145,7 +151,7 @@ public struct TopicSearchResponse: Codable, Sendable {
         case topics
         case topicMetrics = "topicsMetrics"
         case topicElections
-        case electionVotes
+        case electionVotes, bookmarks, markdownToHtml
     }
 }
 

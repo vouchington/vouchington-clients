@@ -6,6 +6,12 @@ private struct CommunityMutationResponse: Codable {
 }
 
 let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "web.topics.search.default") {
+        try assertFixtureCoversDTO($0, as: TopicSearchResponse.self)
+    },
+    RegisteredFixture(id: "web.topics.show.default") {
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
+    },
     RegisteredFixture(id: "web.topics.mutation.default") {
         try assertFixtureCoversDTO($0, as: TopicEnvelope.self)
     },

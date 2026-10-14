@@ -1,3 +1,4 @@
+import VouchaModels
 import XCTest
 
 /// Fixture-driven DTO field-completeness + consumer-coverage gates (#6773). Converts the
@@ -5,6 +6,22 @@ import XCTest
 /// into a local red test: every fixture in `ApiFixtureCoverage.registry` must round-trip every
 /// field through its DTO, and every swift-core/swift-ui-consumed fixture must be registered.
 final class ApiFixtureCoverageTests: XCTestCase {
+    func testTopicFixturesDecodeImagePlacements() throws {
+        let search = try makeVouchaDecoder().decode(
+            TopicSearchResponse.self,
+            from: ApiFixtureLoader.data("web.topics.search.default")
+        )
+        let detail = try makeVouchaDecoder().decode(
+            TopicDetailResponse.self,
+            from: ApiFixtureLoader.data("web.topics.show.default")
+        )
+
+        XCTAssertEqual(search.topics["topic-1"]?.logoImagePlacement?.placementRevision, 3)
+        XCTAssertEqual(search.topics["topic-1"]?.heroImagePlacement?.placementRevision, 4)
+        XCTAssertEqual(detail.topic.logoImagePlacement?.placementRevision, 3)
+        XCTAssertEqual(detail.topic.heroImagePlacement?.placementRevision, 4)
+    }
+
     func testPrivateUserFixturePreservesRequiredContractFields() throws {
         let data = ApiFixtureLoader.data("swift.my.identity.default")
 
