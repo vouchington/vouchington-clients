@@ -32,7 +32,7 @@ final class UserFacingMessageModelDecodingTests: XCTestCase {
             from: ApiFixtureLoader.data("native.messages.participants.default")
         )
         XCTAssertEqual(participants.results.first?.username, "fixtureuser")
-        XCTAssertEqual(participants.results.last?.profileImageId, "image-alice")
+        XCTAssertEqual(participants.results.last?.profileImageId, "00000000-0000-7000-8000-000000000211")
 
         let send = try decoder.decode(
             DirectMessageResponse.self,
