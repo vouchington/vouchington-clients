@@ -2,6 +2,7 @@ import Foundation
 @testable import VouchaAPI
 import VouchaCore
 @testable import VouchaFeatures
+import VouchaTestSupport
 import XCTest
 
 @MainActor
@@ -255,7 +256,7 @@ private final class TopicImageUploadURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
-        let body = Self.capturedBody(from: request)
+        let body = URLRequestHTTPBody.utf8String(from: request)
         let (data, status) = Self.withLock {
             Self.requests.append(CapturedRequest(
                 url: url,
@@ -285,21 +286,5 @@ private final class TopicImageUploadURLProtocol: URLProtocol {
         deliveryLock.lock()
         stopped = true
         deliveryLock.unlock()
-    }
-
-    private static func capturedBody(from request: URLRequest) -> String? {
-        if let body = request.httpBody { return String(data: body, encoding: .utf8) }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1_024)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let count = stream.read(buffer, maxLength: 1_024)
-            guard count > 0 else { break }
-            data.append(buffer, count: count)
-        }
-        return String(data: data, encoding: .utf8)
     }
 }

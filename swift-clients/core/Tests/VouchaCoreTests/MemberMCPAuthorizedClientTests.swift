@@ -3,6 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 @testable import VouchaAPI
+import VouchaTestSupport
 import XCTest
 
 final class MemberMCPAuthorizedClientTests: XCTestCase {
@@ -219,23 +220,10 @@ private final class LateMCPURLProtocol: URLProtocol {
     }
 
     private static func rpcRequest(_ request: URLRequest) -> (method: String?, id: String?) {
-        guard let body = request.httpBody ?? request.httpBodyStream.map(readBodyStream),
+        guard let body = URLRequestHTTPBody.data(from: request),
               let rpc = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
         else { return (nil, nil) }
         return (rpc["method"] as? String, rpc["id"] as? String)
-    }
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var bytes = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&bytes, maxLength: bytes.count)
-            if count <= 0 { break }
-            data.append(contentsOf: bytes[..<count])
-        }
-        return data
     }
 }
 
@@ -288,18 +276,7 @@ private final class AuthorizedMCPURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
-        let bodyData = request.httpBody ?? request.httpBodyStream.map { stream -> Data in
-            stream.open()
-            defer { stream.close() }
-            var data = Data()
-            var bytes = [UInt8](repeating: 0, count: 4_096)
-            while stream.hasBytesAvailable {
-                let count = stream.read(&bytes, maxLength: bytes.count)
-                if count <= 0 { break }
-                data.append(contentsOf: bytes[..<count])
-            }
-            return data
-        }
+        let bodyData = URLRequestHTTPBody.data(from: request)
         let rpc = bodyData.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
         if method == "initialize" {

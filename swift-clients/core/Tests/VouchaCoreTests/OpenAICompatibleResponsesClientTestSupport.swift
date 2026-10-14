@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 import XCTest
 
 class ResponsesURLProtocol: URLProtocol {
@@ -17,7 +18,7 @@ class ResponsesURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.capturedRequest = request
-        Self.capturedBody = request.httpBody ?? request.httpBodyStream.flatMap(Self.readBodyStream)
+        Self.capturedBody = URLRequestHTTPBody.data(from: request)
         guard let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
@@ -34,21 +35,6 @@ class ResponsesURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            if count <= 0 {
-                break
-            }
-            data.append(buffer, count: count)
-        }
-        return data
-    }
 }
 
 class CancellationURLProtocol: URLProtocol {

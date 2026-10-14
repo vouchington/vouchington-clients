@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 /// A `URLProtocol` that serves canned responses keyed by URL path and captures requested URLs.
 final class CannedFeedURLProtocol: URLProtocol {
@@ -399,7 +400,7 @@ final class CannedFeedURLProtocol: URLProtocol {
             sequence: sequence,
             url: url,
             method: request.httpMethod ?? "GET",
-            body: capturedBody(from: request),
+            body: URLRequestHTTPBody.utf8String(from: request),
             ifNoneMatch: request.value(forHTTPHeaderField: "If-None-Match"),
             idempotencyKey: request.value(forHTTPHeaderField: "Idempotency-Key")
         ))
@@ -434,26 +435,5 @@ final class CannedFeedURLProtocol: URLProtocol {
         lock.lock()
         defer { lock.unlock() }
         return operation()
-    }
-
-    private static func capturedBody(from request: URLRequest) -> String? {
-        if let body = request.httpBody {
-            return String(data: body, encoding: .utf8)
-        }
-        guard let stream = request.httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let bufferSize = 1_024
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let read = stream.read(buffer, maxLength: bufferSize)
-            if read <= 0 {
-                break
-            }
-            data.append(buffer, count: read)
-        }
-        return String(data: data, encoding: .utf8)
     }
 }

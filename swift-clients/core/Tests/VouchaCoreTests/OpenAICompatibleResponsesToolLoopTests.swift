@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaCore
+import VouchaTestSupport
 import XCTest
 
 final class OpenAICompatibleResponsesToolLoopTests: XCTestCase {
@@ -450,7 +451,7 @@ final class ToolLoopURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.lock.lock()
-        Self.captured.append(request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream) ?? Data())
+        Self.captured.append(URLRequestHTTPBody.data(from: request) ?? Data())
         let next = Self.pending.isEmpty ? nil : Self.pending.removeFirst()
         Self.lock.unlock()
         guard let next else {
@@ -481,16 +482,4 @@ final class ToolLoopURLProtocol: URLProtocol {
         deliveryLock.unlock()
     }
 
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var result = Data()
-        var buffer = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            guard count > 0 else { break }
-            result.append(buffer, count: count)
-        }
-        return result
-    }
 }

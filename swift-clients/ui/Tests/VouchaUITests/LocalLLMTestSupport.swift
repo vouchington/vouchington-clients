@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaCore
+import VouchaTestSupport
 import XCTest
 
 func makeLocalLLMConfiguration(
@@ -39,7 +40,7 @@ final class LocalLLMTestURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.capturedRequest = request
-        Self.capturedBody = request.httpBody ?? request.httpBodyStream.flatMap(Self.readBodyStream)
+        Self.capturedBody = URLRequestHTTPBody.data(from: request)
         let response = HTTPURLResponse(
             url: request.url!,
             statusCode: Self.statusCode,
@@ -58,21 +59,6 @@ final class LocalLLMTestURLProtocol: URLProtocol {
         self.statusCode = statusCode
         capturedRequest = nil
         capturedBody = nil
-    }
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            if count <= 0 {
-                break
-            }
-            data.append(buffer, count: count)
-        }
-        return data
     }
 }
 

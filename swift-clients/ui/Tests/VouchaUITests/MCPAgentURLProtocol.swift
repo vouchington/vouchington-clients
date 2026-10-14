@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 final class MCPAgentURLProtocol: URLProtocol {
     private static let stateLock = NSLock()
@@ -124,7 +125,7 @@ final class MCPAgentURLProtocol: URLProtocol {
         defer { deliveryLock.unlock() }
         guard !stopped, let url = request.url else { return }
         let path = url.path
-        let body = request.httpBody ?? request.httpBodyStream.map(Self.readBodyStream)
+        let body = URLRequestHTTPBody.data(from: request)
         let rpc = body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
         let cursor = (rpc?["params"] as? [String: Any])?["cursor"] as? String
@@ -237,18 +238,5 @@ final class MCPAgentURLProtocol: URLProtocol {
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         if !payload.isEmpty { client?.urlProtocol(self, didLoad: Data(payload.utf8)) }
         client?.urlProtocolDidFinishLoading(self)
-    }
-
-    private static func readBodyStream(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var bytes = [UInt8](repeating: 0, count: 4_096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&bytes, maxLength: bytes.count)
-            if count <= 0 { break }
-            data.append(bytes, count: count)
-        }
-        return data
     }
 }
