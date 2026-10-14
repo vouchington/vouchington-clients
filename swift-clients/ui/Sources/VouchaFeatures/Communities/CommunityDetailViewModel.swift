@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -77,6 +78,13 @@ final class CommunityDetailViewModel {
     let isApplicationFormRoute: Bool
     let slug: String
     let modmailThreadId: String?
+
+    var imageConfig: AppConfig {
+        AppConfig(
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL,
+            imageBaseURL: client?.imageBaseURL ?? AppConfig.shared.imageBaseURL
+        )
+    }
 
     var hasDurableSiteModerationAccess: Bool {
         isSiteModerator

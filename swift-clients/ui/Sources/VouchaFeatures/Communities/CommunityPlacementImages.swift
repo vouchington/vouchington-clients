@@ -5,13 +5,14 @@ import VouchaModels
 
 struct CommunityPlacementImages: View {
     let community: Community?
+    let imageConfig: AppConfig
 
     var profileURL: String? {
-        AppConfig.shared.imageURL(for: community?.profileImagePlacement, width: 96)
+        imageConfig.imageURL(for: community?.profileImagePlacement, width: 96)
     }
 
     var bannerURL: String? {
-        AppConfig.shared.imageURL(for: community?.bannerImagePlacement, width: 960)
+        imageConfig.imageURL(for: community?.bannerImagePlacement, width: 960)
     }
 
     var body: some View {
@@ -19,7 +20,7 @@ struct CommunityPlacementImages: View {
             if let bannerURL, let url = URL(string: bannerURL) {
                 AsyncImageView(
                     urlString: url.absoluteString,
-                    baseURL: AppConfig.shared.imageBaseURL,
+                    baseURL: imageConfig.imageBaseURL,
                     contentMode: .fill
                 )
                 .frame(height: 144)
@@ -28,7 +29,7 @@ struct CommunityPlacementImages: View {
                 .accessibilityIdentifier("community-banner-image")
             }
             HStack(spacing: Spacing.sm) {
-                CommunityPlacementAvatar(url: profileURL)
+                CommunityPlacementAvatar(url: profileURL, imageBaseURL: imageConfig.imageBaseURL)
                 Spacer(minLength: 0)
             }
         }
@@ -37,13 +38,16 @@ struct CommunityPlacementImages: View {
 
 struct CommunityPlacementAvatar: View {
     let url: String?
+    let imageBaseURL: URL
 
-    init(url: String?) {
+    init(url: String?, imageBaseURL: URL = AppConfig.shared.imageBaseURL) {
         self.url = url
+        self.imageBaseURL = imageBaseURL
     }
 
-    init(placement: ImagePlacement?) {
-        url = AppConfig.shared.imageURL(for: placement, width: 96)
+    init(placement: ImagePlacement?, imageConfig: AppConfig = .shared) {
+        url = imageConfig.imageURL(for: placement, width: 96)
+        imageBaseURL = imageConfig.imageBaseURL
     }
 
     var body: some View {
@@ -51,7 +55,7 @@ struct CommunityPlacementAvatar: View {
             if let url, let parsedURL = URL(string: url) {
                 AsyncImageView(
                     urlString: parsedURL.absoluteString,
-                    baseURL: AppConfig.shared.imageBaseURL,
+                    baseURL: imageBaseURL,
                     contentMode: .fill
                 )
             } else {

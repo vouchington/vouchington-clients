@@ -17,6 +17,13 @@ final class CommunityBrowseViewModel {
 
     private let client: APIClient?
 
+    var imageConfig: AppConfig {
+        AppConfig(
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL,
+            imageBaseURL: client?.imageBaseURL ?? AppConfig.shared.imageBaseURL
+        )
+    }
+
     init(client: APIClient?) {
         self.client = client
     }

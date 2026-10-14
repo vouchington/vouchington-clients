@@ -27,7 +27,10 @@ struct CommunityBrowseSurface: View {
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(viewModel.rows) { row in
                         HStack(alignment: .top, spacing: Spacing.sm) {
-                            CommunityPlacementAvatar(placement: row.profileImagePlacement)
+                            CommunityPlacementAvatar(
+                                placement: row.profileImagePlacement,
+                                imageConfig: viewModel.imageConfig
+                            )
                             NativeSurfaceRow(row: .init(
                                 icon: "person.3",
                                 title: .verbatim(row.title),
