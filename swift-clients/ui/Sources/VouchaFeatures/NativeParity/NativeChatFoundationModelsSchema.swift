@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 import VouchaCore
 
@@ -9,6 +10,16 @@ import VouchaCore
     @available(macOS 26.4, iOS 26.4, *)
     enum NativeChatFoundationModelsSchema {
         enum Failure: Error { case unsupported }
+
+        static func inferredType(_ fields: [String: Any]) -> String {
+            if fields["properties"] != nil { return "object" }
+            if fields["items"] != nil { return "array" }
+            if fields["const"] is String { return "string" }
+            if let value = fields["const"] as? NSNumber {
+                return CFGetTypeID(value) == CFBooleanGetTypeID() ? "boolean" : "number"
+            }
+            return ""
+        }
 
         static func project(_ data: Data) throws -> GenerationSchema {
             guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -31,6 +42,8 @@ import VouchaCore
                 let dependencies = try definitions.keys.sorted().map { key -> DynamicGenerationSchema in
                     guard let value = definitions[key] else { throw Failure.unsupported }
                     if let properties = value["properties"] as? [String: [String: Any]] {
+                        guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
+                        else { throw Failure.unsupported }
                         let required = Set(value["required"] as? [String] ?? [])
                         return try .init(name: key, properties: properties.keys.sorted().map { field in
                             guard let property = properties[field] else { throw Failure.unsupported }
@@ -73,10 +86,10 @@ import VouchaCore
             }
 
             private mutating func projectType(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-                switch fields["type"] as? String ?? inferredType(fields) {
+                switch fields["type"] as? String ?? NativeChatFoundationModelsSchema.inferredType(fields) {
                 case "object": return try projectObject(fields)
                 case "array": return try projectArray(fields)
-                case "string": return try projectString(fields)
+                case "string": return projectString(fields)
                 case "integer": return .init(type: Int.self)
                 case "number": return .init(type: Decimal.self)
                 case "boolean": return .init(type: Bool.self)
@@ -85,15 +98,10 @@ import VouchaCore
                 }
             }
 
-            private func inferredType(_ fields: [String: Any]) -> String {
-                if fields["properties"] != nil { return "object" }
-                if fields["items"] != nil { return "array" }
-                if fields["const"] is String { return "string" }
-                if fields["const"] is NSNumber { return "number" }
-                return ""
-            }
-
             private mutating func projectObject(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+                guard fields["additionalProperties"] == nil || fields["additionalProperties"] as? Bool == false else {
+                    throw Failure.unsupported
+                }
                 let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
                 let required = Set(fields["required"] as? [String] ?? [])
                 return try .init(name: name(), properties: properties.keys.sorted().map { key in

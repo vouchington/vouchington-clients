@@ -16,23 +16,30 @@ extension NativeChatAppleFoundationModelsProvider {
             return try await generateAssistantResponse(to: message, history: history)
         }
         #if canImport(FoundationModels)
-            guard #available(macOS 26.4, iOS 26.4, *), status.isAvailable else { return nil }
+            guard #available(macOS 26.4, iOS 26.4, *) else {
+                return try await generateAssistantResponse(to: message, history: history)
+            }
+            guard status.isAvailable else { return nil }
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
-            guard !bridge.tools.isEmpty else {
+            let projected = NativeChatFoundationModelsToolSelection.select(bridge, matching: message)
+            guard !projected.isEmpty else {
                 return try await generateAssistantResponse(to: message, history: history)
             }
             let state = await NativeChatFoundationModelsToolState()
-            let tools: [any Tool] = try bridge.tools.map { item in
-                try NativeChatFoundationModelsTool(
-                    name: item.name, description: item.description,
-                    parameters: NativeChatFoundationModelsSchema.project(item.parameters),
+            let tools: [any Tool] = projected.map { item in
+                NativeChatFoundationModelsTool(
+                    name: item.descriptor.name, description: item.descriptor.description,
+                    parameters: item.schema,
                     bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
                 )
             }
             let modelSession = LanguageModelSession(model: SystemLanguageModel.default, tools: tools)
             let response: LanguageModelSession.Response<String>
             do {
-                response = try await modelSession.respond(to: Self.assistantPrompt(message: message, history: history))
+                response = try await modelSession.respond(to: Self.assistantPrompt(
+                    message: message, history: history,
+                    maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+                ))
             } catch {
                 if await state.attempted { throw LocalLLMToolLoopFailure.partialExecution }
                 throw error

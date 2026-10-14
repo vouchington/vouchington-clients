@@ -22,6 +22,8 @@ import VouchaCore
 
     @available(macOS 26.4, iOS 26.4, *)
     struct NativeChatFoundationModelsTool: Tool {
+        static let maximumModelResultBytes = 800
+
         let name: String
         let description: String
         let parameters: GenerationSchema
@@ -34,12 +36,34 @@ import VouchaCore
             let raw = try Self.jsonArguments(arguments)
             try bridge.validate(name: name, rawArguments: raw)
             guard await session.isCurrent(snapshot) else { throw CancellationError() }
-            return try await bridge.execute(
+            let result = try await bridge.execute(
                 name: name, rawArguments: raw, session: session,
                 accountId: snapshot.accountId, revision: snapshot.revision,
                 beforeAdmission: { try state.checkCapacity() },
                 onStarted: { state.markStarted() }
             )
+            return Self.contextBoundResult(result)
+        }
+
+        /// This cannot throw after an admitted RPC: a large successful result must remain an answerable tool result.
+        static func contextBoundResult(_ result: String) -> String {
+            guard result.utf8.count > maximumModelResultBytes else { return result }
+            let envelope = try? JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]
+            let isError = envelope?["isError"] as? Bool == true
+            for previewLimit in [280, 140, 70, 0] {
+                let preview = String(result.prefix(previewLimit))
+                let bounded: [String: Any] = [
+                    "isError": isError,
+                    "truncated": true,
+                    "content": [["type": "text", "text": "<external-content>\(preview)</external-content>"]]
+                ]
+                if let data = try? JSONSerialization.data(withJSONObject: bounded),
+                   data.count <= maximumModelResultBytes,
+                   let text = String(data: data, encoding: .utf8) {
+                    return text
+                }
+            }
+            return #"{"content":[],"isError":true,"truncated":true}"#
         }
 
         static func jsonArguments(_ arguments: GeneratedContent) throws -> String {

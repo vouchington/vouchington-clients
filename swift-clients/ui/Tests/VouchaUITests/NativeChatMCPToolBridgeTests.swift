@@ -160,7 +160,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         }
 
         @available(macOS 26.4, iOS 26.4, *)
-        func testPublishedMCPToolsRegisterWithFoundationModelsSession() async throws {
+        func testPublishedMCPToolsSelectBoundedFoundationModelsSession() async throws {
             let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
             let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
@@ -179,15 +179,17 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             try await mcpSession.connect()
             let snapshot = try XCTUnwrap(mcpSession.connectedSnapshot())
             let state = NativeChatFoundationModelsToolState()
-            let tools: [any Tool] = try bridge.tools.map { descriptor in
-                try NativeChatFoundationModelsTool(
-                    name: descriptor.name, description: descriptor.description,
-                    parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+            let selected = NativeChatFoundationModelsToolSelection.select(bridge, matching: "Show my cards")
+            let tools: [any Tool] = selected.map { item in
+                NativeChatFoundationModelsTool(
+                    name: item.descriptor.name, description: item.descriptor.description,
+                    parameters: item.schema,
                     bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
                 )
             }
             XCTAssertEqual(bridge.tools.count, 69)
-            XCTAssertEqual(tools.count, bridge.tools.count)
+            XCTAssertFalse(tools.isEmpty)
+            XCTAssertLessThanOrEqual(tools.count, NativeChatFoundationModelsToolSelection.maximumTools)
             _ = LanguageModelSession(tools: tools)
         }
     #endif
@@ -424,7 +426,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 }
 
 @MainActor
-private final class BridgeMCPService: NativeChatMCPServicing {
+final class BridgeMCPService: NativeChatMCPServicing {
     private(set) var calls = 0
     private(set) var lastArguments: [String: DecodedJSONValue]?
     var holdCalls = false
