@@ -29,6 +29,12 @@ describe('iOS Simulator launch smoke fan-in', () => {
     const iosJob = jobBlock(workflow, 'build-ios-app')
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
+    assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
+    assert.match(iosJob, /xcrun simctl bootstatus "\$simulator_id" -b/u)
+    assert.ok(
+      iosJob.indexOf('- name: Boot iPhone Simulator for launch smoke') <
+        iosJob.indexOf('- name: Launch iOS app on Simulator'),
+    )
     assert.match(
       iosJob,
       /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,

@@ -894,12 +894,9 @@ jobs:
         run: |
           ./swift-clients/tooling/generate.sh iOS
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Launch iOS app on Simulator
-        timeout-minutes: 10
+      - name: Boot iPhone Simulator for launch smoke
+        timeout-minutes: 4
         working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
         run: |
           simulator_id="$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")) | .value[] | select(.isAvailable and (.name | startswith("iPhone "))) | .udid][0] // empty')"
           if [[ -z "$simulator_id" ]]; then
@@ -907,6 +904,21 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
+          xcrun simctl bootstatus "$simulator_id" -b
+      - name: Launch iOS app on Simulator
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed iOS launch diagnostics
