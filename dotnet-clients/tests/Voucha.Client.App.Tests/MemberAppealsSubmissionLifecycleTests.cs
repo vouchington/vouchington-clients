@@ -26,13 +26,20 @@ public sealed class MemberAppealsSubmissionLifecycleTests
 
     Find<Button>(page, "member-appeal-submit").SendClicked();
     await service.SubmissionStarted.Task;
+    var formContent = page.Content;
     Find<Button>(page, "member-appeal-cancel").SendClicked();
     await service.SubmissionCancellationObserved.Task;
+    await WaitUntilAsync(() =>
+        !ReferenceEquals(page.Content, formContent) &&
+        viewModel.ActiveTarget is null &&
+        !page.GetVisualTreeDescendants().OfType<Button>()
+            .Any(button => button.AutomationId == "member-appeal-submit"));
 
     Find<Button>(page, "member-appeal-file-warning:warning-1").SendClicked();
     Assert.False(Find<Button>(page, "member-appeal-submit").IsEnabled);
     service.ReleaseSubmission();
-    await WaitUntilAsync(() => Find<Button>(page, "member-appeal-submit").IsEnabled);
+    await WaitUntilAsync(() => page.GetVisualTreeDescendants().OfType<Button>()
+        .Any(button => button.AutomationId == "member-appeal-submit" && button.IsEnabled));
 
     Assert.NotNull(viewModel.ActiveTarget);
     Assert.Equal("Draft details", Find<Editor>(page, "member-appeal-details").Text);
