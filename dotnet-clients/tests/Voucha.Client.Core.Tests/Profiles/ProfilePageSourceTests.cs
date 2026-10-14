@@ -27,7 +27,10 @@ public sealed class ProfilePageSourceTests
     Assert.Contains("viewModel.ReportUnexpectedProfileActionError(ex);", safeRun, StringComparison.Ordinal);
     Assert.Contains("ProfileNavigationTargets.SignIn", scopes, StringComparison.Ordinal);
     Assert.Contains("ProfileNavigationTargets.Topic(row)", scopes, StringComparison.Ordinal);
-    Assert.Contains("ProfileNavigationTargets.Source(row)", scopes, StringComparison.Ordinal);
+    Assert.Contains("ProfileNavigationTargets.Source(row.Source)", scopes, StringComparison.Ordinal);
+    Assert.Contains("x:DataType=\"profiles:ProfileSourceRow\"", xaml, StringComparison.Ordinal);
+    Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(xaml,
+        "Text=\"{Binding StaffChannelLabel}\"").Count);
     Assert.Contains("ProfileNavigationTargets.Community(row)", scopes, StringComparison.Ordinal);
     Assert.Contains("Text=\"{DynamicResource native.dotnet.profile.selected}\" IsVisible=\"{Binding IsSelected}\"", xaml, StringComparison.Ordinal);
     Assert.Contains("ItemsSource=\"{Binding HistoryTabs}\" Direction=\"Row\" Wrap=\"Wrap\" IsVisible=\"{Binding IsOverviewScope}\"", xaml, StringComparison.Ordinal);

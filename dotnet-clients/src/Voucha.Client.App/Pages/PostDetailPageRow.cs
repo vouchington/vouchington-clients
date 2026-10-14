@@ -53,6 +53,14 @@ public sealed record PostDetailPageRow(
 
   public bool HasProvenance => ProvenanceLabel is not null;
 
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(Post.StaffProvenance, IsStaffViewer, Localization);
+  public bool HasStaffChannel => StaffChannelLabel is not null;
+  public string? StaffClientLabel => StaffProvenanceLabels.Client(Post.StaffProvenance, IsStaffViewer, true, Localization);
+  public bool HasStaffClient => StaffClientLabel is not null;
+  public string? StaffVerificationLabel => StaffProvenanceLabels.Verification(
+      Post.StaffProvenance, IsStaffViewer, true, Localization);
+  public bool HasStaffVerification => StaffVerificationLabel is not null;
+
   public PostContentPresentation ContentPresentation => PostContentPolicy.For(Post, ViewerId, IsStaffViewer);
   public bool ShowBodyContent => ContentPresentation is PostContentPresentation.Content or PostContentPresentation.UnderReviewForStaff;
   public bool CanQuote => CanReply && ShowBodyContent;

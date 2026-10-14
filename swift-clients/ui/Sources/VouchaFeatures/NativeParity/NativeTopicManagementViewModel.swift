@@ -91,7 +91,7 @@ final class NativeTopicManagementViewModel {
 
         state = .loading
         do {
-            let response: TopicEnvelope = try await client.send(.topic(id: topicIdentifier))
+            let response: TopicDetailResponse = try await client.send(.topic(id: topicIdentifier))
             apply(topic: response.topic)
             try await loadSectionData()
             state = .loaded

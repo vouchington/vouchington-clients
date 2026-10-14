@@ -108,7 +108,7 @@ public sealed partial class VouchaApiClientTests
     AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?q=tech");
     Assert.Equal("topic-1", response.Results[0].Id);
     Assert.Equal("Test Topic", response.Topics["topic-1"].Name);
-    Assert.Empty(response.TopicsMetrics);
+    Assert.Contains("topic-1", response.TopicsMetrics.Keys);
   }
 
   [Fact]

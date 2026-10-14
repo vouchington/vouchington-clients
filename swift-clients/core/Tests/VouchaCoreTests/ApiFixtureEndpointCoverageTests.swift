@@ -31,6 +31,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.import-export.topics.import.outcomes": .importTopics(["Travel", "Local News", "Travel", "!!!"]),
             "native.import-export.topics.export.default": .exportTopics,
             "native.import-export.topics.export.download": .exportTopicsDownload,
+            "web.communities.show.default": Endpoint.community(idOrSlug: "test-community"),
             "web.communities.archive.default": Endpoint.updateCommunity(
                 idOrSlug: "test-community",
                 archive: true
@@ -155,6 +156,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.admin-ai-costs.empty": Endpoint.adminAiCosts(),
             "shared.currencies.list.default": Endpoint.currencies(),
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
+            "web.topics.search.default": Endpoint.topics(query: "tech"),
+            "web.topics.show.default": Endpoint.topic(id: "test-topic"),
             "web.topics.mutation.default": Endpoint.createTopic(
                 body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic")
             ),

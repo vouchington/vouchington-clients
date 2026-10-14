@@ -43,7 +43,7 @@ public sealed partial class ProfileViewModel
       case NativeUserProfileCollectionKind.SourcesVideos:
         var sources = await profileCollectionsService!.FetchSourcesAsync(userId, scope.FeedType, after, cancellationToken).ConfigureAwait(true);
         if (!IsCurrent(version, scope)) return;
-        SourceItems = Merge(SourceItems, sources.Results, append, row => row.Id);
+        SourceItems = Merge(SourceItems, sources.Results.Select(ToSourceRow), append, row => row.Id);
         collectionPageInfo = sources.PageInfo;
         break;
       case NativeUserProfileCollectionKind.CommunitiesMember:
@@ -87,13 +87,22 @@ public sealed partial class ProfileViewModel
       topic.TopicType,
       UiTaxonomy.TopicType(topic.TopicType),
       topic.Markdown,
-      Localization: localization);
+      Localization: localization,
+      Provenance: topic.Provenance,
+      StaffProvenance: topic.StaffProvenance,
+      IsStaffViewer: currentViewerIsStaff);
 
-  private static CommunityBrowseRow ToCommunityRow(Community community) => new(
+  private ProfileSourceRow ToSourceRow(RssFeedSource source) => new(source, localization, currentViewerIsStaff);
+
+  private CommunityBrowseRow ToCommunityRow(Community community) => new(
       community.Id,
       community.Name,
       community.Slug,
       0,
       0,
-      community.ArchivedAt is not null);
+      community.ArchivedAt is not null,
+      community.Provenance,
+      localization,
+      community.StaffProvenance,
+      currentViewerIsStaff);
 }

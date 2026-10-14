@@ -85,7 +85,9 @@ extension CommunityDetailViewModel {
                     id: result.id,
                     icon: "doc.text",
                     title: .verbatim(post.title ?? post.slug ?? post.id),
-                    detail: postTypeText(post.postType)
+                    detail: postTypeText(post.postType),
+                    provenance: post.provenance,
+                    staffProvenance: post.staffProvenance
                 )
             )
         }

@@ -56,6 +56,15 @@ public sealed partial class ListsViewModel
                   : JsonNullableString.FromString(trimmedDescription)),
           cancellationToken).ConfigureAwait(true);
       var updated = ListSummaryRow.FromList(response.List, localization);
+      var existing = Lists.FirstOrDefault(list => list.Id == updated.Id);
+      if (existing is not null)
+      {
+        updated = updated with
+        {
+          Provenance = updated.Provenance ?? existing.Provenance,
+          StaffProvenance = updated.StaffProvenance ?? existing.StaffProvenance,
+        };
+      }
       var updatedLists = Lists
           .Select(list => list.Id == updated.Id ? updated : list)
           .ToArray();

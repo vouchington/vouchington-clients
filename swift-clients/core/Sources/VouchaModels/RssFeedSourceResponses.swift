@@ -1,11 +1,17 @@
 import Foundation
 
 public struct RssFeedElectionSummary: Codable, Sendable {
+    public let entityType: String?
     public let id: String
     public let votesScoreNet: Double
     public let votesCountUp: Int
     public let votesCountDown: Int
     public let myVote: ElectionVoteChoice?
+
+    private enum CodingKeys: String, CodingKey {
+        case entityType = "__entityType"
+        case id, votesScoreNet, votesCountUp, votesCountDown, myVote
+    }
 }
 
 public struct RssFeedSourceListResponse: Codable, Sendable {

@@ -10,6 +10,7 @@ public struct RssFeed: Codable, Identifiable, Sendable {
     public let discoverable: Bool
     public let publisherType: TopicReference?
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
 }
 
 struct EmbeddedRssFeedSidecar: Decodable {
@@ -23,6 +24,7 @@ struct EmbeddedRssFeedSidecar: Decodable {
     let publisherType: TopicReference?
     let podcastShow: RssFeedSource.PodcastShowInfo?
     let provenance: PublicContentProvenance?
+    let staffProvenance: StaffContentProvenance?
     let isDiscoverable: Bool?
     let isEnabled: Bool?
     let lastFetchedAt: Date?
@@ -30,7 +32,7 @@ struct EmbeddedRssFeedSidecar: Decodable {
     enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
         case id, title, feedType, rssFeedUrl, hostname, topic, publisherType, podcastShow
-        case isDiscoverable, isEnabled, lastFetchedAt, provenance
+        case isDiscoverable, isEnabled, lastFetchedAt, provenance, staffProvenance
     }
 
     var resolvedSource: RssFeedSource? {
@@ -48,7 +50,8 @@ struct EmbeddedRssFeedSidecar: Decodable {
             topic: topic,
             publisherType: publisherType,
             podcastShow: podcastShow,
-            provenance: provenance
+            provenance: provenance,
+            staffProvenance: staffProvenance
         )
     }
 }

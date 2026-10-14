@@ -23,7 +23,7 @@ using Xunit;
 namespace Voucha.Client.App.Tests;
 
 [Collection(MauiPageTestCollection.Name)]
-public sealed class PublicEntityProvenanceRenderingTests
+public sealed partial class PublicEntityProvenanceRenderingTests
 {
   [Fact]
   public void CommunityBrowseCardRendersTrustedAppAndHidesAbsentProvenance()
@@ -31,10 +31,10 @@ public sealed class PublicEntityProvenanceRenderingTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
     var client = Client("{}");
-    var page = new CommunityBrowsePage(new CommunityBrowseViewModel(new ApiCommunitiesService(client)));
+    var page = new CommunityBrowsePage(new CommunityBrowseViewModel(new ApiCommunitiesService(client)), new AnonymousSessionStore());
     var collection = Assert.Single(Descendants<CollectionView>(page));
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
-    var label = Assert.Single(card.Children.OfType<Label>(), item => item.FontSize == 12);
+    var label = card.Children.OfType<Label>().ElementAt(2);
     var trusted = new CommunityBrowseRow("community-1", "Community", "community", 0, 0, false,
         new PublicContentProvenance("mcp", new PublicProvenanceApp("verified", ClientName: "Fixture Agent")));
 
@@ -71,7 +71,7 @@ public sealed class PublicEntityProvenanceRenderingTests
         Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"));
     using var model = new CommunityDetailViewModel(new ApiCommunitiesService(client),
         localization: localization, localeController: controller);
-    var page = new CommunityDetailPage(model);
+    var page = new CommunityDetailPage(model, new AnonymousSessionStore());
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
     var label = Assert.Single(Descendants<Label>(page), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
@@ -100,7 +100,7 @@ public sealed class PublicEntityProvenanceRenderingTests
         detail.ToJsonString(), Fixture("web.communities.members.default"),
         Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"))),
         localization: localization, localeController: controller);
-    var page = new CommunityOverviewPage(model);
+    var page = new CommunityOverviewPage(model, new AnonymousSessionStore());
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
@@ -125,7 +125,7 @@ public sealed class PublicEntityProvenanceRenderingTests
     using var copy = UiCopy.PushLocalization(localization);
     using var model = new ListsViewModel(Client(Fixture("entity-provenance.lists"),
         Fixture("native.list-items.default")), localization, controller);
-    var page = new ListsPage(model);
+    var page = new ListsPage(model, new AnonymousSessionStore());
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var list = Assert.Single(model.Lists, row => row.Provenance?.App?.ClientName == "Fixture Agent");
     var collection = Assert.Single(Descendants<CollectionView>(page), view =>
@@ -274,13 +274,86 @@ public sealed class PublicEntityProvenanceRenderingTests
 
     var refreshedItems = Assert.IsAssignableFrom<IReadOnlyList<NewsFeedItem>>(collection.ItemsSource);
     Assert.NotSame(originalItems, refreshedItems);
-    Assert.Same(model.Items, refreshedItems);
+    Assert.Equal(model.Items, refreshedItems);
     var refreshed = Assert.Single(refreshedItems, row => row.Provenance?.App?.ClientName == "Fixture Agent");
     Assert.NotSame(verified, refreshed);
     card.BindingContext = refreshed;
     Assert.True(label.IsVisible);
     Assert.NotEqual(englishLabel, label.Text);
     Assert.Equal(refreshed.LocalizedProvenanceLabel, label.Text);
+  }
+
+  [Fact]
+  public async Task StaffChannelCardsClearWhenViewerLosesStaffRole()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var facts = new StaffContentProvenance("mcp",
+        new StaffProvenanceOAuthClient("internal-client-42", "Fixture Agent", null, true));
+
+    var communities = new CommunityBrowsePage(
+        new CommunityBrowseViewModel(new ApiCommunitiesService(Client("{}"))), new AnonymousSessionStore());
+    var communityCollection = Assert.Single(Descendants<CollectionView>(communities));
+    var communityCard = Assert.IsType<VerticalStackLayout>(communityCollection.ItemTemplate.CreateContent());
+    var communityLabel = communityCard.Children.OfType<Label>().ElementAt(3);
+    var community = new CommunityBrowseRow("id", "Community", "community", 0, 0, false,
+        StaffProvenance: facts, IsStaffViewer: true);
+    communityCard.BindingContext = community;
+    Assert.True(communityLabel.IsVisible);
+    communityCard.BindingContext = community with { IsStaffViewer = false };
+    Assert.False(communityLabel.IsVisible);
+    Assert.Null(communityLabel.Text);
+
+    using var listsModel = new ListsViewModel(Client(Fixture("entity-provenance.lists"),
+        Fixture("native.list-items.default")));
+    var lists = new ListsPage(listsModel, new AnonymousSessionStore());
+    await listsModel.LoadAsync(TestContext.Current.CancellationToken);
+    var listCollection = Assert.Single(Descendants<CollectionView>(lists), view =>
+        view.ItemsSource is IReadOnlyList<ListSummaryRow>);
+    var listCard = Assert.IsType<Border>(listCollection.ItemTemplate.CreateContent());
+    var list = listsModel.Lists[0] with { StaffProvenance = facts, IsStaffViewer = true };
+    listCard.BindingContext = list;
+    var listLabel = Assert.Single(Descendants<Label>(listCard), item =>
+        item.Text == list.StaffChannelLabel);
+    Assert.True(listLabel.IsVisible);
+    listCard.BindingContext = list with { IsStaffViewer = false };
+    Assert.False(listLabel.IsVisible);
+    Assert.Null(listLabel.Text);
+
+    var topicClient = Client(Fixture("entity-provenance.topics"));
+    using var topicsModel = new TopicsViewModel(new ApiTopicsService(topicClient));
+    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var topics = new TopicsPage(topicsModel, new AnonymousSessionStore(), null!, null!, null!, topicClient,
+        Recovery(locale), null!, UiLocalization.English, null!);
+    await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
+    var topicCollection = Assert.Single(Descendants<CollectionView>(topics), view =>
+        view.ItemsSource is IReadOnlyList<TopicRow>);
+    var topicCard = Assert.IsType<Border>(topicCollection.ItemTemplate.CreateContent());
+    var topic = topicsModel.Items[0] with { StaffProvenance = facts, IsStaffViewer = true };
+    topicCard.BindingContext = topic;
+    var topicLabel = Assert.Single(Descendants<Label>(topicCard), item =>
+        item.Text == topic.StaffChannelLabel);
+    Assert.True(topicLabel.IsVisible);
+    topicCard.BindingContext = topic with { IsStaffViewer = false };
+    Assert.False(topicLabel.IsVisible);
+    Assert.Null(topicLabel.Text);
+
+    using var feedsModel = new NewsFeedsViewModel(new ApiNewsFeedService(Client(Fixture("entity-provenance.rss-feeds"))),
+        NewsFeedKind.News, NewsFeedScope.AllSources);
+    var feeds = new NewsFeedsPage(feedsModel, new AnonymousSessionStore(), null!, Recovery(locale));
+    await feedsModel.LoadAsync(TestContext.Current.CancellationToken);
+    var feedCollection = Assert.Single(Descendants<CollectionView>(feeds), view =>
+        view.ItemsSource is IReadOnlyList<NewsFeedItem>);
+    var feedCard = Assert.IsType<Border>(feedCollection.ItemTemplate.CreateContent());
+    var source = feedsModel.Items.First(item => item.IsSource) with
+    { StaffProvenance = facts, IsStaffViewer = true };
+    feedCard.BindingContext = source;
+    var sourceLabel = Assert.Single(Descendants<Label>(feedCard), item =>
+        item.Text == source.StaffChannelLabel);
+    Assert.True(sourceLabel.IsVisible);
+    feedCard.BindingContext = source with { IsStaffViewer = false };
+    Assert.False(sourceLabel.IsVisible);
+    Assert.Null(sourceLabel.Text);
   }
 
   private static string Fixture(string id)

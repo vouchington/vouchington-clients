@@ -94,12 +94,41 @@ final class CommunityModelDecodingTests: XCTestCase {
     func testDecodesSharedCommunityFixtures() throws {
         let decoder = makeVouchaDecoder()
 
+        let show = try decoder.decode(
+            CommunityResponse.self,
+            from: ApiFixtureLoader.data("web.communities.show.default")
+        )
+        XCTAssertEqual(show.community.profileImagePlacement?.imageId, "00000000-0000-7000-8000-000000000203")
+        XCTAssertEqual(show.community.profileImagePlacement?.placementId, "00000000-0000-7000-8000-000000000304")
+        XCTAssertEqual(show.community.profileImagePlacement?.placementRevision, 2)
+        XCTAssertEqual(show.community.bannerImagePlacement?.imageId, "00000000-0000-7000-8000-000000000204")
+        XCTAssertEqual(show.community.bannerImagePlacement?.placementId, "00000000-0000-7000-8000-000000000305")
+        XCTAssertEqual(show.community.bannerImagePlacement?.placementRevision, 5)
+        let encodedCommunity = try JSONSerialization
+            .jsonObject(with: JSONEncoder().encode(show.community)) as? [String: Any]
+        let profilePlacement = try XCTUnwrap(encodedCommunity?["profile_image_placement"] as? [String: Any])
+        XCTAssertEqual(profilePlacement["placement_revision"] as? Int, 2)
+        let bannerPlacement = try XCTUnwrap(encodedCommunity?["banner_image_placement"] as? [String: Any])
+        XCTAssertEqual(bannerPlacement["placement_revision"] as? Int, 5)
+
         let archive = try decoder.decode(
             CommunityResponse.self,
             from: ApiFixtureLoader.data("web.communities.archive.default")
         )
         XCTAssertEqual(archive.community.archivedById, "user-1")
         XCTAssertNotNil(archive.community.archivedAt)
+        let encodedArchive = try JSONSerialization
+            .jsonObject(with: JSONEncoder().encode(archive.community)) as? [String: Any]
+        XCTAssertNil(encodedArchive?["profile_image_placement"])
+        XCTAssertNil(encodedArchive?["banner_image_placement"])
+        var updatedCommunity = archive.community
+        updatedCommunity.profileImagePlacement = show.community.profileImagePlacement
+        let updatedArchive = try JSONSerialization
+            .jsonObject(with: JSONEncoder().encode(updatedCommunity)) as? [String: Any]
+        XCTAssertEqual(
+            (updatedArchive?["profile_image_placement"] as? [String: Any])?["placement_revision"] as? Int,
+            2
+        )
 
         let members = try decoder.decode(
             CommunityMembersResponse.self,

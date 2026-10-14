@@ -45,6 +45,30 @@ final class PostCardTests: XCTestCase {
         XCTAssertTrue(hostname.contains("example.test"))
     }
 
+    func testStaffFactsRenderOnlyForStaffAndClientOnlyOnDetail() throws {
+        let facts = StaffContentProvenance(
+            createdVia: "mcp",
+            oauthClient: StaffProvenanceOAuthClient(
+                clientId: "internal-client-42", clientName: "Fixture Agent",
+                metadataUrl: nil, verified: true
+            )
+        )
+        let publicBadge = ProvenanceBadge(provenance: nil, staffProvenance: facts)
+        XCTAssertTrue(try publicBadge.inspect().findAll(ViewType.Text.self).isEmpty)
+
+        let card = ProvenanceBadge(provenance: nil, staffProvenance: facts, isStaffViewer: true)
+        let cardLabels = try card.inspect().findAll(ViewType.Text.self).map { try $0.string() }
+        XCTAssertTrue(cardLabels.contains { $0.contains("mcp") })
+        XCTAssertFalse(cardLabels.contains { $0.contains("internal-client-42") })
+
+        let detail = ProvenanceBadge(
+            provenance: nil, staffProvenance: facts, isStaffViewer: true, showClient: true
+        )
+        let detailLabels = try detail.inspect().findAll(ViewType.Text.self).map { try $0.string() }
+        XCTAssertTrue(detailLabels.contains { $0.contains("Fixture Agent") })
+        XCTAssertTrue(detailLabels.contains { $0.contains("internal-client-42") })
+    }
+
     func testHandlerlessPostCardVoteControlsDisableCasting() throws {
         let sut = PostCard(post: makePost())
 

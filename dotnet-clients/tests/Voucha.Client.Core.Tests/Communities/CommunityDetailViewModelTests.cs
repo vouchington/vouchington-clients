@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
@@ -78,6 +79,42 @@ public sealed class CommunityDetailViewModelTests
     Assert.False(viewModel.CanUnarchive);
     Assert.Equal(HttpMethod.Patch, handler.Requests[^1].Method);
     Assert.Contains("\"archive\":false", handler.Requests[^1].Body!, StringComparison.Ordinal);
+  }
+
+  [Theory]
+  [InlineData(true)]
+  [InlineData(false)]
+  public async Task PartialArchiveMutationRetainsCachedCreationFacts(bool archive)
+  {
+    var initial = JsonNode.Parse(ApiFixtureLoader.LoadResponse(
+        archive ? "web.communities.show.default" : "web.communities.archive.default"))!;
+    initial["membership"] = JsonNode.Parse("""
+        {"id":"community-member-1","community_id":"community-1","user_id":"user-1","role":"owner","__entity_type":"community_member"}
+        """);
+    initial["community"]!["provenance"] = JsonNode.Parse("""{"via":"mcp","app":null}""");
+    initial["community"]!["staff_provenance"] = JsonNode.Parse("""{"created_via":"mcp","oauth_client":null}""");
+    var partial = JsonNode.Parse(ApiFixtureLoader.LoadResponse(
+        archive ? "web.communities.archive.default" : "web.communities.show.default"))!;
+    partial["community"]!.AsObject().Remove("provenance");
+    partial["community"]!.AsObject().Remove("staff_provenance");
+    var (viewModel, _) = CreateViewModel(
+        SessionSnapshotForTests.Authenticated,
+        initial.ToJsonString(),
+        ApiFixtureLoader.LoadResponse("web.communities.members.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.posts.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.list-items.counts.default"),
+        partial.ToJsonString());
+
+    await viewModel.LoadAsync("test-community", TestContext.Current.CancellationToken);
+    Assert.NotNull(viewModel.Community?.Provenance);
+    Assert.NotNull(viewModel.Community?.StaffProvenance);
+
+    Assert.True(archive
+        ? await viewModel.ArchiveAsync(TestContext.Current.CancellationToken)
+        : await viewModel.UnarchiveAsync(TestContext.Current.CancellationToken));
+    Assert.Equal(archive, viewModel.IsArchived);
+    Assert.NotNull(viewModel.Community?.Provenance);
+    Assert.NotNull(viewModel.Community?.StaffProvenance);
   }
 
   [Fact]

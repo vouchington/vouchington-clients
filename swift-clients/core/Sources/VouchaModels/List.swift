@@ -22,6 +22,18 @@ public struct UserList: Codable, Identifiable, Sendable {
     public let updatedAt: Date
     public let removedAt: Date?
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
+
+    public func preservingCreationFacts(from existing: UserList) -> UserList {
+        guard id == existing.id else { return self }
+        return UserList(
+            id: id, entityType: entityType, ownerUserId: ownerUserId,
+            name: name, description: description, visibility: visibility,
+            createdAt: createdAt, updatedAt: updatedAt, removedAt: removedAt,
+            provenance: provenance ?? existing.provenance,
+            staffProvenance: staffProvenance ?? existing.staffProvenance
+        )
+    }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -35,10 +47,12 @@ public struct UserList: Codable, Identifiable, Sendable {
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(removedAt, forKey: .removedAt)
         try container.encodeIfPresent(provenance, forKey: .provenance)
+        try container.encodeIfPresent(staffProvenance, forKey: .staffProvenance)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, ownerUserId, name, description, visibility, createdAt, updatedAt, removedAt, provenance
+        case id, ownerUserId, name, description, visibility, createdAt, updatedAt, removedAt
+        case provenance, staffProvenance
         case entityType = "__entityType"
     }
 }

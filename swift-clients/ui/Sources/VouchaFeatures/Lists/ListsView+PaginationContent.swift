@@ -9,7 +9,10 @@ extension ListsView {
                 Button {
                     Task { await viewModel.selectList(list) }
                 } label: {
-                    ListsSummaryRow(list: list, isSelected: viewModel.selectedList?.id == list.id)
+                    ListsSummaryRow(
+                        list: list, isSelected: viewModel.selectedList?.id == list.id,
+                        isStaffViewer: isStaffViewer
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -23,35 +26,45 @@ extension ListsView {
         }
     }
 
-    @ViewBuilder
     var selectedListItems: some View {
-        switch viewModel.itemState {
-        case .loading:
-            LoadingView(label: UiMessages.string(.nativeSwiftListsLoadingItems, locale: nativeUiLocale))
-        case let .error(error):
-            ErrorStateView(error: error) {
-                if let selected = viewModel.selectedList {
-                    await viewModel.selectList(selected)
-                }
-            }
-        default:
-            if viewModel.items.isEmpty {
-                EmptyStateView(
-                    icon: "tray",
-                    title: .message(.nativeSwiftEmptyStateNoListItems),
-                    message: .message(.nativeSwiftEmptyStateNoListItemsMessage)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            if let selectedList = viewModel.selectedList,
+               selectedList.provenance != nil || (isStaffViewer && selectedList.staffProvenance != nil) {
+                ProvenanceBadge(
+                    provenance: selectedList.provenance,
+                    staffProvenance: selectedList.staffProvenance,
+                    isStaffViewer: isStaffViewer,
+                    showClient: true
                 )
-            } else {
-                LazyVStack(alignment: .leading, spacing: Spacing.sm) {
-                    ForEach(viewModel.items) { item in
-                        ListsItemRow(item: item)
+            }
+            switch viewModel.itemState {
+            case .loading:
+                LoadingView(label: UiMessages.string(.nativeSwiftListsLoadingItems, locale: nativeUiLocale))
+            case let .error(error):
+                ErrorStateView(error: error) {
+                    if let selected = viewModel.selectedList {
+                        await viewModel.selectList(selected)
                     }
-                    HybridPaginationControl(
-                        hasMore: viewModel.itemPagination.hasLoadedPage && viewModel.itemPagination.hasMore,
-                        isLoading: viewModel.itemPagination.isLoading,
-                        hasError: viewModel.itemPagination.lastError != nil
-                    ) {
-                        await viewModel.loadMoreItems()
+                }
+            default:
+                if viewModel.items.isEmpty {
+                    EmptyStateView(
+                        icon: "tray",
+                        title: .message(.nativeSwiftEmptyStateNoListItems),
+                        message: .message(.nativeSwiftEmptyStateNoListItemsMessage)
+                    )
+                } else {
+                    LazyVStack(alignment: .leading, spacing: Spacing.sm) {
+                        ForEach(viewModel.items) { item in
+                            ListsItemRow(item: item)
+                        }
+                        HybridPaginationControl(
+                            hasMore: viewModel.itemPagination.hasLoadedPage && viewModel.itemPagination.hasMore,
+                            isLoading: viewModel.itemPagination.isLoading,
+                            hasError: viewModel.itemPagination.lastError != nil
+                        ) {
+                            await viewModel.loadMoreItems()
+                        }
                     }
                 }
             }

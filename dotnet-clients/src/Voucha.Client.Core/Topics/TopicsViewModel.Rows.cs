@@ -21,5 +21,6 @@ public sealed partial class TopicsViewModel
           election?.VotesCountDown,
           vote?.Choice,
           localization,
-          topic.Provenance);
+          topic.Provenance,
+          topic.StaffProvenance);
 }

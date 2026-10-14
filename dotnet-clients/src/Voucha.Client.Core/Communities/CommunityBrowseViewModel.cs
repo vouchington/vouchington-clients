@@ -119,11 +119,17 @@ public sealed record CommunityBrowseRow(
     int PostCount,
     bool Archived,
     PublicContentProvenance? Provenance = null,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    StaffContentProvenance? StaffProvenance = null,
+    bool IsStaffViewer = false)
 {
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization ?? UiLocalization.English);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, Localization ?? UiLocalization.English);
+
+  public bool HasStaffChannel => StaffChannelLabel is not null;
 
   public static CommunityBrowseRow FromCommunity(
       Community community, CommunityMetrics? metrics, CommunityOwner? owner, IUiLocalization? localization = null)
@@ -138,6 +144,7 @@ public sealed record CommunityBrowseRow(
         metrics?.PostCount ?? 0,
         community.ArchivedAt is not null,
         community.Provenance,
-        localization);
+        localization,
+        community.StaffProvenance);
   }
 }

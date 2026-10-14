@@ -7,6 +7,7 @@ public struct RssFeedSourceCard: View {
     @Environment(\.locale)
     private var nativeUiLocale
     public let source: RssFeedSource
+    public let isStaffViewer: Bool
     public let isFollowing: Bool
     public let isFollowingTopic: Bool
     public let isMutedSource: Bool
@@ -23,6 +24,7 @@ public struct RssFeedSourceCard: View {
 
     public init(
         source: RssFeedSource,
+        isStaffViewer: Bool = false,
         isFollowing: Bool = false,
         isFollowingTopic: Bool = false,
         isMutedSource: Bool = false,
@@ -38,6 +40,7 @@ public struct RssFeedSourceCard: View {
         onTopicSignedOutTap: (() -> Void)? = nil
     ) {
         self.source = source
+        self.isStaffViewer = isStaffViewer
         self.isFollowing = isFollowing
         self.isFollowingTopic = isFollowingTopic
         self.isMutedSource = isMutedSource
@@ -65,7 +68,11 @@ public struct RssFeedSourceCard: View {
                     Text(source.displayHost)
                         .font(Typography.caption)
                         .foregroundStyle(Colors.secondaryLabel)
-                    ProvenanceBadge(provenance: source.provenance)
+                    ProvenanceBadge(
+                        provenance: source.provenance,
+                        staffProvenance: source.staffProvenance,
+                        isStaffViewer: isStaffViewer
+                    )
                     Text(verbatim: UiMessages.string(source.cardFeedTypeLabel, locale: nativeUiLocale))
                         .font(Typography.caption2)
                         .foregroundStyle(Colors.secondaryLabel)

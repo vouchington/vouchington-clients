@@ -18,7 +18,9 @@ public struct Topic: Codable, Identifiable, Sendable {
     public var logoImageId: String?
     @RequiredNullable
     public var heroImageId: String?
+    @TolerantNullable
     public var logoImagePlacement: ImagePlacement?
+    @TolerantNullable
     public var heroImagePlacement: ImagePlacement?
     @RequiredNullable
     public var homepageUrlId: String?
@@ -35,6 +37,7 @@ public struct Topic: Codable, Identifiable, Sendable {
     public let updatedBy: PublicUser?
     public let election: TopicElection?
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
 
     public init(
         id: String,
@@ -55,7 +58,8 @@ public struct Topic: Codable, Identifiable, Sendable {
         createdBy: PublicUser? = nil,
         updatedBy: PublicUser? = nil,
         election: TopicElection? = nil,
-        provenance: PublicContentProvenance? = nil
+        provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil
     ) {
         entityType = nil
         self.id = id
@@ -82,6 +86,7 @@ public struct Topic: Codable, Identifiable, Sendable {
         self.updatedBy = updatedBy
         self.election = election
         self.provenance = provenance
+        self.staffProvenance = staffProvenance
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -91,7 +96,8 @@ public struct Topic: Codable, Identifiable, Sendable {
         case noindex = "isNoindexed"
         case logoImageId, heroImageId, logoImagePlacement, heroImagePlacement
         case homepageUrlId, linguaRsDetectedLanguage, referralProgramId
-        case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy, election, provenance
+        case referralProgramSlug, rewardsProgramId, createdAt, createdBy, updatedBy
+        case election, provenance, staffProvenance
     }
 }
 
@@ -134,6 +140,10 @@ public struct TopicSearchResponse: Codable, Sendable {
     public let topicMetrics: [String: DecodedJSONValue]?
     public let topicElections: [String: RssFeedElectionSummary]?
     public let electionVotes: [String: ElectionVote]?
+    @TolerantNullable
+    public var bookmarks: [String: [String: Bool]]?
+    @TolerantNullable
+    public var markdownToHtml: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case results
@@ -141,7 +151,7 @@ public struct TopicSearchResponse: Codable, Sendable {
         case topics
         case topicMetrics = "topicsMetrics"
         case topicElections
-        case electionVotes
+        case electionVotes, bookmarks, markdownToHtml
     }
 }
 

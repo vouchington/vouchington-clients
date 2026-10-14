@@ -14,6 +14,18 @@ public sealed partial class CommunityDetailViewModel
     HasPendingApplication = response.HasPendingApplication == true;
   }
 
+  private Community PreserveCreationFacts(Community updated)
+  {
+    var existing = Community;
+    return existing?.Id == updated.Id
+        ? updated with
+        {
+          Provenance = updated.Provenance ?? existing.Provenance,
+          StaffProvenance = updated.StaffProvenance ?? existing.StaffProvenance,
+        }
+        : updated;
+  }
+
   private void ApplyMembers(CommunityMembersResponse response, bool append = false)
   {
     var membersById = response.CommunityMembers;

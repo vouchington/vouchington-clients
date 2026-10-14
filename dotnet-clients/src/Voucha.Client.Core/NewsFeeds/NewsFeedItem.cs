@@ -36,7 +36,9 @@ public sealed record NewsFeedItem(
     IUiLocalization? Localization = null,
     StoryRelatedArticles? StoryArticles = null,
     string? DeliveryId = null,
-    Api.PublicContentProvenance? Provenance = null)
+    Api.PublicContentProvenance? Provenance = null,
+    Api.StaffContentProvenance? StaffProvenance = null,
+    bool IsStaffViewer = false)
 {
   public string FeedRowId => DeliveryId ?? Id;
 
@@ -45,6 +47,10 @@ public sealed record NewsFeedItem(
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, L);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, L);
+
+  public bool HasStaffChannel => IsSource && StaffChannelLabel is not null;
 
   public bool IsArticle => Kind == NewsFeedItemKind.Article;
 

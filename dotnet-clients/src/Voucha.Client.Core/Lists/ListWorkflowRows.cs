@@ -10,13 +10,22 @@ public sealed record ListSummaryRow(
     string ProtocolVisibility,
     UiText VisibilityText,
     IUiLocalization Localization,
-    PublicContentProvenance? Provenance = null)
+    PublicContentProvenance? Provenance = null,
+    StaffContentProvenance? StaffProvenance = null,
+    bool IsStaffViewer = false)
 {
   public string LocalizedVisibility => Localization.Resolve(VisibilityText);
 
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, Localization);
+  public string? StaffClientLabel => StaffProvenanceLabels.Client(StaffProvenance, IsStaffViewer, true, Localization);
+  public string? StaffVerificationLabel => StaffProvenanceLabels.Verification(StaffProvenance, IsStaffViewer, true, Localization);
+  public bool HasStaffChannel => StaffChannelLabel is not null;
+  public bool HasStaffClient => StaffClientLabel is not null;
+  public bool HasStaffVerification => StaffVerificationLabel is not null;
 
   public static ListSummaryRow FromList(
       UserList list,
@@ -31,7 +40,8 @@ public sealed record ListSummaryRow(
         list.Visibility,
         UiTaxonomy.ListVisibility(list.Visibility),
         localizer,
-        list.Provenance);
+        list.Provenance,
+        list.StaffProvenance);
   }
 
   public ListSummaryRow WithLocalization(IUiLocalization localization) =>

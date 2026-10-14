@@ -104,7 +104,8 @@ extension NativeRouteSurfaceViewModel {
                 (feed.title ?? URL(string: feed.rssFeedUrl.url)?.host).map(rawText)
                     ?? appText(.nativeSwiftRouteSurfaceRssFeed),
                 listItemMediaTypeText(feed.feedType),
-                provenance: feed.provenance
+                provenance: feed.provenance,
+                staffProvenance: feed.staffProvenance
             ),
             row("link", appText(.nativeSwiftRouteSurfaceFeedUrl), rawText(feed.rssFeedUrl.url))
         ]
@@ -124,7 +125,8 @@ extension NativeRouteSurfaceViewModel {
                 (feed.title ?? URL(string: feed.rssFeedUrl.url)?.host).map(rawText)
                     ?? appText(.nativeSwiftRouteSurfaceRssFeed),
                 listItemMediaTypeText(feed.feedType),
-                provenance: feed.provenance
+                provenance: feed.provenance,
+                staffProvenance: feed.staffProvenance
             )
         }
     }

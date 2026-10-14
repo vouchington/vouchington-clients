@@ -46,6 +46,13 @@ let userProfileApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: profilePostFeedIgnoredFields
         )
     },
+    RegisteredFixture(id: "native.users.profile.posts.staff-provenance") {
+        try assertFixtureCoversDTO(
+            $0,
+            as: UserProfilePostFeedResponse.self,
+            ignoring: profilePostFeedIgnoredFields
+        )
+    },
     RegisteredFixture(id: "native.users.profile.topics-following.first-page") {
         try assertFixtureCoversDTO($0, as: Page<Topic>.self)
     },

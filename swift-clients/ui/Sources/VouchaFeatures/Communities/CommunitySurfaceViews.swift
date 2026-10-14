@@ -18,7 +18,12 @@ struct CommunityWorkspaceSurface: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text(verbatim: UiMessages.string(viewModel.summary.title, locale: nativeUiLocale))
                     .font(Typography.largeTitle)
-                ProvenanceBadge(provenance: viewModel.communityDetail?.community.provenance)
+                ProvenanceBadge(
+                    provenance: viewModel.communityDetail?.community.provenance,
+                    staffProvenance: viewModel.communityDetail?.community.staffProvenance,
+                    isStaffViewer: viewModel.isAdministrator || viewModel.isSiteModerator,
+                    showClient: true
+                )
                 Text(verbatim: UiMessages.string(viewModel.summary.detail, locale: nativeUiLocale))
                     .foregroundStyle(.secondary)
                 Text(verbatim: UiMessages.string(viewModel.summary.activity, locale: nativeUiLocale))
@@ -58,7 +63,10 @@ struct CommunityWorkspaceSurface: View {
 
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(viewModel.summary.rows) { row in
-                        NativeSurfaceRow(row: row)
+                        NativeSurfaceRow(
+                            row: row,
+                            isStaffViewer: viewModel.isAdministrator || viewModel.isSiteModerator
+                        )
                         if let embed = viewModel.postEmbedsByPostId[row.id]
                             ?? viewModel.rssFeedItemEmbedsById[row.id] {
                             ProviderEmbedPreview(embed: embed)

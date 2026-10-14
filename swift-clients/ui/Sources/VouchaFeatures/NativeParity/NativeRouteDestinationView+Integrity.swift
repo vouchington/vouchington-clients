@@ -9,7 +9,8 @@ extension NativeRouteDestinationSurface {
             client: resolvedClient,
             routeMatch: routeMatch,
             routeQuery: routeQuery,
-            isAdministrator: isAdministrator
+            isAdministrator: isAdministrator,
+            isSiteModerator: isSiteModerator
         )
         reviewQueueViewModel = NativeReviewQueueViewModel(
             client: resolvedClient,

@@ -218,6 +218,7 @@
                                 <VerticalStackLayout Spacing="6">
                                     <Label Text="{Binding LocalizedPostType}" Style="{StaticResource Eyebrow}" />
                                     <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                                    <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding Title}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Headline}" />
                                     <Label Text="{Binding LocalizedReviewBadge}" Style="{StaticResource Metadata}" />
                                     <Label AutomationId="authored-post-notice" Text="{Binding LocalizedNotice}" IsVisible="{Binding ShowNotice}" Style="{StaticResource Body}" />
@@ -254,7 +255,11 @@
             <CollectionView ItemsSource="{Binding TopicItems}" SelectionMode="None" IsVisible="{Binding IsTopicsScope}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="topics:TopicRow">
-                        <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileTopicClicked" />
+                        <VerticalStackLayout>
+                            <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileTopicClicked" />
+                            <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
@@ -262,8 +267,12 @@
 
             <CollectionView ItemsSource="{Binding SourceItems}" SelectionMode="None" IsVisible="{Binding IsSourcesScope}">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="api:RssFeedSource">
-                        <Button Text="{Binding Title}" CommandParameter="{Binding .}" Clicked="OnProfileSourceClicked" />
+                    <DataTemplate x:DataType="profiles:ProfileSourceRow">
+                        <VerticalStackLayout>
+                            <Button Text="{Binding Title}" CommandParameter="{Binding .}" Clicked="OnProfileSourceClicked" />
+                            <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
@@ -272,7 +281,11 @@
             <CollectionView ItemsSource="{Binding CommunityItems}" SelectionMode="None" IsVisible="{Binding IsCommunitiesScope}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="communities:CommunityBrowseRow">
-                        <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileCommunityClicked" />
+                        <VerticalStackLayout>
+                            <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileCommunityClicked" />
+                            <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                            <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
+                        </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>

@@ -26,7 +26,7 @@ public sealed class CommunityModerationPageAutomodNavigationTests
         Id: "moderator-1", Username: "moderator", Roles: [],
         EmailAddress: "moderator@example.com", MembershipPlan: "free")));
     var model = new CommunityDetailViewModel(service, session);
-    var page = new CommunityModerationPage(model, new ServiceCollection().BuildServiceProvider());
+    var page = new CommunityModerationPage(model, session, new ServiceCollection().BuildServiceProvider());
     string? openedPost = null;
     page.AutomodPostNavigationOverride = postId => { openedPost = postId; return Task.CompletedTask; };
 
@@ -54,7 +54,7 @@ public sealed class CommunityModerationPageAutomodNavigationTests
         Id: "moderator-1", Username: "moderator", Roles: [],
         EmailAddress: "moderator@example.com", MembershipPlan: "free")));
     using var model = new CommunityDetailViewModel(service, session, new UiLocalization(locale), locale);
-    var page = new CommunityModerationPage(model, new ServiceCollection().BuildServiceProvider());
+    var page = new CommunityModerationPage(model, session, new ServiceCollection().BuildServiceProvider());
     await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
 
     await model.DismissAutomodFlagAsync("post-1", TestContext.Current.CancellationToken);

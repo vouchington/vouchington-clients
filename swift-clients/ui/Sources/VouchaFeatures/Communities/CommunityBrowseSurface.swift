@@ -7,6 +7,7 @@ struct CommunityBrowseSurface: View {
     var nativeUiLocale
     @State
     var viewModel: CommunityBrowseViewModel
+    var isStaffViewer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -29,8 +30,9 @@ struct CommunityBrowseSurface: View {
                             icon: "person.3",
                             title: .verbatim(row.title),
                             detail: .joined([.verbatim(row.detail), row.metrics]),
-                            provenance: row.provenance
-                        ))
+                            provenance: row.provenance,
+                            staffProvenance: row.staffProvenance
+                        ), isStaffViewer: isStaffViewer)
                     }
 
                     HybridPaginationControl(
@@ -43,6 +45,6 @@ struct CommunityBrowseSurface: View {
                 }
             }
         }
-        .task { await viewModel.load() }
+        .task(id: isStaffViewer) { await viewModel.load() }
     }
 }

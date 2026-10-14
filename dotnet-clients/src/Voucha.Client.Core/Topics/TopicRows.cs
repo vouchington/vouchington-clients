@@ -15,7 +15,9 @@ public sealed record TopicRow(
     int? VoteCountDown = null,
     ElectionVoteChoice? CurrentVoteChoice = null,
     IUiLocalization? Localization = null,
-    PublicContentProvenance? Provenance = null)
+    PublicContentProvenance? Provenance = null,
+    StaffContentProvenance? StaffProvenance = null,
+    bool IsStaffViewer = false)
 {
   public string LocalizedTopicType =>
       (Localization ?? UiLocalization.English).Resolve(TopicTypeText);
@@ -25,6 +27,10 @@ public sealed record TopicRow(
   public string? LocalizedProvenanceLabel => PublicProvenanceLabels.Resolve(Provenance, Localization ?? UiLocalization.English);
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(StaffProvenance, IsStaffViewer, Localization ?? UiLocalization.English);
+
+  public bool HasStaffChannel => StaffChannelLabel is not null;
 
 
   public TopicRow WithLocalization(IUiLocalization localization) =>

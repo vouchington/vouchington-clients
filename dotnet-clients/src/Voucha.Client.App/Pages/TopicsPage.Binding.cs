@@ -28,6 +28,7 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicRow>
     if (isSessionChangedAttached) return;
     sessionStore.SessionChanged += sessionChangedHandler;
     isSessionChangedAttached = true;
+    OnPropertyChanged(nameof(Items));
   }
 
   public void DetachSessionChanged()
@@ -51,7 +52,11 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicRow>
     set => viewModel.SearchQuery = value;
   }
 
-  public override IReadOnlyList<TopicRow> Items => viewModel.Items;
+  public override IReadOnlyList<TopicRow> Items => viewModel.Items.Select(row => row with
+  {
+    IsStaffViewer = sessionStore.Current.Identity?.Roles?.Any(role =>
+        role is "administrator" or "moderator") == true,
+  }).ToArray();
 
   public override bool HasError => viewModel.HasError;
 
@@ -69,6 +74,7 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicRow>
     OnPropertyChanged(nameof(CanClearVote));
     OnPropertyChanged(nameof(CanManageTopics));
     OnPropertyChanged(nameof(CanImportExport));
+    OnPropertyChanged(nameof(Items));
     try
     {
       await viewModel.LoadAsync().ConfigureAwait(true);

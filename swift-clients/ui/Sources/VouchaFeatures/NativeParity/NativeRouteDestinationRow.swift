@@ -4,6 +4,7 @@ import VouchaModels
 
 public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
     public let provenance: PublicContentProvenance?
+    public let staffProvenance: StaffContentProvenance?
     public let accountType: AccountType?
     public let id: String
     public let icon: String
@@ -30,9 +31,11 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         externalURL: URL? = nil,
         targetPath: String? = nil,
         provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil,
         accountType: AccountType? = nil
     ) {
         self.provenance = provenance
+        self.staffProvenance = staffProvenance
         self.accountType = accountType
         self.id = id
         self.icon = icon
@@ -74,6 +77,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
             && lhs.detailDetectedLanguage == rhs.detailDetectedLanguage
             && lhs.externalURL == rhs.externalURL && lhs.targetPath == rhs.targetPath
             && lhs.provenance == rhs.provenance
+            && lhs.staffProvenance == rhs.staffProvenance
             && lhs.accountType == rhs.accountType
     }
 
@@ -84,6 +88,7 @@ public struct NativeRouteDestinationRow: Identifiable, Hashable, Sendable {
         hasher.combine(provenance?.app?.hostname)
         hasher.combine(provenance?.app?.clientId)
         hasher.combine(provenance?.app?.clientName)
+        hasher.combine(staffProvenance)
         hasher.combine(accountType)
         hasher.combine(icon)
         hasher.combine(title)

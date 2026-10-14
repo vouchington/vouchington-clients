@@ -25,6 +25,9 @@ public sealed partial class ProfileViewModel
       ViewerId = userId,
       IsStaffViewer = isStaffViewer,
     }).ToArray();
+    TopicItems = TopicItems.Select(row => row with { IsStaffViewer = isStaffViewer }).ToArray();
+    SourceItems = SourceItems.Select(row => row with { IsStaffViewer = isStaffViewer }).ToArray();
+    CommunityItems = CommunityItems.Select(row => row with { IsStaffViewer = isStaffViewer }).ToArray();
     RefreshProfileActionEligibility();
     OnPropertyChanged(nameof(CanVoteUserTrust));
     OnPropertyChanged(nameof(CanCreateUserTrustVote));

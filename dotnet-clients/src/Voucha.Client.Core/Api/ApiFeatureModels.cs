@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Voucha.Client.Core.Api;
@@ -45,7 +46,13 @@ public sealed record TopicResponse(
     [property: JsonPropertyName("topic_metrics")] TopicMetrics? TopicMetrics = null,
     [property: JsonPropertyName("topic_election")] TopicElection? TopicElection = null,
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
-    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null);
+    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
+    [property: JsonPropertyName("html")] string? Html = null,
+    [property: JsonPropertyName("topic_categories")] IReadOnlyList<JsonElement>? TopicCategories = null,
+    [property: JsonPropertyName("topic_children")] IReadOnlyList<JsonElement>? TopicChildren = null,
+    [property: JsonPropertyName("topic_parents")] IReadOnlyList<JsonElement>? TopicParents = null,
+    [property: JsonPropertyName("topic_content_update"),
+        JsonIgnore(Condition = JsonIgnoreCondition.Never)] JsonElement? TopicContentUpdate = null);
 
 public sealed record TopicMetrics(
     [property: JsonPropertyName("count")] IReadOnlyDictionary<string, int>? Count = null,

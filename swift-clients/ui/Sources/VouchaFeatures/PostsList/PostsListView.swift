@@ -45,7 +45,7 @@ public struct PostsListView: View {
             }
         }
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
-        .task { await viewModel.load() }
+        .task(id: isStaffViewer) { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
         .emailVerificationRecovery(
             client: viewModel.client,

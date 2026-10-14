@@ -12,7 +12,8 @@ public sealed record UserList(
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("removed_at")] DateTimeOffset? RemovedAt = null,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
-    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null,
+    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null);
 
 public sealed record ListItem(
     [property: JsonPropertyName("id")] string Id,

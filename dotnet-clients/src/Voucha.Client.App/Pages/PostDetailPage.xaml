@@ -28,6 +28,9 @@
                     <Label Text="{Binding RootRow.AuthorText}" Style="{StaticResource Eyebrow}" />
                     <Label Text="{Binding RootRow.AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.ProvenanceLabel}" IsVisible="{Binding RootRow.HasProvenance}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding RootRow.StaffChannelLabel}" IsVisible="{Binding RootRow.HasStaffChannel}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding RootRow.StaffClientLabel}" IsVisible="{Binding RootRow.HasStaffClient}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding RootRow.StaffVerificationLabel}" IsVisible="{Binding RootRow.HasStaffVerification}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding RootRow.LocalizedReviewBadge}" Style="{StaticResource Metadata}" />
                     <Label AutomationId="authored-post-notice" Text="{Binding RootRow.LocalizedNotice}" IsVisible="{Binding RootRow.ShowNotice}" Style="{StaticResource Body}" />
                     <Label Text="{Binding RootRow.LocalizedRemovalReason}" IsVisible="{Binding RootRow.ShowAppealsAction}" Style="{StaticResource Metadata}" />
@@ -103,6 +106,7 @@
                                 <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedReviewBadge}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedNotice}" IsVisible="{Binding ShowNotice}" Style="{StaticResource Body}" />
                                 <Label Text="{Binding LocalizedRemovalReason}" IsVisible="{Binding ShowAppealsAction}" Style="{StaticResource Metadata}" />
@@ -146,6 +150,7 @@
                                     <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
                                 <Label Text="{Binding LocalizedReviewBadge}" Style="{StaticResource Metadata}" />

@@ -223,6 +223,42 @@ public sealed class AccountTypeAuthorRenderingTests
     await refreshTask;
   }
 
+  [Fact]
+  public void StaffProvenanceRendersChannelOnCardsAndClientOnlyOnStaffDetail()
+  {
+    InstallPageResources();
+    var facts = new StaffContentProvenance("mcp",
+        new StaffProvenanceOAuthClient("internal-client-42", "Fixture Agent", null, true));
+    var post = Post(null) with { StaffProvenance = facts };
+    var page = new PostsPage();
+    var collection = Named<CollectionView>(page, "authored-post-collection");
+    var card = Assert.IsAssignableFrom<View>(collection.ItemTemplate.CreateContent());
+    card.BindingContext = PostRows.From(post, null, null, null) with { IsStaffViewer = true };
+    var channel = Assert.Single(Descendants<Label>(card), label =>
+        label.Text?.Contains("mcp", StringComparison.Ordinal) == true);
+    Assert.True(channel.IsVisible);
+    Assert.DoesNotContain(Descendants<Label>(card), label =>
+        label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
+
+    card.BindingContext = PostRows.From(post, null, null, null);
+    Assert.False(channel.IsVisible);
+    Assert.Null(channel.Text);
+
+    var detail = new PostDetailPage();
+    var binding = new PostDetailPageBinding(
+        new CommentThreadViewModel(Proxy<ICommentThreadService>(), "post"),
+        new AnonymousSessionStore());
+    var root = typeof(PostDetailPageBinding).GetProperty(nameof(PostDetailPageBinding.RootRow))!;
+    root.SetValue(binding, DetailRow(null) with { Post = post, IsStaffViewer = true });
+    detail.BindingContext = binding;
+    var client = Assert.Single(Descendants<Label>(detail), label =>
+        label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
+    Assert.True(client.IsVisible);
+    root.SetValue(binding, DetailRow(null) with { Post = post, IsStaffViewer = false });
+    Assert.False(client.IsVisible);
+    Assert.Null(client.Text);
+  }
+
   private static readonly UrlEmbedPreview Preview = new("preview", null, null,
       new Uri("https://cdn.example.test/private-preview.png"), null, null);
 

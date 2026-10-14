@@ -15,6 +15,7 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
   private PostDetailPageRow? rootRow;
+  private bool lastStaffViewer;
 
   public PostDetailPageBinding(
       CommentThreadViewModel viewModel,
@@ -26,6 +27,7 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    lastStaffViewer = IsStaffViewer;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
     HnDiscussions = new HnDiscussionsViewModel(
@@ -77,8 +79,11 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     }
   }
 
-  public Task LoadAsync(string? focusedCommentId = null, CancellationToken cancellationToken = default) =>
-      LoadInternalAsync(focusedCommentId, cancellationToken);
+  public Task LoadAsync(string? focusedCommentId = null, CancellationToken cancellationToken = default)
+  {
+    lastStaffViewer = IsStaffViewer;
+    return LoadInternalAsync(focusedCommentId, cancellationToken);
+  }
 
   public void RefreshRows()
   {
@@ -129,9 +134,20 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     OnPropertyChanged(nameof(CurrentUserId));
   }
 
-  public async Task RefreshAfterSessionChangedAsync(CancellationToken cancellationToken = default)
+  private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
+
+  public async Task RefreshAfterSessionChangedAsync(CancellationToken cancellationToken = default, string? focusedCommentId = null)
   {
+    var isStaffViewer = IsStaffViewer;
+    var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
+    lastStaffViewer = isStaffViewer;
     RefreshViewerState();
+    if (gainedStaffAccess && viewModel.RootPost is not null)
+    {
+      await LoadInternalAsync(focusedCommentId, cancellationToken).ConfigureAwait(true);
+      return;
+    }
     RefreshRows();
     await RefreshHnDiscussionsAsync(cancellationToken).ConfigureAwait(true);
   }

@@ -1,16 +1,24 @@
 using Voucha.Client.Core.Lists;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.App.Pages;
 
 public sealed class ListsPageBinding : BindableObject
 {
   private readonly ListsViewModel viewModel;
+  private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
+  private bool isSessionChangedAttached;
+  private bool lastStaffViewer;
   private string cachedSelectedListDescription;
   private string cachedSelectedListName;
 
-  public ListsPageBinding(ListsViewModel viewModel)
+  public ListsPageBinding(ListsViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel;
+    this.sessionStore = sessionStore;
+    lastStaffViewer = IsStaffViewer;
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     cachedSelectedListDescription = viewModel.SelectedListDescription;
     cachedSelectedListName = viewModel.SelectedListName;
     viewModel.PropertyChanged += (_, e) =>
@@ -88,7 +96,43 @@ public sealed class ListsPageBinding : BindableObject
     OnPropertyChanged(nameof(SelectedListDescription));
   }
 
-  public IReadOnlyList<ListSummaryRow> Lists => viewModel.Lists;
+  public void AttachSessionChanged()
+  {
+    if (isSessionChangedAttached) return;
+    lastStaffViewer = IsStaffViewer;
+    sessionStore.SessionChanged += sessionChangedHandler;
+    isSessionChangedAttached = true;
+    OnPropertyChanged(nameof(Lists));
+    OnPropertyChanged(nameof(SelectedList));
+  }
+
+  public void DetachSessionChanged()
+  {
+    if (!isSessionChangedAttached) return;
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    isSessionChangedAttached = false;
+  }
+
+  private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
+
+  internal async Task RefreshAfterSessionChangedAsync()
+  {
+    var isStaffViewer = IsStaffViewer;
+    var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
+    lastStaffViewer = isStaffViewer;
+    OnPropertyChanged(nameof(Lists));
+    OnPropertyChanged(nameof(SelectedList));
+    if (isSessionChangedAttached && gainedStaffAccess)
+    {
+      await viewModel.LoadAsync().ConfigureAwait(true);
+    }
+  }
+
+  public IReadOnlyList<ListSummaryRow> Lists => viewModel.Lists.Select(row => row with
+  {
+    IsStaffViewer = IsStaffViewer,
+  }).ToArray();
 
   public IReadOnlyList<ListItemRow> Items => viewModel.Items;
 
@@ -124,7 +168,9 @@ public sealed class ListsPageBinding : BindableObject
     }
   }
 
-  public ListSummaryRow? SelectedList => viewModel.SelectedList;
+  public ListSummaryRow? SelectedList => viewModel.SelectedList is { } row
+      ? row with { IsStaffViewer = IsStaffViewer }
+      : null;
 
   public string? ErrorMessage => viewModel.ErrorMessage;
 

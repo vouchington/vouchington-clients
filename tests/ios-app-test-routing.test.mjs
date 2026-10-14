@@ -27,8 +27,29 @@ describe('iOS Simulator launch smoke fan-in', () => {
     )
     const testsJob = jobBlock(workflow, 'tests')
     const iosJob = jobBlock(workflow, 'build-ios-app')
+    assert.match(iosJob, /xcrun --sdk iphonesimulator --show-sdk-version/u)
+    assert.match(iosJob, /runtime_identifier="com\.apple\.CoreSimulator\.SimRuntime\.iOS-/u)
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
+    assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
+    assert.match(
+      iosJob,
+      /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
+        iosJob.indexOf('- name: Build iOS app for Simulator'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Build iOS app for Simulator') <
+        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
+        iosJob.indexOf('- name: Launch iOS app on Simulator'),
+    )
+    assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 12/u)
+    assert.match(iosJob, /\n\s+timeout-minutes: 40\n/u)
     assert.match(
       iosJob,
       /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
@@ -38,14 +59,25 @@ describe('iOS Simulator launch smoke fan-in', () => {
       /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1/u,
     )
     assert.match(iosJob, /CODE_SIGNING_ALLOWED=NO/u)
+    assert.match(
+      iosJob,
+      /if: \$\{\{ failure\(\) \}\}[\s\S]*?xcrun simctl spawn "\$simulator_id" log show/u,
+    )
+    assert.match(iosJob, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?ios-launch-smoke\.xcresult/u)
     const selector = iosJob.match(
-      /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r '([^']+)'\)"/u,
+      /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" '([^']+)'\)"/u,
     )?.[1]
     assert.ok(selector)
     const devices = {
       devices: {
+        'com.apple.CoreSimulator.SimRuntime.iOS-26-2': [
+          { name: 'iPhone 17 Pro', udid: 'older-iphone', isAvailable: true },
+        ],
         'com.apple.CoreSimulator.SimRuntime.iOS-26-4': [
           { name: 'iPad Pro', udid: 'ipad', isAvailable: true },
+          { name: 'iPhone 17 Pro', udid: 'migrating-iphone', isAvailable: true },
+        ],
+        'com.apple.CoreSimulator.SimRuntime.iOS-26-5': [
           { name: 'iPhone 17 Pro', udid: 'iphone', isAvailable: false },
           { name: 'iPhone 17', udid: 'available-iphone', isAvailable: true },
         ],
@@ -55,17 +87,31 @@ describe('iOS Simulator launch smoke fan-in', () => {
       },
     }
     assert.equal(
-      execFileSync('jq', ['-r', selector], {
-        input: JSON.stringify(devices),
-        encoding: 'utf8',
-      }).trim(),
+      execFileSync(
+        'jq',
+        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', selector],
+        {
+          input: JSON.stringify(devices),
+          encoding: 'utf8',
+        },
+      ).trim(),
       'available-iphone',
     )
     assert.equal(
-      execFileSync('jq', ['-r', selector], {
-        input: JSON.stringify({ devices: {} }),
-        encoding: 'utf8',
-      }).trim(),
+      execFileSync(
+        'jq',
+        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', selector],
+        {
+          input: JSON.stringify({
+            devices: {
+              'com.apple.CoreSimulator.SimRuntime.iOS-26-4': [
+                { name: 'iPhone 17 Pro', udid: 'older-iphone', isAvailable: true },
+              ],
+            },
+          }),
+          encoding: 'utf8',
+        },
+      ).trim(),
       '',
     )
     const needs = testsJob.match(/\n    needs:\n((?:      - [^\n]+\n)+)/u)?.[1] ?? ''

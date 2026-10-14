@@ -27,6 +27,16 @@ public sealed partial class TopicDetailViewModel
 
   public bool HasProvenance => LocalizedProvenanceLabel is not null;
 
+  private Api.StaffContentProvenance? CurrentStaffProvenance =>
+      isSourceDetail ? SourceStaffProvenance : Topic?.StaffProvenance;
+
+  public string? StaffChannelLabel => StaffProvenanceLabels.Channel(CurrentStaffProvenance, IsStaffViewer, localization);
+  public string? StaffClientLabel => StaffProvenanceLabels.Client(CurrentStaffProvenance, IsStaffViewer, true, localization);
+  public string? StaffVerificationLabel => StaffProvenanceLabels.Verification(CurrentStaffProvenance, IsStaffViewer, true, localization);
+  public bool HasStaffChannel => StaffChannelLabel is not null;
+  public bool HasStaffClient => StaffClientLabel is not null;
+  public bool HasStaffVerification => StaffVerificationLabel is not null;
+
   public void Dispose() => localeSubscription?.Dispose();
 
   public void OnUiLocaleChanged()
@@ -40,5 +50,6 @@ public sealed partial class TopicDetailViewModel
     OnPropertyChanged(nameof(SourceCrawlHistoryRequestErrorMessage));
     OnPropertyChanged(nameof(LocalizedTopicType));
     OnPropertyChanged(nameof(LocalizedProvenanceLabel));
+    NotifyStaffProvenanceChanged();
   }
 }

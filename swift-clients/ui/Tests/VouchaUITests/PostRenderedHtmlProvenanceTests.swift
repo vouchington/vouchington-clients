@@ -46,7 +46,30 @@ final class PostRenderedHtmlProvenanceTests: XCTestCase {
         XCTAssertEqual(newReply.provenance, provenance)
     }
 
-    private func makePost(provenance: PublicContentProvenance?) -> Post {
+    func testCommentMutationWithoutStaffFactsRetainsCreationFacts() {
+        let facts = StaffContentProvenance(
+            createdVia: "mcp",
+            oauthClient: StaffProvenanceOAuthClient(
+                clientId: "internal-client-42", clientName: "Fixture Agent",
+                metadataUrl: nil, verified: true
+            )
+        )
+        let viewModel = NativeCommentThreadViewModel(client: nil, rootPostId: "post-1")
+        let existing = makePost(provenance: nil, staffProvenance: facts)
+
+        let merged = viewModel.mergedMutationPost(makePost(provenance: nil), preserving: existing)
+        XCTAssertEqual(merged.staffProvenance, facts)
+
+        let replacement = StaffContentProvenance(createdVia: "api", oauthClient: nil)
+        let updated = viewModel.mergedMutationPost(
+            makePost(provenance: nil, staffProvenance: replacement), preserving: existing
+        )
+        XCTAssertEqual(updated.staffProvenance, replacement)
+    }
+
+    private func makePost(
+        provenance: PublicContentProvenance?, staffProvenance: StaffContentProvenance? = nil
+    ) -> Post {
         Post(
             id: "post-1",
             slug: nil,
@@ -59,6 +82,7 @@ final class PostRenderedHtmlProvenanceTests: XCTestCase {
             createdById: "user-1",
             createdAt: Date(timeIntervalSince1970: 0),
             provenance: provenance,
+            staffProvenance: staffProvenance,
             broadcast: nil,
             privacy: .public,
             isAnonymous: false,

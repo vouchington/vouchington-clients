@@ -2,6 +2,8 @@ using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -9,10 +11,15 @@ namespace Voucha.Client.App.Pages;
 public sealed partial class CommunityDetailPage : ContentPage
 {
   private readonly CommunityDetailViewModel viewModel;
+  private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Entry slugEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunitySlug);
   private readonly Label titleLabel = new() { FontSize = 24, FontAttributes = FontAttributes.Bold };
   private readonly Label statusLabel = new();
   private readonly Label provenanceLabel = new();
+  private readonly Label staffChannelLabel = new();
+  private readonly Label staffClientLabel = new();
+  private readonly Label staffVerificationLabel = new();
   private readonly Label metricsLabel = new();
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
   private readonly Button loadButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpLoad);
@@ -23,10 +30,14 @@ public sealed partial class CommunityDetailPage : ContentPage
   private readonly VerticalStackLayout membersLayout = new() { Spacing = 6 };
   private readonly VerticalStackLayout postsLayout = new() { Spacing = 6 };
   private string? slug;
+  private bool lastLoadedAsStaff;
 
-  public CommunityDetailPage(CommunityDetailViewModel viewModel)
+  public CommunityDetailPage(CommunityDetailViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+    this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    lastLoadedAsStaff = IsStaffViewer();
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunities.Value);
     viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -49,6 +60,9 @@ public sealed partial class CommunityDetailPage : ContentPage
           loadButton,
           titleLabel,
           provenanceLabel,
+          staffChannelLabel,
+          staffClientLabel,
+          staffVerificationLabel,
           statusLabel,
           metricsLabel,
           errorLabel,
@@ -81,10 +95,18 @@ public sealed partial class CommunityDetailPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    if (!string.IsNullOrWhiteSpace(Slug))
+    sessionStore.SessionChanged += sessionChangedHandler;
+    Render();
+    if (!string.IsNullOrWhiteSpace(Slug) || lastLoadedAsStaff != IsStaffViewer())
     {
       await LoadCurrentSlugAsync().ConfigureAwait(true);
     }
+  }
+
+  protected override void OnDisappearing()
+  {
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    base.OnDisappearing();
   }
 
   private async Task LoadCurrentSlugAsync()
@@ -95,9 +117,20 @@ public sealed partial class CommunityDetailPage : ContentPage
       return;
     }
 
+    var requestedAsStaff = IsStaffViewer();
     await viewModel.LoadAsync(nextSlug).ConfigureAwait(true);
+    if (viewModel.State == LoadState.Loaded) lastLoadedAsStaff = requestedAsStaff;
     Render();
   }
+
+  private async Task RefreshAfterSessionChangedAsync()
+  {
+    Render();
+    if (lastLoadedAsStaff != IsStaffViewer()) await LoadCurrentSlugAsync().ConfigureAwait(true);
+  }
+
+  private bool IsStaffViewer() => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
 
   private async Task MutateAsync(Func<CancellationToken, Task<bool>> action)
   {
@@ -112,6 +145,14 @@ public sealed partial class CommunityDetailPage : ContentPage
     titleLabel.Text = viewModel.Community?.Name ?? UiCopy.Localize(UiMessageKey.NativeDotnetResidualCommunity);
     provenanceLabel.Text = PublicProvenanceLabels.Resolve(viewModel.Community?.Provenance, UiCopy.CurrentLocalization);
     provenanceLabel.IsVisible = provenanceLabel.Text is not null;
+    var staff = viewModel.Community?.StaffProvenance;
+    var isStaffViewer = IsStaffViewer();
+    staffChannelLabel.Text = StaffProvenanceLabels.Channel(staff, isStaffViewer, UiCopy.CurrentLocalization);
+    staffClientLabel.Text = StaffProvenanceLabels.Client(staff, isStaffViewer, true, UiCopy.CurrentLocalization);
+    staffVerificationLabel.Text = StaffProvenanceLabels.Verification(staff, isStaffViewer, true, UiCopy.CurrentLocalization);
+    staffChannelLabel.IsVisible = staffChannelLabel.Text is not null;
+    staffClientLabel.IsVisible = staffClientLabel.Text is not null;
+    staffVerificationLabel.IsVisible = staffVerificationLabel.Text is not null;
     statusLabel.Text = viewModel.IsLoading
         ? UiCopy.Localize(UiMessageKey.NativeDotnetResidualLoading)
         : viewModel.IsArchived

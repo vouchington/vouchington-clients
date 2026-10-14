@@ -5,6 +5,27 @@ import XCTest
 
 @MainActor
 final class CommunitySurfaceViewTests: NativeRouteSurfaceViewModelTestCase {
+    func testCommunityDetailIdentityDropsCachedStaffModelOnDemotion() throws {
+        let route = NativeRouteMatch(
+            path: "/communities/builders",
+            template: "/communities/:slug",
+            params: ["slug": "builders"]
+        )
+        let staff = CommunitySurface(
+            client: nil, routeMatch: route,
+            isAdministrator: true, turnstileSiteKey: nil
+        )
+        let member = CommunitySurface(
+            client: nil, routeMatch: route,
+            turnstileSiteKey: nil
+        )
+        let staffWorkspace = try staff.inspect().find(CommunityWorkspaceSurface.self)
+        let memberWorkspace = try member.inspect().find(CommunityWorkspaceSurface.self)
+        XCTAssertNotEqual(try staffWorkspace.id() as? String, try memberWorkspace.id() as? String)
+        XCTAssertTrue(try staffWorkspace.actualView().viewModel.isAdministrator)
+        XCTAssertFalse(try memberWorkspace.actualView().viewModel.isAdministrator)
+    }
+
     func testCommunitySurfaceRendersBrowseCreateInviteAndDetailModes() throws {
         let browse = CommunitySurface(client: nil, routeMatch: nil, turnstileSiteKey: "site-key")
         XCTAssertNoThrow(try browse.inspect().find(ViewType.TextField.self))

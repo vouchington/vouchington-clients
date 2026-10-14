@@ -14,7 +14,7 @@ public sealed partial class ProfileViewModel
   private IReadOnlyList<ProfileScopeTabRow> contextualTabs = [];
   private IReadOnlyList<FriendRow> friendItems = [];
   private IReadOnlyList<TopicRow> topicItems = [];
-  private IReadOnlyList<RssFeedSource> sourceItems = [];
+  private IReadOnlyList<ProfileSourceRow> sourceItems = [];
   private IReadOnlyList<CommunityBrowseRow> communityItems = [];
   private PageInfo? collectionPageInfo;
   private string? collectionErrorMessage;
@@ -50,7 +50,7 @@ public sealed partial class ProfileViewModel
   public IReadOnlyList<ProfileScopeTabRow> ContextualTabs { get => contextualTabs; private set => SetProperty(ref contextualTabs, value); }
   public IReadOnlyList<FriendRow> FriendItems { get => friendItems; private set => SetProperty(ref friendItems, value); }
   public IReadOnlyList<TopicRow> TopicItems { get => topicItems; private set => SetProperty(ref topicItems, value); }
-  public IReadOnlyList<RssFeedSource> SourceItems { get => sourceItems; private set => SetProperty(ref sourceItems, value); }
+  public IReadOnlyList<ProfileSourceRow> SourceItems { get => sourceItems; private set => SetProperty(ref sourceItems, value); }
   public IReadOnlyList<CommunityBrowseRow> CommunityItems { get => communityItems; private set => SetProperty(ref communityItems, value); }
   public string? CollectionErrorMessage { get => collectionErrorMessage; private set => SetProperty(ref collectionErrorMessage, value); }
   public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }

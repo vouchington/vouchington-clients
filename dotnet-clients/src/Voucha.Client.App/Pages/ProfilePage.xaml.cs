@@ -22,6 +22,7 @@ public partial class ProfilePage : ContentPage
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private bool isSessionChangedAttached;
   private bool hasLoaded;
+  private bool lastStaffViewer;
 
   public ProfilePage(
       ProfileViewModel viewModel,
@@ -34,10 +35,8 @@ public partial class ProfilePage : ContentPage
     InitializeComponent();
     this.viewModel = viewModel;
     this.sessionStore = sessionStore;
-    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() =>
-    {
-      if (isSessionChangedAttached) RefreshViewerState();
-    });
+    lastStaffViewer = IsStaffViewer;
+    sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
     this.serviceProvider = serviceProvider;
     emailRecovery = serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>();
     this.idOrUsername = idOrUsername;
@@ -67,6 +66,7 @@ public partial class ProfilePage : ContentPage
     try
     {
       RefreshViewerState();
+      lastStaffViewer = IsStaffViewer;
       if (string.IsNullOrWhiteSpace(idOrUsername))
       {
         await viewModel.LoadOwnAsync();

@@ -36,6 +36,7 @@ extension Post {
             createdById: createdById,
             createdAt: createdAt,
             provenance: provenance,
+            staffProvenance: staffProvenance,
             broadcast: broadcast,
             privacy: privacy,
             isAnonymous: isAnonymous,

@@ -2,20 +2,28 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
 public sealed class CommunityBrowsePage : ContentPage
 {
   private readonly CommunityBrowseViewModel viewModel;
+  private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Entry queryEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeSwiftCommunitiesSearchCommunities);
   private readonly Label errorLabel = new() { TextColor = Colors.Red };
   private readonly Button searchButton = UiCopy.Bind(new Button(), Button.TextProperty, UiMessageKey.NativeDotnetCsharpSearch);
   private readonly CollectionView resultsView = new() { ItemSizingStrategy = ItemSizingStrategy.MeasureAllItems };
+  private bool lastSearchWasStaff;
 
-  public CommunityBrowsePage(CommunityBrowseViewModel viewModel)
+  public CommunityBrowsePage(CommunityBrowseViewModel viewModel, ISessionStore sessionStore)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+    this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    lastSearchWasStaff = IsStaffViewer();
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesCommunities.Value);
     viewModel.PropertyChanged += OnPropertyChanged;
@@ -30,6 +38,9 @@ public sealed class CommunityBrowsePage : ContentPage
       var provenance = new Label { FontSize = 12 };
       provenance.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.LocalizedProvenanceLabel));
       provenance.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasProvenance));
+      var staffChannel = new Label { FontSize = 12, AutomationId = "CommunityStaffChannel" };
+      staffChannel.SetBinding(Label.TextProperty, nameof(CommunityBrowseRow.StaffChannelLabel));
+      staffChannel.SetBinding(IsVisibleProperty, nameof(CommunityBrowseRow.HasStaffChannel));
       var counts = new Label();
       counts.SetBinding(Label.TextProperty, new Binding(nameof(CommunityBrowseRow.MemberCount), stringFormat: "{0} members"));
       var postCount = new Label();
@@ -38,7 +49,7 @@ public sealed class CommunityBrowsePage : ContentPage
       {
         Spacing = 4,
         Padding = 0,
-        Children = { title, subtitle, provenance, counts, postCount },
+        Children = { title, subtitle, provenance, staffChannel, counts, postCount },
       };
     });
 
@@ -59,10 +70,18 @@ public sealed class CommunityBrowsePage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    if (viewModel.Results.Count == 0)
+    sessionStore.SessionChanged += sessionChangedHandler;
+    Render();
+    if (viewModel.Results.Count == 0 || lastSearchWasStaff != IsStaffViewer())
     {
       await RunSearchAsync().ConfigureAwait(true);
     }
+  }
+
+  protected override void OnDisappearing()
+  {
+    sessionStore.SessionChanged -= sessionChangedHandler;
+    base.OnDisappearing();
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Native page search failures are displayed in page state.")]
@@ -81,9 +100,17 @@ public sealed class CommunityBrowsePage : ContentPage
 
   private async Task SearchAsync()
   {
+    var requestedAsStaff = IsStaffViewer();
     viewModel.Query = queryEntry.Text ?? string.Empty;
     await viewModel.SearchAsync().ConfigureAwait(true);
+    if (viewModel.State == LoadState.Loaded) lastSearchWasStaff = requestedAsStaff;
     Render();
+  }
+
+  private async Task RefreshAfterSessionChangedAsync()
+  {
+    Render();
+    if (lastSearchWasStaff != IsStaffViewer()) await RunSearchAsync().ConfigureAwait(true);
   }
 
   private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e) => Render();
@@ -92,6 +119,13 @@ public sealed class CommunityBrowsePage : ContentPage
   {
     errorLabel.Text = viewModel.ErrorMessage ?? string.Empty;
     errorLabel.IsVisible = viewModel.HasError;
-    resultsView.ItemsSource = viewModel.Results;
+    var isStaffViewer = IsStaffViewer();
+    resultsView.ItemsSource = viewModel.Results.Select(row => row with
+    {
+      IsStaffViewer = isStaffViewer,
+    }).ToArray();
   }
+
+  private bool IsStaffViewer() => sessionStore.Current.Identity?.Roles?.Any(role =>
+      role is "administrator" or "moderator") == true;
 }

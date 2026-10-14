@@ -46,6 +46,7 @@ extension NativeRouteSurfaceViewModel {
         detectedLanguage: String? = nil,
         targetPath: String? = nil,
         provenance: PublicContentProvenance? = nil,
+        staffProvenance: StaffContentProvenance? = nil,
         accountType: AccountType? = nil
     ) -> NativeForwardRow {
         .init(
@@ -58,6 +59,7 @@ extension NativeRouteSurfaceViewModel {
                 detectedLanguage: detectedLanguage,
                 targetPath: targetPath,
                 provenance: provenance,
+                staffProvenance: staffProvenance,
                 accountType: accountType
             )
         )

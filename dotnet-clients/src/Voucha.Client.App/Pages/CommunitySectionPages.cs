@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Voucha.Client.App.Controls;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
@@ -9,6 +10,8 @@ namespace Voucha.Client.App.Pages;
 public abstract partial class CommunitySectionPage : ContentPage
 {
   private readonly CommunityDetailViewModel viewModel;
+  private readonly ISessionStore sessionStore;
+  private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly CommunityDetailSurfaceSection section;
   private readonly IServiceProvider? serviceProvider;
   private readonly Label titleLabel = new() { FontAttributes = FontAttributes.Bold, FontSize = 20 };
@@ -33,11 +36,14 @@ public abstract partial class CommunitySectionPage : ContentPage
 
   protected CommunitySectionPage(
       CommunityDetailViewModel viewModel,
+      ISessionStore sessionStore,
       CommunityDetailSurfaceSection section,
       UiMessageKey title,
       IServiceProvider? serviceProvider = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+    this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     this.section = section;
     this.serviceProvider = serviceProvider;
     paginationControl = new HybridPaginationControl
@@ -80,6 +86,9 @@ public abstract partial class CommunitySectionPage : ContentPage
           titleLabel,
           metaLabel,
           provenanceLabel,
+          staffChannelLabel,
+          staffClientLabel,
+          staffVerificationLabel,
           new HorizontalStackLayout { Spacing = 8, Children = { joinButton, leaveButton, archiveButton, unarchiveButton } },
           actionPanel,
           transparencyRangeSelector,
@@ -97,15 +106,6 @@ public abstract partial class CommunitySectionPage : ContentPage
   public string? Slug { get => slug; set => slug = value; }
 
   public string? InitialModmailThreadId { get => initialModmailThreadId; set => initialModmailThreadId = value; }
-
-  protected override async void OnAppearing()
-  {
-    base.OnAppearing();
-    if (!string.IsNullOrWhiteSpace(Slug))
-    {
-      await LoadAsync(Slug).ConfigureAwait(true);
-    }
-  }
 
   private async Task LoadAsync(string idOrSlug)
   {
@@ -175,6 +175,7 @@ public abstract partial class CommunitySectionPage : ContentPage
             : viewModel.Community.Visibility;
     provenanceLabel.Text = PublicProvenanceLabels.Resolve(viewModel.Community?.Provenance, UiCopy.CurrentLocalization);
     provenanceLabel.IsVisible = provenanceLabel.Text is not null;
+    RenderStaffProvenance();
     errorLabel.Text = PaginationErrorMessage();
     errorLabel.IsVisible = CommunityModerationTransparencyControls.ShouldShowErrorLabel(
         viewModel.HasError, viewModel.HasCommunityListPaginationError, viewModel.TransparencyPaginationError);

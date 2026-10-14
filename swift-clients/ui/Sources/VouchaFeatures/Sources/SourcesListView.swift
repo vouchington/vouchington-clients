@@ -6,18 +6,19 @@ import VouchaModels
 /// A source list for one scope (Your Sources or All Sources).
 ///
 /// The `scope` parameter drives which scope is active on the view model via
-/// `.task(id: scope)`. The caller (macOS: NavigationSplitView column 2; iOS: toolbar
+/// `.task(id:)`. The caller (macOS: NavigationSplitView column 2; iOS: toolbar
 /// picker in VerticalContainerView) is responsible for switching the scope.
 public struct SourcesListView: View {
     @Environment(\.locale)
     var nativeUiLocale
     @Bindable
     public var viewModel: SourcesListViewModel
-    /// The scope to display. When this changes, `.task(id: scope)` re-fires and loads.
+    /// The scope to display. Scope and viewer-tier changes refetch the current rows.
     public let scope: SourceScope
     public let navigationTitle: String
     public let isSignedIn: Bool
     public let canVote: Bool
+    public let isStaffViewer: Bool
     public let showSignIn: (() -> Void)?
 
     public init(
@@ -26,6 +27,7 @@ public struct SourcesListView: View {
         navigationTitle: String,
         isSignedIn: Bool = true,
         canVote: Bool? = nil,
+        isStaffViewer: Bool = false,
         showSignIn: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
@@ -33,6 +35,7 @@ public struct SourcesListView: View {
         self.navigationTitle = navigationTitle
         self.isSignedIn = isSignedIn
         self.canVote = canVote ?? isSignedIn
+        self.isStaffViewer = isStaffViewer
         self.showSignIn = showSignIn
     }
 
@@ -52,9 +55,9 @@ public struct SourcesListView: View {
             }
         }
         .navigationTitle(navigationTitle)
-        .task(id: scope) {
+        .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
             viewModel.scope = scope
-            await viewModel.load()
+            await viewModel.reload()
         }
         .refreshable { await viewModel.reload() }
     }
@@ -91,6 +94,7 @@ public struct SourcesListView: View {
             ForEach(currentItems) { source in
                 RssFeedSourceCard(
                     source: source,
+                    isStaffViewer: isStaffViewer,
                     isFollowing: viewModel.isFollowing(sourceId: source.id),
                     isFollowingTopic: viewModel.isFollowingTopic(topicId: source.topic?.id),
                     isMutedSource: viewModel.isMuted(sourceId: source.id),

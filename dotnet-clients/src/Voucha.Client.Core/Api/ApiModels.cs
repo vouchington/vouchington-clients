@@ -23,7 +23,8 @@ public sealed record EntityReference(
     [property: JsonPropertyName("shared_by_user_id")] string? SharedByUserId,
     [property: JsonPropertyName("shared_at")] DateTimeOffset? SharedAt,
     [property: JsonPropertyName("story_id")] string? StoryId,
-    [property: JsonPropertyName("published_at")] DateTimeOffset? PublishedAt = null);
+    [property: JsonPropertyName("published_at")] DateTimeOffset? PublishedAt = null,
+    [property: JsonPropertyName("post_type")] string? PostType = null);
 
 public sealed record User(
     [property: JsonPropertyName("id")] string Id,
@@ -123,7 +124,8 @@ public sealed record Community(
     [property: JsonPropertyName("automod_action")] string? AutomodAction = null,
     [property: JsonPropertyName("banner_image_placement")] TopicImagePlacement? BannerImagePlacement = null,
     [property: JsonPropertyName("profile_image_placement")] TopicImagePlacement? ProfileImagePlacement = null,
-    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null,
+    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null);
 
 public sealed record CommunityMetrics(
     [property: JsonPropertyName("id")] string Id,

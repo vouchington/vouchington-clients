@@ -52,7 +52,12 @@
                     Text="{Binding SelectedListDescription, Mode=TwoWay}"
                     Placeholder="{DynamicResource native.dotnet.lists.description}"
                     HeightRequest="72" />
-                <Label Grid.Row="2" Grid.Column="0" Text="{Binding SelectedList.LocalizedProvenanceLabel}" IsVisible="{Binding SelectedList.HasProvenance}" Style="{StaticResource Metadata}" />
+                <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+                    <Label Text="{Binding SelectedList.LocalizedProvenanceLabel}" IsVisible="{Binding SelectedList.HasProvenance}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding SelectedList.StaffChannelLabel}" IsVisible="{Binding SelectedList.HasStaffChannel}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding SelectedList.StaffClientLabel}" IsVisible="{Binding SelectedList.HasStaffClient}" Style="{StaticResource Metadata}" />
+                    <Label Text="{Binding SelectedList.StaffVerificationLabel}" IsVisible="{Binding SelectedList.HasStaffVerification}" Style="{StaticResource Metadata}" />
+                </VerticalStackLayout>
             </Grid>
         </Border>
 
@@ -96,6 +101,7 @@
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="{Binding Name}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedVisibility}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding Description}" Style="{StaticResource Body}" />
                             </VerticalStackLayout>

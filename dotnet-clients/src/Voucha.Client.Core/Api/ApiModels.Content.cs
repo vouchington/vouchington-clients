@@ -50,7 +50,8 @@ public sealed record Post(
     [property: JsonPropertyName("post_hashtags")] IReadOnlyList<PostHashtag>? PostHashtags = null,
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
-    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null);
+    [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null,
+    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null);
 
 public sealed record PublicContentProvenance(
     [property: JsonPropertyName("via")] string Via,

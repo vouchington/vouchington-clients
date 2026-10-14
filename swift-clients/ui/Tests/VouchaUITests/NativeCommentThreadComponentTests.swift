@@ -272,7 +272,16 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         )
         let post = makePost(id: "comment-a", createdAt: Date(), score: 1)
 
-        XCTAssertEqual(surface.loadTaskId, "||")
+        XCTAssertEqual(surface.loadTaskId, "|||false")
+        let staffSurface = NativeCommentThreadSurface(
+            client: nil,
+            routeMatch: nil,
+            currentUserId: nil,
+            isSignedIn: false,
+            isStaffViewer: true,
+            showSignIn: {}
+        )
+        XCTAssertNotEqual(surface.loadTaskId, staffSurface.loadTaskId)
         XCTAssertEqual(surface.authorName(for: post), .verbatim("user-1"))
         XCTAssertEqual(surface.threadRootType(post), "comment")
         XCTAssertNil(surface.noteOrNil("  "))

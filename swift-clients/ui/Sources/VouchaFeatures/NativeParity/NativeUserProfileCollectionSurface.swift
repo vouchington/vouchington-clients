@@ -77,7 +77,7 @@ extension NativeUserProfileSurface {
         case let .topics(topics):
             ForEach(topics) { topic in
                 Button { onNavigate(NativeUserProfileNavigationTarget.topic(topic)) } label: {
-                    NativeUserProfileTopicRow(topic: topic)
+                    NativeUserProfileTopicRow(topic: topic, isStaffViewer: isStaffViewer)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-topic-row")
@@ -85,7 +85,7 @@ extension NativeUserProfileSurface {
         case let .sources(sources):
             ForEach(sources) { source in
                 Button { onNavigate(NativeUserProfileNavigationTarget.source(source)) } label: {
-                    RssFeedSourceCard(source: source)
+                    RssFeedSourceCard(source: source, isStaffViewer: isStaffViewer)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-source-row")
@@ -93,7 +93,7 @@ extension NativeUserProfileSurface {
         case let .communities(communities):
             ForEach(communities) { community in
                 Button { onNavigate(NativeUserProfileNavigationTarget.community(community)) } label: {
-                    NativeUserProfileCommunityRow(community: community)
+                    NativeUserProfileCommunityRow(community: community, isStaffViewer: isStaffViewer)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-community-row")
@@ -104,13 +104,18 @@ extension NativeUserProfileSurface {
 
 private struct NativeUserProfileTopicRow: View {
     let topic: Topic
+    let isStaffViewer: Bool
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "tag")
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(topic.name).font(Typography.subheadline).fontWeight(.semibold)
-                ProvenanceBadge(provenance: topic.provenance)
+                ProvenanceBadge(
+                    provenance: topic.provenance,
+                    staffProvenance: topic.staffProvenance,
+                    isStaffViewer: isStaffViewer
+                )
                 Text(topic.topicType.replacingOccurrences(of: "_", with: " "))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)
@@ -125,13 +130,18 @@ private struct NativeUserProfileCommunityRow: View {
     @Environment(\.locale)
     private var nativeUiLocale
     let community: Community
+    let isStaffViewer: Bool
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "person.3")
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(community.name).font(Typography.subheadline).fontWeight(.semibold)
-                ProvenanceBadge(provenance: community.provenance)
+                ProvenanceBadge(
+                    provenance: community.provenance,
+                    staffProvenance: community.staffProvenance,
+                    isStaffViewer: isStaffViewer
+                )
                 Text(UiMessages.string(community.visibility.titleKey, locale: nativeUiLocale))
                     .font(Typography.caption)
                     .foregroundStyle(Colors.secondaryLabel)

@@ -19,6 +19,7 @@ public sealed partial class TopicDetailViewModel
       OnPropertyChanged(nameof(LocalizedTopicType));
       OnPropertyChanged(nameof(LocalizedProvenanceLabel));
       OnPropertyChanged(nameof(HasProvenance));
+      NotifyStaffProvenanceChanged();
     }
   }
 
@@ -83,12 +84,41 @@ public sealed partial class TopicDetailViewModel
     }
   }
 
+  public StaffContentProvenance? SourceStaffProvenance
+  {
+    get => sourceStaffProvenance;
+    private set
+    {
+      if (SetProperty(ref sourceStaffProvenance, value)) NotifyStaffProvenanceChanged();
+    }
+  }
+
+  public bool IsStaffViewer
+  {
+    get => isStaffViewer;
+    set
+    {
+      if (SetProperty(ref isStaffViewer, value)) NotifyStaffProvenanceChanged();
+    }
+  }
+
+  private void NotifyStaffProvenanceChanged()
+  {
+    OnPropertyChanged(nameof(StaffChannelLabel));
+    OnPropertyChanged(nameof(StaffClientLabel));
+    OnPropertyChanged(nameof(StaffVerificationLabel));
+    OnPropertyChanged(nameof(HasStaffChannel));
+    OnPropertyChanged(nameof(HasStaffClient));
+    OnPropertyChanged(nameof(HasStaffVerification));
+  }
+
   private void SetSourceDetailMode(bool value)
   {
     if (isSourceDetail == value) return;
     isSourceDetail = value;
     OnPropertyChanged(nameof(LocalizedProvenanceLabel));
     OnPropertyChanged(nameof(HasProvenance));
+    NotifyStaffProvenanceChanged();
   }
 
   public string LocalizedTopicType => localization.Resolve(UiTaxonomy.TopicType(Topic?.TopicType));
