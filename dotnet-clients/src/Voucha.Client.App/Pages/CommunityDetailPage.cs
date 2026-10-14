@@ -96,7 +96,7 @@ public sealed partial class CommunityDetailPage : ContentPage
     base.OnAppearing();
     sessionStore.SessionChanged += sessionChangedHandler;
     Render();
-    if (!string.IsNullOrWhiteSpace(Slug))
+    if (!string.IsNullOrWhiteSpace(Slug) || lastLoadedAsStaff != IsStaffViewer())
     {
       await LoadCurrentSlugAsync().ConfigureAwait(true);
     }

@@ -70,6 +70,40 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   }
 
   [Fact]
+  public async Task EditableCommunityDetailRefetchesAfterDetachedStaffPromotion()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var publicDetail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
+    publicDetail["community"]!.AsObject().Remove("staff_provenance");
+    var staffDetail = publicDetail.DeepClone();
+    staffDetail["community"]!["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":null}
+        """);
+    var session = new MutableStaffSessionStore();
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
+        publicDetail.ToJsonString(), Fixture("web.communities.members.default"),
+        Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"),
+        staffDetail.ToJsonString(), Fixture("web.communities.members.default"),
+        Fixture("web.communities.posts.default"), Fixture("web.communities.list-items.counts.default"))), session);
+    await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
+    var page = new CommunityDetailPage(model, session);
+    Assert.Null(page.Slug);
+    Assert.Single(Descendants<Entry>(page)).Text = "test-community";
+    InvokeLifecycle(page, "OnAppearing");
+    InvokeLifecycle(page, "OnDisappearing");
+    session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
+    Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+
+    var staffFacts = WaitForCommunityStaffFactsAsync(model);
+    InvokeLifecycle(page, "OnAppearing");
+    await staffFacts;
+    Assert.Contains(Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
+    InvokeLifecycle(page, "OnDisappearing");
+  }
+
+  [Fact]
   public async Task MountedCommunitySectionRefetchesAfterStaffPromotion()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
