@@ -49,10 +49,28 @@ public sealed class CopyrightClaimantContractTests
   {
     Assert.Equal("/api/v1/copyright-notices/case%20%2F%20one", VouchaApiEndpoints.CopyrightNotice("case / one").Path);
     Assert.Equal("/api/v1/copyright-notices/case%20%2F%20one/participant", VouchaApiEndpoints.CopyrightParticipantNotice("case / one").Path);
-    var request = VouchaApiEndpoints.CopyrightNotices("opaque/+==", 17);
-    Assert.Equal("opaque/+==", request.Query!["after"]);
-    Assert.Equal("17", request.Query["limit"]);
+    AssertCaseQuery(VouchaApiEndpoints.CopyrightNotices("opaque/+==", 17), "/api/v1/copyright-notices");
+    AssertCaseQuery(
+        VouchaApiEndpoints.CopyrightEuDisputeSettlements("case / one", "opaque/+==", 17),
+        "/api/v1/copyright-notices/case%20%2F%20one/eu-dispute-settlements");
     Assert.Empty(VouchaApiEndpoints.CopyrightNotices().Query!);
+    Assert.Empty(VouchaApiEndpoints.CopyrightEuDisputeSettlements("case / one").Query!);
+
+    var limitOnly = VouchaApiEndpoints.CopyrightNotices(limit: 17);
+    Assert.Equal("17", limitOnly.Query!["limit"]);
+    Assert.False(limitOnly.Query.ContainsKey("after"));
+
+    var cursorOnly = VouchaApiEndpoints.CopyrightNotices(after: "opaque/+==");
+    Assert.Equal("opaque/+==", cursorOnly.Query!["after"]);
+    Assert.False(cursorOnly.Query.ContainsKey("limit"));
+  }
+
+  private static void AssertCaseQuery(ApiRequest request, string path)
+  {
+    Assert.Equal(path, request.Path);
+    Assert.Equal(["after", "limit"], request.Query!.Keys.OrderBy(key => key, StringComparer.Ordinal));
+    Assert.Equal("opaque/+==", request.Query["after"]);
+    Assert.Equal("17", request.Query["limit"]);
   }
 
   private static JsonObject Notice(JsonNode root, Type responseType) =>
