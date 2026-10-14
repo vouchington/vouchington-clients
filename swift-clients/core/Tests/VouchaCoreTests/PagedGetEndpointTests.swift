@@ -15,7 +15,16 @@ final class PagedGetEndpointTests: XCTestCase {
             Endpoint.rewardsProgramStatuses(limit: 2),
             Endpoint.spendingCategories(limit: 2),
             Endpoint.userTopicsFollowing(userId: "user/1", limit: 2),
-            Endpoint.userTopics(userId: "user/1", listType: "following", limit: 2)
+            Endpoint.userTopics(userId: "user/1", listType: "following", limit: 2),
+            Endpoint.trendingCommunities(limit: 2),
+            Endpoint.trendingReferralPrograms(limit: 2),
+            Endpoint.referralLinksFeed(feedType: "follow_users", limit: 2),
+            Endpoint.topicRecommendations(limit: 2),
+            Endpoint.myReferralClicks(limit: 2),
+            Endpoint.referralLinks(limit: 2),
+            Endpoint.myConversationMessages(conversationId: "conv/1", limit: 2),
+            Endpoint.myMessages(limit: 2),
+            Endpoint.myMessageConversationMessages(conversationId: "conv/1", limit: 2)
         ]
 
         for page in pages {
@@ -50,7 +59,16 @@ final class PagedGetEndpointTests: XCTestCase {
                 mediaType: "video",
                 after: cursor,
                 limit: 10
-            )
+            ),
+            Endpoint.trendingCommunities(after: cursor, limit: 10),
+            Endpoint.trendingReferralPrograms(after: cursor, limit: 10),
+            Endpoint.referralLinksFeed(feedType: "follow_users", after: cursor, limit: 10),
+            Endpoint.topicRecommendations(after: cursor, limit: 10),
+            Endpoint.myReferralClicks(after: cursor, limit: 10),
+            Endpoint.referralLinks(after: cursor, limit: 10),
+            Endpoint.myConversationMessages(conversationId: "conv/1", after: cursor, limit: 10),
+            Endpoint.myMessages(after: cursor, limit: 10),
+            Endpoint.myMessageConversationMessages(conversationId: "conv/1", after: cursor, limit: 10)
         ]
 
         for page in pages {
