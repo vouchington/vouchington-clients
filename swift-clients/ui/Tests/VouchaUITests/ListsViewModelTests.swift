@@ -65,6 +65,21 @@ final class ListsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(try sut.inspect().find(text: "News item · Article").string(), "News item · Article")
     }
 
+    func testSelectedListShowsClientFactsOnlyToStaff() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/lists"] = (
+            ApiFixtureLoader.data("entity-provenance.lists.staff"), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/lists/list-1-mcp/items"] = (Self.itemsData, 200)
+        let viewModel = try ListsViewModel(client: makeClient())
+        await viewModel.load()
+        XCTAssertEqual(viewModel.selectedList?.id, "list-1-mcp")
+
+        let staff = ListsView(viewModel: viewModel, isStaffViewer: true)
+        let member = ListsView(viewModel: viewModel)
+        XCTAssertNoThrow(try staff.inspect().find(text: "Client: Fixture Agent (voucha_fixture_agent)"))
+        XCTAssertThrowsError(try member.inspect().find(text: "Client: Fixture Agent (voucha_fixture_agent)"))
+    }
+
     func testListsViewRendersEmptyAndRouteStates() throws {
         let empty = try ListsView(viewModel: ListsViewModel(client: makeClient()))
         XCTAssertEqual(try empty.inspect().find(text: "No Lists").string(), "No Lists")

@@ -93,6 +93,7 @@ public sealed partial class CommunityDetailPage : ContentPage
   {
     base.OnAppearing();
     sessionStore.SessionChanged += sessionChangedHandler;
+    Render();
     if (!string.IsNullOrWhiteSpace(Slug))
     {
       await LoadCurrentSlugAsync().ConfigureAwait(true);

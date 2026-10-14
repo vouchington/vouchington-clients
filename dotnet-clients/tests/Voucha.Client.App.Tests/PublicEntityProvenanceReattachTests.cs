@@ -16,6 +16,40 @@ namespace Voucha.Client.App.Tests;
 public sealed partial class PublicEntityProvenanceRenderingTests
 {
   [Fact]
+  public async Task EditableCommunityDetailReappearingAfterStaffSignOutClearsCachedFacts()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var detail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
+    detail["community"]!["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":{"client_id":"internal-client-42","client_name":"Fixture Agent","metadata_url":null,"verified":true}}
+        """);
+    var posts = JsonNode.Parse(Fixture("web.communities.posts.default"))!;
+    posts["posts"]!["post-1"]!["staff_provenance"] = JsonNode.Parse("""
+        {"created_via":"mcp","oauth_client":{"client_id":"internal-client-42","client_name":"Fixture Agent","metadata_url":null,"verified":true}}
+        """);
+    var session = new MutableStaffSessionStore();
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
+        detail.ToJsonString(), Fixture("web.communities.members.default"), posts.ToJsonString(),
+        Fixture("web.communities.list-items.counts.default"))), session);
+    var page = new CommunityDetailPage(model, session);
+    await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
+    Assert.Null(page.Slug);
+    InvokeLifecycle(page, "OnAppearing");
+    Assert.Contains(Descendants<Label>(page), label =>
+        label.IsVisible && label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
+    Assert.Contains(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+
+    InvokeLifecycle(page, "OnDisappearing");
+    session.SetCurrent(SessionSnapshot.Anonymous);
+    Assert.Contains(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    InvokeLifecycle(page, "OnAppearing");
+    Assert.DoesNotContain(Descendants<Label>(page), label =>
+        label.IsVisible && label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
+    Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+  }
+
+  [Fact]
   public async Task RoutedCommunitySectionReprojectsStaffFactsOnActiveAndHiddenSessionChanges()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -181,6 +215,10 @@ public sealed partial class PublicEntityProvenanceRenderingTests
 
   private static void InvokeLifecycle(CommunityBrowsePage page, string method) =>
       typeof(CommunityBrowsePage).GetMethod(method,
+          BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!.Invoke(page, null);
+
+  private static void InvokeLifecycle(CommunityDetailPage page, string method) =>
+      typeof(CommunityDetailPage).GetMethod(method,
           BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!.Invoke(page, null);
 
   private static void InvokeLifecycle(CommunitySectionPage page, string method) =>
