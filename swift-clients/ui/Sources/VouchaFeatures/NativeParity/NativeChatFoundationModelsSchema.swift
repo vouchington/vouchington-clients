@@ -37,6 +37,7 @@ import VouchaCore
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
                 let dependencies = try definitions.keys.sorted().map { key -> DynamicGenerationSchema in
                     guard let value = definitions[key] else { throw Failure.unsupported }
+                    try NativeChatFoundationModelsSchema.validateStringConstraints(value)
                     if let properties = value["properties"] as? [String: [String: Any]] {
                         guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
                         else { throw Failure.unsupported }
@@ -62,9 +63,10 @@ import VouchaCore
             }
 
             private mutating func project(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-                try validateConstant(fields)
-                if isIntegerType(fields) {
-                    try validateSafeIntegerRange(fields)
+                try NativeChatFoundationModelsSchema.validateConstant(fields)
+                try NativeChatFoundationModelsSchema.validateStringConstraints(fields)
+                if NativeChatFoundationModelsSchema.isIntegerType(fields) {
+                    try NativeChatFoundationModelsSchema.validateSafeIntegerRange(fields)
                 }
                 if let path = fields["$ref"] as? String {
                     guard path.hasPrefix("#/$defs/") else { throw Failure.unsupported }
@@ -76,7 +78,7 @@ import VouchaCore
                     }
                 }
                 if let types = fields["type"] as? [String] {
-                    return try .init(name: name(), anyOf: types.map { try project(["type": $0]) })
+                    return try projectTypeUnion(fields, types: types)
                 }
                 if fields["type"] == nil, let values = fields["enum"] as? [Any] {
                     let strings = values.compactMap { $0 as? String }
@@ -89,37 +91,13 @@ import VouchaCore
                 return try projectType(fields)
             }
 
-            private func validateConstant(_ fields: [String: Any]) throws {
-                if let constant = fields["const"], !(constant is String) { throw Failure.unsupported }
-            }
-
-            private func isIntegerType(_ fields: [String: Any]) -> Bool {
-                if fields["type"] as? String == "integer" { return true }
-                return (fields["type"] as? [String])?.contains("integer") == true
-            }
-
-            private func validateSafeIntegerRange(_ fields: [String: Any]) throws {
-                let safeLimit = Decimal(9_007_199_254_740_991)
-                if let minimum = fields["minimum"] as? NSNumber {
-                    guard let value = Decimal(string: minimum.stringValue), value <= safeLimit else {
-                        throw Failure.unsupported
-                    }
+            private mutating func projectTypeUnion(
+                _ fields: [String: Any], types: [String]
+            ) throws -> DynamicGenerationSchema {
+                guard Set(fields.keys).isSubset(of: ["type", "description", "title"]) else {
+                    throw Failure.unsupported
                 }
-                if let maximum = fields["maximum"] as? NSNumber {
-                    guard let value = Decimal(string: maximum.stringValue), value >= -safeLimit else {
-                        throw Failure.unsupported
-                    }
-                }
-                if let minimum = fields["exclusiveMinimum"] as? NSNumber {
-                    guard let value = Decimal(string: minimum.stringValue), value < safeLimit else {
-                        throw Failure.unsupported
-                    }
-                }
-                if let maximum = fields["exclusiveMaximum"] as? NSNumber {
-                    guard let value = Decimal(string: maximum.stringValue), value > -safeLimit else {
-                        throw Failure.unsupported
-                    }
-                }
+                return try .init(name: name(), anyOf: types.map { try project(["type": $0]) })
             }
 
             private mutating func projectType(_ fields: [String: Any]) throws -> DynamicGenerationSchema {

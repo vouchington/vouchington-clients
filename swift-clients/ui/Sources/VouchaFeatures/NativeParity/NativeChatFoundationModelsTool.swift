@@ -50,8 +50,21 @@ import VouchaCore
             guard result.utf8.count > maximumModelResultBytes else { return result }
             let envelope = try? JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]
             let isError = envelope?["isError"] as? Bool == true
+            let textContent = (envelope?["content"] as? [[String: Any]] ?? [])
+                .compactMap { item -> String? in
+                    guard item["type"] as? String == "text" else { return nil }
+                    return item["text"] as? String
+                }.joined(separator: "\n")
+            let structured = envelope?["structuredContent"]
+            let structuredText = (structured as? String) ?? structured.flatMap { value -> String? in
+                guard let data = try? JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed) else {
+                    return nil
+                }
+                return String(data: data, encoding: .utf8)
+            }
+            let previewSource = !textContent.isEmpty ? textContent : (structuredText ?? result)
             for previewLimit in [280, 140, 70, 0] {
-                let preview = String(result.prefix(previewLimit))
+                let preview = String(previewSource.prefix(previewLimit))
                 let bounded: [String: Any] = [
                     "isError": isError,
                     "truncated": true,

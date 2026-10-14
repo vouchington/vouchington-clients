@@ -16,6 +16,10 @@ import XCTest
             let result = #"{"content":[{"type":"text","text":""# + String(repeating: "x", count: 100_000)
                 + #""}],"isError":false}"#
             service.toolResult = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: Data(result.utf8))
+            service.catalog = .object(["tools": .array([.object([
+                "name": .string("read_community"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])])
             let session = NativeChatMCPAgentSession(service: service)
             await session.useAccount("member-a")
             try await session.connect()
@@ -29,9 +33,7 @@ import XCTest
                 bridge: bridge, session: session, snapshot: snapshot, state: state
             )
 
-            let output = try await tool.call(arguments: GeneratedContent(
-                json: #"{"option":"details","arguments":{"id":"one"}}"#
-            ))
+            let output = try await tool.call(arguments: GeneratedContent(json: "{}"))
             XCTAssertEqual(service.calls, 1)
             XCTAssertTrue(state.attempted)
             XCTAssertLessThanOrEqual(output.utf8.count, NativeChatFoundationModelsTool.maximumModelResultBytes)
