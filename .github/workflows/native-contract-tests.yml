@@ -898,9 +898,11 @@ jobs:
         timeout-minutes: 4
         working-directory: candidate-clients
         run: |
-          simulator_id="$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | startswith("com.apple.CoreSimulator.SimRuntime.iOS-")) | .value[] | select(.isAvailable and (.name | startswith("iPhone "))) | .udid][0] // empty')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .udid][0] // empty')"
           if [[ -z "$simulator_id" ]]; then
-            echo '::error::Pinned Xcode has no available iPhone Simulator for launch smoke'
+            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier launch smoke"
             exit 1
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
