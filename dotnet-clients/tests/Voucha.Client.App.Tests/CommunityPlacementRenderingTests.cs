@@ -116,7 +116,7 @@ public sealed class CommunityPlacementRenderingTests
         .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!
         .GetValue(page));
     var member = Assert.IsType<CommunitySummaryRow>(Assert.Single((IEnumerable<object>)collection.ItemsSource!));
-    var row = Assert.IsType<HorizontalStackLayout>(collection.ItemTemplate!.CreateContent());
+    var row = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
     row.BindingContext = member;
     var avatar = Assert.Single(Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
     var avatarImage = Assert.Single(Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
@@ -129,10 +129,42 @@ public sealed class CommunityPlacementRenderingTests
     Assert.IsType<Microsoft.Maui.Controls.Shapes.Ellipse>(avatar.StrokeShape);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
     Assert.False(AutomationProperties.GetIsInAccessibleTree(avatarImage));
-    Assert.Contains(Descendants<Label>(row), label => label.Text == "Test User");
+    Assert.Equal(new GridLength(40), row.ColumnDefinitions[0].Width);
+    Assert.Equal(GridLength.Star, row.ColumnDefinitions[1].Width);
+    Assert.Equal(8d, row.ColumnSpacing);
+    var title = Assert.Single(Descendants<Label>(row), label => label.Text == "Test User");
+    Assert.Equal(LineBreakMode.WordWrap, title.LineBreakMode);
+
+    row.BindingContext = member with
+    {
+      ProfileImagePlacement = new TopicImagePlacement("avatar-1", "", 2),
+    };
+    Assert.Null(avatarImage.Source);
+    Assert.False(avatar.IsVisible);
+    Assert.Equal(new GridLength(0), row.ColumnDefinitions[0].Width);
+    Assert.Equal(0d, row.ColumnSpacing);
     row.BindingContext = member with { ProfileImagePlacement = null };
     Assert.Null(avatarImage.Source);
     Assert.False(avatar.IsVisible);
+    Assert.Equal(new GridLength(0), row.ColumnDefinitions[0].Width);
+    Assert.Equal(0d, row.ColumnSpacing);
+  }
+
+  [Fact]
+  public void NonMemberRowsDoNotConstructMemberAvatarControls()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client("{}")));
+    var page = new CommunityPostsPage(model, new AnonymousSessionStore(), Config());
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(page));
+
+    var row = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate!.CreateContent());
+
+    Assert.DoesNotContain(Descendants<Image>(row), image => image.AutomationId == "community-member-avatar-image");
+    Assert.DoesNotContain(Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
   }
 
   private static AppConfig Config() => new(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));

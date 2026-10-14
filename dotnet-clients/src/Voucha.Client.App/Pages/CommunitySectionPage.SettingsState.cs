@@ -88,28 +88,6 @@ public abstract partial class CommunitySectionPage
 
   private View RowTemplate()
   {
-    var avatarImage = new Image
-    {
-      Aspect = Aspect.AspectFill,
-      AutomationId = "community-member-avatar-image",
-    };
-    avatarImage.SetBinding(
-        Image.SourceProperty,
-        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new PlacementImageSourceConverter(config, 96)));
-    AutomationProperties.SetIsInAccessibleTree(avatarImage, false);
-    var avatar = new Border
-    {
-      WidthRequest = 40,
-      HeightRequest = 40,
-      StrokeThickness = 0,
-      StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
-      Content = avatarImage,
-      AutomationId = "community-member-avatar",
-    };
-    AutomationProperties.SetIsInAccessibleTree(avatar, false);
-    avatar.SetBinding(
-        IsVisibleProperty,
-        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new HasProfileImagePlacementConverter()));
     var title = new Label { FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Title));
     title.SetBinding(Label.FlowDirectionProperty, nameof(CommunitySummaryRow.TitleFlowDirection));
@@ -149,20 +127,68 @@ public abstract partial class CommunitySectionPage
       Spacing = 3,
       Children = { title, authoredContent, subtitle, detail, staffChannel, embed },
     };
-    return section == CommunityDetailSurfaceSection.Members
-        ? new HorizontalStackLayout
-        {
-          Spacing = 8,
-          Children = { avatar, text },
-        }
-        : text;
+    if (section != CommunityDetailSurfaceSection.Members)
+    {
+      return text;
+    }
+
+    title.LineBreakMode = LineBreakMode.WordWrap;
+    var avatarImage = new Image
+    {
+      Aspect = Aspect.AspectFill,
+      AutomationId = "community-member-avatar-image",
+    };
+    avatarImage.SetBinding(
+        Image.SourceProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new PlacementImageSourceConverter(config, 96)));
+    AutomationProperties.SetIsInAccessibleTree(avatarImage, false);
+    var avatar = new Border
+    {
+      WidthRequest = 40,
+      HeightRequest = 40,
+      StrokeThickness = 0,
+      StrokeShape = new Microsoft.Maui.Controls.Shapes.Ellipse(),
+      Content = avatarImage,
+      AutomationId = "community-member-avatar",
+    };
+    AutomationProperties.SetIsInAccessibleTree(avatar, false);
+    avatar.SetBinding(
+        IsVisibleProperty,
+        new Binding(nameof(CommunitySummaryRow.ProfileImagePlacement), converter: new HasProfileImagePlacementConverter(config, 96)));
+    var avatarColumn = new ColumnDefinition(new GridLength(40));
+    var row = new Grid
+    {
+      ColumnDefinitions =
+      {
+        avatarColumn,
+        new ColumnDefinition(GridLength.Star),
+      },
+      ColumnSpacing = 8,
+      Children = { avatar, text },
+    };
+    void UpdateAvatarLayout(object? sender, EventArgs args)
+    {
+      var hasImage = row.BindingContext is CommunitySummaryRow { ProfileImagePlacement: { } placement } &&
+          HasImageUrl(placement, config, 96);
+      avatarColumn.Width = new GridLength(hasImage ? 40 : 0);
+      row.ColumnSpacing = hasImage ? 8 : 0;
+    }
+    row.BindingContextChanged += UpdateAvatarLayout;
+    UpdateAvatarLayout(row, EventArgs.Empty);
+    Grid.SetColumn(text, 1);
+    return row;
   }
 
-  private sealed class HasProfileImagePlacementConverter : IValueConverter
+  private sealed class HasProfileImagePlacementConverter(AppConfig config, int width) : IValueConverter
   {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is TopicImagePlacement;
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        HasImageUrl(value, config, width);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
   }
+
+  private static bool HasImageUrl(object? value, AppConfig config, int width) =>
+      value is TopicImagePlacement { } placement &&
+      config.ImageUrlForPlacement(placement.PlacementId, placement.PlacementRevision, placement.ImageId, width) is not null;
 }
