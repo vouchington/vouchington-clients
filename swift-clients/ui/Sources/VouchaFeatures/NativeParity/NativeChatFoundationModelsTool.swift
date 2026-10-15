@@ -10,6 +10,7 @@ import VouchaCore
         private(set) var attempted = false
         private var callCount = 0
         private var admittedArgumentBytes = 0
+        private var deliveredResultCount = 0
         private(set) var deliveredResultBytes = 0
         static let maximumSessionResultBytes = 1_200
         static let maximumSessionArgumentBytes = NativeChatFoundationModelsSchema.maximumSessionArgumentBytes
@@ -29,11 +30,12 @@ import VouchaCore
         }
 
         func boundedResult(_ result: String) -> String {
-            let reserved = (4 - callCount) * 80
+            let reserved = max(0, 3 - deliveredResultCount) * 80
             let available = max(80, Self.maximumSessionResultBytes - deliveredResultBytes - reserved)
             let bounded = NativeChatFoundationModelsTool.contextBoundResult(
                 result, maximumBytes: min(available, NativeChatFoundationModelsTool.maximumModelResultBytes)
             )
+            deliveredResultCount += 1
             deliveredResultBytes += bounded.utf8.count
             return bounded
         }

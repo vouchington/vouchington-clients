@@ -116,6 +116,45 @@ import XCTest
             }
         }
 
+        func testFourOverlappingAdmittedCallsShareOneModelResultBudget() async throws {
+            let raw = #"{"content":[{"type":"text","text":""# + String(repeating: "x", count: 10_000)
+                + #""}],"isError":false}"#
+            let result = try JSONDecoder().decode(MemberMCPClient.ToolResult.self, from: Data(raw.utf8))
+            let service = ParallelMCPResultService(result: result)
+            let allHeld = expectation(description: "all four admitted MCP calls are held")
+            service.allCallsHeld = allHeld
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let descriptor = try XCTUnwrap(bridge.tools.first)
+            let state = NativeChatFoundationModelsToolState()
+            let tool = try NativeChatFoundationModelsTool(
+                name: descriptor.name, description: descriptor.description,
+                parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                bridge: bridge, session: session, snapshot: snapshot, state: state
+            )
+            let arguments = try GeneratedContent(json: "{}")
+            let calls = (0 ..< 4).map { _ in Task { try await tool.call(arguments: arguments) } }
+
+            await fulfillment(of: [allHeld], timeout: 5)
+            XCTAssertEqual(service.pendingCount, 4)
+            XCTAssertTrue(state.attempted)
+            XCTAssertEqual(state.deliveredResultBytes, 0)
+            service.releaseAll()
+
+            var total = 0
+            for call in calls {
+                let output = try await call.value
+                total += output.utf8.count
+                XCTAssertLessThanOrEqual(output.utf8.count, NativeChatFoundationModelsTool.maximumModelResultBytes)
+            }
+            XCTAssertEqual(service.calls, 4)
+            XCTAssertEqual(state.deliveredResultBytes, total)
+            XCTAssertLessThanOrEqual(total, NativeChatFoundationModelsToolState.maximumSessionResultBytes)
+        }
+
         func testMinimumResultFallbackPreservesSuccessfulRpcStatus() throws {
             for isError in [false, true] {
                 let raw = #"{"content":[{"type":"text","text":""#
@@ -129,6 +168,52 @@ import XCTest
                 XCTAssertEqual(envelope["isError"] as? Bool, isError)
                 XCTAssertEqual(envelope["truncated"] as? Bool, true)
             }
+        }
+    }
+
+    @MainActor
+    private final class ParallelMCPResultService: NativeChatMCPServicing {
+        var allCallsHeld: XCTestExpectation?
+        private(set) var calls = 0
+        private(set) var pendingCount = 0
+        private var pending: [CheckedContinuation<MemberMCPClient.ToolResult, Never>] = []
+        private let result: MemberMCPClient.ToolResult
+
+        init(result: MemberMCPClient.ToolResult) {
+            self.result = result
+        }
+
+        func connect(accountId _: String) async throws -> DecodedJSONValue {
+            .object(["tools": .array([.object([
+                "name": .string("read_community"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])])
+        }
+
+        func refreshTools(accountId: String) async throws -> DecodedJSONValue {
+            try await connect(accountId: accountId)
+        }
+
+        func disconnect(accountId _: String) async throws {
+            XCTAssertTrue(pending.isEmpty)
+        }
+
+        func callTool(
+            accountId _: String, name _: String, arguments _: [String: DecodedJSONValue]
+        ) async throws -> MemberMCPClient.ToolResult {
+            calls += 1
+            return await withCheckedContinuation { continuation in
+                pending.append(continuation)
+                pendingCount = pending.count
+                if pendingCount == 4 { allCallsHeld?.fulfill() }
+            }
+        }
+
+        func releaseAll() {
+            for continuation in pending {
+                continuation.resume(returning: result)
+            }
+            pending.removeAll()
         }
     }
 #endif

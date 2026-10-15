@@ -12,7 +12,7 @@ import Foundation
             }
             if let values = fields["enum"] {
                 guard let choices = values as? [Any], !choices.isEmpty,
-                      choices.allSatisfy({ $0 is NSNull }) else {
+                      choices.contains(where: { $0 is NSNull }) else {
                     throw NativeChatFoundationModelsSchema.Failure.unsupported
                 }
             }

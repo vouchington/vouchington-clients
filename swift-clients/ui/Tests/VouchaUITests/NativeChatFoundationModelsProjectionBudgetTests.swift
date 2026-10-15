@@ -96,16 +96,21 @@ import XCTest
         }
 
         func testTypedNullEnumProjectsOnlyItsAcceptedValue() throws {
-            let valid = Data(#"{"type":"null","enum":[null]}"#.utf8)
-            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: valid)
-            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
-            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
-            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(valid))
+            for raw in [
+                #"{"type":"null","enum":[null]}"#,
+                #"{"type":"null","enum":[null,"other"]}"#,
+                #"{"type":"null","enum":[7,null]}"#
+            ] {
+                let valid = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: valid)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(valid))
+            }
 
             for raw in [
                 #"{"type":"null","enum":[]}"#,
-                #"{"type":"null","enum":["other"]}"#,
-                #"{"type":"null","enum":[null,"other"]}"#
+                #"{"type":"null","enum":["other"]}"#
             ] {
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)))
             }
