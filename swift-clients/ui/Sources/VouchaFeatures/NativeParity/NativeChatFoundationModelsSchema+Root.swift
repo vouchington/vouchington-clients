@@ -102,17 +102,29 @@ import Foundation
                     })
                 }
                 if let values = value["enum"] as? [String] {
-                    guard value["type"] == nil || value["type"] as? String == "string" else {
-                        throw NativeChatFoundationModelsSchema.Failure.unsupported
-                    }
-                    try NativeChatFoundationModelsSchema.validateKeywords(
-                        value,
-                        allowing: ["type", "enum", "minLength", "maxLength", "pattern", "format"]
-                    )
-                    return .init(name: key, anyOf: values)
+                    return try projectStringDefinition(value, values: values, name: key)
                 }
                 return try .init(name: key, anyOf: [project(value)])
             }
+        }
+
+        private func projectStringDefinition(
+            _ fields: [String: Any], values: [String], name: String
+        ) throws -> DynamicGenerationSchema {
+            guard fields["type"] == nil || fields["type"] as? String == "string" else {
+                throw NativeChatFoundationModelsSchema.Failure.unsupported
+            }
+            try NativeChatFoundationModelsSchema.validateKeywords(
+                fields,
+                allowing: ["type", "enum", "const", "minLength", "maxLength", "pattern", "format"]
+            )
+            if let constant = fields["const"] {
+                guard let string = constant as? String, values.contains(string) else {
+                    throw NativeChatFoundationModelsSchema.Failure.unsupported
+                }
+                return .init(name: name, anyOf: [string])
+            }
+            return .init(name: name, anyOf: values)
         }
     }
 #endif

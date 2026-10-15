@@ -18,7 +18,11 @@ import Foundation
                   (fields["maxItems"] as? Int ?? minimum) >= minimum else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
-            let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            var maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            if fields["uniqueItems"] as? Bool == true, item["const"] != nil {
+                guard minimum <= 1 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                maximum = min(maximum, 1)
+            }
             guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false
                 || (fields["uniqueItems"] as? Bool == true && maximum <= 1) else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported

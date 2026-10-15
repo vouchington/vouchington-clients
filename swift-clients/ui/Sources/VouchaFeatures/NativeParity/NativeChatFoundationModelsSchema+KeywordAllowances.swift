@@ -42,7 +42,7 @@ import Foundation
             }
         }
 
-        private static func declaredTypes(in fields: [String: Any]) -> Set<String> {
+        static func declaredTypes(in fields: [String: Any]) -> Set<String> {
             if let type = fields["type"] as? String {
                 [type]
             } else if let types = fields["type"] as? [String] {
@@ -53,6 +53,9 @@ import Foundation
                 ["string"]
             } else if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil {
                 ["integer"]
+            } else if let values = fields["enum"] as? [Any], !values.isEmpty,
+                      values.allSatisfy({ $0 is String || $0 is NSNull }) {
+                Set(values.map { $0 is NSNull ? "null" : "string" })
             } else {
                 []
             }
