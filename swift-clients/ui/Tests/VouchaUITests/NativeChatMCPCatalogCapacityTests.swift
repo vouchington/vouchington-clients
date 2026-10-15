@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -91,6 +92,31 @@ final class NativeChatMCPCatalogCapacityTests: XCTestCase {
             try await cancelled.value
             XCTFail("Cancellation must propagate before fallback")
         } catch is CancellationError {}
+    }
+
+    func testNoCallCompletionSurvivesSameAccountRefreshAndDisconnect() async throws {
+        let session = NativeChatMCPAgentSession(service: CapacityMCPService(count: 1))
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        try await session.refreshTools()
+        XCTAssertFalse(session.isCurrent(snapshot))
+        try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+            attemptedMCPCall: false, session: session, snapshot: snapshot
+        )
+        do {
+            try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+                attemptedMCPCall: true, session: session, snapshot: snapshot
+            )
+            XCTFail("An admitted RPC must preserve the stale-snapshot side-effect boundary")
+        } catch LocalLLMToolLoopFailure.partialExecution {}
+
+        let refreshed = try XCTUnwrap(session.connectedSnapshot())
+        try await session.disconnect()
+        XCTAssertFalse(session.isCurrent(refreshed))
+        try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+            attemptedMCPCall: false, session: session, snapshot: refreshed
+        )
     }
 
     private static func tool(named name: String) -> DecodedJSONValue {

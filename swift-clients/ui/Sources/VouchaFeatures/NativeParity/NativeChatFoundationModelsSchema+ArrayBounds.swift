@@ -21,10 +21,11 @@ import Foundation
                   (fields["maxItems"] as? Int ?? minimum) >= minimum else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
+            let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
             return try .init(
-                arrayOf: project(item),
+                arrayOf: project(maximum == 0 ? [:] : item),
                 minimumElements: fields["minItems"] as? Int,
-                maximumElements: min(fields["maxItems"] as? Int ?? 64, 64)
+                maximumElements: maximum
             )
         }
     }

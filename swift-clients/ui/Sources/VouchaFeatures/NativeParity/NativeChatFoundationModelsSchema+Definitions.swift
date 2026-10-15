@@ -67,7 +67,7 @@ import VouchaModels
                         try collectReferences(in: child, into: &pending, depth: depth + 1)
                     }
                 }
-                if let items = fields["items"] {
+                if fields["maxItems"] as? Int != 0, let items = fields["items"] {
                     try collectReferences(in: items, into: &pending, depth: depth + 1)
                 }
                 for key in ["anyOf", "oneOf"] {

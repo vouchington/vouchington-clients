@@ -40,17 +40,24 @@ import Foundation
                     work = try addWork(work, child)
                 }
             }
-            if let item = fields["items"] as? [String: Any] {
-                let child = try projectedValidationWork(
-                    item, definitions: definitions, activeReferences: activeReferences, depth: depth + 1
-                )
-                let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
-                guard maximum >= 0, maximum == 0 || child <= 4_096 / maximum else {
-                    throw NativeChatFoundationModelsSchema.Failure.unsupported
-                }
-                work = try addWork(work, maximum * child)
-            }
-            return work
+            return try addWork(work, projectedArrayWork(
+                fields, definitions: definitions, activeReferences: activeReferences, depth: depth
+            ))
+        }
+
+        private func projectedArrayWork(
+            _ fields: [String: Any], definitions: [String: [String: Any]],
+            activeReferences: Set<String>, depth: Int
+        ) throws -> Int {
+            guard let item = fields["items"] as? [String: Any] else { return 0 }
+            let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            guard maximum >= 0 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            if maximum == 0 { return 0 }
+            let child = try projectedValidationWork(
+                item, definitions: definitions, activeReferences: activeReferences, depth: depth + 1
+            )
+            guard child <= 4_096 / maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            return maximum * child
         }
 
         private func referencedWork(

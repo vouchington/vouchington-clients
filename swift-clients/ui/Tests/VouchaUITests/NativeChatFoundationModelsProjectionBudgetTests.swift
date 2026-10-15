@@ -198,6 +198,16 @@ import XCTest
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([]), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array([.null]), schema: authoritative))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+
+            for item in [
+                #"{"type":"string","format":"uuid"}"#,
+                ##"{"$ref":"#/$defs/Missing"}"##
+            ] {
+                let forcedEmpty = Data((#"{"type":"array","maxItems":0,"items":"# + item + "}").utf8)
+                let schema = try JSONDecoder().decode(DecodedJSONValue.self, from: forcedEmpty)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([]), schema: schema))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(forcedEmpty))
+            }
         }
 
         func testRootChoiceCannotGenerateScalarToolArguments() throws {

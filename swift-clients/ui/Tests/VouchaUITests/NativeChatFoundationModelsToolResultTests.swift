@@ -80,5 +80,20 @@ import XCTest
                 XCTAssertEqual(service.calls, 4)
             }
         }
+
+        func testMinimumResultFallbackPreservesSuccessfulRpcStatus() throws {
+            for isError in [false, true] {
+                let raw = #"{"content":[{"type":"text","text":""#
+                    + String(repeating: "x", count: 10_000)
+                    + #""}],"isError":\#(isError)}"#
+                let bounded = NativeChatFoundationModelsTool.contextBoundResult(raw, maximumBytes: 80)
+                XCTAssertLessThanOrEqual(bounded.utf8.count, 80)
+                let envelope = try XCTUnwrap(JSONSerialization.jsonObject(
+                    with: Data(bounded.utf8)
+                ) as? [String: Any])
+                XCTAssertEqual(envelope["isError"] as? Bool, isError)
+                XCTAssertEqual(envelope["truncated"] as? Bool, true)
+            }
+        }
     }
 #endif

@@ -101,7 +101,9 @@ import VouchaCore
                     return text
                 }
             }
-            return #"{"content":[],"isError":true,"truncated":true}"#
+            return isError
+                ? #"{"content":[],"isError":true,"truncated":true}"#
+                : #"{"content":[],"isError":false,"truncated":true}"#
         }
 
         static func jsonArguments(_ arguments: GeneratedContent) throws -> String {
