@@ -57,17 +57,4 @@ public sealed class DirectMessageParticipantRenderingTests
     Assert.Equal(new GridLength(0), grid.ColumnDefinitions[0].Width);
     Assert.Contains(view.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "@alice");
   }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
 }
