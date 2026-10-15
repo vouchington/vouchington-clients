@@ -6,12 +6,12 @@ import XCTest
 
 @MainActor
 final class CommunityViewModelCoverageTests: NativeRouteSurfaceViewModelTestCase {
-    private var provider: CoverageCommunityAppAttestProvider!
+    private var provider: StubAppAttestProvider!
     private var keyStore: AppAttestKeyStore!
 
     override func setUp() {
         super.setUp()
-        provider = CoverageCommunityAppAttestProvider()
+        provider = StubAppAttestProvider()
         keyStore = AppAttestKeyStore(
             serviceName: "ai.voucha.test.community.coverage.\(UUID().uuidString)"
         )
@@ -426,24 +426,5 @@ final class CommunityViewModelCoverageTests: NativeRouteSurfaceViewModelTestCase
             }
             """.utf8
         )
-    }
-}
-
-private final class CoverageCommunityAppAttestProvider: AppAttestProviding, @unchecked Sendable {
-    var isSupported = true
-    var generateKeyResult: Result<String, Error> = .success("stub-key-id")
-    var attestKeyResult: Result<Data, Error> = .success(Data("attestation-blob".utf8))
-    var generateAssertionResult: Result<Data, Error> = .success(Data("assertion-blob".utf8))
-
-    func generateKey() async throws -> String {
-        try generateKeyResult.get()
-    }
-
-    func attestKey(_: String, clientDataHash _: Data) async throws -> Data {
-        try attestKeyResult.get()
-    }
-
-    func generateAssertion(_: String, clientDataHash _: Data) async throws -> Data {
-        try generateAssertionResult.get()
     }
 }
