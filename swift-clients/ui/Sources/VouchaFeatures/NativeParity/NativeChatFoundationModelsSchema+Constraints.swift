@@ -41,9 +41,12 @@ import Foundation
             if let constant = fields["const"] {
                 guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? ""),
                       fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
-                let value = try safeIntegerConstant(constant)
+                let numberType = fields["type"] as? String == "number"
+                let value = try numberType ? safeNumberConstant(constant) : safeIntegerConstant(constant)
                 if let enumValues = fields["enum"] as? [Any],
-                   !enumValues.contains(where: { (try? safeIntegerConstant($0)) == value }) {
+                   !enumValues.contains(where: {
+                       (try? (numberType ? safeNumberConstant($0) : safeIntegerConstant($0))) == value
+                   }) {
                     throw Failure.unsupported
                 }
                 return (value, value)

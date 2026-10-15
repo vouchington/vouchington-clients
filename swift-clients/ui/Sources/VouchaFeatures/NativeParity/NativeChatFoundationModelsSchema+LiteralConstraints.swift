@@ -12,7 +12,11 @@ import VouchaModels
                 guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? "") else {
                     throw Failure.unsupported
                 }
-                _ = try safeIntegerConstant(constant)
+                if fields["type"] as? String == "number" {
+                    _ = try safeNumberConstant(constant)
+                } else {
+                    _ = try safeIntegerConstant(constant)
+                }
             }
         }
 
@@ -55,6 +59,19 @@ import VouchaModels
                   value <= Decimal(9_007_199_254_740_991) else { throw Failure.unsupported }
             let integer = NSDecimalNumber(decimal: value).int64Value
             guard value == Decimal(integer) else { throw Failure.unsupported }
+            return value
+        }
+
+        static func safeNumberConstant(_ constant: Any) throws -> Decimal {
+            guard let number = constant as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
+                  let value = Decimal(string: number.stringValue),
+                  let data = try? JSONSerialization.data(withJSONObject: [number.doubleValue]),
+                  let json = String(data: data, encoding: .utf8),
+                  let serialized = Decimal(string: String(json.dropFirst().dropLast())),
+                  serialized == value,
+                  value >= Decimal(-9_007_199_254_740_991),
+                  value <= Decimal(9_007_199_254_740_991) else { throw Failure.unsupported }
             return value
         }
     }

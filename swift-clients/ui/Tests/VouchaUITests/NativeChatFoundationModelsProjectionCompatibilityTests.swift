@@ -100,11 +100,38 @@ import XCTest
             XCTAssertEqual(value["minimum"] as? Int, 7)
             XCTAssertEqual(value["maximum"] as? Int, 7)
             for invalid in [
-                #"{"type":"number","const":7.5}"#,
                 #"{"type":"number","const":9007199254740992}"#,
                 #"{"type":"number","const":7,"minimum":0}"#
             ] {
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(invalid.utf8)))
+            }
+        }
+
+        func testTypedNumberFractionalConstantRequiresExactJsonRepresentation() throws {
+            for (raw, expected) in [
+                (#"{"type":"number","const":1.5}"#, "1.5"),
+                (#"{"type":"number","const":-2.25,"enum":[-2.25,3]}"#, "-2.25")
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                let decimal = try XCTUnwrap(Decimal(string: expected))
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(decimal), schema: authoritative))
+                let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(NativeChatFoundationModelsSchema.projectWithProperty(data))
+                ) as? [String: Any])
+                let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+                let value = try XCTUnwrap(properties["value"] as? [String: Any])
+                XCTAssertEqual((value["minimum"] as? NSNumber)?.decimalValue, decimal)
+                XCTAssertEqual((value["maximum"] as? NSNumber)?.decimalValue, decimal)
+            }
+            for invalid in [
+                #"{"type":"number","const":1.234567890123456789}"#,
+                #"{"type":"integer","const":1.5}"#,
+                #"{"type":"number","const":1.5,"enum":[2.5]}"#,
+                #"{"type":"number","const":true}"#
+            ] {
+                let invalidData = Data(invalid.utf8)
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(invalidData), invalid)
             }
         }
 
@@ -147,7 +174,7 @@ import XCTest
                 #"{"type":"integer","const":7,"enum":[8]}"#,
                 #"{"type":"number","const":7,"enum":[]}"#
             ] {
-                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)))
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)), raw)
             }
         }
 
