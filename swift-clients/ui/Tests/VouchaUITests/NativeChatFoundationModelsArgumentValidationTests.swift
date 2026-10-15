@@ -10,7 +10,7 @@ import XCTest
 
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
-    final class NativeChatFoundationModelsArgumentValidationTests: XCTestCase {
+    final class NativeChatFoundationModelsArgumentValidationTests: NativeRouteSurfaceViewModelTestCase {
         func testGeneratedArgumentsValidateBeforeCallAndStaleAccountCannotCallAgain() async throws {
             let service = BridgeMCPService()
             service.catalog = .object(["tools": .array([.object([
@@ -59,6 +59,72 @@ import XCTest
                 _ = try await tool.call(arguments: GeneratedContent(json: #"{"id":"one"}"#))
                 XCTFail("The captured account must be fenced before a second tool call")
             } catch { XCTAssertEqual(service.calls, 1) }
+        }
+
+        func testOversizedFirstArgumentsRestoreDraftButLaterRejectionIsPartial() async throws {
+            let service = BridgeMCPService()
+            service.catalog = .object(["tools": .array([.object([
+                "name": .string("read_community"),
+                "inputSchema": .object([
+                    "type": .string("object"),
+                    "properties": .object(["id": .object(["type": .string("string")])]),
+                    "required": .array([.string("id")]),
+                    "additionalProperties": .bool(false)
+                ])
+            ])])])
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let descriptor = try XCTUnwrap(bridge.tools.first)
+            let state = NativeChatFoundationModelsToolState()
+            let tool = try NativeChatFoundationModelsTool(
+                name: descriptor.name, description: descriptor.description,
+                parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                bridge: bridge, session: session, snapshot: snapshot, state: state
+            )
+            let oversized = try GeneratedContent(json: #"{"id":"\#(String(repeating: "x", count: 1_300))"}"#)
+            let preAdmissionError: Error
+            do {
+                _ = try await tool.call(arguments: oversized)
+                XCTFail("The first oversized argument must be rejected before RPC admission")
+                return
+            } catch { preAdmissionError = error }
+            XCTAssertEqual(preAdmissionError as? LocalLLMToolLoopFailure, .toolNotAdmitted)
+            XCTAssertFalse(state.attempted)
+            XCTAssertEqual(service.calls, 0)
+
+            let provider = MutableRetryDraftProvider()
+            provider.mcpFailure = preAdmissionError
+            let viewModel = try NativeChatViewModel(
+                client: makeClient(), routeMatch: nil,
+                titleProviderResolver: RetryDraftProviderResolver(endpointID: UUID(), provider: provider),
+                mcpSession: session, currentMemberId: "member-a"
+            )
+            viewModel.selectedConversationId = "conversation-1"
+            viewModel.selectTitleProvider(.appleFoundationModels)
+            viewModel.draftMessage = "Keep this draft"
+            await viewModel.sendDraftMessage()
+            XCTAssertTrue(provider.receivedMcpSnapshot)
+            XCTAssertEqual(viewModel.draftMessage, "Keep this draft")
+            XCTAssertTrue(viewModel.messages.isEmpty)
+            XCTAssertNil(viewModel.pendingLocalTurn)
+            XCTAssertNotNil(viewModel.streamErrorMessage)
+            XCTAssertFalse(CannedFeedURLProtocol.capturedRequests.contains {
+                $0.url.path.hasSuffix("/client-generated-chat")
+            })
+
+            _ = try await tool.call(arguments: GeneratedContent(json: #"{"id":"ok"}"#))
+            XCTAssertTrue(state.attempted)
+            XCTAssertEqual(service.calls, 1)
+            do {
+                _ = try await tool.call(arguments: oversized)
+                XCTFail("A budget failure after an admitted RPC must retain partial-execution policy")
+            } catch {
+                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .partialExecution)
+                XCTAssertEqual(service.calls, 1)
+            }
         }
     }
 #endif

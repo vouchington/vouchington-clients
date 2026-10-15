@@ -17,7 +17,8 @@ import VouchaCore
         func checkCapacity(argumentBytes: Int = 0) throws {
             guard callCount < 4,
                   argumentBytes <= Self.maximumSessionArgumentBytes - admittedArgumentBytes else {
-                throw LocalLLMToolLoopFailure.partialExecution
+                if attempted { throw LocalLLMToolLoopFailure.partialExecution }
+                throw LocalLLMToolLoopFailure.toolNotAdmitted
             }
         }
 
