@@ -53,6 +53,8 @@ import Foundation
                 ["string"]
             } else if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil {
                 ["integer"]
+            } else if let constant = fields["const"], (try? safeNumberConstant(constant)) != nil {
+                ["number"]
             } else if let values = fields["enum"] as? [Any], !values.isEmpty,
                       values.allSatisfy({ $0 is String || $0 is NSNull }) {
                 Set(values.map { $0 is NSNull ? "null" : "string" })

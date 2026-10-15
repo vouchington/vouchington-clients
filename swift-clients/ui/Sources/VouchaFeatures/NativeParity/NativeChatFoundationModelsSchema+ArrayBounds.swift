@@ -18,11 +18,9 @@ import Foundation
                   (fields["maxItems"] as? Int ?? minimum) >= minimum else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
-            var maximum = min(fields["maxItems"] as? Int ?? 64, 64)
-            if fields["uniqueItems"] as? Bool == true, item["const"] != nil {
-                guard minimum <= 1 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-                maximum = min(maximum, 1)
-            }
+            let maximum = NativeChatFoundationModelsSchema.projectedArrayMaximum(fields)
+            if fields["uniqueItems"] as? Bool == true, item["const"] != nil,
+               minimum > 1 { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false
                 || (fields["uniqueItems"] as? Bool == true && maximum <= 1) else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
@@ -32,6 +30,18 @@ import Foundation
                 minimumElements: fields["minItems"] as? Int,
                 maximumElements: maximum
             )
+        }
+    }
+
+    @available(macOS 26.4, iOS 26.4, *)
+    extension NativeChatFoundationModelsSchema {
+        static func projectedArrayMaximum(_ fields: [String: Any]) -> Int {
+            let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            if fields["uniqueItems"] as? Bool == true,
+               let item = fields["items"] as? [String: Any], item["const"] != nil {
+                return min(maximum, 1)
+            }
+            return maximum
         }
     }
 #endif

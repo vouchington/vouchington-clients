@@ -28,10 +28,12 @@ import VouchaModels
         }
 
         static func inferredType(_ fields: [String: Any]) -> String {
-            if fields["properties"] != nil { return "object" }
-            if fields["items"] != nil { return "array" }
+            if fields["const"] is NSNull { return "null" }
             if fields["const"] is String { return "string" }
             if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil { return "integer" }
+            if let constant = fields["const"], (try? safeNumberConstant(constant)) != nil { return "number" }
+            if fields["properties"] != nil { return "object" }
+            if fields["items"] != nil { return "array" }
             return ""
         }
     }

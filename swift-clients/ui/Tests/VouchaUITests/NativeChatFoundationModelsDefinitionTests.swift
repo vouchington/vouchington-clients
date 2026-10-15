@@ -7,8 +7,13 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsDefinitionTests: XCTestCase {
-        func testReachableDefinitionCannotOverrideExplicitTypeWithProperties() throws {
-            for type in ["string", "array", "boolean", "null"] {
+        func testReachableDefinitionKeepsExplicitTypeDespiteIgnoredProperties() throws {
+            for (type, accepted) in [
+                ("string", DecodedJSONValue.string("example")),
+                ("array", DecodedJSONValue.array([])),
+                ("boolean", DecodedJSONValue.bool(true)),
+                ("null", DecodedJSONValue.null)
+            ] {
                 let raw = Data(
                     (##"{"type":"object","properties":{"value":{"$ref":"#/$defs/Bad"}},"$defs":{"Bad":{"type":""##
                         + type + #"","properties":{"id":{"type":"string"}}}}}"#).utf8
@@ -17,7 +22,10 @@ import XCTest
                 XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
                     "value": .object(["id": .string("example")])
                 ]), schema: authoritative))
-                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                    "value": accepted
+                ]), schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
             }
         }
 

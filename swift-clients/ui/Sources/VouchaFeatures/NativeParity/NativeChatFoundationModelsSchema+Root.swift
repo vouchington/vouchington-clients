@@ -67,10 +67,9 @@ import Foundation
             try reachable.sorted().map { key in
                 guard let value = definitions[key] else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 try NativeChatFoundationModelsSchema.validateStringConstraints(value)
-                if value["properties"] is [String: [String: Any]] {
-                    guard value["type"] == nil || value["type"] as? String == "object" else {
-                        throw NativeChatFoundationModelsSchema.Failure.unsupported
-                    }
+                if value["properties"] is [String: [String: Any]],
+                   value["type"] as? String == "object"
+                   || (value["type"] == nil && NativeChatFoundationModelsSchema.inferredType(value) == "object") {
                     try NativeChatFoundationModelsSchema.validateKeywords(
                         value, allowing: [
                             "type",

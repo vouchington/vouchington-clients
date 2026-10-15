@@ -60,6 +60,10 @@ import Foundation
 
         private static func stringDomain(_ fields: [String: Any]) -> Set<String>? {
             if let value = fields["const"] as? String { return [value] }
+            if fields["type"] as? String == "string", let values = fields["enum"] as? [Any] {
+                let strings = values.compactMap { $0 as? String }
+                return strings.isEmpty ? nil : Set(strings)
+            }
             if let values = fields["enum"] as? [String], !values.isEmpty { return Set(values) }
             return nil
         }

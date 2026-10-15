@@ -14,6 +14,8 @@ import VouchaModels
                 }
                 if fields["type"] as? String == "number" {
                     _ = try safeNumberConstant(constant)
+                } else if fields["type"] == nil, (try? safeIntegerConstant(constant)) == nil {
+                    _ = try safeNumberConstant(constant)
                 } else {
                     _ = try safeIntegerConstant(constant)
                 }

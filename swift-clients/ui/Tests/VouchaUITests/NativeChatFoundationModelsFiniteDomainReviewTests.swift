@@ -73,5 +73,65 @@ import XCTest
                 #"{"type":"array","items":{"const":"x"},"minItems":2,"uniqueItems":true}"#.utf8
             )))
         }
+
+        func testReachableBooleanDefinitionIgnoresProperties() throws {
+            let raw = Data(
+                ##"{"type":"object","$defs":{"Flag":{"type":"boolean","properties":{"ignored":{"type":"string"}}}},"properties":{"flag":{"$ref":"#/$defs/Flag"}}}"##
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["flag": .bool(true)]), schema: authoritative
+            ))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+        }
+
+        func testUniqueSingletonPreflightUsesProjectedMaximum() throws {
+            let literal = String(repeating: "x", count: 40)
+            let raw = Data(
+                #"{"type":"array","items":{"const":"\#(literal)"},"uniqueItems":true}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([.string(literal)]), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+        }
+
+        func testUntypedFixedStringDoesNotTraverseIgnoredItems() throws {
+            let raw = Data(##"{"const":"fixed","items":{"$ref":"#/$defs/Missing"}}"##.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("fixed"), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+        }
+
+        func testUntypedExactFractionalConstantProjectsAsNumber() throws {
+            let raw = Data(#"{"const":1.5,"enum":[1.5,2.5]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(1.5), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.decimal(2.5), schema: authoritative))
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
+            let encoded = try XCTUnwrap(JSONSerialization
+                .jsonObject(with: JSONEncoder().encode(projected)) as? [String: Any])
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let value = try XCTUnwrap(properties["value"] as? [String: Any])
+            XCTAssertEqual((value["minimum"] as? NSNumber)?.decimalValue, Decimal(1.5))
+            XCTAssertEqual((value["maximum"] as? NSNumber)?.decimalValue, Decimal(1.5))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"const":1.234567890123456789}"#.utf8
+            )))
+        }
+
+        func testTypedStringEnumsFilterUnreachableNullBeforeDisjointness() throws {
+            let raw = Data(
+                #"{"oneOf":[{"type":"string","enum":["draft",null]},{"type":"string","enum":["published",null]}]}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("draft"), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("published"), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"oneOf":[{"type":"string","enum":["draft",null]},{"type":"string","enum":["draft",null]}]}"#.utf8
+            )))
+        }
     }
 #endif

@@ -117,7 +117,6 @@ import XCTest
                 #"{"type":"object","properties":{"count":{"type":"integer","const":7.5}}}"#,
                 #"{"type":"object","properties":{"count":{"type":"integer","const":9007199254740992}}}"#,
                 #"{"type":"object","properties":{"count":{"type":"integer","const":7,"minimum":0}}}"#,
-                #"{"type":"object","properties":{"count":{"const":7.5}}}"#,
                 #"{"type":"object","properties":{"count":{"const":9007199254740992}}}"#,
                 #"{"type":"object","properties":{"count":{"const":true}}}"#
             ] {

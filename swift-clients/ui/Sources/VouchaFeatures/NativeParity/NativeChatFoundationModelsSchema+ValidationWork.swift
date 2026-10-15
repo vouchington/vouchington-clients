@@ -53,8 +53,9 @@ import Foundation
         ) throws -> Int {
             if let type = fields["type"] as? String, type != "array" { return 0 }
             if let types = fields["type"] as? [String], !types.contains("array") { return 0 }
+            if fields["type"] == nil, NativeChatFoundationModelsSchema.inferredType(fields) != "array" { return 0 }
             guard let item = fields["items"] as? [String: Any] else { return 0 }
-            let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            let maximum = NativeChatFoundationModelsSchema.projectedArrayMaximum(fields)
             guard maximum >= 0 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             if maximum == 0 { return 0 }
             let child = try projectedValidationWork(
