@@ -35,14 +35,20 @@ import Foundation
         }
 
         static func numericBounds(_ fields: [String: Any]) throws -> (minimum: Decimal?, maximum: Decimal?) {
-            guard fields["exclusiveMinimum"] == nil, fields["exclusiveMaximum"] == nil,
-                  fields["enum"] == nil else { throw Failure.unsupported }
+            guard fields["exclusiveMinimum"] == nil, fields["exclusiveMaximum"] == nil else {
+                throw Failure.unsupported
+            }
             if let constant = fields["const"] {
                 guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? ""),
                       fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
                 let value = try safeIntegerConstant(constant)
+                if let enumValues = fields["enum"] as? [Any],
+                   !enumValues.contains(where: { (try? safeIntegerConstant($0)) == value }) {
+                    throw Failure.unsupported
+                }
                 return (value, value)
             }
+            guard fields["enum"] == nil else { throw Failure.unsupported }
             let minimum = try decimal(fields["minimum"])
             let maximum = try decimal(fields["maximum"])
             if let minimum, let maximum, minimum > maximum { throw Failure.unsupported }
@@ -101,25 +107,6 @@ import Foundation
             return .init(type: String.self)
         }
 
-        private func branchFits(_ branchType: String, parentType: String) -> Bool {
-            branchType == parentType || (parentType == "number" && branchType == "integer")
-        }
-
-        private func validateChoiceSiblingTypes(_ choices: [[String: Any]], fields: [String: Any]) throws {
-            if let type = fields["type"] as? String {
-                guard choices.allSatisfy({ branch in
-                    guard let branchType = branch["type"] as? String else { return false }
-                    return branchFits(branchType, parentType: type)
-                }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-            }
-            if let types = fields["type"] as? [String] {
-                guard choices.allSatisfy({ branch in
-                    guard let type = branch["type"] as? String else { return false }
-                    return types.contains { branchFits(type, parentType: $0) }
-                }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-            }
-        }
-
         mutating func projectReferenceOrChoices(_ fields: [String: Any]) throws -> DynamicGenerationSchema? {
             if let path = fields["$ref"] as? String {
                 try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["$ref", "$defs"])
@@ -154,7 +141,16 @@ import Foundation
         func projectInteger(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
             try NativeChatFoundationModelsSchema.validateKeywords(
                 fields,
-                allowing: ["type", "const", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
+                allowing: [
+                    "type",
+                    "const",
+                    "enum",
+                    "minimum",
+                    "maximum",
+                    "exclusiveMinimum",
+                    "exclusiveMaximum",
+                    "$defs"
+                ]
             )
             let (minimum, maximum) = try projectedIntegerBounds(fields)
             return .init(type: Int.self, guides: [.range(minimum ... maximum)])

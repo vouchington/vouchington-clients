@@ -136,6 +136,30 @@ import XCTest
             XCTAssertTrue(NativeChatFoundationModelsToolSelection.select(bridge, matching: "my").isEmpty)
         }
 
+        func testTruncatedAntecedentNeverSelectsToolForContextualApproval() throws {
+            let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([.object([
+                "name": .string("delete_my_cards"),
+                "description": .string("Delete my cards"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])]))
+            let request = "Delete my cards " + String(repeating: "context ", count: 180)
+                + "except the travel card"
+            let history = [NativeChatTimelineMessage(id: "request", role: .user, content: request)]
+            let context = NativeChatAppleFoundationModelsProvider.boundedAssistantContext(
+                message: "Yes, do that", history: history,
+                maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+            )
+            XCTAssertFalse(context.hasCompleteHistory)
+            XCTAssertFalse(context.transcript.contains("except the travel card"))
+            XCTAssertTrue(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Yes, do that", history: history
+            ).isEmpty)
+            XCTAssertEqual(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Yes, do that",
+                history: [.init(id: "short", role: .user, content: "Delete my cards except the travel card")]
+            ).map(\.descriptor.name), ["delete_my_cards"])
+        }
+
         func testTruncatedLatestActionRequestNeverSelectsMCPTool() throws {
             let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([.object([
                 "name": .string("delete_my_cards"),

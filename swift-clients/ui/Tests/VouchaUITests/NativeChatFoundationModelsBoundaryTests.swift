@@ -249,6 +249,24 @@ import XCTest
             }
         }
 
+        func testSiblingTypeAcceptsCompatibleConstantOnlyChoices() throws {
+            for (raw, accepted) in [
+                (
+                    #"{"type":"string","oneOf":[{"const":"draft"},{"const":"published"}]}"#,
+                    DecodedJSONValue.string("draft")
+                ),
+                (#"{"type":"number","oneOf":[{"const":1},{"const":2}]}"#, DecodedJSONValue.integer(1))
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(accepted, schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(data))
+            }
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"type":"string","oneOf":[{"const":1},{"const":2}]}"#.utf8
+            )))
+        }
+
         func testTypedStringEnumDoesNotWidenMixedMembers() throws {
             let raw = Data(#"{"type":"string","enum":["active",null]}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)

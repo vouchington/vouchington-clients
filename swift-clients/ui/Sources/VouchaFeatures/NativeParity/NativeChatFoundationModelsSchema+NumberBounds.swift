@@ -10,6 +10,7 @@ import Foundation
                 fields, allowing: [
                     "type",
                     "const",
+                    "enum",
                     "minimum",
                     "maximum",
                     "exclusiveMinimum",

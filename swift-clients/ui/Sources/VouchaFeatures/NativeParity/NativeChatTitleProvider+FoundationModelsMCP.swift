@@ -56,7 +56,8 @@ extension NativeChatAppleFoundationModelsProvider {
                 maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
             )
             // A truncated action request must never select a side-effecting tool.
-            guard context.latestMessage == message.trimmingCharacters(in: .whitespacesAndNewlines) else { return [] }
+            guard context.hasCompleteHistory,
+                  context.latestMessage == message.trimmingCharacters(in: .whitespacesAndNewlines) else { return [] }
             return NativeChatFoundationModelsToolSelection.select(
                 bridge, matching: "\(context.selectionHistory)\n\(context.latestMessage)"
             )

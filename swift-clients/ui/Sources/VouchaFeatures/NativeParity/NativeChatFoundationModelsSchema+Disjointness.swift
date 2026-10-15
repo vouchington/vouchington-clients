@@ -43,7 +43,7 @@ import Foundation
             }
         }
 
-        private static func branchType(_ fields: [String: Any]) -> String? {
+        static func branchType(_ fields: [String: Any]) -> String? {
             if let type = fields["type"] as? String { return type }
             if fields["const"] is NSNull { return "null" }
             let inferred = inferredType(fields)

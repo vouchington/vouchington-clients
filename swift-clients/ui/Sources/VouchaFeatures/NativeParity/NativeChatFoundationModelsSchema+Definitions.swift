@@ -63,7 +63,9 @@ import VouchaModels
                     }
                     pending.append(String(path.dropFirst(8)))
                 }
-                if fields["maxProperties"] as? Int != 0,
+                let projectsObject = fields["type"] as? String == "object"
+                    || (fields["type"] == nil && NativeChatFoundationModelsSchema.inferredType(fields) == "object")
+                if projectsObject, fields["maxProperties"] as? Int != 0,
                    let properties = fields["properties"] as? [String: Any] {
                     for child in properties.values {
                         try collectReferences(in: child, into: &pending, depth: depth + 1)

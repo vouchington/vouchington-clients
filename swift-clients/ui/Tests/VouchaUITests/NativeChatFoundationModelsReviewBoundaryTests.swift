@@ -164,6 +164,18 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(array))
         }
 
+        func testIgnoredNonObjectPropertiesDoNotMakeDefinitionsReachable() throws {
+            let data = Data(
+                ##"{"type":"object","properties":{"value":{"type":"boolean","properties":{"ignored":{"$ref":"#/$defs/Unprojectable"}}}},"$defs":{"Unprojectable":{"type":"string","minLength":1}}}"##
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .bool(true)]), schema: authoritative
+            ))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(data))
+        }
+
         func testWideDecimalRangeHasConservativeMinimumJsonWidth() throws {
             let schema = Data(
                 #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":60,"maxItems":60,"items":{"type":"number","minimum":9000000000000000,"maximum":9000000000000100}}}}}"#

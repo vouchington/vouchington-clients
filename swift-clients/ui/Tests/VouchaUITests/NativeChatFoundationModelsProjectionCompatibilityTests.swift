@@ -131,6 +131,26 @@ import XCTest
             }
         }
 
+        func testOverlappingNumericConstantAndEnumProjectsOnlyTheIntersection() throws {
+            for raw in [
+                #"{"type":"integer","const":7,"enum":[7,8]}"#,
+                #"{"type":"number","const":7,"enum":[7,8]}"#,
+                #"{"const":7,"enum":[7,8]}"#
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(8), schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(data))
+            }
+            for raw in [
+                #"{"type":"integer","const":7,"enum":[8]}"#,
+                #"{"type":"number","const":7,"enum":[]}"#
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)))
+            }
+        }
+
         func testRecognizedAssertionsOnUnrelatedDeclaredTypesAreNoOps() throws {
             for raw in [
                 #"{"type":"object","properties":{"value":{"type":"string","minimum":5,"maximum":1}}}"#,
