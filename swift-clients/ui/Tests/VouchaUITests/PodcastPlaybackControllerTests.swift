@@ -201,56 +201,79 @@ final class PodcastPlaybackControllerTests: XCTestCase {
     func testLateResumeLookupDoesNotOverrideNewerPlaybackStart() async throws {
         let client = makeClient()
         let sessionManager = try await makeSignedInSessionManager()
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/podcast-episodes/item-1/playback-position"] = [(
+        let item1Path = "/api/v1/podcast-episodes/item-1/playback-position"
+        let item2Path = "/api/v1/podcast-episodes/item-2/playback-position"
+        CannedFeedURLProtocol.handlers[item1Path] = (
             Data(
                 #"""
                 {"playback_position":{"position_seconds":42.5,"completed_at":null}}
                 """#
                 .utf8
             ),
-            200,
-            0.05
-        )]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/podcast-episodes/item-2/playback-position"] = [(
+            200
+        )
+        CannedFeedURLProtocol.handlers[item2Path] = (
             Data(
                 #"""
                 {"playback_position":{"position_seconds":0,"completed_at":null}}
                 """#
                 .utf8
             ),
-            200,
-            0.2
-        )]
+            200
+        )
+        CannedFeedURLProtocol.suspendResponse(path: item1Path)
+        CannedFeedURLProtocol.suspendResponse(path: item2Path)
         let controller = PodcastPlaybackController(client: client, sessionManager: sessionManager)
         let item1 = makeAudioItem(id: "item-1")
         let item2 = makeAudioItem(id: "item-2")
+        let starts = PlaybackStartTasks()
+        addTeardownBlock { @MainActor in
+            CannedFeedURLProtocol.releaseResponse(path: item1Path)
+            CannedFeedURLProtocol.releaseResponse(path: item2Path)
+            for task in starts.tasks {
+                await task.value
+            }
+        }
+        let item1Lookup = CannedFeedURLProtocol.requestBarrier(path: item1Path, method: "GET")
+        let item2Lookup = CannedFeedURLProtocol.requestBarrier(path: item2Path, method: "GET")
 
         let firstStart = Task { @MainActor in
             await controller.togglePlayback(for: item1)
         }
-        await Task.yield()
+        starts.tasks.append(firstStart)
+        _ = try await item1Lookup.wait()
         let secondStart = Task { @MainActor in
             await controller.togglePlayback(for: item2)
         }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
+        starts.tasks.append(secondStart)
+        _ = try await item2Lookup.wait()
 
         XCTAssertEqual(controller.currentItem?.id, "item-2")
         XCTAssertEqual(controller.currentTimeSeconds, 0, accuracy: 0.01)
         XCTAssertTrue(controller.isLoading)
 
+        CannedFeedURLProtocol.releaseResponse(path: item1Path)
         await firstStart.value
+
+        XCTAssertTrue(playbackWrites(path: item1Path).isEmpty)
+        XCTAssertEqual(controller.currentItem?.id, "item-2")
+        XCTAssertEqual(controller.currentTimeSeconds, 0, accuracy: 0.01)
+        XCTAssertTrue(controller.isLoading)
+
+        CannedFeedURLProtocol.releaseResponse(path: item2Path)
         await secondStart.value
 
-        let item1PlaybackWrites = CannedFeedURLProtocol.capturedRequests.filter { request in
-            request.url.path == "/api/v1/podcast-episodes/item-1/playback-position"
-                && request.method == "PUT"
-        }
-        XCTAssertTrue(item1PlaybackWrites.isEmpty)
+        XCTAssertTrue(playbackWrites(path: item1Path).isEmpty)
         XCTAssertEqual(controller.currentItem?.id, "item-2")
         XCTAssertEqual(controller.currentTimeSeconds, 0, accuracy: 0.01)
         XCTAssertTrue(controller.isPlaying)
         XCTAssertFalse(controller.isLoading)
+    }
+
+    private func playbackWrites(path: String) -> [CannedFeedURLProtocol.CapturedRequest] {
+        CannedFeedURLProtocol.capturedRequests.filter { request in
+            request.url.path == path && request.method == "PUT"
+        }
     }
 
     func testCurrentItemControlsAreIgnoredWhileResumeLookupIsLoading() async throws {
@@ -407,4 +430,9 @@ final class PodcastPlaybackControllerTests: XCTestCase {
         XCTAssertTrue(body.contains(#""position_seconds":0"#))
         XCTAssertTrue(body.contains(#""completed":false"#))
     }
+}
+
+@MainActor
+private final class PlaybackStartTasks {
+    var tasks: [Task<Void, Never>] = []
 }
