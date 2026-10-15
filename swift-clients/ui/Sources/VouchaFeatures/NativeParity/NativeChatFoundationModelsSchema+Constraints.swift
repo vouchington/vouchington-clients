@@ -34,35 +34,11 @@ import Foundation
             }
         }
 
-        static func validateKeywords(_ fields: [String: Any], allowing assertions: Set<String>) throws {
-            let annotations: Set = [
-                "title",
-                "description",
-                "default",
-                "examples",
-                "deprecated",
-                "readOnly",
-                "writeOnly"
-            ]
-            let stringOnly: Set = ["minLength", "maxLength", "pattern", "format"]
-            let excludesString: Bool = if let type = fields["type"] as? String {
-                type != "string"
-            } else if let types = fields["type"] as? [String] {
-                !types.contains("string")
-            } else {
-                false
-            }
-            let allowed = assertions.union(annotations).union(excludesString ? stringOnly : [])
-            guard Set(fields.keys).isSubset(of: allowed) else {
-                throw Failure.unsupported
-            }
-        }
-
         static func numericBounds(_ fields: [String: Any]) throws -> (minimum: Decimal?, maximum: Decimal?) {
             guard fields["exclusiveMinimum"] == nil, fields["exclusiveMaximum"] == nil,
                   fields["enum"] == nil else { throw Failure.unsupported }
             if let constant = fields["const"] {
-                guard fields["type"] as? String == "integer",
+                guard fields["type"] == nil || fields["type"] as? String == "integer",
                       fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
                 let value = try safeIntegerConstant(constant)
                 return (value, value)

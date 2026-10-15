@@ -31,6 +31,7 @@ import VouchaModels
             if fields["properties"] != nil { return "object" }
             if fields["items"] != nil { return "array" }
             if fields["const"] is String { return "string" }
+            if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil { return "integer" }
             return ""
         }
     }

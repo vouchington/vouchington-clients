@@ -135,5 +135,25 @@ import XCTest
             )
             XCTAssertTrue(NativeChatFoundationModelsToolSelection.select(bridge, matching: "my").isEmpty)
         }
+
+        func testTruncatedLatestActionRequestNeverSelectsMCPTool() throws {
+            let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([.object([
+                "name": .string("delete_my_cards"),
+                "description": .string("Delete my cards"),
+                "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+            ])])]))
+            let complete = "Delete my cards " + String(repeating: "context ", count: 200) + "except the saved travel card"
+            let context = NativeChatAppleFoundationModelsProvider.boundedAssistantContext(
+                message: complete, history: [],
+                maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+            )
+            XCTAssertFalse(context.latestMessage.contains("except the saved travel card"))
+            XCTAssertTrue(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: complete, history: []
+            ).isEmpty)
+            XCTAssertEqual(NativeChatAppleFoundationModelsProvider.projectedTools(
+                from: bridge, message: "Delete my cards", history: []
+            ).map(\.descriptor.name), ["delete_my_cards"])
+        }
     }
 #endif

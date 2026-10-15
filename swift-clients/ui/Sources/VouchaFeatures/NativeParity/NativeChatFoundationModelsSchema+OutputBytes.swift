@@ -128,7 +128,7 @@ import Foundation
         }
 
         private func minimumNumericBytes(_ fields: [String: Any]) throws -> Int? {
-            if fields["type"] as? String == "integer" {
+            if fields["type"] as? String ?? NativeChatFoundationModelsSchema.inferredType(fields) == "integer" {
                 let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
                 let safe = 9_007_199_254_740_991
                 let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe, isMinimum: true) ?? -safe

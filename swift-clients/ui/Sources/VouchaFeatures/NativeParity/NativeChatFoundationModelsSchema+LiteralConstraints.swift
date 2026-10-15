@@ -9,7 +9,9 @@ import VouchaModels
         static func validateConstant(_ fields: [String: Any]) throws {
             if let constant = fields["const"], !(constant is String),
                !((fields["type"] == nil || fields["type"] as? String == "null") && constant is NSNull) {
-                guard fields["type"] as? String == "integer" else { throw Failure.unsupported }
+                guard fields["type"] == nil || fields["type"] as? String == "integer" else {
+                    throw Failure.unsupported
+                }
                 _ = try safeIntegerConstant(constant)
             }
         }

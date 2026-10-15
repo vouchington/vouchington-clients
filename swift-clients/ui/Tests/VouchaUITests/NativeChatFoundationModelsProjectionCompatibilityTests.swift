@@ -62,13 +62,46 @@ import XCTest
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object(["count": .integer(7)]), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object(["count": .integer(8)]), schema: authoritative))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            let inferred = Data(#"{"type":"object","properties":{"count":{"const":7}}}"#.utf8)
+            let inferredSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: inferred)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["count": .integer(7)]), schema: inferredSchema
+            ))
+            let projected = try NativeChatFoundationModelsSchema.project(inferred)
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(projected)
+            ) as? [String: Any])
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let count = try XCTUnwrap(properties["count"] as? [String: Any])
+            XCTAssertEqual(count["minimum"] as? Int, 7)
+            XCTAssertEqual(count["maximum"] as? Int, 7)
             for invalid in [
                 #"{"type":"object","properties":{"count":{"type":"integer","const":7.5}}}"#,
                 #"{"type":"object","properties":{"count":{"type":"integer","const":9007199254740992}}}"#,
-                #"{"type":"object","properties":{"count":{"type":"integer","const":7,"minimum":0}}}"#
+                #"{"type":"object","properties":{"count":{"type":"integer","const":7,"minimum":0}}}"#,
+                #"{"type":"object","properties":{"count":{"const":7.5}}}"#,
+                #"{"type":"object","properties":{"count":{"const":9007199254740992}}}"#,
+                #"{"type":"object","properties":{"count":{"const":true}}}"#
             ] {
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(invalid.utf8)))
             }
+        }
+
+        func testRecognizedAssertionsOnUnrelatedDeclaredTypesAreNoOps() throws {
+            for raw in [
+                #"{"type":"object","properties":{"value":{"type":"string","minimum":5,"maximum":1}}}"#,
+                #"{"type":"object","properties":{"value":{"type":"boolean","items":{"type":"string"},"minItems":3,"maxItems":1,"uniqueItems":true}}}"#,
+                #"{"type":"object","properties":{"value":{"type":"null","properties":{"id":{"type":"string"}},"required":["id"],"minProperties":2,"maxProperties":0}}}"#,
+                #"{"type":"object","properties":{"value":{"type":["string","null"],"minimum":5}}}"#
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertNoThrow(try NativeChatMCPInputSchema.validateSchema(authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(data))
+            }
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"value":{"type":["string","integer"],"minimum":5}}}"#.utf8
+            )))
         }
 
         func testFixedStringMinimumCountsUnicodeScalars() throws {

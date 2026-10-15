@@ -107,15 +107,19 @@ import XCTest
         }
 
         func testSchemaProjectionRejectsConstrainedTypeUnionsInsteadOfDroppingSiblings() {
-            for property in [
-                #""enum":["a",null]"#,
+            for property in [#""enum":["a",null]"#] {
+                let schema = #"{"type":"object","properties":{"value":{"type":["string","null"],"#
+                    + property + #"}}}"#
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(schema.utf8)))
+            }
+            for ignored in [
                 #""properties":{"id":{"type":"string"}}"#,
                 #""items":{"type":"string"},"minItems":1"#,
                 #""minimum":5"#
             ] {
                 let schema = #"{"type":"object","properties":{"value":{"type":["string","null"],"#
-                    + property + #"}}}"#
-                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(schema.utf8)))
+                    + ignored + #"}}}"#
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(schema.utf8)))
             }
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"value":{"type":["string","null"]}}}"#.utf8
