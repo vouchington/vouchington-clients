@@ -15,15 +15,7 @@ import Foundation
                 "readOnly",
                 "writeOnly"
             ]
-            let declaredTypes: Set<String> = if let type = fields["type"] as? String {
-                [type]
-            } else if let types = fields["type"] as? [String] {
-                Set(types)
-            } else if fields["const"] is NSNull {
-                ["null"]
-            } else {
-                []
-            }
+            let declaredTypes = declaredTypes(in: fields)
             var allowed = assertions.union(annotations)
             if !declaredTypes.isEmpty {
                 if !declaredTypes.contains("string") {
@@ -47,6 +39,22 @@ import Foundation
             }
             guard Set(fields.keys).isSubset(of: allowed) else {
                 throw Failure.unsupported
+            }
+        }
+
+        private static func declaredTypes(in fields: [String: Any]) -> Set<String> {
+            if let type = fields["type"] as? String {
+                [type]
+            } else if let types = fields["type"] as? [String] {
+                Set(types)
+            } else if fields["const"] is NSNull {
+                ["null"]
+            } else if fields["const"] is String {
+                ["string"]
+            } else if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil {
+                ["integer"]
+            } else {
+                []
             }
         }
     }

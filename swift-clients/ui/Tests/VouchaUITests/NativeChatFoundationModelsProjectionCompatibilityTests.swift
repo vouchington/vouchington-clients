@@ -67,6 +67,31 @@ import XCTest
             }
         }
 
+        func testIgnoredChildrenDoNotNormalizeUnsupportedAllOf() throws {
+            for raw in [
+                #"{"type":"object","properties":{"value":{"type":"string","properties":{"ignored":{"allOf":[{"type":"string"},{"type":"number"}]}}}}}"#,
+                #"{"type":"object","properties":{"value":{"type":"string","items":{"allOf":[{"type":"string"},{"type":"number"}]}}}}"#
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                    .object(["value": .string("accepted")]), schema: authoritative
+                ))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(data))
+            }
+        }
+
+        func testUntypedFixedStringIgnoresNumericAssertion() throws {
+            let raw = Data(#"{"const":"fixed","minimum":1}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("fixed"), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"const":"fixed","minLength":6}"#.utf8
+            )))
+        }
+
         func testSafeIntegerConstantProjectsSingletonRange() throws {
             let raw = Data(
                 #"{"type":"object","properties":{"count":{"type":"integer","const":7}}}"#.utf8

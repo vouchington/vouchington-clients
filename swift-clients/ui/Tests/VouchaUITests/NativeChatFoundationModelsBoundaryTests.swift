@@ -249,6 +249,20 @@ import XCTest
             }
         }
 
+        func testOneOfFiniteEnumOnlyBranchesCanProveDisjointness() throws {
+            let raw = Data(#"{"oneOf":[{"enum":["draft"]},{"enum":["published"]},{"enum":[null]}]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("draft"), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("published"), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+
+            let overlap = Data(#"{"oneOf":[{"enum":["draft"]},{"enum":["draft","published"]}]}"#.utf8)
+            let overlappingSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: overlap)
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("draft"), schema: overlappingSchema))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(overlap))
+        }
+
         func testOneOfFractionalNumberConstantsRequireDistinctValues() throws {
             let disjoint = Data(#"{"oneOf":[{"type":"number","const":1.5},{"type":"number","const":2.5}]}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: disjoint)

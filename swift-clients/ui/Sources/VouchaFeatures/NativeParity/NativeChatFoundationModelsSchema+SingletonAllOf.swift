@@ -34,11 +34,13 @@ import Foundation
             _ fields: [String: Any], strict: Bool
         ) throws -> [String: Any] {
             var normalized = fields
-            if fields["maxProperties"] as? Int != 0,
+            let projectedType = fields["type"] as? String ?? inferredType(fields)
+            if projectedType == "object", fields["maxProperties"] as? Int != 0,
                let properties = fields["properties"] as? [String: [String: Any]] {
                 normalized["properties"] = try properties.mapValues { try normalizeSingletonAllOf($0, strict: strict) }
             }
-            if fields["maxItems"] as? Int != 0, let items = fields["items"] as? [String: Any] {
+            if projectedType == "array", fields["maxItems"] as? Int != 0,
+               let items = fields["items"] as? [String: Any] {
                 normalized["items"] = try normalizeSingletonAllOf(items, strict: strict)
             }
             for key in ["anyOf", "oneOf"] {

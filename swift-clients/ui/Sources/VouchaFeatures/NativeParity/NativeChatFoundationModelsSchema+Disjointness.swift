@@ -51,7 +51,11 @@ import Foundation
             if let type = fields["type"] as? String { return type }
             if fields["const"] is NSNull { return "null" }
             let inferred = inferredType(fields)
-            return inferred.isEmpty ? nil : inferred
+            if !inferred.isEmpty { return inferred }
+            if let values = fields["enum"] as? [String], !values.isEmpty { return "string" }
+            if let values = fields["enum"] as? [Any], !values.isEmpty,
+               values.allSatisfy({ $0 is NSNull }) { return "null" }
+            return nil
         }
 
         private static func stringDomain(_ fields: [String: Any]) -> Set<String>? {
