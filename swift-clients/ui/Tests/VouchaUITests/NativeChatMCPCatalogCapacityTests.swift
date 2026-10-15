@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -39,6 +40,90 @@ final class NativeChatMCPCatalogCapacityTests: XCTestCase {
         XCTAssertNil(session.connectedSnapshot())
         XCTAssertNil(session.toolCatalog)
         XCTAssertFalse(session.isCurrent(previous))
+    }
+
+    func testConnectedDuplicateCatalogUsesToolFreeAppleFallbackWithoutAdmittingRPC() async throws {
+        let service = CapacityMCPService(count: 2)
+        service.catalog = .object(["tools": .array([
+            Self.tool(named: "duplicate"), Self.tool(named: "duplicate")
+        ])])
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        var fallbackCalls = 0
+        let admission = try await NativeChatAppleFoundationModelsProvider.admitMCPBridge(
+            catalog: snapshot.catalog
+        ) {
+            fallbackCalls += 1
+            return .init(content: "Tool-free answer", modelProvider: "apple_foundation", modelName: nil)
+        }
+        guard case let .toolFree(response) = admission else {
+            return XCTFail("A connected but bridge-invalid catalog must use tool-free generation")
+        }
+        XCTAssertEqual(fallbackCalls, 1)
+        XCTAssertEqual(response?.content, "Tool-free answer")
+        XCTAssertEqual(response?.admittedMCPCall, false)
+        XCTAssertNil(response?.persistenceSnapshot(snapshot, providerSelection: .appleFoundationModels))
+        XCTAssertTrue(session.isCurrent(snapshot))
+        await session.useAccount("member-b")
+        XCTAssertFalse(session.isCurrent(snapshot))
+    }
+
+    func testBridgeAdmissionKeepsValidCatalogToolEnabledAndCancellationStopsFallback() async throws {
+        let catalog = CapacityMCPService.catalog(count: 1)
+        let admitted = try await NativeChatAppleFoundationModelsProvider.admitMCPBridge(catalog: catalog) {
+            XCTFail("Valid catalog should not invoke tool-free generation")
+            return nil
+        }
+        guard case let .enabled(bridge) = admitted else { return XCTFail("Expected bridge admission") }
+        XCTAssertEqual(bridge.tools.count, 1)
+
+        let cancelled = Task { () throws in
+            withUnsafeCurrentTask { $0?.cancel() }
+            _ = try await NativeChatAppleFoundationModelsProvider.admitMCPBridge(
+                catalog: .object(["tools": .array([Self.tool(named: "bad.name")])])
+            ) {
+                XCTFail("Cancelled turn must not start tool-free generation")
+                return nil
+            }
+        }
+        do {
+            try await cancelled.value
+            XCTFail("Cancellation must propagate before fallback")
+        } catch is CancellationError {}
+    }
+
+    func testNoCallCompletionSurvivesSameAccountRefreshAndDisconnect() async throws {
+        let session = NativeChatMCPAgentSession(service: CapacityMCPService(count: 1))
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        try await session.refreshTools()
+        XCTAssertFalse(session.isCurrent(snapshot))
+        try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+            attemptedMCPCall: false, session: session, snapshot: snapshot
+        )
+        do {
+            try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+                attemptedMCPCall: true, session: session, snapshot: snapshot
+            )
+            XCTFail("An admitted RPC must preserve the stale-snapshot side-effect boundary")
+        } catch LocalLLMToolLoopFailure.partialExecution {}
+
+        let refreshed = try XCTUnwrap(session.connectedSnapshot())
+        try await session.disconnect()
+        XCTAssertFalse(session.isCurrent(refreshed))
+        try await NativeChatAppleFoundationModelsProvider.validatePostResponseSnapshot(
+            attemptedMCPCall: false, session: session, snapshot: refreshed
+        )
+    }
+
+    private static func tool(named name: String) -> DecodedJSONValue {
+        .object([
+            "name": .string(name),
+            "inputSchema": .object(["type": .string("object")])
+        ])
     }
 }
 

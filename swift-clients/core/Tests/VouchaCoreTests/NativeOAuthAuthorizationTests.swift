@@ -127,6 +127,18 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         }
     }
 
+    func testBrokerCapabilityFixtureDecodesAdditionalProviders() throws {
+        let response = try makeVouchaDecoder().decode(
+            OAuthBrokerCapabilitiesResponse.self,
+            from: ApiFixtureLoader.data("native.oauth.providers.broker-capabilities")
+        )
+
+        XCTAssertEqual(response.brokerCapabilities.linkedin?.version, 1)
+        XCTAssertTrue(response.brokerCapabilities.linkedin?.supportsNative(.connect) == true)
+        XCTAssertTrue(response.brokerCapabilities.microsoft?.modes.web == true)
+        XCTAssertTrue(response.brokerCapabilities.microsoft?.supportsNative(.authenticate) == true)
+    }
+
     func testCompletionResponsesDecodeEveryDiscriminatedOutcome() throws {
         let decoder = makeVouchaDecoder()
 

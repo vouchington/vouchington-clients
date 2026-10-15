@@ -7,8 +7,16 @@ import VouchaModels
 extension NativeChatMCPAgentSession {
     public func callTool(
         name: String, arguments: [String: DecodedJSONValue],
-        accountId expectedAccountId: String, revision expectedRevision: Int
+        accountId expectedAccountId: String, revision expectedRevision: Int,
+        beforeAdmission: (@MainActor () throws -> Void)? = nil,
+        onStarted: (@MainActor () -> Void)? = nil
     ) async throws -> MemberMCPClient.ToolResult {
+        guard accountId == expectedAccountId, revision == expectedRevision,
+              status == .connected, toolCatalog != nil else {
+            throw LocalLLMToolLoopFailure.toolNotAdmitted
+        }
+        try Task.checkCancellation()
+        try beforeAdmission?()
         guard accountId == expectedAccountId, revision == expectedRevision,
               status == .connected, toolCatalog != nil else {
             throw LocalLLMToolLoopFailure.toolNotAdmitted
@@ -19,6 +27,7 @@ extension NativeChatMCPAgentSession {
             try await service.callTool(accountId: expectedAccountId, name: name, arguments: arguments)
         }
         inFlightCalls[id] = task
+        onStarted?()
         defer { inFlightCalls.removeValue(forKey: id) }
         let result: MemberMCPClient.ToolResult
         do {

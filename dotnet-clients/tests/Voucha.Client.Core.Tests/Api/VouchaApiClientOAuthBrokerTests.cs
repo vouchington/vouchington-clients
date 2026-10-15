@@ -37,6 +37,10 @@ public sealed partial class VouchaApiClientTests
         cancellationToken: TestContext.Current.CancellationToken);
 
     Assert.True(providers.BrokerCapabilities.Github.Modes.Native);
+    Assert.Equal(1, providers.BrokerCapabilities.Linkedin?.Version);
+    Assert.True(providers.BrokerCapabilities.Linkedin?.SupportsNative(OAuthAuthorizationPurpose.Connect));
+    Assert.True(providers.BrokerCapabilities.Microsoft?.Modes.Web);
+    Assert.True(providers.BrokerCapabilities.Microsoft?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
     Assert.Equal("019fafb8-a44c-73e2-890a-497ff3dd27a6", begin.FlowId);
     Assert.Equal(
         [

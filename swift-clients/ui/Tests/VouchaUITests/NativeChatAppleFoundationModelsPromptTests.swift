@@ -33,4 +33,23 @@ final class NativeChatAppleFoundationModelsPromptTests: XCTestCase {
         XCTAssertTrue(prompt.contains("Latest user message:"))
         XCTAssertFalse(prompt.contains("user: Context"))
     }
+
+    @available(macOS 26.4, iOS 26.4, *)
+    func testToolPromptBoundsUTF8BytesForOversizedGraphemeClusters() {
+        let cluster = "a" + String(repeating: "\u{0301}", count: 2_000)
+        let limit = NativeChatFoundationModelsToolSelection.maximumPromptCharacters
+        let context = NativeChatAppleFoundationModelsProvider.boundedAssistantContext(
+            message: cluster + " DM", history: [
+                .init(id: "history", role: .user, content: cluster + " cards")
+            ], maximumCharacters: limit
+        )
+        let prompt = NativeChatAppleFoundationModelsProvider.assistantPrompt(
+            message: cluster + " DM", history: [
+                .init(id: "history", role: .user, content: cluster + " cards")
+            ], maximumCharacters: limit
+        )
+        XCTAssertLessThanOrEqual(prompt.utf8.count, limit)
+        XCTAssertLessThanOrEqual(context.selectionHistory.utf8.count + context.latestMessage.utf8.count, limit)
+        XCTAssertFalse(prompt.contains(cluster))
+    }
 }

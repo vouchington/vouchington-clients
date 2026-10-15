@@ -14,13 +14,10 @@ extension NativeChatViewModel {
             return
         }
 
-        let mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = if case .openAICompatible = context
-            .providerSelection {
-            mcpSession?.connectedSnapshot().flatMap {
-                $0.accountId == currentMemberId ? $0 : nil
-            }
-        } else {
-            nil
+        let mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot? = switch context.providerSelection {
+        case .openAICompatible, .appleFoundationModels:
+            mcpSession?.connectedSnapshot().flatMap { $0.accountId == currentMemberId ? $0 : nil }
+        default: nil
         }
         let assistantMessageId = context.assistantMessageId ?? NativeChatMessageIDs.nextLocalTurn().assistant
         pendingLocalAssistantMessageId = assistantMessageId
@@ -96,7 +93,7 @@ extension NativeChatViewModel {
             context: context,
             assistantMessageId: assistantMessageId,
             response: response,
-            mcpSnapshot: mcpSnapshot
+            mcpSnapshot: response.persistenceSnapshot(mcpSnapshot, providerSelection: context.providerSelection)
         )
     }
 
