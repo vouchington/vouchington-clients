@@ -74,19 +74,6 @@ public sealed class ProfileTopicImageRenderingTests
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
   }
 
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => new ImmediateDispatcher();
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
-  }
-
   private sealed class DeviceLanguage : IDeviceLanguageProvider
   {
     public IReadOnlyList<string> PreferredLanguages => ["en"];
