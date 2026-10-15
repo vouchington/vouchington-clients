@@ -1,5 +1,4 @@
 import Foundation
-import VouchaModels
 
 extension NativeChatAppleFoundationModelsProvider {
     static func chatTranscriptLine(_ message: NativeChatTimelineMessage) -> String {

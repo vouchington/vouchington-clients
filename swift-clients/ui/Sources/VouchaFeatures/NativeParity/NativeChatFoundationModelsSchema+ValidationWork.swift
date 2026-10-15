@@ -32,7 +32,9 @@ import Foundation
                     }
                 }
             }
-            if fields["maxProperties"] as? Int != 0 {
+            let projectsObject = fields["type"] as? String == "object"
+                || (fields["type"] == nil && NativeChatFoundationModelsSchema.inferredType(fields) == "object")
+            if projectsObject, fields["maxProperties"] as? Int != 0 {
                 for property in projectedObjectProperties(fields).values {
                     let child = try projectedValidationWork(
                         property, definitions: definitions, activeReferences: activeReferences, depth: depth + 1
