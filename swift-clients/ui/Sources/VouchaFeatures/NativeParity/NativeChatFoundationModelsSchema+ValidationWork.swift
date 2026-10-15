@@ -49,6 +49,8 @@ import Foundation
             _ fields: [String: Any], definitions: [String: [String: Any]],
             activeReferences: Set<String>, depth: Int
         ) throws -> Int {
+            if let type = fields["type"] as? String, type != "array" { return 0 }
+            if let types = fields["type"] as? [String], !types.contains("array") { return 0 }
             guard let item = fields["items"] as? [String: Any] else { return 0 }
             let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
             guard maximum >= 0 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }

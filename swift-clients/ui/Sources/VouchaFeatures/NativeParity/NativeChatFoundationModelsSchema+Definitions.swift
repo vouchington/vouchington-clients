@@ -69,7 +69,9 @@ import VouchaModels
                         try collectReferences(in: child, into: &pending, depth: depth + 1)
                     }
                 }
-                if fields["maxItems"] as? Int != 0, let items = fields["items"] {
+                let projectsArray = fields["type"] as? String == "array"
+                    || (fields["type"] == nil && NativeChatFoundationModelsSchema.inferredType(fields) == "array")
+                if projectsArray, fields["maxItems"] as? Int != 0, let items = fields["items"] {
                     try collectReferences(in: items, into: &pending, depth: depth + 1)
                 }
                 for key in ["anyOf", "oneOf"] {

@@ -145,6 +145,25 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(small))
         }
 
+        func testIgnoredItemsDoNotConsumeProjectedValidatorWork() throws {
+            let nested = #"{"type":"array","maxItems":64,"items":{"type":"array","maxItems":64,"items":{"type":"array","maxItems":64,"items":{"type":"string"}}}}"#
+            let raw = Data((#"{"type":"object","properties":{"value":{"type":"string","items":"#
+                    + nested + #"}}}"#).utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .string("ok")]), schema: authoritative
+            ))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            let unreachableReference = Data(
+                ##"{"type":"object","$defs":{"Unused":{"type":"object","additionalProperties":{"type":"string"}}},"properties":{"value":{"type":"string","items":{"$ref":"#/$defs/Unused"}}}}"##
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(unreachableReference))
+            let array = Data((#"{"type":"object","properties":{"value":{"type":"array","items":"#
+                    + nested + #"}}}"#).utf8)
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(array))
+        }
+
         func testWideDecimalRangeHasConservativeMinimumJsonWidth() throws {
             let schema = Data(
                 #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":60,"maxItems":60,"items":{"type":"number","minimum":9000000000000000,"maximum":9000000000000100}}}}}"#

@@ -66,7 +66,7 @@ import VouchaCore
                 if let types = fields["type"] as? [String] {
                     return try projectTypeUnion(fields, types: types)
                 }
-                if fields["type"] == nil, let values = fields["enum"] as? [Any] {
+                if fields["type"] == nil, fields["const"] == nil, let values = fields["enum"] as? [Any] {
                     try NativeChatFoundationModelsSchema.validateKeywords(
                         fields, allowing: ["enum", "minLength", "maxLength", "pattern", "format", "$defs"]
                     )
@@ -98,7 +98,6 @@ import VouchaCore
                         fields,
                         allowing: ["type", "enum", "const", "minLength", "maxLength", "pattern", "format", "$defs"]
                     )
-                    guard fields["enum"] == nil || fields["const"] == nil else { throw Failure.unsupported }
                     return try projectString(fields)
                 case "integer": return try projectInteger(fields)
                 case "number": return try projectNumber(fields)

@@ -230,6 +230,25 @@ import XCTest
             ]), schema: authoritative))
         }
 
+        func testOneOfConstantOnlyBranchesProjectWhenDisjoint() throws {
+            for (raw, accepted) in [
+                (#"{"oneOf":[{"const":"create"},{"const":"delete"}]}"#, DecodedJSONValue.string("create")),
+                (#"{"oneOf":[{"const":1},{"const":2}]}"#, DecodedJSONValue.integer(1)),
+                (#"{"oneOf":[{"const":null},{"const":"ready"}]}"#, DecodedJSONValue.null)
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(accepted, schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(data))
+            }
+            for invalid in [
+                #"{"oneOf":[{"const":"same"},{"const":"same"}]}"#,
+                #"{"oneOf":[{"const":1},{"const":1}]}"#
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(invalid.utf8)))
+            }
+        }
+
         func testTypedStringEnumDoesNotWidenMixedMembers() throws {
             let raw = Data(#"{"type":"string","enum":["active",null]}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)

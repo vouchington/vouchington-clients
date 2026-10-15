@@ -83,6 +83,13 @@ import Foundation
         }
 
         mutating func projectString(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+            if let value = fields["const"] as? String {
+                if let enumValues = fields["enum"] as? [Any],
+                   !enumValues.compactMap({ $0 as? String }).contains(value) {
+                    throw NativeChatFoundationModelsSchema.Failure.unsupported
+                }
+                return .init(name: name(), anyOf: [value])
+            }
             if let enumValues = fields["enum"] {
                 guard let values = enumValues as? [Any] else {
                     throw NativeChatFoundationModelsSchema.Failure.unsupported
@@ -91,7 +98,6 @@ import Foundation
                 guard !strings.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 return .init(name: name(), anyOf: strings)
             }
-            if let value = fields["const"] as? String { return .init(name: name(), anyOf: [value]) }
             return .init(type: String.self)
         }
 

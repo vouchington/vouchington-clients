@@ -15,7 +15,7 @@ import Foundation
         }
 
         private static func branchesAreDisjoint(_ left: [String: Any], _ right: [String: Any]) -> Bool {
-            guard let leftType = left["type"] as? String, let rightType = right["type"] as? String else {
+            guard let leftType = branchType(left), let rightType = branchType(right) else {
                 return false
             }
             if leftType != rightType {
@@ -23,6 +23,12 @@ import Foundation
             }
             if leftType == "string", let leftValues = stringDomain(left), let rightValues = stringDomain(right) {
                 return leftValues.isDisjoint(with: rightValues)
+            }
+            if ["integer", "number"].contains(leftType),
+               let leftConstant = left["const"], let rightConstant = right["const"],
+               let leftValue = try? safeIntegerConstant(leftConstant),
+               let rightValue = try? safeIntegerConstant(rightConstant) {
+                return leftValue != rightValue
             }
             guard leftType == "object",
                   let leftProperties = left["properties"] as? [String: [String: Any]],
@@ -35,6 +41,13 @@ import Foundation
                 else { return false }
                 return leftValues.isDisjoint(with: rightValues)
             }
+        }
+
+        private static func branchType(_ fields: [String: Any]) -> String? {
+            if let type = fields["type"] as? String { return type }
+            if fields["const"] is NSNull { return "null" }
+            let inferred = inferredType(fields)
+            return inferred.isEmpty ? nil : inferred
         }
 
         private static func stringDomain(_ fields: [String: Any]) -> Set<String>? {

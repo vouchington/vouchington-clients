@@ -108,6 +108,29 @@ import XCTest
             }
         }
 
+        func testOverlappingStringConstantAndEnumProjectsOnlyTheIntersection() throws {
+            for raw in [
+                #"{"type":"string","const":"keep","enum":["drop","keep"]}"#,
+                #"{"const":"keep","enum":["keep","drop"]}"#
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("keep"), schema: authoritative))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("drop"), schema: authoritative))
+                let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(NativeChatFoundationModelsSchema.projectWithProperty(data))
+                ) as? [String: Any])
+                let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+                XCTAssertNotNil(properties["value"])
+            }
+            for invalid in [
+                #"{"type":"string","const":"keep","enum":["drop"]}"#,
+                #"{"const":"keep","enum":[]}"#
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(invalid.utf8)))
+            }
+        }
+
         func testRecognizedAssertionsOnUnrelatedDeclaredTypesAreNoOps() throws {
             for raw in [
                 #"{"type":"object","properties":{"value":{"type":"string","minimum":5,"maximum":1}}}"#,
