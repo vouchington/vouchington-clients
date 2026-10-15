@@ -203,6 +203,58 @@ import XCTest
                 ##"{"$ref":"#/$defs/Args","$defs":{"Args":{"type":"object","properties":{"id":{"type":"string"}}}}}"##
                     .utf8
             )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"anyOf":[{}]}"#.utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                ##"{"$ref":"#/$defs/Anything","$defs":{"Anything":{}}}"##.utf8
+            )))
+        }
+
+        func testStructuralDepthAndReferenceDepthShareValidatorLimit() throws {
+            var definitions: [String: Any] = [:]
+            for index in 0 ..< 16 {
+                definitions["Step\(index)"] = index == 15
+                    ? ["type": "string"] : ["$ref": "#/$defs/Step\(index + 1)"]
+            }
+            var value: [String: Any] = ["$ref": "#/$defs/Step0"]
+            for _ in 0 ..< 16 {
+                value = ["type": "array", "minItems": 1, "items": value]
+            }
+            let root: [String: Any] = [
+                "type": "object", "required": ["value"], "properties": ["value": value], "$defs": definitions
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: root)
+            var argument: DecodedJSONValue = .string("ok")
+            for _ in 0 ..< 16 {
+                argument = .array([argument])
+            }
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(
+                .object(["value": argument]),
+                schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+        }
+
+        func testRequiredCompositionFanoutRespectsValidatorWorkBudget() throws {
+            let branches: [[String: Any]] = Array(repeating: ["type": "string"], count: 64)
+            var properties: [String: Any] = [:]
+            var required: [String] = []
+            var arguments: [String: DecodedJSONValue] = [:]
+            for index in 0 ..< 64 {
+                let key = "field\(index)"
+                properties[key] = ["anyOf": branches]
+                required.append(key)
+                arguments[key] = .string("ok")
+            }
+            let root: [String: Any] = [
+                "type": "object", "required": required, "properties": properties
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: root)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(.object(arguments), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
         }
 
         func testTypedStringEnumBudgetIgnoresIncompatibleShortNumericMember() throws {

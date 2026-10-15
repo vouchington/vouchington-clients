@@ -38,6 +38,7 @@ import VouchaCore
                 guard try minimumOutputBytes(fields, definitions: definitions) <= 4_096 else {
                     throw Failure.unsupported
                 }
+                try validateProjectedWork(fields, definitions: definitions)
                 try validateRootObjectAlternatives(fields, definitions: definitions)
                 let dependencies = try projectDependencies(definitions: definitions, reachable: reachable)
                 if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
