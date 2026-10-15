@@ -67,7 +67,7 @@ import Foundation
             _ fields: [String: Any], definitions: [String: [String: Any]], activeReferences: Set<String>
         ) throws -> Int {
             let item = fields["items"] as? [String: Any] ?? [:]
-            let count = NativeChatFoundationModelsSchema.projectedArrayMaximum(fields)
+            let count = NativeChatFoundationModelsSchema.projectedArrayMaximum(fields, definitions: definitions)
             guard count >= 0 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             if count == 0 { return 2 }
             let bytes = try maximumForcedOutputBytes(

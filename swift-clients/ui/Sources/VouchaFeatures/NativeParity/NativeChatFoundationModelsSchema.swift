@@ -20,6 +20,7 @@ import VouchaCore
         struct Projection {
             private var nextID = 0
             private var reservedNames: Set<String> = []
+            var definitions: [String: [String: Any]] = [:]
 
             mutating func name() -> String {
                 while true {
@@ -31,6 +32,7 @@ import VouchaCore
 
             mutating func schema(_ fields: [String: Any]) throws -> GenerationSchema {
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
+                self.definitions = definitions
                 try validateProjectedWork(fields, definitions: definitions)
                 let reachable = try reachableDefinitions(in: fields, definitions: definitions)
                 reservedNames = reachable

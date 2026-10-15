@@ -35,6 +35,7 @@ import VouchaModels
             if let values = fields["enum"] as? [Any], !values.isEmpty {
                 if values.allSatisfy({ $0 is String }) { return "string" }
                 if values.allSatisfy({ $0 is NSNull }) { return "null" }
+                if values.allSatisfy({ $0 is String || $0 is NSNull }) { return "" }
             }
             if fields["properties"] != nil { return "object" }
             if fields["items"] != nil { return "array" }

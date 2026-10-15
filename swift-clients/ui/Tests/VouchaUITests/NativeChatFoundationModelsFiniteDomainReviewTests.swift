@@ -7,6 +7,51 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsFiniteDomainReviewTests: XCTestCase {
+        func testMixedUntypedEnumIgnoresObjectProperties() throws {
+            let raw = Data(
+                #"{"enum":["fixed",null],"properties":{"ignored":{"allOf":[{},{}]}}}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("fixed"), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+        }
+
+        func testStringNullTypeUnionIgnoresObjectProperties() throws {
+            let raw = Data(
+                #"{"type":["string","null"],"properties":{"ignored":{"allOf":[{},{}]}}}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("fixed"), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+        }
+
+        func testUniqueSingletonReferenceCapsArrayAtOne() throws {
+            for definition in [
+                #"{"const":"x"}"#,
+                #"{"type":"string","enum":["x",null]}"#,
+                #"{"anyOf":[{"const":"x"},{"enum":["x"]}]}"#
+            ] {
+                let array = ##"{"type":"array","items":{"$ref":"#/$defs/Item"},"uniqueItems":true,"maxItems":5}"##
+                let envelope = ##"{"type":"object","$defs":{"Item":\##(definition)},"properties":{"values":\##(array)}}"##
+                let raw = Data(envelope.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                    .object(["values": .array([.string("x")])]), schema: authoritative
+                ))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .object(["values": .array([.string("x"), .string("x")])]), schema: authoritative
+                ))
+                let projected = try NativeChatFoundationModelsSchema.project(raw)
+                let encoded = try XCTUnwrap(JSONSerialization
+                    .jsonObject(with: JSONEncoder().encode(projected)) as? [String: Any])
+                let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+                let values = try XCTUnwrap(properties["values"] as? [String: Any])
+                XCTAssertEqual(values["maxItems"] as? Int, 1)
+            }
+        }
+
         func testUntypedNullConstantIntersectsNullEnum() throws {
             let raw = Data(#"{"const":null,"enum":[null]}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)

@@ -34,7 +34,7 @@ import Foundation
             _ fields: [String: Any], strict: Bool
         ) throws -> [String: Any] {
             var normalized = fields
-            let projectedType = fields["type"] as? String ?? inferredType(fields)
+            let projectedType = fields["type"] as? String ?? (fields["type"] == nil ? inferredType(fields) : "")
             if projectedType == "object", fields["maxProperties"] as? Int != 0,
                let properties = fields["properties"] as? [String: [String: Any]] {
                 normalized["properties"] = try properties.mapValues { try normalizeSingletonAllOf($0, strict: strict) }
