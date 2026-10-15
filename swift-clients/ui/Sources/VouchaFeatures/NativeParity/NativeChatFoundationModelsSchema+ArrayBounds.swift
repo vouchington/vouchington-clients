@@ -24,7 +24,7 @@ import Foundation
             return try .init(
                 arrayOf: project(item),
                 minimumElements: fields["minItems"] as? Int,
-                maximumElements: fields["maxItems"] as? Int
+                maximumElements: min(fields["maxItems"] as? Int ?? 64, 64)
             )
         }
     }

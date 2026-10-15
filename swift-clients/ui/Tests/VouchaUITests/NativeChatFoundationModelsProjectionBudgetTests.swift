@@ -60,7 +60,7 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(excessive))
 
             let bounded = Data(
-                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"items":{"type":"array","minItems":4,"items":{"type":"null"}}}}}"#
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"null"}}}}}"#
                     .utf8
             )
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(bounded))
@@ -254,6 +254,65 @@ import XCTest
             let raw = try JSONSerialization.data(withJSONObject: root)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
             XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(.object(arguments), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+        }
+
+        func testSiblingTypeUnionCannotAdmitAnIncompatibleChoice() throws {
+            let incompatible = Data(
+                #"{"type":["string","null"],"anyOf":[{"type":"string"},{"type":"integer"}]}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: incompatible)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("ok"), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(incompatible))
+
+            let compatible = Data(
+                #"{"type":["string","null"],"anyOf":[{"type":"string"},{"type":"null"}]}"#.utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(compatible))
+        }
+
+        func testProjectedArrayMaximumKeepsValidatorWorkBounded() throws {
+            let branches: [[String: Any]] = Array(repeating: ["type": "string"], count: 16)
+            let array: [String: Any] = [
+                "type": "array", "minItems": 1, "maxItems": 241,
+                "items": ["anyOf": branches]
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: array)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(
+                .array(Array(repeating: .string("ok"), count: 241)), schema: authoritative
+            ))
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
+            let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(projected), encoding: .utf8))
+            XCTAssertTrue(encoded.contains("\"maxItems\":64"))
+
+            let tooExpensive: [String: Any] = [
+                "type": "array", "minItems": 1, "maxItems": 241,
+                "items": ["anyOf": Array(repeating: ["type": "string"], count: 64)]
+            ]
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(
+                JSONSerialization.data(withJSONObject: tooExpensive)
+            ))
+        }
+
+        func testCompositionReferenceFanoutStopsBeforeOutputWalks() throws {
+            var definitions: [String: Any] = [:]
+            for index in 0 ..< 14 {
+                let next: [String: Any] = index == 13
+                    ? ["type": "string"] : ["$ref": "#/$defs/Step\(index + 1)"]
+                definitions["Step\(index)"] = ["anyOf": [next, next]]
+            }
+            let schema: [String: Any] = [
+                "type": "object", "required": ["value"],
+                "properties": ["value": ["$ref": "#/$defs/Step0"]],
+                "$defs": definitions
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: schema)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .string("ok")]), schema: authoritative
+            ))
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
         }
 

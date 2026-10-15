@@ -30,6 +30,7 @@ import VouchaCore
 
             mutating func schema(_ fields: [String: Any]) throws -> GenerationSchema {
                 let definitions = fields["$defs"] as? [String: [String: Any]] ?? [:]
+                try validateProjectedWork(fields, definitions: definitions)
                 let reachable = try reachableDefinitions(in: fields, definitions: definitions)
                 reservedNames = reachable
                 guard try minimumOutputNodes(fields, definitions: definitions) <= 256 else {
@@ -38,7 +39,6 @@ import VouchaCore
                 guard try minimumOutputBytes(fields, definitions: definitions) <= 4_096 else {
                     throw Failure.unsupported
                 }
-                try validateProjectedWork(fields, definitions: definitions)
                 try validateRootObjectAlternatives(fields, definitions: definitions)
                 let dependencies = try projectDependencies(definitions: definitions, reachable: reachable)
                 if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,

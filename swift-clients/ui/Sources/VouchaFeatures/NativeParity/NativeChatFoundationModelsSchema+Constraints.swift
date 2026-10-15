@@ -117,6 +117,12 @@ import Foundation
                             throw NativeChatFoundationModelsSchema.Failure.unsupported
                         }
                     }
+                    if let types = fields["type"] as? [String] {
+                        guard choices.allSatisfy({ branch in
+                            guard let type = branch["type"] as? String else { return false }
+                            return types.contains(type)
+                        }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                    }
                     return try .init(name: name(), anyOf: choices.map { try project($0) })
                 }
             }
