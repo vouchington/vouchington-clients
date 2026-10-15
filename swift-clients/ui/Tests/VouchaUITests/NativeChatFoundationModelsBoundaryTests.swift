@@ -308,6 +308,27 @@ import XCTest
             XCTAssertFalse(preview.contains("<external-content>null</external-content>"))
         }
 
+        func testOversizedEmptyStructuredResultRetainsImageMetadata() throws {
+            for empty in [[String: Any](), [Any]()] as [Any] {
+                let data = try JSONSerialization.data(withJSONObject: [
+                    "content": [[
+                        "type": "image",
+                        "mimeType": "image/png",
+                        "data": String(repeating: "a", count: 2_000)
+                    ]],
+                    "structuredContent": empty, "isError": false
+                ])
+                let output = try NativeChatFoundationModelsTool.contextBoundResult(XCTUnwrap(String(
+                    data: data, encoding: .utf8
+                )))
+                XCTAssertLessThanOrEqual(output.utf8.count, NativeChatFoundationModelsTool.maximumModelResultBytes)
+                let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(output.utf8)) as? [String: Any])
+                XCTAssertEqual(envelope["isError"] as? Bool, false)
+                let preview = try XCTUnwrap((envelope["content"] as? [[String: String]])?.first?["text"])
+                XCTAssertTrue(preview.contains("image/png"))
+            }
+        }
+
         func testGeneratedArgumentsRejectNonObjectAndUnsafeInteger() throws {
             let array = try GeneratedContent(json: "[]")
             XCTAssertThrowsError(try NativeChatFoundationModelsTool.jsonArguments(array))

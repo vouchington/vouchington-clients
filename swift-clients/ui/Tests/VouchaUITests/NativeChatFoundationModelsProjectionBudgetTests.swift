@@ -4,6 +4,8 @@ import VouchaModels
 import XCTest
 
 #if canImport(FoundationModels)
+    import FoundationModels
+
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsProjectionBudgetTests: XCTestCase {
@@ -91,6 +93,45 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(nested))
 
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(#"{"minimum":1}"#.utf8)))
+        }
+
+        func testUnconstrainedRootArgumentsStillGenerateAnObject() throws {
+            for raw in [
+                #"{}"#,
+                #"{"description":"Arbitrary JSON arguments","examples":[{"id":"one"}]}"#
+            ] {
+                let projected = try NativeChatFoundationModelsSchema.project(Data(raw.utf8))
+                let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(projected)
+                ) as? [String: Any])
+                XCTAssertEqual(encoded["type"] as? String, "object")
+                XCTAssertNotNil(encoded["properties"] as? [String: Any])
+            }
+            XCTAssertNoThrow(try NativeChatFoundationModelsTool.jsonArguments(GeneratedContent(json: "{}")))
+            XCTAssertThrowsError(try NativeChatFoundationModelsTool.jsonArguments(GeneratedContent(json: #""scalar""#)))
+        }
+
+        func testForcedLiteralBytesMultiplyThroughRequiredArray() throws {
+            let long = String(repeating: "x", count: 1_000)
+            let item = ["const": long]
+            let schema: [String: Any] = [
+                "type": "object", "required": ["items"],
+                "properties": ["items": ["type": "array", "minItems": 64, "items": item]]
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: schema)
+            XCTAssertLessThan(raw.count, NativeChatFoundationModelsToolSelection.maximumCatalogBytes)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                "items": .array(Array(repeating: .string(long), count: 64))
+            ]), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+
+            let short: [String: Any] = [
+                "type": "object", "required": ["items"],
+                "properties": ["items": ["type": "array", "minItems": 64, "items": ["const": "x"]]]
+            ]
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema
+                .project(JSONSerialization.data(withJSONObject: short)))
         }
     }
 #endif

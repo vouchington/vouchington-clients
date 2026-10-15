@@ -35,46 +35,15 @@ import VouchaCore
                 guard try minimumOutputNodes(fields, definitions: definitions) <= 256 else {
                     throw Failure.unsupported
                 }
-                let dependencies = try reachable.sorted().map { key -> DynamicGenerationSchema in
-                    guard let value = definitions[key] else { throw Failure.unsupported }
-                    try NativeChatFoundationModelsSchema.validateStringConstraints(value)
-                    if let properties = value["properties"] as? [String: [String: Any]] {
-                        guard value["type"] == nil || value["type"] as? String == "object" else {
-                            throw Failure.unsupported
-                        }
-                        try NativeChatFoundationModelsSchema.validateKeywords(
-                            value, allowing: [
-                                "type",
-                                "properties",
-                                "required",
-                                "additionalProperties",
-                                "minProperties",
-                                "maxProperties"
-                            ]
-                        )
-                        guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
-                        else { throw Failure.unsupported }
-                        let required = Set(value["required"] as? [String] ?? [])
-                        guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
-                        try validateObjectBounds(value, requiredCount: required.count, propertyCount: properties.count)
-                        return try .init(name: key, properties: properties.keys.sorted().map { field in
-                            guard let property = properties[field] else { throw Failure.unsupported }
-                            return try .init(
-                                name: field,
-                                description: property["description"] as? String,
-                                schema: project(property),
-                                isOptional: !required.contains(field)
-                            )
-                        })
-                    }
-                    if let values = value["enum"] as? [String] {
-                        guard value["type"] == nil || value["type"] as? String == "string" else {
-                            throw Failure.unsupported
-                        }
-                        try NativeChatFoundationModelsSchema.validateKeywords(value, allowing: ["type", "enum"])
-                        return .init(name: key, anyOf: values)
-                    }
-                    return try .init(name: key, anyOf: [project(value)])
+                guard try minimumOutputBytes(fields, definitions: definitions) <= 4_096 else {
+                    throw Failure.unsupported
+                }
+                let dependencies = try projectDependencies(definitions: definitions, reachable: reachable)
+                if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
+                   fields["type"] == nil, fields["enum"] == nil,
+                   fields["$ref"] == nil, fields["anyOf"] == nil, fields["oneOf"] == nil {
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["$defs"])
+                    return try GenerationSchema(root: .init(name: name(), properties: []), dependencies: dependencies)
                 }
                 return try GenerationSchema(root: project(fields), dependencies: dependencies)
             }

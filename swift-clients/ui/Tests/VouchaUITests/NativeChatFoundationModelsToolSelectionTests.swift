@@ -115,5 +115,25 @@ import XCTest
                 from: bridge, message: "Thanks", history: history
             ).isEmpty)
         }
+
+        func testExactShortToolNameSurvivesTokenFiltering() throws {
+            let bridge = try NativeChatMCPToolBridge(catalog: .object(["tools": .array([
+                .object([
+                    "name": .string("dm"),
+                    "description": .string("Send a direct message"),
+                    "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+                ]),
+                .object([
+                    "name": .string("get_my_cards"),
+                    "description": .string("Read saved cards"),
+                    "inputSchema": .object(["type": .string("object"), "additionalProperties": .bool(false)])
+                ])
+            ])]))
+            XCTAssertEqual(
+                NativeChatFoundationModelsToolSelection.select(bridge, matching: "DM Li").map(\.descriptor.name),
+                ["dm"]
+            )
+            XCTAssertTrue(NativeChatFoundationModelsToolSelection.select(bridge, matching: "my").isEmpty)
+        }
     }
 #endif

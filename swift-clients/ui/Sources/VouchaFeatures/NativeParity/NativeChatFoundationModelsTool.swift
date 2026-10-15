@@ -58,6 +58,8 @@ import VouchaCore
             let structured = envelope?["structuredContent"]
             let structuredText = (structured as? String) ?? structured.flatMap { value -> String? in
                 guard !(value is NSNull) else { return nil }
+                if let object = value as? [String: Any], object.isEmpty { return nil }
+                if let array = value as? [Any], array.isEmpty { return nil }
                 guard let data = try? JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed) else {
                     return nil
                 }

@@ -21,9 +21,10 @@ import VouchaCore
         }
 
         static func select(_ bridge: NativeChatMCPToolBridge, matching message: String) -> [Projected] {
-            let terms: Set<String> = Set(message.lowercased().split { !$0.isLetter && !$0.isNumber }
-                .filter { $0.count >= 3 }.map { String($0) })
-            guard !terms.isEmpty else { return [] }
+            let tokens = message.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
+            let terms = Set(tokens.filter { $0.count >= 3 })
+            let shortNames = Set(tokens.filter { $0.count < 3 })
+            guard !terms.isEmpty || !shortNames.isEmpty else { return [] }
             var ranked: [Ranked] = []
             for descriptor in bridge.tools {
                 let name = descriptor.name.lowercased().replacingOccurrences(of: "_", with: " ")
@@ -33,6 +34,7 @@ import VouchaCore
                     if name.range(of: term) != nil { score += 3 }
                     if description.range(of: term) != nil { score += 1 }
                 }
+                if shortNames.contains(descriptor.name.lowercased()) { score += 3 }
                 if score > 0 { ranked.append(.init(descriptor: descriptor, score: score)) }
             }
             ranked.sort { left, right in
