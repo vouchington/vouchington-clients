@@ -81,7 +81,7 @@ import Foundation
                             "maxProperties"
                         ]
                     )
-                    guard value["additionalProperties"] == nil || value["additionalProperties"] is Bool
+                    guard NativeChatFoundationModelsSchema.projectsOnlyDeclaredProperties(value)
                     else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                     let properties = projectedObjectProperties(value)
                     let required = Set(value["required"] as? [String] ?? [])
@@ -105,7 +105,10 @@ import Foundation
                     guard value["type"] == nil || value["type"] as? String == "string" else {
                         throw NativeChatFoundationModelsSchema.Failure.unsupported
                     }
-                    try NativeChatFoundationModelsSchema.validateKeywords(value, allowing: ["type", "enum"])
+                    try NativeChatFoundationModelsSchema.validateKeywords(
+                        value,
+                        allowing: ["type", "enum", "minLength"]
+                    )
                     return .init(name: key, anyOf: values)
                 }
                 return try .init(name: key, anyOf: [project(value)])

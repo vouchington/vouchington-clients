@@ -5,25 +5,6 @@ import Foundation
 
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema {
-        static func validateConstant(_ fields: [String: Any]) throws {
-            if let constant = fields["const"], !(constant is String),
-               !((fields["type"] == nil || fields["type"] as? String == "null") && constant is NSNull) {
-                throw Failure.unsupported
-            }
-        }
-
-        static func validateStringConstraints(_ fields: [String: Any]) throws {
-            if let minimum = fields["minLength"] {
-                guard let number = minimum as? NSNumber,
-                      CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue == 0 else {
-                    throw Failure.unsupported
-                }
-            }
-            if ["maxLength", "pattern", "format"].contains(where: { fields[$0] != nil }) {
-                throw Failure.unsupported
-            }
-        }
-
         static func isIntegerType(_ fields: [String: Any]) -> Bool {
             if fields["type"] as? String == "integer" { return true }
             return (fields["type"] as? [String])?.contains("integer") == true
@@ -70,11 +51,25 @@ import Foundation
 
         static func numericBounds(_ fields: [String: Any]) throws -> (minimum: Decimal?, maximum: Decimal?) {
             guard fields["exclusiveMinimum"] == nil, fields["exclusiveMaximum"] == nil,
-                  fields["enum"] == nil, fields["const"] == nil else { throw Failure.unsupported }
+                  fields["enum"] == nil else { throw Failure.unsupported }
+            if let constant = fields["const"] {
+                guard fields["type"] as? String == "integer",
+                      fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
+                let value = try safeIntegerConstant(constant)
+                return (value, value)
+            }
             let minimum = try decimal(fields["minimum"])
             let maximum = try decimal(fields["maximum"])
             if let minimum, let maximum, minimum > maximum { throw Failure.unsupported }
             return (minimum, maximum)
+        }
+
+        static func projectsOnlyDeclaredProperties(_ fields: [String: Any]) -> Bool {
+            guard let additional = fields["additionalProperties"] else { return true }
+            if additional is Bool { return true }
+            guard additional is [String: Any],
+                  let properties = fields["properties"] as? [String: [String: Any]] else { return false }
+            return !properties.isEmpty
         }
 
         private static func decimal(_ value: Any?) throws -> Decimal? {
@@ -150,7 +145,8 @@ import Foundation
 
         func projectInteger(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
             try NativeChatFoundationModelsSchema.validateKeywords(
-                fields, allowing: ["type", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
+                fields,
+                allowing: ["type", "const", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
             )
             let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
             let safe = 9_007_199_254_740_991

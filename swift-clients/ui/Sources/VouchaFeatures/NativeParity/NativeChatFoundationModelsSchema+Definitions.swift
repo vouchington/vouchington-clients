@@ -10,7 +10,7 @@ import VouchaModels
             guard case let .object(fields) = try JSONDecoder().decode(DecodedJSONValue.self, from: data) else {
                 throw Failure.unsupported
             }
-            return fields.mapValues(projectionValue)
+            return try normalizeSingletonAllOf(fields.mapValues(projectionValue))
         }
 
         private static func projectionValue(_ value: DecodedJSONValue) -> Any {

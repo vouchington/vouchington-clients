@@ -120,7 +120,7 @@ import VouchaCore
                         "$defs"
                     ]
                 )
-                guard fields["additionalProperties"] == nil || fields["additionalProperties"] is Bool else {
+                guard NativeChatFoundationModelsSchema.projectsOnlyDeclaredProperties(fields) else {
                     throw Failure.unsupported
                 }
                 let properties = projectedObjectProperties(fields)
