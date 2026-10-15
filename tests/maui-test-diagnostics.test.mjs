@@ -31,15 +31,31 @@ describe('MAUI App test diagnostics', () => {
 
     assert.match(maui, /timeout-minutes: 30/u)
     assert.match(test, /timeout-minutes: 18/u)
+    const testCommand = test.replace(/\\\n\s*/gu, ' ').replace(/\s+/gu, ' ')
+    assert.match(
+      testCommand,
+      /dotnet test dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj --configuration Release --no-build --logger "console;verbosity=detailed" --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini/u,
+    )
+    assert.doesNotMatch(testCommand, /--filter(?:\s|=)/u)
     assert.match(
       test,
-      /dotnet test dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj\n\s+--configuration Release --no-build[\s\S]*--logger "console;verbosity=detailed"[\s\S]*--blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini/u,
+      /VSTEST_DUMP_PATH: \$\{\{ runner\.temp \}\}\/voucha-maui-test-results\/dumps/u,
     )
+    assert.match(
+      test,
+      /VSTEST_DUMP_TEMP_PATH: \$\{\{ runner\.temp \}\}\/voucha-maui-test-results\/tmp/u,
+    )
+    assert.match(
+      test,
+      /VSTEST_DIAG: \$\{\{ runner\.temp \}\}\/voucha-maui-test-results\/vstest\.log/u,
+    )
+    assert.match(test, /mkdir -p "\$VSTEST_DUMP_PATH" "\$VSTEST_DUMP_TEMP_PATH"/u)
     assert.match(test, /--results-directory "\$RUNNER_TEMP\/voucha-maui-test-results"/u)
     assert.match(
       upload,
       /if: \$\{\{ failure\(\) \|\| cancelled\(\) \}\}[\s\S]*?timeout-minutes: 2[\s\S]*?actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?voucha-maui-test-results/u,
     )
+    assert.match(upload, /path: \$\{\{ runner\.temp \}\}\/voucha-maui-test-results/u)
     assert.match(upload, /retention-days: 1/u)
     assert.ok(
       maui.indexOf('      - name: Test rendered MAUI pages') <

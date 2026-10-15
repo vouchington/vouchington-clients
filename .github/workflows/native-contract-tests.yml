@@ -1034,12 +1034,17 @@ jobs:
       - name: Test rendered MAUI pages
         timeout-minutes: 18
         working-directory: candidate-clients
-        run: >-
-          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
-          --configuration Release --no-build
-          --logger "console;verbosity=detailed"
-          --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini
-          --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+        env:
+          VSTEST_DUMP_PATH: ${{ runner.temp }}/voucha-maui-test-results/dumps
+          VSTEST_DUMP_TEMP_PATH: ${{ runner.temp }}/voucha-maui-test-results/tmp
+          VSTEST_DIAG: ${{ runner.temp }}/voucha-maui-test-results/vstest.log
+        run: |
+          mkdir -p "$VSTEST_DUMP_PATH" "$VSTEST_DUMP_TEMP_PATH"
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj \
+            --configuration Release --no-build \
+            --logger "console;verbosity=detailed" \
+            --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini \
+            --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2
