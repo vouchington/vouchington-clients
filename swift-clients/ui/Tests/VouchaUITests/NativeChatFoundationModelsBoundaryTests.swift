@@ -249,6 +249,20 @@ import XCTest
             }
         }
 
+        func testOneOfFractionalNumberConstantsRequireDistinctValues() throws {
+            let disjoint = Data(#"{"oneOf":[{"type":"number","const":1.5},{"type":"number","const":2.5}]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: disjoint)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(1.5), schema: authoritative))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(2.5), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.decimal(3.5), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(disjoint))
+
+            let overlapping = Data(#"{"oneOf":[{"type":"number","const":1.5},{"type":"number","const":1.5}]}"#.utf8)
+            let overlappingSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: overlapping)
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.decimal(1.5), schema: overlappingSchema))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(overlapping))
+        }
+
         func testSiblingTypeAcceptsCompatibleConstantOnlyChoices() throws {
             for (raw, accepted) in [
                 (

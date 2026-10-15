@@ -26,8 +26,8 @@ import Foundation
             }
             if ["integer", "number"].contains(leftType),
                let leftConstant = left["const"], let rightConstant = right["const"],
-               let leftValue = try? safeIntegerConstant(leftConstant),
-               let rightValue = try? safeIntegerConstant(rightConstant) {
+               let leftValue = numericConstant(leftConstant, type: leftType),
+               let rightValue = numericConstant(rightConstant, type: rightType) {
                 return leftValue != rightValue
             }
             guard leftType == "object",
@@ -54,6 +54,10 @@ import Foundation
             if let value = fields["const"] as? String { return [value] }
             if let values = fields["enum"] as? [String], !values.isEmpty { return Set(values) }
             return nil
+        }
+
+        private static func numericConstant(_ constant: Any, type: String) -> Decimal? {
+            try? (type == "number" ? safeNumberConstant(constant) : safeIntegerConstant(constant))
         }
     }
 #endif
