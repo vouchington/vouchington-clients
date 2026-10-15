@@ -57,8 +57,8 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
         .GetValue(page));
     var template = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
     template.BindingContext = stat;
-    var avatar = Assert.Single(Descendants<Border>(template), border => border.AutomationId == "community-moderator-avatar");
-    var image = Assert.Single(Descendants<Image>(avatar), candidate => candidate.AutomationId == "community-moderator-avatar-image");
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Border>(template), border => border.AutomationId == "community-moderator-avatar");
+    var image = Assert.Single(VisualTreeElements.Descendants<Image>(avatar), candidate => candidate.AutomationId == "community-moderator-avatar-image");
 
     Assert.True(avatar.IsVisible);
     Assert.IsType<Microsoft.Maui.Controls.Shapes.Ellipse>(avatar.StrokeShape);
@@ -91,15 +91,6 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
     stats["users"]!["user-1"]!["profile_image_placement"] =
         members["users"]!["user-1"]!["profile_image_placement"]!.DeepClone();
     return stats.ToJsonString();
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   private sealed class RouteResponseHandler(IReadOnlyDictionary<string, string> responses) : HttpMessageHandler

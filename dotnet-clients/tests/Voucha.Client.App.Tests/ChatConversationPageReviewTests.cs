@@ -19,7 +19,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var provider = new AvailableProvider { Failure = new PossibleMcpToolSideEffectException() };
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service);
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
     editor.Text = "Mutate once";
     InvokePageHandler(page, "OnSendClicked", [null, EventArgs.Empty]);
 

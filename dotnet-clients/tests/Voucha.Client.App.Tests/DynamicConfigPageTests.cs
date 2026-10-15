@@ -1,5 +1,4 @@
 using System.Collections;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +33,7 @@ public sealed class DynamicConfigPageTests
             Assert.IsAssignableFrom<IEnumerable>(namespaces.ItemsSource)
                 .Cast<DynamicConfigNamespaceOption>()).ProtocolNamespace);
     Assert.Contains(
-        Descendants<Label>(page),
+        VisualTreeElements.Descendants<Label>(page),
         label => label.Text == UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsReadOnly));
     Assert.False(Find<Switch>(page, "dynamic-config-enabled-global").IsEnabled);
@@ -56,7 +55,7 @@ public sealed class DynamicConfigPageTests
             ("minimum", 1),
             ("maximum", 100)),
         Find<Label>(page, "dynamic-config-limit-constraint").Text);
-    Assert.DoesNotContain(Descendants<Picker>(page), picker => picker.AutomationId?.EndsWith("-override", StringComparison.Ordinal) == true);
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Picker>(page), picker => picker.AutomationId?.EndsWith("-override", StringComparison.Ordinal) == true);
   }
 
   [Fact]
@@ -114,7 +113,7 @@ public sealed class DynamicConfigPageTests
     var expectedError = UiLocalization.English.Format(
         UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsUpdateFailedReason,
         ("error", UiText.ExternalContent("test failure")));
-    Assert.Contains(Descendants<Label>(page), label => label.Text == expectedError);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == expectedError);
   }
 
   [Fact]
@@ -137,7 +136,7 @@ public sealed class DynamicConfigPageTests
 
     Assert.Equal(2, service.HistoryCalls);
     Assert.True(Find<Switch>(page, "dynamic-config-fediverse-global").IsToggled);
-    Assert.Contains(Descendants<Label>(page), label => label.Text?.Contains("fediverse: false → true", StringComparison.Ordinal) == true);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text?.Contains("fediverse: false → true", StringComparison.Ordinal) == true);
   }
 
   [Fact]
@@ -186,12 +185,12 @@ public sealed class DynamicConfigPageTests
     await service.SelectionStarted.Task.WaitAsync(token);
 
     Assert.True(viewModel.IsSelecting);
-    Assert.NotEmpty(Descendants<Entry>(page));
-    Assert.NotEmpty(Descendants<Switch>(page));
-    Assert.All(Descendants<Entry>(page), entry => Assert.False(entry.IsEnabled));
-    Assert.All(Descendants<Switch>(page), toggle => Assert.False(toggle.IsEnabled));
+    Assert.NotEmpty(VisualTreeElements.Descendants<Entry>(page));
+    Assert.NotEmpty(VisualTreeElements.Descendants<Switch>(page));
+    Assert.All(VisualTreeElements.Descendants<Entry>(page), entry => Assert.False(entry.IsEnabled));
+    Assert.All(VisualTreeElements.Descendants<Switch>(page), toggle => Assert.False(toggle.IsEnabled));
     Assert.All(
-        Descendants<Button>(page).Where(button =>
+        VisualTreeElements.Descendants<Button>(page).Where(button =>
             button.AutomationId?.EndsWith("-save", StringComparison.Ordinal) == true),
         button => Assert.False(button.IsEnabled));
 
@@ -239,16 +238,7 @@ public sealed class DynamicConfigPageTests
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {
@@ -352,7 +342,6 @@ public sealed class DynamicConfigPageTests
       return Task.CompletedTask;
     }
   }
-
 
   private sealed class ImmediateDispatcherProvider : IDispatcherProvider
   {

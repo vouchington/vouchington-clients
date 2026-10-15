@@ -1,6 +1,5 @@
 using System.Net.Http;
 using System.Reflection;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -33,7 +32,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var provider = new AvailableProvider();
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service);
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
     editor.Text = "Mutate once";
     Assert.False(await viewModel.TrySendAsync(editor.Text, TestContext.Current.CancellationToken));
     editor.Text = "Mutate once, edited";
@@ -65,7 +64,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service, sessionStore: session);
     await page.ApplyRouteAsync("conversation-1", "First");
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
     editor.Text = "Mutate once";
     Assert.False(await viewModel.TrySendAsync(editor.Text, TestContext.Current.CancellationToken));
     typeof(ChatConversationPage).GetMethod("OnAppearing", BindingFlags.Instance | BindingFlags.NonPublic,
@@ -109,7 +108,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var provider = new AvailableProvider();
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service);
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
     editor.Text = "Hello";
 
     typeof(ChatConversationPage).GetMethod("OnSendClicked", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -143,7 +142,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service);
     page.SetContext(initialMessage: "Hello");
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
 
     var initialSend = Assert.IsAssignableFrom<Task>(typeof(ChatConversationPage)
         .GetMethod("SendInitialMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -179,7 +178,7 @@ public sealed partial class ChatConversationPagePendingRetryTests
     var viewModel = new ChatConversationViewModel(service, new ProviderResolver(provider.Status), provider);
     var page = new ChatConversationPage(viewModel, service);
     page.SetContext(initialMessage: "Mutate once");
-    var editor = Assert.Single(Descendants<Editor>(page));
+    var editor = Assert.Single(VisualTreeElements.Descendants<Editor>(page));
 
     var initialSend = Assert.IsAssignableFrom<Task>(typeof(ChatConversationPage)
         .GetMethod("SendInitialMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -189,15 +188,6 @@ public sealed partial class ChatConversationPagePendingRetryTests
     Assert.True(string.IsNullOrEmpty(editor.Text));
     Assert.True(viewModel.PossibleToolSideEffect);
     Assert.Empty(service.Attempts);
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   private sealed class ProviderResolver(ChatProviderStatus status) : IChatProviderResolver

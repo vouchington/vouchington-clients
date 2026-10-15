@@ -70,17 +70,17 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
     Assert.Null(page.Slug);
     InvokeLifecycle(page, "OnAppearing");
-    Assert.Contains(Descendants<Label>(page), label =>
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label =>
         label.IsVisible && label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Channel: mcp");
 
     InvokeLifecycle(page, "OnDisappearing");
     session.SetCurrent(SessionSnapshot.Anonymous);
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Channel: mcp");
     InvokeLifecycle(page, "OnAppearing");
-    Assert.DoesNotContain(Descendants<Label>(page), label =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label =>
         label.IsVisible && label.Text?.Contains("internal-client-42", StringComparison.Ordinal) == true);
-    Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Channel: mcp");
   }
 
   [Fact]
@@ -106,11 +106,11 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     InvokeLifecycle(overview, "OnAppearing");
     InvokeLifecycle(postsPage, "OnAppearing");
 
-    var channel = Assert.Single(Descendants<Label>(overview), label =>
+    var channel = Assert.Single(VisualTreeElements.Descendants<Label>(overview), label =>
         label.AutomationId == "CommunitySectionStaffChannel");
-    var client = Assert.Single(Descendants<Label>(overview), label =>
+    var client = Assert.Single(VisualTreeElements.Descendants<Label>(overview), label =>
         label.AutomationId == "CommunitySectionStaffClient");
-    var verified = Assert.Single(Descendants<Label>(overview), label =>
+    var verified = Assert.Single(VisualTreeElements.Descendants<Label>(overview), label =>
         label.AutomationId == "CommunitySectionStaffVerification");
     Assert.True(channel.IsVisible);
     Assert.True(client.IsVisible);
@@ -118,7 +118,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     Assert.Contains("Fixture Agent", client.Text, StringComparison.Ordinal);
     Assert.Contains("internal-client-42", client.Text, StringComparison.Ordinal);
 
-    var rows = Assert.Single(Descendants<CollectionView>(postsPage), view =>
+    var rows = Assert.Single(VisualTreeElements.Descendants<CollectionView>(postsPage), view =>
         view.ItemsSource is IReadOnlyList<CommunitySummaryRow>);
     var staffPost = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CommunitySummaryRow>>(
         rows.ItemsSource), row => row.Id == "post-1");
@@ -157,7 +157,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await model.SearchAsync(TestContext.Current.CancellationToken);
     Assert.NotEmpty(model.Results);
     var page = new CommunityBrowsePage(model, session);
-    var collection = Assert.Single(Descendants<CollectionView>(page));
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
 
     InvokeLifecycle(page, "OnAppearing");
     var staffRow = Assert.Single(
@@ -193,7 +193,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         Fixture("entity-provenance.communities"), Fixture("entity-provenance.communities.staff"))));
     await model.SearchAsync(TestContext.Current.CancellationToken);
     var page = new CommunityBrowsePage(model, session);
-    var collection = Assert.Single(Descendants<CollectionView>(page));
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
     InvokeLifecycle(page, "OnAppearing");
     Assert.All(Assert.IsAssignableFrom<IReadOnlyList<CommunityBrowseRow>>(
         collection.ItemsSource), row => Assert.False(row.HasStaffChannel));
@@ -237,7 +237,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var session = new MutableStaffSessionStore();
     var page = new ListsPage(model, session);
     var binding = Assert.IsType<ListsPageBinding>(page.BindingContext);
-    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<ListSummaryRow>);
 
     binding.AttachSessionChanged();

@@ -1,4 +1,3 @@
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -28,12 +27,12 @@ public sealed class CopyrightNoticesPageTests
     Assert.Equal("Current public name", claimant.Text);
     claimant.SendClicked();
     Assert.Equal(NativeRoutePath.Entity("user", "user-1"), navigated);
-    Assert.DoesNotContain(Descendants<Button>(page), button => button.AutomationId == "copyright-claimant-case-2");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "copyright-claimant-case-2");
     Find<Button>(page, "copyright-load-more").SendClicked();
     page.OnUiLocaleChanged();
     Assert.Equal([null, "opaque/+?="], service.Cursors);
     Assert.NotNull(Find<Button>(page, "copyright-case-case-3"));
-    Assert.DoesNotContain(Descendants<Button>(page), button => button.AutomationId == "copyright-load-more");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "copyright-load-more");
   }
 
   [Fact]
@@ -70,13 +69,13 @@ public sealed class CopyrightNoticesPageTests
       var instant = model.Notices[0].AcceptedAt;
       var before = localization.Format(UiMessageKey.NativeCopyrightNoticesAcceptedDate,
           ("date", localization.FormatDateTime(instant, TimeZoneInfo.Local)));
-      Assert.Contains(Descendants<Label>(page), label => label.Text == before);
+      Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == before);
       locales.ApplySavedLocale("fr");
       var after = localization.Format(UiMessageKey.NativeCopyrightNoticesAcceptedDate,
           ("date", localization.FormatDateTime(instant, TimeZoneInfo.Local)));
       Assert.NotEqual(before, after);
-      Assert.Contains(Descendants<Label>(page), label => label.Text == after);
-      Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == before);
+      Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == after);
+      Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.Text == before);
     }
     finally
     {
@@ -115,15 +114,7 @@ public sealed class CopyrightNoticesPageTests
     foreach (var key in UiMessageKey.All) app.Resources[key.Value] = UiLocalization.English.Localize(key);
   }
   private static T Find<T>(Element root, string id) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
   private sealed class EnglishLanguages : IDeviceLanguageProvider
   {
     public IReadOnlyList<string> PreferredLanguages => ["en"];

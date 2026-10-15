@@ -39,7 +39,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         IsStaffViewer: true);
     typeof(ProfileViewModel).GetProperty(nameof(ProfileViewModel.TopicItems))!.SetValue(model, new[] { row });
     var page = new ProfilePage { BindingContext = model };
-    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<TopicRow>);
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
     card.BindingContext = row;

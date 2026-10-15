@@ -1,4 +1,3 @@
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -29,8 +28,8 @@ public sealed class StoryRelatedArticlesViewTests
 
     Assert.Equal(["preview-hidden", "preview-visible"], related.Items.Select(item => item.Id));
     Assert.Equal("1+ related articles", related.CountLabel);
-    Assert.DoesNotContain(Descendants<Label>(view), label => label.Text == hidden.Title);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "preview-visible");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(view), label => label.Text == hidden.Title);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "preview-visible");
 
     Find<Button>(view, "story-load-more").SendClicked();
     service.Completion.SetResult(new([Item("page-hidden") with { IsHidden = true }, Item("page-visible")], new(null, false, null)));
@@ -38,8 +37,8 @@ public sealed class StoryRelatedArticlesViewTests
 
     Assert.Equal(["preview-hidden", "preview-visible", "page-hidden", "page-visible"], related.Items.Select(item => item.Id));
     Assert.Equal("2 related articles", related.CountLabel);
-    Assert.DoesNotContain(Descendants<Label>(view), label => label.Text is "preview-hidden" or "page-hidden");
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "page-visible");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(view), label => label.Text is "preview-hidden" or "page-hidden");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "page-visible");
   }
 
   [Fact]
@@ -59,19 +58,19 @@ public sealed class StoryRelatedArticlesViewTests
     Assert.Equal("1+ related articles", toggle.Text);
     toggle.SendClicked();
     Assert.True(related.IsExpanded);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "peer-3");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "peer-3");
     Assert.Equal(0, service.StoryRequests);
-    Assert.Equal(180, Assert.Single(Descendants<Image>(view)).HeightRequest);
+    Assert.Equal(180, Assert.Single(VisualTreeElements.Descendants<Image>(view)).HeightRequest);
 
     loadMore.SendClicked();
     Assert.True(related.IsLoading);
     Assert.False(loadMore.IsEnabled);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "peer-3");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "peer-3");
     service.Completion.SetException(new HttpRequestException("Offline"));
     await Assert.IsAssignableFrom<Task>(pending);
     Assert.True(loadMore.IsEnabled);
     Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeCommonRetry), loadMore.Text);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "peer-3");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "peer-3");
 
     service.Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     loadMore.SendClicked();
@@ -80,7 +79,7 @@ public sealed class StoryRelatedArticlesViewTests
     Assert.Equal(["peer-3", "peer-2"], related.Items.Select(item => item.Id));
     Assert.Equal("2 related articles", toggle.Text);
     Assert.False(loadMore.IsVisible);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "peer-2");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "peer-2");
   }
 
   [Fact]
@@ -92,7 +91,7 @@ public sealed class StoryRelatedArticlesViewTests
     var view = new StoryRelatedArticlesView { PrimaryItem = primary, CanRelate = true };
     object? clicked = null;
     view.SaveRequested += (sender, _) => clicked = ((Button)sender!).CommandParameter;
-    var save = Assert.Single(Descendants<Button>(view), button => button.Text == peer.SaveActionLabel);
+    var save = Assert.Single(VisualTreeElements.Descendants<Button>(view), button => button.Text == peer.SaveActionLabel);
     save.SendClicked();
     Assert.Same(peer, clicked);
     Assert.Same(primary, view.PrimaryItem);
@@ -117,15 +116,7 @@ public sealed class StoryRelatedArticlesViewTests
   }
 
   private static NewsFeedItem Item(string id) => new(id, id, "Source", "Summary", null, DateTimeOffset.UnixEpoch);
-  private static T Find<T>(Element root, string id) where T : Element => Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+  private static T Find<T>(Element root, string id) where T : Element => Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
 
   private sealed class Service(NewsFeedItem primary) : INewsFeedService, IStoryRelatedArticlesService
   {

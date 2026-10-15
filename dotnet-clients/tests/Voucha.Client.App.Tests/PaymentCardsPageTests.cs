@@ -1,4 +1,3 @@
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,15 +32,15 @@ public sealed class PaymentCardsPageTests
 
     Assert.NotNull(Find<Entry>(page, "payment-cards-search-input"));
     Assert.NotNull(Find<Picker>(page, "payment-cards-parent-picker"));
-    Assert.Equal(3, Descendants<DatePicker>(page).Count());
+    Assert.Equal(3, VisualTreeElements.Descendants<DatePicker>(page).Count());
     Assert.Equal("Credit limit: USD\u00A00.00", Find<Label>(row, "payment-card-limit").Text);
     Assert.Equal("Travel card", Find<Label>(row, "payment-card-name").Text);
     Assert.StartsWith("Opened: ", Find<Label>(row, "payment-card-opened").Text);
     Assert.Equal("Note: Keep this memo", Find<Label>(row, "payment-card-note").Text);
     Assert.Equal("Authorized user, no parent card", Find<Label>(row, "payment-card-parent").Text);
-    var renderedText = Descendants<Label>(page).Concat(Descendants<Label>(row)).Select(label => label.Text);
+    var renderedText = VisualTreeElements.Descendants<Label>(page).Concat(VisualTreeElements.Descendants<Label>(row)).Select(label => label.Text);
     Assert.DoesNotContain(renderedText, text => text?.Contains(id, StringComparison.Ordinal) == true);
-    Assert.Empty(Descendants<WebView>(page));
+    Assert.Empty(VisualTreeElements.Descendants<WebView>(page));
   }
 
   [Fact]
@@ -177,7 +176,7 @@ public sealed class PaymentCardsPageTests
 
   private static Element CreateRow(PaymentCardsPage page, PaymentCardRow row)
   {
-    var host = Descendants<VerticalStackLayout>(page)
+    var host = VisualTreeElements.Descendants<VerticalStackLayout>(page)
         .Single(layout => BindableLayout.GetItemsSource(layout)?.Cast<object>().Any(item => item is PaymentCardRow) == true);
     var template = Assert.IsType<DataTemplate>(BindableLayout.GetItemTemplate(host));
     var content = Assert.IsAssignableFrom<Element>(template.CreateContent());
@@ -186,16 +185,7 @@ public sealed class PaymentCardsPageTests
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {

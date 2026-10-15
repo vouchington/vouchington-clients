@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App;
@@ -33,9 +32,9 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     _ = new Application();
     var client = Client("{}");
     var page = new CommunityBrowsePage(new CommunityBrowseViewModel(new ApiCommunitiesService(client)), new AnonymousSessionStore());
-    var collection = Assert.Single(Descendants<CollectionView>(page));
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
-    var label = Assert.Single(Descendants<Label>(card), label => label.AutomationId == "CommunityPublicProvenance");
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(card), label => label.AutomationId == "CommunityPublicProvenance");
     var trusted = new CommunityBrowseRow("community-1", "Community", "community", 0, 0, false,
         new PublicContentProvenance("mcp", new PublicProvenanceApp("verified", ClientName: "Fixture Agent")));
 
@@ -74,7 +73,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         localization: localization, localeController: controller);
     var page = new CommunityDetailPage(model, new AnonymousSessionStore());
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
-    var label = Assert.Single(Descendants<Label>(page), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(page), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     var english = label.Text;
 
@@ -105,7 +104,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
-    var label = Assert.Single(Descendants<Label>(page), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(page), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     var english = label.Text;
     Assert.True(label.IsVisible);
@@ -129,15 +128,15 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new ListsPage(model, new AnonymousSessionStore());
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var list = Assert.Single(model.Lists, row => row.Provenance?.App?.ClientName == "Fixture Agent");
-    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<ListSummaryRow>);
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
     card.BindingContext = list;
-    var cardLabel = Assert.Single(Descendants<Label>(card), label =>
+    var cardLabel = Assert.Single(VisualTreeElements.Descendants<Label>(card), label =>
         label.Text == list.LocalizedProvenanceLabel);
     Assert.True(cardLabel.IsVisible);
     Assert.NotNull(model.SelectedList);
-    var headerLabel = Assert.Single(Descendants<Label>(page), label =>
+    var headerLabel = Assert.Single(VisualTreeElements.Descendants<Label>(page), label =>
         label.Text == model.SelectedList.LocalizedProvenanceLabel);
     Assert.True(headerLabel.IsVisible);
     var english = headerLabel.Text;
@@ -160,12 +159,12 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new TopicsPage(model, new AnonymousSessionStore(), null!, null!, null!, client,
         Recovery(locale), null!, UiLocalization.English, null!, new AppConfig(new Uri("https://api.test")));
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<TopicPageRow>);
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
     card.BindingContext = Assert.Single(Assert.IsType<TopicsPageBinding>(page.BindingContext).Items,
         row => row.Topic.Provenance?.App?.ClientName == "Fixture Agent");
-    var label = Assert.Single(Descendants<Label>(card), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(card), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     Assert.Contains("Fixture Agent", label.Text, StringComparison.Ordinal);
@@ -192,7 +191,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new TopicDetailPage(model, new AnonymousSessionStore(), "topic-1-mcp",
         Recovery(controller), new AppConfig(new Uri("https://api.test")));
     await model.LoadAsync("topic-1-mcp", followSource: false, TestContext.Current.CancellationToken);
-    var label = Assert.Single(Descendants<Label>(page), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(page), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     var english = label.Text;
@@ -224,7 +223,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var topicLoaded = WaitUntilLoadedAsync(topicModel);
     Appear(topicPage);
     await topicLoaded;
-    var topicLabel = Assert.Single(Descendants<Label>(topicPage), item =>
+    var topicLabel = Assert.Single(VisualTreeElements.Descendants<Label>(topicPage), item =>
         item.Text?.Contains("Topic Agent", StringComparison.Ordinal) == true);
     Assert.True(topicLabel.IsVisible);
 
@@ -238,7 +237,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     Appear(sourcePage);
     await sourceLoaded;
 
-    var label = Assert.Single(Descendants<Label>(sourcePage), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(sourcePage), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     Assert.DoesNotContain("Topic Agent", label.Text, StringComparison.Ordinal);
@@ -257,13 +256,13 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new NewsFeedsPage(model, new AnonymousSessionStore(), null!,
         Recovery(locale));
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    var collection = Assert.Single(Descendants<CollectionView>(page), view =>
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
         view.ItemsSource is IReadOnlyList<NewsFeedItem>);
     var originalItems = model.Items;
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
     var verified = Assert.Single(model.Items, row => row.Provenance?.App?.ClientName == "Fixture Agent");
     card.BindingContext = verified;
-    var label = Assert.Single(Descendants<Label>(card), item =>
+    var label = Assert.Single(VisualTreeElements.Descendants<Label>(card), item =>
         item.Text?.Contains("Fixture Agent", StringComparison.Ordinal) == true);
     Assert.True(label.IsVisible);
     var englishLabel = label.Text;
@@ -298,9 +297,9 @@ public sealed partial class PublicEntityProvenanceRenderingTests
 
     var communities = new CommunityBrowsePage(
         new CommunityBrowseViewModel(new ApiCommunitiesService(Client("{}"))), new AnonymousSessionStore());
-    var communityCollection = Assert.Single(Descendants<CollectionView>(communities));
+    var communityCollection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(communities));
     var communityCard = Assert.IsType<VerticalStackLayout>(communityCollection.ItemTemplate.CreateContent());
-    var communityLabel = Assert.Single(Descendants<Label>(communityCard), label =>
+    var communityLabel = Assert.Single(VisualTreeElements.Descendants<Label>(communityCard), label =>
         label.AutomationId == "CommunityStaffChannel");
     var community = new CommunityBrowseRow("id", "Community", "community", 0, 0, false,
         StaffProvenance: facts, IsStaffViewer: true);
@@ -314,12 +313,12 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         Fixture("native.list-items.default")));
     var lists = new ListsPage(listsModel, new AnonymousSessionStore());
     await listsModel.LoadAsync(TestContext.Current.CancellationToken);
-    var listCollection = Assert.Single(Descendants<CollectionView>(lists), view =>
+    var listCollection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(lists), view =>
         view.ItemsSource is IReadOnlyList<ListSummaryRow>);
     var listCard = Assert.IsType<Border>(listCollection.ItemTemplate.CreateContent());
     var list = listsModel.Lists[0] with { StaffProvenance = facts, IsStaffViewer = true };
     listCard.BindingContext = list;
-    var listLabel = Assert.Single(Descendants<Label>(listCard), item =>
+    var listLabel = Assert.Single(VisualTreeElements.Descendants<Label>(listCard), item =>
         item.Text == list.StaffChannelLabel);
     Assert.True(listLabel.IsVisible);
     listCard.BindingContext = list with { IsStaffViewer = false };
@@ -332,13 +331,13 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var topics = new TopicsPage(topicsModel, new AnonymousSessionStore(), null!, null!, null!, topicClient,
         Recovery(locale), null!, UiLocalization.English, null!, new AppConfig(new Uri("https://api.test")));
     await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
-    var topicCollection = Assert.Single(Descendants<CollectionView>(topics), view =>
+    var topicCollection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(topics), view =>
         view.ItemsSource is IReadOnlyList<TopicPageRow>);
     var topicCard = Assert.IsType<Border>(topicCollection.ItemTemplate.CreateContent());
     var topic = TopicPageRow.Create(topicsModel.Items[0] with { StaffProvenance = facts, IsStaffViewer = true },
         new AppConfig(new Uri("https://api.test")));
     topicCard.BindingContext = topic;
-    var topicLabel = Assert.Single(Descendants<Label>(topicCard), item =>
+    var topicLabel = Assert.Single(VisualTreeElements.Descendants<Label>(topicCard), item =>
         item.Text == topic.StaffChannelLabel);
     Assert.True(topicLabel.IsVisible);
     topicCard.BindingContext = TopicPageRow.Create(topic.Topic with { IsStaffViewer = false },
@@ -350,13 +349,13 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         NewsFeedKind.News, NewsFeedScope.AllSources);
     var feeds = new NewsFeedsPage(feedsModel, new AnonymousSessionStore(), null!, Recovery(locale));
     await feedsModel.LoadAsync(TestContext.Current.CancellationToken);
-    var feedCollection = Assert.Single(Descendants<CollectionView>(feeds), view =>
+    var feedCollection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(feeds), view =>
         view.ItemsSource is IReadOnlyList<NewsFeedItem>);
     var feedCard = Assert.IsType<Border>(feedCollection.ItemTemplate.CreateContent());
     var source = feedsModel.Items.First(item => item.IsSource) with
     { StaffProvenance = facts, IsStaffViewer = true };
     feedCard.BindingContext = source;
-    var sourceLabel = Assert.Single(Descendants<Label>(feedCard), item =>
+    var sourceLabel = Assert.Single(VisualTreeElements.Descendants<Label>(feedCard), item =>
         item.Text == source.StaffChannelLabel);
     Assert.True(sourceLabel.IsVisible);
     feedCard.BindingContext = source with { IsStaffViewer = false };
@@ -393,15 +392,6 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     protected override object? Invoke(MethodInfo? method, object?[]? args) =>
         throw new NotSupportedException(method?.Name);
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   private static void Appear(TopicDetailPage page) =>

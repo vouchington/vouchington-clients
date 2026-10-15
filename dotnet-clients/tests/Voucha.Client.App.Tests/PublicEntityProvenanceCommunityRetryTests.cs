@@ -34,7 +34,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
     Assert.Equal(LoadState.Loaded, model.State);
     Assert.Null(page.Slug);
-    Assert.Single(Descendants<Entry>(page)).Text = "test-community";
+    Assert.Single(VisualTreeElements.Descendants<Entry>(page)).Text = "test-community";
     InvokeLifecycle(page, "OnAppearing");
     InvokeLifecycle(page, "OnDisappearing");
 

@@ -1,5 +1,4 @@
 using System.Collections;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Controls;
@@ -61,7 +60,7 @@ public sealed class ReviewQueuePageTests
     var errorViewModel = await LoadedAsync(new QueueService(new HttpRequestException("offline")));
     var errorPage = CreatePage(errorViewModel);
     Assert.True(Find<Border>(errorPage, "review-queue-error").IsVisible);
-    Assert.Contains(Descendants<Label>(errorPage), label => label.Text == "Could not load the review queue. Try again.");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(errorPage), label => label.Text == "Could not load the review queue. Try again.");
 
     var drainedViewModel = await LoadedAsync(new QueueService(Response([], new PageInfo("next", true, null))));
     var drainedPage = CreatePage(drainedViewModel);
@@ -250,20 +249,11 @@ public sealed class ReviewQueuePageTests
   {
     var control = Assert.IsType<HybridPaginationControl>(Find<CollectionView>(page, "review-queue-items").Footer);
     control.BindingContext = page.BindingContext;
-    return Assert.Single(Descendants<Button>(control));
+    return Assert.Single(VisualTreeElements.Descendants<Button>(control));
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static AdminReviewQueueResponse Response(
       IReadOnlyList<AdminReviewQueuePost> posts,
