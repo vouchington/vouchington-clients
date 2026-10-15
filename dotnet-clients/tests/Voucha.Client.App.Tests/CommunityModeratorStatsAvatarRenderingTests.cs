@@ -55,19 +55,26 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
     var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
         .GetField("rowsView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
         .GetValue(page));
-    var template = Assert.IsType<HorizontalStackLayout>(collection.ItemTemplate!.CreateContent());
+    var template = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
     template.BindingContext = stat;
     var avatar = Assert.Single(Descendants<Border>(template), border => border.AutomationId == "community-moderator-avatar");
     var image = Assert.Single(Descendants<Image>(avatar), candidate => candidate.AutomationId == "community-moderator-avatar-image");
 
     Assert.True(avatar.IsVisible);
+    Assert.IsType<Microsoft.Maui.Controls.Shapes.Ellipse>(avatar.StrokeShape);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
     Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    Assert.Equal(new GridLength(40), template.ColumnDefinitions[0].Width);
+    Assert.Equal(GridLength.Star, template.ColumnDefinitions[1].Width);
+    Assert.Equal(8d, template.ColumnSpacing);
     Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
 
     template.BindingContext = stat with { ProfileImagePlacement = null };
     Assert.False(avatar.IsVisible);
     Assert.Null(image.Source);
+    Assert.Equal(new GridLength(0), template.ColumnDefinitions[0].Width);
+    Assert.Equal(0d, template.ColumnSpacing);
   }
 
   private static string Fixture(string id)
