@@ -305,6 +305,27 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(compatible))
         }
 
+        func testNumberSiblingAdmitsOnlyNarrowerIntegerChoices() throws {
+            for keyword in ["anyOf", "oneOf"] {
+                let compatible = Data(#"{"type":"number","\#(keyword)":[{"type":"integer"}]}"#.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: compatible)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(7.5), schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(compatible))
+            }
+
+            let nullable = Data(
+                #"{"type":["number","null"],"anyOf":[{"type":"integer"},{"type":"null"}]}"#.utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(nullable))
+
+            let broader = Data(#"{"type":"integer","anyOf":[{"type":"number"}]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: broader)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(7.5), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(broader))
+        }
+
         func testProjectedArrayMaximumKeepsValidatorWorkBounded() throws {
             let branches: [[String: Any]] = Array(repeating: ["type": "string"], count: 16)
             let array: [String: Any] = [

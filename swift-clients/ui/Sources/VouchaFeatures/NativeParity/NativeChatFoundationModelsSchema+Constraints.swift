@@ -102,6 +102,25 @@ import Foundation
             return .init(type: String.self)
         }
 
+        private func branchFits(_ branchType: String, parentType: String) -> Bool {
+            branchType == parentType || (parentType == "number" && branchType == "integer")
+        }
+
+        private func validateChoiceSiblingTypes(_ choices: [[String: Any]], fields: [String: Any]) throws {
+            if let type = fields["type"] as? String {
+                guard choices.allSatisfy({ branch in
+                    guard let branchType = branch["type"] as? String else { return false }
+                    return branchFits(branchType, parentType: type)
+                }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            }
+            if let types = fields["type"] as? [String] {
+                guard choices.allSatisfy({ branch in
+                    guard let type = branch["type"] as? String else { return false }
+                    return types.contains { branchFits(type, parentType: $0) }
+                }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            }
+        }
+
         mutating func projectReferenceOrChoices(_ fields: [String: Any]) throws -> DynamicGenerationSchema? {
             if let path = fields["$ref"] as? String {
                 try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["$ref", "$defs"])
@@ -114,17 +133,7 @@ import Foundation
                     if key == "oneOf", !NativeChatFoundationModelsSchema.branchesAreDisjoint(choices) {
                         throw NativeChatFoundationModelsSchema.Failure.unsupported
                     }
-                    if let type = fields["type"] as? String {
-                        guard choices.allSatisfy({ $0["type"] as? String == type }) else {
-                            throw NativeChatFoundationModelsSchema.Failure.unsupported
-                        }
-                    }
-                    if let types = fields["type"] as? [String] {
-                        guard choices.allSatisfy({ branch in
-                            guard let type = branch["type"] as? String else { return false }
-                            return types.contains(type)
-                        }) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-                    }
+                    try validateChoiceSiblingTypes(choices, fields: fields)
                     return try .init(name: name(), anyOf: choices.map { try project($0) })
                 }
             }
