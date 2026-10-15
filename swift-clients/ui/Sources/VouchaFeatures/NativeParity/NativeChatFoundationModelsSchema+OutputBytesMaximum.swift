@@ -118,6 +118,7 @@ import Foundation
                     serializedBytes(NSNumber(value: maximum))
                 )
             }
+            if fields["type"] as? String == "boolean" { return 5 }
             return try minimumScalarBytes(fields)
         }
     }

@@ -9,6 +9,38 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsProjectionBudgetTests: XCTestCase {
+        func testMaximumBooleanOutputUsesFalseSerializationWidth() throws {
+            func schema(count: Int) throws -> Data {
+                try JSONSerialization.data(withJSONObject: [
+                    "type": "object", "required": ["rows"],
+                    "properties": ["rows": [
+                        "type": "array", "minItems": count, "maxItems": count,
+                        "items": [
+                            "type": "object", "required": ["a", "b", "c"],
+                            "properties": [
+                                "a": ["type": "boolean"],
+                                "b": ["type": "boolean"],
+                                "c": ["type": "boolean"]
+                            ]
+                        ]
+                    ]]
+                ])
+            }
+
+            let rows = Array(repeating: DecodedJSONValue.object([
+                "a": .bool(false), "b": .bool(false), "c": .bool(false)
+            ]), count: 38)
+            let arguments = DecodedJSONValue.object(["rows": .array(rows)])
+            let raw = try schema(count: 38)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(arguments, schema: authoritative))
+            let encoded = try JSONEncoder().encode(arguments)
+            XCTAssertGreaterThan(encoded.count, NativeChatFoundationModelsSchema.maximumSessionArgumentBytes)
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+            let bounded = try schema(count: 37)
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(bounded))
+        }
+
         func testDecimalGuideRequiresAtLeastOneJSONSerializableDouble() throws {
             let impossible = Data(#"{"type":"number","minimum":0.100000000000000005,"maximum":0.100000000000000005}"#
                 .utf8)
