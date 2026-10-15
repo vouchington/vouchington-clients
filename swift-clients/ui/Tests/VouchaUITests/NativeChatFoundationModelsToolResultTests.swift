@@ -11,6 +11,41 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsToolResultTests: XCTestCase {
+        func testFourCallArgumentBudgetRejectsBeforeThirdRpcAdmission() async throws {
+            let service = BridgeMCPService()
+            service.catalog = .object(["tools": .array([.object([
+                "name": .string("read_community"),
+                "inputSchema": .object([
+                    "type": .string("object"),
+                    "properties": .object(["payload": .object(["type": .string("string")])]),
+                    "required": .array([.string("payload")]),
+                    "additionalProperties": .bool(false)
+                ])
+            ])])])
+            let session = NativeChatMCPAgentSession(service: service)
+            await session.useAccount("member-a")
+            try await session.connect()
+            let snapshot = try XCTUnwrap(session.connectedSnapshot())
+            let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+            let descriptor = try XCTUnwrap(bridge.tools.first)
+            let state = NativeChatFoundationModelsToolState()
+            let tool = try NativeChatFoundationModelsTool(
+                name: descriptor.name, description: descriptor.description,
+                parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
+                bridge: bridge, session: session, snapshot: snapshot, state: state
+            )
+            let arguments = try GeneratedContent(json: #"{"payload":"\#(String(repeating: "x", count: 550))"}"#)
+            _ = try await tool.call(arguments: arguments)
+            _ = try await tool.call(arguments: arguments)
+            XCTAssertEqual(service.calls, 2)
+            do {
+                _ = try await tool.call(arguments: arguments)
+                XCTFail("A third large argument must fail before RPC admission")
+            } catch is LocalLLMToolLoopFailure {
+                XCTAssertEqual(service.calls, 2)
+            }
+        }
+
         func testLargeRpcResultIsBoundedAfterOneAdmittedCall() async throws {
             let service = BridgeMCPService()
             let result = #"{"content":[{"type":"text","text":""# + String(repeating: "x", count: 100_000)

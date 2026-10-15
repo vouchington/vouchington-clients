@@ -9,15 +9,21 @@ import VouchaCore
     final class NativeChatFoundationModelsToolState {
         private(set) var attempted = false
         private var callCount = 0
+        private var admittedArgumentBytes = 0
         private(set) var deliveredResultBytes = 0
         static let maximumSessionResultBytes = 1_200
+        static let maximumSessionArgumentBytes = 1_200
 
-        func checkCapacity() throws {
-            guard callCount < 4 else { throw LocalLLMToolLoopFailure.partialExecution }
+        func checkCapacity(argumentBytes: Int = 0) throws {
+            guard callCount < 4,
+                  argumentBytes <= Self.maximumSessionArgumentBytes - admittedArgumentBytes else {
+                throw LocalLLMToolLoopFailure.partialExecution
+            }
         }
 
-        func markStarted() {
+        func markStarted(argumentBytes: Int = 0) {
             callCount += 1
+            admittedArgumentBytes += argumentBytes
             attempted = true
         }
 
@@ -51,8 +57,8 @@ import VouchaCore
             let result = try await bridge.execute(
                 name: name, rawArguments: raw, session: session,
                 accountId: snapshot.accountId, revision: snapshot.revision,
-                beforeAdmission: { try state.checkCapacity() },
-                onStarted: { state.markStarted() }
+                beforeAdmission: { try state.checkCapacity(argumentBytes: raw.utf8.count) },
+                onStarted: { state.markStarted(argumentBytes: raw.utf8.count) }
             )
             return await state.boundedResult(result)
         }

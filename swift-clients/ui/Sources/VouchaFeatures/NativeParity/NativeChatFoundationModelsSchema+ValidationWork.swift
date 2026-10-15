@@ -32,8 +32,8 @@ import Foundation
                     }
                 }
             }
-            if let properties = fields["properties"] as? [String: [String: Any]] {
-                for property in properties.values {
+            if fields["maxProperties"] as? Int != 0 {
+                for property in projectedObjectProperties(fields).values {
                     let child = try projectedValidationWork(
                         property, definitions: definitions, activeReferences: activeReferences, depth: depth + 1
                     )

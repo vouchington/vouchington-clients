@@ -62,7 +62,8 @@ import VouchaModels
                     }
                     pending.append(String(path.dropFirst(8)))
                 }
-                if let properties = fields["properties"] as? [String: Any] {
+                if fields["maxProperties"] as? Int != 0,
+                   let properties = fields["properties"] as? [String: Any] {
                     for child in properties.values {
                         try collectReferences(in: child, into: &pending, depth: depth + 1)
                     }

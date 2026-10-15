@@ -373,7 +373,7 @@ private extension NativeChatViewModelLocalGenerationTests {
     )
 }
 
-private final class CapturingLocalPersistenceDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
+final class CapturingLocalPersistenceDraftProvider: NativeChatTitleProviding, @unchecked Sendable {
     let status: NativeChatTitleProviderStatus
     let response: String?
     private(set) var capturedHistory: [NativeChatTimelineMessage] = []

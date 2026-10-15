@@ -82,7 +82,7 @@ import Foundation
         private func maximumObjectBytes(
             _ fields: [String: Any], definitions: [String: [String: Any]], activeReferences: Set<String>
         ) throws -> Int {
-            let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
+            let properties = projectedObjectProperties(fields)
             var total = 2
             for (key, property) in properties {
                 let keyBytes = try serializedBytes(key)

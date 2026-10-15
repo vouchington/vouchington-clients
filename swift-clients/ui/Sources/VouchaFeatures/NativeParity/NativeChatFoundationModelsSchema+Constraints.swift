@@ -6,7 +6,10 @@ import Foundation
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema {
         static func validateConstant(_ fields: [String: Any]) throws {
-            if let constant = fields["const"], !(constant is String) { throw Failure.unsupported }
+            if let constant = fields["const"], !(constant is String),
+               !(fields["type"] as? String == "null" && constant is NSNull) {
+                throw Failure.unsupported
+            }
         }
 
         static func validateStringConstraints(_ fields: [String: Any]) throws {
@@ -138,6 +141,11 @@ import Foundation
                   (fields["maxProperties"] as? Int ?? propertyCount) >= propertyCount else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
+        }
+
+        func projectedObjectProperties(_ fields: [String: Any]) -> [String: [String: Any]] {
+            guard fields["maxProperties"] as? Int != 0 else { return [:] }
+            return fields["properties"] as? [String: [String: Any]] ?? [:]
         }
 
         func projectInteger(_ fields: [String: Any]) throws -> DynamicGenerationSchema {

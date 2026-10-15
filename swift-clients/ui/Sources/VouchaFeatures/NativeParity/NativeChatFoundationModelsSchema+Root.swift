@@ -6,7 +6,10 @@ import Foundation
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema.Projection {
         func projectNull(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
-            try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "enum", "$defs"])
+            try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "enum", "const", "$defs"])
+            if let constant = fields["const"], !(constant is NSNull) {
+                throw NativeChatFoundationModelsSchema.Failure.unsupported
+            }
             if let values = fields["enum"] {
                 guard let choices = values as? [Any], !choices.isEmpty,
                       choices.allSatisfy({ $0 is NSNull }) else {
@@ -64,7 +67,7 @@ import Foundation
             try reachable.sorted().map { key in
                 guard let value = definitions[key] else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 try NativeChatFoundationModelsSchema.validateStringConstraints(value)
-                if let properties = value["properties"] as? [String: [String: Any]] {
+                if value["properties"] is [String: [String: Any]] {
                     guard value["type"] == nil || value["type"] as? String == "object" else {
                         throw NativeChatFoundationModelsSchema.Failure.unsupported
                     }
@@ -78,8 +81,9 @@ import Foundation
                             "maxProperties"
                         ]
                     )
-                    guard value["additionalProperties"] == nil || value["additionalProperties"] as? Bool == false
+                    guard value["additionalProperties"] == nil || value["additionalProperties"] is Bool
                     else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                    let properties = projectedObjectProperties(value)
                     let required = Set(value["required"] as? [String] ?? [])
                     guard required.isSubset(of: properties.keys) else {
                         throw NativeChatFoundationModelsSchema.Failure.unsupported

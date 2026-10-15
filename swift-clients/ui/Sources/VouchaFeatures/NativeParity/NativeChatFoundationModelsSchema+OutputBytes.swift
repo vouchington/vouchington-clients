@@ -111,6 +111,12 @@ import Foundation
 
         func minimumScalarBytes(_ fields: [String: Any]) throws -> Int {
             if let value = fields["const"] as? String { return try serializedBytes(value) }
+            if let minimum = fields["minimum"] as? NSNumber,
+               let maximum = fields["maximum"] as? NSNumber,
+               minimum.decimalValue == maximum.decimalValue,
+               ["integer", "number"].contains(fields["type"] as? String ?? "") {
+                return try serializedBytes(minimum)
+            }
             if let values = fields["enum"] as? [Any] {
                 let projectable: [Any] = fields["type"] as? String == "string"
                     ? values.compactMap { $0 as? String }

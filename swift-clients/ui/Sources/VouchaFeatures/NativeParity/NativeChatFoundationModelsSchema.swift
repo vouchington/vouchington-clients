@@ -116,7 +116,7 @@ import VouchaCore
                 guard fields["additionalProperties"] == nil || fields["additionalProperties"] is Bool else {
                     throw Failure.unsupported
                 }
-                let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
+                let properties = projectedObjectProperties(fields)
                 let required = Set(fields["required"] as? [String] ?? [])
                 guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
                 try validateObjectBounds(fields, requiredCount: required.count, propertyCount: properties.count)

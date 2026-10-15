@@ -72,9 +72,7 @@ extension NativeChatViewModel {
             failLocalGeneration(
                 context: context,
                 assistantMessageId: assistantMessageId,
-                message: mcpSnapshot == nil
-                    ? provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
-                    : .message(.nativeSwiftChatOnDeviceUnavailable)
+                message: provider.status.detail ?? .message(.nativeSwiftChatOnDeviceUnavailable)
             )
             return
         }
