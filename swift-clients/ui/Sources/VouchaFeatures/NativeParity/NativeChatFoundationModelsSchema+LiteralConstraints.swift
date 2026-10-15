@@ -31,8 +31,8 @@ import VouchaModels
             let values: [String]
             if let constant = fields["const"] as? String {
                 values = [constant]
-            } else if let candidates = fields["enum"] as? [String] {
-                values = candidates
+            } else if let candidates = fields["enum"] as? [Any] {
+                values = candidates.compactMap { $0 as? String }
             } else { throw Failure.unsupported }
             guard !values.isEmpty,
                   let data = try? JSONSerialization.data(withJSONObject: fields),

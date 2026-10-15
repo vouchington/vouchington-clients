@@ -95,6 +95,8 @@ import XCTest
         func testFixedStringsSatisfyingSupportedUpperPatternAndFormatConstraintsProject() throws {
             let accepted: [(String, String)] = [
                 (#"{"type":"string","enum":["ok"],"maxLength":2}"#, "ok"),
+                (#"{"type":"string","enum":["ok",null],"maxLength":2}"#, "ok"),
+                (#"{"enum":["ok",null],"maxLength":2}"#, "ok"),
                 (#"{"type":"string","const":"e\u0301","maxLength":2}"#, "e\u{301}"),
                 (#"{"enum":["ok"],"maxLength":2}"#, "ok"),
                 (#"{"type":"string","enum":["member_1"],"pattern":"^[a-z][a-z0-9_]{0,99}$"}"#, "member_1"),
@@ -120,6 +122,8 @@ import XCTest
             let rejected: [(String, String)] = [
                 (#"{"type":"string","enum":["e\u0301"],"maxLength":1}"#, "e\u{301}"),
                 (#"{"type":"string","enum":["ok","long"],"maxLength":2}"#, "long"),
+                (#"{"type":"string","enum":["ok","long",null],"maxLength":2}"#, "long"),
+                (#"{"type":"string","enum":[null],"maxLength":2}"#, "anything"),
                 (#"{"type":"string","const":"TooLong","pattern":"^[a-z][a-z0-9_]{0,99}$"}"#, "TooLong"),
                 (#"{"type":"string","enum":["not-a-uuid"],"format":"uuid"}"#, "not-a-uuid")
             ]
@@ -143,7 +147,7 @@ import XCTest
             }
 
             let referenced = Data(
-                ##"{"type":"object","$defs":{"Code":{"type":"string","enum":["ok"],"maxLength":2}},"properties":{"value":{"$ref":"#/$defs/Code"}}}"##
+                ##"{"type":"object","$defs":{"Code":{"type":"string","enum":["ok",null],"maxLength":2}},"properties":{"value":{"$ref":"#/$defs/Code"}}}"##
                     .utf8
             )
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(referenced))
