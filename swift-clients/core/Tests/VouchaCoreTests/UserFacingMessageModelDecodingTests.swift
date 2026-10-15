@@ -33,6 +33,11 @@ final class UserFacingMessageModelDecodingTests: XCTestCase {
         )
         XCTAssertEqual(participants.results.first?.username, "fixtureuser")
         XCTAssertEqual(participants.results.last?.profileImageId, "00000000-0000-7000-8000-000000000211")
+        XCTAssertEqual(
+            participants.results.last?.profileImagePlacement?.placementId,
+            "00000000-0000-7000-8000-000000000311"
+        )
+        XCTAssertEqual(participants.results.last?.profileImagePlacement?.placementRevision, 3)
 
         let send = try decoder.decode(
             DirectMessageResponse.self,

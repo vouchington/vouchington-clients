@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -8,6 +9,15 @@ extension DirectMessagesSurface {
         DisclosureGroup(UiMessages.string(.nativeSwiftDirectMessagesParticipants, locale: nativeUiLocale)) {
             ForEach(viewModel.participants, id: \.id) { participant in
                 HStack {
+                    Avatar(
+                        imageURL: AppConfig(
+                            baseURL: viewModel.client.baseURL,
+                            imageBaseURL: viewModel.client.imageBaseURL
+                        ).imageURL(for: participant.profileImagePlacement, width: 96),
+                        username: participant.username ?? participant.id
+                    )
+                    .accessibilityHidden(true)
+                    .accessibilityIdentifier("direct-message-participant-avatar")
                     VStack(alignment: .leading) {
                         Text(verbatim: UiMessages.string(
                             participant.username.map { .verbatim("@\($0)") }
