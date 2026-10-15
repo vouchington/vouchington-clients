@@ -5,6 +5,17 @@ import Foundation
 
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema.Projection {
+        func projectNull(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
+            try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "enum", "$defs"])
+            if let values = fields["enum"] {
+                guard let choices = values as? [Any], !choices.isEmpty,
+                      choices.allSatisfy({ $0 is NSNull }) else {
+                    throw NativeChatFoundationModelsSchema.Failure.unsupported
+                }
+            }
+            return .null
+        }
+
         func validateRootObjectAlternatives(
             _ fields: [String: Any], definitions: [String: [String: Any]]
         ) throws {

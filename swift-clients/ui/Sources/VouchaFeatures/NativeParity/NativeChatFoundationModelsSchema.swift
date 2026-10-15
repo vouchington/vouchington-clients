@@ -92,9 +92,7 @@ import VouchaCore
                 case "boolean":
                     try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "$defs"])
                     return .init(type: Bool.self)
-                case "null":
-                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "$defs"])
-                    return .null
+                case "null": return try projectNull(fields)
                 default: throw Failure.unsupported
                 }
             }

@@ -95,6 +95,22 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(#"{"minimum":1}"#.utf8)))
         }
 
+        func testTypedNullEnumProjectsOnlyItsAcceptedValue() throws {
+            let valid = Data(#"{"type":"null","enum":[null]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: valid)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(valid))
+
+            for raw in [
+                #"{"type":"null","enum":[]}"#,
+                #"{"type":"null","enum":["other"]}"#,
+                #"{"type":"null","enum":[null,"other"]}"#
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)))
+            }
+        }
+
         func testUnconstrainedRootArgumentsStillGenerateAnObject() throws {
             for raw in [
                 #"{}"#,
