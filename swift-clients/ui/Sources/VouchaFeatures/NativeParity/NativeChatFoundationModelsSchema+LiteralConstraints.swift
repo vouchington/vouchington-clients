@@ -1,4 +1,5 @@
 import Foundation
+import VouchaModels
 
 #if canImport(FoundationModels)
     import FoundationModels
@@ -14,30 +15,32 @@ import Foundation
         }
 
         static func validateStringConstraints(_ fields: [String: Any]) throws {
+            var requiresFiniteDomain = ["maxLength", "pattern", "format"].contains { fields[$0] != nil }
             if let minimum = fields["minLength"] {
                 guard let number = minimum as? NSNumber,
                       CFGetTypeID(number) != CFBooleanGetTypeID(),
                       let length = Int(exactly: number.doubleValue), length >= 0 else {
                     throw Failure.unsupported
                 }
-                if length > 0 {
-                    guard fields["type"] == nil || fields["type"] as? String == "string" else {
-                        throw Failure.unsupported
-                    }
-                    let values: [String]
-                    if let constant = fields["const"] as? String {
-                        values = [constant]
-                    } else if let candidates = fields["enum"] as? [String] {
-                        values = candidates
-                    } else { throw Failure.unsupported }
-                    guard !values.isEmpty, values.allSatisfy({ $0.unicodeScalars.count >= length }) else {
-                        throw Failure.unsupported
-                    }
-                }
+                requiresFiniteDomain = requiresFiniteDomain || length > 0
             }
-            if ["maxLength", "pattern", "format"].contains(where: { fields[$0] != nil }) {
+            guard requiresFiniteDomain else { return }
+            guard fields["type"] == nil || fields["type"] as? String == "string" else {
                 throw Failure.unsupported
             }
+            let values: [String]
+            if let constant = fields["const"] as? String {
+                values = [constant]
+            } else if let candidates = fields["enum"] as? [String] {
+                values = candidates
+            } else { throw Failure.unsupported }
+            guard !values.isEmpty,
+                  let data = try? JSONSerialization.data(withJSONObject: fields),
+                  let schema = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
+                  (try? NativeChatMCPInputSchema.validateSchema(schema)) != nil,
+                  (try? values.allSatisfy({ try NativeChatMCPInputSchema.accepts(.string($0), schema: schema) })) ==
+                  true
+            else { throw Failure.unsupported }
         }
 
         static func safeIntegerConstant(_ constant: Any) throws -> Decimal {

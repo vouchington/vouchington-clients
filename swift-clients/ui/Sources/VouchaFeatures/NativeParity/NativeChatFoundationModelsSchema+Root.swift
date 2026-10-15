@@ -107,7 +107,7 @@ import Foundation
                     }
                     try NativeChatFoundationModelsSchema.validateKeywords(
                         value,
-                        allowing: ["type", "enum", "minLength"]
+                        allowing: ["type", "enum", "minLength", "maxLength", "pattern", "format"]
                     )
                     return .init(name: key, anyOf: values)
                 }

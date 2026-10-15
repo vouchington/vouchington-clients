@@ -67,7 +67,9 @@ import VouchaCore
                     return try projectTypeUnion(fields, types: types)
                 }
                 if fields["type"] == nil, let values = fields["enum"] as? [Any] {
-                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["enum", "$defs"])
+                    try NativeChatFoundationModelsSchema.validateKeywords(
+                        fields, allowing: ["enum", "minLength", "maxLength", "pattern", "format", "$defs"]
+                    )
                     let strings = values.compactMap { $0 as? String }
                     let hasNull = values.contains { $0 is NSNull }
                     guard strings.count + (hasNull ? 1 : 0) == values.count else { throw Failure.unsupported }
@@ -94,7 +96,7 @@ import VouchaCore
                 case "string":
                     try NativeChatFoundationModelsSchema.validateKeywords(
                         fields,
-                        allowing: ["type", "enum", "const", "minLength", "$defs"]
+                        allowing: ["type", "enum", "const", "minLength", "maxLength", "pattern", "format", "$defs"]
                     )
                     guard fields["enum"] == nil || fields["const"] == nil else { throw Failure.unsupported }
                     return try projectString(fields)

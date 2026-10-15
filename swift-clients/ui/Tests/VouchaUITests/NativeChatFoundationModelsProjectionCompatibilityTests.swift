@@ -91,5 +91,62 @@ import XCTest
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(invalid.utf8)))
             }
         }
+
+        func testFixedStringsSatisfyingSupportedUpperPatternAndFormatConstraintsProject() throws {
+            let accepted: [(String, String)] = [
+                (#"{"type":"string","enum":["ok"],"maxLength":2}"#, "ok"),
+                (#"{"type":"string","const":"e\u0301","maxLength":2}"#, "e\u{301}"),
+                (#"{"enum":["ok"],"maxLength":2}"#, "ok"),
+                (#"{"type":"string","enum":["member_1"],"pattern":"^[a-z][a-z0-9_]{0,99}$"}"#, "member_1"),
+                (
+                    #"{"type":"string","const":"00000000-0000-7000-8000-000000000001","format":"uuid"}"#,
+                    "00000000-0000-7000-8000-000000000001"
+                ),
+                (
+                    #"{"type":"string","enum":["https://example.test/path"],"format":"uri"}"#,
+                    "https://example.test/path"
+                )
+            ]
+            for (property, value) in accepted {
+                let raw = Data(#"{"type":"object","properties":{"value":\#(property)}}"#.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+                try NativeChatMCPInputSchema.validateSchema(authoritative)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                    .object(["value": .string(value)]), schema: authoritative
+                ))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            }
+
+            let rejected: [(String, String)] = [
+                (#"{"type":"string","enum":["e\u0301"],"maxLength":1}"#, "e\u{301}"),
+                (#"{"type":"string","enum":["ok","long"],"maxLength":2}"#, "long"),
+                (#"{"type":"string","const":"TooLong","pattern":"^[a-z][a-z0-9_]{0,99}$"}"#, "TooLong"),
+                (#"{"type":"string","enum":["not-a-uuid"],"format":"uuid"}"#, "not-a-uuid")
+            ]
+            for (property, value) in rejected {
+                let raw = Data(#"{"type":"object","properties":{"value":\#(property)}}"#.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+                try NativeChatMCPInputSchema.validateSchema(authoritative)
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .object(["value": .string(value)]), schema: authoritative
+                ))
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+            }
+
+            for property in [
+                #"{"type":"string","maxLength":2}"#,
+                #"{"type":"string","const":"ok","pattern":"^ok$"}"#,
+                #"{"type":"string","const":"ok","format":"email"}"#
+            ] {
+                let raw = Data(#"{"type":"object","properties":{"value":\#(property)}}"#.utf8)
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+            }
+
+            let referenced = Data(
+                ##"{"type":"object","$defs":{"Code":{"type":"string","enum":["ok"],"maxLength":2}},"properties":{"value":{"$ref":"#/$defs/Code"}}}"##
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(referenced))
+        }
     }
 #endif
