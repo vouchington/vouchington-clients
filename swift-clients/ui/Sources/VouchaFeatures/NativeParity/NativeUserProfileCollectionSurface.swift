@@ -5,6 +5,11 @@ import VouchaLocalization
 import VouchaModels
 
 extension NativeUserProfileSurface {
+    private var topicImageConfig: AppConfig {
+        guard let client = viewModel.client else { return .shared }
+        return AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+    }
+
     @ViewBuilder
     var scopedCollection: some View {
         switch viewModel.state {
@@ -77,7 +82,11 @@ extension NativeUserProfileSurface {
         case let .topics(topics):
             ForEach(topics) { topic in
                 Button { onNavigate(NativeUserProfileNavigationTarget.topic(topic)) } label: {
-                    NativeUserProfileTopicRow(topic: topic, isStaffViewer: isStaffViewer)
+                    NativeUserProfileTopicRow(
+                        topic: topic,
+                        isStaffViewer: isStaffViewer,
+                        imageConfig: topicImageConfig
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-topic-row")
@@ -105,10 +114,26 @@ extension NativeUserProfileSurface {
 private struct NativeUserProfileTopicRow: View {
     let topic: Topic
     let isStaffViewer: Bool
+    let imageConfig: AppConfig
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "tag")
+            if let logoURL = imageConfig.imageURL(for: topic.logoImagePlacement, width: 80),
+               let url = URL(string: logoURL) {
+                AsyncImageView(
+                    urlString: url.absoluteString,
+                    baseURL: imageConfig.imageBaseURL,
+                    contentMode: .fill
+                )
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .accessibilityHidden(true)
+                .accessibilityIdentifier("public-profile-topic-logo")
+            } else {
+                Image(systemName: "tag")
+                    .frame(width: 40, height: 40)
+                    .accessibilityHidden(true)
+            }
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(topic.name).font(Typography.subheadline).fontWeight(.semibold)
                 ProvenanceBadge(

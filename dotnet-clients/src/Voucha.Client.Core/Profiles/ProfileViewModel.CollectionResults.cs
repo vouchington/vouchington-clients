@@ -89,6 +89,7 @@ public sealed partial class ProfileViewModel
       UiTaxonomy.TopicType(topic.TopicType),
       topic.Markdown,
       Localization: localization,
+      LogoImagePlacement: topic.LogoImagePlacement,
       Provenance: topic.Provenance,
       StaffProvenance: topic.StaffProvenance,
       IsStaffViewer: currentViewerIsStaff);

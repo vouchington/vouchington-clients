@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
+using Voucha.Client.App.Support;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
@@ -22,6 +23,8 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
+    Application.Current!.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
     using var controller = new UiLocaleController(new EnglishDeviceLanguage());
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);

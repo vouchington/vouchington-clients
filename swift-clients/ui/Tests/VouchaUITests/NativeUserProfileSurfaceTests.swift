@@ -391,10 +391,15 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
         for (path, identifier) in cases {
             let loadedSurface = try await surface(for: path)
-            XCTAssertNoThrow(
-                try loadedSurface.inspect().find(viewWithAccessibilityIdentifier: identifier),
-                path
-            )
+            do {
+                _ = try loadedSurface.inspect().find(viewWithAccessibilityIdentifier: identifier)
+            } catch {
+                XCTFail("\(path) did not render \(identifier): \(error)")
+            }
+            if path == "/user/alice/topics/following" {
+                XCTAssertNoThrow(try loadedSurface.inspect()
+                    .find(viewWithAccessibilityIdentifier: "public-profile-topic-logo"))
+            }
         }
     }
 
