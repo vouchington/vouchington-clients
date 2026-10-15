@@ -151,13 +151,15 @@ import XCTest
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(2), schema: authoritative))
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(3), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(4), schema: authoritative))
-            let projected = try NativeChatFoundationModelsSchema.project(raw)
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
             let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
                 with: JSONEncoder().encode(projected)
             ) as? [String: Any])
-            XCTAssertEqual(encoded["minimum"] as? Int, 2)
-            XCTAssertEqual(encoded["maximum"] as? Int, 3)
-            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let value = try XCTUnwrap(properties["value"] as? [String: Any])
+            XCTAssertEqual(value["minimum"] as? Int, 2)
+            XCTAssertEqual(value["maximum"] as? Int, 3)
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
                 #"{"type":"integer","minimum":1.5,"maximum":1.5}"#.utf8
             )))
         }
@@ -193,14 +195,19 @@ import XCTest
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("active"), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
-            let projected = try NativeChatFoundationModelsSchema.project(raw)
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
             let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
                 with: JSONEncoder().encode(projected)
             ) as? [String: Any])
-            let choices = try XCTUnwrap(encoded["anyOf"] as? [[String: Any]])
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let value = try XCTUnwrap(properties["value"] as? [String: Any])
+            let reference = try XCTUnwrap(value["$ref"] as? String)
+            let definitions = try XCTUnwrap(encoded["$defs"] as? [String: [String: Any]])
+            let choice = try XCTUnwrap(definitions[String(reference.dropFirst(8))])
+            let choices = try XCTUnwrap(choice["anyOf"] as? [[String: Any]])
             XCTAssertEqual(choices.count, 1)
             XCTAssertEqual(choices[0]["enum"] as? [String], ["active"])
-            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
                 #"{"type":"string","enum":[null,7]}"#.utf8
             )))
         }

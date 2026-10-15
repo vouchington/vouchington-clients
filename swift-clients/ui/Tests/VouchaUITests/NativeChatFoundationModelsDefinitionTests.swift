@@ -70,7 +70,7 @@ import XCTest
             let raw = Data(##"{"type":"number","minimum":-9007199254740992,"maximum":9007199254740992}"##.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(0), schema: authoritative))
-            let projected = try NativeChatFoundationModelsSchema.project(raw)
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
             let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(projected), encoding: .utf8))
             XCTAssertTrue(encoded.contains("9007199254740991"))
             XCTAssertFalse(encoded.contains("9007199254740992"))

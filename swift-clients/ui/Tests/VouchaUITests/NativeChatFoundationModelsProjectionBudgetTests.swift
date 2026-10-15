@@ -16,10 +16,10 @@ import XCTest
             let exact = try XCTUnwrap(Decimal(string: "0.100000000000000005"))
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(exact), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(0.1), schema: authoritative))
-            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(impossible))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(impossible))
 
             let possible = Data(#"{"type":"number","minimum":0.1,"maximum":0.10000000000000001}"#.utf8)
-            let projected = try NativeChatFoundationModelsSchema.project(possible)
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(possible)
             let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(projected), encoding: .utf8))
             XCTAssertTrue(encoded.contains("0.1"))
             XCTAssertFalse(encoded.contains("0.100000000000000005"))
@@ -27,14 +27,14 @@ import XCTest
 
         func testArrayMinimumMustFitBoundedModelSession() throws {
             let excessive = Data(#"{"type":"array","items":{"type":"null"},"minItems":10000}"#.utf8)
-            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(excessive))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(excessive))
             let allowed = Data(#"{"type":"array","items":{"type":"null"},"minItems":64,"maxItems":10000}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: allowed)
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
                 .array(Array(repeating: .null, count: 64)),
                 schema: authoritative
             ))
-            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(allowed))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(allowed))
         }
 
         func testGeneratedNodeNameSkipsReachableDefinitionName() throws {
@@ -77,7 +77,7 @@ import XCTest
             let nullSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: nullOnly)
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: nullSchema))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: nullSchema))
-            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(nullOnly))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(nullOnly))
 
             let annotationOnly = Data(
                 #"{"description":"Arbitrary JSON payload","default":{"ok":true},"examples":[null,{"ok":true}]}"#.utf8
@@ -158,7 +158,64 @@ import XCTest
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([]), schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array([.null]), schema: authoritative))
-            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+        }
+
+        func testRootChoiceCannotGenerateScalarToolArguments() throws {
+            for raw in [
+                #"{"anyOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"string"}]}"#,
+                #"{"oneOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"string"}]}"#,
+                #"{"type":["object","string"]}"#
+            ] {
+                let schema = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("scalar"), schema: authoritative))
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+            }
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"anyOf":[{"type":"object","properties":{"id":{"type":"string"}}},{"type":"object","properties":{"name":{"type":"string"}}}]}"#
+                    .utf8
+            )))
+            for raw in [
+                #"{"type":"string"}"#,
+                #"{"enum":["one","two"]}"#,
+                ##"{"$ref":"#/$defs/Value","$defs":{"Value":{"type":"string"}}}"##
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(raw.utf8)))
+            }
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                ##"{"$ref":"#/$defs/Args","$defs":{"Args":{"type":"object","properties":{"id":{"type":"string"}}}}}"##
+                    .utf8
+            )))
+        }
+
+        func testTypedStringEnumBudgetIgnoresIncompatibleShortNumericMember() throws {
+            let long = String(repeating: "x", count: 1_000)
+            let item: [String: Any] = ["type": "string", "enum": [long, 0]]
+            let schema: [String: Any] = [
+                "type": "object", "required": ["items"],
+                "properties": ["items": ["type": "array", "minItems": 64, "items": item]]
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: schema)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                "items": .array(Array(repeating: .string(long), count: 64))
+            ]), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
+                "items": .array(Array(repeating: .integer(0), count: 64))
+            ]), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+        }
+    }
+
+    @available(macOS 26.4, iOS 26.4, *)
+    extension NativeChatFoundationModelsSchema {
+        static func projectWithProperty(_ data: Data) throws -> GenerationSchema {
+            let property = try JSONSerialization.jsonObject(with: data)
+            let wrapper: [String: Any] = [
+                "type": "object", "properties": ["value": property], "required": ["value"]
+            ]
+            return try project(JSONSerialization.data(withJSONObject: wrapper))
         }
     }
 #endif

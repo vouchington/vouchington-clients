@@ -5,6 +5,41 @@ import Foundation
 
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema.Projection {
+        func validateRootObjectAlternatives(
+            _ fields: [String: Any], definitions: [String: [String: Any]]
+        ) throws {
+            guard rootIsObjectShaped(fields, definitions: definitions, activeReferences: []) else {
+                throw NativeChatFoundationModelsSchema.Failure.unsupported
+            }
+        }
+
+        private func rootIsObjectShaped(
+            _ fields: [String: Any], definitions: [String: [String: Any]], activeReferences: Set<String>
+        ) -> Bool {
+            if let path = fields["$ref"] as? String {
+                guard path.hasPrefix("#/$defs/") else { return false }
+                let key = String(path.dropFirst(8))
+                guard let target = definitions[key], !activeReferences.contains(key) else { return false }
+                return rootIsObjectShaped(
+                    target,
+                    definitions: definitions,
+                    activeReferences: activeReferences.union([key])
+                )
+            }
+            for key in ["anyOf", "oneOf"] {
+                if let branches = fields[key] as? [[String: Any]] {
+                    return !branches.isEmpty && branches.allSatisfy {
+                        rootIsObjectShaped($0, definitions: definitions, activeReferences: activeReferences)
+                    }
+                }
+            }
+            if let types = fields["type"] as? [String] { return !types.isEmpty && types.allSatisfy { $0 == "object" } }
+            if let type = fields["type"] as? String { return type == "object" }
+            if fields["enum"] != nil || fields["const"] != nil { return false }
+            let inferred = NativeChatFoundationModelsSchema.inferredType(fields)
+            return inferred == "object" || inferred.isEmpty
+        }
+
         mutating func projectDependencies(
             definitions: [String: [String: Any]], reachable: Set<String>
         ) throws -> [DynamicGenerationSchema] {

@@ -112,8 +112,11 @@ import Foundation
         private func minimumScalarBytes(_ fields: [String: Any]) throws -> Int {
             if let value = fields["const"] as? String { return try serializedBytes(value) }
             if let values = fields["enum"] as? [Any] {
-                guard !values.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-                return try values.map { try serializedBytes($0) }.min() ?? 1
+                let projectable: [Any] = fields["type"] as? String == "string"
+                    ? values.compactMap { $0 as? String }
+                    : values
+                guard !projectable.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                return try projectable.map { try serializedBytes($0) }.min() ?? 1
             }
             switch fields["type"] as? String {
             case "string": return 2
