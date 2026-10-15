@@ -19,6 +19,8 @@ import Foundation
                 [type]
             } else if let types = fields["type"] as? [String] {
                 Set(types)
+            } else if fields["const"] is NSNull {
+                ["null"]
             } else {
                 []
             }

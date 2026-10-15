@@ -261,6 +261,17 @@ import XCTest
             let overlappingSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: overlapping)
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.decimal(1.5), schema: overlappingSchema))
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(overlapping))
+
+            let mixed = Data(#"{"oneOf":[{"type":"integer","const":1},{"type":"number","const":1.5}]}"#.utf8)
+            let mixedSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: mixed)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(1), schema: mixedSchema))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(1.5), schema: mixedSchema))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(mixed))
+
+            let mixedOverlap = Data(#"{"oneOf":[{"type":"integer","const":1},{"type":"number","const":1}]}"#.utf8)
+            let mixedOverlapSchema = try JSONDecoder().decode(DecodedJSONValue.self, from: mixedOverlap)
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(1), schema: mixedOverlapSchema))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(mixedOverlap))
         }
 
         func testSiblingTypeAcceptsCompatibleConstantOnlyChoices() throws {

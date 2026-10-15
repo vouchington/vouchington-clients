@@ -210,11 +210,14 @@ import XCTest
         }
 
         func testUntypedNullConstantProjectsWithoutWidening() throws {
-            let property = Data(#"{"const":null}"#.utf8)
+            let property = Data(#"{"const":null,"minimum":1}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: property)
             XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(property))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"const":null,"unknownAssertion":1}"#.utf8
+            )))
         }
 
         func testUniqueArrayWithAtMostOneElementRemainsProjectable() throws {

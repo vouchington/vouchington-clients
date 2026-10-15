@@ -19,7 +19,11 @@ import Foundation
                 return false
             }
             if leftType != rightType {
-                return Set([leftType, rightType]) != Set(["integer", "number"])
+                guard Set([leftType, rightType]) == Set(["integer", "number"]) else { return true }
+                guard let leftConstant = left["const"], let rightConstant = right["const"],
+                      let leftValue = numericConstant(leftConstant, type: leftType),
+                      let rightValue = numericConstant(rightConstant, type: rightType) else { return false }
+                return leftValue != rightValue
             }
             if leftType == "string", let leftValues = stringDomain(left), let rightValues = stringDomain(right) {
                 return leftValues.isDisjoint(with: rightValues)

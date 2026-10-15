@@ -31,6 +31,19 @@ import XCTest
             )))
         }
 
+        func testZeroMaximumPropertiesMakesAdditionalPropertySchemaUnreachable() throws {
+            let raw = Data(#"{"type":"object","maxProperties":0,"additionalProperties":{"type":"string"}}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([:]), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                .object(["extra": .string("value")]), schema: authoritative
+            ))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","maxProperties":1,"additionalProperties":{"type":"string"}}"#.utf8
+            )))
+        }
+
         func testAssertionFreeSingletonAllOfProjectsRootAndNestedReference() throws {
             let raw = Data(
                 ##"{"$defs":{"Id":{"type":"string","enum":["one"]}},"allOf":[{"type":"object","properties":{"id":{"$ref":"#/$defs/Id"}},"required":["id"]}]}"##

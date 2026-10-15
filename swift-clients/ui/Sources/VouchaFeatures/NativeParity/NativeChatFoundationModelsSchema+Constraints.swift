@@ -59,6 +59,7 @@ import Foundation
         }
 
         static func projectsOnlyDeclaredProperties(_ fields: [String: Any]) -> Bool {
+            if fields["maxProperties"] as? Int == 0 { return true }
             guard let additional = fields["additionalProperties"] else { return true }
             if additional is Bool { return true }
             guard additional is [String: Any],
