@@ -142,7 +142,7 @@ import XCTest
             XCTAssertTrue(try XCTUnwrap(encoded).contains("maximum"))
             for property in [
                 #""enum":[1,2],"minimum":1"#,
-                #""const":2,"maximum":3"#,
+                #""const":2,"maximum":1"#,
                 #""minimum":5,"maximum":1"#
             ] {
                 let schema = #"{"type":"object","properties":{"count":{"type":"integer","# + property + #"}}}"#

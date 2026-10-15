@@ -78,8 +78,7 @@ import VouchaCore
                     return .init(name: name(), anyOf: [.init(name: name(), anyOf: strings), .null])
                 }
                 if fields["type"] == nil, let constant = fields["const"], constant is NSNull {
-                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["const", "$defs"])
-                    return .null
+                    return try projectNull(fields)
                 }
                 if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
                    fields["type"] == nil {

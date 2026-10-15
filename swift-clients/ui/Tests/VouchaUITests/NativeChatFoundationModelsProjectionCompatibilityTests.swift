@@ -116,7 +116,7 @@ import XCTest
             for invalid in [
                 #"{"type":"object","properties":{"count":{"type":"integer","const":7.5}}}"#,
                 #"{"type":"object","properties":{"count":{"type":"integer","const":9007199254740992}}}"#,
-                #"{"type":"object","properties":{"count":{"type":"integer","const":7,"minimum":0}}}"#,
+                #"{"type":"object","properties":{"count":{"type":"integer","const":7,"minimum":8}}}"#,
                 #"{"type":"object","properties":{"count":{"const":9007199254740992}}}"#,
                 #"{"type":"object","properties":{"count":{"const":true}}}"#
             ] {
@@ -138,7 +138,7 @@ import XCTest
             XCTAssertEqual(value["maximum"] as? Int, 7)
             for invalid in [
                 #"{"type":"number","const":9007199254740992}"#,
-                #"{"type":"number","const":7,"minimum":0}"#
+                #"{"type":"number","const":7,"minimum":8}"#
             ] {
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(invalid.utf8)))
             }

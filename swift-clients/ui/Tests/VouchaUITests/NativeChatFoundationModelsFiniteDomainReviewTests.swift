@@ -7,6 +7,68 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsFiniteDomainReviewTests: XCTestCase {
+        func testUntypedNullConstantIntersectsNullEnum() throws {
+            let raw = Data(#"{"const":null,"enum":[null]}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"const":null,"enum":["other"]}"#.utf8
+            )))
+        }
+
+        func testUniqueSingletonEnumItemCapsArrayAtOne() throws {
+            for item in [#"{"enum":["x"]}"#, #"{"type":"string","enum":["x",null]}"#] {
+                let raw = Data(
+                    #"{"type":"array","items":\#(item),"uniqueItems":true,"maxItems":5}"#.utf8
+                )
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([.string("x")]), schema: authoritative))
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .array([.string("x"), .string("x")]), schema: authoritative
+                ))
+                let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
+                let encoded = try XCTUnwrap(JSONSerialization
+                    .jsonObject(with: JSONEncoder().encode(projected)) as? [String: Any])
+                let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+                let value = try XCTUnwrap(properties["value"] as? [String: Any])
+                XCTAssertEqual(value["maxItems"] as? Int, 1)
+            }
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"type":"array","items":{"enum":["x","y"]},"uniqueItems":true,"maxItems":5}"#.utf8
+            )))
+        }
+
+        func testNumericConstantWithinBoundsKeepsSingletonGuide() throws {
+            let raw = Data(#"{"const":7,"minimum":3,"maximum":9}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(8), schema: authoritative))
+            let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
+            let encoded = try XCTUnwrap(JSONSerialization
+                .jsonObject(with: JSONEncoder().encode(projected)) as? [String: Any])
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let value = try XCTUnwrap(properties["value"] as? [String: Any])
+            XCTAssertEqual((value["minimum"] as? NSNumber)?.intValue, 7)
+            XCTAssertEqual((value["maximum"] as? NSNumber)?.intValue, 7)
+            for bounds in [#"{"const":7,"minimum":8}"#, #"{"const":7,"maximum":6}"#] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(bounds.utf8)))
+            }
+        }
+
+        func testFiniteUntypedEnumDoesNotTraverseIgnoredShapes() throws {
+            for raw in [
+                ##"{"enum":["fixed"],"items":{"$ref":"#/$defs/Missing"}}"##,
+                ##"{"enum":[null],"properties":{"ignored":{"$ref":"#/$defs/Missing"}}}"##
+            ] {
+                let data = Data(raw.utf8)
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: data)
+                let accepted: DecodedJSONValue = raw.contains("fixed") ? .string("fixed") : .null
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(accepted, schema: authoritative))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(data))
+            }
+        }
+
         func testUntypedIntegerConstantIgnoresStringLength() throws {
             let raw = Data(#"{"const":7,"minLength":3}"#.utf8)
             let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)

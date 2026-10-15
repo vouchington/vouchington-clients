@@ -19,7 +19,7 @@ import Foundation
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
             let maximum = NativeChatFoundationModelsSchema.projectedArrayMaximum(fields)
-            if fields["uniqueItems"] as? Bool == true, item["const"] != nil,
+            if fields["uniqueItems"] as? Bool == true, NativeChatFoundationModelsSchema.singletonItemDomain(item),
                minimum > 1 { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false
                 || (fields["uniqueItems"] as? Bool == true && maximum <= 1) else {
@@ -38,10 +38,22 @@ import Foundation
         static func projectedArrayMaximum(_ fields: [String: Any]) -> Int {
             let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
             if fields["uniqueItems"] as? Bool == true,
-               let item = fields["items"] as? [String: Any], item["const"] != nil {
+               let item = fields["items"] as? [String: Any], singletonItemDomain(item) {
                 return min(maximum, 1)
             }
             return maximum
+        }
+
+        static func singletonItemDomain(_ item: [String: Any]) -> Bool {
+            if item["const"] != nil { return true }
+            guard let candidates = item["enum"] as? [Any] else { return false }
+            let type = item["type"] as? String
+            let values = projectableEnumValues(candidates, type: type)
+            guard !values.isEmpty else { return false }
+            if values.allSatisfy({ $0 is String }) {
+                return Set(values.compactMap { $0 as? String }).count == 1
+            }
+            return values.allSatisfy { $0 is NSNull }
         }
     }
 #endif

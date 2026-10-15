@@ -39,11 +39,13 @@ import Foundation
                 throw Failure.unsupported
             }
             if let constant = fields["const"] {
-                guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? ""),
-                      fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
+                guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? "")
+                else { throw Failure.unsupported }
                 let numberType = fields["type"] as? String == "number"
                     || (fields["type"] == nil && inferredType(fields) == "number")
                 let value = try numberType ? safeNumberConstant(constant) : safeIntegerConstant(constant)
+                if let minimum = try decimal(fields["minimum"]), value < minimum { throw Failure.unsupported }
+                if let maximum = try decimal(fields["maximum"]), value > maximum { throw Failure.unsupported }
                 if let enumValues = fields["enum"] as? [Any],
                    !enumValues.contains(where: {
                        (try? (numberType ? safeNumberConstant($0) : safeIntegerConstant($0))) == value

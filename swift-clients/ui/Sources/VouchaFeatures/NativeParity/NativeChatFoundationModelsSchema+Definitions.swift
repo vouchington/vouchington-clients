@@ -32,6 +32,10 @@ import VouchaModels
             if fields["const"] is String { return "string" }
             if let constant = fields["const"], (try? safeIntegerConstant(constant)) != nil { return "integer" }
             if let constant = fields["const"], (try? safeNumberConstant(constant)) != nil { return "number" }
+            if let values = fields["enum"] as? [Any], !values.isEmpty {
+                if values.allSatisfy({ $0 is String }) { return "string" }
+                if values.allSatisfy({ $0 is NSNull }) { return "null" }
+            }
             if fields["properties"] != nil { return "object" }
             if fields["items"] != nil { return "array" }
             return ""
