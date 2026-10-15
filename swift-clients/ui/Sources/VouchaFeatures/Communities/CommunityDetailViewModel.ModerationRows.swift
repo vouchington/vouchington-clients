@@ -16,15 +16,28 @@ extension CommunityDetailViewModel {
         async let pendingReports: CommunityPendingReportsResponse = client.send(
             .communityPendingReports(idOrSlug: slug)
         )
+        async let moderatorStats = loadModeratorStatsIfAvailable(client: client)
         let posts = try await pendingPosts
         let reports = try await pendingReports
+        let stats = try await moderatorStats
         guard isCurrentCommunityLoad(revision, tab: tab) else { throw CancellationError() }
+        let imageConfig = AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
         pendingReportPagination.reset(items: reports.reports)
         pendingReportPagination.restoreContinuation(
             endCursor: reports.pageInfo.endCursor,
             hasMore: reports.pageInfo.hasNextPage
         )
-        return [
+        let statisticRows = (stats?.stats ?? []).map { stat in
+            let user = stats?.users[stat.actorUserId]
+            return NativeRouteDestinationRow(
+                id: stat.actorUserId,
+                icon: "person",
+                avatarURL: imageConfig.imageURL(for: user?.profileImagePlacement, width: 96),
+                title: .verbatim(user?.username ?? String(stat.actorUserId.prefix(8))),
+                detail: .message(.nativeSwiftRouteSurfaceNumberValue, numberParameters: ["value": Double(stat.total)])
+            )
+        }
+        return statisticRows + [
             .init(
                 icon: "checklist",
                 title: UiMessage(.nativeSwiftCommunitiesPendingPosts),
@@ -42,6 +55,21 @@ extension CommunityDetailViewModel {
                 )
             )
         ]
+    }
+
+    private func loadModeratorStatsIfAvailable(client: APIClient) async throws -> CommunityModeratorStatsResponse? {
+        do {
+            return try await client.send(.communityModeratorStats(idOrSlug: slug))
+        } catch let error as VouchaError {
+            switch error {
+            case .forbidden, .notFound,
+                 .api(statusCode: 403, _), .api(statusCode: 404, _),
+                 .apiMessage(statusCode: 403, _, _), .apiMessage(statusCode: 404, _, _):
+                return nil
+            default:
+                throw error
+            }
+        }
     }
 
     func loadMorePendingReports() async {

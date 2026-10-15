@@ -16,6 +16,7 @@ internal sealed partial class ScriptedCommunitiesService
   public Queue<CommunityRestrictionsResponse> RestrictionsResponses { get; } = [];
 
   public Queue<CommunityModerationQueueResponse> ModerationQueueResponses { get; } = [];
+  public Func<string, CancellationToken, Task<CommunityModerationQueueResponse>>? ModerationQueueHandler { get; set; }
 
   public Queue<ModeratorVacationResponse> ModeratorVacationResponses { get; } = [];
 
@@ -24,6 +25,7 @@ internal sealed partial class ScriptedCommunitiesService
   public Queue<CommunityAgentPromptsResponse> AgentPromptsResponses { get; } = [];
 
   public Queue<CommunityModeratorStatsResponse> ModeratorStatsResponses { get; } = [];
+  public Func<string, CancellationToken, Task<CommunityModeratorStatsResponse>>? ModeratorStatsHandler { get; set; }
 
   public Queue<ModerationTransparencyResponse> ModerationTransparencyResponses { get; } = [];
   public Func<string, string, string?, CancellationToken, Task<ModerationTransparencyResponse>>? ModerationTransparencyHandler { get; set; }
@@ -158,7 +160,9 @@ internal sealed partial class ScriptedCommunitiesService
       string idOrSlug,
       int window = 30,
       CancellationToken cancellationToken = default) =>
-      Task.FromResult(ModeratorStatsResponses.Count > 0 ? ModeratorStatsResponses.Dequeue() : Deserialize<CommunityModeratorStatsResponse>("""
+      ModeratorStatsHandler is not null
+          ? ModeratorStatsHandler(idOrSlug, cancellationToken)
+          : Task.FromResult(ModeratorStatsResponses.Count > 0 ? ModeratorStatsResponses.Dequeue() : Deserialize<CommunityModeratorStatsResponse>("""
           {
             "window": 30,
             "stats": [{ "actor_user_id": "user-1", "total": 2, "counts": { "approve": 2 } }],
@@ -167,7 +171,9 @@ internal sealed partial class ScriptedCommunitiesService
           """));
 
   public Task<CommunityModerationQueueResponse> FetchModerationQueueAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
-      Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue() : Deserialize<CommunityModerationQueueResponse>("""
+      ModerationQueueHandler is not null
+          ? ModerationQueueHandler(idOrSlug, cancellationToken)
+          : Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue() : Deserialize<CommunityModerationQueueResponse>("""
           {
             "entries": [
               {

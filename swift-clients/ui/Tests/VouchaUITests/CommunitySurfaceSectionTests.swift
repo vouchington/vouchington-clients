@@ -426,6 +426,7 @@ final class CommunitySurfaceSectionTests: NativeRouteSurfaceViewModelTestCase {
         visibility: String = "public",
         memberInvitesAllowedAt: String? = "2026-07-01T00:00:00Z"
     ) {
+        registerEmptyCommunityModeratorStatsResponse(slug: "builders")
         let memberInvitesAllowedAtJSON = memberInvitesAllowedAt.map { #""\#($0)""# } ?? "null"
         let membershipJSON = if let role {
             """

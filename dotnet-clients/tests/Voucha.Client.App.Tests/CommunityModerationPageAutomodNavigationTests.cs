@@ -98,7 +98,7 @@ public sealed class CommunityModerationPageAutomodNavigationTests
       nameof(ICommunitiesService.FetchPostsAsync) => Task.FromResult(new CommunityPostsResponse([], EmptyPage(),
           new Dictionary<string, Post>(), new Dictionary<string, PostMetrics>(), new Dictionary<string, EntityReference>())),
       nameof(ICommunitiesService.FetchListItemCountsAsync) => Task.FromResult(new CommunityListItemCountsResponse(0, 0, 0, 0, 0)),
-      nameof(ICommunitiesService.FetchModeratorStatsAsync) => Task.FromResult(new CommunityModeratorStatsResponse(30, [], new Dictionary<string, User>())),
+      nameof(ICommunitiesService.FetchModeratorStatsAsync) => Task.FromResult(new CommunityModeratorStatsResponse(30, [], new Dictionary<string, PublicUser>())),
       nameof(ICommunitiesService.FetchModerationQueuePageAsync) => Task.FromResult(new CommunityModerationQueueResponse([], EmptyPage(), "moderator")),
       nameof(ICommunitiesService.FetchPendingReportsPageAsync) => Task.FromResult(new CommunityPendingReportsResponse([], EmptyPage())),
       nameof(ICommunitiesService.FetchAutomodFlagPageAsync) => Task.FromResult(new CommunityModerationQueueResponse([Flag()], EmptyPage(), "moderator")),

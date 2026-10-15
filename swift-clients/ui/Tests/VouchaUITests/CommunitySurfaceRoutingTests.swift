@@ -128,6 +128,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func registerDetailRowFixtures() {
+        registerEmptyCommunityModeratorStatsResponse(slug: "builders")
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders"] = (
             Data(
                 """
