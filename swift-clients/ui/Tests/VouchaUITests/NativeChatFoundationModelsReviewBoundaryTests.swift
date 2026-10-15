@@ -7,6 +7,72 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsReviewBoundaryTests: XCTestCase {
+        func testMinimumArgumentBytesMustFitSessionAdmissionBudget() throws {
+            let large = String(repeating: "x", count: 700)
+            let schema = Data(
+                #"{"type":"object","required":["values"],"properties":{"values":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"string","const":"\#(large)"}}}}"#
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["values": .array([.string(large), .string(large)])]), schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+
+            let small = Data(
+                #"{"type":"object","properties":{"values":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"string","const":"ok"}}}}"#
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(small))
+        }
+
+        func testUnequalLargeIntegerRangeStillConsumesArgumentBytes() throws {
+            let schema = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":20,"maxItems":20,"items":{"type":"integer","minimum":9000000000000000,"maximum":9000000000000100}}}}}"#
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            let row = DecodedJSONValue.array(Array(repeating: .integer(9_000_000_000_000_000), count: 20))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["rows": .array(Array(repeating: row, count: 4))]), schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+        }
+
+        func testWideDecimalRangeHasConservativeMinimumJsonWidth() throws {
+            let schema = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":60,"maxItems":60,"items":{"type":"number","minimum":9000000000000000,"maximum":9000000000000100}}}}}"#
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            let row = DecodedJSONValue.array(Array(repeating: .number(9_000_000_000_000_000), count: 60))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["rows": .array(Array(repeating: row, count: 4))]), schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+        }
+
+        func testUntypedNullConstantProjectsWithoutWidening() throws {
+            let property = Data(#"{"const":null}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: property)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(property))
+        }
+
+        func testUniqueArrayWithAtMostOneElementRemainsProjectable() throws {
+            let schema = Data(#"{"type":"array","items":{"type":"string"},"uniqueItems":true,"maxItems":1}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([.string("one")]), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                .array([.string("one"), .string("one")]), schema: authoritative
+            ))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(schema))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"type":"array","items":{"type":"string"},"uniqueItems":true,"maxItems":2}"#.utf8
+            )))
+        }
+
         func testReachableOpenObjectDefinitionIsProjectable() throws {
             let schema = Data(
                 ##"{"type":"object","$defs":{"Payload":{"type":"object","properties":{"id":{"type":"string"}},"additionalProperties":true}},"properties":{"payload":{"$ref":"#/$defs/Payload"}}}"##

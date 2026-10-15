@@ -111,12 +111,7 @@ import Foundation
 
         func minimumScalarBytes(_ fields: [String: Any]) throws -> Int {
             if let value = fields["const"] as? String { return try serializedBytes(value) }
-            if let minimum = fields["minimum"] as? NSNumber,
-               let maximum = fields["maximum"] as? NSNumber,
-               minimum.decimalValue == maximum.decimalValue,
-               ["integer", "number"].contains(fields["type"] as? String ?? "") {
-                return try serializedBytes(minimum)
-            }
+            if fields["const"] is NSNull { return 4 }
             if let values = fields["enum"] as? [Any] {
                 let projectable: [Any] = fields["type"] as? String == "string"
                     ? values.compactMap { $0 as? String }
@@ -124,11 +119,31 @@ import Foundation
                 guard !projectable.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 return try projectable.map { try serializedBytes($0) }.min() ?? 1
             }
+            if let numericBytes = try minimumNumericBytes(fields) { return numericBytes }
             switch fields["type"] as? String {
             case "string": return 2
             case "boolean", "null": return 4
             default: return 1
             }
+        }
+
+        private func minimumNumericBytes(_ fields: [String: Any]) throws -> Int? {
+            if fields["type"] as? String == "integer" {
+                let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
+                let safe = 9_007_199_254_740_991
+                let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe, isMinimum: true) ?? -safe
+                let maximum = try integerBound(bounds.maximum, clampedTo: -safe ... safe, isMinimum: false) ?? safe
+                guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                let closest = minimum > 0 ? minimum : (maximum < 0 ? maximum : 0)
+                return try serializedBytes(NSNumber(value: closest))
+            }
+            if fields["type"] as? String == "number" {
+                let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
+                let wide = Decimal(100_000_000_000_000)
+                if let minimum = bounds.minimum, minimum >= wide { return 4 }
+                if let maximum = bounds.maximum, maximum <= -wide { return 5 }
+            }
+            return nil
         }
 
         func serializedBytes(_ value: Any) throws -> Int {

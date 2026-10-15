@@ -12,7 +12,7 @@ import VouchaCore
         private var admittedArgumentBytes = 0
         private(set) var deliveredResultBytes = 0
         static let maximumSessionResultBytes = 1_200
-        static let maximumSessionArgumentBytes = 1_200
+        static let maximumSessionArgumentBytes = NativeChatFoundationModelsSchema.maximumSessionArgumentBytes
 
         func checkCapacity(argumentBytes: Int = 0) throws {
             guard callCount < 4,

@@ -7,7 +7,7 @@ import Foundation
     extension NativeChatFoundationModelsSchema {
         static func validateConstant(_ fields: [String: Any]) throws {
             if let constant = fields["const"], !(constant is String),
-               !(fields["type"] as? String == "null" && constant is NSNull) {
+               !((fields["type"] == nil || fields["type"] as? String == "null") && constant is NSNull) {
                 throw Failure.unsupported
             }
         }
@@ -160,7 +160,7 @@ import Foundation
             return .init(type: Int.self, guides: [.range(minimum ... maximum)])
         }
 
-        private func integerBound(
+        func integerBound(
             _ value: Decimal?, clampedTo safe: ClosedRange<Int>, isMinimum: Bool
         ) throws -> Int? {
             guard let value else { return nil }

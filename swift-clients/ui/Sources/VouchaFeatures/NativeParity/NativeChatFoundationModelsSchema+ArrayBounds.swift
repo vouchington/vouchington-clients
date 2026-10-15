@@ -9,9 +9,6 @@ import Foundation
             try NativeChatFoundationModelsSchema.validateKeywords(
                 fields, allowing: ["type", "items", "minItems", "maxItems", "uniqueItems", "$defs"]
             )
-            guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false else {
-                throw NativeChatFoundationModelsSchema.Failure.unsupported
-            }
             guard fields["items"] == nil || fields["items"] is [String: Any] else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
@@ -22,6 +19,10 @@ import Foundation
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
             let maximum = min(fields["maxItems"] as? Int ?? 64, 64)
+            guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false
+                || (fields["uniqueItems"] as? Bool == true && maximum <= 1) else {
+                throw NativeChatFoundationModelsSchema.Failure.unsupported
+            }
             return try .init(
                 arrayOf: project(maximum == 0 ? [:] : item),
                 minimumElements: fields["minItems"] as? Int,

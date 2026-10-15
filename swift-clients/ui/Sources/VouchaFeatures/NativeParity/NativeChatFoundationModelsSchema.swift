@@ -9,6 +9,7 @@ import VouchaCore
     @available(macOS 26.4, iOS 26.4, *)
     enum NativeChatFoundationModelsSchema {
         enum Failure: Error { case unsupported }
+        static let maximumSessionArgumentBytes = 1_200
 
         static func project(_ data: Data) throws -> GenerationSchema {
             let root = try projectionFields(from: data)
@@ -36,7 +37,8 @@ import VouchaCore
                 guard try minimumOutputNodes(fields, definitions: definitions) <= 256 else {
                     throw Failure.unsupported
                 }
-                guard try minimumOutputBytes(fields, definitions: definitions) <= 4_096 else {
+                guard try minimumOutputBytes(fields, definitions: definitions)
+                    <= NativeChatFoundationModelsSchema.maximumSessionArgumentBytes else {
                     throw Failure.unsupported
                 }
                 guard try maximumForcedOutputBytes(fields, definitions: definitions) <= 4_096 else {
@@ -71,6 +73,10 @@ import VouchaCore
                     if !hasNull { return .init(name: name(), anyOf: strings) }
                     if strings.isEmpty { return .null }
                     return .init(name: name(), anyOf: [.init(name: name(), anyOf: strings), .null])
+                }
+                if fields["type"] == nil, let constant = fields["const"], constant is NSNull {
+                    try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["const", "$defs"])
+                    return .null
                 }
                 if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
                    fields["type"] == nil {
