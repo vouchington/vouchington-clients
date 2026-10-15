@@ -32,11 +32,11 @@ public sealed class PublicTopicImageRenderingTests
 
     await model.LoadAsync(TestContext.Current.CancellationToken);
 
-    var collection = Descendants<CollectionView>(page).Single();
+    var collection = VisualTreeElements.Descendants<CollectionView>(page).Single();
     var binding = Assert.IsType<TopicsPageBinding>(page.BindingContext);
     var template = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
-    var image = Assert.Single(Descendants<Image>(template));
-    var name = Assert.Single(Descendants<Label>(template), label => label.AutomationId == "topic-name");
+    var image = Assert.Single(VisualTreeElements.Descendants<Image>(template));
+    var name = Assert.Single(VisualTreeElements.Descendants<Label>(template), label => label.AutomationId == "topic-name");
 
     var imageRow = Assert.Single(binding.Items, row => row.Id == withImage.Id);
     template.BindingContext = imageRow;
@@ -66,7 +66,7 @@ public sealed class PublicTopicImageRenderingTests
     var page = DetailPage(model, withImage.Id, config, locale);
 
     var image = page.FindByName<Image>("TopicLogoImage");
-    var title = Assert.Single(Descendants<Label>(page), label => label.Text == withImage.Name);
+    var title = Assert.Single(VisualTreeElements.Descendants<Label>(page), label => label.Text == withImage.Name);
     Assert.True(image.IsVisible);
     Assert.Equal(144, image.WidthRequest);
     Assert.Equal(144, image.HeightRequest);
@@ -123,15 +123,6 @@ public sealed class PublicTopicImageRenderingTests
     var service = DispatchProxy.Create<ITopicsService, TopicServiceProxy>();
     ((TopicServiceProxy)service).Topics = topics;
     return service;
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   public class TopicServiceProxy : DispatchProxy

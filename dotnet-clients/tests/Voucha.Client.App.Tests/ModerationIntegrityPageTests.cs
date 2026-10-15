@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Text.Json;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -37,7 +36,7 @@ public sealed class ModerationIntegrityPageTests
     var status = Find<Picker>(page, "report-integrity-status");
     Assert.Equal(["Pending", "Resolved", "All"], Assert.IsAssignableFrom<IEnumerable>(
         status.ItemsSource).Cast<string>());
-    Assert.Contains(Descendants<Label>(page), label =>
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label =>
         label.Text?.Contains("reporter_user_ids", StringComparison.Ordinal) == true);
     Assert.Equal(
         "/user/user-1",
@@ -73,13 +72,13 @@ public sealed class ModerationIntegrityPageTests
     Assert.Equal(0, service.ReportPenaltyCalls);
     Find<Button>(page, "report-integrity-penalize-confirm-report-1").SendClicked();
     await WaitUntilAsync(() => service.ReportPenaltyCalls == 1 &&
-        Descendants<Label>(page).Any(label => label.Text == UiLocalization.English.Format(
+        VisualTreeElements.Descendants<Label>(page).Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", 2))));
 
-    Assert.Contains(Descendants<Label>(page), label => label.Text == UiLocalization.English.Localize(
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == UiLocalization.English.Localize(
         UiMessageKey.NativeSwiftIntegrityPenalizedResolution));
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "admin-1");
-    Assert.DoesNotContain(Descendants<Button>(page), button =>
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "admin-1");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId?.StartsWith("report-integrity-dismiss-", StringComparison.Ordinal) == true);
   }
 
@@ -94,7 +93,7 @@ public sealed class ModerationIntegrityPageTests
     var reportPage = Create(new ReportIntegrityPage(
         new ReportIntegrityViewModel(reportService, Admin)));
     await reportPage.ReloadAsync();
-    Assert.Contains(Descendants<Label>(reportPage), label =>
+    Assert.Contains(VisualTreeElements.Descendants<Label>(reportPage), label =>
         label.Text == "report queue unavailable");
 
     var emptyService = new PageService
@@ -135,7 +134,7 @@ public sealed class ModerationIntegrityPageTests
     var errorPage = Create(new VoteIntegrityPage(
         new VoteIntegrityViewModel(errorService, Admin)));
     await errorPage.ReloadAsync();
-    Assert.Contains(Descendants<Label>(errorPage), label =>
+    Assert.Contains(VisualTreeElements.Descendants<Label>(errorPage), label =>
         label.Text == "vote queue unavailable");
   }
 
@@ -172,21 +171,21 @@ public sealed class ModerationIntegrityPageTests
         Find<Button>(page, "vote-integrity-penalty-confirm-vote-1").Text);
     Find<Button>(page, "vote-integrity-penalty-cancel-vote-1").SendClicked();
     Assert.Equal(0, service.VotePenaltyCalls);
-    Assert.DoesNotContain(Descendants<Button>(page), button =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId == "vote-integrity-penalty-confirm-vote-1");
     Find<Button>(page, "vote-integrity-penalty-vote-1").SendClicked();
     Find<Button>(page, "vote-integrity-penalty-confirm-vote-1").SendClicked();
-    await WaitUntilAsync(() => Descendants<Label>(page)
+    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
         .Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedUsers, ("count", 3))));
     Assert.True(Find<Button>(page, "vote-integrity-suspended-vote-1").IsEnabled);
     Assert.False(Find<Button>(page, "vote-integrity-penalty-vote-1").IsEnabled);
 
     Find<Button>(page, "vote-integrity-suspended-vote-1").SendClicked();
-    await WaitUntilAsync(() => Descendants<Label>(page).Any(label =>
+    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
         label.Text == UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftIntegritySuspendedResolution)));
-    Assert.DoesNotContain(Descendants<Button>(page), button =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId?.StartsWith("vote-integrity-dismissed-", StringComparison.Ordinal) == true);
   }
 
@@ -218,7 +217,7 @@ public sealed class ModerationIntegrityPageTests
         UiLocalization.English.Localize(UiMessageKey.NativeSwiftIntegrityConfirmRevoke),
         Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").Text);
     Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").SendClicked();
-    await WaitUntilAsync(() => !Descendants<Border>(page).Any(border =>
+    await WaitUntilAsync(() => !VisualTreeElements.Descendants<Border>(page).Any(border =>
         border.AutomationId == "report-integrity-penalties-penalty-1"));
   }
 
@@ -237,7 +236,7 @@ public sealed class ModerationIntegrityPageTests
 
     await page.ReloadAsync();
 
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "future_resolution");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "future_resolution");
   }
 
   [Fact]
@@ -342,7 +341,7 @@ public sealed class ModerationIntegrityPageTests
 
   private static void AssertRenderedEvidence(Page page, string ratio, string nested)
   {
-    var evidence = Assert.Single(Descendants<Label>(page), label =>
+    var evidence = Assert.Single(VisualTreeElements.Descendants<Label>(page), label =>
         label.Text?.Contains("note: quoted", StringComparison.Ordinal) == true).Text!;
     Assert.DoesNotContain("\"quoted\"", evidence, StringComparison.Ordinal);
     Assert.Contains($"ratio: {ratio}", evidence, StringComparison.Ordinal);
@@ -350,16 +349,7 @@ public sealed class ModerationIntegrityPageTests
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {

@@ -1,6 +1,5 @@
 using System.Collections;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -51,7 +50,7 @@ public sealed class FeatureFlagOverridesPageTests
 
     Assert.Equal(1, featureService.FetchCalls);
     Assert.Equal(0, dynamicService.Calls);
-    Assert.Empty(Descendants<WebView>(page));
+    Assert.Empty(VisualTreeElements.Descendants<WebView>(page));
   }
 
   [Theory]
@@ -87,7 +86,7 @@ public sealed class FeatureFlagOverridesPageTests
     await unauthorizedViewModel.LoadAsync(token);
     var unauthorizedPage = CreatePage(unauthorizedViewModel);
     Assert.True(Find<Label>(unauthorizedPage, "feature-flag-access-required").IsVisible);
-    Assert.Empty(Descendants<Picker>(unauthorizedPage));
+    Assert.Empty(VisualTreeElements.Descendants<Picker>(unauthorizedPage));
     Assert.Equal(0, unauthorizedService.FetchCalls);
 
     using var readState = new FeatureFlagState(new MemoryStore());
@@ -98,7 +97,7 @@ public sealed class FeatureFlagOverridesPageTests
     var readError = UiLocalization.English.Format(
         UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsLoadFlagsFailedReason,
         ("error", UiText.ExternalContent("offline")));
-    Assert.Contains(Descendants<Label>(readPage), label => label.Text == readError);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(readPage), label => label.Text == readError);
 
     using var writeState = new FeatureFlagState(new MemoryStore { Failure = new IOException("disk full") });
     var writeViewModel = ViewModel(new FeatureFlagService(), writeState);
@@ -109,7 +108,7 @@ public sealed class FeatureFlagOverridesPageTests
     var writeError = UiLocalization.English.Format(
         UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsSaveOverrideFailedReason,
         ("error", UiText.ExternalContent("disk full")));
-    Assert.Contains(Descendants<Label>(writePage), label => label.Text == writeError);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(writePage), label => label.Text == writeError);
     Assert.Equal(0, Find<Picker>(writePage, "feature-flag-fediverse-override").SelectedIndex);
   }
 
@@ -156,16 +155,7 @@ public sealed class FeatureFlagOverridesPageTests
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {

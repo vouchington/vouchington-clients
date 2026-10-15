@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.Json;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -260,17 +259,9 @@ public sealed class CopyrightNoticesDetailPageTests
           BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
           null, Type.EmptyTypes, null)!.Invoke(page, null);
   private static T Find<T>(Element root, string id) where T : Button =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
-  private static IEnumerable<Button> Buttons(Element root) => Descendants<Button>(root);
-  private static IEnumerable<Label> Labels(Element root) => Descendants<Label>(root);
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
+  private static IEnumerable<Button> Buttons(Element root) => VisualTreeElements.Descendants<Button>(root);
+  private static IEnumerable<Label> Labels(Element root) => VisualTreeElements.Descendants<Label>(root);
   private static async Task WaitUntilAsync(Func<bool> condition)
   {
     for (var attempt = 0; attempt < 100 && !condition(); attempt++)

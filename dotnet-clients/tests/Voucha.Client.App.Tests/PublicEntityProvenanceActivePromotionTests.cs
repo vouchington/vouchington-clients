@@ -22,7 +22,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var model = new CommunityBrowseViewModel(new ApiCommunitiesService(Client(
         Fixture("entity-provenance.communities"), Fixture("entity-provenance.communities.staff"))));
     var page = new CommunityBrowsePage(model, session);
-    var collection = Assert.Single(Descendants<CollectionView>(page));
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
     var publicRows = WaitForResultsAsync(model, hasStaffFacts: false);
     InvokeLifecycle(page, "OnAppearing");
     await publicRows;
@@ -58,14 +58,14 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
     var page = new CommunityDetailPage(model, session);
     Assert.Null(page.Slug);
-    Assert.Single(Descendants<Entry>(page)).Text = "test-community";
+    Assert.Single(VisualTreeElements.Descendants<Entry>(page)).Text = "test-community";
     InvokeLifecycle(page, "OnAppearing");
-    Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Channel: mcp");
 
     var staffFacts = WaitForCommunityStaffFactsAsync(model);
     session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
     await staffFacts;
-    Assert.Contains(Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
     InvokeLifecycle(page, "OnDisappearing");
   }
 
@@ -90,16 +90,16 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
     var page = new CommunityDetailPage(model, session);
     Assert.Null(page.Slug);
-    Assert.Single(Descendants<Entry>(page)).Text = "test-community";
+    Assert.Single(VisualTreeElements.Descendants<Entry>(page)).Text = "test-community";
     InvokeLifecycle(page, "OnAppearing");
     InvokeLifecycle(page, "OnDisappearing");
     session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
-    Assert.DoesNotContain(Descendants<Label>(page), label => label.Text == "Channel: mcp");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Channel: mcp");
 
     var staffFacts = WaitForCommunityStaffFactsAsync(model);
     InvokeLifecycle(page, "OnAppearing");
     await staffFacts;
-    Assert.Contains(Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
     InvokeLifecycle(page, "OnDisappearing");
   }
 
@@ -125,12 +125,12 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var publicLoad = WaitForCommunityLoadAsync(model);
     InvokeLifecycle(page, "OnAppearing");
     await publicLoad;
-    Assert.DoesNotContain(Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
 
     var staffFacts = WaitForCommunityStaffFactsAsync(model);
     session.SetCurrent(new SessionSnapshot(new User("staff-1", "staff", Roles: ["moderator"])));
     await staffFacts;
-    Assert.Contains(Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.IsVisible && label.Text == "Channel: mcp");
     InvokeLifecycle(page, "OnDisappearing");
   }
 

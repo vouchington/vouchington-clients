@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -35,7 +34,7 @@ public sealed class ReportIntegrityReconciliationPageTests
       Find<Button>(page, "report-integrity-penalize-confirm-flag-1").SendClicked();
     }
     await WaitUntilAsync(() => service.ExactFetches == 1 &&
-        Descendants<Button>(page).Any(button =>
+        VisualTreeElements.Descendants<Button>(page).Any(button =>
             button.AutomationId == "report-integrity-reconcile-flag-1"));
 
     var reconcile = Find<Button>(page, "report-integrity-reconcile-flag-1");
@@ -44,7 +43,7 @@ public sealed class ReportIntegrityReconciliationPageTests
         reconcile.Text);
     reconcile.SendClicked();
     await WaitUntilAsync(() => service.ExactFetches == 2 &&
-        !Descendants<Border>(page).Any(border =>
+        !VisualTreeElements.Descendants<Border>(page).Any(border =>
             border.AutomationId == "report-integrity-flag-flag-1"));
 
     Assert.Equal(1, service.MutationCalls);
@@ -69,7 +68,7 @@ public sealed class ReportIntegrityReconciliationPageTests
         cancel.Text);
     cancel.SendClicked();
     Assert.Equal(0, service.MutationCalls);
-    Assert.DoesNotContain(Descendants<Button>(page), button =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId == "report-integrity-penalize-confirm-flag-1");
 
     Find<Button>(page, "report-integrity-penalize-flag-1").SendClicked();
@@ -95,7 +94,7 @@ public sealed class ReportIntegrityReconciliationPageTests
     Assert.False(deniedPenalty.IsEnabled);
     deniedPenalty.SendClicked();
     Assert.Equal(0, capabilityService.MutationCalls);
-    Assert.DoesNotContain(Descendants<Button>(capabilityPage), button =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(capabilityPage), button =>
         button.AutomationId == "report-integrity-penalize-confirm-flag-1");
 
     var authorizationService = new ReconciliationService(penalize: true);
@@ -104,7 +103,7 @@ public sealed class ReportIntegrityReconciliationPageTests
     await authorizationPage.ReloadAsync();
 
     Assert.Equal(0, authorizationService.ListFetches);
-    Assert.DoesNotContain(Descendants<Button>(authorizationPage), button =>
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(authorizationPage), button =>
         button.AutomationId?.StartsWith("report-integrity-penalize-", StringComparison.Ordinal) == true);
   }
 
@@ -127,16 +126,7 @@ public sealed class ReportIntegrityReconciliationPageTests
   }
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
   private static async Task WaitUntilAsync(Func<bool> condition)
   {

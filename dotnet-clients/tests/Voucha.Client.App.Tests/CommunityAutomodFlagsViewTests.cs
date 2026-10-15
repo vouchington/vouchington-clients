@@ -1,4 +1,3 @@
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -27,7 +26,7 @@ public sealed class CommunityAutomodFlagsViewTests
 
     Assert.Equal("post-1", openedPost);
     Assert.Equal("post-1", dismissedPost);
-    Assert.Contains(Descendants<Label>(view), label => label.Text == "Flagged post");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(view), label => label.Text == "Flagged post");
   }
 
   [Fact]
@@ -81,16 +80,7 @@ public sealed class CommunityAutomodFlagsViewTests
           null, "/posts/post-1", null, null, false, null, null, null);
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
-      Assert.Single(Descendants<T>(root), item => item.AutomationId == automationId);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), item => item.AutomationId == automationId);
 
   private static void ConfigureResources()
   {

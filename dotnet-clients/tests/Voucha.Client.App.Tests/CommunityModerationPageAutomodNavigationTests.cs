@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -67,16 +66,7 @@ public sealed class CommunityModerationPageAutomodNavigationTests
   }
 
   private static T Find<T>(Element root, string id) where T : Element =>
-      Assert.Single(Descendants<T>(root), element => element.AutomationId == id);
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
+      Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
 
   private sealed class SessionStore(SessionSnapshot current) : ISessionStore
   {

@@ -30,7 +30,7 @@ public sealed class CommunityPlacementRenderingTests
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
-    var images = Descendants<Image>(page).ToDictionary(image => image.AutomationId);
+    var images = VisualTreeElements.Descendants<Image>(page).ToDictionary(image => image.AutomationId);
     Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000305/5/00000000-0000-7000-8000-000000000204?w=960"),
         Assert.IsType<UriImageSource>(images["community-banner-image"].Source).Uri);
     Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000304/2/00000000-0000-7000-8000-000000000203?w=96"),
@@ -38,7 +38,7 @@ public sealed class CommunityPlacementRenderingTests
     Assert.True(images["community-banner-image"].IsVisible);
     Assert.True(images["community-profile-image"].IsVisible);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(images["community-profile-image"]));
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "Test Community");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Test Community");
   }
 
   [Fact]
@@ -56,13 +56,13 @@ public sealed class CommunityPlacementRenderingTests
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
-    var images = Descendants<Image>(page).ToDictionary(image => image.AutomationId);
+    var images = VisualTreeElements.Descendants<Image>(page).ToDictionary(image => image.AutomationId);
     Assert.Null(images["community-banner-image"].Source);
     Assert.Null(images["community-profile-image"].Source);
     Assert.False(images["community-banner-image"].IsVisible);
     Assert.False(images["community-profile-image"].IsVisible);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(images["community-profile-image"]));
-    Assert.Contains(Descendants<Label>(page), label => label.Text == "Test Community");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Test Community");
   }
 
   [Fact]
@@ -73,9 +73,9 @@ public sealed class CommunityPlacementRenderingTests
     var page = new CommunityBrowsePage(
         new CommunityBrowseViewModel(new ApiCommunitiesService(Client("{}"))),
         new AnonymousSessionStore(), Config());
-    var collection = Assert.Single(Descendants<CollectionView>(page));
+    var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
-    var avatar = Assert.Single(Descendants<Image>(card), image => image.AutomationId == "community-profile-image");
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Image>(card), image => image.AutomationId == "community-profile-image");
     var row = new CommunityBrowseRow("community-1", "Community", "community", 0, 0, false,
         ProfileImagePlacement: new TopicImagePlacement("avatar-1", "profile-placement", 7));
 
@@ -84,7 +84,7 @@ public sealed class CommunityPlacementRenderingTests
     Assert.Equal(new Uri("https://images.test/images/placements/profile-placement/7/avatar-1?w=96"),
         Assert.IsType<UriImageSource>(avatar.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
-    Assert.Contains(Descendants<Label>(card), label => label.Text == "Community");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(card), label => label.Text == "Community");
     card.BindingContext = row with { ProfileImagePlacement = null };
     Assert.Null(avatar.Source);
     Assert.False(avatar.IsVisible);
@@ -118,8 +118,8 @@ public sealed class CommunityPlacementRenderingTests
     var member = Assert.IsType<CommunitySummaryRow>(Assert.Single((IEnumerable<object>)collection.ItemsSource!));
     var row = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
     row.BindingContext = member;
-    var avatar = Assert.Single(Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
-    var avatarImage = Assert.Single(Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+    var avatarImage = Assert.Single(VisualTreeElements.Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
 
     Assert.Equal("Test User", member.Title);
     Assert.Equal("Owner", member.Subtitle);
@@ -132,7 +132,7 @@ public sealed class CommunityPlacementRenderingTests
     Assert.Equal(new GridLength(40), row.ColumnDefinitions[0].Width);
     Assert.Equal(GridLength.Star, row.ColumnDefinitions[1].Width);
     Assert.Equal(8d, row.ColumnSpacing);
-    var title = Assert.Single(Descendants<Label>(row), label => label.Text == "Test User");
+    var title = Assert.Single(VisualTreeElements.Descendants<Label>(row), label => label.Text == "Test User");
     Assert.Equal(LineBreakMode.WordWrap, title.LineBreakMode);
 
     row.BindingContext = member with
@@ -163,8 +163,8 @@ public sealed class CommunityPlacementRenderingTests
 
     var row = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate!.CreateContent());
 
-    Assert.DoesNotContain(Descendants<Image>(row), image => image.AutomationId == "community-member-avatar-image");
-    Assert.DoesNotContain(Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Image>(row), image => image.AutomationId == "community-member-avatar-image");
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
   }
 
   private static AppConfig Config() => new(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
@@ -178,15 +178,6 @@ public sealed class CommunityPlacementRenderingTests
 
   private static VouchaApiClient Client(params string[] bodies) =>
       new(new HttpClient(new ResponseHandler(bodies)) { BaseAddress = new Uri("https://api.test") });
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
-  }
 
   private sealed class ResponseHandler(IEnumerable<string> bodies) : HttpMessageHandler
   {

@@ -1,4 +1,3 @@
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -28,7 +27,7 @@ public sealed class ChatConversationPageTests
 
     var viewModel = new ChatConversationViewModel(new UnusedChatService());
     var page = new ChatConversationPage(viewModel, new UnusedChatService());
-    var picker = Assert.Single(Descendants<Picker>(page));
+    var picker = Assert.Single(VisualTreeElements.Descendants<Picker>(page));
     var selected = viewModel.SelectedProviderStatus;
     Assert.NotNull(picker.SelectedItem);
 
@@ -54,7 +53,7 @@ public sealed class ChatConversationPageTests
 
     var viewModel = new ChatConversationViewModel(new UnusedChatService());
     var page = new ChatConversationPage(viewModel, new UnusedChatService());
-    var collection = Descendants<CollectionView>(page).Single(value => ReferenceEquals(value.ItemsSource, viewModel.Messages));
+    var collection = VisualTreeElements.Descendants<CollectionView>(page).Single(value => ReferenceEquals(value.ItemsSource, viewModel.Messages));
     var template = Assert.IsType<DataTemplate>(collection.ItemTemplate);
     var row = new ChatMessageRow(
         "message-incomplete",
@@ -66,7 +65,7 @@ public sealed class ChatConversationPageTests
         CompletionStatus: "incomplete");
     var rendered = Assert.IsAssignableFrom<Element>(template.CreateContent());
     rendered.BindingContext = row;
-    var labels = Descendants<Label>(rendered).ToArray();
+    var labels = VisualTreeElements.Descendants<Label>(rendered).ToArray();
     Assert.Equal(3, labels.Length);
     var content = labels[1];
     var error = labels[2];
@@ -75,15 +74,6 @@ public sealed class ChatConversationPageTests
     Assert.Equal(string.Empty, content.Text);
     Assert.True(error.IsVisible);
     Assert.Equal("The response was interrupted. Please try again.", error.Text);
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   private sealed class UnusedChatService : IChatService

@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.ComponentModel;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -49,7 +48,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
     financial.IsChecked = true;
     await changed.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal(["mcp.user:read", "mcp.user:write", "mcp.user:financial:read"], model.SelectedApiKeyScopes);
-    var create = Descendants<Button>(selectedView).Single(button => button.Text ==
+    var create = VisualTreeElements.Descendants<Button>(selectedView).Single(button => button.Text ==
         UiLocalization.English.Localize(UiMessageKey.NativeDotnetSettingsCreateApiKey));
     Assert.True(create.IsEnabled);
     var created = When(model, nameof(model.ApiKeySecret), () => model.ApiKeySecret == "secret");
@@ -85,10 +84,10 @@ public sealed class SettingsCredentialsRenderedControlsTests
     using var model = new SettingsViewModel(service);
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var page = new SettingsPage(model);
-    Descendants<SettingsOAuthGrantsView>(page).Single().ConfirmRevocationAsync =
+    VisualTreeElements.Descendants<SettingsOAuthGrantsView>(page).Single().ConfirmRevocationAsync =
         (_, _, _, _) => Task.FromResult(true);
     Assert.Single(model.LocalizedOAuthGrants);
-    var button = Descendants<Button>(page.ConnectedApps).Single(item => item.CommandParameter is SettingsOAuthGrantRow);
+    var button = VisualTreeElements.Descendants<Button>(page.ConnectedApps).Single(item => item.CommandParameter is SettingsOAuthGrantRow);
     Assert.Equal("grant-1", Assert.IsType<SettingsOAuthGrantRow>(button.CommandParameter).ProtocolValue.Id);
     var failureNotice = When(model, nameof(model.OAuthGrantNotice), () => model.OAuthGrantNotice is not null);
     button.SendClicked();
@@ -126,13 +125,13 @@ public sealed class SettingsCredentialsRenderedControlsTests
     using var model = new SettingsViewModel(service);
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var page = new SettingsPage(model);
-    var pagination = Descendants<Voucha.Client.App.Controls.HybridPaginationControl>(page)
+    var pagination = VisualTreeElements.Descendants<Voucha.Client.App.Controls.HybridPaginationControl>(page)
         .Single(control => control.PaginationId == "settings-oauth-grants");
     Assert.True(pagination.HasMore);
     var pageChanged = When(model, nameof(model.OAuthGrants), () => model.OAuthGrants.Count == 2);
     var rendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     pagination.LoadingCompleted += (_, _) => rendered.TrySetResult();
-    Descendants<Button>(pagination).Single().SendClicked();
+    VisualTreeElements.Descendants<Button>(pagination).Single().SendClicked();
 
     await fake.NextGrantPageStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal("opaque/+cursor", fake.LastGrantCursor);
@@ -140,7 +139,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
     await pageChanged.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     await rendered.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal(["grant-1", "grant-2"], model.OAuthGrants.Select(item => item.Id));
-    Assert.Contains(Descendants<Button>(page.ConnectedApps), button =>
+    Assert.Contains(VisualTreeElements.Descendants<Button>(page.ConnectedApps), button =>
         button.CommandParameter is SettingsOAuthGrantRow row && row.ProtocolValue.Id == "grant-2");
   }
 
@@ -148,7 +147,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
       new(name, audience, "mcp", name.EndsWith(":write", StringComparison.Ordinal) ? "write" : "read", ["api-key"], null, requires);
 
   private static CheckBox FindScopeCheck(VisualElement root, string scope) =>
-      Descendants<CheckBox>(root).Single(check =>
+      VisualTreeElements.Descendants<CheckBox>(root).Single(check =>
           check.BindingContext is SettingsScopeRow row && row.ProtocolValue.Scope == scope);
 
   private static SettingsApiKeyLifecycleView LifecycleView(SettingsViewModel model)
@@ -199,15 +198,6 @@ public sealed class SettingsCredentialsRenderedControlsTests
     };
     foreach (var key in UiMessageKey.All)
       application.Resources[key.Value] = UiLocalization.English.Localize(key);
-  }
-
-  private static IEnumerable<T> Descendants<T>(Element root) where T : Element
-  {
-    foreach (var child in ((IVisualTreeElement)root).GetVisualChildren().OfType<Element>())
-    {
-      if (child is T match) yield return match;
-      foreach (var descendant in Descendants<T>(child)) yield return descendant;
-    }
   }
 
   private static Task When(SettingsViewModel model, string property, Func<bool> condition)
