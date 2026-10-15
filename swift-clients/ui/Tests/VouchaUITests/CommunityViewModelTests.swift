@@ -7,12 +7,12 @@ import XCTest
 
 @MainActor
 final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
-    private var provider: StubCommunityAppAttestProvider!
+    private var provider: StubAppAttestProvider!
     private var keyStore: AppAttestKeyStore!
 
     override func setUp() {
         super.setUp()
-        provider = StubCommunityAppAttestProvider()
+        provider = StubAppAttestProvider()
         keyStore = AppAttestKeyStore(serviceName: "ai.voucha.test.community.\(UUID().uuidString)")
         CannedFeedURLProtocol.handlers["/api/v1/app-attestation/challenge"] =
             (Data(#"{"challengeId":"chal-1","challenge":"nonce-abc"}"#.utf8), 200)
@@ -446,23 +446,4 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         )
     }
 
-}
-
-private final class StubCommunityAppAttestProvider: AppAttestProviding, @unchecked Sendable {
-    var isSupported = true
-    var generateKeyResult: Result<String, Error> = .success("stub-key-id")
-    var attestKeyResult: Result<Data, Error> = .success(Data("attestation-blob".utf8))
-    var generateAssertionResult: Result<Data, Error> = .success(Data("assertion-blob".utf8))
-
-    func generateKey() async throws -> String {
-        try generateKeyResult.get()
-    }
-
-    func attestKey(_: String, clientDataHash _: Data) async throws -> Data {
-        try attestKeyResult.get()
-    }
-
-    func generateAssertion(_: String, clientDataHash _: Data) async throws -> Data {
-        try generateAssertionResult.get()
-    }
 }
