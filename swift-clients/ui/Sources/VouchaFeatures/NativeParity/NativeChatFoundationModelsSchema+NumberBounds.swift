@@ -9,6 +9,11 @@ import Foundation
             try NativeChatFoundationModelsSchema.validateKeywords(
                 fields, allowing: ["type", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
             )
+            let (minimum, maximum) = try projectedNumberBounds(fields)
+            return .init(type: Decimal.self, guides: [.minimum(minimum), .maximum(maximum)])
+        }
+
+        func projectedNumberBounds(_ fields: [String: Any]) throws -> (Decimal, Decimal) {
             let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
             // GeneratedContent serializes Double numbers; keep guides inside its JSON-safe range.
             let safe = Decimal(9_007_199_254_740_991)
@@ -18,7 +23,7 @@ import Foundation
             let minimum = try serializedBoundary(rawMinimum, isMinimum: true)
             let maximum = try serializedBoundary(rawMaximum, isMinimum: false)
             guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-            return .init(type: Decimal.self, guides: [.minimum(minimum), .maximum(maximum)])
+            return (minimum, maximum)
         }
 
         private func serializedBoundary(_ bound: Decimal, isMinimum: Bool) throws -> Decimal {

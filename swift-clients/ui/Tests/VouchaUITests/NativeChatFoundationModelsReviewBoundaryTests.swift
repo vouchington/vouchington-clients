@@ -7,6 +7,39 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsReviewBoundaryTests: XCTestCase {
+        func testFixedSafeDecimalUsesSerializedGuideWidthForAdmission() throws {
+            let schema = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":3,"maxItems":3,"items":{"type":"array","minItems":64,"maxItems":64,"items":{"type":"number","minimum":9007199254740991,"maximum":9007199254740991}}}}}"#
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            let row = DecodedJSONValue.array(Array(repeating: .number(9_007_199_254_740_991), count: 64))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["rows": .array(Array(repeating: row, count: 3))]), schema: authoritative
+            ))
+            let serialized = try JSONSerialization.data(
+                withJSONObject: [Double(9_007_199_254_740_991)]
+            )
+            XCTAssertGreaterThan(serialized.count - 2, 4)
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+        }
+
+        func testOptionalLiteralShapeMustFitArgumentAdmissionBudget() throws {
+            let literal = String(repeating: "x", count: 350)
+            let properties = (1 ... 4).map { index in
+                #""value\#(index)":{"type":"string","const":"\#(literal)"}"#
+            }.joined(separator: ",")
+            let schema = Data(#"{"type":"object","properties":{\#(properties)}}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([:]), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+
+            let small = Data(
+                #"{"type":"object","properties":{"first":{"type":"string","const":"\#(literal)"}}}"#.utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(small))
+        }
+
         func testMinimumArgumentBytesMustFitSessionAdmissionBudget() throws {
             let large = String(repeating: "x", count: 700)
             let schema = Data(

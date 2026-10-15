@@ -167,7 +167,7 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
 
             var bounded = schema
-            bounded["properties"] = ["a": reference, "b": reference, "c": reference]
+            bounded["properties"] = ["a": reference]
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(
                 JSONSerialization.data(withJSONObject: bounded)
             ))

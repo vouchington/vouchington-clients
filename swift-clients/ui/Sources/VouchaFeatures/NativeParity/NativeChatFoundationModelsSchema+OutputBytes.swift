@@ -138,6 +138,10 @@ import Foundation
                 return try serializedBytes(NSNumber(value: closest))
             }
             if fields["type"] as? String == "number" {
+                let (projectedMinimum, projectedMaximum) = try projectedNumberBounds(fields)
+                if projectedMinimum == projectedMaximum {
+                    return try serializedBytes(NSDecimalNumber(decimal: projectedMinimum).doubleValue)
+                }
                 let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
                 let wide = Decimal(100_000_000_000_000)
                 if let minimum = bounds.minimum, minimum >= wide { return 4 }

@@ -41,7 +41,8 @@ import VouchaCore
                     <= NativeChatFoundationModelsSchema.maximumSessionArgumentBytes else {
                     throw Failure.unsupported
                 }
-                guard try maximumForcedOutputBytes(fields, definitions: definitions) <= 4_096 else {
+                guard try maximumForcedOutputBytes(fields, definitions: definitions)
+                    <= NativeChatFoundationModelsSchema.maximumSessionArgumentBytes else {
                     throw Failure.unsupported
                 }
                 try validateRootObjectAlternatives(fields, definitions: definitions)
