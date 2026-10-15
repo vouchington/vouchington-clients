@@ -24,6 +24,61 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
         }
 
+        func testNarrowSafeDecimalIntervalsUseTheirActualSerializedWidths() throws {
+            for sign in [1, -1] {
+                let lower = sign > 0 ? 9_007_199_254_740_900 : -9_007_199_254_740_991
+                let upper = sign > 0 ? 9_007_199_254_740_991 : -9_007_199_254_740_900
+                let schema = Data(
+                    #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":55,"maxItems":55,"items":{"type":"number","minimum":\#(lower),"maximum":\#(upper)}}}}}"#
+                        .utf8
+                )
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+                let row = DecodedJSONValue.array(Array(repeating: .number(Double(lower)), count: 55))
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                    .object(["rows": .array(Array(repeating: row, count: 4))]), schema: authoritative
+                ))
+                let serialized = try JSONSerialization.data(withJSONObject: [Double(lower)])
+                XCTAssertGreaterThan(serialized.count - 2, 4)
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+            }
+        }
+
+        func testWideSafeDecimalIntervalsDoNotUnderstatePossibleArgumentBytes() throws {
+            for sign in [1, -1] {
+                let lower = sign > 0 ? 9_007_199_254_739_000 : -9_007_199_254_740_991
+                let upper = sign > 0 ? 9_007_199_254_740_991 : -9_007_199_254_739_000
+                let schema = Data(
+                    #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":55,"maxItems":55,"items":{"type":"number","minimum":\#(lower),"maximum":\#(upper)}}}}}"#
+                        .utf8
+                )
+                let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+                let row = DecodedJSONValue.array(Array(repeating: .number(Double(lower)), count: 55))
+                XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                    .object(["rows": .array(Array(repeating: row, count: 4))]), schema: authoritative
+                ))
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+            }
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"amount":{"type":"number","minimum":0,"maximum":1}}}"#.utf8
+            )))
+        }
+
+        func testNarrowScientificNotationIntervalUsesSerializedNumberWidth() throws {
+            let lower = 9.5367431640625e-7
+            let upper = lower.nextUp.nextUp
+            let fields: [String: Any] = [
+                "type": "number", "minimum": NSNumber(value: lower), "maximum": NSNumber(value: upper)
+            ]
+            let observed = try [lower, lower.nextUp, upper].map {
+                try JSONSerialization.data(withJSONObject: [$0]).count - 2
+            }
+            let projection = NativeChatFoundationModelsSchema.Projection()
+            let bounds = try projection.projectedNumberBounds(fields)
+            let widths = try projection.serializedNumberWidths(from: bounds.0, through: bounds.1)
+            XCTAssertEqual(widths?.minimum, observed.min())
+            XCTAssertEqual(widths?.maximum, observed.max())
+        }
+
         func testOptionalLiteralShapeMustFitArgumentAdmissionBudget() throws {
             let literal = String(repeating: "x", count: 350)
             let properties = (1 ... 4).map { index in

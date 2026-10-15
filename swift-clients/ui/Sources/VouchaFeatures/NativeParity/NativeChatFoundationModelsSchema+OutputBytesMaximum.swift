@@ -102,6 +102,12 @@ import Foundation
                 guard !projectable.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 return try projectable.map { try serializedBytes($0) }.max() ?? 1
             }
+            if fields["type"] as? String == "number" {
+                let (minimum, maximum) = try projectedNumberBounds(fields)
+                // A wider interval may contain a much longer serialization than its endpoints.
+                // Use a conservative Double JSON width when exhaustive enumeration is bounded out.
+                return try serializedNumberWidths(from: minimum, through: maximum)?.maximum ?? 32
+            }
             return try minimumScalarBytes(fields)
         }
     }

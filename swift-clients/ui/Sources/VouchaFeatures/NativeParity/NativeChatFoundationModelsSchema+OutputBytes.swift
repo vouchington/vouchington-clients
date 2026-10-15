@@ -139,8 +139,10 @@ import Foundation
             }
             if fields["type"] as? String == "number" {
                 let (projectedMinimum, projectedMaximum) = try projectedNumberBounds(fields)
-                if projectedMinimum == projectedMaximum {
-                    return try serializedBytes(NSDecimalNumber(decimal: projectedMinimum).doubleValue)
+                if let widths = try serializedNumberWidths(
+                    from: projectedMinimum, through: projectedMaximum
+                ) {
+                    return widths.minimum
                 }
                 let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
                 let wide = Decimal(100_000_000_000_000)
@@ -148,6 +150,25 @@ import Foundation
                 if let maximum = bounds.maximum, maximum <= -wide { return 5 }
             }
             return nil
+        }
+
+        func serializedNumberWidths(
+            from minimum: Decimal, through maximum: Decimal
+        ) throws -> (minimum: Int, maximum: Int)? {
+            var value = NSDecimalNumber(decimal: minimum).doubleValue
+            let upper = NSDecimalNumber(decimal: maximum).doubleValue
+            var minimumBytes = Int.max
+            var maximumBytes = 0
+            for _ in 0 ..< 512 {
+                if value > upper { return (minimumBytes, maximumBytes) }
+                guard let data = try? JSONSerialization.data(withJSONObject: [value]) else {
+                    throw NativeChatFoundationModelsSchema.Failure.unsupported
+                }
+                minimumBytes = Swift.min(minimumBytes, data.count - 2)
+                maximumBytes = Swift.max(maximumBytes, data.count - 2)
+                value = value.nextUp
+            }
+            return value > upper ? (minimumBytes, maximumBytes) : nil
         }
 
         func serializedBytes(_ value: Any) throws -> Int {
