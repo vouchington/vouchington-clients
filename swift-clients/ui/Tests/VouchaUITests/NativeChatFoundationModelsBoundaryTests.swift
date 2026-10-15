@@ -139,7 +139,6 @@ import XCTest
             for property in [
                 #""enum":[1,2],"minimum":1"#,
                 #""const":2,"maximum":3"#,
-                #""exclusiveMinimum":1"#,
                 #""minimum":5,"maximum":1"#
             ] {
                 let schema = #"{"type":"object","properties":{"count":{"type":"integer","# + property + #"}}}"#
@@ -153,6 +152,32 @@ import XCTest
             )))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"count":{"type":"integer","maximum":100000000000000000000}}}"#.utf8
+            )))
+        }
+
+        func testExclusiveIntegerBoundsRemainUnsupportedByAuthoritativeValidator() throws {
+            let raw = Data(#"{"type":"integer","exclusiveMinimum":1,"exclusiveMaximum":4}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
+                #"{"type":"integer","exclusiveMinimum":1.5,"exclusiveMaximum":4.5}"#.utf8
+            )))
+        }
+
+        func testStringOnlyAssertionsOnNonStringTypesAreNoOps() throws {
+            for type in ["integer", "number", "boolean", "null"] {
+                let raw = Data((#"{"type":"object","properties":{"value":{"type":""# + type
+                        + #"","minLength":8,"maxLength":1,"pattern":"\\S","format":"uuid"}}}"#).utf8)
+                let schema = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+                XCTAssertNoThrow(try NativeChatMCPInputSchema.validateSchema(schema))
+                XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+            }
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"value":{"type":["integer","null"],"pattern":"\\S"}}}"#.utf8
+            )))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"value":{"type":["string","null"],"pattern":"\\S"}}}"#.utf8
             )))
         }
 

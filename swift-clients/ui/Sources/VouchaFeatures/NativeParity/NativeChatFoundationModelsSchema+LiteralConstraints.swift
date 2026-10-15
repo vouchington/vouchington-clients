@@ -24,6 +24,8 @@ import VouchaModels
                 }
                 requiresFiniteDomain = requiresFiniteDomain || length > 0
             }
+            if let type = fields["type"] as? String, type != "string" { return }
+            if let types = fields["type"] as? [String], !types.contains("string") { return }
             guard requiresFiniteDomain else { return }
             guard fields["type"] == nil || fields["type"] as? String == "string" else {
                 throw Failure.unsupported

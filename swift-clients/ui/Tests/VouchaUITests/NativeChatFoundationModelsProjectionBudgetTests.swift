@@ -114,6 +114,12 @@ import XCTest
             ] {
                 XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(raw.utf8)))
             }
+
+            let unreachable = String(repeating: "x", count: 1_500)
+            let raw = Data((#"{"type":"null","enum":[null,""# + unreachable + #""]}"#).utf8)
+            let schema = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.null, schema: schema))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
         }
 
         func testUnconstrainedRootArgumentsStillGenerateAnObject() throws {

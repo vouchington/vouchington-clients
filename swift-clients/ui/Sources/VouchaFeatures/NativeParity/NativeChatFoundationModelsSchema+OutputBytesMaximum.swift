@@ -97,8 +97,9 @@ import Foundation
 
         private func maximumScalarBytes(_ fields: [String: Any]) throws -> Int {
             if let values = fields["enum"] as? [Any] {
-                let projectable: [Any] = fields["type"] as? String == "string"
-                    ? values.compactMap { $0 as? String } : values
+                let projectable = NativeChatFoundationModelsSchema.projectableEnumValues(
+                    values, type: fields["type"] as? String
+                )
                 guard !projectable.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 return try projectable.map { try serializedBytes($0) }.max() ?? 1
             }

@@ -44,7 +44,16 @@ import Foundation
                 "readOnly",
                 "writeOnly"
             ]
-            guard Set(fields.keys).isSubset(of: assertions.union(annotations)) else {
+            let stringOnly: Set = ["minLength", "maxLength", "pattern", "format"]
+            let excludesString: Bool = if let type = fields["type"] as? String {
+                type != "string"
+            } else if let types = fields["type"] as? [String] {
+                !types.contains("string")
+            } else {
+                false
+            }
+            let allowed = assertions.union(annotations).union(excludesString ? stringOnly : [])
+            guard Set(fields.keys).isSubset(of: allowed) else {
                 throw Failure.unsupported
             }
         }
@@ -70,6 +79,14 @@ import Foundation
             guard additional is [String: Any],
                   let properties = fields["properties"] as? [String: [String: Any]] else { return false }
             return !properties.isEmpty
+        }
+
+        static func projectableEnumValues(_ values: [Any], type: String?) -> [Any] {
+            switch type {
+            case "string": values.compactMap { $0 as? String }
+            case "null": values.filter { $0 is NSNull }
+            default: values
+            }
         }
 
         private static func decimal(_ value: Any?) throws -> Decimal? {

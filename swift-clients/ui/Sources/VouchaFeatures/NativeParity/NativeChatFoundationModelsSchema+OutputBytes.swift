@@ -113,9 +113,9 @@ import Foundation
             if let value = fields["const"] as? String { return try serializedBytes(value) }
             if fields["const"] is NSNull { return 4 }
             if let values = fields["enum"] as? [Any] {
-                let projectable: [Any] = fields["type"] as? String == "string"
-                    ? values.compactMap { $0 as? String }
-                    : values
+                let projectable = NativeChatFoundationModelsSchema.projectableEnumValues(
+                    values, type: fields["type"] as? String
+                )
                 guard !projectable.isEmpty else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 return try projectable.map { try serializedBytes($0) }.min() ?? 1
             }
