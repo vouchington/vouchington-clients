@@ -87,6 +87,27 @@ import XCTest
             }
         }
 
+        func testTypedNumberIntegralConstantProjectsFixedRepresentableValue() throws {
+            let raw = Data(#"{"type":"number","const":7}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.integer(7), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.integer(8), schema: authoritative))
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(NativeChatFoundationModelsSchema.projectWithProperty(raw))
+            ) as? [String: Any])
+            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
+            let value = try XCTUnwrap(properties["value"] as? [String: Any])
+            XCTAssertEqual(value["minimum"] as? Int, 7)
+            XCTAssertEqual(value["maximum"] as? Int, 7)
+            for invalid in [
+                #"{"type":"number","const":7.5}"#,
+                #"{"type":"number","const":9007199254740992}"#,
+                #"{"type":"number","const":7,"minimum":0}"#
+            ] {
+                XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(invalid.utf8)))
+            }
+        }
+
         func testRecognizedAssertionsOnUnrelatedDeclaredTypesAreNoOps() throws {
             for raw in [
                 #"{"type":"object","properties":{"value":{"type":"string","minimum":5,"maximum":1}}}"#,

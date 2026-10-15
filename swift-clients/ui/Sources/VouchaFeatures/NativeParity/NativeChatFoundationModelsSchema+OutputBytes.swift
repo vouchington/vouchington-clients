@@ -129,11 +129,7 @@ import Foundation
 
         private func minimumNumericBytes(_ fields: [String: Any]) throws -> Int? {
             if fields["type"] as? String ?? NativeChatFoundationModelsSchema.inferredType(fields) == "integer" {
-                let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
-                let safe = 9_007_199_254_740_991
-                let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe, isMinimum: true) ?? -safe
-                let maximum = try integerBound(bounds.maximum, clampedTo: -safe ... safe, isMinimum: false) ?? safe
-                guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+                let (minimum, maximum) = try projectedIntegerBounds(fields)
                 let closest = minimum > 0 ? minimum : (maximum < 0 ? maximum : 0)
                 return try serializedBytes(NSNumber(value: closest))
             }

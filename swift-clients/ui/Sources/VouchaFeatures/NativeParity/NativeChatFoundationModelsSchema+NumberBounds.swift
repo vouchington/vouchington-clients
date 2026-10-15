@@ -7,7 +7,15 @@ import Foundation
     extension NativeChatFoundationModelsSchema.Projection {
         func projectNumber(_ fields: [String: Any]) throws -> DynamicGenerationSchema {
             try NativeChatFoundationModelsSchema.validateKeywords(
-                fields, allowing: ["type", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
+                fields, allowing: [
+                    "type",
+                    "const",
+                    "minimum",
+                    "maximum",
+                    "exclusiveMinimum",
+                    "exclusiveMaximum",
+                    "$defs"
+                ]
             )
             let (minimum, maximum) = try projectedNumberBounds(fields)
             return .init(type: Decimal.self, guides: [.minimum(minimum), .maximum(maximum)])

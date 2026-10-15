@@ -38,7 +38,7 @@ import Foundation
             guard fields["exclusiveMinimum"] == nil, fields["exclusiveMaximum"] == nil,
                   fields["enum"] == nil else { throw Failure.unsupported }
             if let constant = fields["const"] {
-                guard fields["type"] == nil || fields["type"] as? String == "integer",
+                guard fields["type"] == nil || ["integer", "number"].contains(fields["type"] as? String ?? ""),
                       fields["minimum"] == nil, fields["maximum"] == nil else { throw Failure.unsupported }
                 let value = try safeIntegerConstant(constant)
                 return (value, value)
@@ -150,12 +150,17 @@ import Foundation
                 fields,
                 allowing: ["type", "const", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "$defs"]
             )
+            let (minimum, maximum) = try projectedIntegerBounds(fields)
+            return .init(type: Int.self, guides: [.range(minimum ... maximum)])
+        }
+
+        func projectedIntegerBounds(_ fields: [String: Any]) throws -> (Int, Int) {
             let bounds = try NativeChatFoundationModelsSchema.numericBounds(fields)
             let safe = 9_007_199_254_740_991
             let minimum = try integerBound(bounds.minimum, clampedTo: -safe ... safe, isMinimum: true) ?? -safe
             let maximum = try integerBound(bounds.maximum, clampedTo: -safe ... safe, isMinimum: false) ?? safe
             guard minimum <= maximum else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
-            return .init(type: Int.self, guides: [.range(minimum ... maximum)])
+            return (minimum, maximum)
         }
 
         func integerBound(

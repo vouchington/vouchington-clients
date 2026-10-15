@@ -127,6 +127,24 @@ import XCTest
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
         }
 
+        func testOptionalWideIntegerRangeCannotExceedArgumentAdmissionBudget() throws {
+            let schema = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":55,"maxItems":55,"items":{"type":"integer","minimum":0,"maximum":9007199254740991}}}}}"#
+                    .utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: schema)
+            let row = DecodedJSONValue.array(Array(repeating: .integer(9_007_199_254_740_991), count: 55))
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["rows": .array(Array(repeating: row, count: 4))]), schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(schema))
+            let small = Data(
+                #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":10,"maxItems":10,"items":{"type":"integer","minimum":0,"maximum":9007199254740991}}}}}"#
+                    .utf8
+            )
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(small))
+        }
+
         func testWideDecimalRangeHasConservativeMinimumJsonWidth() throws {
             let schema = Data(
                 #"{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"array","minItems":60,"maxItems":60,"items":{"type":"number","minimum":9000000000000000,"maximum":9000000000000100}}}}}"#

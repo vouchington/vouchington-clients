@@ -109,6 +109,13 @@ import Foundation
                 // Use a conservative Double JSON width when exhaustive enumeration is bounded out.
                 return try serializedNumberWidths(from: minimum, through: maximum)?.maximum ?? 32
             }
+            if fields["type"] as? String ?? NativeChatFoundationModelsSchema.inferredType(fields) == "integer" {
+                let (minimum, maximum) = try projectedIntegerBounds(fields)
+                return try max(
+                    serializedBytes(NSNumber(value: minimum)),
+                    serializedBytes(NSNumber(value: maximum))
+                )
+            }
             return try minimumScalarBytes(fields)
         }
     }
