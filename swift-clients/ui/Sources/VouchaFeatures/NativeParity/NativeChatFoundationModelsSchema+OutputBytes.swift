@@ -109,7 +109,7 @@ import Foundation
             return total
         }
 
-        private func minimumScalarBytes(_ fields: [String: Any]) throws -> Int {
+        func minimumScalarBytes(_ fields: [String: Any]) throws -> Int {
             if let value = fields["const"] as? String { return try serializedBytes(value) }
             if let values = fields["enum"] as? [Any] {
                 let projectable: [Any] = fields["type"] as? String == "string"
@@ -125,11 +125,12 @@ import Foundation
             }
         }
 
-        private func serializedBytes(_ value: Any) throws -> Int {
+        func serializedBytes(_ value: Any) throws -> Int {
             guard let data = try? JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed) else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
             return data.count
         }
+
     }
 #endif

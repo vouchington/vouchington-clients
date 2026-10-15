@@ -31,6 +31,12 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"id":{"type":"string"}},"additionalProperties":false}"#.utf8
             )))
+            let explicitlyOpen = Data(
+                #"{"type":"object","properties":{},"additionalProperties":true}"#.utf8
+            )
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: explicitlyOpen)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([:]), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(explicitlyOpen))
         }
 
         func testSchemaProjectionRejectsImplicitOpenMapRequiredForMinimumProperties() {
@@ -95,6 +101,9 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"value":{"type":"string","enum":["a","b"]}}}"#.utf8
             )))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"value":{"type":"string","minLength":0}}}"#.utf8
+            )))
         }
 
         func testSchemaProjectionRejectsConstrainedTypeUnionsInsteadOfDroppingSiblings() {
@@ -110,6 +119,9 @@ import XCTest
             }
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"value":{"type":["string","null"]}}}"#.utf8
+            )))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
+                #"{"type":"object","properties":{"value":{"type":["string","null"],"default":null}}}"#.utf8
             )))
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(Data(
                 #"{"type":"object","properties":{"values":{"type":"array","items":{"type":"string"},"minItems":1}}}"#

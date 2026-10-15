@@ -9,6 +9,8 @@ import VouchaCore
     final class NativeChatFoundationModelsToolState {
         private(set) var attempted = false
         private var callCount = 0
+        private(set) var deliveredResultBytes = 0
+        static let maximumSessionResultBytes = 1_200
 
         func checkCapacity() throws {
             guard callCount < 4 else { throw LocalLLMToolLoopFailure.partialExecution }
@@ -17,6 +19,16 @@ import VouchaCore
         func markStarted() {
             callCount += 1
             attempted = true
+        }
+
+        func boundedResult(_ result: String) -> String {
+            let reserved = (4 - callCount) * 80
+            let available = max(80, Self.maximumSessionResultBytes - deliveredResultBytes - reserved)
+            let bounded = NativeChatFoundationModelsTool.contextBoundResult(
+                result, maximumBytes: min(available, NativeChatFoundationModelsTool.maximumModelResultBytes)
+            )
+            deliveredResultBytes += bounded.utf8.count
+            return bounded
         }
     }
 
@@ -42,12 +54,12 @@ import VouchaCore
                 beforeAdmission: { try state.checkCapacity() },
                 onStarted: { state.markStarted() }
             )
-            return Self.contextBoundResult(result)
+            return await state.boundedResult(result)
         }
 
         /// This cannot throw after an admitted RPC: a large successful result must remain an answerable tool result.
-        static func contextBoundResult(_ result: String) -> String {
-            guard result.utf8.count > maximumModelResultBytes else { return result }
+        static func contextBoundResult(_ result: String, maximumBytes: Int = maximumModelResultBytes) -> String {
+            guard result.utf8.count > maximumBytes else { return result }
             let envelope = try? JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]
             let isError = envelope?["isError"] as? Bool == true
             let textContent = (envelope?["content"] as? [[String: Any]] ?? [])
@@ -84,7 +96,7 @@ import VouchaCore
                     "content": [["type": "text", "text": "<external-content>\(preview)</external-content>"]]
                 ]
                 if let data = try? JSONSerialization.data(withJSONObject: bounded),
-                   data.count <= maximumModelResultBytes,
+                   data.count <= maximumBytes,
                    let text = String(data: data, encoding: .utf8) {
                     return text
                 }

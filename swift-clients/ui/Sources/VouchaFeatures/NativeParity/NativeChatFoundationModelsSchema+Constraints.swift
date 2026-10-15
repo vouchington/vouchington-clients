@@ -10,7 +10,13 @@ import Foundation
         }
 
         static func validateStringConstraints(_ fields: [String: Any]) throws {
-            if ["minLength", "maxLength", "pattern", "format"].contains(where: { fields[$0] != nil }) {
+            if let minimum = fields["minLength"] {
+                guard let number = minimum as? NSNumber,
+                      CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue == 0 else {
+                    throw Failure.unsupported
+                }
+            }
+            if ["maxLength", "pattern", "format"].contains(where: { fields[$0] != nil }) {
                 throw Failure.unsupported
             }
         }
@@ -81,9 +87,7 @@ import Foundation
         mutating func projectTypeUnion(
             _ fields: [String: Any], types: [String]
         ) throws -> DynamicGenerationSchema {
-            guard Set(fields.keys).isSubset(of: ["type", "description", "title"]) else {
-                throw NativeChatFoundationModelsSchema.Failure.unsupported
-            }
+            try NativeChatFoundationModelsSchema.validateKeywords(fields, allowing: ["type", "minLength"])
             return try .init(name: name(), anyOf: types.map { try project(["type": $0]) })
         }
 

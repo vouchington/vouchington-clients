@@ -39,6 +39,9 @@ import VouchaCore
                 guard try minimumOutputBytes(fields, definitions: definitions) <= 4_096 else {
                     throw Failure.unsupported
                 }
+                guard try maximumForcedOutputBytes(fields, definitions: definitions) <= 4_096 else {
+                    throw Failure.unsupported
+                }
                 try validateRootObjectAlternatives(fields, definitions: definitions)
                 let dependencies = try projectDependencies(definitions: definitions, reachable: reachable)
                 if NativeChatFoundationModelsSchema.inferredType(fields).isEmpty,
@@ -84,7 +87,7 @@ import VouchaCore
                 case "string":
                     try NativeChatFoundationModelsSchema.validateKeywords(
                         fields,
-                        allowing: ["type", "enum", "const", "$defs"]
+                        allowing: ["type", "enum", "const", "minLength", "$defs"]
                     )
                     guard fields["enum"] == nil || fields["const"] == nil else { throw Failure.unsupported }
                     return try projectString(fields)
@@ -110,7 +113,7 @@ import VouchaCore
                         "$defs"
                     ]
                 )
-                guard fields["additionalProperties"] == nil || fields["additionalProperties"] as? Bool == false else {
+                guard fields["additionalProperties"] == nil || fields["additionalProperties"] is Bool else {
                     throw Failure.unsupported
                 }
                 let properties = fields["properties"] as? [String: [String: Any]] ?? [:]

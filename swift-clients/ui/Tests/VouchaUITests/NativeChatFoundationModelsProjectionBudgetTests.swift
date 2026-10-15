@@ -150,6 +150,29 @@ import XCTest
                 .project(JSONSerialization.data(withJSONObject: short)))
         }
 
+        func testOptionalFixedValuesShareTheArgumentByteBudget() throws {
+            let long = String(repeating: "x", count: 1_100)
+            let reference: [String: Any] = ["$ref": "#/$defs/Fixed"]
+            let properties = ["a": reference, "b": reference, "c": reference, "d": reference]
+            let schema: [String: Any] = [
+                "type": "object", "properties": properties,
+                "$defs": ["Fixed": ["const": long]]
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: schema)
+            XCTAssertLessThan(raw.count, NativeChatFoundationModelsToolSelection.maximumCatalogBytes)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                "a": .string(long), "b": .string(long), "c": .string(long), "d": .string(long)
+            ]), schema: authoritative))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+
+            var bounded = schema
+            bounded["properties"] = ["a": reference, "b": reference, "c": reference]
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(
+                JSONSerialization.data(withJSONObject: bounded)
+            ))
+        }
+
         func testAcyclicReferencesBeyondAuthoritativeDepthFailProjection() throws {
             var definitions: [String: Any] = [:]
             for index in 0 ..< 32 {
