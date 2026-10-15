@@ -25,11 +25,15 @@ public struct OAuthBrokerCapabilities: Codable, Equatable, Sendable {
     // swiftlint:disable:next identifier_name
     public let x: OAuthBrokerCapability
     public let github: OAuthBrokerCapability
+    public let linkedin: OAuthBrokerCapability?
+    public let microsoft: OAuthBrokerCapability?
 
     static let disabled = OAuthBrokerCapabilities(
         facebook: .disabled,
         x: .disabled,
-        github: .disabled
+        github: .disabled,
+        linkedin: nil,
+        microsoft: nil
     )
 
     public subscript(provider: NativeOAuthProvider) -> OAuthBrokerCapability {

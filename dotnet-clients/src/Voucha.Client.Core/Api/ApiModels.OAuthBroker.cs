@@ -32,7 +32,9 @@ public sealed record OAuthBrokerCapability(
 public sealed record OAuthBrokerCapabilities(
     [property: JsonPropertyName("facebook")] OAuthBrokerCapability Facebook,
     [property: JsonPropertyName("x")] OAuthBrokerCapability X,
-    [property: JsonPropertyName("github")] OAuthBrokerCapability Github)
+    [property: JsonPropertyName("github")] OAuthBrokerCapability Github,
+    [property: JsonPropertyName("linkedin")] OAuthBrokerCapability? Linkedin = null,
+    [property: JsonPropertyName("microsoft")] OAuthBrokerCapability? Microsoft = null)
 {
   public OAuthBrokerCapability this[OAuthBrokerProvider provider] => provider switch
   {
