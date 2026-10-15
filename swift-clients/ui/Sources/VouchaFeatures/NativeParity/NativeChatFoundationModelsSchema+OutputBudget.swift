@@ -52,7 +52,7 @@ import Foundation
         ) throws -> Int {
             guard path.hasPrefix("#/$defs/") else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             let key = String(path.dropFirst(8))
-            guard let target = definitions[key], !activeReferences.contains(key) else {
+            guard let target = definitions[key], !activeReferences.contains(key), activeReferences.count < 31 else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
             return try minimumOutputNodes(
@@ -76,9 +76,10 @@ import Foundation
             definitions: [String: [String: Any]],
             activeReferences: Set<String>
         ) throws -> Int {
-            guard let item = fields["items"] as? [String: Any] else {
+            guard fields["items"] == nil || fields["items"] is [String: Any] else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
+            let item = fields["items"] as? [String: Any] ?? [:]
             let minimum = fields["minItems"] as? Int ?? 0
             guard (0 ... 64).contains(minimum) else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             if minimum == 0 { return 1 }

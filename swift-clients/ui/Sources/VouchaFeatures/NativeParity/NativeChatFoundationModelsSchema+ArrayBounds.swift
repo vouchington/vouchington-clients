@@ -12,9 +12,10 @@ import Foundation
             guard fields["uniqueItems"] == nil || fields["uniqueItems"] as? Bool == false else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
-            guard let item = fields["items"] as? [String: Any] else {
+            guard fields["items"] == nil || fields["items"] is [String: Any] else {
                 throw NativeChatFoundationModelsSchema.Failure.unsupported
             }
+            let item = fields["items"] as? [String: Any] ?? [:]
             let minimum = fields["minItems"] as? Int ?? 0
             guard (0 ... 64).contains(minimum),
                   (fields["maxItems"] as? Int ?? minimum) >= minimum else {

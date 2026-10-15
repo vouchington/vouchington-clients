@@ -95,10 +95,10 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
         history: [NativeChatTimelineMessage],
         maximumCharacters: Int
     ) -> BoundedAssistantContext {
-        let fixedCharacters = assistantInstruction.count + 2 + latestMessageHeading.count
-        let contentBudget = max(0, maximumCharacters - fixedCharacters)
-        let latestMessage = String(message.trimmingCharacters(in: .whitespacesAndNewlines).prefix(contentBudget))
-        let transcriptBudget = max(0, contentBudget - latestMessage.count)
+        let fixedBytes = assistantInstruction.utf8.count + 2 + latestMessageHeading.utf8.count
+        let contentBudget = max(0, maximumCharacters - fixedBytes)
+        let latestMessage = utf8Prefix(message.trimmingCharacters(in: .whitespacesAndNewlines), limit: contentBudget)
+        let transcriptBudget = max(0, contentBudget - latestMessage.utf8.count)
         let transcript = boundedTranscript(history, maximumCharacters: transcriptBudget, maximumMessages: 12)
         return BoundedAssistantContext(
             transcript: transcript.prompt, selectionHistory: transcript.selection, latestMessage: latestMessage
@@ -122,19 +122,32 @@ struct NativeChatAppleFoundationModelsProvider: NativeChatTitleProviding {
             let available = remaining - separatorLength
             guard available > 0 else { break }
             let line = chatTranscriptLine(message)
-            let truncated = String(line.prefix(available))
+            let truncated = utf8Prefix(line, limit: available)
             selected.append(truncated)
             let rolePrefix = "\(message.role.rawValue): "
             if truncated.hasPrefix(rolePrefix) {
                 selection.append(String(truncated.dropFirst(rolePrefix.count)))
             }
-            remaining -= separatorLength + min(line.count, available)
+            remaining -= separatorLength + truncated.utf8.count
         }
         return (selected.reversed().joined(separator: "\n"), selection.reversed().joined(separator: "\n"))
     }
 
     private static func chatTranscriptLine(_ message: NativeChatTimelineMessage) -> String {
         "\(message.role.rawValue): \(message.content.trimmingCharacters(in: .whitespacesAndNewlines))"
+    }
+
+    private static func utf8Prefix(_ text: String, limit: Int) -> String {
+        guard limit > 0 else { return "" }
+        var bytes = 0
+        var result = ""
+        for character in text {
+            let size = String(character).utf8.count
+            guard bytes + size <= limit else { break }
+            result.append(character)
+            bytes += size
+        }
+        return result
     }
 
     private func sanitizeTitle(_ title: String) -> String? {

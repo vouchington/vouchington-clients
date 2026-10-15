@@ -133,5 +133,32 @@ import XCTest
             XCTAssertNoThrow(try NativeChatFoundationModelsSchema
                 .project(JSONSerialization.data(withJSONObject: short)))
         }
+
+        func testAcyclicReferencesBeyondAuthoritativeDepthFailProjection() throws {
+            var definitions: [String: Any] = [:]
+            for index in 0 ..< 32 {
+                definitions["Step\(index)"] = index == 31
+                    ? ["type": "string"]
+                    : ["$ref": "#/$defs/Step\(index + 1)"]
+            }
+            let schema: [String: Any] = [
+                "type": "object", "required": ["value"],
+                "properties": ["value": ["$ref": "#/$defs/Step0"]], "$defs": definitions
+            ]
+            let raw = try JSONSerialization.data(withJSONObject: schema)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertThrowsError(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .string("ok")]), schema: authoritative
+            ))
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.project(raw))
+        }
+
+        func testArrayWithoutItemsKeepsTheValidEmptyArray() throws {
+            let raw = Data(#"{"type":"array","maxItems":0}"#.utf8)
+            let authoritative = try JSONDecoder().decode(DecodedJSONValue.self, from: raw)
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array([]), schema: authoritative))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array([.null]), schema: authoritative))
+            XCTAssertNoThrow(try NativeChatFoundationModelsSchema.project(raw))
+        }
     }
 #endif
