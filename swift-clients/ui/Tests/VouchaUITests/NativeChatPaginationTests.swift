@@ -64,25 +64,60 @@ final class NativeChatPaginationTests: NativeRouteSurfaceViewModelTestCase {
     func testStaleConversationPageFinalizerCannotClearNewGenerationRequest() async throws {
         let path = "/api/v1/my/conversations"
         CannedFeedURLProtocol.queuedHandlers[path] = [
-            (Self.conversationPage([("conversation-stale", "Stale")]), 200, 0.1),
+            (Self.conversationPage([("conversation-stale", "Stale")]), 200, 0),
             (Self.conversationPage([("conversation-1", "Refreshed")], endCursor: "refresh-cursor"), 200, 0),
-            (Self.conversationPage([("conversation-2", "Older conversation")]), 200, 0.2)
+            (Self.conversationPage([("conversation-2", "Older conversation")]), 200, 0)
         ]
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        var stalePage: Task<Void, Never>?
+        var refresh: Task<Void, Never>?
+        var currentPage: Task<Void, Never>?
+        addTeardownBlock { @MainActor in
+            stalePage?.cancel()
+            refresh?.cancel()
+            currentPage?.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await stalePage?.value
+            await refresh?.value
+            await currentPage?.value
+        }
+
         let viewModel = try makeViewModel()
         viewModel.listPageInfo = .init(hasNextPage: true, endCursor: "stale-cursor")
 
-        let stalePage = Task { await viewModel.loadMoreConversations() }
-        try await Task.sleep(nanoseconds: 10_000_000)
-        await viewModel.loadConversations(reset: true)
-        let currentPage = Task { await viewModel.loadMoreConversations() }
-        try await Task.sleep(nanoseconds: 120_000_000)
+        let staleBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+        stalePage = Task { await viewModel.loadMoreConversations() }
+        let staleRequest = try await staleBarrier.wait()
+        XCTAssertEqual(staleRequest.url.query, "limit=50&after=stale-cursor")
+        XCTAssertTrue(viewModel.isLoadingMoreConversations)
 
+        let refreshBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+        refresh = Task { await viewModel.loadConversations(reset: true) }
+        let refreshRequest = try await refreshBarrier.wait()
+        XCTAssertEqual(refreshRequest.url.query, "limit=50")
+        CannedFeedURLProtocol.releaseNewestResponse(path: path)
+        await refresh?.value
+        XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1"])
+        XCTAssertFalse(viewModel.isLoadingMoreConversations)
+        XCTAssertTrue(viewModel.canLoadMoreConversations)
+
+        let currentBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+        currentPage = Task { await viewModel.loadMoreConversations() }
+        let currentRequest = try await currentBarrier.wait()
+        XCTAssertEqual(currentRequest.url.query, "limit=50&after=refresh-cursor")
         XCTAssertTrue(viewModel.isLoadingMoreConversations)
         XCTAssertFalse(viewModel.canLoadMoreConversations)
-        await stalePage.value
-        await currentPage.value
+
+        CannedFeedURLProtocol.releaseOldestResponse(path: path)
+        await stalePage?.value
+        XCTAssertTrue(viewModel.isLoadingMoreConversations)
+        XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1"])
+
+        CannedFeedURLProtocol.releaseOldestResponse(path: path)
+        await currentPage?.value
         XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1", "conversation-2"])
         XCTAssertFalse(viewModel.isLoadingMoreConversations)
+        XCTAssertFalse(viewModel.canLoadMoreConversations)
     }
 
     func testOlderMessagesPrependOnceDeduplicateIncomingAndPreserveCurrentOverlap() async throws {
