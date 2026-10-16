@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelCreateRaceTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testCreateConversationDoesNotReplaceCurrentThreadWhenSelectionChangesBeforeInitialSendCompletes() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages"] = [
             (conversationEnvelope(id: "conversation-99"), 200, 0),

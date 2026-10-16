@@ -5,16 +5,6 @@ import XCTest
 
 @MainActor
 final class NativeChatTitleRaceTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.contentTypes = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testViewModelSkipsDelayedLocalTitleWhenUserRenamesDuringGeneration() async {
         let provider = DelayedTitleProvider(title: "Generated title")
         let resolver = RaceTitleProviderResolver(

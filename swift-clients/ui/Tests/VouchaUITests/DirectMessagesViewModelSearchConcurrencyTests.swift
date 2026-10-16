@@ -4,15 +4,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelSearchConcurrencyTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testStaleUserSearchCompletionDoesNotReplaceLatestResults() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/users"] = [
             (userSearchPage(id: "user-1", username: "alice"), 200, 0.2),

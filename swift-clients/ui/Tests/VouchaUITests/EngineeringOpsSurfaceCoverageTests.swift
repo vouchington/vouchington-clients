@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class EngineeringOpsSurfaceCoverageTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testQueuesSurfaceLoadedContentRendersOperationalSections() throws {
         let viewModel = try NativeEngineeringQueuesViewModel(client: makeClient())
         viewModel.state = .loaded

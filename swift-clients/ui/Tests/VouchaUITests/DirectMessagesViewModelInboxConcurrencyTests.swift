@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testConcurrentInboxLoadsDoNotDuplicateRequestsOrPages() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages"] = [
             (conversationPageData(id: "conversation-1", endCursor: "cursor-1", hasNextPage: true), 200, 0.2),

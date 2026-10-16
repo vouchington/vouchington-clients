@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelRegressionTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testReloadInboxPreservesExistingRowsWhenReplacementFetchFails() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages"] = [
             (conversationPageData(id: "conversation-1"), 200, 0),

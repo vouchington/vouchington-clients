@@ -5,15 +5,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testSendMessageUpsertsConversationFallbackWhenInboxRefreshFails() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/messages"] = (
             directMessageResponseData(

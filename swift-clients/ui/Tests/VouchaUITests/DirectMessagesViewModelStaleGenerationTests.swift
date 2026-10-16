@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelStaleGenerationTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testReloadingSameConversationIgnoresStaleThreadPagesFromEarlierGeneration() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1"] = [
             (directConversationResponseData(participantAddPolicy: .ownerOnly), 200, 0.2),

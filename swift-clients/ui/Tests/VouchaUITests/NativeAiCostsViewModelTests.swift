@@ -7,13 +7,6 @@ import XCTest
 
 @MainActor
 final class NativeAiCostsViewModelTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-    }
-
     func testLoadsCursorPagesInServerOrderAndPreservesRowsAfterContinuationFailure() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/admin/ai-costs"] = [
             (ApiFixtureLoader.data("native.admin-ai-costs.default"), 200, 0),
