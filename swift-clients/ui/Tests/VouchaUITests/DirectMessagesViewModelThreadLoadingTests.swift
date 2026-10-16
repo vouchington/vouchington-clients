@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testLoadMoreMessagesIsIgnoredWhileInitialThreadPageIsLoading() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1"] = (
             directConversationResponseData(participantAddPolicy: .ownerOnly),

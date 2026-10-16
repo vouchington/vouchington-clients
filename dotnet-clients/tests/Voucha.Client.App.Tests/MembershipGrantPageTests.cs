@@ -16,7 +16,7 @@ public sealed class MembershipGrantPageTests
   public async Task RetryRemainsVisibleForUserContentPlanError()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider()); _ = new Application();
-    var controller = new UiLocaleController(new Languages()); var localization = new UiLocalization(controller);
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en")); var localization = new UiLocalization(controller);
     var model = new MembershipGrantViewModel(new ErrorService(), localization);
     await model.LoadPlansAsync(TestContext.Current.CancellationToken);
     var page = new MembershipGrantPage(model, localization, controller);
@@ -27,7 +27,7 @@ public sealed class MembershipGrantPageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var model = new MembershipGrantViewModel(new Service(), localization);
     await model.LoadPlansAsync(TestContext.Current.CancellationToken);
@@ -83,11 +83,6 @@ public sealed class MembershipGrantPageTests
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
-
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 
   private sealed class Service : IMembershipAdministrationService
   {

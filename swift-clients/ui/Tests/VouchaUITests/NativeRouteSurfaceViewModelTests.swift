@@ -4,14 +4,6 @@ import XCTest
 
 @MainActor
 final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-    }
-
     func testSearchCallsCombinedSearchEndpointAndRendersGroupedResults() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/search"] = (
             Data("""

@@ -391,8 +391,4 @@ public sealed partial class SettingsViewModelTests
     public TaskCompletionSource<bool> Started { get; } = new();
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

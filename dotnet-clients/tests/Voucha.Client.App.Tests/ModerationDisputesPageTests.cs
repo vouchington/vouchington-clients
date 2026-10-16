@@ -139,7 +139,7 @@ public sealed class ModerationDisputesPageTests
   public async Task LocaleChangeRefreshesStatusOptionsAndEmptyCopy()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var localization = UiCopy.PushLocalization(new UiLocalization(controller));
     using var viewModel = new ModerationDisputesViewModel(
         new Service { Empty = true },
@@ -166,7 +166,7 @@ public sealed class ModerationDisputesPageTests
   public void ReplacingThePageDisposesItsViewModelAndSubscriptions()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var localization = UiCopy.PushLocalization(new UiLocalization(controller));
     var page = new ModerationDisputesPage(new ModerationDisputesViewModel(
         new Service(),
@@ -301,8 +301,4 @@ public sealed class ModerationDisputesPageTests
     }
   }
 
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

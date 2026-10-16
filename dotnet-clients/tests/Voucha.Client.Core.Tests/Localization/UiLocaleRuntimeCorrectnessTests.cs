@@ -125,7 +125,7 @@ public sealed class UiLocaleRuntimeCorrectnessTests
         ["de-DE", "fr-CA", "en-US"],
         "pt-BR");
     var controller = new UiLocaleController(
-        new ListDeviceLanguageProvider(languages));
+        new StubDeviceLanguageProvider(languages.ToArray()));
 
     Assert.Equal(["de-DE", "fr-CA", "en-US", "pt-BR"], languages);
     Assert.Equal("fr", controller.EffectiveLocale);
@@ -178,17 +178,6 @@ public sealed class UiLocaleRuntimeCorrectnessTests
     public int ChangeCount { get; private set; }
 
     public void OnUiLocaleChanged() => ChangeCount++;
-  }
-
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
-
-  private sealed class ListDeviceLanguageProvider(IReadOnlyList<string> languages)
-      : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = languages;
   }
 
   private sealed class StubSessionStore : ISessionStore

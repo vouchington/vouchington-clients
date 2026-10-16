@@ -47,7 +47,7 @@ public sealed partial class SettingsViewModelActionsTests
   public async Task CreatedApiKeyNoticeRefreshesWhenTheLocaleChanges()
   {
     var service = new RecordingSettingsService();
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new SettingsViewModel(
         service,
         uiLocaleController: controller,
@@ -67,8 +67,4 @@ public sealed partial class SettingsViewModelActionsTests
         viewModel.ApiKeySecretDisplay);
   }
 
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

@@ -17,7 +17,7 @@ public sealed class EngineeringQueuesPageTests
     var queue = new QueueStats("priority", 0, 2, 3, 4, false, 7);
     var viewModel = new EngineeringQueuesViewModel(new QueueService(queue));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
-    using var controller = new UiLocaleController(new EnglishLanguages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(controller);
     var page = CreatePage(viewModel, controller, version);
 
@@ -38,7 +38,7 @@ public sealed class EngineeringQueuesPageTests
     var queue = new QueueStats("ordinary", 3, 0, 0, 0, false, 0);
     var viewModel = new EngineeringQueuesViewModel(new QueueService(queue, totalDelayed: 0));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
-    using var controller = new UiLocaleController(new EnglishLanguages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(controller);
     var page = CreatePage(viewModel, controller, version);
 
@@ -100,6 +100,4 @@ public sealed class EngineeringQueuesPageTests
     public Task<FlushValkeyResponse> FlushValkeyAsync(string concern, bool force = false, CancellationToken cancellationToken = default) => throw new NotSupportedException();
   }
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages => ["en"]; }
 }

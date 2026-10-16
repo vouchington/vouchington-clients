@@ -146,8 +146,4 @@ public sealed class CommunityRowsTests
     Assert.Equal("Discussion", post.PostType);
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

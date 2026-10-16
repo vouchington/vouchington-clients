@@ -17,7 +17,7 @@ public sealed class IdentityVerificationAttemptGrantPageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var model = new IdentityVerificationAttemptGrantViewModel(new Service(), localization);
     model.Configure("alice", true);
@@ -39,7 +39,7 @@ public sealed class IdentityVerificationAttemptGrantPageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var model = new IdentityVerificationAttemptGrantViewModel(new Service(), localization);
     var page = new IdentityVerificationAttemptGrantPage(model, localization, controller);
@@ -52,11 +52,6 @@ public sealed class IdentityVerificationAttemptGrantPageTests
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
-
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 
   private sealed class Service : IIdentityVerificationAdministrationService
   {

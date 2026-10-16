@@ -98,7 +98,7 @@ public sealed class PublicTopicImageRenderingTests
 
   private static IUiLocaleController InstallPageResources()
   {
-    var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var app = new Application();
     foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
       app.Resources[key] = new Style(typeof(Label));
@@ -151,16 +151,4 @@ public sealed class PublicTopicImageRenderingTests
     }
   }
 
-  private sealed class AnonymousSessionStore : ISessionStore
-  {
-    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current => SessionSnapshot.Anonymous;
-    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
-  private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

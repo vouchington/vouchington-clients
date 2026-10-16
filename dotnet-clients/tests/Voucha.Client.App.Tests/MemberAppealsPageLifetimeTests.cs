@@ -12,7 +12,7 @@ public sealed partial class MemberAppealsPageTests
   [Fact]
   public async Task LocaleChangeRebuildsDirectCopyWithoutLosingTheDraft()
   {
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var localization = UiCopy.PushLocalization(new UiLocalization(controller));
     var page = new MemberAppealsPage(
         new MemberAppealsViewModel(
@@ -36,7 +36,7 @@ public sealed partial class MemberAppealsPageTests
   [Fact]
   public void ReplacementDisposesLocaleSubscriptionButSameReferenceDoesNot()
   {
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var page = new MemberAppealsPage(
         new MemberAppealsViewModel(
             new MemberService(),

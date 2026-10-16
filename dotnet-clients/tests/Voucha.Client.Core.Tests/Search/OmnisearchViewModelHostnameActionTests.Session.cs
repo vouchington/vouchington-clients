@@ -24,13 +24,4 @@ public sealed partial class OmnisearchViewModelHostnameActionTests
     await viewModel.VoteSelectedHostnameAsync(null, TestContext.Current.CancellationToken);
     Assert.Single(handler.Requests);
   }
-
-  private sealed class AnonymousSessionStore : ISessionStore
-  {
-    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current => SessionSnapshot.Anonymous;
-    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
 }

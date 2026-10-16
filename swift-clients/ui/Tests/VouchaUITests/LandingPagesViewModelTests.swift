@@ -6,11 +6,6 @@ import XCTest
 
 @MainActor
 final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testLoadFetchesPagesCandidatesAndSelectedDetail() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages"] = (
             ApiFixtureLoader.data("native.landing-pages.default"), 200

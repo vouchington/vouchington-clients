@@ -174,7 +174,7 @@ public sealed class DirectMessagesViewModelSearchTests
           [new UserSearchResult("u1", null)],
           new PageInfo(null, false, null)),
     };
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new DirectMessagesViewModel(
         service,
         "me",
@@ -196,8 +196,4 @@ public sealed class DirectMessagesViewModelSearchTests
     Assert.Contains(nameof(DirectMessagesViewModel.ComposerUserResults), changedProperties);
   }
 
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

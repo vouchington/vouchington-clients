@@ -142,7 +142,7 @@ public sealed class IntegrityPenaltyViewModelTests
   [Fact]
   public async Task LocaleChangeRefreshesAuthorizationAndReconciliationCopy()
   {
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var unauthorized = new ReportIntegrityPenaltyViewModel(
         new ModerationIntegrityTestService(), new NavigationViewer(false, []),
@@ -241,8 +241,4 @@ public sealed class IntegrityPenaltyViewModelTests
       IReadOnlyList<VoteWeightPenalty> rows, string? cursor = null, bool more = false) =>
       new(rows, new PageInfo(cursor, more, rows.FirstOrDefault()?.Id), new("flag", null));
 
-  private sealed class StubLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

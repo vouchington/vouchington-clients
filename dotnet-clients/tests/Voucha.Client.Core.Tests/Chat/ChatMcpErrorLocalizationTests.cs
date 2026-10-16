@@ -13,7 +13,7 @@ public sealed partial class ChatViewModelProviderTests
     {
       Failure = new InvalidDataException("Internal schema keyword and tool name."),
     };
-    var locale = new UiLocaleController(new FrenchDeviceLanguage());
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("fr"));
     var viewModel = new ChatConversationViewModel(
         new FakeChatService(), new TestChatProviderResolver(provider.Status), provider,
         new UiLocalization(locale), locale);
@@ -31,7 +31,7 @@ public sealed partial class ChatViewModelProviderTests
       Failure = new InvalidDataException("Internal text response parser detail."),
     };
     provider.HideCatalog(disconnected: false);
-    var locale = new UiLocaleController(new FrenchDeviceLanguage());
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("fr"));
     var localization = new UiLocalization(locale);
     var viewModel = new ChatConversationViewModel(
         new FakeChatService(), new TestChatProviderResolver(provider.Status), provider,
@@ -45,8 +45,4 @@ public sealed partial class ChatViewModelProviderTests
     Assert.DoesNotContain("parser detail", viewModel.ErrorMessage, StringComparison.Ordinal);
   }
 
-  private sealed class FrenchDeviceLanguage : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["fr"];
-  }
 }

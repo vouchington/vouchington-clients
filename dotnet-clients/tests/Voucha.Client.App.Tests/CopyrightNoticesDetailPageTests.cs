@@ -38,7 +38,7 @@ public sealed class CopyrightNoticesDetailPageTests
       Participant = (_, _) => Task.FromResult(participant),
     };
     var model = Model(service);
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     NativeRoutePath? navigated = null;
     Uri? opened = null;
     using var page = new CopyrightNoticesPage(model, locales,
@@ -102,7 +102,7 @@ public sealed class CopyrightNoticesDetailPageTests
       Detail = (_, _) => throw new InvalidOperationException("EU participant detail must not fetch public detail"),
     };
     var model = Model(service);
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var page = new CopyrightNoticesPage(model, locales, _ => Task.CompletedTask, response.CopyrightNotice.Id);
 
     Appearing(page);
@@ -145,7 +145,7 @@ public sealed class CopyrightNoticesDetailPageTests
           : Task.FromResult(new CopyrightEuDisputeSettlementsResponse([second], new PageInfo(null, false, null))),
     };
     var model = Model(service);
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var page = new CopyrightNoticesPage(model, locales, _ => Task.CompletedTask, response.CopyrightNotice.Id);
 
     Appearing(page);
@@ -179,7 +179,7 @@ public sealed class CopyrightNoticesDetailPageTests
       Detail = (_, _) => Task.FromResult(detail),
     };
     var model = Model(service);
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var page = new CopyrightNoticesPage(model, locales, _ => Task.CompletedTask, detail.CopyrightNotice.Id);
 
     var visible = true;
@@ -267,9 +267,5 @@ public sealed class CopyrightNoticesDetailPageTests
     for (var attempt = 0; attempt < 100 && !condition(); attempt++)
       await Task.Delay(10, TestContext.Current.CancellationToken);
     Assert.True(condition());
-  }
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 }

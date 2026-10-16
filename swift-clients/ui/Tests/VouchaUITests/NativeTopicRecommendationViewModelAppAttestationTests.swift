@@ -11,7 +11,6 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
     override func setUp() {
         super.setUp()
-        CannedFeedURLProtocol.queuedHandlers = [:]
         provider = StubAppAttestProvider()
         // Unique service name prevents cross-test keychain pollution.
         keyStore = AppAttestKeyStore(serviceName: "ai.voucha.test.\(UUID().uuidString)")

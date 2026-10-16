@@ -198,7 +198,7 @@ public sealed class GrowthDashboardViewModelTests
   [Fact]
   public async Task LocaleChangeRebuildsVisibleLocalizedRows()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var viewModel = new GrowthDashboardViewModel(
         new RecordingGrowthMetricsService { Response = LoadFixture() },
@@ -287,8 +287,4 @@ public sealed class GrowthDashboardViewModelTests
     }
   }
 
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

@@ -75,7 +75,7 @@ public sealed class CommunityAutomodActionViewTests
   public async Task MountedFormRefreshesOptionsDescriptionAndHeldSaveStatusWhenLocaleChanges()
   {
     ConfigureResources();
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(locales);
     Application.Current!.Resources["UiLocaleVersion"] = version;
     using var localization = UiCopy.PushLocalization(new UiLocalization(locales));
@@ -139,8 +139,4 @@ public sealed class CommunityAutomodActionViewTests
     } };
   }
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

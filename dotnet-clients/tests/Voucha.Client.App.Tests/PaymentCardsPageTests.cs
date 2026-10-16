@@ -78,7 +78,7 @@ public sealed class PaymentCardsPageTests
         Page(false, null, Card("second")));
     var services = new ServiceCollection();
     MauiProgram.AddPaymentCardServices(services);
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     services.AddSingleton<IUiLocaleController>(controller);
     services.AddSingleton<IUiLocalization>(new UiLocalization(controller));
     services.AddSingleton<IPaymentCardsService>(routeService);
@@ -199,9 +199,6 @@ public sealed class PaymentCardsPageTests
   private static PaymentCard Card(string id, string name = "Visible card", string? note = null) => new(
       id, $"topic-{id}", null, null, null, null, false, null, note,
       new PaymentCardTopic($"topic-{id}", name, "visible-card"), null);
-
-  private sealed class Languages : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages { get; } = ["en"]; }
 
   private sealed class Service(params object[] results) : IPaymentCardsService
   {

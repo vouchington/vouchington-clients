@@ -7,16 +7,6 @@ import XCTest
 
 @MainActor
 final class NativeChatTitleProviderTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.contentTypes = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testProviderSelectionDefaultsToLocalWhenFoundationModelsAreAvailable() {
         XCTAssertEqual(NativeChatTitleProviderKind.appleFoundationModels.id, "apple_foundation")
         XCTAssertEqual(NativeChatTitleProviderKind.appleFoundationModels.displayName, .message(.nativeSwiftChatLocal))

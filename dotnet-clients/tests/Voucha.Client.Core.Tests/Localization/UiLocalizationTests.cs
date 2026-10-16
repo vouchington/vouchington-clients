@@ -266,12 +266,6 @@ public sealed class UiLocalizationTests
     Assert.Throws<ArgumentNullException>(() => formatter.Format(1, null));
   }
 
-
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
-
   private sealed class StubSessionStore : ISessionStore
   {
     public event EventHandler<SessionChangedEventArgs>? SessionChanged;

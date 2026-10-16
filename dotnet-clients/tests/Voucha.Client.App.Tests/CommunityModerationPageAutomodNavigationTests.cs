@@ -46,7 +46,7 @@ public sealed class CommunityModerationPageAutomodNavigationTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
-    using var locale = new UiLocaleController(new EnglishLanguages());
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var service = DispatchProxy.Create<ICommunitiesService, CommunityServiceProxy>();
     ((CommunityServiceProxy)service).DismissFailure = fail;
     var session = new SessionStore(new SessionSnapshot(new User(
@@ -118,8 +118,4 @@ public sealed class CommunityModerationPageAutomodNavigationTests
             false, null, null, null);
   }
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

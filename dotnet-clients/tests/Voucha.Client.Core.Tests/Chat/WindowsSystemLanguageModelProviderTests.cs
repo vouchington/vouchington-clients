@@ -57,7 +57,7 @@ public sealed class WindowsSystemLanguageModelProviderTests
   [InlineData("pt", WindowsSystemLanguageModelReadiness.Unsupported, "Este dispositivo não suporta o modelo de linguagem do sistema Windows.")]
   public void RuntimeReadinessUsesTheSelectedUiLocale(string locale, WindowsSystemLanguageModelReadiness readiness, string expected)
   {
-    using var controller = new UiLocaleController(new DeviceLanguageProvider(locale));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider(locale));
     var provider = new WindowsSystemLanguageModelProvider(new Runtime(readiness), new UiLocalization(controller));
 
     Assert.Equal(expected, provider.Status.StatusText);
@@ -72,8 +72,4 @@ public sealed class WindowsSystemLanguageModelProviderTests
         Task.FromResult<string?>("Local reply");
   }
 
-  private sealed class DeviceLanguageProvider(string locale) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [locale];
-  }
 }

@@ -100,7 +100,7 @@ public sealed class StoryRelatedArticlesViewTests
   private static void ConfigureResources()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    var controller = new UiLocaleController(new EnglishLanguages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     _ = new Application { Resources =
     {
       ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)),
@@ -108,11 +108,6 @@ public sealed class StoryRelatedArticlesViewTests
       ["UiLocaleVersion"] = new UiLocaleVersion(controller),
       ["UiLocalizedValue"] = new UiLocalizedValueConverter(new UiLocalization(controller)),
     } };
-  }
-
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 
   private static NewsFeedItem Item(string id) => new(id, id, "Source", "Summary", null, DateTimeOffset.UnixEpoch);

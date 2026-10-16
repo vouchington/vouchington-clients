@@ -59,7 +59,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task AllTimeTransparencyFormatsMonthlyCohortsAsMonthAndYear()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new RecordingHandler("""{"range":"all","buckets":[{"date":"2026-08-01","metric":"reports","category":"spam","count":20}]}""");
     using var viewModel = new ModerationViewModel(
         new ApiModerationService(Client(handler)),
@@ -94,7 +94,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task LocaleChangeReformatsAlreadyLoadedAggregateCount()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new ModerationViewModel(
         new ApiModerationService(Client(new RecordingHandler(
             """{"range":"30d","buckets":[{"date":"2026-08-01","metric":"reports","category":"all","count":1000}]}"""))),
@@ -113,7 +113,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task LoadAsyncTreatsForbiddenAsLockedAndClearsAggregateRows()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new RecordingHandler([
       new("""{"range":"30d","buckets":[{"date":"2026-08-01","metric":"reports","category":"spam","count":20}]}"""),
       new("{}", HttpStatusCode.Forbidden),
@@ -155,7 +155,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task FailedReloadClearsCachedTransparencyBuckets()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new RecordingHandler([
       new("""{"range":"30d","buckets":[{"date":"2026-08-01","metric":"reports","category":"spam","count":20}]}"""),
       new("{}", HttpStatusCode.InternalServerError),
@@ -178,7 +178,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task StaleRangeResponseCannotReplaceTheRelocalizationCache()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new DelayedTransparencyHandler();
     using var viewModel = new ModerationViewModel(
         new ApiModerationService(new VouchaApiClient(new HttpClient(handler)
@@ -208,7 +208,7 @@ public sealed class ModerationTransparencyViewModelTests
   [Fact]
   public async Task ContinuationEntitlementLossReplacesPreviouslyLoadedRows()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new RecordingHandler([
       new("""{"range":"all","buckets":[{"date":"2026-08-01","metric":"reports","category":"spam","count":20}],"next_cursor":"older-page"}"""),
       new("{}", HttpStatusCode.Forbidden),
@@ -255,11 +255,6 @@ public sealed class ModerationTransparencyViewModelTests
 
   private static VouchaApiClient Client(RecordingHandler handler) =>
       new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 
   private sealed class DelayedTransparencyHandler : HttpMessageHandler
   {

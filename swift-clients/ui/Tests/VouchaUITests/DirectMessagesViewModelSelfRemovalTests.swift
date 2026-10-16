@@ -7,15 +7,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelSelfRemovalTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testSelfRemovalClearsThreadAndRemovesConversationFromInbox() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants/user-1"] = (
             Data("{}".utf8),

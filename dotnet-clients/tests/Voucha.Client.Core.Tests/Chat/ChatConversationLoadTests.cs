@@ -47,7 +47,7 @@ public sealed class ChatConversationLoadTests
     {
       ConversationMessagesResult = response,
     };
-    var localeController = new UiLocaleController(new TestDeviceLanguageProvider("en-US"));
+    var localeController = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
     var viewModel = new ChatConversationViewModel(
         service,
         new TestProviderResolver(),
@@ -144,11 +144,6 @@ public sealed class ChatConversationLoadTests
     Assert.Equal(LoadState.Loaded, viewModel.State);
     var row = Assert.Single(viewModel.Messages);
     Assert.Equal("Second conversation", row.Content);
-  }
-
-  private sealed class TestDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
   }
 
   private sealed class TestProviderResolver : IChatProviderResolver

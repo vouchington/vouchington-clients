@@ -275,8 +275,4 @@ public sealed class NavigationCatalogTests
     Assert.Equal("Actualités", visible.Single(intent => intent.Id == "news").Label);
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

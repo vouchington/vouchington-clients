@@ -137,7 +137,7 @@ public sealed class PostAuthorAvatarRenderingTests
     foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
       app.Resources[key] = new Style(typeof(Label));
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
-    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new DeviceLanguage()));
+    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
   }
@@ -148,16 +148,4 @@ public sealed class PostAuthorAvatarRenderingTests
         throw new NotSupportedException(targetMethod?.Name);
   }
 
-  private sealed class AnonymousSessionStore : ISessionStore
-  {
-    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current => SessionSnapshot.Anonymous;
-    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
-  private sealed class DeviceLanguage : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

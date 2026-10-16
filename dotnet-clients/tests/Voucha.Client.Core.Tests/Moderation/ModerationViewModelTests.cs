@@ -52,7 +52,7 @@ public sealed class ModerationViewModelTests
   [Fact]
   public void LocaleChangeRefreshesVisibleRouteTitle()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new ModerationViewModel(
         new ApiModerationService(Client(new RecordingHandler("{}"))),
         new UiLocalization(controller),
@@ -74,7 +74,7 @@ public sealed class ModerationViewModelTests
   [Fact]
   public async Task LocaleChangeRefreshesAlreadyLoadedModerationRowCopy()
   {
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new ModerationViewModel(
         new ApiModerationService(Client(new RecordingHandler(
             """{"results":[{"id":"case-1"},{"id":"case-2"}]}"""))),
@@ -234,11 +234,6 @@ public sealed class ModerationViewModelTests
   {
     var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse(fixtureId));
     return (new ModerationViewModel(new ApiModerationService(Client(handler))), handler);
-  }
-
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
   }
 
   private static VouchaApiClient Client(RecordingHandler handler) =>

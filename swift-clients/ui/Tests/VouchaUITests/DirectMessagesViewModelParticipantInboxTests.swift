@@ -6,15 +6,6 @@ import XCTest
 
 @MainActor
 final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.handlers = [:]
-        CannedFeedURLProtocol.queuedHandlers = [:]
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.capturedBodies = []
-    }
-
     func testAddParticipantRefreshesInboxConversationRow() async throws {
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/participants"] = [
             (participantResponse(userId: "user-2", username: "bob"), 200, 0),

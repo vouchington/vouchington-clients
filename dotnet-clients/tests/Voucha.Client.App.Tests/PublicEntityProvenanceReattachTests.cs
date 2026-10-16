@@ -22,7 +22,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
-    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var publicTopic = JsonNode.Parse(Fixture("entity-provenance.topics"))!["topics"]!["topic-1-mcp"]!.DeepClone();
     var staffTopic = publicTopic.DeepClone();
     staffTopic["staff_provenance"] = JsonNode.Parse("""

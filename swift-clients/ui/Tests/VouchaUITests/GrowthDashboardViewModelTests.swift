@@ -5,13 +5,6 @@ import XCTest
 
 @MainActor
 final class GrowthDashboardViewModelTests: NativeRouteSurfaceViewModelTestCase {
-    override func setUp() {
-        super.setUp()
-        CannedFeedURLProtocol.capturedURLs = []
-        CannedFeedURLProtocol.capturedMethods = []
-        CannedFeedURLProtocol.queuedHandlers = [:]
-    }
-
     func testLoadFetchesDefaultGrowthMetricsFixture() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/growth-metrics"] = (
             ApiFixtureLoader.data("web.growth-metrics.default"), 200
