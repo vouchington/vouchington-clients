@@ -34,7 +34,7 @@ public sealed class UsersBrowsePageTests
         new UsersSearchResponse([new UserSearchResult("user-2", "bob")], new PageInfo(null, false, null)));
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var viewerProvider = new MutableNavigationViewerProvider();
     viewerProvider.SetViewer(new NavigationViewer(true, ["administrator"]));
@@ -198,7 +198,7 @@ public sealed class UsersBrowsePageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     viewerProvider.SetViewer(administrator
         ? new NavigationViewer(true, ["administrator"])
@@ -222,11 +222,6 @@ public sealed class UsersBrowsePageTests
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
-
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 
   private sealed class Service : IUsersSearchService
   {

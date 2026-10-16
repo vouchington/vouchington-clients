@@ -361,12 +361,7 @@ public sealed class AccountTypeAuthorRenderingTests
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
-    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new DeviceLanguage()));
-  }
-
-  private sealed class DeviceLanguage : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
+    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
   }
 
   private sealed class AnonymousSessionStore : ISessionStore

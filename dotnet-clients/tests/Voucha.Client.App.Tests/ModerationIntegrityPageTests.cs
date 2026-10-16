@@ -242,7 +242,7 @@ public sealed class ModerationIntegrityPageTests
   [Fact]
   public async Task LocaleRefreshRebuildsEveryStatusPickerAndPreservesSelection()
   {
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var localizationScope = UiCopy.PushLocalization(localization);
     var evidenceFlag = ReportFlag("report-evidence") with
@@ -289,7 +289,7 @@ public sealed class ModerationIntegrityPageTests
   public void LocalizationScopeRestoresAfterExceptionalExit()
   {
     UiCopy.UseLocalization(UiLocalization.English);
-    using var controller = new UiLocaleController(new StubLanguageProvider("es"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("es"));
     Action exit = () =>
     {
       using var scope = UiCopy.PushLocalization(new UiLocalization(controller));
@@ -470,8 +470,4 @@ public sealed class ModerationIntegrityPageTests
         throw new InvalidOperationException();
   }
 
-  private sealed class StubLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

@@ -93,7 +93,7 @@ public sealed class ModerationAppealCardPresentationTests
   [Fact]
   public void EnrichedContextUsesTheActiveLocale()
   {
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     controller.ApplySavedLocale("es");
     using var scope = UiCopy.PushLocalization(new UiLocalization(controller));
     var staff = new ModerationAppealStaffContext(
@@ -122,8 +122,4 @@ public sealed class ModerationAppealCardPresentationTests
           null, null, null, null, null, null, null, null, null, null, null, null, null,
           Instant, Instant, false, null, targetContext, staffContext);
 
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

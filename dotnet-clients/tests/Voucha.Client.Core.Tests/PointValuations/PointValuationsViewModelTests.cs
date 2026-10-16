@@ -208,7 +208,7 @@ public sealed class PointValuationsViewModelTests
   [Fact]
   public async Task LocaleChangesRebuildVisiblePresentationAndLocalizedErrors()
   {
-    var controller = new UiLocaleController(new Languages("en"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var service = new Service(
         [Page(false, null, Valuation("a", "ra", 1.5m))],
         [new("rb", "New", "new")]);
@@ -238,7 +238,7 @@ public sealed class PointValuationsViewModelTests
   [Fact]
   public async Task LocaleChangesReformatUntouchedDraftsAndPreserveTypedText()
   {
-    var controller = new UiLocaleController(new Languages("en"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var model = new PointValuationsViewModel(
         new Service([Page(false, null, Valuation("a", "ra", 1.5m))]),
         new UiLocalization(controller),
@@ -270,9 +270,6 @@ public sealed class PointValuationsViewModelTests
           new RewardsProgramSummary(program, "Rewards " + program, program));
   private static PointValuationPage Page(bool more, string? cursor, params PointValuation[] values) =>
       new(values, new PageInfo(cursor, more, null));
-
-  private sealed class Languages(string language) : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages { get; } = [language]; }
 
   private sealed class Service(IEnumerable<PointValuationPage> pages, IReadOnlyList<RewardsProgramOption>? search = null)
       : IPointValuationsService

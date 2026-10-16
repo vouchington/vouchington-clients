@@ -11,7 +11,7 @@ public sealed class ListsViewModelProvenanceLocaleTests
   [Fact]
   public async Task LocaleChangeRefreshesSelectedProvenanceWithoutDiscardingDraftEdits()
   {
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var handler = new RecordingHandler([
       new RecordedResponse(ApiFixtureLoader.LoadResponse("entity-provenance.lists")),
@@ -33,8 +33,4 @@ public sealed class ListsViewModelProvenanceLocaleTests
     Assert.Equal(2, handler.Requests.Count);
   }
 
-  private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

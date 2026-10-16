@@ -60,7 +60,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);
     var detail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
@@ -89,7 +89,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);
     var detail = JsonNode.Parse(Fixture("web.communities.show.default"))!;
@@ -120,7 +120,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);
     using var model = new ListsViewModel(Client(Fixture("entity-provenance.lists"),
@@ -153,7 +153,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
-    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var client = Client(Fixture("entity-provenance.topics"));
     using var model = new TopicsViewModel(new ApiTopicsService(client));
     var page = new TopicsPage(model, new AnonymousSessionStore(), null!, null!, null!, client,
@@ -180,7 +180,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);
     var fixture = JsonNode.Parse(Fixture("entity-provenance.topics"))!;
@@ -208,7 +208,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
     InstallPageStyles();
-    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var topic = JsonNode.Parse(Fixture("entity-provenance.topics"))!["topics"]!["topic-1-mcp"]!.DeepClone();
     topic["topic_type"] = "rss_feed";
     topic["provenance"] = JsonNode.Parse("""
@@ -248,7 +248,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     InstallPageStyles();
-    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(locale);
     var client = Client(Fixture("entity-provenance.rss-feeds"));
     using var model = new NewsFeedsViewModel(new ApiNewsFeedService(client),
@@ -327,7 +327,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
 
     var topicClient = Client(Fixture("entity-provenance.topics"));
     using var topicsModel = new TopicsViewModel(new ApiTopicsService(topicClient));
-    using var locale = new UiLocaleController(new DeviceLanguage("en"));
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var topics = new TopicsPage(topicsModel, new AnonymousSessionStore(), null!, null!, null!, topicClient,
         Recovery(locale), null!, UiLocalization.English, null!, new AppConfig(new Uri("https://api.test")));
     await topicsModel.LoadAsync(TestContext.Current.CancellationToken);
@@ -379,7 +379,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     app.Resources["StoryDiscussionVisibilityConverter"] = new StoryDiscussionVisibilityConverter();
     app.Resources["FollowerDistributionVisibilityConverter"] = new FollowerDistributionVisibilityConverter();
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
-    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new DeviceLanguage("en")));
+    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
   }
 
   private static VouchaApiClient Client(params string[] bodies) =>
@@ -436,11 +436,6 @@ public sealed partial class PublicEntityProvenanceRenderingTests
           Content = new StringContent(responses.Dequeue(), Encoding.UTF8, "application/json"),
           RequestMessage = request,
         });
-  }
-
-  private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
   }
 
   private sealed class AnonymousSessionStore : ISessionStore

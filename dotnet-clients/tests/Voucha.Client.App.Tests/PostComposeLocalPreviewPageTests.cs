@@ -127,7 +127,7 @@ public sealed class PostComposeLocalPreviewPageTests
       IImageUploadService? uploads = null)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    var locale = new UiLocaleController(new EnglishLanguages());
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     _ = new Application
     {
       Resources =
@@ -194,8 +194,4 @@ public sealed class PostComposeLocalPreviewPageTests
         throw new InvalidOperationException($"Unexpected call: {targetMethod?.Name}");
   }
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

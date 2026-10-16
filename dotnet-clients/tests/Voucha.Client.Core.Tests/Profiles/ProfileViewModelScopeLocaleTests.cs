@@ -14,7 +14,7 @@ public sealed partial class ProfileViewModelSafetyTests
   public async Task VisibleCollectionProvenanceRelocalizesWithoutRefetch(
       NativeUserProfileCollectionKind collection)
   {
-    using var controller = new UiLocaleController(new EnglishDeviceLanguage());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var service = new RecordingProfileCollectionsService { IncludeProvenance = true };
     using var viewModel = NewViewModel(new User("user-2", "bob", "Hello"),
         localization: new UiLocalization(controller), localeController: controller);
@@ -46,8 +46,4 @@ public sealed partial class ProfileViewModelSafetyTests
         _ => throw new ArgumentOutOfRangeException(nameof(collection)),
       };
 
-  private sealed class EnglishDeviceLanguage : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

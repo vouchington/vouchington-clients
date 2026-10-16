@@ -120,7 +120,7 @@ public sealed class CommunityAutomodFlagLifecycleTests
   [InlineData(true, "Failed to dismiss the automod flag", "Error al descartar la marca de automod")]
   public async Task VisibleDismissalMessageTracksLocaleAfterAction(bool fail, string english, string spanish)
   {
-    using var locale = new UiLocaleController(new EnglishLanguages());
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var (model, service) = await ModeratorAsync(new UiLocalization(locale), locale);
     service.AutomodFlagResponses.Enqueue(Page([Entry("flag-1", "automod_flag")], null, false));
     await model.LoadAutomodFlagsAsync(TestContext.Current.CancellationToken);
@@ -208,10 +208,6 @@ public sealed class CommunityAutomodFlagLifecycleTests
           "Flagged post", "/posts/post-1", true, false, false, null, null, null, null, null,
           null, "/posts/post-1", null, null, false, null, null, null);
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }
 
 internal sealed partial class ScriptedCommunitiesService

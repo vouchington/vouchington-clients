@@ -75,8 +75,4 @@ public sealed class AuthLocaleTests
         throw new NotSupportedException();
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

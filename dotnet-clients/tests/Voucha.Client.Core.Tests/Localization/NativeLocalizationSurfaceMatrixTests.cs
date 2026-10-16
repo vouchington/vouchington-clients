@@ -111,8 +111,4 @@ public sealed class NativeLocalizationSurfaceMatrixTests
     Assert.Equal(string.Empty, UiExternalContentText.FromUri(null).Value);
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

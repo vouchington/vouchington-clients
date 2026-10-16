@@ -132,7 +132,7 @@ public sealed partial class MemberAppealsPageTests
     service.BlockWarnings();
     var viewer = new MutableNavigationViewerProvider();
     viewer.SetViewer(new NavigationViewer(true, [], IdentityId: "user-1"));
-    using var controller = new UiLocaleController(new Languages());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var factory = new MemberAppealsPageFactory(
         service, viewer, new MemberAppealDraftStore(), new TokenProvider(), controller);
     var existing = factory.Create(MemberAppealsRoute.Warnings);
@@ -331,11 +331,6 @@ public sealed partial class MemberAppealsPageTests
   {
     public Task<string> GetTokenAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult("token");
-  }
-
-  private sealed class Languages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
   }
 
   private sealed class BlockingTokenProvider : ITurnstileTokenProvider

@@ -52,7 +52,7 @@ public sealed class BookmarkCollectionActionTests
   [Fact]
   public void BookmarkPresentationAndAccessibilityResolveAgainAfterLocaleChanges()
   {
-    var controller = new UiLocaleController(new BookmarkLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var row = BookmarkCollectionRowFactory.Hostname(
         new Hostname("hostname", "domain-1", "example.com"),
@@ -80,7 +80,7 @@ public sealed class BookmarkCollectionActionTests
       string english,
       string french)
   {
-    var controller = new UiLocaleController(new BookmarkLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var feed = new RssFeedSource(
         "feed-1",
@@ -109,7 +109,7 @@ public sealed class BookmarkCollectionActionTests
   [Fact]
   public void RssFeedRowsUseTheLocalizedGenericSourceForMissingFeedTypes()
   {
-    var controller = new UiLocaleController(new BookmarkLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var feed = new RssFeedSource(
         "feed-1",
@@ -445,11 +445,6 @@ public sealed class BookmarkCollectionActionTests
     public SessionSnapshot Current { get; } = new(new User("user-1", "alice", Roles: ["member"]));
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
-  private sealed class BookmarkLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
   }
 
   private sealed class DeferredRootHandler : HttpMessageHandler

@@ -35,7 +35,7 @@ public sealed partial class OmnisearchViewModelTests
   {
     var handler = new RecordingHandler(CombinedSearchJson);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var controller = new UiLocaleController(new EnglishDeviceLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var viewModel = new OmnisearchViewModel(
         client,
         localization: new UiLocalization(controller),

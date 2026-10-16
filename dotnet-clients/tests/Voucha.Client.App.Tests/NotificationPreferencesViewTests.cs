@@ -92,7 +92,7 @@ public sealed partial class NotificationPreferencesViewTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)) } };
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var view = new NotificationPreferencesView { BindingContext = new NotificationPreferencesViewModel(new SettingsService()) };
     view.ConfigureLocalization(new UiLocalization(controller), controller);
 
@@ -110,7 +110,7 @@ public sealed partial class NotificationPreferencesViewTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)) } };
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var model = new NotificationPreferencesViewModel(
         new SettingsService(),
@@ -376,11 +376,6 @@ public sealed partial class NotificationPreferencesViewTests
   private sealed class NoTimezoneResolver : INotificationTimezoneResolver
   {
     public string? ResolveIanaTimezone() => null;
-  }
-
-  private sealed record StubLanguageProvider(string Language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => [Language];
   }
 
   private sealed class SettingsService : ISettingsService, INotificationPreferencesService

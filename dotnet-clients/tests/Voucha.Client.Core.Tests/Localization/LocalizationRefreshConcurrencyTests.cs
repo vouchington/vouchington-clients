@@ -12,7 +12,7 @@ public sealed class LocalizationRefreshConcurrencyTests
   {
     using var handler = new HeldHandler();
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var controller = new UiLocaleController(new DeviceLanguages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
     var cache = new LocalizationValueCache();
     var service = new LocalizationRefreshService(new VouchaApiClient(http), controller, cache);
     var token = TestContext.Current.CancellationToken;
@@ -40,7 +40,7 @@ public sealed class LocalizationRefreshConcurrencyTests
   {
     using var handler = new HeldHandler();
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var controller = new UiLocaleController(new DeviceLanguages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
     var cache = new LocalizationValueCache();
     var service = new LocalizationRefreshService(new VouchaApiClient(http), controller, cache);
     var token = TestContext.Current.CancellationToken;
@@ -70,7 +70,7 @@ public sealed class LocalizationRefreshConcurrencyTests
   {
     using var handler = new HeldHandler();
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var controller = new UiLocaleController(new DeviceLanguages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en-US"));
     var cache = new LocalizationValueCache();
     var service = new LocalizationRefreshService(new VouchaApiClient(http), controller, cache);
     var token = TestContext.Current.CancellationToken;
@@ -120,8 +120,4 @@ public sealed class LocalizationRefreshConcurrencyTests
     }
   }
 
-  private sealed class DeviceLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en-US"];
-  }
 }

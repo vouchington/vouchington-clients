@@ -17,7 +17,7 @@ public sealed partial class ChatViewModelProviderTests
     {
       Failure = new PossibleMcpToolSideEffectException(),
     };
-    var locale = new UiLocaleController(new FrenchDeviceLanguage());
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("fr"));
     var localization = new UiLocalization(locale);
     var viewModel = new ChatConversationViewModel(
         new FakeChatService(), new TestChatProviderResolver(provider.Status), provider,

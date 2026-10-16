@@ -158,7 +158,7 @@ public sealed class OmnisearchViewModelReportingTests
   [Fact]
   public void LocaleChangeRefreshesReportButtonPresentation()
   {
-    var controller = new UiLocaleController(new ReportLanguageProvider());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var viewModel = new OmnisearchViewModel(
         new VouchaApiClient(
@@ -351,8 +351,4 @@ public sealed class OmnisearchViewModelReportingTests
     };
   }
 
-  private sealed class ReportLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

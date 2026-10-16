@@ -96,8 +96,4 @@ public sealed class LocalizationRefreshServiceTests
     }
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

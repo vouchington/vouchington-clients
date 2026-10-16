@@ -16,7 +16,7 @@ public sealed class LandingPagesPageTests
   public async Task RendersFiveTypePickerContextualControlsAndHumanLabels()
   {
     var service = new Service();
-    using var localeController = new UiLocaleController(new EnglishLanguages());
+    using var localeController = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(localeController);
     using var viewModel = new LandingPagesViewModel(service, localization, localeController);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
@@ -105,7 +105,7 @@ public sealed class LandingPagesPageTests
       UiLocalization? localization = null)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    controller ??= new UiLocaleController(new EnglishLanguages());
+    controller ??= new UiLocaleController(new StubDeviceLanguageProvider("en"));
     localization ??= new UiLocalization(controller);
     _ = new Application
     {
@@ -169,6 +169,4 @@ public sealed class LandingPagesPageTests
     }
   }
 
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages => ["en"]; }
 }

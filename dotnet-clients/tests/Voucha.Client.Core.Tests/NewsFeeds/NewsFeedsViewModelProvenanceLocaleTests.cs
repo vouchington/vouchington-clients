@@ -12,7 +12,7 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   [Fact]
   public async Task LocaleChangeReprojectsRowsWithoutReloadingTheFeed()
   {
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var handler = new RecordingHandler(File.ReadAllText(FilamentsContractPaths.ApiFixture(
         "responses/entity-provenance.rss-feeds.json")));
@@ -41,7 +41,7 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   [Fact]
   public async Task LocaleChangeDuringReplacementDoesNotRestoreRowsIntoTheResetPage()
   {
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var oldItem = new NewsFeedItem(
         "deleted-article",
@@ -145,7 +145,7 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   [Fact]
   public async Task FailedSaveAfterLocaleChangeRollsBackTheOptimisticState()
   {
-    using var controller = new UiLocaleController(new DeviceLanguage("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var item = new NewsFeedItem(
         "article-1",
@@ -230,11 +230,6 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
       if (firstMutation is not null) await firstMutation;
       if (secondMutation is not null) await secondMutation;
     }
-  }
-
-  private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
   }
 
   private sealed class ConcurrentBookmarkService(int expectedRequests) : IBookmarkService

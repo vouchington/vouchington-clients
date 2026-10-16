@@ -20,7 +20,7 @@ public sealed partial class OmnisearchViewModelTests
     var handler = new RecordingHandler(CombinedSearchJson);
     var client = new VouchaApiClient(
         new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
-    var controller = new UiLocaleController(new StubLanguageProvider(locale));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider(locale));
     using var viewModel = new OmnisearchViewModel(
         client,
         localization: new UiLocalization(controller),
@@ -34,8 +34,4 @@ public sealed partial class OmnisearchViewModelTests
     Assert.Equal(expectedTitle, viewModel.Groups[0].Title);
   }
 
-  private sealed class StubLanguageProvider(string locale) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [locale];
-  }
 }

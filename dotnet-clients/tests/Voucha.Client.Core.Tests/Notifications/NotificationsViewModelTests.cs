@@ -341,11 +341,6 @@ public sealed class NotificationsViewModelTests
         null);
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
-
   private sealed class RecordingNotificationsService : INotificationsService
   {
     private readonly Queue<NotificationsResponse> responses;

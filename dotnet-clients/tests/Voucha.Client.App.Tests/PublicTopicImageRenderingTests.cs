@@ -98,7 +98,7 @@ public sealed class PublicTopicImageRenderingTests
 
   private static IUiLocaleController InstallPageResources()
   {
-    var locale = new UiLocaleController(new DeviceLanguage("en"));
+    var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var app = new Application();
     foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
       app.Resources[key] = new Style(typeof(Label));
@@ -159,8 +159,4 @@ public sealed class PublicTopicImageRenderingTests
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
-  private sealed class DeviceLanguage(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

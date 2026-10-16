@@ -122,7 +122,7 @@ public sealed class PaymentCardsViewModelTests
   [Fact]
   public async Task LocaleChangesReformatUntouchedDecimalDraftsAndPreserveEditedText()
   {
-    var controller = new UiLocaleController(new Languages("en"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var service = LoadedService(Card("a") with { CreditLimit = new Money(1250, "usd") });
     service.UpdateResults.Enqueue(
         () => Task.FromResult(Card("a") with { CreditLimit = new Money(1275, "usd") }));
@@ -391,7 +391,7 @@ public sealed class PaymentCardsViewModelTests
   [Fact]
   public async Task DecimalDraftUsesLocaleAndPreservesInvalidText()
   {
-    var controller = new UiLocaleController(new Languages("fr-FR"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("fr-FR"));
     var service = LoadedService(Card("a") with { CreditLimit = new Money(1250, "usd") });
     var viewModel = new PaymentCardsViewModel(service, new UiLocalization(controller), controller);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
@@ -473,9 +473,6 @@ public sealed class PaymentCardsViewModelTests
   private static PaymentCard Card(string id, string? note = null) =>
       new(id, $"topic-{id}", null, null, null, null, false, null, note, Topic($"Card {id}"), null);
   private static PaymentCardTopic Topic(string name) => new($"topic-{name}", name, name.ToLowerInvariant().Replace(' ', '-'));
-
-  private sealed class Languages(string language) : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages { get; } = [language]; }
 
   private sealed class FakeService : IPaymentCardsService
   {

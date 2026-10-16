@@ -40,7 +40,7 @@ public sealed class PointValuationsPageTests
     var services = new ServiceCollection();
     MauiProgram.AddPointValuationServices(services);
     services.AddSingleton<IPointValuationsService>(new Service());
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     services.AddSingleton<IUiLocaleController>(controller);
     services.AddSingleton<IUiLocalization>(new UiLocalization(controller));
     using var provider = services.BuildServiceProvider();
@@ -50,7 +50,7 @@ public sealed class PointValuationsPageTests
   [Fact]
   public void DisposalStopsLocaleDrivenViewModelUpdates()
   {
-    var controller = new UiLocaleController(new Languages());
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var model = new PointValuationsViewModel(
         new Service(), new UiLocalization(controller), controller);
     var page = CreatePage(model);
@@ -143,9 +143,6 @@ public sealed class PointValuationsPageTests
   private static PointValuation Value(string id) => new(
       id, "program", new ScaledMoney(1_000_000, "usd", ScaledMoney.RequiredScale), null,
       new RewardsProgramSummary("program", "Travel Rewards", "travel-rewards"));
-
-  private sealed class Languages : IDeviceLanguageProvider
-  { public IReadOnlyList<string> PreferredLanguages { get; } = ["en"]; }
 
   private sealed class Service : IPointValuationsService
   {

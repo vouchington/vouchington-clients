@@ -81,8 +81,4 @@ public sealed partial class SettingsViewModelActionsTests
     Assert.Equal("fr", localeController.EffectiveLocale);
   }
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

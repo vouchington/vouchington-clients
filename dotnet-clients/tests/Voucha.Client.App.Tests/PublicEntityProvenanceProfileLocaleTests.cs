@@ -25,7 +25,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     InstallPageStyles();
     Application.Current!.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
-    using var controller = new UiLocaleController(new EnglishDeviceLanguage());
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     using var copy = UiCopy.PushLocalization(localization);
     using var model = new ProfileViewModel(
@@ -66,8 +66,4 @@ public sealed partial class PublicEntityProvenanceRenderingTests
         throw new NotSupportedException(targetMethod?.Name);
   }
 
-  private sealed class EnglishDeviceLanguage : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

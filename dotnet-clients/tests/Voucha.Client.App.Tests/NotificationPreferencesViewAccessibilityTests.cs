@@ -62,7 +62,7 @@ public sealed partial class NotificationPreferencesViewTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)) } };
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var model = new NotificationPreferencesViewModel(new SettingsService(), localization: localization, localeController: controller);
     var view = new NotificationPreferencesView { BindingContext = model };

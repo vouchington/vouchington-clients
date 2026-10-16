@@ -413,7 +413,7 @@ public sealed class ReportIntegrityViewModelTests
       FetchReports = (_, _, _) => Task.FromResult(
           ModerationIntegrityTestService.ReportPage([flag])),
     };
-    using var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var viewModel = new ReportIntegrityViewModel(
         service, Admin, new UiLocalization(controller), controller);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
@@ -438,8 +438,4 @@ public sealed class ReportIntegrityViewModelTests
     Assert.Contains("none: null", evidence, StringComparison.Ordinal);
   }
 
-  private sealed class StubLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }

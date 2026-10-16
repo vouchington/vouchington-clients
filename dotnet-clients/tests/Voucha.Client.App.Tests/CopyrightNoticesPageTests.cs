@@ -18,7 +18,7 @@ public sealed class CopyrightNoticesPageTests
     PrepareMaui();
     var service = new CaseService();
     var model = new CopyrightNoticesViewModel(service, new NavigationViewer(true, []));
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     NativeRoutePath? navigated = null;
     using var page = new CopyrightNoticesPage(model, locales, path => { navigated = path; return Task.CompletedTask; });
     await page.LoadAsync(TestContext.Current.CancellationToken);
@@ -41,7 +41,7 @@ public sealed class CopyrightNoticesPageTests
     PrepareMaui();
     var service = new CaseService();
     var model = new CopyrightNoticesViewModel(service, NavigationViewer.Anonymous);
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     NativeRoutePath? navigated = null;
     using var page = new CopyrightNoticesPage(model, locales, path => { navigated = path; return Task.CompletedTask; });
     await page.LoadAsync(TestContext.Current.CancellationToken);
@@ -54,7 +54,7 @@ public sealed class CopyrightNoticesPageTests
   public async Task VisibleDatesRefreshWhenTheLocaleChanges()
   {
     PrepareMaui();
-    using var locales = new UiLocaleController(new EnglishLanguages());
+    using var locales = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(locales);
     UiCopy.UseLocalization(localization);
     var model = new CopyrightNoticesViewModel(new CaseService(), new NavigationViewer(true, []));
@@ -115,8 +115,4 @@ public sealed class CopyrightNoticesPageTests
   }
   private static T Find<T>(Element root, string id) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
-  private sealed class EnglishLanguages : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages => ["en"];
-  }
 }

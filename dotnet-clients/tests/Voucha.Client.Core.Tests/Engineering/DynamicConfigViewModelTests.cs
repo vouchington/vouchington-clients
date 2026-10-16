@@ -58,7 +58,7 @@ public sealed class DynamicConfigViewModelTests
   [Fact]
   public void NumericDraftFormattingAndParsingFollowLiveLocaleWithoutOverwritingDirtyDrafts()
   {
-    var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var field = new DynamicConfigFieldViewModel(
         new DynamicConfigField(
             "threshold",
@@ -88,7 +88,7 @@ public sealed class DynamicConfigViewModelTests
   public async Task SelectedNumericFieldsUseTheViewModelLiveLocaleForFormattingAndParsing()
   {
     var token = TestContext.Current.CancellationToken;
-    var controller = new UiLocaleController(new StubLanguageProvider("en"));
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var service = new StubService();
     using var state = new FeatureFlagState(new MemoryStore());
     using var viewModel = new DynamicConfigViewModel(
@@ -136,11 +136,6 @@ public sealed class DynamicConfigViewModelTests
 
     Assert.Equal("recaptcha-config", viewModel.SelectedNamespace?.Namespace);
     Assert.Single(viewModel.History);
-  }
-
-  private sealed class StubLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
   }
 
   [Fact]

@@ -56,8 +56,4 @@ public sealed partial class OmnisearchViewModelTests
     }
   }
 
-  private sealed class EnglishDeviceLanguageProvider : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
-  }
 }

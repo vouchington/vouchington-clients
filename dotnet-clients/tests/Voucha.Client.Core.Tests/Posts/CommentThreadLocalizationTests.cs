@@ -62,8 +62,4 @@ public sealed class CommentThreadLocalizationTests
           null,
           "user-1");
 
-  private sealed class StubDeviceLanguageProvider(string language) : IDeviceLanguageProvider
-  {
-    public IReadOnlyList<string> PreferredLanguages { get; } = [language];
-  }
 }
