@@ -98,8 +98,14 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         try await viewModel.reloadAliases()
 
         CannedFeedURLProtocol.suspendResponse(path: path)
+        let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
         let loadMore = Task { await viewModel.loadMoreAliases() }
-        await waitForSuspendedResponse(path)
+        addTeardownBlock { @MainActor in
+            loadMore.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await loadMore.value
+        }
+        _ = try await request.wait()
         loadMore.cancel()
         await loadMore.value
 
@@ -184,8 +190,14 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         try await viewModel.reloadAdditionalHostnames()
 
         CannedFeedURLProtocol.suspendResponse(path: path)
+        let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
         let loadMore = Task { await viewModel.loadMoreAdditionalHostnames() }
-        await waitForSuspendedResponse(path)
+        addTeardownBlock { @MainActor in
+            loadMore.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await loadMore.value
+        }
+        _ = try await request.wait()
         loadMore.cancel()
         await loadMore.value
 
@@ -346,12 +358,6 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
         XCTFail("Timed out waiting for \(expectedCount) additional hostnames")
     }
 
-    private func waitForSuspendedResponse(_ path: String) async {
-        for _ in 0 ..< 100 where !CannedFeedURLProtocol.hasSuspendedResponse(path: path) {
-            await Task.yield()
-        }
-        XCTAssertTrue(CannedFeedURLProtocol.hasSuspendedResponse(path: path))
-    }
 }
 
 /// A transport-layer failure that is neither `CancellationError` nor bridged to `URLError`,
