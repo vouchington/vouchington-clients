@@ -50,16 +50,4 @@ public sealed partial class UsersBrowseViewModel : ObservableObject, IDisposable
 
   private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args) =>
       OnPropertyChanged(nameof(IsAdministrator));
-
-  private static UiText Failure(Exception error, UiMessageKey fallback)
-  {
-    if (error is VouchaApiException { StatusCode: { } status, ApiMessage: { } message }
-        && (int)status is >= 400 and < 500
-        && !string.IsNullOrWhiteSpace(message))
-    {
-      return UiText.UserContent(message);
-    }
-
-    return UiText.Localized(fallback);
-  }
 }
