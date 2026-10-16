@@ -99,8 +99,12 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
 
         CannedFeedURLProtocol.suspendResponse(path: path)
         let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
-        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
         let loadMore = Task { await viewModel.loadMoreAliases() }
+        addTeardownBlock { @MainActor in
+            loadMore.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await loadMore.value
+        }
         _ = try await request.wait()
         loadMore.cancel()
         await loadMore.value
@@ -187,8 +191,12 @@ final class NativeTopicPaginationParityTests: NativeRouteSurfaceViewModelTestCas
 
         CannedFeedURLProtocol.suspendResponse(path: path)
         let request = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
-        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
         let loadMore = Task { await viewModel.loadMoreAdditionalHostnames() }
+        addTeardownBlock { @MainActor in
+            loadMore.cancel()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await loadMore.value
+        }
         _ = try await request.wait()
         loadMore.cancel()
         await loadMore.value
