@@ -1,24 +1,17 @@
-import { lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import assert from 'node:assert/strict'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 
 import { createContractArtifact, verifyContractArtifact } from '../scripts/contract-artifact.mjs'
+import { writeTree } from './fixture-files.mjs'
 
 const paths = [
   'api-fixtures/v1',
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
-
-async function writeTree(root, files) {
-  for (const [path, contents] of Object.entries(files)) {
-    const file = join(root, path)
-    await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, contents)
-  }
-}
 
 async function fixture(t) {
   const filamentsRoot = await mkdtemp(join(tmpdir(), 'voucha-artifact-filaments-'))

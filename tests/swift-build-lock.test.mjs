@@ -1,19 +1,16 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
 
+import { writeExecutable } from './fixture-files.mjs'
+
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const withBuildLock = join(repositoryRoot, 'swift-clients/tooling/with-build-lock.sh')
-
-async function writeExecutable(path, contents) {
-  await writeFile(path, contents)
-  await chmod(path, 0o755)
-}
 
 async function lockFixture(t) {
   const binDirectory = await mkdtemp(join(tmpdir(), 'voucha-build-lock-'))
