@@ -363,12 +363,4 @@ public sealed class AccountTypeAuthorRenderingTests
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
   }
-
-  private sealed class AnonymousSessionStore : ISessionStore
-  {
-    public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current => SessionSnapshot.Anonymous;
-    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
 }

@@ -104,23 +104,6 @@ public sealed class AuthenticationSuccessOAuthCleanupTests
         Task.CompletedTask;
   }
 
-  private sealed class AnonymousSessionStore : ISessionStore
-  {
-    public event EventHandler<SessionChangedEventArgs>? SessionChanged
-    {
-      add { }
-      remove { }
-    }
-
-    public SessionSnapshot Current => SessionSnapshot.Anonymous;
-
-    public Task RefreshAsync(CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
-
-    public Task SignOutAsync(CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
-  }
-
   private sealed class PasskeyProvider : IPasskeyAssertionProvider
   {
     public Task<PasskeyAssertionResponse> GetAssertionAsync(
