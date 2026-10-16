@@ -162,7 +162,7 @@ public sealed class PaymentCardsPageTests
 
   private static PaymentCardsPage CreatePage(PaymentCardsViewModel viewModel)
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application
     {
       Resources =
@@ -217,27 +217,5 @@ public sealed class PaymentCardsPageTests
     public Task DeleteAsync(string id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<IReadOnlyList<PaymentCardTopic>> SearchTopicsAsync(string query, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<PaymentCardTopic>>([]);
-  }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  { public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance; }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => new Timer();
-  }
-
-  private sealed class Timer : IDispatcherTimer
-  {
-    public TimeSpan Interval { get; set; }
-    public bool IsRepeating { get; set; }
-    public bool IsRunning { get; private set; }
-    public event EventHandler? Tick;
-    public void Start() { IsRunning = true; Tick?.Invoke(this, EventArgs.Empty); IsRunning = false; }
-    public void Stop() => IsRunning = false;
   }
 }

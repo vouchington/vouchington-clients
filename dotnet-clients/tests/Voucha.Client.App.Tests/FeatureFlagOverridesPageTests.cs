@@ -140,7 +140,7 @@ public sealed class FeatureFlagOverridesPageTests
 
   private static FeatureFlagOverridesPage CreatePage(FeatureFlagOverridesViewModel viewModel)
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.RemainRunningWhenRepeating));
     var application = new Application
     {
       Resources =
@@ -211,29 +211,5 @@ public sealed class FeatureFlagOverridesPageTests
     public Task<DynamicConfigNamespaceResponse> FetchNamespaceAsync(string namespaceName, CancellationToken cancellationToken = default) => Fail<DynamicConfigNamespaceResponse>();
     public Task<DynamicConfigUpdateResponse> UpdateFieldAsync(string namespaceName, string field, DynamicConfigValue value, CancellationToken cancellationToken = default) => Fail<DynamicConfigUpdateResponse>();
     public Task<DynamicConfigHistoryResponse> FetchHistoryAsync(string namespaceName, CancellationToken cancellationToken = default) => Fail<DynamicConfigHistoryResponse>();
-  }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance;
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => new ImmediateDispatcherTimer();
-  }
-
-  private sealed class ImmediateDispatcherTimer : IDispatcherTimer
-  {
-    public TimeSpan Interval { get; set; }
-    public bool IsRepeating { get; set; }
-    public bool IsRunning { get; private set; }
-    public event EventHandler? Tick;
-    public void Start() { IsRunning = true; Tick?.Invoke(this, EventArgs.Empty); if (!IsRepeating) IsRunning = false; }
-    public void Stop() => IsRunning = false;
   }
 }

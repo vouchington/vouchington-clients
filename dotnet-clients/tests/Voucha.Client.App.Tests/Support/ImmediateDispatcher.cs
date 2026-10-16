@@ -25,6 +25,6 @@ internal sealed class ImmediateDispatcher : IDispatcher
     return true;
   }
 
-  // Tests whose controls start a dispatcher timer keep a local timer double.
+  // Timer-backed page tests use ImmediateTimerDispatcherProvider instead.
   public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
 }
