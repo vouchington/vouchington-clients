@@ -21,6 +21,8 @@ public actor APIClient {
 
     /// Bootstrap defaults retain the legacy `protocolClasses` policy. When supplying a
     /// configuration with a custom test transport, explicitly pass `bootstrapSession: false`.
+    /// Persistence callbacks can run on transport delegate queues. Their owner must serialize
+    /// snapshot writes with durable sign-out clearing and fence subsequent callbacks.
     public init(
         config: AppConfig = .shared,
         cookieStorage: HTTPCookieStorage = .shared,
