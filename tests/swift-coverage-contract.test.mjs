@@ -1,20 +1,17 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
 
+import { writeExecutable } from './fixture-files.mjs'
+
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const writeLcov = join(repositoryRoot, 'swift-clients/tooling/write-lcov.sh')
 const swiftCoverage = join(repositoryRoot, 'scripts/swift-coverage.mjs')
-
-async function writeExecutable(path, contents) {
-  await writeFile(path, contents)
-  await chmod(path, 0o755)
-}
 
 async function lcovFixture(t, { isolatedRepositoryRoot = false } = {}) {
   const fixtureRoot = await mkdtemp(

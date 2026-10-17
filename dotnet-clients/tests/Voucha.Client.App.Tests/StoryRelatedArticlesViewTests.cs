@@ -99,7 +99,7 @@ public sealed class StoryRelatedArticlesViewTests
 
   private static void ConfigureResources()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     _ = new Application { Resources =
     {
@@ -124,25 +124,5 @@ public sealed class StoryRelatedArticlesViewTests
     public Task SetSourceFollowAsync(string sourceId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SetTopicFollowAsync(string topicId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SetReadAsync(string itemId, bool read, CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  { public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance; }
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => new Timer();
-  }
-  private sealed class Timer : IDispatcherTimer
-  {
-    public TimeSpan Interval { get; set; }
-    public bool IsRepeating { get; set; }
-    public bool IsRunning { get; private set; }
-    public event EventHandler? Tick;
-    public void Start() { IsRunning = true; Tick?.Invoke(this, EventArgs.Empty); IsRunning = false; }
-    public void Stop() => IsRunning = false;
   }
 }

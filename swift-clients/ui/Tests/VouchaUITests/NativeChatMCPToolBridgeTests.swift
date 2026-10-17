@@ -138,7 +138,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
                     bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
                 )
             }
-            XCTAssertEqual(bridge.tools.count, 69)
+            XCTAssertEqual(bridge.tools.count, publishedTools.count)
             XCTAssertFalse(tools.isEmpty)
             XCTAssertLessThanOrEqual(tools.count, NativeChatFoundationModelsToolSelection.maximumTools)
             _ = NativeChatAppleFoundationModelsProvider.toolSession(tools)

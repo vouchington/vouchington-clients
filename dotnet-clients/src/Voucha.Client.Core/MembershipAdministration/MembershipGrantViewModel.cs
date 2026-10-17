@@ -71,7 +71,7 @@ public sealed class MembershipGrantViewModel : ObservableObject
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
       plansLoaded = false;
-      PlanError = Failure(ex, UiMessageKey.NativeSwiftMembershipPlansLoadFailure);
+      PlanError = ClientErrorText.For(ex, UiMessageKey.NativeSwiftMembershipPlansLoadFailure);
     }
     finally { IsPlansLoading = false; }
   }
@@ -107,7 +107,7 @@ public sealed class MembershipGrantViewModel : ObservableObject
       if (current == generation) Results = matches;
     }
     catch (OperationCanceledException) { throw; }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException) { if (current == generation) { Results = []; SearchError = Failure(ex, UiMessageKey.NativeSwiftMembershipSearchFailure); } }
+    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException) { if (current == generation) { Results = []; SearchError = ClientErrorText.For(ex, UiMessageKey.NativeSwiftMembershipSearchFailure); } }
     finally { if (current == generation) IsSearching = false; }
   }
 
@@ -146,20 +146,8 @@ public sealed class MembershipGrantViewModel : ObservableObject
       return true;
     }
     catch (OperationCanceledException) { throw; }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException) { SearchError = Failure(ex, UiMessageKey.NativeSwiftMembershipMembershipGrantFailure); return false; }
+    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException) { SearchError = ClientErrorText.For(ex, UiMessageKey.NativeSwiftMembershipMembershipGrantFailure); return false; }
     finally { IsSubmitting = false; }
-  }
-
-  private static UiText Failure(Exception error, UiMessageKey fallback)
-  {
-    if (error is VouchaApiException { StatusCode: { } status, ApiMessage: { } message }
-        && (int)status is >= 400 and < 500
-        && !string.IsNullOrWhiteSpace(message))
-    {
-      return UiText.UserContent(message);
-    }
-
-    return UiText.Localized(fallback);
   }
 
   private bool HasValidSelection =>

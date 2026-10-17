@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Users;
 
@@ -41,7 +42,7 @@ public sealed partial class UsersBrowseViewModel
       if (current == generation)
       {
         ResetResults();
-        SearchError = Failure(ex, UiMessageKey.NativeSwiftMembershipSearchFailure);
+        SearchError = ClientErrorText.For(ex, UiMessageKey.NativeSwiftMembershipSearchFailure);
       }
     }
     finally { if (current == generation) IsSearching = false; }

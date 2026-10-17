@@ -103,21 +103,9 @@ public sealed class IdentityVerificationAttemptGrantViewModel : ObservableObject
     catch (OperationCanceledException) { throw; }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      Submission = Failure(ex);
+      Submission = ClientErrorText.For(ex, UiMessageKey.NativeSwiftIdentityVerificationFailure);
       return false;
     }
     finally { IsSubmitting = false; }
-  }
-
-  private static UiText Failure(Exception error)
-  {
-    if (error is VouchaApiException { StatusCode: { } status, ApiMessage: { } message }
-        && (int)status is >= 400 and < 500
-        && !string.IsNullOrWhiteSpace(message))
-    {
-      return UiText.UserContent(message);
-    }
-
-    return UiText.Localized(UiMessageKey.NativeSwiftIdentityVerificationFailure);
   }
 }

@@ -28,7 +28,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public void CommunityBrowseCardRendersTrustedAppAndHidesAbsentProvenance()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application();
     var client = Client("{}");
     var page = new CommunityBrowsePage(new CommunityBrowseViewModel(new ApiCommunitiesService(client)), new AnonymousSessionStore());
@@ -58,7 +58,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task CommunityDetailHeaderRendersTrustedProvenanceAndRefreshesItsLocale()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application();
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
@@ -87,7 +87,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task RoutedCommunityOverviewHeaderRendersAndLocalizesProvenance()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application();
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
@@ -118,7 +118,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task ListsPageCardAndSelectedHeaderRenderProvenanceAndRefreshLocale()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     InstallPageStyles();
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
@@ -151,7 +151,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task TopicsPageCardRendersOnlyPublicProvenance()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     InstallPageStyles();
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var client = Client(Fixture("entity-provenance.topics"));
@@ -178,7 +178,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task TopicDetailHeaderRendersTrustedProvenanceAndRefreshesLocale()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     InstallPageStyles();
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
@@ -205,7 +205,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task SourceDetailHeaderRendersRssFeedProvenanceInsteadOfItsTopicProvenance()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application();
     InstallPageStyles();
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
@@ -246,7 +246,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task FullRssSourceCardRendersProvenanceButAbsentSourceDoesNot()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     InstallPageStyles();
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(locale);
@@ -290,7 +290,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
   [Fact]
   public async Task StaffChannelCardsClearWhenViewerLosesStaffRole()
   {
-    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     InstallPageStyles();
     var facts = new StaffContentProvenance("mcp",
         new StaffProvenanceOAuthClient("internal-client-42", "Fixture Agent", null, true));
@@ -436,25 +436,5 @@ public sealed partial class PublicEntityProvenanceRenderingTests
           Content = new StringContent(responses.Dequeue(), Encoding.UTF8, "application/json"),
           RequestMessage = request,
         });
-  }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  { public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance; }
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => new Timer();
-  }
-  private sealed class Timer : IDispatcherTimer
-  {
-    public TimeSpan Interval { get; set; }
-    public bool IsRepeating { get; set; }
-    public bool IsRunning { get; private set; }
-    public event EventHandler? Tick;
-    public void Start() { IsRunning = true; Tick?.Invoke(this, EventArgs.Empty); IsRunning = false; }
-    public void Stop() => IsRunning = false;
   }
 }

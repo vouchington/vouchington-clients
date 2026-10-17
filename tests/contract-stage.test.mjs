@@ -6,14 +6,7 @@ import test from 'node:test'
 
 import { stageNativeContract } from '../scripts/stage-native-contract.mjs'
 import { assertExtractedLocalizationRepresentatives } from '../scripts/assert-extracted-localization.mjs'
-
-async function writeTree(root, files) {
-  for (const [path, contents] of Object.entries(files)) {
-    const file = join(root, path)
-    await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, contents)
-  }
-}
+import { writeTree } from './fixture-files.mjs'
 
 async function fixture(t, { legacy = true } = {}) {
   const parent = await mkdtemp(join(tmpdir(), 'voucha-contract-stage-'))

@@ -20,7 +20,7 @@ import XCTest
                 withJSONObject: ["tools": entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }]
             ))
             let bridge = try NativeChatMCPToolBridge(catalog: catalog)
-            XCTAssertEqual(bridge.tools.count, 69)
+            XCTAssertEqual(bridge.tools.count, entries.count)
 
             let selected = NativeChatFoundationModelsToolSelection.select(bridge, matching: "Show my cards")
             XCTAssertTrue(selected.contains { $0.descriptor.name == "get_my_cards" })
