@@ -373,6 +373,8 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Impossible de charger les paramètres des identifiants</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choisir les portées</value></data>
+  <data name="native.credentials.communityModerationRead" xml:space="preserve"><value>Lire les données de modération de la communauté, y compris les adresses e-mail des personnes invitées, les échanges privés avec la modération, les signalements, les demandes d’adhésion, les bannissements, les restrictions et l’historique de modération.</value></data>
+  <data name="native.credentials.communityModerationWrite" xml:space="preserve"><value>Gérer la modération de la communauté : bannir ou retirer des membres, émettre des avertissements, examiner les demandes et les signalements, modifier les paramètres de modération et archiver la communauté. Certaines actions peuvent désépingler des publications ou dépublier des publications.</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Révoquer l’accès à {app} ?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Applications connectées</value></data>
   <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Lire votre fourchette de score de crédit, vos revenus déclarés, votre plafond total de crédit et vos années d’historique de crédit.</value></data>

@@ -244,6 +244,8 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Failed to load credential settings";
 "native.credentials.chooseScopes" = "Choose scopes";
+"native.credentials.communityModerationRead" = "Read community moderation data, including invitee email addresses, private modmail, reports, member applications, bans, restrictions, and moderation history.";
+"native.credentials.communityModerationWrite" = "Manage community moderation: ban or remove members, issue warnings, review applications and reports, change moderation settings, and archive the community. Some actions can remove pinned posts or unpublish posts.";
 "native.credentials.confirmRevokeGrant" = "Revoke access to {app}?";
 "native.credentials.connectedApps" = "Connected Apps";
 "native.credentials.financialProfileRead" = "Read your credit score range, stated income range, total credit limit and years of credit history.";

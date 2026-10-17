@@ -373,6 +373,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeCredentialsApiAudience = new("native.credentials.apiAudience");
     public static readonly UiMessageKey NativeCredentialsCatalogLoadFailed = new("native.credentials.catalogLoadFailed");
     public static readonly UiMessageKey NativeCredentialsChooseScopes = new("native.credentials.chooseScopes");
+    public static readonly UiMessageKey NativeCredentialsCommunityModerationRead = new("native.credentials.communityModerationRead");
+    public static readonly UiMessageKey NativeCredentialsCommunityModerationWrite = new("native.credentials.communityModerationWrite");
     public static readonly UiMessageKey NativeCredentialsConfirmRevokeGrant = new("native.credentials.confirmRevokeGrant");
     public static readonly UiMessageKey NativeCredentialsConnectedApps = new("native.credentials.connectedApps");
     public static readonly UiMessageKey NativeCredentialsFinancialProfileRead = new("native.credentials.financialProfileRead");
@@ -2398,6 +2400,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeCredentialsApiAudience,
         NativeCredentialsCatalogLoadFailed,
         NativeCredentialsChooseScopes,
+        NativeCredentialsCommunityModerationRead,
+        NativeCredentialsCommunityModerationWrite,
         NativeCredentialsConfirmRevokeGrant,
         NativeCredentialsConnectedApps,
         NativeCredentialsFinancialProfileRead,

@@ -373,6 +373,8 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Não foi possível carregar as configurações de credenciais</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Escolher escopos</value></data>
+  <data name="native.credentials.communityModerationRead" xml:space="preserve"><value>Ler dados de moderação da comunidade, incluindo os endereços de e-mail de pessoas convidadas, mensagens privadas com a moderação, denúncias, solicitações de ingresso, banimentos, restrições e histórico de moderação.</value></data>
+  <data name="native.credentials.communityModerationWrite" xml:space="preserve"><value>Gerenciar a moderação da comunidade: banir ou remover membros, emitir avisos, analisar solicitações e denúncias, alterar as configurações de moderação e arquivar a comunidade. Algumas ações podem remover publicações fixadas ou despublicar publicações.</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Revogar o acesso a {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicativos conectados</value></data>
   <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Ler sua faixa de pontuação de crédito, faixa de renda declarada, limite total de crédito e anos de histórico de crédito.</value></data>

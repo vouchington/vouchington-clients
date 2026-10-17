@@ -14,6 +14,8 @@ public enum ScopeSurface: String, Codable, Sendable {
 }
 
 public enum ScopeDescriptionKey: String, Codable, Sendable {
+    case communityModerationRead = "community_moderation_read"
+    case communityModerationWrite = "community_moderation_write"
     case mcpUserFullAccess = "mcp_user_full_access"
     case mcpAdminFullAccess = "mcp_admin_full_access"
     case financialProfileRead = "financial_profile_read"

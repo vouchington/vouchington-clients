@@ -243,6 +243,8 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let nativeCredentialsApiAudience = UiMessageKey(rawValue: "native.credentials.apiAudience")
     public static let nativeCredentialsCatalogLoadFailed = UiMessageKey(rawValue: "native.credentials.catalogLoadFailed")
     public static let nativeCredentialsChooseScopes = UiMessageKey(rawValue: "native.credentials.chooseScopes")
+    public static let nativeCredentialsCommunityModerationRead = UiMessageKey(rawValue: "native.credentials.communityModerationRead")
+    public static let nativeCredentialsCommunityModerationWrite = UiMessageKey(rawValue: "native.credentials.communityModerationWrite")
     public static let nativeCredentialsConfirmRevokeGrant = UiMessageKey(rawValue: "native.credentials.confirmRevokeGrant")
     public static let nativeCredentialsConnectedApps = UiMessageKey(rawValue: "native.credentials.connectedApps")
     public static let nativeCredentialsFinancialProfileRead = UiMessageKey(rawValue: "native.credentials.financialProfileRead")

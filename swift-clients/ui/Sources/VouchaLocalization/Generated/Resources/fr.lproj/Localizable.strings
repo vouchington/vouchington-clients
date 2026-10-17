@@ -244,6 +244,8 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Impossible de charger les paramètres des identifiants";
 "native.credentials.chooseScopes" = "Choisir les portées";
+"native.credentials.communityModerationRead" = "Lire les données de modération de la communauté, y compris les adresses e-mail des personnes invitées, les échanges privés avec la modération, les signalements, les demandes d’adhésion, les bannissements, les restrictions et l’historique de modération.";
+"native.credentials.communityModerationWrite" = "Gérer la modération de la communauté : bannir ou retirer des membres, émettre des avertissements, examiner les demandes et les signalements, modifier les paramètres de modération et archiver la communauté. Certaines actions peuvent désépingler des publications ou dépublier des publications.";
 "native.credentials.confirmRevokeGrant" = "Révoquer l’accès à {app} ?";
 "native.credentials.connectedApps" = "Applications connectées";
 "native.credentials.financialProfileRead" = "Lire votre fourchette de score de crédit, vos revenus déclarés, votre plafond total de crédit et vos années d’historique de crédit.";

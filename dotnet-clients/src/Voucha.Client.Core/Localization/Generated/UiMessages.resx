@@ -373,6 +373,8 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Failed to load credential settings</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Choose scopes</value></data>
+  <data name="native.credentials.communityModerationRead" xml:space="preserve"><value>Read community moderation data, including invitee email addresses, private modmail, reports, member applications, bans, restrictions, and moderation history.</value></data>
+  <data name="native.credentials.communityModerationWrite" xml:space="preserve"><value>Manage community moderation: ban or remove members, issue warnings, review applications and reports, change moderation settings, and archive the community. Some actions can remove pinned posts or unpublish posts.</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Revoke access to {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Connected Apps</value></data>
   <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Read your credit score range, stated income range, total credit limit and years of credit history.</value></data>
