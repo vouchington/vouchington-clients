@@ -159,6 +159,8 @@ public sealed class MemberMcpOutputContractTests
   [Theory]
   [InlineData("2026-10-09T00:00:00.000Z", true)]
   [InlineData("2024-02-29T23:59:59+02:00", true)]
+  [InlineData("2026-10-09\uFEFF00:00:00Z", true)]
+  [InlineData("2026-10-09\u008500:00:00Z", false)]
   [InlineData("0000-02-29T12:00:00Z", true)]
   [InlineData("2017-01-01T00:59:60+01:00", true)]
   [InlineData("2016-12-31T23:59:60Z", true)]
