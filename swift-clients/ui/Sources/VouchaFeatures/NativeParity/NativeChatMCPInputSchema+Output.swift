@@ -31,9 +31,14 @@ extension NativeChatMCPInputSchema {
     /// Output is bounded separately from the much smaller input argument structure.
     static func acceptsOutput(
         _ value: DecodedJSONValue, schema: DecodedJSONValue, root: DecodedJSONValue,
-        selectedSchema: DecodedJSONValue? = nil
+        selectedSchema: DecodedJSONValue? = nil, selectedRootAnyOfIndex: Int? = nil
     ) throws -> Bool {
         var remainingWork = 262_144
+        if let selectedRootAnyOfIndex {
+            return try checkSelectedRootOutput(
+                value, root: root, index: selectedRootAnyOfIndex, remainingWork: &remainingWork
+            )
+        }
         guard try check(
             value, schema: schema, root: root, depth: 0, remainingWork: &remainingWork, output: true
         ) else { return false }

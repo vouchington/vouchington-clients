@@ -12,11 +12,13 @@ internal static partial class MemberMcpInputSchema
       @"(?:([Zz])|([+-])([0-9]{2})(?::?([0-9]{2}))?)\z",
       RegexOptions.NonBacktracking | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
-  public static bool AcceptsOutput(JsonElement value, JsonElement schema, JsonElement root)
+  public static bool AcceptsOutput(JsonElement value, JsonElement schema, JsonElement root, int? selectedRootAnyOfIndex = null)
   {
     var remainingWork = 262_144;
     if (!HasUniqueObjectMembers(value, 0, ref remainingWork)) return false;
     remainingWork = 262_144;
+    if (selectedRootAnyOfIndex is { } index)
+      return CheckSelectedRootOutput(value, root, index, ref remainingWork);
     return Check(value, root, root, 0, ref remainingWork, output: true) &&
         (schema.Equals(root) || Check(value, schema, root, 0, ref remainingWork, output: true));
   }

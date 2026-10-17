@@ -5,7 +5,7 @@ namespace Voucha.Client.Core.Agent;
 
 internal static partial class MemberMcpInputSchema
 {
-  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork, bool output = false)
+  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork, bool output = false, bool skipRootAnyOf = false)
   {
     if (depth >= MaxDepth || remainingWork-- <= 0)
       throw new InvalidDataException("MCP schema validation work exceeded.");
@@ -18,11 +18,10 @@ internal static partial class MemberMcpInputSchema
     if (schema.TryGetProperty("$ref", out var reference) &&
         !Check(value, Reference(reference, root), root, depth + 1, ref remainingWork, output)) return false;
     if (schema.TryGetProperty("type", out var type) && !MatchesType(value, type, output)) return false;
-    if (schema.TryGetProperty("const", out var constant) && !Same(value, constant)) return false;
-    if (schema.TryGetProperty("enum", out var choices) &&
-        !choices.EnumerateArray().Any(choice => Same(value, choice))) return false;
+    if (!CheckOutputAssertions(value, schema, output, ref remainingWork)) return false;
     foreach (var keyword in new[] { "allOf", "anyOf", "oneOf" })
     {
+      if (skipRootAnyOf && depth == 0 && keyword == "anyOf") continue;
       if (!schema.TryGetProperty(keyword, out var branches)) continue;
       var matches = 0;
       foreach (var branch in branches.EnumerateArray())
@@ -94,7 +93,7 @@ internal static partial class MemberMcpInputSchema
       if (items.Length > 256) return false;
       for (var i = 0; i < items.Length; i++)
         for (var j = i + 1; j < items.Length; j++)
-          if (Same(items[i], items[j])) return false;
+          if (output ? SameOutput(items[i], items[j], ref remainingWork) : Same(items[i], items[j])) return false;
     }
     if (!schema.TryGetProperty("items", out var itemSchema)) return true;
     foreach (var item in items)

@@ -8,6 +8,7 @@ extension MCPResponseReader {
         guard let message = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
               case let .object(fields) = message,
               let methodValue = fields["method"] else { return false }
+        try MCPJSONMemberGuard.validate(data)
         guard case let .string(method) = methodValue,
               case .string("2.0")? = fields["jsonrpc"] else {
             throw MemberMCPClient.Failure.invalidResponse

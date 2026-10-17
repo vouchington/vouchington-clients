@@ -4,7 +4,7 @@ import VouchaModels
 extension NativeChatMCPInputSchema {
     static func check(
         _ value: DecodedJSONValue, schema: DecodedJSONValue,
-        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
+        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false, skipRootAnyOf: Bool = false
     ) throws -> Bool {
         guard remainingWork > 0, depth < 32, case let .object(fields) = schema else {
             throw Failure.unsupportedSchema
@@ -26,7 +26,8 @@ extension NativeChatMCPInputSchema {
             root: root,
             depth: depth,
             remainingWork: &remainingWork,
-            output: output
+            output: output,
+            skipAnyOf: skipRootAnyOf && depth == 0
         )
         else { return false }
         switch value {
@@ -97,9 +98,10 @@ extension NativeChatMCPInputSchema {
 
     static func checkCompositions(
         _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
-        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
+        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false, skipAnyOf: Bool = false
     ) throws -> Bool {
         for keyword in ["allOf", "anyOf", "oneOf"] {
+            if skipAnyOf, keyword == "anyOf" { continue }
             guard case let .array(branches)? = fields[keyword] else { continue }
             var matched = 0
             for branch in branches {

@@ -7,6 +7,7 @@ internal sealed class MemberMcpOutputContract
 {
   private readonly JsonElement root;
   private readonly Dictionary<string, JsonElement>? options;
+  private readonly Dictionary<string, int> rootAnyOfOptions = new(StringComparer.Ordinal);
 
   public MemberMcpOutputContract(JsonElement tool)
   {
@@ -31,6 +32,8 @@ internal sealed class MemberMcpOutputContract
       if (entry.Value.ValueKind != JsonValueKind.String ||
           !options.TryAdd(entry.Name, Resolve(entry.Value.GetString()!)))
         throw new InvalidDataException("Invalid MCP option output pointer.");
+      var pointer = entry.Value.GetString()!;
+      if (pointer != "#") rootAnyOfOptions[entry.Name] = int.Parse(pointer.Split('/')[2], CultureInfo.InvariantCulture);
     }
     if (names.Count == 0 || !names.SetEquals(options.Keys))
       throw new InvalidDataException("Incomplete MCP option output mapping.");
@@ -40,14 +43,16 @@ internal sealed class MemberMcpOutputContract
   {
     if (result.IsError == true) return;
     var selected = root;
+    int? selectedIndex = null;
     if (options is not null)
     {
       if (!arguments.TryGetProperty("option", out var option) || option.ValueKind != JsonValueKind.String ||
           !options.TryGetValue(option.GetString()!, out selected))
         throw new InvalidDataException("Missing selected MCP output contract.");
+      if (rootAnyOfOptions.TryGetValue(option.GetString()!, out var index)) selectedIndex = index;
     }
     if (result.StructuredContent is not { } value ||
-        !MemberMcpInputSchema.AcceptsOutput(value, selected, root))
+        !MemberMcpInputSchema.AcceptsOutput(value, selected, root, selectedIndex))
       throw new InvalidDataException("Invalid MCP structured output.");
   }
 

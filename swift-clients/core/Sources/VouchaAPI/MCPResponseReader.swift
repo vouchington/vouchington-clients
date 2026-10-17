@@ -99,6 +99,7 @@ enum MCPResponseReader {
     ) throws -> Result? {
         guard let reply = try? JSONDecoder().decode(MCPRPCReply<DecodedJSONValue>.self, from: data),
               reply.jsonrpc == "2.0" else { throw MemberMCPClient.Failure.invalidResponse }
+        try MCPJSONMemberGuard.validate(data)
         if allowUnmatched, reply.method != nil || reply.id != id { return nil }
         guard reply.method == nil, reply.id == id else { throw MemberMCPClient.Failure.invalidResponse }
         if let error = reply.error { throw MemberMCPClient.Failure.rpc(code: error.code, message: error.message) }

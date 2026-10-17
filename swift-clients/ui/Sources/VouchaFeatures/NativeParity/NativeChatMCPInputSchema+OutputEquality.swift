@@ -38,13 +38,36 @@ extension NativeChatMCPInputSchema {
             }
             return true
         case let (.object(first), .object(second)):
-            guard first.count == second.count else { return false }
-            for (key, value) in first {
-                guard let expected = second[key],
-                      try sameOutput(value, expected, remainingWork: &remainingWork) else { return false }
-            }
-            return true
+            return try sameOutputObjects(first, second, remainingWork: &remainingWork)
+        case let (.string(first), .string(second)):
+            try chargeOutputBytes(first.utf8.count, second.utf8.count, remainingWork: &remainingWork)
+            return first.utf8.elementsEqual(second.utf8)
         default: return same(left, right)
         }
     }
+
+    private static func chargeOutputBytes(_ first: Int, _ second: Int = 0, remainingWork: inout Int) throws {
+        guard first <= remainingWork, second <= remainingWork - first else { throw Failure.unsupportedSchema }
+        remainingWork -= first + second
+    }
+
+    private static func sameOutputObjects(
+        _ left: [String: DecodedJSONValue], _ right: [String: DecodedJSONValue], remainingWork: inout Int
+    ) throws -> Bool {
+        guard left.count == right.count else { return false }
+        var expected: [Data: DecodedJSONValue] = [:]
+        for (key, value) in right {
+            let bytes = Data(key.utf8)
+            try chargeOutputBytes(bytes.count, remainingWork: &remainingWork)
+            expected[bytes] = value
+        }
+        for (key, value) in left {
+            let bytes = Data(key.utf8)
+            try chargeOutputBytes(bytes.count, remainingWork: &remainingWork)
+            guard let other = expected[bytes],
+                  try sameOutput(value, other, remainingWork: &remainingWork) else { return false }
+        }
+        return true
+    }
+
 }

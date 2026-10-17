@@ -5,15 +5,14 @@ struct NativeChatMCPOutputContract {
     let root: DecodedJSONValue
     private let options: [String: DecodedJSONValue]?
     private let rootOptions: Set<String>
+    private let rootAnyOfOptions: [String: Int]
 
     init(fields: [String: DecodedJSONValue]) throws {
         guard let schema = fields["outputSchema"] else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         root = schema
-        rootOptions = if case let .object(meta)? = fields["_meta"],
-                         case let .object(mapping)? = meta["voucha/optionOutputPointers"] {
-            Set(mapping.compactMap { key, value in if case .string("#") = value { key } else { nil } })
-        } else { [] }
+        rootAnyOfOptions = Self.rootAnyOfIndices(fields)
+        rootOptions = Self.rootPointerOptions(fields)
         if let meta = fields["_meta"], case .object = meta {} else if fields["_meta"] != nil {
             throw NativeChatMCPToolBridge.Failure.invalidCatalog
         }
@@ -36,15 +35,17 @@ struct NativeChatMCPOutputContract {
     func validate(_ result: MemberMCPClient.ToolResult, arguments: [String: DecodedJSONValue]) throws {
         guard result.isError != true else { return }
         var selected: DecodedJSONValue?
+        var selectedIndex: Int?
         if let options {
             guard case let .string(option)? = arguments["option"], let schema = options[option] else {
                 throw NativeChatMCPToolBridge.Failure.invalidOutput
             }
             selected = rootOptions.contains(option) ? nil : schema
+            selectedIndex = rootAnyOfOptions[option]
         }
         guard let value = result.structuredContent,
               try NativeChatMCPInputSchema.acceptsOutput(
-                  value, schema: root, root: root, selectedSchema: selected
+                  value, schema: root, root: root, selectedSchema: selected, selectedRootAnyOfIndex: selectedIndex
               ) else {
             throw NativeChatMCPToolBridge.Failure.invalidOutput
         }
@@ -79,6 +80,25 @@ struct NativeChatMCPOutputContract {
             guard names.insert(name).inserted else { return [] }
         }
         return names
+    }
+
+    private static func pointerMapping(_ fields: [String: DecodedJSONValue]) -> [String: DecodedJSONValue] {
+        guard case let .object(meta)? = fields["_meta"],
+              case let .object(mapping)? = meta["voucha/optionOutputPointers"] else { return [:] }
+        return mapping
+    }
+
+    private static func rootAnyOfIndices(_ fields: [String: DecodedJSONValue]) -> [String: Int] {
+        pointerMapping(fields).reduce(into: [:]) { indices, entry in
+            if case let .string(path) = entry.value, path.hasPrefix("#/anyOf/"),
+               let index = Int(path.dropFirst("#/anyOf/".count)) { indices[entry.key] = index }
+        }
+    }
+
+    private static func rootPointerOptions(_ fields: [String: DecodedJSONValue]) -> Set<String> {
+        Set(pointerMapping(fields).compactMap { key, value in
+            if case .string("#") = value { key } else { nil }
+        })
     }
 
     private static func resolve(_ path: String, root: DecodedJSONValue) throws -> DecodedJSONValue {
