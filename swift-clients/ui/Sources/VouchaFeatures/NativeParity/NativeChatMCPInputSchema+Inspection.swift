@@ -63,10 +63,10 @@ extension NativeChatMCPInputSchema {
 
     static func inspectReference(_ value: DecodedJSONValue, root: DecodedJSONValue) throws {
         guard case let .string(path) = value,
-              path.hasPrefix("#/$defs/"),
+              let name = localDefinitionName(from: path),
               case let .object(rootFields) = root,
               case let .object(defs)? = rootFields["$defs"],
-              defs[String(path.dropFirst(8))] != nil else { throw Failure.unsupportedSchema }
+              defs[name] != nil else { throw Failure.unsupportedSchema }
     }
 
     static func inspectSimple(_ key: String, item: DecodedJSONValue) throws {

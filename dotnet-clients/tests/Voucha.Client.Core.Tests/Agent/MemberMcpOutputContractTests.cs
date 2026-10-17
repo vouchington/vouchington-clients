@@ -156,6 +156,75 @@ public sealed class MemberMcpOutputContractTests
     }
   }
 
+  [Fact]
+  public void DuplicateOptionLiteralsCannotShareOneOutputMapping()
+  {
+    var tool = JsonNode.Parse(MappedTool)!;
+    tool["inputSchema"]!["oneOf"]![1]!["properties"]!["option"]!["enum"]![0] = "bio";
+    tool["_meta"]!["voucha/optionOutputPointers"]!.AsObject().Remove("links");
+    using var catalog = JsonDocument.Parse(new JsonObject { ["tools"] = new JsonArray(tool) }.ToJsonString());
+    Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
+  }
+
+  [Theory]
+  [InlineData("required")]
+  [InlineData("properties")]
+  [InlineData("additionalProperties")]
+  public void SelectedOutputMustAlsoSatisfyAdvertisedRootConstraints(string constraint)
+  {
+    var tool = JsonNode.Parse(MappedTool)!;
+    var output = tool["outputSchema"]!;
+    var option = "links";
+    var result = "{\"links\":[]}";
+    if (constraint == "required") output["required"] = new JsonArray("bio");
+    else
+    {
+      output["properties"] = JsonNode.Parse("""{"bio":{"type":"string","minLength":5}}""");
+      if (constraint == "additionalProperties") output["additionalProperties"] = false;
+      else { option = "bio"; result = "{\"bio\":\"x\"}"; }
+    }
+    using var document = JsonDocument.Parse(tool.ToJsonString());
+    using var invalid = JsonDocument.Parse(result);
+    Assert.Throws<InvalidDataException>(() => new MemberMcpOutputContract(document.RootElement)
+        .Validate(Result(invalid.RootElement), JsonSerializer.SerializeToElement(new { option })));
+    new MemberMcpOutputContract(document.RootElement).Validate(
+        Result(JsonSerializer.SerializeToElement(new { bio = "Hello" })),
+        JsonSerializer.SerializeToElement(new { option = "bio" }));
+  }
+
+  [Theory]
+  [InlineData("number", "1e100", true)]
+  [InlineData("number", "-1e100", true)]
+  [InlineData("number", "1e-100", true)]
+  [InlineData("integer", "1e100", true)]
+  [InlineData("integer", "1e-100", false)]
+  public void UnconstrainedOutputNumbersDoNotRequireDecimalRange(string type, string raw, bool expected)
+  {
+    using var schema = JsonDocument.Parse(JsonSerializer.Serialize(new { type }));
+    using var value = JsonDocument.Parse(raw);
+    Assert.Equal(expected, MemberMcpInputSchema.AcceptsOutput(value.RootElement, schema.RootElement, schema.RootElement));
+    Assert.False(MemberMcpInputSchema.Accepts(value.RootElement, schema.RootElement));
+  }
+
+  [Theory]
+  [InlineData("1e100", "minimum", "0", true)]
+  [InlineData("-1e100", "maximum", "0", true)]
+  [InlineData("1e100", "maximum", "0", false)]
+  [InlineData("-1e100", "minimum", "0", false)]
+  [InlineData("1e-100", "minimum", "0", true)]
+  [InlineData("1e-100", "maximum", "0", false)]
+  [InlineData("0", "minimum", "-1", true)]
+  [InlineData("0", "maximum", "-1", false)]
+  [InlineData("-12.34", "minimum", "-12.35", true)]
+  [InlineData("12.34", "maximum", "12.35", true)]
+  [InlineData("12.34", "minimum", "12.35", false)]
+  public void OutputNumericBoundsCompareExactlyOutsideDecimalRange(string raw, string keyword, string bound, bool expected)
+  {
+    using var schema = JsonDocument.Parse($"{{\"type\":\"number\",\"{keyword}\":{bound}}}");
+    using var value = JsonDocument.Parse(raw);
+    Assert.Equal(expected, MemberMcpInputSchema.AcceptsOutput(value.RootElement, schema.RootElement, schema.RootElement));
+  }
+
   [Theory]
   [InlineData("2026-10-09T00:00:00.000Z", true)]
   [InlineData("2024-02-29T23:59:59+02:00", true)]
@@ -164,6 +233,7 @@ public sealed class MemberMcpOutputContractTests
   [InlineData("0000-02-29T12:00:00Z", true)]
   [InlineData("2017-01-01T00:59:60+01:00", true)]
   [InlineData("2016-12-31T23:59:60Z", true)]
+  [InlineData("2026-10-09T23:59:60Z", true)]
   [InlineData("2017-01-01T00:29:60+00:30", true)]
   [InlineData("2016-12-31T23:29:60-00:30", true)]
   [InlineData("2016-12-31T23:59:60.5Z", true)]

@@ -5,13 +5,19 @@ namespace Voucha.Client.Core.Agent;
 
 internal static partial class MemberMcpInputSchema
 {
-  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
+  private static bool Check(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork, bool output = false)
   {
     if (depth >= MaxDepth || remainingWork-- <= 0)
       throw new InvalidDataException("MCP schema validation work exceeded.");
+    if (output && value.ValueKind == JsonValueKind.Number)
+    {
+      var length = value.GetRawText().Length;
+      if (length > remainingWork) throw new InvalidDataException("MCP schema validation work exceeded.");
+      remainingWork -= length;
+    }
     if (schema.TryGetProperty("$ref", out var reference) &&
-        !Check(value, Reference(reference, root), root, depth + 1, ref remainingWork)) return false;
-    if (schema.TryGetProperty("type", out var type) && !MatchesType(value, type)) return false;
+        !Check(value, Reference(reference, root), root, depth + 1, ref remainingWork, output)) return false;
+    if (schema.TryGetProperty("type", out var type) && !MatchesType(value, type, output)) return false;
     if (schema.TryGetProperty("const", out var constant) && !Same(value, constant)) return false;
     if (schema.TryGetProperty("enum", out var choices) &&
         !choices.EnumerateArray().Any(choice => Same(value, choice))) return false;
@@ -20,30 +26,32 @@ internal static partial class MemberMcpInputSchema
       if (!schema.TryGetProperty(keyword, out var branches)) continue;
       var matches = 0;
       foreach (var branch in branches.EnumerateArray())
-        if (Check(value, branch, root, depth + 1, ref remainingWork)) matches++;
+        if (Check(value, branch, root, depth + 1, ref remainingWork, output)) matches++;
       if (keyword == "allOf" && matches != branches.GetArrayLength() ||
           keyword == "anyOf" && matches == 0 || keyword == "oneOf" && matches != 1) return false;
     }
     return value.ValueKind switch
     {
-      JsonValueKind.Object => CheckObject(value, schema, root, depth, ref remainingWork),
-      JsonValueKind.Array => CheckArray(value, schema, root, depth, ref remainingWork),
+      JsonValueKind.Object => CheckObject(value, schema, root, depth, ref remainingWork, output),
+      JsonValueKind.Array => CheckArray(value, schema, root, depth, ref remainingWork, output),
       JsonValueKind.String => CheckString(value.GetString()!, schema),
-      JsonValueKind.Number => CheckNumber(value, schema),
+      JsonValueKind.Number => CheckNumber(value, schema, output, ref remainingWork),
       _ => true,
     };
   }
 
-  private static bool MatchesType(JsonElement value, JsonElement type)
+  private static bool MatchesType(JsonElement value, JsonElement type, bool output)
   {
     if (type.ValueKind == JsonValueKind.Array)
-      return type.EnumerateArray().Any(candidate => MatchesType(value, candidate));
+      return type.EnumerateArray().Any(candidate => MatchesType(value, candidate, output));
     return type.GetString() switch
     {
       "object" => value.ValueKind == JsonValueKind.Object,
       "array" => value.ValueKind == JsonValueKind.Array,
       "string" => value.ValueKind == JsonValueKind.String,
-      "integer" => Number(value, out var number) && decimal.Truncate(number) == number,
+      "integer" => output
+          ? value.ValueKind == JsonValueKind.Number && CanonicalNumber(value.GetRawText(), out _, out _, out var exponent) && exponent >= 0
+          : Number(value, out var number) && decimal.Truncate(number) == number,
       "number" => value.ValueKind == JsonValueKind.Number,
       "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
       "null" => value.ValueKind == JsonValueKind.Null,
@@ -51,7 +59,7 @@ internal static partial class MemberMcpInputSchema
     };
   }
 
-  private static bool CheckObject(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
+  private static bool CheckObject(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork, bool output)
   {
     var fields = value.EnumerateObject().ToArray();
     if (fields.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count() != fields.Length)
@@ -65,19 +73,19 @@ internal static partial class MemberMcpInputSchema
     {
       if (hasProperties && properties.TryGetProperty(field.Name, out var declared))
       {
-        if (!Check(field.Value, declared, root, depth + 1, ref remainingWork)) return false;
+        if (!Check(field.Value, declared, root, depth + 1, ref remainingWork, output)) return false;
       }
       else if (hasAdditional)
       {
         if (additional.ValueKind == JsonValueKind.False ||
             additional.ValueKind == JsonValueKind.Object &&
-            !Check(field.Value, additional, root, depth + 1, ref remainingWork)) return false;
+            !Check(field.Value, additional, root, depth + 1, ref remainingWork, output)) return false;
       }
     }
     return true;
   }
 
-  private static bool CheckArray(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork)
+  private static bool CheckArray(JsonElement value, JsonElement schema, JsonElement root, int depth, ref int remainingWork, bool output)
   {
     var items = value.EnumerateArray().ToArray();
     if (!Within(items.Length, schema, "minItems", "maxItems")) return false;
@@ -90,7 +98,7 @@ internal static partial class MemberMcpInputSchema
     }
     if (!schema.TryGetProperty("items", out var itemSchema)) return true;
     foreach (var item in items)
-      if (!Check(item, itemSchema, root, depth + 1, ref remainingWork)) return false;
+      if (!Check(item, itemSchema, root, depth + 1, ref remainingWork, output)) return false;
     return true;
   }
 
@@ -112,8 +120,9 @@ internal static partial class MemberMcpInputSchema
     return true;
   }
 
-  private static bool CheckNumber(JsonElement value, JsonElement schema)
+  private static bool CheckNumber(JsonElement value, JsonElement schema, bool output, ref int remainingWork)
   {
+    if (output) return CheckOutputNumber(value, schema, ref remainingWork);
     if (!Number(value, out var number)) return false;
     if (schema.TryGetProperty("minimum", out var minimum) &&
         (!Number(minimum, out var lower) || number < lower))

@@ -103,6 +103,25 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         }
     }
 
+    func testCanonicalOptionSchemaRejectsDuplicateOptionLiterals() throws {
+        for hasOutputMapping in [false, true] {
+            var tool = mappedTool()
+            var input = try XCTUnwrap(tool["inputSchema"] as? [String: Any])
+            var branches = try XCTUnwrap(input["oneOf"] as? [[String: Any]])
+            var second = branches[1]
+            var properties = try XCTUnwrap(second["properties"] as? [String: Any])
+            properties["option"] = ["const": "bio"]
+            properties["arguments"] = ["type": "string"]
+            second["properties"] = properties
+            branches[1] = second
+            input["oneOf"] = branches
+            tool["inputSchema"] = input
+            if !hasOutputMapping { tool.removeValue(forKey: "_meta") }
+
+            XCTAssertThrowsError(try NativeChatMCPToolBridge(catalog: value(["tools": [tool]])))
+        }
+    }
+
     func testOrdinaryOneOfToolKeepsItsAdvertisedUnionWithoutAnOptionMap() throws {
         let tool: [String: Any] = [
             "name": "measure", "inputSchema": ["type": "object", "oneOf": [
@@ -134,6 +153,63 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertThrowsError(try contract.validate(toolResult(["id": "12"]), arguments: [:]))
         XCTAssertThrowsError(try contract.validate(toolResult(["id": 12, "extra": 1]), arguments: [:]))
         XCTAssertThrowsError(try contract.validate(toolResult([:]), arguments: [:]))
+    }
+
+    func testOutputDefinitionReferencesDecodeOnlyRFC6901Escapes() throws {
+        let fields = try object(value([
+            "inputSchema": ["type": "object"],
+            "outputSchema": [
+                "type": "object",
+                "properties": [
+                    "slash": ["$ref": "#/$defs/a~1b"],
+                    "tilde": ["$ref": "#/$defs/a~0b"],
+                    "escapedZeroThenOne": ["$ref": "#/$defs/a~01"]
+                ],
+                "required": ["slash", "tilde", "escapedZeroThenOne"],
+                "$defs": [
+                    "a/b": ["type": "string"],
+                    "a~b": ["type": "integer"],
+                    "a~1": ["type": "boolean"]
+                ]
+            ]
+        ]))
+        let contract = try NativeChatMCPOutputContract(fields: fields)
+        try contract.validate(
+            toolResult(["slash": "ok", "tilde": 4, "escapedZeroThenOne": true]), arguments: [:]
+        )
+        XCTAssertThrowsError(try contract.validate(
+            toolResult(["slash": 4, "tilde": 4, "escapedZeroThenOne": true]), arguments: [:]
+        ))
+
+        for pointer in ["#/$defs/a/b", "#/$defs/a~2b", "#/$defs/a~"] {
+            let invalidFields = try object(value([
+                "inputSchema": ["type": "object"],
+                "outputSchema": ["type": "object", "properties": ["value": ["$ref": pointer]]]
+            ]))
+            XCTAssertThrowsError(try NativeChatMCPOutputContract(fields: invalidFields), pointer)
+        }
+    }
+
+    func testSelectedOptionAlsoEnforcesOutputRootConstraints() throws {
+        var tool = mappedTool()
+        var output = try XCTUnwrap(tool["outputSchema"] as? [String: Any])
+        var branches = try XCTUnwrap(output["anyOf"] as? [[String: Any]])
+        for index in branches.indices {
+            branches[index].removeValue(forKey: "additionalProperties")
+        }
+        output["anyOf"] = branches
+        output["properties"] = ["scope": ["const": "member"]]
+        output["required"] = ["scope"]
+        tool["outputSchema"] = output
+        let contract = try NativeChatMCPOutputContract(fields: object(value(tool)))
+
+        try contract.validate(toolResult(["bio": "Hello", "scope": "member"]), arguments: ["option": .string("bio")])
+        XCTAssertThrowsError(try contract.validate(
+            toolResult(["bio": "Hello", "scope": "staff"]), arguments: ["option": .string("bio")]
+        ))
+        XCTAssertThrowsError(try contract.validate(
+            toolResult(["bio": "Hello"]), arguments: ["option": .string("bio")]
+        ))
     }
 
     func testExplicitOutputPointersRejectAnotherOptionsOtherwiseValidResult() throws {
@@ -169,6 +245,9 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         for timestamp in [
             "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00", "2016-12-31T23:59:60Z",
+            // The producer's current Ajv date-time validator accepts UTC leap-second minutes
+            // beyond month-end; preserve its current output boundary rather than narrowing Swift.
+            "2026-10-09T23:59:60Z",
             "2017-01-01T00:29:60+00:30", "2016-12-31T23:29:60-00:30", "2016-12-31T23:59:60.5Z",
             "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z",
             "2017-01-01T00:59:60+01:00"

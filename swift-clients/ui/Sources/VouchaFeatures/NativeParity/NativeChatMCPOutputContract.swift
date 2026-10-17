@@ -13,6 +13,7 @@ struct NativeChatMCPOutputContract {
             throw NativeChatMCPToolBridge.Failure.invalidCatalog
         }
         let names = Self.optionNames(fields["inputSchema"])
+        if names?.isEmpty == true { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         guard case let .object(meta)? = fields["_meta"], let pointers = meta["voucha/optionOutputPointers"] else {
             guard names == nil else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
             options = nil
@@ -37,7 +38,9 @@ struct NativeChatMCPOutputContract {
             selected = schema
         }
         guard let value = result.structuredContent,
-              try NativeChatMCPInputSchema.acceptsOutput(value, schema: selected, root: root) else {
+              try NativeChatMCPInputSchema.acceptsOutput(
+                  value, schema: root, root: root, selectedSchema: options == nil ? nil : selected
+              ) else {
             throw NativeChatMCPToolBridge.Failure.invalidOutput
         }
     }
@@ -66,7 +69,9 @@ struct NativeChatMCPOutputContract {
             } else {
                 return nil
             }
-            names.insert(name)
+            // An empty set is an invalid-canonical-options sentinel: this shape always has at
+            // least one option, while nil means the schema is an ordinary, unselected oneOf.
+            guard names.insert(name).inserted else { return [] }
         }
         return names
     }

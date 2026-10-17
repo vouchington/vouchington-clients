@@ -29,9 +29,10 @@ extension NativeChatMCPInputSchema {
         root: DecodedJSONValue, depth: Int, remainingWork: inout Int
     ) throws -> Bool {
         guard case let .string(path)? = fields["$ref"] else { return true }
+        guard let name = localDefinitionName(from: path) else { throw Failure.unsupportedSchema }
         guard case let .object(rootFields) = root,
               case let .object(defs)? = rootFields["$defs"],
-              let target = defs[String(path.dropFirst(8))] else { throw Failure.unsupportedSchema }
+              let target = defs[name] else { throw Failure.unsupportedSchema }
         return try check(value, schema: target, root: root, depth: depth + 1, remainingWork: &remainingWork)
     }
 
