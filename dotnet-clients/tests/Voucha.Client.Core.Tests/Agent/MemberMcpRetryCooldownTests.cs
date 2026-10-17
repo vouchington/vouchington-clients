@@ -37,6 +37,51 @@ public sealed class MemberMcpRetryCooldownTests
     Assert.Equal(method == "tools/call" ? 2 : 0, handler.ToolCalls);
   }
 
+  [Fact]
+  public async Task ServerPingReplyRefusalBlocksNextUserRequestUntilExplicitExpiry()
+  {
+    var clock = new RetryClock();
+    var handler = new RetryHandler(clock, "server-reply", "tools/list");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler, timeProvider: clock);
+    var first = await Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(client, "tools/list"));
+    Assert.Equal(TimeSpan.FromSeconds(17), first.RetryAfter);
+    Assert.Equal(1, handler.Replies);
+    var admitted = handler.Requests;
+    var blocked = await Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(client, "tools/list"));
+    Assert.Equal(TimeSpan.FromSeconds(17), blocked.RetryAfter);
+    Assert.Equal(admitted, handler.Requests);
+    var replacementHandler = new RetryHandler(clock, "none", "tools/list");
+    using var replacement = new MemberMcpClient(new Uri("https://example.test"), replacementHandler, timeProvider: clock);
+    await replacement.ListToolsAsync("replacement-account", TestContext.Current.CancellationToken);
+    Assert.Equal(3, replacementHandler.Requests);
+    Assert.Equal(admitted, handler.Requests);
+    clock.Advance(TimeSpan.FromSeconds(17));
+    Assert.Equal(admitted, handler.Requests);
+    await Invoke(client, "tools/list");
+    Assert.Equal(admitted + 1, handler.Requests);
+    Assert.Equal(1, handler.Replies);
+  }
+
+  [Fact]
+  public async Task AlreadyInFlightPingCannotPostReplyDuringCooldown()
+  {
+    var clock = new RetryClock();
+    var handler = new RetryHandler(clock, "held", "tools/list");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler, timeProvider: clock);
+    var first = Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(client, "tools/list"));
+    await handler.WaitForHeldAsync(1);
+    var second = Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(client, "tools/list"));
+    await handler.WaitForHeldAsync(2);
+    handler.Release(0, 17);
+    await first;
+    var admitted = handler.Requests;
+    handler.ReleasePing(1);
+    var replyRefusal = await second;
+    Assert.Equal(TimeSpan.FromSeconds(17), replyRefusal.RetryAfter);
+    Assert.Equal(admitted, handler.Requests);
+    Assert.Equal(0, handler.Replies);
+  }
+
   [Theory]
   [InlineData(null)]
   [InlineData("invalid")]
@@ -136,8 +181,10 @@ public sealed class MemberMcpRetryCooldownTests
     private int failures;
     private int toolCalls;
     private int deletes;
+    private int replies;
     public int Requests => Volatile.Read(ref requests);
     public int ToolCalls => Volatile.Read(ref toolCalls);
+    public int Replies => Volatile.Read(ref replies);
     public int Deletes => Volatile.Read(ref deletes);
     public string? UnknownDelay { get; init; }
 
@@ -153,6 +200,19 @@ public sealed class MemberMcpRetryCooldownTests
       completion.SetResult(response);
     }
 
+    public void ReleasePing(int index)
+    {
+      TaskCompletionSource<HttpResponseMessage> completion;
+      lock (gate) completion = held[index];
+      completion.SetResult(Ping());
+    }
+
+    private static HttpResponseMessage Ping() => new(HttpStatusCode.OK)
+    {
+      Content = new StringContent("data: {\"jsonrpc\":\"2.0\",\"id\":\"server-ping\",\"method\":\"ping\"}\n\n",
+          Encoding.UTF8, "text/event-stream")
+    };
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
       Interlocked.Increment(ref requests);
@@ -162,7 +222,18 @@ public sealed class MemberMcpRetryCooldownTests
         return new HttpResponseMessage(HttpStatusCode.NoContent);
       }
       using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
-      var method = body.RootElement.GetProperty("method").GetString();
+      var method = body.RootElement.TryGetProperty("method", out var methodValue) ? methodValue.GetString() : null;
+      if (mode == "server-reply" && method is null)
+      {
+        Assert.Equal("server-ping", body.RootElement.GetProperty("id").GetString());
+        Assert.True(body.RootElement.TryGetProperty("result", out _));
+        Interlocked.Increment(ref replies);
+        var refused = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        refused.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromSeconds(17));
+        return refused;
+      }
+      if (mode == "server-reply" && method == "tools/list" && Volatile.Read(ref replies) == 0)
+        return Ping();
       if (method == "tools/call") Interlocked.Increment(ref toolCalls);
       if (mode == "held" && method == limitedMethod)
       {
@@ -175,7 +246,7 @@ public sealed class MemberMcpRetryCooldownTests
         }
         return await completion.Task.WaitAsync(cancellationToken);
       }
-      if (mode != "none" && method == limitedMethod && Interlocked.Increment(ref failures) == 1)
+      if (mode is not ("none" or "server-reply") && method == limitedMethod && Interlocked.Increment(ref failures) == 1)
       {
         if (mode == "in-band")
           return Reply(body.RootElement, new

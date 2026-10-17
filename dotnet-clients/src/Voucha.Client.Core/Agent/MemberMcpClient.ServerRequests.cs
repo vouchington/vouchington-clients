@@ -28,6 +28,8 @@ public sealed partial class MemberMcpClient
           id = requestId,
           error = new { code = -32601, message = "Method not found" }
         });
+    cancellationToken.ThrowIfCancellationRequested();
+    retryCooldown.Check();
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
       Content = new StringContent(body, Encoding.UTF8, "application/json")
@@ -52,6 +54,8 @@ public sealed partial class MemberMcpClient
       }
       throw new McpSessionExpiredException();
     }
+    if (response.StatusCode == HttpStatusCode.TooManyRequests)
+      throw retryCooldown.FromResponse(response);
     if (response.StatusCode != HttpStatusCode.Accepted)
       throw new HttpRequestException("MCP server rejected a JSON-RPC response.", null, response.StatusCode);
     return true;
