@@ -49,6 +49,18 @@ public struct CredentialScope: Codable, Identifiable, Sendable {
         self.surfaces = surfaces
     }
 
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scope = try container.decode(String.self, forKey: .scope)
+        resource = try container.decode(String.self, forKey: .resource)
+        action = try container.decode(ScopeAction.self, forKey: .action)
+        audience = try container.decode(ScopeAudience.self, forKey: .audience)
+        requires = try container.decodeIfPresent(String.self, forKey: .requires)
+        let description = try container.decodeIfPresent(String.self, forKey: .descriptionKey)
+        descriptionKey = description.flatMap(ScopeDescriptionKey.init(rawValue:))
+        surfaces = try container.decode([ScopeSurface].self, forKey: .surfaces)
+    }
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(scope, forKey: .scope)

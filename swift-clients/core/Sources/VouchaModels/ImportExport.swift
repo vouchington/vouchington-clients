@@ -123,9 +123,15 @@ public struct RssFeedImportSubmission: Codable, Sendable, Equatable {
 public struct RssFeedImportStatus: Codable, Sendable, Equatable {
     public let `import`: RssFeedImportSummary
     public let rows: [ImportResult]
-    public init(import summary: RssFeedImportSummary, rows: [ImportResult]) {
+    public let pageInfo: Page<ImportResult>.PageInfo
+
+    public init(
+        import summary: RssFeedImportSummary, rows: [ImportResult],
+        pageInfo: Page<ImportResult>.PageInfo = .init(hasNextPage: false)
+    ) {
         self.import = summary
         self.rows = rows
+        self.pageInfo = pageInfo
     }
 }
 

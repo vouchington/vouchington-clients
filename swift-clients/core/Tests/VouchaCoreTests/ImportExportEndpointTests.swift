@@ -96,6 +96,49 @@ final class ImportExportEndpointTests: XCTestCase {
         }
     #endif
 
+    func testStagedRssStatusPreservesTerminalPaginationMetadata() throws {
+        for id in ["native.import-export.rss-feeds.status.retrying", "native.import-export.rss-feeds.status.partial"] {
+            let data = ApiFixtureLoader.data(id)
+            let original = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let page = try XCTUnwrap(original["page_info"] as? [String: Any])
+            let status = try makeVouchaDecoder().decode(RssFeedImportStatus.self, from: data)
+            XCTAssertFalse(status.pageInfo.hasNextPage)
+            XCTAssertEqual(status.pageInfo.startCursor, try XCTUnwrap(page["start_cursor"] as? String))
+            XCTAssertNil(status.pageInfo.endCursor)
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(status)) as? [String: Any])
+            XCTAssertEqual(encoded["page_info"] as? NSDictionary, page as NSDictionary)
+            let constructed = RssFeedImportStatus(import: status.import, rows: status.rows)
+            XCTAssertEqual(constructed.pageInfo, .init(hasNextPage: false))
+        }
+    }
+
+    func testRssStatusPreservesOpaqueContinuationCursorsAndRequiresMetadata() throws {
+        var fields = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        ) as? [String: Any])
+        // The real status fixture is terminal; this in-memory page exercises continuation metadata.
+        let page: [String: Any] = [
+            "has_next_page": true, "start_cursor": "opaque+/=first", "end_cursor": "opaque+/=next"
+        ]
+        fields["page_info"] = page
+        let status = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: JSONSerialization.data(withJSONObject: fields)
+        )
+        XCTAssertEqual(status.pageInfo, .init(
+            hasNextPage: true, endCursor: "opaque+/=next", startCursor: "opaque+/=first"
+        ))
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(status)) as? [String: Any])
+        XCTAssertEqual(encoded["page_info"] as? NSDictionary, page as NSDictionary)
+        fields.removeValue(forKey: "page_info")
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: JSONSerialization.data(withJSONObject: fields)
+        ))
+    }
+
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {
         try assertFixtureCoversDTO(
             "native.import-export.rss-feeds.submit.default",

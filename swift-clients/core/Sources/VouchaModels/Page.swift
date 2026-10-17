@@ -8,7 +8,7 @@ public struct Page<T: Decodable & Sendable>: Decodable, Sendable {
         self.pageInfo = pageInfo
     }
 
-    public struct PageInfo: Codable, Sendable {
+    public struct PageInfo: Codable, Sendable, Equatable {
         public let hasNextPage: Bool
         public let hasPreviousPage: Bool?
         public let endCursor: String?

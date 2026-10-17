@@ -47,7 +47,8 @@ public sealed record RssFeedImportSubmission(
 
 public sealed record RssFeedImportStatus(
     [property: JsonPropertyName("import")] RssFeedImportSummary Import,
-    IReadOnlyList<ImportResult> Rows);
+    IReadOnlyList<ImportResult> Rows,
+    [property: JsonPropertyName("page_info")] PageInfo? PageInfo = null);
 
 public sealed record ExportTopic(string Name, string Slug, [property: JsonPropertyName("topic_type")] string TopicType);
 

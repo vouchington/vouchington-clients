@@ -28,11 +28,6 @@ public sealed record SettingsScopeRow(
   public string Description => ProtocolValue.DescriptionKey is { } key && DescriptionMessage(key) is { } message
       ? Localization.Localize(message) : string.Empty;
 
-  public static bool IsSupportedDescriptionKey(string? key) => key is
-      null or "mcp_user_full_access" or "mcp_admin_full_access" or
-      "community_moderation_read" or "community_moderation_write" or
-      "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write";
-
   public static UiMessageKey? DescriptionMessage(string key) => key switch
   {
     "community_moderation_read" => UiMessageKey.NativeCredentialsCommunityModerationRead,
@@ -43,7 +38,7 @@ public sealed record SettingsScopeRow(
     "financial_profile_write" => UiMessageKey.NativeCredentialsFinancialProfileWrite,
     "spending_read" => UiMessageKey.NativeCredentialsSpendingRead,
     "spending_write" => UiMessageKey.NativeCredentialsSpendingWrite,
-    _ => UiMessageKey.NativeCredentialsInvalidSelection,
+    _ => null,
   };
 }
 

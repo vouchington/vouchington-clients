@@ -24,12 +24,18 @@ public sealed class SettingsCredentialsRenderedControlsTests
     fake.Catalog = JsonSerializer.Deserialize<ScopeCatalogResponse>(
         File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/shared.scopes.catalog.json")),
         VouchaApiJson.Options)!;
+    fake.Catalog = new ScopeCatalogResponse([
+        ..fake.Catalog.Scopes,
+        new ScopeCatalogEntry("mcp.user:future", "user", "mcp", "read", ["api-key"], "future_scope_description", null),
+    ]);
     using var model = new SettingsViewModel(service) { ApiKeyType = "mcp" };
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var view = LifecycleView(model);
 
     Assert.Null(model.CredentialNotice);
     Assert.Contains(model.ApiKeyScopes, row => row.ProtocolValue.Scope == "financial-profile:read");
+    Assert.Contains(model.ApiKeyScopes, row =>
+        row.ProtocolValue.Scope == "mcp.user:future" && row.Description.Length == 0);
     foreach (var key in new[]
     {
       UiMessageKey.NativeCredentialsCommunityModerationRead,
@@ -41,6 +47,10 @@ public sealed class SettingsCredentialsRenderedControlsTests
     }
     Assert.False(FindScopeCheck(view, "community-moderation:read").IsChecked);
     Assert.False(FindScopeCheck(view, "community-moderation:write").IsChecked);
+    Assert.False(FindScopeCheck(view, "mcp.user:future").IsChecked);
+    var invalidSelection = UiLocalization.English.Localize(UiMessageKey.NativeCredentialsInvalidSelection);
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(view), label =>
+        label.Text is "future_scope_description" || label.Text == invalidSelection);
   }
 
   [Fact]
