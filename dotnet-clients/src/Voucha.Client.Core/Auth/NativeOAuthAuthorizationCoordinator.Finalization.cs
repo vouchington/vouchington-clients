@@ -134,6 +134,7 @@ public sealed partial class NativeOAuthAuthorizationCoordinator
       OAuthBrokerProvider.X => identity?.XAccount is not null,
       OAuthBrokerProvider.Github => identity?.GithubAccount is not null,
       OAuthBrokerProvider.Linkedin => identity?.LinkedinAccount is not null,
+      OAuthBrokerProvider.Microsoft => identity?.MicrosoftAccount is not null,
       _ => false,
     };
   }

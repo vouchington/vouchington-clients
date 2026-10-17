@@ -181,7 +181,7 @@ public sealed class FriendRecommendationsViewModelTests
               StringComparer.Ordinal));
 
   private static FriendRecommendation Recommendation(string id, string providerName) =>
-      new("user", id, OAuthBrokerProvider.Github, providerName);
+      new("user", id, FriendRecommendationProvider.Github, providerName);
 
   private sealed class RecordingRecommendationService(
       params FriendRecommendationsResponse[] responses) : IFriendRecommendationsService

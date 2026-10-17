@@ -40,6 +40,7 @@ public extension PrivateUser {
             xAccount: xAccount,
             githubAccount: githubAccount,
             linkedinAccount: linkedinAccount,
+            microsoftAccount: microsoftAccount,
             processingRestrictedAt: processingRestrictedAt,
             thirdPartyMarketing: thirdPartyMarketing,
             hnDiscussions: hnDiscussions,
