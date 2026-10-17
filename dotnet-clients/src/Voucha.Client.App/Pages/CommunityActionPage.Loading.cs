@@ -9,6 +9,7 @@ public sealed partial class CommunityActionPage
 
   public void SetContext(string? communitySlug = null, string? inviteCode = null)
   {
+    viewModel.DismissInviteCode();
     if (!string.IsNullOrWhiteSpace(communitySlug))
     {
       communitySlugEntry.Text = communitySlug;
@@ -28,6 +29,12 @@ public sealed partial class CommunityActionPage
   {
     base.OnAppearing();
     await LoadApplicationQuestionsAsync().ConfigureAwait(true);
+  }
+
+  protected override void OnDisappearing()
+  {
+    viewModel.DismissInviteCode();
+    base.OnDisappearing();
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Native page load failures are displayed in page state.")]

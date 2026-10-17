@@ -16,7 +16,7 @@ public sealed partial class CommunityActionPage : ContentPage
   private readonly Entry nameEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesName);
   private readonly Entry slugEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesSlug);
   private readonly NativeMarkdownEditorView markdownEditor = new();
-  private readonly Entry emailEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesEmail);
+  private readonly Entry emailEntry = UiCopy.Bind(new Entry { AutomationId = "community-invite-email" }, Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesEmail);
   private readonly Entry usernameEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesUsername);
   private readonly Entry codeEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesInviteCode);
   private readonly Entry messageEntry = UiCopy.Bind(new Entry(), Entry.PlaceholderProperty, UiMessageKey.NativeDotnetCsharpCommunitiesMessage);
@@ -59,6 +59,7 @@ public sealed partial class CommunityActionPage : ContentPage
           questionFields,
           messageEntry,
           submitButton,
+          inviteCodeNotice,
           errorLabel,
         },
       },
@@ -130,6 +131,9 @@ public sealed partial class CommunityActionPage : ContentPage
     submitButton.SetDynamicResource(Button.TextProperty, UiMessageKey.NativeDotnetCsharpSubmit.Value);
     errorLabel.Text = viewModel.ErrorMessage ?? string.Empty;
     errorLabel.IsVisible = viewModel.HasError;
+    submitButton.IsEnabled = viewModel.State != Voucha.Client.Core.Support.LoadState.Loading &&
+        (viewModel.Kind != CommunityActionKind.Invite || viewModel.CreatedInviteCode is null);
+    RenderInviteCodeNotice();
     RenderApplicationQuestions();
   }
 

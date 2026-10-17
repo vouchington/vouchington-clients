@@ -51,17 +51,28 @@ extension CommunityDetailViewModel {
     }
 
     func invite() async {
+        guard !isSubmittingInvite, oneTimeInviteCode == nil else { return }
+        let revision = inviteOperationRevision
         let recipient = inviteRecipient.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !recipient.isEmpty else { return }
+        guard let client else { return }
+        isSubmittingInvite = true
+        defer { isSubmittingInvite = false }
         let endpoint = recipient.contains("@")
             ? Endpoint.sendCommunityInvite(idOrSlug: slug, email: recipient)
             : Endpoint.sendCommunityInvite(idOrSlug: slug, username: recipient)
-        let success = await perform(
-            endpoint,
-            success: UiMessage(.nativeSwiftCommunityStatusInviteSent)
-        )
-        if success {
+        state = .loading
+        let tab = selectedTab
+        do {
+            let response: CreatedCommunityInviteResponse = try await client.send(endpoint)
+            guard revision == inviteOperationRevision, selectedTab == tab else { return }
+            statusMessage = UiMessage(.nativeSwiftCommunityStatusInviteSent)
             inviteRecipient = ""
+            showInviteCode(response.communityInvite.code)
+            await load(preservingInviteOperation: revision)
+        } catch {
+            guard revision == inviteOperationRevision, selectedTab == tab else { return }
+            state = .error(UiMessage(.nativeSwiftCommunityStatusActionFailed))
         }
     }
 

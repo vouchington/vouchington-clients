@@ -244,6 +244,8 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Failed to load credential settings";
 "native.credentials.chooseScopes" = "Choose scopes";
+"native.credentials.communityModerationRead" = "Read community moderation data, including invitee email addresses, private modmail, reports, member applications, bans, restrictions, and moderation history.";
+"native.credentials.communityModerationWrite" = "Manage community moderation: ban or remove members, issue warnings, review applications and reports, change moderation settings, and archive the community. Some actions can remove pinned posts or unpublish posts.";
 "native.credentials.confirmRevokeGrant" = "Revoke access to {app}?";
 "native.credentials.connectedApps" = "Connected Apps";
 "native.credentials.financialProfileRead" = "Read your credit score range, stated income range, total credit limit and years of credit history.";
@@ -476,6 +478,7 @@
 "native.swift.communities.communityWorkspace" = "Community workspace";
 "native.swift.communities.conversationId" = "Conversation ID";
 "native.swift.communities.createCommunity" = "Create Community";
+"native.swift.communities.dismissInviteCode" = "Dismiss";
 "native.swift.communities.domainsAndUrls" = "Domains and URLs";
 "native.swift.communities.emailOrUsername" = "Email or username";
 "native.swift.communities.endsAt" = "Ends at";
@@ -498,6 +501,7 @@
 "native.swift.communities.name" = "Name";
 "native.swift.communities.newsItem" = "News item";
 "native.swift.communities.note" = "Note";
+"native.swift.communities.oneTimeInviteCodeNotice" = "Copy or share this code now. You will not be able to view it again.";
 "native.swift.communities.orderPosition" = "Order {position}";
 "native.swift.communities.pauseCommunityDigestsWhileOnVacation" = "Pause community digests while on vacation";
 "native.swift.communities.pendingPosts" = "Pending posts";
@@ -2289,7 +2293,12 @@
 "shared.accountType.aiAgent" = "AI Agent";
 "shared.accountType.official" = "Official";
 "shared.accountType.system" = "System";
+"shared.chat.mcpModelContextStopped" = "The on-device model has too little room to continue with the full tool result.";
+"shared.chat.mcpModelProcessingStopped" = "Model processing stopped after the tool result was received.";
 "shared.chat.mcpPossibleSideEffect" = "A connected tool may have completed this request. Check the result before sending it again.";
+"shared.chat.mcpResultNotSaved" = "This tool result is temporary and is not saved in conversation history.";
+"shared.chat.mcpResultReceived" = "Tool result received.";
+"shared.chat.mcpToolErrorReceived" = "The tool returned an error.";
 "shared.countLabel.format.__select.action.one" = "{count} action";
 "shared.countLabel.format.__select.action.other" = "{count} actions";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";

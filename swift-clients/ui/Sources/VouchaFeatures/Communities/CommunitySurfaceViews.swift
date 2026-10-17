@@ -148,5 +148,6 @@ struct CommunityWorkspaceSurface: View {
             }
         }
         .task { await viewModel.load() }
+        .onDisappear { viewModel.dismissInviteCode() }
     }
 }

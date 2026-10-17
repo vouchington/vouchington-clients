@@ -40,29 +40,35 @@ extension NativeChatViewModel {
         }
 
         streamTask?.cancel()
+        if retry == nil { expireMCPReceipts() }
         let localTurnIds = NativeChatMessageIDs.nextLocalTurn()
         let userMessageId = retry?.context.userMessageId ?? localTurnIds.user
         appendDraftUserMessage(id: userMessageId, text: text)
         beginStreaming(conversationId: conversationId, userMessageId: userMessageId)
         pendingLocalTurn = retry
 
-        streamTask = Task { [weak self, client] in
-            await self?.streamDraftMessage(
-                client: client,
-                context: retry?.context ?? .init(
-                    conversationId: conversationId,
-                    text: text,
-                    userMessageId: userMessageId,
-                    assistantMessageId: localTurnIds.assistant,
-                    createdConversation: preparedConversation?.created == true,
-                    providerSelection: providerSelection
-                )
+        await runDraftStream(
+            client: client,
+            context: retry?.context ?? .init(
+                conversationId: conversationId,
+                text: text,
+                userMessageId: userMessageId,
+                assistantMessageId: localTurnIds.assistant,
+                createdConversation: preparedConversation?.created == true,
+                providerSelection: providerSelection
             )
+        )
+    }
+
+    private func runDraftStream(client: APIClient, context: NativeChatDraftSendContext) async {
+        streamTask = Task { [weak self, client] in
+            await self?.streamDraftMessage(client: client, context: context)
         }
         _ = await streamTask?.value
     }
 
     private func appendDraftUserMessage(id: String, text: String) {
+        guard !messages.contains(where: { $0.id == id }) else { return }
         messages.append(.init(id: id, role: .user, content: text, isStreaming: false))
     }
 
@@ -73,7 +79,9 @@ extension NativeChatViewModel {
         if abortedAssistantMessageId?.hasPrefix("local-assistant-") == true ||
             abortedAssistantMessageId == pendingLocalAssistantMessageId && abortedAssistantMessageId != nil {
             if let abortedUserMessageId {
-                discardConversationMessage(id: abortedUserMessageId)
+                if retainTemporaryMCPUserTurn(abortedUserMessageId) {
+                    mcpReceiptLedger?.continuation = .cancelled
+                } else { discardConversationMessage(id: abortedUserMessageId) }
             }
             if let abortedAssistantMessageId {
                 discardConversationMessage(id: abortedAssistantMessageId)

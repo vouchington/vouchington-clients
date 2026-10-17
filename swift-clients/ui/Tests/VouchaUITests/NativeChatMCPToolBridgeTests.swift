@@ -32,11 +32,11 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
             let descriptor = try XCTUnwrap(bridge.tools.first)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let tool = try NativeChatFoundationModelsTool(
                 name: descriptor.name, description: descriptor.description,
                 parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
-                bridge: bridge, session: session, snapshot: snapshot, state: state
+                bridge: bridge, session: session, snapshot: snapshot, state: state, admission: ReceiptAdmission()
             )
             let generated = try GeneratedContent(json: #"{"weight":0.099999999999999999}"#)
             let normalized = try XCTUnwrap(
@@ -61,7 +61,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             try await session.connect()
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             await session.useAccount("member-b")
 
             do {
@@ -88,7 +88,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             try await session.connect()
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
 
             do {
                 _ = try await bridge.execute(
@@ -129,13 +129,13 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             await mcpSession.useAccount("member-a")
             try await mcpSession.connect()
             let snapshot = try XCTUnwrap(mcpSession.connectedSnapshot())
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let selected = NativeChatFoundationModelsToolSelection.select(bridge, matching: "Show my cards")
             let tools: [any Tool] = selected.map { item in
                 NativeChatFoundationModelsTool(
                     name: item.descriptor.name, description: item.descriptor.description,
                     parameters: item.schema,
-                    bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
+                    bridge: bridge, session: mcpSession, snapshot: snapshot, state: state, admission: ReceiptAdmission()
                 )
             }
             XCTAssertEqual(bridge.tools.count, publishedTools.count)
@@ -172,6 +172,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 
     func testProducerSizedHtmlUnicodeAndSlashesSurviveActualBridgeEncoding() async throws {
         let service = BridgeMCPService()
+        service.catalog = .object(["tools": .array([.object([
+            "name": .string("unstructured_text"), "inputSchema": .object(["type": .string("object")])
+        ])])])
         let text = String(repeating: "<é/\u{007F}\u{0080}\u{2028}", count: 100_000)
         let producer = Data(#"{"content":[{"type":"text","text":""#.utf8) +
             Data(text.utf8) + Data(#""}],"isError":false}"#.utf8)
@@ -184,7 +187,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
 
         let output = try await bridge.execute(
-            name: "read_community", rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,
+            name: "unstructured_text", rawArguments: "{}",
             session: session, accountId: snapshot.accountId, revision: snapshot.revision
         )
 
@@ -374,6 +377,35 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             "format": .string("email")
         ])))
     }
+
+    func testOutOfBoundInputNumberIsRejectedBeforeMCPDispatch() async throws {
+        let service = BridgeMCPService()
+        service.catalog = .object(["tools": .array([.object([
+            "name": .string("set_limit"),
+            "inputSchema": .object([
+                "type": .string("object"),
+                "properties": .object(["value": .object([
+                    "type": .string("number"), "maximum": .integer(0)
+                ])]),
+                "required": .array([.string("value")])
+            ])
+        ])])])
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+
+        do {
+            _ = try await bridge.execute(
+                name: "set_limit", rawArguments: #"{"value":1e300}"#,
+                session: session, accountId: snapshot.accountId, revision: snapshot.revision
+            )
+            XCTFail("An out-of-bound number must be rejected before calling the MCP service")
+        } catch NativeChatMCPToolBridge.Failure.invalidArguments {
+            XCTAssertEqual(service.calls, 0)
+        }
+    }
 }
 
 @MainActor
@@ -441,6 +473,12 @@ final class BridgeMCPService: NativeChatMCPServicing {
                 "required": .array([.string("option"), .string("arguments")]),
                 "additionalProperties": .bool(false)
             ])])
-        ])
+        ]),
+        "outputSchema": .object([
+            "type": .string("object"),
+            "properties": .object(["quote": .object(["type": .string("string")])]),
+            "required": .array([.string("quote")]), "additionalProperties": .bool(false)
+        ]),
+        "_meta": .object(["voucha/optionOutputPointers": .object(["details": .string("#")])])
     ])])])
 }

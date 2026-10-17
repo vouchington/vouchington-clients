@@ -11,6 +11,7 @@ final class CommunityDetailViewModel {
     var selectedTab: CommunitySurfaceTab {
         didSet {
             guard selectedTab != oldValue else { return }
+            dismissInviteCode()
             communityLoadRevision += 1
             rowPagination.invalidateRequestsPreservingPage()
             automodPagination.invalidateRequestsPreservingPage()
@@ -28,6 +29,20 @@ final class CommunityDetailViewModel {
     var applicationMessage = ""
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""
+    private(set) var oneTimeInviteCode: String?
+    var isSubmittingInvite = false
+    @ObservationIgnored
+    var inviteOperationRevision = 0
+
+    func dismissInviteCode() {
+        inviteOperationRevision += 1
+        oneTimeInviteCode = nil
+    }
+
+    func showInviteCode(_ code: String) {
+        oneTimeInviteCode = code
+    }
+
     var moderationTransparencyRange: ModerationTransparencyRange = .days30
     var moderationTransparencyBuckets: [ModerationTransparencyBucket] = []
     var moderationTransparencyNextCursor: String?

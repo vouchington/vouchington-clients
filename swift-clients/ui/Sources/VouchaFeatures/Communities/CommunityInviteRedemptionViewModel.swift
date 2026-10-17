@@ -1,6 +1,7 @@
 import Observation
 import VouchaAPI
 import VouchaLocalization
+import VouchaModels
 
 @Observable
 @MainActor
@@ -19,7 +20,7 @@ final class CommunityInviteRedemptionViewModel {
         guard let client else { return }
         state = .loading
         do {
-            let _: EmptyResponse = try await client.send(.redeemCommunityInviteCode(code: code))
+            let _: CommunityInviteRedemptionResponse = try await client.send(.redeemCommunityInviteCode(code: code))
             statusMessage = UiMessage(.nativeSwiftCommunityStatusInviteRedeemed)
             state = .loaded
         } catch {

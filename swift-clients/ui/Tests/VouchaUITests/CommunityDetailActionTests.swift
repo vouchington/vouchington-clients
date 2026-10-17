@@ -1,9 +1,30 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
 final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
+    func testCodeOnlyInviteUsesLocalizedGenericRowTitle() async throws {
+        registerCommunityAdminFixtures()
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (
+            Data(
+                #"{"results":[{"id":"opaque-invite-id"}],"page_info":{"has_next_page":false,"end_cursor":null},"community_invites":{"opaque-invite-id":{"id":"opaque-invite-id","community_id":"community-1","invited_user_id":null,"invited_email":null,"invited_by_id":"user-1","accepted_at":null,"accepted_by_id":null,"declined_at":null,"revoked_at":null,"created_at":"2026-07-01T00:00:00Z"}}}"#
+                    .utf8
+            ),
+            200
+        )
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+
+        await viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.summary.rows.map(\.title),
+            [UiMessages.string(.nativeSwiftCommunitiesInvite, locale: .english)]
+        )
+        XCTAssertFalse(viewModel.summary.rows.contains { $0.title.contains("opaque-invite-id") })
+    }
+
     func testMemberListApplicationInviteAndPinnedActionsCallCommunityEndpoints() async throws {
         registerCommunityAdminFixtures()
         let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .members)
@@ -316,12 +337,11 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
                     "invite-1": {
                       "id": "invite-1",
                       "community_id": "community-1",
-                      "code": "code-1",
-                      "invited_user_id": null,
+                            "invited_user_id": null,
                       "invited_email": "person@example.com",
                       "invited_by_id": "user-1",
                       "accepted_at": null,
-                      "accepted_by_user_id": null,
+                      "accepted_by_id": null,
                       "declined_at": null,
                       "revoked_at": null,
                       "created_at": "2026-07-01T00:00:00Z"

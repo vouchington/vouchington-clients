@@ -93,12 +93,11 @@ public sealed class CommunityRowsTests
     var invite = new CommunityInvite(
         Id: "invite-1",
         CommunityId: "community-1",
-        Code: "code-1",
         InvitedUserId: null,
         InvitedEmail: null,
         InvitedById: "moderator-1",
         AcceptedAt: null,
-        AcceptedByUserId: null,
+        AcceptedById: null,
         DeclinedAt: null,
         RevokedAt: null,
         CreatedAt: DateTimeOffset.UnixEpoch);

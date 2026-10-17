@@ -44,8 +44,14 @@ describe('native quality ownership', () => {
     assert.match(noMistakes, /\n  dotnet:/)
 
     const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-    assert.equal(pkg.scripts['test:plan:swift'], 'no-mistakes tests plan swift --format commands')
-    assert.equal(pkg.scripts['test:plan:dotnet'], 'no-mistakes tests plan dotnet --format commands')
+    assert.equal(
+      pkg.scripts['test:plan:swift'],
+      'no-mistakes tests plan swift --format commands --lock-timeout 300',
+    )
+    assert.equal(
+      pkg.scripts['test:plan:dotnet'],
+      'no-mistakes tests plan dotnet --format commands --lock-timeout 300',
+    )
     const workspace = await readFile(new URL('../pnpm-workspace.yaml', import.meta.url), 'utf8')
     assert.match(workspace, /no-mistakes: true/)
     assert.doesNotMatch(workspace, /set this to true or false/)

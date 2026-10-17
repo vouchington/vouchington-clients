@@ -5,10 +5,11 @@ import VouchaModels
 
 /// One immutable, account-scoped snapshot of the server-advertised tool catalog.
 struct NativeChatMCPToolBridge {
-    enum Failure: Error { case invalidCatalog, unknownTool, invalidArguments, resultTooLarge }
+    enum Failure: Error { case invalidCatalog, unknownTool, invalidArguments, invalidOutput, resultTooLarge }
 
     let tools: [LocalLLMFunctionTool]
     private let schemas: [String: DecodedJSONValue]
+    private let outputs: [String: NativeChatMCPOutputContract]
 
     init(catalog: DecodedJSONValue) throws {
         let catalogData = try JSONEncoder().encode(catalog)
@@ -17,6 +18,7 @@ struct NativeChatMCPToolBridge {
               case let .array(entries)? = body["tools"], entries.count <= NativeChatMCPToolCatalog.maximumTools else {
             throw Failure.invalidCatalog
         }
+        var outputs: [String: NativeChatMCPOutputContract] = [:]
         var projected: [LocalLLMFunctionTool] = []
         var schemas: [String: DecodedJSONValue] = [:]
         for entry in entries {
@@ -35,9 +37,18 @@ struct NativeChatMCPToolBridge {
                 parameters: parameters
             ))
             schemas[name] = value
+            let hasOutputMapping: Bool = if case let .object(meta)? = fields["_meta"] {
+                meta["voucha/optionOutputPointers"] != nil
+            } else { false }
+            if NativeChatMCPOutputContract.optionNames(fields["inputSchema"]) != nil,
+               fields["outputSchema"] == nil || !hasOutputMapping { throw Failure.invalidCatalog }
+            if fields["outputSchema"] != nil || hasOutputMapping {
+                outputs[name] = try NativeChatMCPOutputContract(fields: fields)
+            }
         }
         tools = projected
         self.schemas = schemas
+        self.outputs = outputs
     }
 
     private static func validModelFunctionName(_ name: String) -> Bool {
@@ -47,6 +58,11 @@ struct NativeChatMCPToolBridge {
         }
     }
 
+    struct ValidatedResult {
+        let envelope: String
+        let isError: Bool
+    }
+
     func execute(
         name: String, rawArguments: String,
         session: NativeChatMCPAgentSession,
@@ -54,11 +70,26 @@ struct NativeChatMCPToolBridge {
         beforeAdmission: (@MainActor () throws -> Void)? = nil,
         onStarted: (@MainActor () -> Void)? = nil
     ) async throws -> String {
+        try await executeResult(
+            name: name, rawArguments: rawArguments, session: session,
+            accountId: accountId, revision: revision,
+            beforeAdmission: beforeAdmission, onStarted: onStarted
+        ).envelope
+    }
+
+    func executeResult(
+        name: String, rawArguments: String,
+        session: NativeChatMCPAgentSession,
+        accountId: String, revision: Int,
+        beforeAdmission: (@MainActor () throws -> Void)? = nil,
+        onStarted: (@MainActor () -> Void)? = nil
+    ) async throws -> ValidatedResult {
         let object = try validatedArguments(name: name, rawArguments: rawArguments)
         let result = try await session.callTool(
             name: name, arguments: object, accountId: accountId, revision: revision,
             beforeAdmission: beforeAdmission, onStarted: onStarted
         )
+        try outputs[name]?.validate(result, arguments: object)
         let envelope: DecodedJSONValue = .object([
             "structuredContent": result.structuredContent ?? .null,
             "content": .array(result.content),
@@ -71,7 +102,7 @@ struct NativeChatMCPToolBridge {
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
-        return text
+        return ValidatedResult(envelope: text, isError: result.isError == true)
     }
 
     func validate(name: String, rawArguments: String) throws {

@@ -75,20 +75,6 @@ public abstract partial class CommunitySectionPage
     };
   }
 
-  private View BuildInvitesActions()
-  {
-    var inviteId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesInviteId);
-    return new HorizontalStackLayout
-    {
-      Spacing = 8,
-      Children =
-      {
-        inviteId,
-        ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesRevoke).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.RevokeInviteAsync(inviteId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
-      },
-    };
-  }
-
   private View BuildPinnedPostsActions()
   {
     var postIds = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPostIds);

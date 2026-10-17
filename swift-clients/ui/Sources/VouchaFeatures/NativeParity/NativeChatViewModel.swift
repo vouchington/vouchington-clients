@@ -49,6 +49,7 @@ final class NativeChatViewModel {
     var detailPageInfo: NativePaginationState?
     var selectedConversationId: String? {
         didSet {
+            if oldValue != selectedConversationId { expireMCPReceipts() }
             if let pendingLocalTurn, pendingLocalTurn.context.conversationId != selectedConversationId {
                 // A completed MCP turn may already have changed server state. When
                 // discarding its retry cache, discard the restored prompt too.
@@ -60,6 +61,7 @@ final class NativeChatViewModel {
         }
     }
 
+    var mcpReceiptLedger: NativeChatMCPReceiptLedger?
     var messages: [NativeChatTimelineMessage] = []
     var draftMessage = "" {
         didSet {

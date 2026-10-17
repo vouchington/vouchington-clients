@@ -36,6 +36,56 @@ public sealed class CommunityDetailViewModelTests
         request => Assert.Equal("/api/v1/communities/test-community/list-items/counts", request.PathAndQuery));
   }
 
+  [Theory]
+  [InlineData("member", true, false, true, true)]
+  [InlineData("member", false, false, true, false)]
+  [InlineData("moderator", false, false, true, true)]
+  [InlineData("owner", true, true, true, false)]
+  [InlineData(null, true, false, true, false)]
+  [InlineData("member", true, false, false, false)]
+  public async Task InviteCreationFollowsMembershipSettingAndArchiveState(
+      string? role, bool memberInvitesAllowed, bool archived, bool authenticated, bool expected)
+  {
+    var detail = JsonNode.Parse(CommunityDetailJsonWithMembership("web.communities.show.default", role ?? "member"))!;
+    detail["community"]!["member_invites_allowed_at"] = memberInvitesAllowed ? "2026-07-01T00:00:00Z" : null;
+    detail["community"]!["archived_at"] = archived ? "2026-07-01T00:00:00Z" : null;
+    if (role is null) detail["membership"] = null;
+    var (viewModel, _) = CreateViewModel(
+        authenticated ? SessionSnapshotForTests.Authenticated : SessionSnapshot.Anonymous,
+        detail.ToJsonString(),
+        ApiFixtureLoader.LoadResponse("web.communities.members.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.posts.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.list-items.counts.default"));
+
+    await viewModel.LoadAsync("test-community", TestContext.Current.CancellationToken);
+
+    Assert.Equal(expected, viewModel.CanCreateInvite);
+  }
+
+  [Theory]
+  [InlineData("member", false, true, false)]
+  [InlineData("moderator", false, true, true)]
+  [InlineData("owner", true, true, false)]
+  [InlineData(null, false, true, false)]
+  [InlineData("moderator", false, false, false)]
+  public async Task InviteRevocationRequiresAuthenticatedUnarchivedCommunityModerator(
+      string? role, bool archived, bool authenticated, bool expected)
+  {
+    var detail = JsonNode.Parse(CommunityDetailJsonWithMembership("web.communities.show.default", role ?? "member"))!;
+    detail["community"]!["archived_at"] = archived ? "2026-07-01T00:00:00Z" : null;
+    if (role is null) detail["membership"] = null;
+    var (viewModel, _) = CreateViewModel(
+        authenticated ? SessionSnapshotForTests.Authenticated : SessionSnapshot.Anonymous,
+        detail.ToJsonString(),
+        ApiFixtureLoader.LoadResponse("web.communities.members.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.posts.default"),
+        ApiFixtureLoader.LoadResponse("web.communities.list-items.counts.default"));
+
+    await viewModel.LoadAsync("test-community", TestContext.Current.CancellationToken);
+
+    Assert.Equal(expected, viewModel.CanRevokeInvite);
+  }
+
   [Fact]
   public async Task ArchiveAsyncAppliesReturnedArchiveState()
   {
@@ -223,16 +273,16 @@ public sealed class CommunityDetailViewModelTests
 
   private static string CommunityDetailJsonWithMembership(string fixtureId, string role)
   {
-    var json = ApiFixtureLoader.LoadResponse(fixtureId).TrimEnd();
-    return json[..^1] + $@",
-  ""membership"": {{
-    ""id"": ""community-member-1"",
-    ""community_id"": ""community-1"",
-    ""user_id"": ""user-1"",
-    ""role"": ""{role}"",
-    ""__entity_type"": ""community_member""
-  }}
-}}";
+    var detail = JsonNode.Parse(ApiFixtureLoader.LoadResponse(fixtureId))!;
+    detail["membership"] = new JsonObject
+    {
+      ["id"] = "community-member-1",
+      ["community_id"] = "community-1",
+      ["user_id"] = "user-1",
+      ["role"] = role,
+      ["__entity_type"] = "community_member",
+    };
+    return detail.ToJsonString();
   }
 
   private sealed class TestSessionStore(SessionSnapshot? current) : ISessionStore

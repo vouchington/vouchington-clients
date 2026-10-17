@@ -1,11 +1,13 @@
 using System.Reflection;
 using System.ComponentModel;
+using System.Text.Json;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Settings;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -13,6 +15,34 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class SettingsCredentialsRenderedControlsTests
 {
+  [Fact]
+  public async Task PublishedModerationDescriptionsRenderWithoutDisablingTheScopeCatalog()
+  {
+    PrepareMaui();
+    var service = DispatchProxy.Create<ISettingsService, CredentialSettingsService>();
+    var fake = (CredentialSettingsService)service;
+    fake.Catalog = JsonSerializer.Deserialize<ScopeCatalogResponse>(
+        File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/shared.scopes.catalog.json")),
+        VouchaApiJson.Options)!;
+    using var model = new SettingsViewModel(service) { ApiKeyType = "mcp" };
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var view = LifecycleView(model);
+
+    Assert.Null(model.CredentialNotice);
+    Assert.Contains(model.ApiKeyScopes, row => row.ProtocolValue.Scope == "financial-profile:read");
+    foreach (var key in new[]
+    {
+      UiMessageKey.NativeCredentialsCommunityModerationRead,
+      UiMessageKey.NativeCredentialsCommunityModerationWrite,
+    })
+    {
+      Assert.Contains(VisualTreeElements.Descendants<Label>(view), label =>
+          label.Text == UiLocalization.English.Localize(key));
+    }
+    Assert.False(FindScopeCheck(view, "community-moderation:read").IsChecked);
+    Assert.False(FindScopeCheck(view, "community-moderation:write").IsChecked);
+  }
+
   [Fact]
   public async Task RenderedScopeChecksApplyPrerequisitesAndSendOnlyExplicitUserChoices()
   {

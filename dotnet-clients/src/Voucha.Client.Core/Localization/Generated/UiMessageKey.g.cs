@@ -373,6 +373,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeCredentialsApiAudience = new("native.credentials.apiAudience");
     public static readonly UiMessageKey NativeCredentialsCatalogLoadFailed = new("native.credentials.catalogLoadFailed");
     public static readonly UiMessageKey NativeCredentialsChooseScopes = new("native.credentials.chooseScopes");
+    public static readonly UiMessageKey NativeCredentialsCommunityModerationRead = new("native.credentials.communityModerationRead");
+    public static readonly UiMessageKey NativeCredentialsCommunityModerationWrite = new("native.credentials.communityModerationWrite");
     public static readonly UiMessageKey NativeCredentialsConfirmRevokeGrant = new("native.credentials.confirmRevokeGrant");
     public static readonly UiMessageKey NativeCredentialsConnectedApps = new("native.credentials.connectedApps");
     public static readonly UiMessageKey NativeCredentialsFinancialProfileRead = new("native.credentials.financialProfileRead");
@@ -577,6 +579,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesDisable = new("native.dotnet.csharpCommunities.disable");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesDisabled = new("native.dotnet.csharpCommunities.disabled");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesDismissEvasion = new("native.dotnet.csharpCommunities.dismissEvasion");
+    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesDismissInviteCode = new("native.dotnet.csharpCommunities.dismissInviteCode");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesEmail = new("native.dotnet.csharpCommunities.email");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesEnable = new("native.dotnet.csharpCommunities.enable");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesEnabled = new("native.dotnet.csharpCommunities.enabled");
@@ -606,6 +609,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesName = new("native.dotnet.csharpCommunities.name");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesNewsItem = new("native.dotnet.csharpCommunities.newsItem");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesNoStateChange = new("native.dotnet.csharpCommunities.noStateChange");
+    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOneTimeInviteCodeNotice = new("native.dotnet.csharpCommunities.oneTimeInviteCodeNotice");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOpen = new("native.dotnet.csharpCommunities.open");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesOrder = new("native.dotnet.csharpCommunities.order");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesPauseDigests = new("native.dotnet.csharpCommunities.pauseDigests");
@@ -2396,6 +2400,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeCredentialsApiAudience,
         NativeCredentialsCatalogLoadFailed,
         NativeCredentialsChooseScopes,
+        NativeCredentialsCommunityModerationRead,
+        NativeCredentialsCommunityModerationWrite,
         NativeCredentialsConfirmRevokeGrant,
         NativeCredentialsConnectedApps,
         NativeCredentialsFinancialProfileRead,
@@ -2600,6 +2606,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesDisable,
         NativeDotnetCsharpCommunitiesDisabled,
         NativeDotnetCsharpCommunitiesDismissEvasion,
+        NativeDotnetCsharpCommunitiesDismissInviteCode,
         NativeDotnetCsharpCommunitiesEmail,
         NativeDotnetCsharpCommunitiesEnable,
         NativeDotnetCsharpCommunitiesEnabled,
@@ -2629,6 +2636,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesName,
         NativeDotnetCsharpCommunitiesNewsItem,
         NativeDotnetCsharpCommunitiesNoStateChange,
+        NativeDotnetCsharpCommunitiesOneTimeInviteCodeNotice,
         NativeDotnetCsharpCommunitiesOpen,
         NativeDotnetCsharpCommunitiesOrder,
         NativeDotnetCsharpCommunitiesPauseDigests,

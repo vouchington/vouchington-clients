@@ -74,15 +74,20 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
         to message: String,
         history: [NativeChatTimelineMessage],
         mcpSession: NativeChatMCPAgentSession?,
-        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
-    ) async throws -> NativeChatAssistantResponse? {
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?,
+        mcpTurn _: NativeChatMCPTurnContext?
+    ) async throws -> NativeChatMCPGenerationOutcome? {
         guard let endpoint = availableEndpoint,
               let mcpSession,
               let snapshot = mcpSnapshot
-        else { return try await generateAssistantResponse(to: message, history: history) }
+        else {
+            return try await generateAssistantResponse(to: message, history: history)
+                .map(NativeChatMCPGenerationOutcome.answer)
+        }
         let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
         guard !bridge.tools.isEmpty else {
             return try await generateAssistantResponse(to: message, history: history)
+                .map(NativeChatMCPGenerationOutcome.answer)
         }
         let localHistory = history
             .filter { !$0.isStreaming && !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -106,9 +111,9 @@ struct NativeChatLocalTitleProvider: NativeChatTitleProviding {
             }
         )
         guard let content else { return nil }
-        return NativeChatAssistantResponse(
+        return .answer(NativeChatAssistantResponse(
             content: content, modelProvider: "openai_compatible", modelName: endpoint.selectedModel
-        )
+        ))
     }
 
     func generateTitle(from messages: [NativeChatTimelineMessage]) async throws -> String? {

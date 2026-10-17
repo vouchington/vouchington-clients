@@ -10,7 +10,8 @@ public abstract partial class CommunitySectionPage
           nameof(CommunityDetailViewModel.CanJoin) or nameof(CommunityDetailViewModel.CanLeave) or
           nameof(CommunityDetailViewModel.CanArchive) or nameof(CommunityDetailViewModel.CanUnarchive) or
           nameof(CommunityDetailViewModel.CanModerateCommunity) or nameof(CommunityDetailViewModel.CanManageCommunity) or
-          nameof(CommunityDetailViewModel.CanManageMembers) or
+          nameof(CommunityDetailViewModel.CanManageMembers) or nameof(CommunityDetailViewModel.CanCreateInvite) or
+          nameof(CommunityDetailViewModel.CanRevokeInvite) or
           nameof(CommunityDetailViewModel.CanUseModmail) or
           nameof(CommunityDetailViewModel.CanViewRawModerationAnalytics) or
           nameof(CommunityDetailViewModel.CanLoadMoreCommunityList) or

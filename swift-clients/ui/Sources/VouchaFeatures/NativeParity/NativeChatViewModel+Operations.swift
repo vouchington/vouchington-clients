@@ -50,6 +50,7 @@ extension NativeChatViewModel {
 
     func applyConversationDetailResponse(_ response: ChatMessagesResponse, id: String, revision: Int) {
         guard isCurrentConversationDetailLoad(id: id, revision: revision) else { return }
+        expireMCPReceipts()
         messages = response.results.map { makeTimelineMessage(from: $0) }
         if let pendingLocalTurn, pendingLocalTurn.context.conversationId == id,
            messages.contains(where: { $0.id == pendingLocalTurn.context.userMessageId }),
@@ -68,6 +69,7 @@ extension NativeChatViewModel {
 
     func applyConversationDetailError(_ message: String?, id: String, revision: Int) {
         guard isCurrentConversationDetailLoad(id: id, revision: revision) else { return }
+        expireMCPReceipts()
         detailErrorMessage = message.map(UiVerbatimText.verbatim)
         messages = []
         detailPageInfo = nil

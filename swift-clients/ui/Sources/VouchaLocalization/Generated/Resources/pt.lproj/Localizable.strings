@@ -244,6 +244,8 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Não foi possível carregar as configurações de credenciais";
 "native.credentials.chooseScopes" = "Escolher escopos";
+"native.credentials.communityModerationRead" = "Ler dados de moderação da comunidade, incluindo os endereços de e-mail de pessoas convidadas, mensagens privadas com a moderação, denúncias, solicitações de ingresso, banimentos, restrições e histórico de moderação.";
+"native.credentials.communityModerationWrite" = "Gerenciar a moderação da comunidade: banir ou remover membros, emitir avisos, analisar solicitações e denúncias, alterar as configurações de moderação e arquivar a comunidade. Algumas ações podem remover publicações fixadas ou despublicar publicações.";
 "native.credentials.confirmRevokeGrant" = "Revogar o acesso a {app}?";
 "native.credentials.connectedApps" = "Aplicativos conectados";
 "native.credentials.financialProfileRead" = "Ler sua faixa de pontuação de crédito, faixa de renda declarada, limite total de crédito e anos de histórico de crédito.";
@@ -476,6 +478,7 @@
 "native.swift.communities.communityWorkspace" = "Espaço de trabalho da comunidade";
 "native.swift.communities.conversationId" = "ID da conversa";
 "native.swift.communities.createCommunity" = "Criar Comunidade";
+"native.swift.communities.dismissInviteCode" = "Descartar";
 "native.swift.communities.domainsAndUrls" = "Domínios e URLs";
 "native.swift.communities.emailOrUsername" = "E-mail ou nome de utilizador";
 "native.swift.communities.endsAt" = "Termina em";
@@ -498,6 +501,7 @@
 "native.swift.communities.name" = "Nome";
 "native.swift.communities.newsItem" = "Notícia";
 "native.swift.communities.note" = "Nota";
+"native.swift.communities.oneTimeInviteCodeNotice" = "Copie ou compartilhe este código agora. Você não poderá vê-lo novamente.";
 "native.swift.communities.orderPosition" = "Ordem {position}";
 "native.swift.communities.pauseCommunityDigestsWhileOnVacation" = "Pausar os resumos da comunidade durante as férias";
 "native.swift.communities.pendingPosts" = "Publicações pendentes";
@@ -2289,7 +2293,12 @@
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
 "shared.accountType.system" = "Sistema";
+"shared.chat.mcpModelContextStopped" = "O modelo no dispositivo não tem espaço suficiente para continuar com o resultado completo da ferramenta.";
+"shared.chat.mcpModelProcessingStopped" = "O processamento do modelo parou após receber o resultado da ferramenta.";
 "shared.chat.mcpPossibleSideEffect" = "Uma ferramenta conectada pode ter concluído esta solicitação. Confira o resultado antes de enviá-la novamente.";
+"shared.chat.mcpResultNotSaved" = "Este resultado da ferramenta é temporário e não é salvo no histórico da conversa.";
+"shared.chat.mcpResultReceived" = "Resultado da ferramenta recebido.";
+"shared.chat.mcpToolErrorReceived" = "A ferramenta retornou um erro.";
 "shared.countLabel.format.__select.action.one" = "{count} ação";
 "shared.countLabel.format.__select.action.other" = "{count} ações";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";

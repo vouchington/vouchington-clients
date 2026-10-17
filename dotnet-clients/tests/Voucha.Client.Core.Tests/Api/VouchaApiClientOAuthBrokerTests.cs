@@ -41,6 +41,10 @@ public sealed partial class VouchaApiClientTests
     Assert.True(providers.BrokerCapabilities.Linkedin?.SupportsNative(OAuthAuthorizationPurpose.Connect));
     Assert.True(providers.BrokerCapabilities.Microsoft?.Modes.Web);
     Assert.True(providers.BrokerCapabilities.Microsoft?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.Equal(1, providers.BrokerCapabilities.Google?.Version);
+    Assert.True(providers.BrokerCapabilities.Google?.Modes.Web);
+    Assert.True(providers.BrokerCapabilities.Google?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(providers.BrokerCapabilities.Google?.SupportsNative(OAuthAuthorizationPurpose.Connect));
     Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]
         .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
     Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]

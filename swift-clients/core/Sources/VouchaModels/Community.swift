@@ -127,20 +127,6 @@ public struct CommunityApplication: Codable, Identifiable, Sendable {
     public let createdAt: Date
 }
 
-public struct CommunityInvite: Codable, Identifiable, Sendable {
-    public let id: String
-    public let communityId: String
-    public let code: String
-    public let invitedUserId: String?
-    public let invitedEmail: String?
-    public let invitedById: String
-    public let acceptedAt: Date?
-    public let acceptedByUserId: String?
-    public let declinedAt: Date?
-    public let revokedAt: Date?
-    public let createdAt: Date
-}
-
 public struct CommunityPostReview: Codable, Sendable {
     public let communityId: String
     public let postId: String

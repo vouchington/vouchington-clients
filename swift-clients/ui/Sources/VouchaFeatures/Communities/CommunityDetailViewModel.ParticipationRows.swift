@@ -52,7 +52,9 @@ extension CommunityDetailViewModel {
                 id: result.id,
                 row: .init(
                     icon: "envelope",
-                    title: .verbatim(invite.invitedEmail ?? invite.invitedUserId ?? invite.code),
+                    title: invite.invitedEmail.map(UiVerbatimText.verbatim)
+                        ?? invite.invitedUserId.map(UiVerbatimText.verbatim)
+                        ?? .message(.nativeSwiftCommunitiesInvite),
                     detail: .message(
                         invite.acceptedAt == nil
                             ? .nativeSwiftCommunityRowsOpen

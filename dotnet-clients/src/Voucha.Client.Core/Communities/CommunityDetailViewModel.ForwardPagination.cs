@@ -137,7 +137,7 @@ public sealed partial class CommunityDetailViewModel
       Summary(row.Id, UiText.Verbatim(row.UserId), UiText.Verbatim(row.Status), Verbatim(row.Message));
 
   private CommunitySummaryRow InviteSummary(CommunityInviteRow row) =>
-      Summary(row.Id, row.RecipientText, UiText.Verbatim(row.Status), UiText.Verbatim(row.Code));
+      Summary(row.Id, row.RecipientText, UiText.Verbatim(row.Status), null);
 
   private CommunitySummaryRow BanSummary(CommunityBanRow row) =>
       Summary(row.Id, UiText.Verbatim(row.UserId), UiText.Verbatim(row.Status), Verbatim(row.Reason));

@@ -30,6 +30,7 @@ extension NativeChatSurface {
                     }
                     ForEach(viewModel.messages) { message in
                         NativeChatMessageBubbleView(message: message)
+                        toolResultStatus(viewModel: viewModel, messageId: message.id)
                     }
                 }
             }
