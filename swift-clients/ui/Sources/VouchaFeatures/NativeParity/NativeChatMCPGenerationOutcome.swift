@@ -11,11 +11,14 @@ struct NativeChatMCPReceipt: Identifiable, Equatable {
     enum Kind: Equatable { case response, toolError }
 
     let id: UUID
+    /// Model-provider call identity; distinct from the local UI row identity.
+    let callId: String
     let owner: NativeChatMCPTurnOwner
     let toolName: String
     /// The original bridge-validated model envelope, never presentation copy.
     let envelope: String
     let kind: Kind
+    let fact: NativeChatMCPFact?
 }
 
 struct NativeChatMCPTurnContext {
@@ -53,7 +56,7 @@ struct NativeChatMCPReceiptLedger {
     mutating func record(_ receipt: NativeChatMCPReceipt) -> Bool {
         guard receipt.owner.accountId == owner.accountId, receipt.owner.revision == owner.revision,
               receipt.owner.conversationId == owner.conversationId, receipt.owner.userMessageId == owner.userMessageId,
-              !receipt.toolName.isEmpty, receipts.count < 4,
+              !receipt.toolName.isEmpty, !receipt.callId.isEmpty, receipts.count < 4,
               !receipts.contains(where: { $0.id == receipt.id }) else { return false }
         receipts.append(receipt)
         return true

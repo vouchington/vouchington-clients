@@ -10,10 +10,15 @@ struct NativeChatToolResultStatusView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ForEach(ledger.receipts) { receipt in
-                Text(UiMessages.string(
-                    receipt.kind == .toolError ? .sharedChatMcpToolErrorReceived : .sharedChatMcpResultReceived,
-                    locale: locale
-                ))
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(UiMessages.string(
+                        receipt.kind == .toolError ? .sharedChatMcpToolErrorReceived : .sharedChatMcpResultReceived,
+                        locale: locale
+                    ))
+                    if case let .emailPreferences(preferences)? = receipt.fact {
+                        NativeChatEmailPreferencesFactView(preferences: preferences, locale: locale)
+                    }
+                }
             }
             if ledger.continuation == .contextStopped {
                 Text(UiMessages.string(.sharedChatMcpModelContextStopped, locale: locale))

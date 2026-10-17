@@ -1,8 +1,11 @@
 import Foundation
 import SwiftUI
 import ViewInspector
+import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaLocalization
+import VouchaModels
 import XCTest
 
 @MainActor
@@ -28,6 +31,11 @@ final class NativeChatToolResultStatusViewTests: XCTestCase {
             .sharedChatMcpResultNotSaved,
             locale: Locale(identifier: "en")
         )))
+        XCTAssertNoThrow(try inspected.find(text: UiMessages.string(
+            .nativeSwiftSettingsEngagementEmails,
+            locale: Locale(identifier: "en")
+        )))
+        XCTAssertNoThrow(try inspected.find(text: "09:30"))
         XCTAssertThrowsError(try inspected.find(text: "untrusted_tool_name"))
         XCTAssertThrowsError(try inspected.find(text: ledger.receipts[0].envelope))
     }
@@ -79,19 +87,25 @@ final class NativeChatToolResultStatusViewTests: XCTestCase {
         )
         var ledger = NativeChatMCPReceiptLedger(owner: owner)
         _ = ledger.record(.init(
-            id: UUID(),
+            id: UUID(), callId: "fixture-call-1",
             owner: owner,
             toolName: "untrusted_tool_name",
             envelope: #"{"content":[],"structuredContent":{"success":false},"isError":false}"#,
-            kind: .response
+            kind: .response, fact: Self.emailPreferenceFact
         ))
         _ = ledger.record(.init(
-            id: UUID(),
+            id: UUID(), callId: "fixture-call-2",
             owner: owner,
             toolName: "untrusted_tool_name",
             envelope: #"{"content":[],"isError":true}"#,
-            kind: .toolError
+            kind: .toolError, fact: nil
         ))
         return ledger
     }
+
+    private static let emailPreferenceFact: NativeChatMCPFact? = {
+        let payload = #"{"success":true,"email_preferences":{"is_engagement_emails_enabled":true,"news_digest_frequency":"weekly","is_moderation_emails_enabled":false,"community_digest_frequency":"none","moderation_email_cadence":"selected_days","moderation_email_days_of_week":[1,3,5],"moderation_email_time_of_day":"09:30","moderation_email_timezone":"Europe/Paris"}}"#
+        guard let value = try? DecodedJSONValue(exactJSONData: Data(payload.utf8)) else { return nil }
+        return NativeChatMCPFact.makeEmailPreferences(value)
+    }()
 }
