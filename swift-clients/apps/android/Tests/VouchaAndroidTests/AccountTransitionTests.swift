@@ -5,7 +5,10 @@ import XCTest
 
 @MainActor
 final class AccountTransitionTests: XCTestCase {
-    func testAccountTransitionClearsHistoryAndDiscardsPendingGeneration() async {
+    func testAccountTransitionClearsHistoryAndDiscardsPendingGeneration() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: fixture.recorder)
         let runtime = BlockingAICoreRuntime()
         let viewModel = ViewModel(
             runtime: runtime,
@@ -17,11 +20,12 @@ final class AccountTransitionTests: XCTestCase {
             endpointClient: TransitionTestEndpointClient()
         )
         viewModel.modelState = .available
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
         viewModel.messages = [.init(role: "assistant", content: "Prior account response")]
         viewModel.draft = "Private prompt"
 
         let generation = Task { await viewModel.sendOnDevice() }
-        await runtime.waitUntilStarted()
+        try await runtime.waitUntilStarted()
         viewModel.resetForAccountTransition()
         await runtime.finish("Prior account answer")
         await generation.value
@@ -35,8 +39,8 @@ final class AccountTransitionTests: XCTestCase {
 
 private actor BlockingAICoreRuntime: AndroidAICoreRunning {
     private var started = false
-    private var startWaiters: [CheckedContinuation<Void, Never>] = []
     private var responseWaiter: CheckedContinuation<String, Never>?
+    private var startWaiter: (UUID, CheckedContinuation<Void, Error>)?
 
     func status() async throws -> AndroidModelState {
         .available
@@ -48,22 +52,50 @@ private actor BlockingAICoreRuntime: AndroidAICoreRunning {
 
     func generate(prompt _: String) async throws -> String {
         started = true
-        for waiter in startWaiters {
-            waiter.resume()
-        }
-        startWaiters = []
+        startWaiter?.1.resume()
+        startWaiter = nil
         return await withCheckedContinuation { responseWaiter = $0 }
     }
 
-    func waitUntilStarted() async {
-        guard !started else { return }
-        await withCheckedContinuation { startWaiters.append($0) }
+    func waitUntilStarted() async throws {
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                if started {
+                    continuation.resume()
+                } else {
+                    startWaiter = (id, continuation)
+                    Task {
+                        try? await Task.sleep(for: .seconds(5))
+                        await self.timeoutStartWaiter(id)
+                    }
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelStartWaiter(id) }
+        }
+    }
+
+    private func timeoutStartWaiter(_ id: UUID) {
+        guard let waiter = startWaiter, waiter.0 == id else { return }
+        startWaiter = nil
+        waiter.1.resume(throwing: WaitError.generationDidNotStart)
+    }
+
+    private func cancelStartWaiter(_ id: UUID) {
+        guard let waiter = startWaiter, waiter.0 == id else { return }
+        startWaiter = nil
+        waiter.1.resume(throwing: CancellationError())
     }
 
     func finish(_ response: String) {
         responseWaiter?.resume(returning: response)
         responseWaiter = nil
     }
+}
+
+private enum WaitError: Error {
+    case generationDidNotStart
 }
 
 private final class TransitionTestEndpointSecrets: AndroidEndpointSecretStoring {

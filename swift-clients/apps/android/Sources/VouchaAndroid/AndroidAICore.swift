@@ -99,9 +99,17 @@ enum AndroidAICoreError: LocalizedError {
 }
 
 struct AndroidChatMessage: Identifiable, Equatable {
-    let id = UUID()
+    let id: String
     let role: String
     let content: String
+    let createdAt: Date
+
+    init(id: String = UUID().uuidString, role: String, content: String, createdAt: Date = Date()) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.createdAt = createdAt
+    }
 }
 
 protocol AndroidEndpointGenerating: Sendable {
