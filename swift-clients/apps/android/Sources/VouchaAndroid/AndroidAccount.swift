@@ -12,6 +12,7 @@ import VouchaLocalization
 final class AndroidAccount {
     let config: AppConfig
     let cookieStorage: AndroidSessionCookieStorage
+    let apiClient: APIClient
     let session: SessionManager
     let signIn: SignInService
     var isRestoring = true
@@ -40,6 +41,7 @@ final class AndroidAccount {
             sessionConfiguration: cookieStorage.sessionConfiguration,
             persistCookies: { cookieStorage.persistCookies() }
         )
+        apiClient = client
         session = SessionManager(
             client: client,
             cookieStorage: cookieStorage.cookieStorage,
