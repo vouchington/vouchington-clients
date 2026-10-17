@@ -16,6 +16,8 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
         >
+        <meta-data android:name="ai.voucha.VOUCHA_API_BASE_URL" android:value="${VOUCHA_API_BASE_URL}" />
+        <meta-data android:name="ai.voucha.VOUCHA_TURNSTILE_SITE_KEY" android:value="${VOUCHA_TURNSTILE_SITE_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

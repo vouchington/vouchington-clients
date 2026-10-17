@@ -1,0 +1,152 @@
+import SwiftUI
+import VouchaCore
+import VouchaLocalization
+
+struct AndroidSignInView: View {
+    @Bindable var account: AndroidAccount
+    @Environment(\.locale) var locale
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(UiMessages.string(.nativeAuthSignInTitle, locale: locale)) {
+                    if let loginAttemptID = account.loginAttemptID {
+                        Text(UiMessages.string(.nativeAuthTwoFactorTitle, locale: locale))
+                        SecureField(
+                            UiMessages.string(.nativeAuthAuthenticatorTitle, locale: locale),
+                            text: $account.totp
+                        )
+                        .keyboardType(.numberPad)
+                        Button(UiMessages.string(.nativeAuthVerify, locale: locale)) {
+                            Task { await account.verifyMFA() }
+                        }.disabled(account.isAuthenticating || account.totp.isEmpty || loginAttemptID.isEmpty)
+                    } else if account.otpRequested {
+                        Text(UiMessages.string(.nativeAuthCheckEmail, locale: locale))
+                        TextField(UiMessages.string(.nativeAuthCodePlaceholder, locale: locale), text: $account.otp)
+                            .keyboardType(.numberPad)
+                        Button(UiMessages.string(.nativeAuthVerifyCode, locale: locale)) {
+                            Task { await account.verifyOTP() }
+                        }.disabled(account.isAuthenticating || account.otp.isEmpty)
+                        Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
+                            account.otpRequested = false
+                            account.otp = ""
+                        }
+                    } else {
+                        TextField(UiMessages.string(.nativeAuthEmailAddress, locale: locale), text: $account.email)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                        if account.config.turnstileSiteKey.isEmpty {
+                            Text(UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale))
+                                .foregroundStyle(.red)
+                        } else {
+                            AndroidTurnstileChallenge(siteKey: account.config.turnstileSiteKey) {
+                                account.turnstileTokenDidChange($0, locale: locale)
+                            }
+                            .frame(minHeight: 72)
+                        }
+                        Button(UiMessages.string(.nativeAuthSendCode, locale: locale)) {
+                            Task { await account.requestOTP() }
+                        }.disabled(account.isAuthenticating || account.email.isEmpty || account.turnstileToken == nil)
+                    }
+                    if let authError = account.authError {
+                        Text(authError).foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle(UiMessages.string(.nativeAuthSignIn, locale: locale))
+        }
+    }
+}
+
+struct AndroidTurnstileChallenge: View {
+    let siteKey: String
+    let onToken: (String?) -> Void
+
+    var body: some View {
+        #if os(Android)
+            TurnstileWebChallenge(siteKey: siteKey) { token in
+                onToken(token)
+            }
+        #else
+            Text("Turnstile challenge is available in the Android app.")
+        #endif
+    }
+}
+
+#if SKIP
+    import android.webkit.CookieManager
+    import android.webkit.WebResourceError
+    import android.webkit.WebResourceRequest
+    import android.webkit.WebView
+    import android.webkit.WebViewClient
+    import androidx.compose.ui.viewinterop.AndroidView
+
+    struct TurnstileWebChallenge: View {
+        let siteKey: String
+        let onToken: (String?) -> Void
+
+        var body: some View {
+            ComposeView { context in
+                AndroidView(factory: { androidContext in
+                    let view = WebView(androidContext)
+                    view.settings.javaScriptEnabled = true
+                    view.settings.domStorageEnabled = true
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(view, true)
+                    view.webViewClient = TurnstileNavigationClient(onToken: onToken)
+                    view.loadDataWithBaseURL("https://voucha.ai", turnstileHTML(siteKey), "text/html", "UTF-8", null)
+                    return view
+                }, modifier: context.modifier, update: { _ in })
+            }
+        }
+    }
+
+    private class TurnstileNavigationClient: WebViewClient {
+        let onToken: (String?) -> Void
+
+        init(onToken: (String?) -> Void) {
+            self.onToken = onToken
+        }
+
+        override func shouldOverrideUrlLoading(view _: WebView?, url: String?) -> Bool {
+            guard let url else { return true }
+            if url.hasPrefix("voucha://turnstile?token=") {
+                let raw = String(url.dropFirst("voucha://turnstile?token=".count))
+                if let token = raw.removingPercentEncoding, !token.isEmpty {
+                    onToken(token)
+                } else {
+                    onToken(nil)
+                }
+                return true
+            }
+            if url == "voucha://turnstile?expired" || url == "voucha://turnstile?error" {
+                onToken(nil)
+                return true
+            }
+            if url.hasPrefix("https://voucha.ai/") || url.hasPrefix("https://challenges.cloudflare.com/") {
+                return false
+            }
+            return true
+        }
+
+        override func onReceivedError(view _: WebView?, request: WebResourceRequest?, error _: WebResourceError?) {
+            if request?.isForMainFrame == true { onToken(nil) }
+        }
+    }
+
+    private func turnstileHTML(_ key: String) -> String {
+        let escaped = key.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+        return """
+        <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></head>
+        <body><div class="cf-turnstile" data-sitekey="\(escaped)" data-callback="tokenReady"
+        data-expired-callback="tokenExpired" data-error-callback="tokenError"></div>
+        <script>
+        function tokenReady(token){location.href='voucha://turnstile?token='+encodeURIComponent(token);}
+        function tokenExpired(){location.href='voucha://turnstile?expired';}
+        function tokenError(){location.href='voucha://turnstile?error';}
+        </script></body></html>
+        """
+    }
+#endif

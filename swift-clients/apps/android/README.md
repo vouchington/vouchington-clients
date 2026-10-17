@@ -9,12 +9,15 @@ Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the 
 - The model downloads only after the user selects **Download on-device model**.
 - Chat history is bounded before inference.
 - Generation failures restore the draft. They do not retry through another provider.
-- The provider-validation shell keeps successful responses in memory because it has no signed-in session or server conversation context. #6745 owns integration into authenticated canonical chat persistence before this shell becomes the full Android client.
+- Email OTP, Turnstile, and MFA sign-in use the shared Voucha API/authentication services. The session cookie store uses SkipKeychain, and the app restores or signs out the shared session.
+- Successful chat responses remain in memory and are not synchronized with server conversation history yet; issue #149 tracks that remaining transcript work.
+- Turnstile requires an embedded Android WebView challenge because Cloudflare does not support native mobile SDKs for Turnstile ([Cloudflare mobile implementation](https://developers.cloudflare.com/turnstile/get-started/mobile-implementation/)). The challenge is limited to this provider-controlled flow; account entry and sign-in UI remain native.
+- Android packaging reads `VOUCHA_API_BASE_URL` and `VOUCHA_TURNSTILE_SITE_KEY` from Gradle project properties or the build environment. The public Turnstile key also accepts `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` as a fallback; Gradle passes both values through manifest metadata, and the Android account passes them into the auth UI. For example, pass `-PVOUCHA_TURNSTILE_SITE_KEY=<public-site-key>` to the Android Gradle build. The API URL defaults to `https://voucha.ai`; an absent site key keeps OTP disabled. The site key is public configuration, not a secret.
 - OpenAI-compatible endpoint settings validate the shared native endpoint policy. Cleartext
   requests also re-validate the resolved peer address in `VouchaCore` before `URLSession`
   connects. API keys use SkipKeychain.
 
-Play Integrity, Play Store signing, and release packaging remain tracked by #6620 and #6745.
+Play Integrity, Play Store signing, and release packaging remain tracked by #6620.
 
 ## Checks
 

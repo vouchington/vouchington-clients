@@ -22,12 +22,15 @@ let package = Package(
     targets: [
         .target(name: "VouchaAndroid", dependencies: [
             .product(name: "VouchaCore", package: "core"),
+            .product(name: "VouchaAPI", package: "core"),
+            .product(name: "VouchaAuth", package: "core"),
             .product(name: "VouchaLocalization", package: "ui"),
             .product(name: "SkipFuseUI", package: "skip-fuse-ui"),
             .product(name: "SkipKeychain", package: "skip-keychain")
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "VouchaAndroidTests", dependencies: [
             "VouchaAndroid",
+            .product(name: "VouchaCore", package: "core"),
             .product(name: "VouchaLocalization", package: "ui"),
             .product(name: "VouchaTestSupport", package: "test-support")
         ])
