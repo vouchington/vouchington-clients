@@ -1,5 +1,11 @@
 using System.Net;
 using System.Text;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Dispatching;
+using Voucha.Client.App.Controls;
+using Voucha.Client.Core;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
@@ -12,6 +18,47 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class PostDetailFocusedPermalinkTests
 {
+  [Theory]
+  [InlineData("en", false)]
+  [InlineData("ar", false)]
+  [InlineData(null, false)]
+  [InlineData("ar", true)]
+  public async Task AuthorBioIsScopedToPublicAuthorAndClearedOnReload(string? language, bool anonymous)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    var app = new Application();
+    foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
+      app.Resources[key] = new Style(typeof(Label));
+    app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
+    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
+    app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
+    var root = Post("root", null) with { IsAnonymous = anonymous };
+    var aside = new PostDetailAuthorAside("<p>Biography</p>", false, [], language);
+    var service = new ThreadService(new PostResponse(root, AuthorAside: aside), Response([]), Response([]))
+    {
+      NextRoot = new PostResponse(root),
+    };
+    var binding = new PostDetailPageBinding(new CommentThreadViewModel(service, root.Id), new SessionStore(SessionSnapshot.Anonymous));
+    var page = new PostDetailPage { BindingContext = binding };
+    var bio = Assert.Single(page.GetVisualTreeDescendants().OfType<NativeHtmlContentView>(), view => view.AutomationId == "post-author-bio");
+    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Equal(anonymous ? null : aside.AboutHtml, bio.Html);
+    Assert.Equal(anonymous ? null : language, bio.DetectedLanguage);
+    if (anonymous) Assert.Null(bio.Content);
+    else
+    {
+      var label = Assert.IsType<Label>(Assert.Single(Assert.IsType<VerticalStackLayout>(bio.Content).Children));
+      Assert.Equal(language is null ? FlowDirection.MatchParent : language == "ar" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, label.FlowDirection);
+    }
+    Assert.Equal(anonymous ? null : aside.AboutHtml, binding.AuthorBioHtml);
+    Assert.Equal(anonymous ? null : language, binding.AuthorBioLanguage);
+    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Null(binding.AuthorBioHtml);
+    Assert.Null(binding.AuthorBioLanguage);
+    Assert.Null(bio.Content);
+  }
+
   [Fact]
   public async Task MountedDetailRefetchesCreationFactsWhenViewerGainsStaffAccess()
   {

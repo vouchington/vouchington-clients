@@ -9,6 +9,24 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class NativeHtmlContentViewAuthoredLanguageTests
 {
+  [Theory]
+  [InlineData("en", FlowDirection.LeftToRight)]
+  [InlineData("ar", FlowDirection.RightToLeft)]
+  [InlineData(null, FlowDirection.MatchParent)]
+  [InlineData("invalid", FlowDirection.MatchParent)]
+  public void DetectedBioLanguageControlsRenderedDirection(string? language, FlowDirection expected)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var view = new NativeHtmlContentView { Html = "<p>Biography</p>", DetectedLanguage = language };
+    var label = Assert.IsType<Label>(Assert.Single(Assert.IsType<VerticalStackLayout>(view.Content).Children));
+    Assert.Equal(expected, label.FlowDirection);
+    Assert.Equal("Biography", Assert.Single(label.FormattedText.Spans).Text);
+    view.DetectedLanguage = null;
+    var resetLabel = Assert.IsType<Label>(Assert.Single(Assert.IsType<VerticalStackLayout>(view.Content).Children));
+    Assert.Equal(FlowDirection.MatchParent, resetLabel.FlowDirection);
+  }
+
   [Fact]
   public void AppliesAuthoredDirectionToRenderedContent()
   {

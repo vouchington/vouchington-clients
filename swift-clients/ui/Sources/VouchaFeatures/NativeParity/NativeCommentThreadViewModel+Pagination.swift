@@ -54,6 +54,7 @@ extension NativeCommentThreadViewModel {
     }
 
     func apply(detailResponse: PostEnvelope) {
+        authorAside = detailResponse.post.isAnonymous ? nil : detailResponse.authorAside
         rootPost = detailResponse.post.withRenderedHtml(detailResponse.html)
         postMetricsById = [rootPostId: detailResponse.postMetrics].compactMapValues { $0 }
         postElectionsById = [rootPostId: detailResponse.postElection].compactMapValues { $0 }
@@ -64,6 +65,7 @@ extension NativeCommentThreadViewModel {
     }
 
     func resetThreadMetadata() {
+        authorAside = nil
         usersById = [:]
         postMetricsById = [:]
         postElectionsById = [:]

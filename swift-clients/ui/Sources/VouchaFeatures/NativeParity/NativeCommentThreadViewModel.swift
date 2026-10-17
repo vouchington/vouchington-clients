@@ -38,6 +38,7 @@ public final class NativeCommentThreadViewModel {
     public internal(set) var threadState: LoadState = .idle
     public internal(set) var ancestorState: LoadState = .idle
     public internal(set) var focusedState: LoadState = .idle
+    public internal(set) var authorAside: PostAuthorAside?
     public internal(set) var rootPost: Post?
     public internal(set) var ancestorPosts: [Post] = []
     public var focusedCommentId: String?

@@ -88,6 +88,8 @@
                 </VerticalStackLayout>
             </Border>
 
+            <controls:NativeHtmlContentView AutomationId="post-author-bio" Html="{Binding AuthorBioHtml}" DetectedLanguage="{Binding AuthorBioLanguage}" />
+
             <VerticalStackLayout Spacing="8" IsVisible="{Binding HasVisibleHnDiscussions}">
                 <Label Text="{Binding HnDiscussions.LocalizedHeading}" Style="{StaticResource Headline}" />
                 <CollectionView ItemsSource="{Binding HnDiscussions.Threads}" SelectionMode="None">
