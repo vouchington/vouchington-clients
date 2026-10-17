@@ -3,7 +3,11 @@ import VouchaCore
 
 extension ViewModel {
     func generateResponse(for message: String) async throws -> String {
-        switch selectedProvider {
+        try await generateResponse(for: message, provider: selectedProvider)
+    }
+
+    func generateResponse(for message: String, provider: AndroidChatProvider) async throws -> String {
+        switch provider {
         case .aiCore:
             let prompt = boundedPrompt(latest: message)
             let runtime = runtime

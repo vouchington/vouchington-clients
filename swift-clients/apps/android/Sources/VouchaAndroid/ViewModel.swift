@@ -1,7 +1,9 @@
 import Foundation
 import Observation
 import SkipFuse
+import VouchaAPI
 import VouchaCore
+import VouchaModels
 
 enum AndroidChatProvider: String {
     case aiCore
@@ -14,8 +16,21 @@ final class ViewModel {
     var messages: [AndroidChatMessage] = []
     var draft = ""
     var errorMessage: String?
+    var transcriptLoadFailed = false
     var isGenerating = false
     var selectedProvider: AndroidChatProvider = .aiCore
+    var conversations: [ChatConversation] = []
+    var selectedConversationID: String?
+    var isLoadingConversations = false
+    var isLoadingMessages = false
+    var isLoadingOlderMessages = false
+    var isCreatingConversation = false
+    var hasMoreConversations = false
+    var hasOlderMessages = false
+    var pendingTurnForSelectedConversation: AndroidPendingChatTurn? {
+        guard let selectedConversationID else { return nil }
+        return pendingTurns[selectedConversationID]
+    }
 
     var endpoint = ""
     var endpointModel = ""
@@ -29,11 +44,18 @@ final class ViewModel {
     let secretStore: any AndroidEndpointSecretStoring
     let settingsStore: LocalLLMSettingsStore
     let endpointClient: any AndroidEndpointGenerating
+    var apiClient: APIClient?
+    var currentAccountUserID: String?
     var endpointProfileID: UUID
     var endpointAPIKeyWasExplicitlyEdited = false
-    private var accountGeneration = UUID()
     var activeGenerationTask: Task<String, Error>?
     var activeGenerationID = UUID()
+    var accountGeneration = UUID()
+    var conversationGeneration = UUID()
+    var conversationListCursor: String?
+    var messagePageCursor: String?
+    var pendingTurns: [String: AndroidPendingChatTurn] = [:]
+    var activeSendOperationID: UUID?
 
     init(
         runtime: any AndroidAICoreRunning = AndroidAICoreRuntime(),
@@ -62,6 +84,7 @@ final class ViewModel {
 
     func refreshStatus() async {
         errorMessage = nil
+        transcriptLoadFailed = false
         modelState = .checking
         do {
             modelState = try await runtime.status()
@@ -73,6 +96,7 @@ final class ViewModel {
 
     func downloadModel() async {
         errorMessage = nil
+        transcriptLoadFailed = false
         modelState = .downloading
         do {
             modelState = try await runtime.download()
@@ -84,39 +108,29 @@ final class ViewModel {
         }
     }
 
-    func sendOnDevice() async {
-        let submitted = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !submitted.isEmpty, isSelectedProviderAvailable, !isGenerating else { return }
-        draft = ""
-        errorMessage = nil
-        isGenerating = true
-        let submittedAccountGeneration = accountGeneration
-        defer {
-            if accountGeneration == submittedAccountGeneration { isGenerating = false }
-        }
-        let priorMessages = messages
-        messages.append(.init(role: "user", content: submitted))
-
-        do {
-            let response = try await generateResponse(for: submitted)
-            guard accountGeneration == submittedAccountGeneration else { return }
-            guard !response.isEmpty else { throw AndroidAICoreError.emptyResponse }
-            messages.append(.init(role: "assistant", content: response))
-        } catch {
-            guard accountGeneration == submittedAccountGeneration else { return }
-            messages = priorMessages
-            draft = submitted
-            errorMessage = error.localizedDescription
-        }
-    }
-
     func resetForAccountTransition() {
         activeGenerationTask?.cancel()
         activeGenerationID = UUID()
         accountGeneration = UUID()
+        conversationGeneration = UUID()
+        apiClient = nil
+        currentAccountUserID = nil
+        conversations = []
+        selectedConversationID = nil
+        isLoadingConversations = false
+        isLoadingMessages = false
+        isLoadingOlderMessages = false
+        isCreatingConversation = false
+        conversationListCursor = nil
+        messagePageCursor = nil
+        hasMoreConversations = false
+        hasOlderMessages = false
+        pendingTurns = [:]
+        activeSendOperationID = nil
         messages = []
         draft = ""
         errorMessage = nil
+        transcriptLoadFailed = false
         isGenerating = false
     }
 
