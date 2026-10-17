@@ -41,6 +41,11 @@ public sealed partial class VouchaApiClientTests
     Assert.True(providers.BrokerCapabilities.Linkedin?.SupportsNative(OAuthAuthorizationPurpose.Connect));
     Assert.True(providers.BrokerCapabilities.Microsoft?.Modes.Web);
     Assert.True(providers.BrokerCapabilities.Microsoft?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]
+        .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]
+        .SupportsNative(OAuthAuthorizationPurpose.Connect));
+    Assert.Contains("linkedin", providers.Providers);
     Assert.Equal("019fafb8-a44c-73e2-890a-497ff3dd27a6", begin.FlowId);
     Assert.Equal(
         [
@@ -53,6 +58,37 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("user-1", recommendations.Results.Single().Id);
     Assert.Equal(HttpMethod.Get, handler.Requests[^1].Method);
     Assert.Equal("/api/v1/my/friend-recommendations?limit=25", handler.Requests[^1].PathAndQuery);
+  }
+
+  [Fact]
+  public void LinkedinBrokerRoutesUseProviderSlug()
+  {
+    var begin = VouchaApiEndpoints.BeginOAuthAuthorization(
+        OAuthBrokerProvider.Linkedin,
+        OAuthAuthorizationPurpose.Authenticate,
+        "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ");
+    var disconnect = VouchaApiEndpoints.DisconnectOAuthAccount(OAuthBrokerProvider.Linkedin);
+
+    Assert.Equal("/api/v1/auth/oauth/linkedin/authorizations", begin.Path);
+    Assert.Equal("/api/v1/auth/oauth/linkedin/connect", disconnect.Path);
+  }
+
+  [Fact]
+  public void MissingLinkedinCapabilityFailsClosedDuringRollingDeployment()
+  {
+    const string priorBroker = """
+        {"facebook":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]},
+         "x":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]},
+         "github":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]}}
+        """;
+    var capabilities = JsonSerializer.Deserialize<OAuthBrokerCapabilities>(
+        priorBroker, VouchaApiJson.Options);
+
+    Assert.NotNull(capabilities);
+    Assert.True(capabilities[OAuthBrokerProvider.Github]
+        .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.False(capabilities[OAuthBrokerProvider.Linkedin]
+        .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
   }
 
   [Fact]

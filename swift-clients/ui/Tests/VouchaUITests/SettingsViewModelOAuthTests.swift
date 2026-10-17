@@ -38,6 +38,71 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNil(fixture.viewModel.oauthErrorMessage)
     }
 
+    func testLinkedInConnectionControlFollowsCapabilityAndOpensBrokerURL() async throws {
+        let fixture = try makeFixture()
+        seedCapabilities(linkedInNative: false)
+        await fixture.viewModel.loadOAuthCapabilities()
+        XCTAssertFalse(fixture.viewModel.canConnectOAuthAccount(provider: .linkedin))
+        XCTAssertNoThrow(try SettingsSurface(viewModel: fixture.viewModel)
+            .oauthAccountsSection.inspect().find(text: "LinkedIn"))
+        XCTAssertThrowsError(try SettingsSurface(viewModel: fixture.viewModel)
+            .oauthAccountsSection.inspect().find(text: "LinkedIn").parent().find(ViewType.Button.self))
+
+        seedCapabilities(linkedInNative: true)
+        await fixture.viewModel.loadOAuthCapabilities()
+        XCTAssertTrue(fixture.viewModel.canConnectOAuthAccount(provider: .linkedin))
+        XCTAssertFalse(try SettingsSurface(viewModel: fixture.viewModel)
+            .oauthAccountsSection.inspect().find(text: "LinkedIn").parent()
+            .find(ViewType.Button.self).isDisabled())
+        CannedFeedURLProtocol.handlers["/api/v1/auth/oauth/linkedin/authorizations"] = (
+            Data("""
+            {"flow_id":"linkedin-flow","redirect_url":"https://www.linkedin.com/oauth/v2/authorization",
+            "expires_at":"2027-01-01T00:05:00.000Z"}
+            """.utf8),
+            200
+        )
+        var openedURL: URL?
+
+        await fixture.viewModel.beginOAuthConnection(provider: .linkedin) { openedURL = $0 }
+
+        XCTAssertEqual(openedURL?.host, "www.linkedin.com")
+        XCTAssertEqual(fixture.coordinator.pending?.provider, .linkedin)
+        XCTAssertFalse(fixture.viewModel.canConnectOAuthAccount(provider: .linkedin))
+        XCTAssertTrue(try SettingsSurface(viewModel: fixture.viewModel)
+            .oauthAccountsSection.inspect().find(text: "LinkedIn").parent()
+            .find(ViewType.Button.self).isDisabled())
+    }
+
+    func testLinkedInConnectedIdentityRendersAndDisconnects() async throws {
+        seedSettingsResponses()
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            identityWithOAuthAccounts(),
+            200
+        )
+        let fixture = try makeFixture()
+        await fixture.viewModel.load()
+        seedCapabilities()
+        await fixture.viewModel.loadOAuthCapabilities()
+        XCTAssertEqual(fixture.viewModel.account(for: .linkedin)?.name, "LinkedIn Alice")
+        XCTAssertNoThrow(try SettingsSurface(viewModel: fixture.viewModel)
+            .oauthAccountsSection.inspect().find(text: "LinkedIn Alice"))
+        CannedFeedURLProtocol.handlers["/api/v1/auth/oauth/linkedin/connect"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            PrivateUserTestFixture.identityEnvelope(),
+            200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/profile"] = (
+            Data(#"{"message":"unrelated settings failure"}"#.utf8),
+            503
+        )
+
+        await fixture.viewModel.disconnectOAuthAccount(provider: .linkedin)
+
+        XCTAssertNil(fixture.viewModel.account(for: .linkedin))
+        XCTAssertNil(fixture.viewModel.oauthErrorMessage)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.last { $0 == "DELETE" }, "DELETE")
+    }
+
     func testBeginFailureAndMissingCoordinatorAreSafe() async throws {
         let fixture = try makeFixture()
         seedCapabilities()
@@ -358,11 +423,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         )
     }
 
-    private func seedCapabilities() {
+    private func seedCapabilities(linkedInNative: Bool = true) {
         CannedFeedURLProtocol.handlers["/api/v1/auth/oauth/providers"] = (
             Data("""
             {
-              "providers": ["facebook", "x", "github"],
+              "providers": ["facebook", "x", "github", "linkedin"],
               "broker_capabilities": {
                 "facebook": {
                   "version": 1,
@@ -377,6 +442,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
                 "github": {
                   "version": 1,
                   "modes": {"web": true, "native": true},
+                  "purposes": ["authenticate", "connect"]
+                },
+                "linkedin": {
+                  "version": 1,
+                  "modes": {"web": true, "native": \(linkedInNative)},
                   "purposes": ["authenticate", "connect"]
                 }
               }
@@ -398,6 +468,11 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
                 id: "github-1",
                 name: "GitHub Alice",
                 email: "alice@github.example"
+            ),
+            "linkedin_account": oauthAccount(
+                id: "linkedin-1",
+                name: "LinkedIn Alice",
+                email: nil
             )
         ])
     }

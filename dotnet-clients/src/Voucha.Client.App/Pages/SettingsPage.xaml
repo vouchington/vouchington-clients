@@ -54,7 +54,7 @@
                     Text="{DynamicResource native.common.retry}"
                     Clicked="OnRetryOAuthCapabilitiesClicked"
                     IsVisible="False" />
-                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
                     <VerticalStackLayout>
                         <Label Text="{DynamicResource native.taxonomy.settings.facebook}" Style="{StaticResource Body}" />
                         <Label x:Name="FacebookOAuthIdentity" Style="{StaticResource Metadata}" />
@@ -83,6 +83,16 @@
                         Grid.Row="2"
                         Grid.Column="1"
                         CommandParameter="github"
+                        Clicked="OnOAuthAccountClicked" />
+                    <VerticalStackLayout Grid.Row="3">
+                        <Label Text="{DynamicResource native.taxonomy.settings.linkedin}" Style="{StaticResource Body}" />
+                        <Label x:Name="LinkedinOAuthIdentity" Style="{StaticResource Metadata}" />
+                    </VerticalStackLayout>
+                    <Button
+                        x:Name="LinkedinOAuthAccountButton"
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        CommandParameter="linkedin"
                         Clicked="OnOAuthAccountClicked" />
                 </Grid>
                 <Button

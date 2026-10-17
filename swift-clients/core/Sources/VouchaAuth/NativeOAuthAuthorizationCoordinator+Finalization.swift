@@ -94,6 +94,7 @@ extension NativeOAuthAuthorizationCoordinator {
             case .facebook: response.identity.facebookAccount != nil
             case .x: response.identity.xAccount != nil
             case .github: response.identity.githubAccount != nil
+            case .linkedin: response.identity.linkedinAccount != nil
             }
             guard isConnected else { return false }
             sessionManager.synchronize(with: response.identity)

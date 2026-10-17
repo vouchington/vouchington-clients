@@ -85,12 +85,17 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             method: .DELETE,
             path: "/api/v1/auth/oauth/x/connect"
         )
+        assertEndpoint(
+            .disconnectOAuthAccount(provider: .linkedin),
+            method: .DELETE,
+            path: "/api/v1/auth/oauth/linkedin/connect"
+        )
 
         let capabilities = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
             from: Data("""
             {
-              "providers": ["facebook", "x", "github"],
+              "providers": ["facebook", "x", "github", "linkedin"],
               "broker_capabilities": {
                 "facebook": {
                   "version": 1,
@@ -106,6 +111,11 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
                   "version": 1,
                   "modes": { "web": true, "native": true },
                   "purposes": ["authenticate"]
+                },
+                "linkedin": {
+                  "version": 1,
+                  "modes": { "web": true, "native": true },
+                  "purposes": ["authenticate", "connect"]
                 }
               }
             }
@@ -116,6 +126,22 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertTrue(capabilities.brokerCapabilities.facebook.supportsNative(.connect))
         XCTAssertFalse(capabilities.brokerCapabilities.x.supportsNative(.authenticate))
         XCTAssertFalse(capabilities.brokerCapabilities.github.supportsNative(.connect))
+        let linkedin = try XCTUnwrap(capabilities.brokerCapabilities.linkedin)
+        XCTAssertTrue(linkedin.supportsNative(.authenticate))
+        XCTAssertTrue(linkedin.supportsNative(.connect))
+
+        let priorBroker = try makeVouchaDecoder().decode(
+            OAuthBrokerCapabilitiesResponse.self,
+            from: Data("""
+            {"providers":["facebook","x","github"],"broker_capabilities":{
+              "facebook":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]},
+              "x":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]},
+              "github":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate"]}
+            }}
+            """.utf8)
+        )
+        XCTAssertTrue(priorBroker.brokerCapabilities.github.supportsNative(.authenticate))
+        XCTAssertFalse(priorBroker.brokerCapabilities.linkedin?.supportsNative(.authenticate) == true)
 
         let rollingCompatibility = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
@@ -244,6 +270,11 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             "name": NSNull(),
             "email_address": "github@example.com"
         ]
+        identityObject["linkedin_account"] = [
+            "id": "linkedin-1",
+            "name": "Alice LinkedIn",
+            "email_address": "linkedin@example.com"
+        ]
         identityEnvelope["identity"] = identityObject
         let identityData = try JSONSerialization.data(withJSONObject: identityEnvelope)
         let identity = try decoder.decode(NativeOAuthIdentityEnvelope.self, from: identityData).identity
@@ -251,6 +282,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertEqual(identity.facebookAccount?.name, "Alice Facebook")
         XCTAssertEqual(identity.xAccount?.id, "x-1")
         XCTAssertEqual(identity.githubAccount?.emailAddress, "github@example.com")
+        XCTAssertEqual(identity.linkedinAccount?.name, "Alice LinkedIn")
 
         let encodedIdentity = try JSONEncoder().encode(identity)
         let encodedObject = try XCTUnwrap(
@@ -268,6 +300,11 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             (encodedObject["github_account"] as? [String: Any])?["email_address"] as? String,
             "github@example.com"
         )
+        XCTAssertEqual(
+            (encodedObject["linkedin_account"] as? [String: Any])?["id"] as? String,
+            "linkedin-1"
+        )
+        XCTAssertEqual(identity.withProfileImageId("image-1").linkedinAccount?.id, "linkedin-1")
     }
 
     func testStoreClaimsOnlyMatchingFixedCallbackAndRejectsReplacement() throws {

@@ -5,6 +5,7 @@ public enum NativeOAuthProvider: String, CaseIterable, Codable, Identifiable, Se
     // swiftlint:disable:next identifier_name
     case x
     case github
+    case linkedin
 
     public var id: String {
         rawValue

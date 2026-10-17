@@ -130,6 +130,7 @@ public extension SettingsViewModel {
         case .facebook: identity.facebookAccount
         case .x: identity.xAccount
         case .github: identity.githubAccount
+        case .linkedin: identity.linkedinAccount
         }
     }
 

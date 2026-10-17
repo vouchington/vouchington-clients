@@ -334,7 +334,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             NativeAuthorizationCompletionProof.fromVerifier("verifier").challenge,
             "iMnq5o6zALKXGivsnlom_0F5_WYda32GHkxlV7mq7hQ"
         )
-        XCTAssertEqual(NativeOAuthProvider.allCases.map(\.id), ["facebook", "x", "github"])
+        XCTAssertEqual(NativeOAuthProvider.allCases.map(\.id), ["facebook", "x", "github", "linkedin"])
 
         let capability = OAuthBrokerCapability(
             version: 2,
@@ -344,7 +344,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         XCTAssertFalse(capability.supportsNative(.authenticate))
     }
 
-    private func makeFixture() throws -> CoordinatorFixture {
+    func makeFixture() throws -> CoordinatorFixture {
         let now = try XCTUnwrap(
             ISO8601DateFormatter().date(from: "2027-01-01T00:00:00Z")
         )
@@ -380,7 +380,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         ))
     }
 
-    private func claim(
+    func claim(
         store: NativeOAuthAuthorizationStore,
         flowId: String,
         provider: NativeOAuthProvider,
@@ -400,10 +400,10 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         )), now: now))
     }
 
-    private func capabilitiesData() -> Data {
+    func capabilitiesData() -> Data {
         Data("""
         {
-          "providers": ["facebook", "x", "github"],
+          "providers": ["facebook", "x", "github", "linkedin"],
           "broker_capabilities": {
             "facebook": {
               "version": 1,
@@ -419,13 +419,18 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
               "version": 1,
               "modes": {"web": true, "native": true},
               "purposes": ["authenticate", "connect"]
+            },
+            "linkedin": {
+              "version": 1,
+              "modes": {"web": true, "native": true},
+              "purposes": ["authenticate", "connect"]
             }
           }
         }
         """.utf8)
     }
 
-    private func identityData(provider: NativeOAuthProvider? = nil) -> Data {
+    func identityData(provider: NativeOAuthProvider? = nil) -> Data {
         var identity = try! JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("swift.my.identity.default")
         ) as! [String: Any]
@@ -448,14 +453,14 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
     }
 }
 
-private struct CoordinatorFixture {
+struct CoordinatorFixture {
     let coordinator: NativeOAuthAuthorizationCoordinator
     let sessionManager: SessionManager
     let store: NativeOAuthAuthorizationStore
     let now: Date
 }
 
-private final class OAuthCoordinatorURLProtocol: URLProtocol {
+final class OAuthCoordinatorURLProtocol: URLProtocol {
     static let lock = NSLock()
     static var responses: [String: [(Data, Int)]] = [:]
     static var requests: [URLRequest] = []
