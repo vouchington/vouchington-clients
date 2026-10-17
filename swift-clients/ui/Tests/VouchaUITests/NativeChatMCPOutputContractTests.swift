@@ -170,7 +170,8 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         for timestamp in [
             "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00", "2016-12-31T23:59:60Z",
             "2017-01-01T00:29:60+00:30", "2016-12-31T23:29:60-00:30", "2016-12-31T23:59:60.5Z",
-            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z", "2017-01-01T00:59:60+01:00"
+            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z",
+            "2017-01-01T00:59:60+01:00"
         ] {
             XCTAssertTrue(try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema))
         }
