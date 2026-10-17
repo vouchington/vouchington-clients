@@ -26,6 +26,9 @@ test('writeExecutable marks the file executable', async t => {
 
   await writeExecutable(path, '#!/bin/sh\nexit 0\n')
 
-  assert.equal((await stat(path)).mode & 0o111, 0o111)
+  // Node on Windows does not report POSIX executable bits from stat().
+  if (process.platform !== 'win32') {
+    assert.equal((await stat(path)).mode & 0o111, 0o111)
+  }
   assert.equal(await readFile(path, 'utf8'), '#!/bin/sh\nexit 0\n')
 })
