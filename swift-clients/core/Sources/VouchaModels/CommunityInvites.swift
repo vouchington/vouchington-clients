@@ -4,13 +4,19 @@ public struct CommunityInvite: Codable, Identifiable, Sendable {
     public let entityType: String?
     public let id: String
     public let communityId: String
-    public let invitedUserId: String?
-    public let invitedEmail: String?
+    @RequiredNullable
+    public var invitedUserId: String?
+    @RequiredNullable
+    public var invitedEmail: String?
     public let invitedById: String
-    public let acceptedAt: Date?
-    public let acceptedById: String?
-    public let declinedAt: Date?
-    public let revokedAt: Date?
+    @RequiredNullable
+    public var acceptedAt: Date?
+    @RequiredNullable
+    public var acceptedById: String?
+    @RequiredNullable
+    public var declinedAt: Date?
+    @RequiredNullable
+    public var revokedAt: Date?
     public let createdAt: Date
 
     private enum CodingKeys: String, CodingKey {
@@ -25,13 +31,19 @@ public struct CreatedCommunityInvite: Codable, Sendable {
     public let id: String
     public let communityId: String
     public let code: String
-    public let invitedUserId: String?
-    public let invitedEmail: String?
+    @RequiredNullable
+    public var invitedUserId: String?
+    @RequiredNullable
+    public var invitedEmail: String?
     public let invitedById: String
-    public let acceptedAt: Date?
-    public let acceptedById: String?
-    public let declinedAt: Date?
-    public let revokedAt: Date?
+    @RequiredNullable
+    public var acceptedAt: Date?
+    @RequiredNullable
+    public var acceptedById: String?
+    @RequiredNullable
+    public var declinedAt: Date?
+    @RequiredNullable
+    public var revokedAt: Date?
     public let createdAt: Date
 
     private enum CodingKeys: String, CodingKey {
