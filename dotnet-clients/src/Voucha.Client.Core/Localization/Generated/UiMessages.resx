@@ -551,7 +551,6 @@
   <data name="native.dotnet.csharpCommunities.aiAgents" xml:space="preserve"><value>AI Agents</value></data>
   <data name="native.dotnet.csharpCommunities.allocate" xml:space="preserve"><value>Allocate</value></data>
   <data name="native.dotnet.csharpCommunities.allocated" xml:space="preserve"><value>Allocated</value></data>
-  <data name="native.dotnet.csharpCommunities.anyoneWithCode" xml:space="preserve"><value>Anyone with code</value></data>
   <data name="native.dotnet.csharpCommunities.applicationId" xml:space="preserve"><value>Application ID</value></data>
   <data name="native.dotnet.csharpCommunities.applications" xml:space="preserve"><value>Applications</value></data>
   <data name="native.dotnet.csharpCommunities.apply" xml:space="preserve"><value>Apply to community</value></data>
