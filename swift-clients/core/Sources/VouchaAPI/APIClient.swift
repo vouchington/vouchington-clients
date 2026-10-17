@@ -9,6 +9,7 @@ public actor APIClient {
     public nonisolated let imageBaseURL: URL
     let session: URLSession
     let cookieStorage: HTTPCookieStorage
+    let persistCookies: (@Sendable () -> Void)?
     let decoder: JSONDecoder
     let encoder: JSONEncoder
     private let logger = VouchaLogger(category: "APIClient")
@@ -18,6 +19,10 @@ public actor APIClient {
     let sessionBootstrapEnabled: Bool
     var sessionBootstrapTask: Task<Void, Error>?
 
+    /// Bootstrap defaults retain the legacy `protocolClasses` policy. When supplying a
+    /// configuration with a custom test transport, explicitly pass `bootstrapSession: false`.
+    /// Persistence callbacks can run on transport delegate queues. Their owner must serialize
+    /// snapshot writes with durable sign-out clearing and fence subsequent callbacks.
     public init(
         config: AppConfig = .shared,
         cookieStorage: HTTPCookieStorage = .shared,
@@ -25,19 +30,22 @@ public actor APIClient {
         bootstrapSession: Bool? = nil,
         signer: (any RequestSigning)? = nil,
         metadata: ClientMetadata = ClientMetadata(platform: .macos, appVersion: "development"),
-        pinningPolicy: PublicKeyPinningPolicy = .vouchaDefault
+        pinningPolicy: PublicKeyPinningPolicy = .vouchaDefault,
+        sessionConfiguration: URLSessionConfiguration? = nil,
+        persistCookies: (@Sendable () -> Void)? = nil
     ) {
         self.signer = signer
         self.metadata = metadata
         imageBaseURL = config.imageBaseURL
         sessionBootstrapEnabled = bootstrapSession ?? (protocolClasses == nil)
-        self.cookieStorage = cookieStorage
+        self.persistCookies = persistCookies
         self.config = config
         baseURL = config.baseURL
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.httpCookieStorage = cookieStorage
-        sessionConfig.httpShouldSetCookies = true
-        sessionConfig.httpCookieAcceptPolicy = .always
+        let sessionConfig = Self.cookieSessionConfiguration(sessionConfiguration, cookieStorage: cookieStorage)
+        guard let configuredCookies = sessionConfig.httpCookieStorage else {
+            preconditionFailure("API session configuration requires an explicit cookie storage")
+        }
+        self.cookieStorage = configuredCookies
         if let protocolClasses {
             sessionConfig.protocolClasses = protocolClasses
         }
@@ -154,6 +162,7 @@ public extension APIClient {
         if endpoint.path != "/api/v1/session" {
             try await ensureSessionBootstrap()
         }
+        defer { persistCookies?() }
         let rawRequest = try buildRequest(endpoint)
         let request = await applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
         logger.debug("→ \(endpoint.method.rawValue) \(endpoint.path)")

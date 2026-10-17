@@ -29,6 +29,7 @@ public final class SessionManager {
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
+    private let clearPersistedCookies: (@Sendable () -> Void)?
     private let logger = VouchaLogger(category: "SessionManager")
     private var beforeSignOut: (@MainActor (String) async throws -> Void)?
 
@@ -72,9 +73,13 @@ public final class SessionManager {
         return nil
     }
 
-    public init(client: APIClient, cookieStorage: HTTPCookieStorage) {
+    public init(
+        client: APIClient, cookieStorage: HTTPCookieStorage,
+        clearPersistedCookies: (@Sendable () -> Void)? = nil
+    ) {
         self.client = client
         self.cookieStorage = cookieStorage
+        self.clearPersistedCookies = clearPersistedCookies
     }
 
     /// Install device-grant cleanup that must finish before the member identity is discarded.
@@ -132,9 +137,11 @@ public final class SessionManager {
         } catch {
             // ignore sign-out errors — clear locally regardless
         }
+        await client.clearSessionCookies()
         for cookie in cookieStorage.cookies ?? [] {
             cookieStorage.deleteCookie(cookie)
         }
+        clearPersistedCookies?()
         state = .anonymous
         uiLocale = nil
     }

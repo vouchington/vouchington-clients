@@ -124,8 +124,68 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertNil(sessionManager.lastSignOutErrorMessage)
     }
 
+    func testPersistedClearRunsAfterJarClearEvenWhenLogoutFails() async throws {
+        let jar = IsolatedHTTPCookieStorage.make()
+        let recorder = CookiePersistenceRecorder(jar: jar)
+        let manager = makeSessionManager(cookieStorage: jar, clearPersistedCookies: { recorder.snapshot() })
+        try manager.synchronize(with: identity(uiLocale: "en"))
+        try jar.setCookie(XCTUnwrap(HTTPCookie(properties: [
+            .domain: "localhost", .path: "/", .name: "st", .value: "private-session"
+        ])))
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 500)
+
+        await manager.signOut()
+
+        XCTAssertEqual(recorder.snapshots, [[:]])
+        XCTAssertFalse(manager.isSignedIn)
+    }
+
+    func testFailedLogoutClearsTheAPIClientsCanonicalJarWhenTheInjectedJarDiffers() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        let activeJar = try XCTUnwrap(configuration.httpCookieStorage)
+        let separateJar = IsolatedHTTPCookieStorage.make()
+        let recorder = CookiePersistenceRecorder(jar: activeJar)
+        let client = try APIClient(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
+            cookieStorage: separateJar, protocolClasses: [MockURLProtocol.self],
+            bootstrapSession: false, sessionConfiguration: configuration
+        )
+        let manager = SessionManager(
+            client: client, cookieStorage: separateJar, clearPersistedCookies: { recorder.snapshot() }
+        )
+        try manager.synchronize(with: identity(uiLocale: "en"))
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "localhost", .path: "/", .name: "st", .value: "private-session"
+        ]))
+        activeJar.setCookie(cookie)
+        separateJar.setCookie(cookie)
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 500)
+
+        await manager.signOut()
+
+        XCTAssertTrue(activeJar.cookies?.isEmpty ?? true)
+        XCTAssertTrue(separateJar.cookies?.isEmpty ?? true)
+        XCTAssertEqual(recorder.snapshots, [[:]])
+        XCTAssertFalse(manager.isSignedIn)
+    }
+
+    func testFailedPreSignOutCleanupDoesNotClearPersistedCookies() async throws {
+        let jar = IsolatedHTTPCookieStorage.make()
+        let recorder = CookiePersistenceRecorder(jar: jar)
+        let manager = makeSessionManager(cookieStorage: jar, clearPersistedCookies: { recorder.snapshot() })
+        try manager.synchronize(with: identity(uiLocale: "en"))
+        manager.setBeforeSignOut { _ in throw DeviceCleanupError.failed }
+
+        await manager.signOut()
+
+        XCTAssertTrue(recorder.snapshots.isEmpty)
+        XCTAssertTrue(manager.isSignedIn)
+        XCTAssertNotNil(manager.lastSignOutErrorMessage)
+    }
+
     private func makeSessionManager(
-        cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make()
+        cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make(),
+        clearPersistedCookies: (@Sendable () -> Void)? = nil
     ) -> SessionManager {
         let client = APIClient(
             config: AppConfig(
@@ -135,7 +195,11 @@ final class SessionManagerLocalizationTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [MockURLProtocol.self]
         )
-        return SessionManager(client: client, cookieStorage: cookieStorage)
+        return SessionManager(
+            client: client,
+            cookieStorage: cookieStorage,
+            clearPersistedCookies: clearPersistedCookies
+        )
     }
 
     private func identity(uiLocale: String) throws -> PrivateUser {

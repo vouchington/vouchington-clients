@@ -31,6 +31,7 @@ extension ResponseLinesTransport {
         self.linesContinuation = nil
         lock.unlock()
 
+        persistCookies?()
         responseContinuation?.resume(throwing: error)
         bodyContinuation?.resume(throwing: error)
         linesContinuation?.finish(throwing: error)
@@ -150,6 +151,7 @@ extension ResponseLinesTransport {
         self.bodyContinuation = nil
         self.linesContinuation = nil
         lock.unlock()
+        persistCookies?()
         responseContinuation?.resume(throwing: error)
         bodyContinuation?.resume(throwing: error)
         linesContinuation?.finish(throwing: error)

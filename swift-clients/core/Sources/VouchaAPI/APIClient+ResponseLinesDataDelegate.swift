@@ -5,7 +5,7 @@ import Foundation
 
 extension APIClient {
     func responseLinesUsingURLSessionDataDelegate(for request: URLRequest) async throws -> ResponseLines {
-        let transport = ResponseLinesTransport()
+        let transport = ResponseLinesTransport(persistCookies: persistCookies)
         return try await transport.start(request: request, configuration: session.configuration)
     }
 }

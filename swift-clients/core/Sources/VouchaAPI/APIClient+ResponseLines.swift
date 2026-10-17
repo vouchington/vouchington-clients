@@ -15,6 +15,8 @@ private final class ResponseLinesTaskHolder: @unchecked Sendable {
 
 extension APIClient {
     func responseLines(for request: URLRequest) async throws -> ResponseLines {
+        let persistCookies = persistCookies
+        defer { persistCookies?() }
         #if canImport(FoundationNetworking)
             return try await responseLinesUsingURLSessionDataDelegate(for: request)
         #else
@@ -22,7 +24,10 @@ extension APIClient {
             let holder = ResponseLinesTaskHolder()
             return ResponseLines(lines: AsyncThrowingStream { continuation in
                 holder.task = Task { [holder] in
-                    defer { holder.task = nil }
+                    defer {
+                        persistCookies?()
+                        holder.task = nil
+                    }
                     do {
                         for try await line in BoundedResponseLineReader.lines(from: bytes) {
                             continuation.yield(line)
@@ -32,7 +37,10 @@ extension APIClient {
                         continuation.finish(throwing: error)
                     }
                 }
-                continuation.onTermination = { [weak holder] _ in holder?.task?.cancel() }
+                continuation.onTermination = { [weak holder] _ in
+                    persistCookies?()
+                    holder?.task?.cancel()
+                }
             }, response: response, body: Data())
         #endif
     }
