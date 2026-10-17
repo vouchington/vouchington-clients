@@ -52,6 +52,7 @@ extension CommunityDetailViewModel {
 
     func invite() async {
         dismissInviteCode()
+        let revision = inviteOperationRevision
         let recipient = inviteRecipient.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !recipient.isEmpty else { return }
         guard let client else { return }
@@ -62,13 +63,14 @@ extension CommunityDetailViewModel {
         let tab = selectedTab
         do {
             let response: CreatedCommunityInviteResponse = try await client.send(endpoint)
+            guard revision == inviteOperationRevision, selectedTab == tab else { return }
             statusMessage = UiMessage(.nativeSwiftCommunityStatusInviteSent)
             inviteRecipient = ""
-            await load()
-            if selectedTab == tab {
-                showInviteCode(response.communityInvite.code)
-            }
+            await load(preservingInviteOperation: revision)
+            guard revision == inviteOperationRevision, selectedTab == tab else { return }
+            showInviteCode(response.communityInvite.code)
         } catch {
+            guard revision == inviteOperationRevision, selectedTab == tab else { return }
             state = .error(UiMessage(.nativeSwiftCommunityStatusActionFailed))
         }
     }

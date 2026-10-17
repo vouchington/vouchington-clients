@@ -36,6 +36,7 @@ public sealed partial class CommunityActionViewModel :
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
   private readonly IDisposable? localeSubscription;
+  private long submissionRevision;
 
   public CommunityActionViewModel(
       ICommunitiesService service,
@@ -107,7 +108,15 @@ public sealed partial class CommunityActionViewModel :
     private set => SetProperty(ref createdInviteCode, value);
   }
 
-  public void DismissInviteCode() => CreatedInviteCode = null;
+  public void DismissInviteCode()
+  {
+    submissionRevision++;
+    CreatedInviteCode = null;
+    if (State == LoadState.Loading)
+    {
+      State = LoadState.Idle;
+    }
+  }
 
   public string? Message
   {

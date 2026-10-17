@@ -3,8 +3,12 @@ import VouchaLocalization
 import VouchaModels
 
 extension CommunityDetailViewModel {
-    func load() async {
-        dismissInviteCode()
+    func load(preservingInviteOperation revision: Int? = nil) async {
+        if revision == nil {
+            dismissInviteCode()
+        } else if revision != inviteOperationRevision {
+            return
+        }
         let revision = beginCommunityLoad()
         let tab = selectedTab
         guard let client else {

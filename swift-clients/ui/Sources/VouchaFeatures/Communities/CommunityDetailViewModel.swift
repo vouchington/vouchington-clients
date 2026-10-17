@@ -30,8 +30,11 @@ final class CommunityDetailViewModel {
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""
     private(set) var oneTimeInviteCode: String?
+    @ObservationIgnored
+    var inviteOperationRevision = 0
 
     func dismissInviteCode() {
+        inviteOperationRevision += 1
         oneTimeInviteCode = nil
     }
 
