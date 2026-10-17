@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Settings;
 
 namespace Voucha.Client.App.Pages;
@@ -8,11 +9,17 @@ namespace Voucha.Client.App.Pages;
 public sealed partial class SettingsPage : ContentPage
 {
   private readonly SettingsViewModel viewModel;
+  private readonly ISessionStore sessionStore;
 
-  public SettingsPage(SettingsViewModel viewModel)
+  public SettingsPage(
+      SettingsViewModel viewModel,
+      ISessionStore? sessionStore = null,
+      NativeOAuthAuthorizationCoordinator? oauthCoordinator = null)
   {
     InitializeComponent();
     this.viewModel = viewModel;
+    this.sessionStore = sessionStore!;
+    this.oauthCoordinator = oauthCoordinator!;
     BindingContext = viewModel;
   }
 
@@ -25,9 +32,6 @@ public sealed partial class SettingsPage : ContentPage
   private void OnConnectBlueskyClicked(object? sender, EventArgs args) { }
   private void OnCancelBlueskyClicked(object? sender, EventArgs args) { }
   private void OnDisconnectBlueskyClicked(object? sender, EventArgs args) { }
-  private void OnRetryOAuthCapabilitiesClicked(object? sender, EventArgs args) { }
-  private void OnOAuthAccountClicked(object? sender, EventArgs args) { }
-  private void OnCancelOAuthAccountClicked(object? sender, EventArgs args) { }
   private void OnSaveIdentityClicked(object? sender, EventArgs args) { }
   private void OnClearAvatarClicked(object? sender, EventArgs args) { }
   private void OnSaveProfileClicked(object? sender, EventArgs args) { }

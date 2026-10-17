@@ -126,8 +126,9 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertTrue(capabilities.brokerCapabilities.facebook.supportsNative(.connect))
         XCTAssertFalse(capabilities.brokerCapabilities.x.supportsNative(.authenticate))
         XCTAssertFalse(capabilities.brokerCapabilities.github.supportsNative(.connect))
-        XCTAssertTrue(capabilities.brokerCapabilities.linkedin.supportsNative(.authenticate))
-        XCTAssertTrue(capabilities.brokerCapabilities.linkedin.supportsNative(.connect))
+        let linkedin = try XCTUnwrap(capabilities.brokerCapabilities.linkedin)
+        XCTAssertTrue(linkedin.supportsNative(.authenticate))
+        XCTAssertTrue(linkedin.supportsNative(.connect))
 
         let priorBroker = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
@@ -140,7 +141,7 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
             """.utf8)
         )
         XCTAssertTrue(priorBroker.brokerCapabilities.github.supportsNative(.authenticate))
-        XCTAssertFalse(priorBroker.brokerCapabilities.linkedin.supportsNative(.authenticate))
+        XCTAssertFalse(priorBroker.brokerCapabilities.linkedin?.supportsNative(.authenticate) == true)
 
         let rollingCompatibility = try makeVouchaDecoder().decode(
             OAuthBrokerCapabilitiesResponse.self,
