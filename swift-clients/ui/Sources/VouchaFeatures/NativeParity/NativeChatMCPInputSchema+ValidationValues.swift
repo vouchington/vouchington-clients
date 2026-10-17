@@ -62,7 +62,9 @@ extension NativeChatMCPInputSchema {
             guard items.count <= 256 else { return false }
             for index in items.indices {
                 for prior in items.indices where prior < index {
-                    if same(items[index], items[prior]) { return false }
+                    if try output
+                        ? sameOutput(items[index], items[prior], remainingWork: &remainingWork)
+                        : same(items[index], items[prior]) { return false }
                 }
             }
         }
@@ -85,7 +87,7 @@ extension NativeChatMCPInputSchema {
         if let minimum = integer(fields["minLength"]), length < minimum { return false }
         if let maximum = integer(fields["maxLength"]), length > maximum { return false }
         if case let .string(pattern)? = fields["pattern"] {
-            let regex = try NSRegularExpression(pattern: pattern)
+            guard let regex = boundedPatternExpressions[pattern] else { throw Failure.unsupportedSchema }
             if regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) == nil { return false }
         }
         if case let .string(format)? = fields["format"] {

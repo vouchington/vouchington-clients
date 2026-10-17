@@ -2,7 +2,7 @@ import Foundation
 import VouchaModels
 
 extension NativeChatMCPInputSchema {
-    private struct OutputNumber {
+    struct OutputNumber {
         let negative: Bool
         let digits: [UInt8]
         let exponent: Int
@@ -29,7 +29,7 @@ extension NativeChatMCPInputSchema {
         return true
     }
 
-    private static func outputNumberText(_ value: DecodedJSONValue) -> String? {
+    static func outputNumberText(_ value: DecodedJSONValue) -> String? {
         switch value {
         case let .number(number): String(number)
         case let .integer(number): String(number)
@@ -39,7 +39,7 @@ extension NativeChatMCPInputSchema {
         }
     }
 
-    private static func canonicalOutputNumber(_ text: String) -> OutputNumber? {
+    static func canonicalOutputNumber(_ text: String) -> OutputNumber? {
         let negative = text.hasPrefix("-")
         let unsigned = negative ? String(text.dropFirst()) : text
         let parts = unsigned.lowercased().split(separator: "e", maxSplits: 1)
@@ -60,7 +60,7 @@ extension NativeChatMCPInputSchema {
         )
     }
 
-    private static func compareOutputNumbers(_ left: OutputNumber, _ right: OutputNumber) -> Int {
+    static func compareOutputNumbers(_ left: OutputNumber, _ right: OutputNumber) -> Int {
         if left.digits == [48] || right.digits == [48] {
             if left.digits == right.digits { return 0 }
             if left.digits == [48] { return right.negative ? 1 : -1 }

@@ -100,7 +100,9 @@ internal static partial class MemberMcpInputSchema
           break;
         case "minimum":
         case "maximum":
-          if (!Number(item, out _)) throw new InvalidDataException("Unsupported MCP numeric bound.");
+          if (output
+              ? item.ValueKind != JsonValueKind.Number || !CanonicalNumber(item.GetRawText(), out _, out _, out _)
+              : !Number(item, out _)) throw new InvalidDataException("Unsupported MCP numeric bound.");
           break;
         case "minLength":
         case "maxLength":

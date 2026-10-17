@@ -42,7 +42,7 @@ extension NativeChatMCPInputSchema {
             "title", "description", "default", "examples", "deprecated", "readOnly", "writeOnly"
         ]
         if simple.contains(key) {
-            try inspectSimple(key, item: item)
+            try inspectSimple(key, item: item, output: output)
         } else if key == "$ref" {
             try inspectReference(item, root: root)
         } else if ["items", "additionalProperties"].contains(key) {
@@ -69,8 +69,9 @@ extension NativeChatMCPInputSchema {
               defs[name] != nil else { throw Failure.unsupportedSchema }
     }
 
-    static func inspectSimple(_ key: String, item: DecodedJSONValue) throws {
-        if ["minimum", "maximum"].contains(key), decimalNumber(item) == nil {
+    static func inspectSimple(_ key: String, item: DecodedJSONValue, output: Bool = false) throws {
+        if ["minimum", "maximum"].contains(key),
+           output ? outputNumberText(item).flatMap(canonicalOutputNumber) == nil : decimalNumber(item) == nil {
             throw Failure.unsupportedSchema
         }
         if ["minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties"]
