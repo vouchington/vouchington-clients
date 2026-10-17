@@ -76,7 +76,7 @@ public partial class SettingsPage
     XOAuthIdentity.Text = identity?.XAccount?.Name ?? string.Empty;
     GithubOAuthIdentity.Text = identity?.GithubAccount?.Name ?? string.Empty;
     LinkedinOAuthIdentity.Text = identity?.LinkedinAccount?.Name ?? string.Empty;
-    MicrosoftOAuthIdentity.Text = identity?.MicrosoftAccount?.Name ?? string.Empty;
+    MicrosoftOAuthIdentity.Text = UiCopy.Resolve(UiText.Verbatim(identity?.MicrosoftAccount?.Name ?? string.Empty));
     RetryOAuthAccountCapabilitiesButton.IsVisible = oauthCoordinator.CanRetryCapabilityLoading;
     CancelOAuthAccountButton.IsVisible = oauthCoordinator.CanCancelPendingAuthorization;
     OAuthAccountsStatus.Text = oauthCoordinator.State switch
