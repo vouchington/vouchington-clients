@@ -94,7 +94,7 @@ jobs:
           # commenter or reviewer must hold write access or be one of the review apps installed on
           # this repository. API errors fail closed.
           UNTRUSTED_COMMENTER="$(jq -c '[.]' <<< "$COMMENT_USER" |
-            pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
+            pnpm dlx vouchington-tooling@0.46.0 gha-collaborator-trust "$GITHUB_REPOSITORY" |
             jq -r '.untrusted | join(", ")')"
           if [[ -n "$UNTRUSTED_COMMENTER" ]]; then
             echo "Ignoring /shepherd from $UNTRUSTED_COMMENTER, who lacks write access."
@@ -112,7 +112,7 @@ jobs:
               --jq '[.[] | {login: .user.login, type: .user.type}]'
             echo "$REVIEW_AUTHORS"
           } | jq -s 'add' > "$RUNNER_TEMP/pr-authors.json"
-          UNTRUSTED="$(pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+          UNTRUSTED="$(pnpm dlx vouchington-tooling@0.46.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
             --allow-bot 'github-actions[bot]' \
             --allow-bot 'dependabot[bot]' \
             --allow-bot 'chatgpt-codex-connector[bot]' \
@@ -135,7 +135,7 @@ jobs:
             echo "pr_head_sha=$PR_HEAD_SHA"
           } >> "$GITHUB_OUTPUT"
           printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
-          pnpm dlx vouchington-tooling@0.28.0 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
+          pnpm dlx vouchington-tooling@0.46.0 gha-output pr_title < "$RUNNER_TEMP/pr-title.txt"
           echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
 
       - name: Prepare durable shepherd checkpoint

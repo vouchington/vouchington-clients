@@ -125,7 +125,7 @@ jobs:
             exit 1
           fi
 
-          pnpm dlx vouchington-tooling@0.28.0 gha-output fix_request < "$REQUEST_FILE"
+          pnpm dlx vouchington-tooling@0.46.0 gha-output fix_request < "$REQUEST_FILE"
           echo "accepted=true" >> "$GITHUB_OUTPUT"
 
       # The agent reads the issue title and body, so both the commenter and the issue author
@@ -143,7 +143,7 @@ jobs:
           echo "accepted=false" >> "$GITHUB_OUTPUT"
           untrusted() {
             jq -c '[.]' <<< "$1" |
-              pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+              pnpm dlx vouchington-tooling@0.46.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
                 --allow-bot 'github-actions[bot]' |
               jq -r '.untrusted | join(", ")'
           }
@@ -248,7 +248,7 @@ jobs:
           # Only collaborators with write access (and this repository's own Actions bot) may shape
           # the prompt.
           jq '[.[] | {login: .author, type: .authorType}]' issue-comments.json > comment-authors.json
-          pnpm dlx vouchington-tooling@0.28.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
+          pnpm dlx vouchington-tooling@0.46.0 gha-collaborator-trust "$GITHUB_REPOSITORY" \
             --allow-bot 'github-actions[bot]' < comment-authors.json > comment-author-trust.json
           jq --slurpfile trust comment-author-trust.json \
             '[.[] | select(.author as $author | $trust[0].trusted | index($author))]' \

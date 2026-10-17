@@ -20,7 +20,7 @@ describe('event-driven CI orchestration', () => {
 
       assert.match(
         workflow,
-        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.28\\.0 gha-output ${outputName}\\b`, 'u'),
+        new RegExp(`\\bpnpm dlx vouchington-tooling@0\\.46\\.0 gha-output ${outputName}\\b`, 'u'),
       )
     }
   })
@@ -71,7 +71,7 @@ describe('event-driven CI orchestration', () => {
 
   it('keeps non-collaborator text out of agent input', async () => {
     const trust =
-      /pnpm dlx vouchington-tooling@0\.28\.0 gha-collaborator-trust "\$GITHUB_REPOSITORY"/gu
+      /pnpm dlx vouchington-tooling@0\.46\.0 gha-collaborator-trust "\$GITHUB_REPOSITORY"/gu
     for (const workflowName of ['plan.yml', 'fix-issue.yml']) {
       const workflow = await readWorkflow(workflowName)
       assert.match(workflow, /UNTRUSTED_ISSUE_AUTHOR="\$\(untrusted "\$ISSUE_USER"\)"/u)
