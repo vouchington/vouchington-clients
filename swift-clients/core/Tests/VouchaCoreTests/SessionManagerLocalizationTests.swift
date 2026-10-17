@@ -124,8 +124,39 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertNil(sessionManager.lastSignOutErrorMessage)
     }
 
+    func testPersistedClearRunsAfterJarClearEvenWhenLogoutFails() async throws {
+        let jar = IsolatedHTTPCookieStorage.make()
+        let recorder = CookiePersistenceRecorder(jar: jar)
+        let manager = makeSessionManager(cookieStorage: jar, clearPersistedCookies: { recorder.snapshot() })
+        try manager.synchronize(with: identity(uiLocale: "en"))
+        try jar.setCookie(XCTUnwrap(HTTPCookie(properties: [
+            .domain: "localhost", .path: "/", .name: "st", .value: "private-session"
+        ])))
+        MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 500)
+
+        await manager.signOut()
+
+        XCTAssertEqual(recorder.snapshots, [[:]])
+        XCTAssertFalse(manager.isSignedIn)
+    }
+
+    func testFailedPreSignOutCleanupDoesNotClearPersistedCookies() async throws {
+        let jar = IsolatedHTTPCookieStorage.make()
+        let recorder = CookiePersistenceRecorder(jar: jar)
+        let manager = makeSessionManager(cookieStorage: jar, clearPersistedCookies: { recorder.snapshot() })
+        try manager.synchronize(with: identity(uiLocale: "en"))
+        manager.setBeforeSignOut { _ in throw DeviceCleanupError.failed }
+
+        await manager.signOut()
+
+        XCTAssertTrue(recorder.snapshots.isEmpty)
+        XCTAssertTrue(manager.isSignedIn)
+        XCTAssertNotNil(manager.lastSignOutErrorMessage)
+    }
+
     private func makeSessionManager(
-        cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make()
+        cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make(),
+        clearPersistedCookies: (@Sendable () -> Void)? = nil
     ) -> SessionManager {
         let client = APIClient(
             config: AppConfig(
@@ -135,7 +166,11 @@ final class SessionManagerLocalizationTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [MockURLProtocol.self]
         )
-        return SessionManager(client: client, cookieStorage: cookieStorage)
+        return SessionManager(
+            client: client,
+            cookieStorage: cookieStorage,
+            clearPersistedCookies: clearPersistedCookies
+        )
     }
 
     private func identity(uiLocale: String) throws -> PrivateUser {

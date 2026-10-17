@@ -17,6 +17,7 @@ extension APIClient {
     }
 
     private func performSessionBootstrap() async throws {
+        defer { persistCookies?() }
         let endpoint = Endpoint(.PATCH, path: "/api/v1/session", body: [String: String]())
         let request = try buildRequest(endpoint)
         let (data, response) = try await session.data(for: request)
@@ -58,6 +59,7 @@ extension APIClient {
                 cookieStorage.setCookie(cookie)
             }
         }
+        persistCookies?()
     }
 
     static func makeSession(

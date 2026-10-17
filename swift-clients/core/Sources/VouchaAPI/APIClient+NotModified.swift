@@ -9,6 +9,7 @@ public extension APIClient {
         if endpoint.path != "/api/v1/session" {
             try await ensureSessionBootstrap()
         }
+        defer { persistCookies?() }
         let rawRequest = try buildRequest(endpoint)
         let request = await applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
         let (data, response): (Data, URLResponse)

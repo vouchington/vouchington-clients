@@ -71,10 +71,15 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
     var lineBuffer: ResponseLineBuffer
     var cleanupPerformed = false
     private let followRedirects: Bool
+    let persistCookies: (@Sendable () -> Void)?
     let maximumLineBytes: Int
 
-    init(followRedirects: Bool = true, maximumLineBytes: Int = ResponseLineBuffer.maximumLineBytes) {
+    init(
+        followRedirects: Bool = true, maximumLineBytes: Int = ResponseLineBuffer.maximumLineBytes,
+        persistCookies: (@Sendable () -> Void)? = nil
+    ) {
         self.followRedirects = followRedirects
+        self.persistCookies = persistCookies
         self.maximumLineBytes = maximumLineBytes
         lineBuffer = ResponseLineBuffer(maximumLineBytes: maximumLineBytes)
         delegateQueue = OperationQueue()
@@ -131,6 +136,7 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
         self.responseContinuation = nil
         lock.unlock()
 
+        persistCookies?()
         responseContinuation?.resume(returning: response)
         completionHandler(.allow)
     }
@@ -175,6 +181,7 @@ final class ResponseLinesTransport: NSObject, URLSessionDataDelegate, @unchecked
         self.bodyContinuation = nil
         lock.unlock()
 
+        persistCookies?()
         finish(
             mode: mode,
             response: response,
