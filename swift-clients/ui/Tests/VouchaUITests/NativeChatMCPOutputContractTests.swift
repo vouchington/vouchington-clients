@@ -8,6 +8,43 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCase {
+    func testOutputNumericBoundsDoNotDisappearOutsideDecimalRange() throws {
+        let cases: [(String, String, String, Bool)] = [
+            ("1e300", "maximum", "0", false), ("1e300", "minimum", "0", true),
+            ("-1e300", "minimum", "0", false), ("-1e300", "maximum", "0", true),
+            ("1e-300", "maximum", "0", false), ("1e-300", "minimum", "0", true),
+            ("-1e-300", "minimum", "0", false), ("-1e-300", "maximum", "0", true),
+            ("12.34", "maximum", "12.35", true), ("12.34", "minimum", "12.35", false),
+            ("-12.34", "minimum", "-12.35", true), ("0", "maximum", "-1", false)
+        ]
+        for (raw, keyword, bound, expected) in cases {
+            let value = try JSONDecoder().decode(DecodedJSONValue.self, from: Data(raw.utf8))
+            let schema = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: Data("{\"type\":\"number\",\"\(keyword)\":\(bound)}".utf8)
+            )
+            try NativeChatMCPInputSchema.validateSchema(schema, output: true)
+            XCTAssertEqual(
+                try NativeChatMCPInputSchema.acceptsOutput(value, schema: schema, root: schema), expected,
+                "\(raw) against \(keyword): \(bound)"
+            )
+        }
+    }
+
+    func testNestedOutputNumericBoundsApplyThroughReferencesAndCompositions() throws {
+        let schema = try JSONDecoder().decode(DecodedJSONValue.self, from: Data(#"""
+        {"type":"object","properties":{"samples":{"type":"array","items":{"anyOf":[
+            {"$ref":"#/$defs/limited"},{"type":"null"}]}}},"required":["samples"],
+         "$defs":{"limited":{"type":"number","maximum":0}}}
+        """#.utf8))
+        try NativeChatMCPInputSchema.validateSchema(schema, output: true)
+        for (raw, expected) in [("1e300", false), ("-1e300", true)] {
+            let value = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: Data("{\"samples\":[\(raw),null]}".utf8)
+            )
+            XCTAssertEqual(try NativeChatMCPInputSchema.acceptsOutput(value, schema: schema, root: schema), expected)
+        }
+    }
+
     func testCurrentProducerOutputSchemasAndRealResultFixturesValidate() async throws {
         let tools = try publishedTools()
         let catalog = try value(["tools": tools])
