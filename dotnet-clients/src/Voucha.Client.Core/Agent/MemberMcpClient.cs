@@ -9,6 +9,7 @@ namespace Voucha.Client.Core.Agent;
 public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
 {
   private readonly HttpClient client;
+  private readonly McpRetryCooldown retryCooldown;
   private readonly Uri endpoint;
   private readonly TimeSpan responseTimeout;
   private long nextRequestId;
@@ -22,7 +23,8 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
 
   [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "HttpClient owns and disposes the handler.")]
   public MemberMcpClient(
-      Uri siteOrigin, HttpMessageHandler? handler = null, TimeSpan? responseTimeout = null)
+      Uri siteOrigin, HttpMessageHandler? handler = null, TimeSpan? responseTimeout = null,
+      TimeProvider? timeProvider = null)
   {
     ArgumentNullException.ThrowIfNull(siteOrigin);
     if (siteOrigin.Scheme != Uri.UriSchemeHttps || siteOrigin.AbsolutePath != "/" ||
@@ -31,6 +33,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
       throw new ArgumentException("A HTTPS site origin is required.", nameof(siteOrigin));
 
     endpoint = new Uri(siteOrigin, "/api/v1/mcp");
+    retryCooldown = new McpRetryCooldown(timeProvider ?? TimeProvider.System);
     this.responseTimeout = responseTimeout ?? TimeSpan.FromMinutes(2);
     if (this.responseTimeout <= TimeSpan.Zero)
       throw new ArgumentOutOfRangeException(nameof(responseTimeout));
@@ -72,7 +75,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
           TimeSpan? retryAfter = error.TryGetProperty("retryAfterSeconds", out var seconds) &&
               seconds.ValueKind == JsonValueKind.Number && seconds.TryGetInt32(out var count) && count > 0
               ? TimeSpan.FromSeconds(count) : null;
-          throw new McpRateLimitException(retryAfter);
+          throw retryCooldown.Limited(retryAfter);
         }
         catch (JsonException)
         {
@@ -89,6 +92,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
       string accessToken,
       CancellationToken cancellationToken)
   {
+    cancellationToken.ThrowIfCancellationRequested();
     await EnsureInitializedAsync(accessToken, cancellationToken).ConfigureAwait(false);
     try
     {
@@ -104,6 +108,8 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
   private async Task<JsonElement> SendRpcAsync(
       string method, object parameters, string accessToken, CancellationToken cancellationToken)
   {
+    cancellationToken.ThrowIfCancellationRequested();
+    retryCooldown.Check();
     var id = Interlocked.Increment(ref nextRequestId).ToString(System.Globalization.CultureInfo.InvariantCulture);
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
@@ -146,11 +152,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
       throw new McpSessionExpiredException();
     }
     if (response.StatusCode == HttpStatusCode.TooManyRequests)
-    {
-      var retry = response.Headers.RetryAfter;
-      var delay = retry?.Delta ?? (retry?.Date - DateTimeOffset.UtcNow);
-      throw new McpRateLimitException(delay > TimeSpan.Zero ? delay : null);
-    }
+      throw retryCooldown.FromResponse(response);
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 

@@ -5,6 +5,8 @@ import Foundation
 
 extension MemberMCPClient {
     func sendServerReply(_ data: Data, token: String, session: String?, version: String?) async throws {
+        try Task.checkCancellation()
+        try retryCooldown.check()
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -28,6 +30,7 @@ extension MemberMCPClient {
             }
             throw Failure.sessionExpired
         }
+        if http.statusCode == 429 { throw rateLimitFailure(http) }
         guard http.statusCode == 202 else { throw Failure.httpStatus(http.statusCode) }
     }
 }
