@@ -96,10 +96,25 @@ public sealed class ModerationDisputesPageTests
     card.Children.OfType<Editor>().First().Text = "Updated response";
 
     Find<Button>(card, "review-dispute-approve").SendClicked();
-    await service.UpdateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
-    page.CancelLifecycleOperations();
+    await WaitForBarrierAsync(service.UpdateStarted.Task, "the card mutation to start its public-response update");
+    typeof(ModerationDisputesPage).GetMethod(
+        "OnDisappearing",
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .Invoke(page, null);
 
-    await service.CancellationObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+    await WaitForBarrierAsync(service.CancellationObserved.Task, "page disappearance to cancel the public-response update");
+
+    static async Task WaitForBarrierAsync(Task barrier, string expectation)
+    {
+      try
+      {
+        await barrier.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+      }
+      catch (TimeoutException exception)
+      {
+        throw new TimeoutException($"Timed out waiting for {expectation}.", exception);
+      }
+    }
   }
 
   [Fact]
@@ -293,10 +308,16 @@ public sealed class ModerationDisputesPageTests
     private async Task<ModerationDisputeResponse> BlockUpdateAsync(
         CancellationToken cancellationToken)
     {
-      using var registration = cancellationToken.Register(
-          CancellationObserved.SetResult);
       UpdateStarted.SetResult();
-      await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      try
+      {
+        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      }
+      catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+      {
+        CancellationObserved.SetResult();
+        throw;
+      }
       return new ModerationDisputeResponse(Current);
     }
   }
