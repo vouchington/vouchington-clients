@@ -176,7 +176,7 @@ public sealed partial class CommunityDetailViewModel
                   row.Id,
                   row.RecipientText,
                   UiText.Verbatim(row.Status),
-                  UiText.Verbatim(row.Code)))
+                  null))
               .ToArray();
           break;
         case CommunityDetailSurfaceSection.Settings:

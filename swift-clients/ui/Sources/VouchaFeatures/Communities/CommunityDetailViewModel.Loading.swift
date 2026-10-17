@@ -4,6 +4,7 @@ import VouchaModels
 
 extension CommunityDetailViewModel {
     func load() async {
+        dismissInviteCode()
         let revision = beginCommunityLoad()
         let tab = selectedTab
         guard let client else {

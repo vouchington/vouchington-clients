@@ -9,6 +9,10 @@ namespace Voucha.Client.Core.Tests.Communities;
 
 public sealed class CommunityActionViewModelTests
 {
+  private const string CreatedInviteResponse = """
+      {"community_invite":{"id":"invite-1","community_id":"community-1","code":"fresh-code","invited_user_id":null,"invited_email":"person@example.com","invited_by_id":"moderator-1","accepted_at":null,"accepted_by_id":null,"declined_at":null,"revoked_at":null,"created_at":"2026-07-01T00:00:00Z"}}
+      """;
+
   [Fact]
   public async Task SubmitAsyncCreatesCommunityWithBlankSlugWhenUnset()
   {
@@ -111,20 +115,28 @@ public sealed class CommunityActionViewModelTests
   }
 
   [Fact]
-  public async Task SubmitAsyncSendsInviteEmailAndUsername()
+  public async Task SubmitAsyncShowsCreationCodeUntilDismissedOrNextSubmit()
   {
-    var (viewModel, handler) = CreateViewModel(CommunityActionKind.Invite, new RecordedResponse("{}"));
+    var (viewModel, handler) = CreateViewModel(CommunityActionKind.Invite,
+        new RecordedResponse(CreatedInviteResponse),
+        new RecordedResponse(CreatedInviteResponse),
+        new RecordedResponse("{}", HttpStatusCode.BadRequest));
 
     viewModel.CommunitySlug = "test-community";
     viewModel.Email = "person@example.com";
-    viewModel.Username = "tester";
 
     Assert.True(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
 
     Assert.Equal(HttpMethod.Post, handler.Requests[0].Method);
     Assert.Equal("/api/v1/communities/test-community/invites", handler.Requests[0].PathAndQuery);
     Assert.Contains("\"email\":\"person@example.com\"", handler.Requests[0].Body!, StringComparison.Ordinal);
-    Assert.Contains("\"username\":\"tester\"", handler.Requests[0].Body!, StringComparison.Ordinal);
+    Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    viewModel.DismissInviteCode();
+    Assert.Null(viewModel.CreatedInviteCode);
+    Assert.True(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.Null(viewModel.CreatedInviteCode);
   }
 
   [Fact]

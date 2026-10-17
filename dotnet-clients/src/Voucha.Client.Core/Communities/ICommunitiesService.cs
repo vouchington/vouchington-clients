@@ -106,11 +106,11 @@ public partial interface ICommunitiesService
 
   Task ReviewApplicationAsync(string idOrSlug, string applicationId, UpdateCommunityPostReviewRequest request, CancellationToken cancellationToken = default);
 
-  Task SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default);
+  Task<CreatedCommunityInviteResponse> SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default);
 
   Task RevokeInviteAsync(string idOrSlug, string inviteId, CancellationToken cancellationToken = default);
 
-  Task RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default);
+  Task<CommunityInviteRedemptionResponse> RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default);
 
   Task ReviewPostAsync(string idOrSlug, string postId, UpdateCommunityPostReviewRequest request, CancellationToken cancellationToken = default);
 

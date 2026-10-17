@@ -136,6 +136,14 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testDetailActionsCallCommunityEndpoints() async throws {
         registerDetailFixtures()
+        let invitePath = "/api/v1/communities/builders/invites"
+        CannedFeedURLProtocol.queuedHandlers[invitePath] = [
+            (inviteResponse(code: "fresh-code"), 200, 0),
+            (inviteListResponse(), 200, 0),
+            (inviteListResponse(), 200, 0),
+            (inviteResponse(code: "fresh-code"), 200, 0),
+            (inviteListResponse(), 200, 0)
+        ]
         let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders")
 
         await viewModel.load()
@@ -149,10 +157,20 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.selectedTab = .invites
         viewModel.inviteRecipient = "alice"
         await viewModel.invite()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "fresh-code")
+        await viewModel.load()
+        XCTAssertNil(viewModel.oneTimeInviteCode)
+        viewModel.inviteRecipient = "bob"
+        await viewModel.invite()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "fresh-code")
+        viewModel.selectedTab = .posts
+        XCTAssertNil(viewModel.oneTimeInviteCode)
+        viewModel.dismissInviteCode()
+        XCTAssertNil(viewModel.oneTimeInviteCode)
 
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count,
-            3
+            4
         )
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/communities/builders/members" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
@@ -285,7 +303,7 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testInviteRedemptionCallsInviteRedemptionEndpoint() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/communities/invite-redemptions"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/communities/invite-redemptions"] = (inviteResponse(), 200)
         let viewModel = try CommunityInviteRedemptionViewModel(client: makeClient(), code: "code-123")
 
         await viewModel.redeem()
@@ -408,7 +426,38 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
             Data(#"{"questions":[]}"#.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (inviteListResponse(), 200)
+    }
+
+    private func inviteListResponse() -> Data {
+        Data("""
+        {
+          "results": [],
+          "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null },
+          "community_invites": {}
+        }
+        """.utf8)
+    }
+
+    private func inviteResponse(code: String? = nil) -> Data {
+        let codeField = code.map { #""code": "\#($0)","# } ?? ""
+        return Data("""
+        {
+          "community_invite": {
+            "id": "invite-1",
+            "community_id": "community-1",
+            \(codeField)
+            "invited_user_id": "user-1",
+            "invited_email": null,
+            "invited_by_id": "moderator-1",
+            "accepted_at": null,
+            "accepted_by_id": null,
+            "declined_at": null,
+            "revoked_at": null,
+            "created_at": "2026-07-01T00:00:00Z"
+          }
+        }
+        """.utf8)
     }
 
     private func makeApplicationsResponse() -> Data {

@@ -18,7 +18,6 @@ public sealed record CommunityApplicationRow(string Id, string UserId, string St
 
 public sealed record CommunityInviteRow(
     string Id,
-    string Code,
     UiText RecipientText,
     string Status,
     IUiLocalization Localization)
@@ -37,7 +36,6 @@ public sealed record CommunityInviteRow(
         invite.DeclinedAt is not null ? "declined" : "pending";
     return new(
         invite.Id,
-        invite.Code,
         recipient is null
             ? UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesAnyoneWithCode)
             : UiText.Verbatim(recipient),

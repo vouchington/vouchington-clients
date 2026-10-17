@@ -132,14 +132,14 @@ public sealed partial class ApiCommunitiesService : ICommunitiesService
   public Task ReviewApplicationAsync(string idOrSlug, string applicationId, UpdateCommunityPostReviewRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.ReviewCommunityApplication(idOrSlug, applicationId, request), cancellationToken);
 
-  public Task SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default) =>
-      client.SendAsync(VouchaApiEndpoints.SendCommunityInvite(idOrSlug, request), cancellationToken);
+  public Task<CreatedCommunityInviteResponse> SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default) =>
+      client.SendCommunityInviteAsync(idOrSlug, request, cancellationToken);
 
   public Task RevokeInviteAsync(string idOrSlug, string inviteId, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.RevokeCommunityInvite(idOrSlug, inviteId), cancellationToken);
 
-  public Task RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default) =>
-      client.SendAsync(VouchaApiEndpoints.RedeemCommunityInvite(request), cancellationToken);
+  public Task<CommunityInviteRedemptionResponse> RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default) =>
+      client.RedeemCommunityInviteAsync(request, cancellationToken);
 
   public Task ReviewPostAsync(string idOrSlug, string postId, UpdateCommunityPostReviewRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.ReviewCommunityPost(idOrSlug, postId, request), cancellationToken);

@@ -476,6 +476,7 @@
 "native.swift.communities.communityWorkspace" = "Espace de travail de la communauté";
 "native.swift.communities.conversationId" = "ID de la conversation";
 "native.swift.communities.createCommunity" = "Créer une Communauté";
+"native.swift.communities.dismissInviteCode" = "Ignorer";
 "native.swift.communities.domainsAndUrls" = "Domaines et URL";
 "native.swift.communities.emailOrUsername" = "E-mail ou nom d’utilisateur";
 "native.swift.communities.endsAt" = "Se termine le";
@@ -498,6 +499,7 @@
 "native.swift.communities.name" = "Nom";
 "native.swift.communities.newsItem" = "Article d’actualité";
 "native.swift.communities.note" = "Annotation";
+"native.swift.communities.oneTimeInviteCodeNotice" = "Copiez ou partagez ce code maintenant. Vous ne pourrez plus le consulter.";
 "native.swift.communities.orderPosition" = "Ordre {position}";
 "native.swift.communities.pauseCommunityDigestsWhileOnVacation" = "Suspendre les récapitulatifs de la communauté pendant les vacances";
 "native.swift.communities.pendingPosts" = "Publications en attente";

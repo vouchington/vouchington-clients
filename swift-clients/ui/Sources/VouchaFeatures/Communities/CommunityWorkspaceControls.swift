@@ -92,14 +92,23 @@ struct CommunityTabControls: View {
                 }
             }
         } else if viewModel.selectedTab == .invites {
-            HStack {
-                TextField(
-                    UiMessages.string(.nativeSwiftCommunitiesEmailOrUsername, locale: nativeUiLocale),
-                    text: $viewModel.inviteRecipient
-                )
-                .textFieldStyle(.roundedBorder)
-                Button(UiMessages.string(.nativeSwiftCommunitiesInvite, locale: nativeUiLocale)) {
-                    Task { await viewModel.invite() }
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack {
+                    TextField(
+                        UiMessages.string(.nativeSwiftCommunitiesEmailOrUsername, locale: nativeUiLocale),
+                        text: $viewModel.inviteRecipient
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    Button(UiMessages.string(.nativeSwiftCommunitiesInvite, locale: nativeUiLocale)) {
+                        Task { await viewModel.invite() }
+                    }
+                }
+                if let code = viewModel.oneTimeInviteCode {
+                    Text(UiMessages.string(.nativeSwiftCommunitiesOneTimeInviteCodeNotice, locale: nativeUiLocale))
+                    Text(verbatim: code).textSelection(.enabled)
+                    Button(UiMessages.string(.nativeSwiftCommunitiesDismissInviteCode, locale: nativeUiLocale)) {
+                        viewModel.dismissInviteCode()
+                    }
                 }
             }
         }

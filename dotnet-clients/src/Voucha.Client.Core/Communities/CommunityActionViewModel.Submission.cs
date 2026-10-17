@@ -7,6 +7,7 @@ public sealed partial class CommunityActionViewModel
 {
   public async Task<bool> SubmitAsync(CancellationToken cancellationToken = default)
   {
+    DismissInviteCode();
     if (Validation is { IsValid: false } validation)
     {
       ErrorMessage = validation.ErrorMessage;
@@ -53,10 +54,11 @@ public sealed partial class CommunityActionViewModel
             cancellationToken).ConfigureAwait(true);
         break;
       case CommunityActionKind.Invite:
-        await service.SendInviteAsync(
+        var created = await service.SendInviteAsync(
             CommunitySlug,
             new SendCommunityInviteRequest(Email, Username),
             cancellationToken).ConfigureAwait(true);
+        CreatedInviteCode = created.CommunityInvite.Code;
         break;
       case CommunityActionKind.RedeemInvite:
         await service.RedeemInviteAsync(

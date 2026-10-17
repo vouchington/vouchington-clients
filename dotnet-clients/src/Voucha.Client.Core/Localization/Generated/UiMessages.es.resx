@@ -577,6 +577,7 @@
   <data name="native.dotnet.csharpCommunities.disable" xml:space="preserve"><value>Desactivar</value></data>
   <data name="native.dotnet.csharpCommunities.disabled" xml:space="preserve"><value>Desactivado</value></data>
   <data name="native.dotnet.csharpCommunities.dismissEvasion" xml:space="preserve"><value>Descartar evasión</value></data>
+  <data name="native.dotnet.csharpCommunities.dismissInviteCode" xml:space="preserve"><value>Descartar</value></data>
   <data name="native.dotnet.csharpCommunities.email" xml:space="preserve"><value>Correo</value></data>
   <data name="native.dotnet.csharpCommunities.enable" xml:space="preserve"><value>Activar</value></data>
   <data name="native.dotnet.csharpCommunities.enabled" xml:space="preserve"><value>Activado</value></data>
@@ -606,6 +607,7 @@
   <data name="native.dotnet.csharpCommunities.name" xml:space="preserve"><value>Nombre</value></data>
   <data name="native.dotnet.csharpCommunities.newsItem" xml:space="preserve"><value>Noticia</value></data>
   <data name="native.dotnet.csharpCommunities.noStateChange" xml:space="preserve"><value>Sin cambio de estado</value></data>
+  <data name="native.dotnet.csharpCommunities.oneTimeInviteCodeNotice" xml:space="preserve"><value>Copia o comparte este código ahora. No podrás volver a verlo.</value></data>
   <data name="native.dotnet.csharpCommunities.open" xml:space="preserve"><value>Abrir</value></data>
   <data name="native.dotnet.csharpCommunities.order" xml:space="preserve"><value>Orden {value}</value></data>
   <data name="native.dotnet.csharpCommunities.pauseDigests" xml:space="preserve"><value>Pausar los resúmenes de la comunidad durante las vacaciones</value></data>

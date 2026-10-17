@@ -149,6 +149,14 @@ public struct CommunityInvitesResponse: Codable, Sendable {
     public let communityInvites: [String: CommunityInvite]
 }
 
+public struct CreatedCommunityInviteResponse: Codable, Sendable {
+    public let communityInvite: CreatedCommunityInvite
+}
+
+public struct CommunityInviteRedemptionResponse: Codable, Sendable {
+    public let communityInvite: CommunityInvite
+}
+
 public struct CommunityBansResult: Codable, Identifiable, Sendable {
     public let id: String
 }

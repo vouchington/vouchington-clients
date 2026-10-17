@@ -27,6 +27,21 @@ public sealed partial class VouchaApiClient
           VouchaApiEndpoints.CommunityInvites(idOrSlug, after, limit),
           cancellationToken);
 
+  public Task<CreatedCommunityInviteResponse> SendCommunityInviteAsync(
+      string idOrSlug,
+      SendCommunityInviteRequest request,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<CreatedCommunityInviteResponse>(
+          VouchaApiEndpoints.SendCommunityInvite(idOrSlug, Require(request)),
+          cancellationToken);
+
+  public Task<CommunityInviteRedemptionResponse> RedeemCommunityInviteAsync(
+      RedeemCommunityInviteRequest request,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<CommunityInviteRedemptionResponse>(
+          VouchaApiEndpoints.RedeemCommunityInvite(Require(request)),
+          cancellationToken);
+
   public Task<CommunityBansResponse> FetchCommunityBansAsync(
       string idOrSlug,
       string? after = null,

@@ -409,16 +409,24 @@ internal sealed partial class ScriptedCommunitiesService : ICommunitiesService
     return ApplyFailure is not null ? Task.FromException(ApplyFailure) : Task.CompletedTask;
   }
 
-  public Task SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default)
+  public Task<CreatedCommunityInviteResponse> SendInviteAsync(string idOrSlug, SendCommunityInviteRequest request, CancellationToken cancellationToken = default)
   {
     MutationCalls.Add(("invite", idOrSlug));
-    return SendInviteFailure is not null ? Task.FromException(SendInviteFailure) : Task.CompletedTask;
+    return SendInviteFailure is not null
+        ? Task.FromException<CreatedCommunityInviteResponse>(SendInviteFailure)
+        : Task.FromResult(new CreatedCommunityInviteResponse(new CreatedCommunityInvite(
+            "invite-1", "community-1", "one-time-code", null, request.Email, "moderator-1",
+            null, null, null, null, DateTimeOffset.UnixEpoch)));
   }
 
-  public Task RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default)
+  public Task<CommunityInviteRedemptionResponse> RedeemInviteAsync(RedeemCommunityInviteRequest request, CancellationToken cancellationToken = default)
   {
     MutationCalls.Add(("redeem", request.Code));
-    return RedeemInviteFailure is not null ? Task.FromException(RedeemInviteFailure) : Task.CompletedTask;
+    return RedeemInviteFailure is not null
+        ? Task.FromException<CommunityInviteRedemptionResponse>(RedeemInviteFailure)
+        : Task.FromResult(new CommunityInviteRedemptionResponse(new CommunityInvite(
+            "invite-1", "community-1", "user-1", null, "moderator-1",
+            DateTimeOffset.UnixEpoch, "user-1", null, null, DateTimeOffset.UnixEpoch)));
   }
 }
 
