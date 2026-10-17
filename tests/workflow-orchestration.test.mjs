@@ -153,7 +153,7 @@ describe('event-driven CI orchestration', () => {
       /group: native-contract-tests-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
     )
     assert.match(workflow, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/u)
-    assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: always\(\)/u)
+    assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: \$\{\{ !cancelled\(\) \}\}/u)
     assert.match(
       workflow,
       /all\(to_entries\[\] \| select\(\.key != "dotnet-windows-image-preview" and \.key != "dotnet-windows-maui"\); \.value\.result == "success"\)/u,

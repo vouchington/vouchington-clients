@@ -355,7 +355,7 @@ jobs:
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
       - name: Test .NET DTO fixture parity separately
         id: dotnet-dto-fixture-parity
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -538,7 +538,7 @@ jobs:
           if-no-files-found: error
       - name: Test Swift DTO fixture parity separately
         id: swift-dto-fixture-parity
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -658,7 +658,7 @@ jobs:
   test-swift-android:
     name: Swift Android Skip
     needs: [verify, build-swift-android]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions: {}
@@ -1232,7 +1232,7 @@ jobs:
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
-    if: always()
+    if: ${{ !cancelled() }}
     needs:
       - dotnet-portable
       - test-swift-core
@@ -1253,7 +1253,7 @@ jobs:
 
   tests:
     name: Tests
-    if: always()
+    if: ${{ !cancelled() }}
     needs:
       - produce
       - verify
