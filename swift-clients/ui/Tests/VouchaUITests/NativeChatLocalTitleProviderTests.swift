@@ -21,9 +21,10 @@ final class NativeChatLocalTitleProviderTests: XCTestCase {
             responsesClient: OpenAICompatibleResponsesClient(protocolClasses: [LocalLLMTestURLProtocol.self])
         )
         let response = try await provider.generateAssistantResponse(
-            to: "Hello", history: [], mcpSession: session, mcpSnapshot: capturedSnapshot
+            to: "Hello", history: [], mcpSession: session, mcpSnapshot: capturedSnapshot, mcpTurn: nil
         )
-        XCTAssertEqual(response?.content, "Local answer")
+        guard case let .answer(answer)? = response else { return XCTFail("Expected ordinary HTTP answer") }
+        XCTAssertEqual(answer.content, "Local answer")
         let body = try XCTUnwrap(LocalLLMTestURLProtocol.capturedBody)
         let request = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertNil(request["tools"])

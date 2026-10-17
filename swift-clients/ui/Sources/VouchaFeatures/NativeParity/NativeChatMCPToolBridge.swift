@@ -58,6 +58,11 @@ struct NativeChatMCPToolBridge {
         }
     }
 
+    struct ValidatedResult {
+        let envelope: String
+        let isError: Bool
+    }
+
     func execute(
         name: String, rawArguments: String,
         session: NativeChatMCPAgentSession,
@@ -65,6 +70,20 @@ struct NativeChatMCPToolBridge {
         beforeAdmission: (@MainActor () throws -> Void)? = nil,
         onStarted: (@MainActor () -> Void)? = nil
     ) async throws -> String {
+        try await executeResult(
+            name: name, rawArguments: rawArguments, session: session,
+            accountId: accountId, revision: revision,
+            beforeAdmission: beforeAdmission, onStarted: onStarted
+        ).envelope
+    }
+
+    func executeResult(
+        name: String, rawArguments: String,
+        session: NativeChatMCPAgentSession,
+        accountId: String, revision: Int,
+        beforeAdmission: (@MainActor () throws -> Void)? = nil,
+        onStarted: (@MainActor () -> Void)? = nil
+    ) async throws -> ValidatedResult {
         let object = try validatedArguments(name: name, rawArguments: rawArguments)
         let result = try await session.callTool(
             name: name, arguments: object, accountId: accountId, revision: revision,
@@ -83,7 +102,7 @@ struct NativeChatMCPToolBridge {
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
-        return text
+        return ValidatedResult(envelope: text, isError: result.isError == true)
     }
 
     func validate(name: String, rawArguments: String) throws {

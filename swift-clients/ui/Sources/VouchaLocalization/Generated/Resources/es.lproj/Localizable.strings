@@ -2291,7 +2291,12 @@
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
 "shared.accountType.system" = "Sistema";
+"shared.chat.mcpModelContextStopped" = "El modelo del dispositivo no tiene suficiente espacio para continuar con el resultado completo de la herramienta.";
+"shared.chat.mcpModelProcessingStopped" = "El procesamiento del modelo se detuvo después de recibir el resultado de la herramienta.";
 "shared.chat.mcpPossibleSideEffect" = "Es posible que una herramienta conectada haya completado esta solicitud. Comprueba el resultado antes de volver a enviarla.";
+"shared.chat.mcpResultNotSaved" = "Este resultado de la herramienta es temporal y no se guarda en el historial de la conversación.";
+"shared.chat.mcpResultReceived" = "Resultado de la herramienta recibido.";
+"shared.chat.mcpToolErrorReceived" = "La herramienta devolvió un error.";
 "shared.countLabel.format.__select.action.one" = "{count} acción";
 "shared.countLabel.format.__select.action.other" = "{count} acciones";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";

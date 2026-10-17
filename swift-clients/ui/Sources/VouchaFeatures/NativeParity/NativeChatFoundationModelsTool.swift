@@ -4,21 +4,34 @@ import VouchaCore
 #if canImport(FoundationModels)
     import FoundationModels
 
+    struct NativeChatFoundationModelsStop: Error {
+        let reason: NativeChatMCPContinuation
+    }
+
     @available(macOS 26.4, iOS 26.4, *)
     @MainActor
     final class NativeChatFoundationModelsToolState {
         private(set) var attempted = false
         private var callCount = 0
         private var admittedArgumentBytes = 0
-        private var deliveredResultCount = 0
-        private(set) var deliveredResultBytes = 0
-        static let maximumSessionResultBytes = 1_200
+        private(set) var receipts: [NativeChatMCPReceipt] = []
+        private(set) var stopped: NativeChatMCPContinuation?
+        let turn: NativeChatMCPTurnContext
         static let maximumSessionArgumentBytes = NativeChatFoundationModelsSchema.maximumSessionArgumentBytes
 
+        init(turn: NativeChatMCPTurnContext) {
+            self.turn = turn
+        }
+
+        var hasAmbiguousAttempt: Bool {
+            callCount > receipts.count
+        }
+
         func checkCapacity(argumentBytes: Int = 0) throws {
+            if let stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
             guard callCount < 4,
                   argumentBytes <= Self.maximumSessionArgumentBytes - admittedArgumentBytes else {
-                if attempted { throw LocalLLMToolLoopFailure.partialExecution }
+                if attempted { throw stop(.processingStopped) }
                 throw LocalLLMToolLoopFailure.toolNotAdmitted
             }
         }
@@ -29,22 +42,31 @@ import VouchaCore
             attempted = true
         }
 
-        func boundedResult(_ result: String) -> String {
-            let reserved = max(0, 3 - deliveredResultCount) * 80
-            let available = max(80, Self.maximumSessionResultBytes - deliveredResultBytes - reserved)
-            let bounded = NativeChatFoundationModelsTool.contextBoundResult(
-                result, maximumBytes: min(available, NativeChatFoundationModelsTool.maximumModelResultBytes)
+        func record(id: UUID, name: String, result: NativeChatMCPToolBridge.ValidatedResult) throws {
+            let receipt = NativeChatMCPReceipt(
+                id: id, owner: turn.owner, toolName: name, envelope: result.envelope,
+                kind: result.isError ? .toolError : .response
             )
-            deliveredResultCount += 1
-            deliveredResultBytes += bounded.utf8.count
-            return bounded
+            guard !Task.isCancelled, turn.publish(receipt) else { throw CancellationError() }
+            receipts.append(receipt)
+        }
+
+        func validateReturn(
+            session: NativeChatMCPAgentSession, snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
+        ) throws {
+            try Task.checkCancellation()
+            guard session.isCurrent(snapshot) else { throw CancellationError() }
+            if let stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
+        }
+
+        func stop(_ reason: NativeChatMCPContinuation) -> NativeChatFoundationModelsStop {
+            if stopped == nil { stopped = reason }
+            return NativeChatFoundationModelsStop(reason: stopped ?? reason)
         }
     }
 
     @available(macOS 26.4, iOS 26.4, *)
     struct NativeChatFoundationModelsTool: Tool {
-        static let maximumModelResultBytes = 800
-
         let name: String
         let description: String
         let parameters: GenerationSchema
@@ -52,67 +74,43 @@ import VouchaCore
         let session: NativeChatMCPAgentSession
         let snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
         let state: NativeChatFoundationModelsToolState
+        let admission: any NativeChatFoundationModelsAdmitting
 
         func call(arguments: GeneratedContent) async throws -> String {
             let raw = try Self.jsonArguments(arguments)
             try bridge.validate(name: name, rawArguments: raw)
             guard await session.isCurrent(snapshot) else { throw CancellationError() }
-            let result = try await bridge.execute(
+            try await state.checkCapacity(argumentBytes: raw.utf8.count)
+            let callId: String
+            do {
+                callId = try await admission.prepare(name: name, arguments: raw)
+            } catch NativeChatModelContextAdmission.Failure.contextUnavailable {
+                throw await state.stop(.contextStopped)
+            } catch {
+                throw await state.stop(.processingStopped)
+            }
+            let executionId = UUID()
+            let result = try await bridge.executeResult(
                 name: name, rawArguments: raw, session: session,
                 accountId: snapshot.accountId, revision: snapshot.revision,
                 beforeAdmission: { try state.checkCapacity(argumentBytes: raw.utf8.count) },
                 onStarted: { state.markStarted(argumentBytes: raw.utf8.count) }
             )
-            return await state.boundedResult(result)
-        }
-
-        /// This cannot throw after an admitted RPC: a large successful result must remain an answerable tool result.
-        static func contextBoundResult(_ result: String, maximumBytes: Int = maximumModelResultBytes) -> String {
-            guard result.utf8.count > maximumBytes else { return result }
-            let envelope = try? JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]
-            let isError = envelope?["isError"] as? Bool == true
-            let textContent = (envelope?["content"] as? [[String: Any]] ?? [])
-                .compactMap { item -> String? in
-                    guard item["type"] as? String == "text" else { return nil }
-                    return item["text"] as? String
-                }.joined(separator: "\n")
-            let structured = envelope?["structuredContent"]
-            let structuredText = (structured as? String) ?? structured.flatMap { value -> String? in
-                guard !(value is NSNull) else { return nil }
-                if let object = value as? [String: Any], object.isEmpty { return nil }
-                if let array = value as? [Any], array.isEmpty { return nil }
-                guard let data = try? JSONSerialization.data(withJSONObject: value, options: .fragmentsAllowed) else {
-                    return nil
+            guard await session.isCurrent(snapshot) else { throw CancellationError() }
+            try await state.record(id: executionId, name: name, result: result)
+            if let stopped = await state.stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
+            do {
+                guard try await admission.retain(callId: callId, name: name, envelope: result.envelope) else {
+                    throw await state.stop(.contextStopped)
                 }
-                return String(data: data, encoding: .utf8)
+            } catch let stop as NativeChatFoundationModelsStop {
+                throw stop
+            } catch {
+                throw await state.stop(.processingStopped)
             }
-            let nonTextContent = (envelope?["content"] as? [[String: Any]] ?? [])
-                .first { $0["type"] as? String != "text" }
-                .flatMap { item -> String? in
-                    if let type = item["type"] as? String {
-                        let mimeType = item["mimeType"] as? String
-                        return [type, mimeType].compactMap { $0 }.joined(separator: " ")
-                    }
-                    guard let data = try? JSONSerialization.data(withJSONObject: item) else { return nil }
-                    return String(data: data, encoding: .utf8)
-                }
-            let previewSource = !textContent.isEmpty ? textContent : (structuredText ?? nonTextContent ?? result)
-            for previewLimit in [280, 140, 70, 0] {
-                let preview = String(previewSource.prefix(previewLimit))
-                let bounded: [String: Any] = [
-                    "isError": isError,
-                    "truncated": true,
-                    "content": [["type": "text", "text": "<external-content>\(preview)</external-content>"]]
-                ]
-                if let data = try? JSONSerialization.data(withJSONObject: bounded),
-                   data.count <= maximumBytes,
-                   let text = String(data: data, encoding: .utf8) {
-                    return text
-                }
-            }
-            return isError
-                ? #"{"content":[],"isError":true,"truncated":true}"#
-                : #"{"content":[],"isError":false,"truncated":true}"#
+            try await state.validateReturn(session: session, snapshot: snapshot)
+            try Task.checkCancellation()
+            return result.envelope
         }
 
         static func jsonArguments(_ arguments: GeneratedContent) throws -> String {

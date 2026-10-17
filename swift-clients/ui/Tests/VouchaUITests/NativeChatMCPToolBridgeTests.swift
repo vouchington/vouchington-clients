@@ -32,11 +32,11 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
             let descriptor = try XCTUnwrap(bridge.tools.first)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let tool = try NativeChatFoundationModelsTool(
                 name: descriptor.name, description: descriptor.description,
                 parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
-                bridge: bridge, session: session, snapshot: snapshot, state: state
+                bridge: bridge, session: session, snapshot: snapshot, state: state, admission: ReceiptAdmission()
             )
             let generated = try GeneratedContent(json: #"{"weight":0.099999999999999999}"#)
             let normalized = try XCTUnwrap(
@@ -61,7 +61,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             try await session.connect()
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             await session.useAccount("member-b")
 
             do {
@@ -88,7 +88,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             try await session.connect()
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
 
             do {
                 _ = try await bridge.execute(
@@ -129,13 +129,13 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             await mcpSession.useAccount("member-a")
             try await mcpSession.connect()
             let snapshot = try XCTUnwrap(mcpSession.connectedSnapshot())
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let selected = NativeChatFoundationModelsToolSelection.select(bridge, matching: "Show my cards")
             let tools: [any Tool] = selected.map { item in
                 NativeChatFoundationModelsTool(
                     name: item.descriptor.name, description: item.descriptor.description,
                     parameters: item.schema,
-                    bridge: bridge, session: mcpSession, snapshot: snapshot, state: state
+                    bridge: bridge, session: mcpSession, snapshot: snapshot, state: state, admission: ReceiptAdmission()
                 )
             }
             XCTAssertEqual(bridge.tools.count, publishedTools.count)
