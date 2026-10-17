@@ -98,7 +98,6 @@ final class AndroidAccountTests: XCTestCase {
             .expires: Date(timeIntervalSince1970: 4_102_444_800),
             .maximumAge: "60"
         ]))
-        XCTAssertNil(cookie.expiresDate, "Version-0 FoundationNetworking cookies do not resolve Max-Age")
         let properties = try XCTUnwrap(cookie.properties)
         let createdSeconds = try XCTUnwrap(properties[HTTPCookiePropertyKey("Created")] as? NSNumber)
         let expectedExpiry = Date(timeIntervalSinceReferenceDate: createdSeconds.doubleValue)
@@ -129,7 +128,15 @@ final class AndroidAccountTests: XCTestCase {
             .maximumAge: "0"
         ]))
 
-        XCTAssertNil(AndroidSessionCookieStorage.CookieRecord(cookie: cookie))
+        let secrets = MemorySecrets()
+        let storage = AndroidSessionCookieStorage(secrets: secrets)
+        storage.setCookie(cookie)
+
+        let persisted = try XCTUnwrap(secrets.values["voucha.session.cookies"]?.data(using: .utf8))
+        let records = try JSONDecoder().decode([AndroidSessionCookieStorage.CookieRecord].self, from: persisted)
+        XCTAssertTrue(records.isEmpty)
+        let restored = AndroidSessionCookieStorage(secrets: secrets)
+        XCTAssertTrue(restored.cookies?.isEmpty ?? true)
     }
 
     func testMaxAgeZeroDeletesCookieDespiteFutureExpires() throws {

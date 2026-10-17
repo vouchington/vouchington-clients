@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAndroid
+import VouchaTestSupport
 
 final class AndroidAuthURLProtocol: URLProtocol {
     private static let lock = NSLock()
@@ -46,8 +47,10 @@ final class AndroidAuthURLProtocol: URLProtocol {
 
     override func startLoading() {
         let path = request.url?.path ?? ""
+        var recordedRequest = request
+        recordedRequest.httpBody = URLRequestHTTPBody.data(from: request)
         let (status, identity) = Self.lock.withLock { () -> (Int, Data) in
-            Self.requests.append(request)
+            Self.requests.append(recordedRequest)
             let status = switch path {
             case "/api/v1/auth/email-address/tokens": Self.otpStatusCode
             case "/api/v1/auth/logout": Self.logoutStatusCode
