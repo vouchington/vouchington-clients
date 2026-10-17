@@ -17,12 +17,6 @@ public actor MemberMCPClient {
         case closed
     }
 
-    public struct ToolResult: Decodable, Sendable {
-        public let content: [DecodedJSONValue]
-        public let structuredContent: DecodedJSONValue?
-        public let isError: Bool?
-    }
-
     let endpoint: URL
     let configuration: URLSessionConfiguration
     let responseTimeout: TimeInterval
@@ -65,7 +59,7 @@ public actor MemberMCPClient {
 
     public func callTool(
         name: String,
-        arguments: [String: DecodedJSONValue],
+        arguments: DecodedJSONObject,
         accessToken: String
     ) async throws -> ToolResult {
         let params: DecodedJSONValue = .object([
@@ -76,7 +70,7 @@ public actor MemberMCPClient {
         return result
     }
 
-    private func send<Result: Decodable & Sendable>(
+    private func send<Result: MCPResponseValue>(
         method: String,
         params: DecodedJSONValue,
         token: String
@@ -91,7 +85,7 @@ public actor MemberMCPClient {
         }
     }
 
-    func sendRPC<Result: Decodable & Sendable>(
+    func sendRPC<Result: MCPResponseValue>(
         method: String,
         params: DecodedJSONValue,
         token: String
@@ -114,7 +108,7 @@ public actor MemberMCPClient {
         let requestSession = sessionId
         let requestVersion = method == "initialize" ? "2025-06-18" : protocolVersion
         if let requestSession { request.setValue(requestSession, forHTTPHeaderField: "Mcp-Session-Id") }
-        request.httpBody = try JSONEncoder().encode(body)
+        request.httpBody = try body.exactJSONData()
         let transport = ResponseLinesTransport(followRedirects: false, maximumLineBytes: 1_100_000)
         let deadline = responseDeadline(for: transport)
         defer {

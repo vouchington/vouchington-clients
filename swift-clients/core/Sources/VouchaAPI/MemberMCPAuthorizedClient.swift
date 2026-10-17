@@ -26,7 +26,7 @@ public actor MemberMCPAuthorizedClient {
         }
     }
 
-    public func callTool(name: String, arguments: [String: DecodedJSONValue]) async throws -> MemberMCPClient
+    public func callTool(name: String, arguments: DecodedJSONObject) async throws -> MemberMCPClient
         .ToolResult {
         let access = try await tokens.accessToken()
         do {

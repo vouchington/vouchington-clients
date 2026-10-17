@@ -84,7 +84,7 @@ public struct StaffContentProvenance: Codable, Sendable, Hashable {
                 "verified": .bool(oauthClient.verified)
             ])
         }
-        return .object(facts)
+        return .object(DecodedJSONObject(facts))
     }
 }
 
