@@ -65,7 +65,10 @@ struct NativeEngineeringQueueDomainsSection: View {
     private func status(_ domain: EngineeringQueueDomain) -> UiMessage {
         guard domain.paused else { return UiMessage(.extractedQueuesDomainsSectionRunningF4ccae29) }
         if let reason = domain.reason {
-            return UiMessage(.extractedQueuesDomainsSectionPausedReason41440167, parameters: ["reason": reason])
+            return UiMessage(
+                .extractedQueuesDomainsSectionPausedReason41440167,
+                textParameters: ["reason": .verbatim(reason)]
+            )
         }
         return UiMessage(.extractedQueuesDomainsSectionPausedE159b061)
     }

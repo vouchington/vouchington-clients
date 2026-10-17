@@ -59,11 +59,20 @@ final class EngineeringQueueDomainsTests: NativeRouteSurfaceViewModelTestCase {
         let model = try NativeEngineeringQueuesViewModel(client: makeClient())
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+        var fixture = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("web.admin.mq.queues.domains.default")
+        ) as? [String: Any])
+        var domains = try XCTUnwrap(fixture["domains"] as? [[String: Any]])
+        let pausedIndex = try XCTUnwrap(domains.firstIndex { $0["paused"] as? Bool == true })
+        let literalReason = "native.common.retry <paused> {reason}"
+        domains[pausedIndex]["reason"] = literalReason
+        fixture["domains"] = domains
         model.domains = try decoder.decode(
             EngineeringQueueDomainsResponse.self,
-            from: ApiFixtureLoader.data("web.admin.mq.queues.domains.default")
+            from: JSONSerialization.data(withJSONObject: fixture)
         ).domains
         let inspection = try NativeEngineeringQueueDomainsSection(viewModel: model).inspect()
+        XCTAssertNoThrow(try inspection.find(text: "Paused: \(literalReason)"))
         XCTAssertNoThrow(try inspection.find(button: "Pause"))
         XCTAssertNoThrow(try inspection.find(button: "Resume"))
         XCTAssertNoThrow(try inspection.find(button: "Retry failed"))
