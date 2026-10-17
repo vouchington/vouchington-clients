@@ -39,8 +39,8 @@ importers:
         specifier: 0.56.5
         version: 0.56.5(supports-color@7.2.0)
       vouchington-tooling:
-        specifier: 0.45.0
-        version: 0.45.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)
+        specifier: 0.46.0
+        version: 0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)
 
 packages:
 
@@ -2065,8 +2065,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vouchington-tooling@0.45.0:
-    resolution: {integrity: sha512-KY7W1yKBfwFR8UgryoLSW7WB+eEvOX+q/fj2Hqp9qBDVbtrB88KrVec14qFGCChNYc2ZTpgykNNShCMY/mdYSw==}
+  vouchington-tooling@0.46.0:
+    resolution: {integrity: sha512-6kuThKw9xevFOAXYm8GuJaWrS5pMj40415BuccqMHUhuTOGx6Mf4FqYkdBPjbox8CMlMNjAvVNJdQ9gztAzmKg==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
@@ -4281,7 +4281,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@0.45.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0):
+  vouchington-tooling@0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
