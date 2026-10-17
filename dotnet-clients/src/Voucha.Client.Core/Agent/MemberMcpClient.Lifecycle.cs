@@ -73,8 +73,10 @@ public sealed partial class MemberMcpClient
     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     request.Headers.TryAddWithoutValidation("MCP-Protocol-Version", SupportedProtocolVersion);
     if (sessionId is { } session) request.Headers.TryAddWithoutValidation("Mcp-Session-Id", session);
+    retryCooldown.Check();
     using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
+    if (response.StatusCode == HttpStatusCode.TooManyRequests) throw retryCooldown.FromResponse(response);
     if (response.StatusCode != HttpStatusCode.Accepted)
       throw new HttpRequestException("MCP server rejected initialization notification.", null, response.StatusCode);
   }
