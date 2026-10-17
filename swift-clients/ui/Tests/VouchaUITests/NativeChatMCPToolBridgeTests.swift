@@ -377,6 +377,35 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             "format": .string("email")
         ])))
     }
+
+    func testOutOfBoundInputNumberIsRejectedBeforeMCPDispatch() async throws {
+        let service = BridgeMCPService()
+        service.catalog = .object(["tools": .array([.object([
+            "name": .string("set_limit"),
+            "inputSchema": .object([
+                "type": .string("object"),
+                "properties": .object(["value": .object([
+                    "type": .string("number"), "maximum": .integer(0)
+                ])]),
+                "required": .array([.string("value")])
+            ])
+        ])])])
+        let session = NativeChatMCPAgentSession(service: service)
+        await session.useAccount("member-a")
+        try await session.connect()
+        let snapshot = try XCTUnwrap(session.connectedSnapshot())
+        let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
+
+        do {
+            _ = try await bridge.execute(
+                name: "set_limit", rawArguments: #"{"value":1e300}"#,
+                session: session, accountId: snapshot.accountId, revision: snapshot.revision
+            )
+            XCTFail("An out-of-bound number must be rejected before calling the MCP service")
+        } catch NativeChatMCPToolBridge.Failure.invalidArguments {
+            XCTAssertEqual(service.calls, 0)
+        }
+    }
 }
 
 @MainActor

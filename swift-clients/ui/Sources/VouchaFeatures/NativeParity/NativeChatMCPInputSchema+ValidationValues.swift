@@ -102,9 +102,20 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkNumber(_ value: DecodedJSONValue, fields: [String: DecodedJSONValue]) -> Bool {
-        guard let number = decimalNumber(value) else { return true }
-        if let minimum = fields["minimum"].flatMap(decimalNumber), number < minimum { return false }
-        if let maximum = fields["maximum"].flatMap(decimalNumber), number > maximum { return false }
+        switch value {
+        case .number, .integer, .unsignedInteger, .decimal: break
+        default: return true
+        }
+        guard let text = outputNumberText(value), let number = canonicalOutputNumber(text) else { return false }
+        for keyword in ["minimum", "maximum"] {
+            guard let bound = fields[keyword] else { continue }
+            guard let boundText = outputNumberText(bound), let limit = canonicalOutputNumber(boundText) else {
+                return false
+            }
+            let comparison = compareOutputNumbers(number, limit)
+            if keyword == "minimum", comparison < 0 { return false }
+            if keyword == "maximum", comparison > 0 { return false }
+        }
         return true
     }
 

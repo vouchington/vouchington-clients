@@ -77,4 +77,63 @@ final class NativeChatMCPInputSchemaBoundsTests: XCTestCase {
         let largeInteger = try XCTUnwrap(Decimal(string: "18446744073709551615"))
         XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.decimal(largeInteger), schema: integerType))
     }
+
+    func testInputNumericBoundsRejectValuesOutsideDecimalRange() throws {
+        let nonnegative: DecodedJSONValue = .object([
+            "type": .string("number"), "minimum": .integer(0)
+        ])
+        let nonpositive: DecodedJSONValue = .object([
+            "type": .string("number"), "maximum": .integer(0)
+        ])
+
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(1e300), schema: nonpositive))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(-1e300), schema: nonnegative))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(1e-300), schema: nonpositive))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(-1e-300), schema: nonnegative))
+
+        let closedInterval: DecodedJSONValue = .object([
+            "type": .string("number"), "minimum": .integer(-2), "maximum": .integer(2)
+        ])
+        let fraction = try XCTUnwrap(Decimal(string: "1.25"))
+        for accepted: DecodedJSONValue in [
+            .number(-2), .integer(2), .unsignedInteger(1), .decimal(fraction),
+            .number(0)
+        ] {
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(accepted, schema: closedInterval))
+        }
+        let numericKeywordOnly: DecodedJSONValue = .object(["minimum": .integer(0)])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.string("ignored"), schema: numericKeywordOnly))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(.infinity), schema: closedInterval))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.number(.nan), schema: closedInterval))
+
+        let boundedArray: DecodedJSONValue = .object([
+            "type": .string("array"), "items": .object([
+                "type": .string("number"), "minimum": .integer(0), "maximum": .unsignedInteger(UInt64.max)
+            ])
+        ])
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+            .array(Array(repeating: .unsignedInteger(UInt64.max), count: 256)), schema: boundedArray
+        ))
+    }
+
+    func testInputNumericBoundsApplyThroughNestedCompositionAndReference() throws {
+        let schema: DecodedJSONValue = .object([
+            "$defs": .object(["nonpositive": .object([
+                "type": .string("number"), "maximum": .integer(0)
+            ])]),
+            "type": .string("object"),
+            "properties": .object(["samples": .object([
+                "type": .string("array"), "items": .object([
+                    "allOf": .array([.object(["$ref": .string("#/$defs/nonpositive")])])
+                ])
+            ])])
+        ])
+
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+            "samples": .array([.integer(0), .number(-1e300)])
+        ]), schema: schema))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
+            "samples": .array([.integer(0), .number(1e300)])
+        ]), schema: schema))
+    }
 }
