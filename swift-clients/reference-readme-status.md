@@ -20,7 +20,7 @@ for current capability status and tracked gaps.
 
 ## Requirements
 
-- macOS 14 (Sonoma) or later
+- macOS 14.4 (Sonoma) or later
 - Xcode 16+
 - xcodegen 2.42+
 - swiftformat 0.54+
