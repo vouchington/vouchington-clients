@@ -140,13 +140,27 @@ public struct CommunityListItemsResponse: Codable, Sendable {
 }
 
 public struct CommunityInvitesResult: Codable, Identifiable, Sendable {
+    public let entityType: String?
     public let id: String
+
+    private enum CodingKeys: String, CodingKey {
+        case entityType = "__entityType"
+        case id
+    }
 }
 
 public struct CommunityInvitesResponse: Codable, Sendable {
     public let results: [CommunityInvitesResult]
     public let pageInfo: Page<CommunityInvitesResult>.PageInfo
     public let communityInvites: [String: CommunityInvite]
+}
+
+public struct CreatedCommunityInviteResponse: Codable, Sendable {
+    public let communityInvite: CreatedCommunityInvite
+}
+
+public struct CommunityInviteRedemptionResponse: Codable, Sendable {
+    public let communityInvite: CommunityInvite
 }
 
 public struct CommunityBansResult: Codable, Identifiable, Sendable {

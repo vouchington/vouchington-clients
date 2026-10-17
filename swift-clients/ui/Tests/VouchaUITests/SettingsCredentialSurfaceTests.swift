@@ -43,6 +43,8 @@ final class SettingsCredentialSurfaceTests: NativeRouteSurfaceViewModelTestCase 
             .find(text: uiEnglish(.nativeCredentialsMcpUserFullAccess)))
         for description in [
             UiMessageKey.nativeCredentialsFinancialProfileRead,
+            .nativeCredentialsCommunityModerationRead,
+            .nativeCredentialsCommunityModerationWrite,
             .nativeCredentialsFinancialProfileWrite,
             .nativeCredentialsSpendingRead,
             .nativeCredentialsSpendingWrite

@@ -239,7 +239,7 @@ public sealed class CommunityDetailForwardPaginationTests
   {
     var items = new Dictionary<string, CommunityInvite>(page.CommunityInvites)
     {
-      [nextId] = page.CommunityInvites[firstId] with { Id = nextId, Code = "code-next" },
+      [nextId] = page.CommunityInvites[firstId] with { Id = nextId },
     };
     return page with { Results = References(firstId, nextId, initial), CommunityInvites = items, PageInfo = Info(initial) };
   }

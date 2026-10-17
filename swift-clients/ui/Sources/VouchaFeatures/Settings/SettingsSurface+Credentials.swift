@@ -147,6 +147,8 @@ private extension ScopeAudience {
 private extension ScopeDescriptionKey {
     var titleKey: UiMessageKey? {
         switch self {
+        case .communityModerationRead: .nativeCredentialsCommunityModerationRead
+        case .communityModerationWrite: .nativeCredentialsCommunityModerationWrite
         case .mcpUserFullAccess: .nativeCredentialsMcpUserFullAccess
         case .mcpAdminFullAccess: .nativeCredentialsMcpAdminFullAccess
         case .financialProfileRead: .nativeCredentialsFinancialProfileRead

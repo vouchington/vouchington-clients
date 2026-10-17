@@ -29,12 +29,14 @@ public sealed partial class CommunityActionViewModel :
   private string? email;
   private string? username;
   private string? code;
+  private string? createdInviteCode;
   private string? message;
   private IReadOnlyList<CommunityApplicationQuestion> applicationQuestions = [];
   private IReadOnlyDictionary<string, object> applicationAnswers = new Dictionary<string, object>();
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
   private readonly IDisposable? localeSubscription;
+  private long submissionRevision;
 
   public CommunityActionViewModel(
       ICommunitiesService service,
@@ -100,6 +102,22 @@ public sealed partial class CommunityActionViewModel :
     set => SetProperty(ref code, value);
   }
 
+  public string? CreatedInviteCode
+  {
+    get => createdInviteCode;
+    private set => SetProperty(ref createdInviteCode, value);
+  }
+
+  public void DismissInviteCode()
+  {
+    submissionRevision++;
+    CreatedInviteCode = null;
+    if (State == LoadState.Loading)
+    {
+      State = LoadState.Idle;
+    }
+  }
+
   public string? Message
   {
     get => message;
@@ -149,5 +167,9 @@ public sealed partial class CommunityActionViewModel :
     OnPropertyChanged(nameof(ApplicationQuestions));
   }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    DismissInviteCode();
+    localeSubscription?.Dispose();
+  }
 }

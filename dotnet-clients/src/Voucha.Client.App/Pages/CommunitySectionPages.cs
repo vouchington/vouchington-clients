@@ -172,6 +172,7 @@ public abstract partial class CommunitySectionPage : ContentPage
     archiveButton.IsVisible = viewModel.CanArchive;
     unarchiveButton.IsVisible = viewModel.CanUnarchive;
     actionPanel.IsVisible = CanShowActionPanel();
+    RenderInviteActions();
     RenderTransparencyRangeSelector();
     UpdateSettingsSwitches();
     rowsView.ItemsSource = Rows();

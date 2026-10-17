@@ -41,6 +41,9 @@ struct NativeChatSurface: View {
         .task {
             await viewModel.load()
         }
+        .onChange(of: mcpSession?.revision) { _, _ in
+            viewModel.invalidateMCPReceiptsIfNeeded()
+        }
         .onChange(of: currentUserId) { _, memberId in
             viewModel.currentMemberId = memberId
             Task { await viewModel.loadConversations(reset: true) }

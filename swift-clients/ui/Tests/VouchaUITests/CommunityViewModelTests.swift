@@ -135,7 +135,10 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testDetailActionsCallCommunityEndpoints() async throws {
-        registerDetailFixtures()
+        registerDetailFixtures(membershipRole: "owner")
+        let invitePath = "/api/v1/communities/builders/invites"
+        CannedFeedURLProtocol.requestHandlers["POST \(invitePath)"] = (inviteResponse(code: "fresh-code"), 200)
+        CannedFeedURLProtocol.requestHandlers["GET \(invitePath)"] = (inviteListResponse(), 200)
         let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders")
 
         await viewModel.load()
@@ -147,12 +150,23 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.applicationMessage = "Let me in"
         await viewModel.apply()
         viewModel.selectedTab = .invites
+        XCTAssertTrue(viewModel.visibleTabs.contains(.invites))
         viewModel.inviteRecipient = "alice"
         await viewModel.invite()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "fresh-code")
+        await viewModel.load()
+        XCTAssertNil(viewModel.oneTimeInviteCode)
+        viewModel.inviteRecipient = "bob"
+        await viewModel.invite()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "fresh-code")
+        viewModel.selectedTab = .posts
+        XCTAssertNil(viewModel.oneTimeInviteCode)
+        viewModel.dismissInviteCode()
+        XCTAssertNil(viewModel.oneTimeInviteCode)
 
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count,
-            3
+            4
         )
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/communities/builders/members" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
@@ -160,6 +174,65 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/communities/builders/invites" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.contains { $0?.contains(#""archive":true"#) == true })
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.contains { $0?.contains(#""archive":false"#) == true })
+    }
+
+    func testInvitePublishesCodeBeforeRefreshAndSerializesSubmissions() async throws {
+        registerDetailFixtures(membershipRole: "owner")
+        let invitePath = "/api/v1/communities/builders/invites"
+        let communityPath = "/api/v1/communities/builders"
+        CannedFeedURLProtocol.requestHandlers["POST \(invitePath)"] = (inviteResponse(code: "one-time-code"), 201)
+        CannedFeedURLProtocol.suspendResponse(path: invitePath)
+        CannedFeedURLProtocol.suspendResponse(path: communityPath)
+        defer {
+            CannedFeedURLProtocol.releaseResponse(path: invitePath)
+            CannedFeedURLProtocol.releaseResponse(path: communityPath)
+        }
+
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+        viewModel.inviteRecipient = "alice"
+        let invitePost = CannedFeedURLProtocol.requestBarrier(path: invitePath, method: "POST")
+        let communityRefresh = CannedFeedURLProtocol.requestBarrier(path: communityPath, method: "GET")
+        let firstSubmission = Task { await viewModel.invite() }
+
+        _ = try await invitePost.wait()
+        XCTAssertTrue(viewModel.isSubmittingInvite)
+        let duplicateReturned = expectation(description: "duplicate invite submission is rejected")
+        let duplicateSubmission = Task {
+            await viewModel.invite()
+            duplicateReturned.fulfill()
+        }
+        await fulfillment(of: [duplicateReturned], timeout: 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.method == "POST" }.count, 1)
+
+        CannedFeedURLProtocol.releaseResponse(path: invitePath)
+        _ = try await communityRefresh.wait()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertTrue(viewModel.isSubmittingInvite)
+        let surface = CommunityWorkspaceSurface(viewModel: viewModel)
+        XCTAssertEqual(try surface.inspect().find(text: "one-time-code").string(), "one-time-code")
+        let controls = CommunityTabControls(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+        XCTAssertTrue(try controls.inspect().find(button: "Invite").isDisabled())
+
+        CannedFeedURLProtocol.releaseResponse(path: communityPath)
+        await firstSubmission.value
+        await duplicateSubmission.value
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertFalse(viewModel.isSubmittingInvite)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.method == "POST" }.count, 1)
+    }
+
+    func testInviteCodeSurvivesRefreshFailure() async throws {
+        registerDetailFixtures()
+        let invitePath = "/api/v1/communities/builders/invites"
+        CannedFeedURLProtocol.requestHandlers["POST \(invitePath)"] = (inviteResponse(code: "one-time-code"), 201)
+        CannedFeedURLProtocol.errors["/api/v1/communities/builders"] = URLError(.notConnectedToInternet)
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+        viewModel.inviteRecipient = "alice"
+
+        await viewModel.invite()
+
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertFalse(viewModel.isSubmittingInvite)
     }
 
     func testApplicationQuestionsRequireAnswersBeforeApply() async throws {
@@ -285,7 +358,7 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testInviteRedemptionCallsInviteRedemptionEndpoint() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/communities/invite-redemptions"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/communities/invite-redemptions"] = (inviteResponse(), 200)
         let viewModel = try CommunityInviteRedemptionViewModel(client: makeClient(), code: "code-123")
 
         await viewModel.redeem()
@@ -348,67 +421,6 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
             }
             """.utf8
         )
-    }
-
-    private func registerDetailFixtures() {
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders"] = (
-            Data(
-                """
-                {
-                  "community": {
-                    "id": "community-1",
-                    "name": "Builders",
-                    "slug": "builders",
-                    "markdown": "Native community",
-                    "visibility": "public",
-                    "member_roster_visibility": "public",
-                    "list_type": null,
-                    "member_invites_allowed_at": null,
-                    "post_approval_required_at": null,
-                    "automod_action": "record_only",
-                    "should_allow_review_posts": true,
-                    "should_allow_data_point_posts": true,
-                    "trusted_at": null,
-                    "profile_image_id": null,
-                    "banner_image_id": null,
-                    "created_by_id": "user-1",
-                    "created_at": "2026-01-01T00:00:00Z",
-                    "updated_at": "2026-01-01T00:00:00Z",
-                    "deleted_at": null,
-                    "deleted_by_id": null,
-                    "archived_at": null,
-                    "archived_by_id": null,
-                    "default_language": null,
-                    "lingua_rs_detected_language": null,
-                    "rules_markdown": null
-                  },
-                  "community_metrics": {
-                    "id": "community-1",
-                    "member_count": 1,
-                    "post_count": 0,
-                    "list_item_count": 0,
-                    "proxy_follow_count": 0,
-                    "proxy_mute_count": 0,
-                    "virtual_subscription_count": 0
-                  },
-                  "membership": null,
-                  "has_pending_application": false
-                }
-                """.utf8
-            ),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/posts"] = (
-            Data(#"{"results":[],"posts":{}}"#.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/members"] = (Data("{}".utf8), 200)
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (Data("{}".utf8), 200)
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/application-questions"] = (
-            Data(#"{"questions":[]}"#.utf8),
-            200
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (Data("{}".utf8), 200)
     }
 
     private func makeApplicationsResponse() -> Data {

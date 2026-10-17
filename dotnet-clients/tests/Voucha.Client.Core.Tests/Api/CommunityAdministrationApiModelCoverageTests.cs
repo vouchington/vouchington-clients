@@ -7,6 +7,25 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed class CommunityAdministrationApiModelCoverageTests
 {
   [Fact]
+  public void InviteListFixtureHasMetadataWithoutCodeAndCreationResponseKeepsIt()
+  {
+    var json = ApiFixtureLoader.LoadResponse("web.communities.invites.default");
+    using var document = JsonDocument.Parse(json);
+    var first = document.RootElement.GetProperty("community_invites").EnumerateObject().First().Value;
+    Assert.False(first.TryGetProperty("code", out _));
+    Assert.False(first.TryGetProperty("code_hash", out _));
+
+    var page = JsonSerializer.Deserialize<CommunityInvitesResponse>(json, VouchaApiJson.Options)!;
+    Assert.NotEmpty(page.CommunityInvites);
+    Assert.Equal("community_invite", page.CommunityInvites.Values.First().EntityType);
+
+    var creation = JsonSerializer.Deserialize<CreatedCommunityInviteResponse>("""
+        {"community_invite":{"id":"invite-new","community_id":"community-1","code":"share-once","invited_user_id":"user-2","invited_email":null,"invited_by_id":"moderator-1","accepted_at":null,"accepted_by_id":null,"declined_at":null,"revoked_at":null,"created_at":"2026-07-01T00:00:00Z","__entity_type":"community_invite"}}
+        """, VouchaApiJson.Options)!;
+    Assert.Equal("share-once", creation.CommunityInvite.Code);
+  }
+
+  [Fact]
   public void VacationDigestPreferenceEndpointAndResponseUseIndependentBoolean()
   {
     var request = VouchaApiEndpoints.SetSuppressCommunityDigestsWhileOnVacation("test community", true);
@@ -54,7 +73,6 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     var invite = new CommunityInvite(
         "invite-1",
         "community-1",
-        "CODE",
         "user-2",
         "test@example.com",
         "moderator-1",
@@ -140,12 +158,11 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal("community_application", applications.CommunityApplications["application-1"].EntityType);
     Assert.Equal("invite-1", invites.CommunityInvites["invite-1"].Id);
     Assert.Equal("community-1", invites.CommunityInvites["invite-1"].CommunityId);
-    Assert.Equal("CODE", invites.CommunityInvites["invite-1"].Code);
     Assert.Equal("user-2", invites.CommunityInvites["invite-1"].InvitedUserId);
     Assert.Equal("test@example.com", invites.CommunityInvites["invite-1"].InvitedEmail);
     Assert.Equal("moderator-1", invites.CommunityInvites["invite-1"].InvitedById);
     Assert.Equal(createdAt, invites.CommunityInvites["invite-1"].AcceptedAt);
-    Assert.Equal("user-2", invites.CommunityInvites["invite-1"].AcceptedByUserId);
+    Assert.Equal("user-2", invites.CommunityInvites["invite-1"].AcceptedById);
     Assert.Equal(createdAt, invites.CommunityInvites["invite-1"].CreatedAt);
     Assert.Equal("community_invite", invites.CommunityInvites["invite-1"].EntityType);
     Assert.Equal("ban-1", bans.CommunityBans["ban-1"].Id);

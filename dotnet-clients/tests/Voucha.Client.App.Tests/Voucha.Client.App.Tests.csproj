@@ -21,6 +21,10 @@
     <Compile Include="../../src/Voucha.Client.App/Controls/DirectMessageParticipantView.xaml.cs" Link="Controls/DirectMessageParticipantView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.cs" Link="Pages/CommunityDetailPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.EmbedPreview.cs" Link="Pages/CommunityDetailPage.EmbedPreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityActionPage.cs" Link="Pages/CommunityActionPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityActionPage.InviteCode.cs" Link="Pages/CommunityActionPage.InviteCode.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityActionPage.Loading.cs" Link="Pages/CommunityActionPage.Loading.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityActionPage.Turnstile.cs" Link="Pages/CommunityActionPage.Turnstile.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/ListsPage.xaml" Link="Pages/ListsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ListsPage.xaml.cs" Link="Pages/ListsPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ListsPageBinding.cs" Link="Pages/ListsPageBinding.cs" />

@@ -69,6 +69,7 @@ final class CannedFeedURLProtocol: URLProtocol {
 
     private static let lock = NSLock()
     private static var _handlers: [String: (Data, Int)] = [:]
+    private static var _requestHandlers: [String: (Data, Int)] = [:]
     private static var _queuedHandlers: [String: [(Data, Int, TimeInterval)]] = [:]
     private static var _errors: [String: Error] = [:]
     private static var _capturedRequests: [CapturedRequest] = []
@@ -85,6 +86,16 @@ final class CannedFeedURLProtocol: URLProtocol {
             lock.lock()
             defer { lock.unlock() }
             yield &_handlers
+        }
+    }
+
+    static var requestHandlers: [String: (Data, Int)] {
+        get { withLock { _requestHandlers } }
+        set { withLock { _requestHandlers = newValue } }
+        _modify {
+            lock.lock()
+            defer { lock.unlock() }
+            yield &_requestHandlers
         }
     }
 
@@ -247,6 +258,7 @@ final class CannedFeedURLProtocol: URLProtocol {
     static func reset() {
         withLock {
             _handlers = [:]
+            _requestHandlers = [:]
             _queuedHandlers = [:]
             _errors = [:]
             _contentTypes = [:]
@@ -356,6 +368,10 @@ final class CannedFeedURLProtocol: URLProtocol {
         defer { lock.unlock() }
         onWillCaptureRequest?()
         let sequence = capture(request)
+        let requestKey = "\((request.httpMethod ?? "GET").uppercased()) \(path)"
+        if let (data, status) = _requestHandlers[requestKey] {
+            return (data, status, 0, sequence)
+        }
         if var queued = _queuedHandlers[path], !queued.isEmpty {
             let next = queued.removeFirst()
             _queuedHandlers[path] = queued

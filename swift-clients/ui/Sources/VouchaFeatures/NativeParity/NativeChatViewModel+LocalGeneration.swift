@@ -63,11 +63,12 @@ extension NativeChatViewModel {
         if try await persistPendingLocalTurnIfAny(
             client: client, context: context, assistantMessageId: assistantMessageId
         ) { return }
-        guard let response = try await provider.generateAssistantResponse(
+        guard let outcome = try await provider.generateAssistantResponse(
             to: context.text,
             history: localGenerationHistory(excluding: context.userMessageId),
             mcpSession: mcpSession,
-            mcpSnapshot: mcpSnapshot
+            mcpSnapshot: mcpSnapshot,
+            mcpTurn: prepareMCPReceiptTurn(context: context, snapshot: mcpSnapshot)
         ) else {
             failLocalGeneration(
                 context: context,
@@ -76,6 +77,7 @@ extension NativeChatViewModel {
             )
             return
         }
+        invalidateMCPReceiptsIfNeeded()
         guard isCurrentLocalGeneration(context) else {
             discardStaleLocalTurn(
                 userMessageId: context.userMessageId,
@@ -88,6 +90,16 @@ extension NativeChatViewModel {
             return
         }
 
+        guard case let .answer(response) = outcome else {
+            if case let .toolResultsOnly(continuation) = outcome {
+                finishLocalToolResults(
+                    context: context,
+                    assistantMessageId: assistantMessageId,
+                    continuation: continuation
+                )
+            }
+            return
+        }
         try await persistLocalGenerationResponse(
             client: client,
             context: context,
@@ -114,6 +126,7 @@ extension NativeChatViewModel {
         context: NativeChatDraftSendContext,
         snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
     ) {
+        invalidateMCPReceiptsIfNeeded()
         if isCurrentLocalGeneration(context),
            currentMemberId == snapshot.accountId,
            !draftEditedDuringSend {
@@ -132,7 +145,7 @@ extension NativeChatViewModel {
         if pendingLocalAssistantMessageId == assistantMessageId {
             pendingLocalAssistantMessageId = nil
         }
-        discardConversationMessage(id: userMessageId)
+        if !retainTemporaryMCPUserTurn(userMessageId) { discardConversationMessage(id: userMessageId) }
         if let assistantMessageId { discardConversationMessage(id: assistantMessageId) }
     }
 
@@ -142,56 +155,4 @@ extension NativeChatViewModel {
         }
     }
 
-    private func failLocalGeneration(
-        context: NativeChatDraftSendContext,
-        assistantMessageId: String,
-        message: UiVerbatimText,
-        restoreDraft: Bool = true
-    ) {
-        guard isCurrentLocalGeneration(context) else {
-            discardStaleLocalTurn(
-                userMessageId: context.userMessageId,
-                assistantMessageId: assistantMessageId
-            )
-            return
-        }
-        failUnpersistedLocalGeneration(
-            context: context,
-            assistantMessageId: assistantMessageId,
-            message: message,
-            restoreDraft: restoreDraft
-        )
-    }
-
-    func failUnpersistedLocalGeneration(
-        context: NativeChatDraftSendContext,
-        assistantMessageId: String?,
-        message: UiVerbatimText,
-        restoreDraft: Bool = true
-    ) {
-        guard isCurrentLocalGeneration(context) else {
-            discardConversationMessage(id: context.userMessageId)
-            if let assistantMessageId { discardConversationMessage(id: assistantMessageId) }
-            return
-        }
-        discardConversationMessage(id: context.userMessageId)
-        if let assistantMessageId {
-            discardConversationMessage(id: assistantMessageId)
-        }
-        if restoreDraft, !draftEditedDuringSend { draftMessage = context.text }
-        if streamingUserMessageId == context.userMessageId {
-            streamingUserMessageId = nil
-        }
-        if streamingAssistantMessageId == assistantMessageId {
-            streamingAssistantMessageId = nil
-        }
-        if pendingLocalAssistantMessageId == assistantMessageId {
-            pendingLocalAssistantMessageId = nil
-        }
-        streamErrorMessage = message
-        isStreaming = false
-        streamingConversationId = nil
-        streamedContent = ""
-        streamTask = nil
-    }
 }

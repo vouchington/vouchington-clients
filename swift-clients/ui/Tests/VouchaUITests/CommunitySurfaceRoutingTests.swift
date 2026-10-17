@@ -328,12 +328,11 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
                     "invite-1": {
                       "id": "invite-1",
                       "community_id": "community-1",
-                      "code": "code-1",
-                      "invited_user_id": null,
+                            "invited_user_id": null,
                       "invited_email": "person@example.com",
                       "invited_by_id": "user-1",
                       "accepted_at": null,
-                      "accepted_by_user_id": null,
+                      "accepted_by_id": null,
                       "declined_at": null,
                       "revoked_at": null,
                       "created_at": "2026-07-01T00:00:00Z"

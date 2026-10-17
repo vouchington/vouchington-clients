@@ -244,6 +244,8 @@
 "native.credentials.apiAudience" = "API";
 "native.credentials.catalogLoadFailed" = "Impossible de charger les paramètres des identifiants";
 "native.credentials.chooseScopes" = "Choisir les portées";
+"native.credentials.communityModerationRead" = "Lire les données de modération de la communauté, y compris les adresses e-mail des personnes invitées, les échanges privés avec la modération, les signalements, les demandes d’adhésion, les bannissements, les restrictions et l’historique de modération.";
+"native.credentials.communityModerationWrite" = "Gérer la modération de la communauté : bannir ou retirer des membres, émettre des avertissements, examiner les demandes et les signalements, modifier les paramètres de modération et archiver la communauté. Certaines actions peuvent désépingler des publications ou dépublier des publications.";
 "native.credentials.confirmRevokeGrant" = "Révoquer l’accès à {app} ?";
 "native.credentials.connectedApps" = "Applications connectées";
 "native.credentials.financialProfileRead" = "Lire votre fourchette de score de crédit, vos revenus déclarés, votre plafond total de crédit et vos années d’historique de crédit.";
@@ -476,6 +478,7 @@
 "native.swift.communities.communityWorkspace" = "Espace de travail de la communauté";
 "native.swift.communities.conversationId" = "ID de la conversation";
 "native.swift.communities.createCommunity" = "Créer une Communauté";
+"native.swift.communities.dismissInviteCode" = "Ignorer";
 "native.swift.communities.domainsAndUrls" = "Domaines et URL";
 "native.swift.communities.emailOrUsername" = "E-mail ou nom d’utilisateur";
 "native.swift.communities.endsAt" = "Se termine le";
@@ -498,6 +501,7 @@
 "native.swift.communities.name" = "Nom";
 "native.swift.communities.newsItem" = "Article d’actualité";
 "native.swift.communities.note" = "Annotation";
+"native.swift.communities.oneTimeInviteCodeNotice" = "Copiez ou partagez ce code maintenant. Vous ne pourrez plus le consulter.";
 "native.swift.communities.orderPosition" = "Ordre {position}";
 "native.swift.communities.pauseCommunityDigestsWhileOnVacation" = "Suspendre les récapitulatifs de la communauté pendant les vacances";
 "native.swift.communities.pendingPosts" = "Publications en attente";
@@ -2289,7 +2293,12 @@
 "shared.accountType.aiAgent" = "Agent IA";
 "shared.accountType.official" = "Officiel";
 "shared.accountType.system" = "Système";
+"shared.chat.mcpModelContextStopped" = "Le modèle sur l’appareil n’a pas assez d’espace pour continuer avec le résultat complet de l’outil.";
+"shared.chat.mcpModelProcessingStopped" = "Le traitement du modèle s’est arrêté après la réception du résultat de l’outil.";
 "shared.chat.mcpPossibleSideEffect" = "Un outil connecté a peut-être terminé cette demande. Vérifiez le résultat avant de la renvoyer.";
+"shared.chat.mcpResultNotSaved" = "Ce résultat de l’outil est temporaire et n’est pas enregistré dans l’historique de la conversation.";
+"shared.chat.mcpResultReceived" = "Résultat de l’outil reçu.";
+"shared.chat.mcpToolErrorReceived" = "L’outil a renvoyé une erreur.";
 "shared.countLabel.format.__select.action.one" = "{count} action";
 "shared.countLabel.format.__select.action.other" = "{count} actions";
 "shared.countLabel.format.__select.alias.one" = "{count} alias";

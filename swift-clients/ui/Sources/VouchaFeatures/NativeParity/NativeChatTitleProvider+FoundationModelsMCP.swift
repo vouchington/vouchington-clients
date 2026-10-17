@@ -67,22 +67,26 @@ extension NativeChatAppleFoundationModelsProvider {
         private func generateWithMCPBridge(
             _ bridge: NativeChatMCPToolBridge,
             message: String, history: [NativeChatTimelineMessage],
-            session: NativeChatMCPAgentSession,
-            snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
-        ) async throws -> NativeChatAssistantResponse? {
+            connection: (session: NativeChatMCPAgentSession, snapshot: NativeChatMCPAgentSession.ConnectedSnapshot),
+            turn: NativeChatMCPTurnContext
+        ) async throws -> NativeChatMCPGenerationOutcome? {
+            let (session, snapshot) = connection
             let projected = Self.projectedTools(from: bridge, message: message, history: history)
             guard !projected.isEmpty else {
                 return try await generateAssistantResponse(to: message, history: history)
+                    .map(NativeChatMCPGenerationOutcome.answer)
             }
-            let state = await NativeChatFoundationModelsToolState()
+            let state = await NativeChatFoundationModelsToolState(turn: turn)
+            let admission = await NativeChatModelContextAdmission()
             let tools: [any Tool] = projected.map { item in
                 NativeChatFoundationModelsTool(
                     name: item.descriptor.name, description: item.descriptor.description,
                     parameters: item.schema,
-                    bridge: bridge, session: session, snapshot: snapshot, state: state
+                    bridge: bridge, session: session, snapshot: snapshot, state: state, admission: admission
                 )
             }
             let modelSession = Self.toolSession(tools)
+            await MainActor.run { admission.session = modelSession }
             let response: LanguageModelSession.Response<String>
             do {
                 response = try await modelSession.respond(to: Self.assistantPrompt(
@@ -90,21 +94,26 @@ extension NativeChatAppleFoundationModelsProvider {
                     maximumCharacters: NativeChatFoundationModelsToolSelection.maximumPromptCharacters
                 ))
             } catch {
-                if await state.attempted { throw LocalLLMToolLoopFailure.partialExecution }
+                if await state.hasAmbiguousAttempt { throw LocalLLMToolLoopFailure.partialExecution }
+                if await !state.receipts.isEmpty {
+                    try await Self.validatePostResponseSnapshot(
+                        attemptedMCPCall: true,
+                        session: session,
+                        snapshot: snapshot
+                    )
+                    if Task.isCancelled { throw CancellationError() }
+                    return await .toolResultsOnly(state.stopped ?? .processingStopped)
+                }
+                if error is NativeChatFoundationModelsStop { throw LocalLLMToolLoopFailure.toolNotAdmitted }
+                if let wrapped = error as? LanguageModelSession.ToolCallError,
+                   wrapped.underlyingError is NativeChatFoundationModelsStop {
+                    throw LocalLLMToolLoopFailure.toolNotAdmitted
+                }
                 throw error
             }
-            let admittedMCPCall = await state.attempted
-            try await Self.validatePostResponseSnapshot(
-                attemptedMCPCall: admittedMCPCall, session: session, snapshot: snapshot
-            )
-            let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !content.isEmpty else {
-                if await state.attempted { throw LocalLLMToolLoopFailure.partialExecution }
-                return nil
-            }
-            return NativeChatAssistantResponse(
-                content: content, modelProvider: "apple_foundation", modelName: "apple-foundation-system",
-                admittedMCPCall: admittedMCPCall
+            return try await Self.completeMCPGeneration(
+                content: response.content, state: state, admission: admission,
+                session: session, snapshot: snapshot
             )
         }
     #endif
@@ -113,14 +122,17 @@ extension NativeChatAppleFoundationModelsProvider {
         to message: String,
         history: [NativeChatTimelineMessage],
         mcpSession: NativeChatMCPAgentSession?,
-        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
-    ) async throws -> NativeChatAssistantResponse? {
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?,
+        mcpTurn: NativeChatMCPTurnContext?
+    ) async throws -> NativeChatMCPGenerationOutcome? {
         guard let mcpSession, let snapshot = mcpSnapshot else {
             return try await generateAssistantResponse(to: message, history: history)
+                .map(NativeChatMCPGenerationOutcome.answer)
         }
         #if canImport(FoundationModels)
             guard #available(macOS 26.4, iOS 26.4, *) else {
                 return try await generateAssistantResponse(to: message, history: history)
+                    .map(NativeChatMCPGenerationOutcome.answer)
             }
             guard status.isAvailable else { return nil }
             let bridge: NativeChatMCPToolBridge
@@ -128,10 +140,13 @@ extension NativeChatAppleFoundationModelsProvider {
                 try await generateAssistantResponse(to: message, history: history)
             }) {
             case let .enabled(admittedBridge): bridge = admittedBridge
-            case let .toolFree(response): return response
+            case let .toolFree(response): return response.map(NativeChatMCPGenerationOutcome.answer)
             }
+            guard let mcpTurn,
+                  mcpTurn.owner.accountId == snapshot.accountId,
+                  mcpTurn.owner.revision == snapshot.revision else { throw LocalLLMToolLoopFailure.toolNotAdmitted }
             return try await generateWithMCPBridge(
-                bridge, message: message, history: history, session: mcpSession, snapshot: snapshot
+                bridge, message: message, history: history, connection: (mcpSession, snapshot), turn: mcpTurn
             )
         #else
             return nil

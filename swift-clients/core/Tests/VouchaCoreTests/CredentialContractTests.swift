@@ -73,6 +73,28 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(selection.permissions, ["mcp.user:read", "spending:read", "spending:write"])
     }
 
+    func testStagedCommunityModerationScopesPreserveDescriptionsAndReadPrerequisite() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self,
+            from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        let read = try XCTUnwrap(catalog.scopes.first { $0.scope == "community-moderation:read" })
+        let write = try XCTUnwrap(catalog.scopes.first { $0.scope == "community-moderation:write" })
+        XCTAssertEqual(read.descriptionKey, .communityModerationRead)
+        XCTAssertEqual(write.descriptionKey, .communityModerationWrite)
+        XCTAssertNil(read.requires)
+        XCTAssertEqual(write.requires, read.scope)
+        XCTAssertEqual(Set(write.surfaces), Set([.apiKey, .oauth]))
+
+        var selection = ApiKeyScopeSelection(scopes: catalog.scopes, type: .mcp)
+        XCTAssertTrue(selection.setSelected("mcp.user:read", selected: true))
+        XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+        XCTAssertTrue(selection.setSelected(write.scope, selected: true))
+        XCTAssertEqual(selection.permissions, [read.scope, write.scope, "mcp.user:read"].sorted())
+        XCTAssertTrue(selection.setSelected(read.scope, selected: false))
+        XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+    }
+
     func testStagedGrantsPreserveClientScopeAndActivityMetadata() throws {
         let grants = try makeVouchaDecoder().decode(
             Page<OAuthGrant>.self,

@@ -30,8 +30,9 @@ final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Send
     func generateAssistantResponse(
         to message: String, history: [NativeChatTimelineMessage],
         mcpSession _: NativeChatMCPAgentSession?,
-        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
-    ) async throws -> NativeChatAssistantResponse? {
+        mcpSnapshot: NativeChatMCPAgentSession.ConnectedSnapshot?,
+        mcpTurn _: NativeChatMCPTurnContext?
+    ) async throws -> NativeChatMCPGenerationOutcome? {
         receivedMcpSnapshot = mcpSnapshot != nil
         if let mcpFailure { throw mcpFailure }
         if let mcpHold {
@@ -39,10 +40,10 @@ final class MutableRetryDraftProvider: NativeChatTitleProviding, @unchecked Send
             throw CancellationError()
         }
         guard let response = try await generateAssistantResponse(to: message, history: history) else { return nil }
-        return .init(
+        return .answer(.init(
             content: response.content, modelProvider: response.modelProvider, modelName: response.modelName,
             admittedMCPCall: admittedMCPCall
-        )
+        ))
     }
 
     func generateTitle(from _: [NativeChatTimelineMessage]) async throws -> String? {

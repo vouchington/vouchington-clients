@@ -79,6 +79,10 @@ extension NativeChatViewModel {
             message.error = response.assistantMessage.content.error.map(UiVerbatimText.verbatim)
             message.isStreaming = false
         }
+        if mcpReceiptLedger?.owner.userMessageId == userMessageId {
+            mcpReceiptLedger?.displayUserMessageId = response.userMessage.id
+            mcpReceiptLedger?.temporaryUserMessageId = nil
+        }
         streamingUserMessageId = response.userMessage.id
         streamingAssistantMessageId = response.assistantMessage.id
         pendingLocalAssistantMessageId = nil

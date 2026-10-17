@@ -274,6 +274,8 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Theory]
+  [InlineData("community_moderation_read", "native.credentials.communityModerationRead")]
+  [InlineData("community_moderation_write", "native.credentials.communityModerationWrite")]
   [InlineData("financial_profile_read", "native.credentials.financialProfileRead")]
   [InlineData("financial_profile_write", "native.credentials.financialProfileWrite")]
   [InlineData("spending_read", "native.credentials.spendingRead")]

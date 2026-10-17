@@ -35,6 +35,11 @@ public sealed partial class CommunityDetailViewModel
     }
   }
 
+  public bool CanCreateInvite => IsAuthenticated && Community is not null && !IsArchived &&
+      Membership is not null && (CanModerateAsCommunityMember || Community.MemberInvitesAllowedAt is not null);
+
+  public bool CanRevokeInvite => IsAuthenticated && Community is not null && !IsArchived && CanModerateAsCommunityMember;
+
   public bool CanManageMembers => CanModerateAsCommunityMember;
 
   public bool CanViewRawModerationAnalytics

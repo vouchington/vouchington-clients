@@ -42,16 +42,35 @@ public sealed record CommunityApplicationQuestionsResponse(
 public sealed record CommunityInvite(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("community_id")] string CommunityId,
+    [property: JsonPropertyName("invited_user_id")] string? InvitedUserId,
+    [property: JsonPropertyName("invited_email")] string? InvitedEmail,
+    [property: JsonPropertyName("invited_by_id")] string InvitedById,
+    [property: JsonPropertyName("accepted_at")] DateTimeOffset? AcceptedAt,
+    [property: JsonPropertyName("accepted_by_id")] string? AcceptedById,
+    [property: JsonPropertyName("declined_at")] DateTimeOffset? DeclinedAt,
+    [property: JsonPropertyName("revoked_at")] DateTimeOffset? RevokedAt,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("__entity_type")] string? EntityType = null);
+
+public sealed record CreatedCommunityInvite(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("community_id")] string CommunityId,
     [property: JsonPropertyName("code")] string Code,
     [property: JsonPropertyName("invited_user_id")] string? InvitedUserId,
     [property: JsonPropertyName("invited_email")] string? InvitedEmail,
     [property: JsonPropertyName("invited_by_id")] string InvitedById,
     [property: JsonPropertyName("accepted_at")] DateTimeOffset? AcceptedAt,
-    [property: JsonPropertyName("accepted_by_user_id")] string? AcceptedByUserId,
+    [property: JsonPropertyName("accepted_by_id")] string? AcceptedById,
     [property: JsonPropertyName("declined_at")] DateTimeOffset? DeclinedAt,
     [property: JsonPropertyName("revoked_at")] DateTimeOffset? RevokedAt,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null);
+
+public sealed record CreatedCommunityInviteResponse(
+    [property: JsonPropertyName("community_invite")] CreatedCommunityInvite CommunityInvite);
+
+public sealed record CommunityInviteRedemptionResponse(
+    [property: JsonPropertyName("community_invite")] CommunityInvite CommunityInvite);
 
 public sealed record CommunityInvitesResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

@@ -40,6 +40,8 @@ public sealed partial class MemberMcpSessionTests
     public bool NotFoundToolCall { get; set; }
     public JsonElement? Catalog { get; set; }
     public int DisconnectCalls { get; private set; }
+    public int ToolCalls { get; private set; }
+    public McpToolResult? ToolResult { get; set; }
     public TaskCompletionSource ConnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource CancellationEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource DisconnectEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -73,6 +75,7 @@ public sealed partial class MemberMcpSessionTests
     public async Task<McpToolResult> CallToolAsync(string name, JsonElement arguments,
         CancellationToken cancellationToken)
     {
+      ToolCalls++;
       ToolEntered.TrySetResult();
       if (holdToolCall) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
       if (RejectToolCall) throw new McpUnauthorizedException();
@@ -80,7 +83,7 @@ public sealed partial class MemberMcpSessionTests
         throw new McpSessionExpiredException();
       if (NotFoundToolCall)
         throw new HttpRequestException("MCP session expired.", null, System.Net.HttpStatusCode.NotFound);
-      return new(JsonDocument.Parse("[]").RootElement.Clone(), null, false);
+      return ToolResult ?? new(JsonDocument.Parse("[]").RootElement.Clone(), null, false);
     }
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {

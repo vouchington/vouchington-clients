@@ -30,10 +30,13 @@ public sealed record SettingsScopeRow(
 
   public static bool IsSupportedDescriptionKey(string? key) => key is
       null or "mcp_user_full_access" or "mcp_admin_full_access" or
+      "community_moderation_read" or "community_moderation_write" or
       "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write";
 
   public static UiMessageKey? DescriptionMessage(string key) => key switch
   {
+    "community_moderation_read" => UiMessageKey.NativeCredentialsCommunityModerationRead,
+    "community_moderation_write" => UiMessageKey.NativeCredentialsCommunityModerationWrite,
     "mcp_user_full_access" => UiMessageKey.NativeCredentialsMcpUserFullAccess,
     "mcp_admin_full_access" => UiMessageKey.NativeCredentialsMcpAdminFullAccess,
     "financial_profile_read" => UiMessageKey.NativeCredentialsFinancialProfileRead,

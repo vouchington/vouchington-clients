@@ -373,6 +373,8 @@
   <data name="native.credentials.apiAudience" xml:space="preserve"><value>API</value></data>
   <data name="native.credentials.catalogLoadFailed" xml:space="preserve"><value>Não foi possível carregar as configurações de credenciais</value></data>
   <data name="native.credentials.chooseScopes" xml:space="preserve"><value>Escolher escopos</value></data>
+  <data name="native.credentials.communityModerationRead" xml:space="preserve"><value>Ler dados de moderação da comunidade, incluindo os endereços de e-mail de pessoas convidadas, mensagens privadas com a moderação, denúncias, solicitações de ingresso, banimentos, restrições e histórico de moderação.</value></data>
+  <data name="native.credentials.communityModerationWrite" xml:space="preserve"><value>Gerenciar a moderação da comunidade: banir ou remover membros, emitir avisos, analisar solicitações e denúncias, alterar as configurações de moderação e arquivar a comunidade. Algumas ações podem remover publicações fixadas ou despublicar publicações.</value></data>
   <data name="native.credentials.confirmRevokeGrant" xml:space="preserve"><value>Revogar o acesso a {app}?</value></data>
   <data name="native.credentials.connectedApps" xml:space="preserve"><value>Aplicativos conectados</value></data>
   <data name="native.credentials.financialProfileRead" xml:space="preserve"><value>Ler sua faixa de pontuação de crédito, faixa de renda declarada, limite total de crédito e anos de histórico de crédito.</value></data>
@@ -577,6 +579,7 @@
   <data name="native.dotnet.csharpCommunities.disable" xml:space="preserve"><value>Desativar</value></data>
   <data name="native.dotnet.csharpCommunities.disabled" xml:space="preserve"><value>Desativado</value></data>
   <data name="native.dotnet.csharpCommunities.dismissEvasion" xml:space="preserve"><value>Rejeitar evasão</value></data>
+  <data name="native.dotnet.csharpCommunities.dismissInviteCode" xml:space="preserve"><value>Descartar</value></data>
   <data name="native.dotnet.csharpCommunities.email" xml:space="preserve"><value>E-mail</value></data>
   <data name="native.dotnet.csharpCommunities.enable" xml:space="preserve"><value>Ativar</value></data>
   <data name="native.dotnet.csharpCommunities.enabled" xml:space="preserve"><value>Ativado</value></data>
@@ -606,6 +609,7 @@
   <data name="native.dotnet.csharpCommunities.name" xml:space="preserve"><value>Nome</value></data>
   <data name="native.dotnet.csharpCommunities.newsItem" xml:space="preserve"><value>Notícia</value></data>
   <data name="native.dotnet.csharpCommunities.noStateChange" xml:space="preserve"><value>Sem alteração de estado</value></data>
+  <data name="native.dotnet.csharpCommunities.oneTimeInviteCodeNotice" xml:space="preserve"><value>Copie ou compartilhe este código agora. Você não poderá vê-lo novamente.</value></data>
   <data name="native.dotnet.csharpCommunities.open" xml:space="preserve"><value>Abrir</value></data>
   <data name="native.dotnet.csharpCommunities.order" xml:space="preserve"><value>Ordem {value}</value></data>
   <data name="native.dotnet.csharpCommunities.pauseDigests" xml:space="preserve"><value>Pausar os resumos da comunidade durante as férias</value></data>

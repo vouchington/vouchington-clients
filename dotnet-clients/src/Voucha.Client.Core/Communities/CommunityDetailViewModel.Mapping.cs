@@ -109,6 +109,8 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(CanArchive));
     OnPropertyChanged(nameof(CanUnarchive));
     OnPropertyChanged(nameof(CanModerateCommunity));
+    OnPropertyChanged(nameof(CanCreateInvite));
+    OnPropertyChanged(nameof(CanRevokeInvite));
     OnPropertyChanged(nameof(CanViewRawModerationAnalytics));
     OnPropertyChanged(nameof(CanManageCommunity));
     OnPropertyChanged(nameof(CanUseModmail));

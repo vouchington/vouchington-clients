@@ -29,11 +29,11 @@ import XCTest
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
             let descriptor = try XCTUnwrap(bridge.tools.first)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let tool = try NativeChatFoundationModelsTool(
                 name: descriptor.name, description: descriptor.description,
                 parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
-                bridge: bridge, session: session, snapshot: snapshot, state: state
+                bridge: bridge, session: session, snapshot: snapshot, state: state, admission: ReceiptAdmission()
             )
 
             do {
@@ -61,7 +61,7 @@ import XCTest
             } catch { XCTAssertEqual(service.calls, 1) }
         }
 
-        func testOversizedFirstArgumentsRestoreDraftButLaterRejectionIsPartial() async throws {
+        func testOversizedFirstArgumentsRestoreDraftButLaterKnownReceiptStops() async throws {
             let service = BridgeMCPService()
             service.catalog = .object(["tools": .array([.object([
                 "name": .string("read_community"),
@@ -78,11 +78,11 @@ import XCTest
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
             let descriptor = try XCTUnwrap(bridge.tools.first)
-            let state = NativeChatFoundationModelsToolState()
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
             let tool = try NativeChatFoundationModelsTool(
                 name: descriptor.name, description: descriptor.description,
                 parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),
-                bridge: bridge, session: session, snapshot: snapshot, state: state
+                bridge: bridge, session: session, snapshot: snapshot, state: state, admission: ReceiptAdmission()
             )
             let oversized = try GeneratedContent(json: #"{"id":"\#(String(repeating: "x", count: 1_300))"}"#)
             let preAdmissionError: Error
@@ -120,9 +120,11 @@ import XCTest
             XCTAssertEqual(service.calls, 1)
             do {
                 _ = try await tool.call(arguments: oversized)
-                XCTFail("A budget failure after an admitted RPC must retain partial-execution policy")
-            } catch {
-                XCTAssertEqual(error as? LocalLLMToolLoopFailure, .partialExecution)
+                XCTFail("A later budget refusal must stop without losing the known receipt")
+            } catch let stop as NativeChatFoundationModelsStop {
+                XCTAssertEqual(stop.reason, .processingStopped)
+                XCTAssertEqual(state.receipts.count, 1)
+                XCTAssertFalse(state.hasAmbiguousAttempt)
                 XCTAssertEqual(service.calls, 1)
             }
         }
