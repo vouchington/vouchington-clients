@@ -1,5 +1,6 @@
 public struct PostAuthorAside: Codable, Sendable {
     public let aboutHtml: String
+    public let linguaRsDetectedLanguage: String?
     public let isFollowing: Bool
     public let profileLinks: [ProfileLink]
 }

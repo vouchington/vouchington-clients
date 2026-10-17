@@ -42,6 +42,7 @@ extension NativeCommentThreadSurface {
                         isStaffViewer: isStaffViewer,
                         onViewAppeals: { onNavigate("/my/appeals") }
                     )
+                    NativePostAuthorBio(aside: viewModel.authorAside)
                     if let client, canDistribute(rootPost) {
                         HStack {
                             Spacer()

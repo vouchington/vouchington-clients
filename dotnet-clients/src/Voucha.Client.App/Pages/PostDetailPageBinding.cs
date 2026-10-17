@@ -53,6 +53,10 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
 
   public bool HasRoot => RootRow is not null;
 
+  public string? AuthorBioHtml => viewModel.AuthorAside?.AboutHtml;
+
+  public string? AuthorBioLanguage => viewModel.AuthorAside?.LinguaRsDetectedLanguage;
+
   public bool HasAncestors => AncestorRows.Count > 0;
 
   public bool HasError => viewModel.HasError;
@@ -108,6 +112,8 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
       CommentRows.Add(row);
     }
 
+    OnPropertyChanged(nameof(AuthorBioHtml));
+    OnPropertyChanged(nameof(AuthorBioLanguage));
     OnPropertyChanged(nameof(HasRoot));
     OnPropertyChanged(nameof(HasAncestors));
     OnPropertyChanged(nameof(HasError));

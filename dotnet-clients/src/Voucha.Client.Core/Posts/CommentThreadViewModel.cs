@@ -61,6 +61,8 @@ public sealed partial class CommentThreadViewModel : ObservableObject
 
   public Post? RootPost => rootPostResponse?.Post;
 
+  public PostDetailAuthorAside? AuthorAside => RootPost?.IsAnonymous == false ? rootPostResponse?.AuthorAside : null;
+
   public string? RootHtml => rootPostResponse?.Html;
 
   public IReadOnlyList<Post> AncestorPosts
