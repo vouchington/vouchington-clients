@@ -8,6 +8,19 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCase {
+    func testOutputValidationBudgetFailureUsesInvalidOutputFailure() throws {
+        let oversized = String(repeating: "x", count: 262_145)
+        let fields = try ["outputSchema": value(["type": "string", "const": "expected"])]
+        let contract = try NativeChatMCPOutputContract(fields: fields)
+
+        XCTAssertThrowsError(try contract.validate(toolResult(oversized), arguments: [:])) { error in
+            guard let failure = error as? NativeChatMCPToolBridge.Failure,
+                  case .invalidOutput = failure else {
+                return XCTFail("Unverifiable tool output must be reported as invalidOutput, got \(error)")
+            }
+        }
+    }
+
     func testOutputNumericBoundsDoNotDisappearOutsideDecimalRange() throws {
         let cases: [(String, String, String, Bool)] = [
             ("1e300", "maximum", "0", false), ("1e300", "minimum", "0", true),

@@ -43,10 +43,16 @@ struct NativeChatMCPOutputContract {
             selected = rootOptions.contains(option) ? nil : schema
             selectedIndex = rootAnyOfOptions[option]
         }
-        guard let value = result.structuredContent,
-              try NativeChatMCPInputSchema.acceptsOutput(
-                  value, schema: root, root: root, selectedSchema: selected, selectedRootAnyOfIndex: selectedIndex
-              ) else {
+        guard let value = result.structuredContent else { throw NativeChatMCPToolBridge.Failure.invalidOutput }
+        do {
+            guard try NativeChatMCPInputSchema.acceptsOutput(
+                value, schema: root, root: root, selectedSchema: selected, selectedRootAnyOfIndex: selectedIndex
+            ) else {
+                throw NativeChatMCPToolBridge.Failure.invalidOutput
+            }
+        } catch NativeChatMCPInputSchema.Failure.unsupportedSchema {
+            // The catalog schema was validated when this contract was created. An
+            // unsupportedSchema error here means output validation could not safely complete.
             throw NativeChatMCPToolBridge.Failure.invalidOutput
         }
     }

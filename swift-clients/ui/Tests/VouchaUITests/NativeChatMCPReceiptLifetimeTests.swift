@@ -9,6 +9,32 @@ import XCTest
 final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCase {
     private let persistencePath = "/api/v1/conversations/conversation-1/client-generated-chat"
 
+    func testReceiptPublicationRejectsWrongConversationAndMissingToolIdentity() async throws {
+        let provider = ReceiptTurnProvider { turn in
+            let receipt = Self.receipt(turn)
+            let otherConversation = NativeChatMCPTurnOwner(
+                accountId: turn.owner.accountId, revision: turn.owner.revision,
+                conversationId: "another-conversation", userMessageId: turn.owner.userMessageId
+            )
+            XCTAssertFalse(turn.publish(.init(
+                id: UUID(), owner: otherConversation, toolName: receipt.toolName,
+                envelope: receipt.envelope, kind: receipt.kind
+            )))
+            XCTAssertFalse(turn.publish(.init(
+                id: UUID(), owner: turn.owner, toolName: "", envelope: receipt.envelope, kind: receipt.kind
+            )))
+            XCTAssertTrue(turn.publish(receipt))
+            return .toolResultsOnly(.contextStopped)
+        }
+        let viewModel = try await viewModel(provider)
+        viewModel.draftMessage = "Read one fixture"
+        await viewModel.sendDraftMessage()
+        let receipts = try XCTUnwrap(viewModel.mcpReceiptLedger?.receipts)
+        XCTAssertEqual(receipts.count, 1)
+        XCTAssertEqual(receipts.first?.toolName, "read_fixture")
+        XCTAssertEqual(persistedRequests, 0)
+    }
+
     func testStoppedResultIsLocalWithoutAssistantPersistenceAndExpiresWithNextTurn() async throws {
         let provider = ReceiptTurnProvider { turn in
             XCTAssertTrue(turn.publish(Self.receipt(turn)))

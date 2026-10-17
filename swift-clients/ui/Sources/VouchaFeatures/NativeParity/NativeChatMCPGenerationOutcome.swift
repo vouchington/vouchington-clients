@@ -51,7 +51,9 @@ struct NativeChatMCPReceiptLedger {
     }
 
     mutating func record(_ receipt: NativeChatMCPReceipt) -> Bool {
-        guard receipt.owner == owner, receipts.count < 4,
+        guard receipt.owner.accountId == owner.accountId, receipt.owner.revision == owner.revision,
+              receipt.owner.conversationId == owner.conversationId, receipt.owner.userMessageId == owner.userMessageId,
+              !receipt.toolName.isEmpty, receipts.count < 4,
               !receipts.contains(where: { $0.id == receipt.id }) else { return false }
         receipts.append(receipt)
         return true

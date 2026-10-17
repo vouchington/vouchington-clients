@@ -7,9 +7,11 @@ enum MCPJSONMemberGuard {
         let isObject: Bool
         var expectingKey: Bool
         var keys = Set<Data>()
+        var swiftKeys = Set<String>()
     }
 
     static func validate(_ data: Data) throws {
+        try MCPJSONLosslessNumberGuard.validate(data)
         let bytes = Array(data)
         let decoder = JSONDecoder()
         var contexts: [Context] = []
@@ -28,7 +30,11 @@ enum MCPJSONMemberGuard {
                     let key = try decoder.decode(String.self, from: Data(bytes[start ... index]))
                     // String equality canonicalizes Unicode; JSON member names must not.
                     let rawKey = Data(key.utf8)
-                    guard contexts[contexts.count - 1].keys.insert(rawKey).inserted else {
+                    // DecodedJSONValue stores object members in [String: Value], whose equality
+                    // treats canonically equivalent Unicode spellings as the same key. Reject a
+                    // collision before that dictionary can silently discard either JSON member.
+                    guard contexts[contexts.count - 1].keys.insert(rawKey).inserted,
+                          contexts[contexts.count - 1].swiftKeys.insert(key).inserted else {
                         throw MemberMCPClient.Failure.invalidResponse
                     }
                     contexts[contexts.count - 1].expectingKey = false

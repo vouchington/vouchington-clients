@@ -11,7 +11,8 @@ extension MemberMCPClientTests {
         let objects = [
             #"{"status":"approved","status":"denied"}"#,
             #"{"status":"approved","\u0073tatus":"denied"}"#,
-            #"{"😀":1,"\ud83d\ude00":2}"#
+            #"{"😀":1,"\ud83d\ude00":2}"#,
+            #"{"é":1,"e\u0301":2}"#
         ]
         for object in objects {
             for type in ["application/json", "text/event-stream"] {
@@ -34,7 +35,7 @@ extension MemberMCPClientTests {
     func testDistinctUnicodeKeysAndOrdinaryNestedResultsRemainValid() async throws {
         let rpc = #"""
         {"jsonrpc":"2.0","id":"2","result":{"content":[],"structuredContent":{
-        "é":1,"e\u0301":2,"nested":[{"status":"approved"},{"status":"denied"}]}}}
+        "é":1,"ê":2,"nested":[{"status":"approved"},{"status":"denied"}]}}}
         """#.replacingOccurrences(of: "\n", with: "")
         for type in ["application/json", "text/event-stream"] {
             let reply = type == "application/json" ? rpc : "data: \(rpc)\n\n"
@@ -44,7 +45,12 @@ extension MemberMCPClientTests {
                 protocolClasses: [MCPTestURLProtocol.self]
             )
             let result = try await client.callTool(name: "read_my_profile", arguments: [:], accessToken: "access-1")
-            XCTAssertNotNil(result.structuredContent)
+            guard case let .object(fields)? = result.structuredContent,
+                  case let .number(acute)? = fields["é"], case let .number(circumflex)? = fields["ê"] else {
+                return XCTFail("Both distinct Unicode fields must survive the full MCP response")
+            }
+            XCTAssertEqual(acute, 1)
+            XCTAssertEqual(circumflex, 2)
         }
     }
 

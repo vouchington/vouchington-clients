@@ -273,16 +273,16 @@ public sealed class CommunityDetailViewModelTests
 
   private static string CommunityDetailJsonWithMembership(string fixtureId, string role)
   {
-    var json = ApiFixtureLoader.LoadResponse(fixtureId).TrimEnd();
-    return json[..^1] + $@",
-  ""membership"": {{
-    ""id"": ""community-member-1"",
-    ""community_id"": ""community-1"",
-    ""user_id"": ""user-1"",
-    ""role"": ""{role}"",
-    ""__entity_type"": ""community_member""
-  }}
-}}";
+    var detail = JsonNode.Parse(ApiFixtureLoader.LoadResponse(fixtureId))!;
+    detail["membership"] = new JsonObject
+    {
+      ["id"] = "community-member-1",
+      ["community_id"] = "community-1",
+      ["user_id"] = "user-1",
+      ["role"] = role,
+      ["__entity_type"] = "community_member",
+    };
+    return detail.ToJsonString();
   }
 
   private sealed class TestSessionStore(SessionSnapshot? current) : ISessionStore
