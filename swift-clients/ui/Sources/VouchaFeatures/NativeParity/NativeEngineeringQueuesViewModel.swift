@@ -17,15 +17,31 @@ final class NativeEngineeringQueuesViewModel: NativeEngineeringActionPerforming 
 
     let client: APIClient
     var actionLoadingKeys: Set<String> = []
+    private var reloadRequested = false
+    private var isReloadDraining = false
 
     init(client: APIClient) {
         self.client = client
     }
 
     func load() async {
-        if case .loading = state {
+        if isReloadDraining {
+            reloadRequested = true
             return
         }
+        isReloadDraining = true
+        defer {
+            isReloadDraining = false
+            reloadRequested = false
+        }
+        // Only explicit load requests schedule another pass; overlapping requests coalesce.
+        repeat {
+            reloadRequested = false
+            await loadSnapshot()
+        } while reloadRequested && !Task.isCancelled
+    }
+
+    private func loadSnapshot() async {
         state = .loading
         do {
             async let statsResponse: EngineeringQueueStatsSummaryResponse = client.send(.mqStats)

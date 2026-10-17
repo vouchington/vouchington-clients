@@ -18,10 +18,15 @@ public sealed partial class EngineeringQueuesViewModel : ObservableObject
     get => domains;
     private set
     {
-      if (SetProperty(ref domains, value)) OnPropertyChanged(nameof(HasDomains));
+      if (SetProperty(ref domains, value))
+      {
+        OnPropertyChanged(nameof(HasDomains));
+        OnPropertyChanged(nameof(DomainRows));
+      }
     }
   }
   public bool HasDomains => Domains.Count > 0;
+  public IReadOnlyList<QueueDomainRow> DomainRows => Domains.Select(domain => new QueueDomainRow(domain)).ToArray();
   private bool isLoading;
   private bool isMutating;
   private string? errorMessage;

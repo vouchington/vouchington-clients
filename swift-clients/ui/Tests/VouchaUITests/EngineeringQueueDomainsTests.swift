@@ -85,6 +85,40 @@ final class EngineeringQueueDomainsTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(try disabled.contains { try $0.isDisabled() })
     }
 
+    func testConcurrentDomainMutationRefreshesAfterAnAlreadyCapturedLoad() async throws {
+        stubLoad()
+        let model = try NativeEngineeringQueuesViewModel(client: makeClient())
+        await model.load()
+        let firstDomain = try XCTUnwrap(model.domains.first?.domain)
+        let secondDomain = try XCTUnwrap(model.domains.dropFirst().first?.domain)
+        for domain in [firstDomain, secondDomain] {
+            CannedFeedURLProtocol.handlers["/api/v1/mq/queues/background/domains/\(domain)/pause"] = (
+                ApiFixtureLoader.data("web.admin.mq.queues.domains.pause.default"), 200
+            )
+        }
+        let domainsPath = "/api/v1/mq/queues/background/domains"
+        let capturedStaleLoad = expectation(description: "First mutation reload captured")
+        CannedFeedURLProtocol.suspendResponse(path: domainsPath) { capturedStaleLoad.fulfill() }
+        let firstMutation = Task { await model.pauseDomain(firstDomain) }
+        await fulfillment(of: [capturedStaleLoad], timeout: 2)
+
+        var response = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("web.admin.mq.queues.domains.default")
+        ) as? [String: Any])
+        var domains = try XCTUnwrap(response["domains"] as? [[String: Any]])
+        let index = try XCTUnwrap(domains.firstIndex { $0["domain"] as? String == secondDomain })
+        domains[index]["waiting"] = ["count": 99, "complete": true]
+        response["domains"] = domains
+        CannedFeedURLProtocol.handlers[domainsPath] = try (JSONSerialization.data(withJSONObject: response), 200)
+        await model.pauseDomain(secondDomain)
+        CannedFeedURLProtocol.releaseResponse(path: domainsPath)
+        await firstMutation.value
+
+        XCTAssertEqual(model.domains.first { $0.domain == secondDomain }?.waiting.count, 99)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == domainsPath }.count, 3)
+        XCTAssertTrue(model.actionLoadingKeys.isEmpty)
+    }
+
     func testDomainCountFormattingKeepsLowerBoundMarkerAfterLocalizedNumber() {
         XCTAssertEqual(UiMessages.queueDomainCount(1_234, complete: false, locale: Locale(identifier: "en")), "1,234+")
         XCTAssertEqual(UiMessages.queueDomainCount(1_234, complete: true, locale: Locale(identifier: "en")), "1,234")
@@ -92,6 +126,26 @@ final class EngineeringQueueDomainsTests: NativeRouteSurfaceViewModelTestCase {
             UiMessages.queueDomainCount(1_234, complete: false, locale: Locale(identifier: "fr")),
             "1\u{202F}234+"
         )
+    }
+
+    func testCanceledReloadDoesNotDrainQueuedWorkAndAllowsNextExplicitLoad() async throws {
+        stubLoad()
+        let model = try NativeEngineeringQueuesViewModel(client: makeClient())
+        let domainsPath = "/api/v1/mq/queues/background/domains"
+        let capturedLoad = expectation(description: "Canceled load captured")
+        CannedFeedURLProtocol.suspendResponse(path: domainsPath) { capturedLoad.fulfill() }
+        let load = Task { await model.load() }
+        await fulfillment(of: [capturedLoad], timeout: 2)
+        await model.load()
+        load.cancel()
+        CannedFeedURLProtocol.releaseResponse(path: domainsPath)
+        await load.value
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == domainsPath }.count, 1)
+
+        await model.load()
+
+        XCTAssertFalse(model.domains.isEmpty)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == domainsPath }.count, 2)
     }
 
     private func stubLoad() {

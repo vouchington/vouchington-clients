@@ -63,14 +63,14 @@
             </Border>
 
             <Label Text="{DynamicResource extracted.queues.domainsSection.backgroundDomains_d956d6be}" IsVisible="{Binding HasDomains}" Style="{StaticResource Headline}" />
-            <CollectionView AutomationId="engineering-domains-list" ItemsSource="{Binding Domains}" SelectionMode="None">
+            <CollectionView AutomationId="engineering-domains-list" ItemsSource="{Binding DomainRows}" SelectionMode="None">
                 <CollectionView.Triggers>
                     <DataTrigger TargetType="CollectionView" Binding="{Binding IsLoading}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger>
                 </CollectionView.Triggers>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="api:QueueDomain">
+                    <DataTemplate x:DataType="eng:QueueDomainRow">
                         <VerticalStackLayout Padding="12" Spacing="6">
-                            <Label Text="{Binding Domain}" Style="{StaticResource Headline}" />
+                            <Label AutomationId="domain-name" Text="{Binding DomainPresentation}" Style="{StaticResource Headline}" />
                             <HorizontalStackLayout Spacing="8">
                                 <Label Text="{DynamicResource extracted.queues.domainsSection.waiting_6e293a8c}" />
                                 <Label AutomationId="domain-waiting" Text="{app:UiLocalizedValue Path=Waiting, Format=domainCount}" />
@@ -95,12 +95,12 @@
                                 <Label.Triggers><DataTrigger TargetType="Label" Binding="{Binding Paused}" Value="True"><Setter Property="IsVisible" Value="False" /></DataTrigger></Label.Triggers>
                             </Label>
                             <Label Text="{DynamicResource extracted.queues.domainsSection.paused_e159b061}" IsVisible="{Binding Paused}" />
-                            <Label Text="{Binding Reason}" />
+                            <Label AutomationId="domain-reason" Text="{Binding ReasonPresentation}" />
                             <HorizontalStackLayout Spacing="8">
-                                <Button AutomationId="domain-pause" Text="{DynamicResource extracted.queues.domainsSection.pause_858e4ba7}" Clicked="OnToggleDomainPauseClicked" CommandParameter="{Binding .}">
+                                <Button AutomationId="domain-pause" Text="{DynamicResource extracted.queues.domainsSection.pause_858e4ba7}" Clicked="OnToggleDomainPauseClicked" CommandParameter="{Binding Source}">
                                     <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding Paused}" Value="True"><Setter Property="Text" Value="{DynamicResource extracted.queues.domainsSection.resume_d640c742}" /></DataTrigger></Button.Triggers>
                                 </Button>
-                                <Button AutomationId="domain-retry" Text="{DynamicResource extracted.queues.domainsSection.retryFailed_2630f650}" Clicked="OnRetryDomainClicked" CommandParameter="{Binding .}" />
+                                <Button AutomationId="domain-retry" Text="{DynamicResource extracted.queues.domainsSection.retryFailed_2630f650}" Clicked="OnRetryDomainClicked" CommandParameter="{Binding Source}" />
                             </HorizontalStackLayout>
                         </VerticalStackLayout>
                     </DataTemplate>
