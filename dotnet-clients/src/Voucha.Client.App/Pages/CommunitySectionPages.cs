@@ -48,7 +48,7 @@ public abstract partial class CommunitySectionPage : ContentPage
     sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     this.section = section;
     this.serviceProvider = serviceProvider;
-    this.config = config ?? AppConfig.FromEnvironment();
+    this.config = config ?? AppConfig.FromAssembly(typeof(CommunitySectionPage).Assembly);
     paginationControl = new HybridPaginationControl
     {
       PaginationId = $"community-{section.ToString().ToLowerInvariant()}",

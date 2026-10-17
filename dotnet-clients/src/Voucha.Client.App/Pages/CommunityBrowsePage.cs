@@ -24,7 +24,7 @@ public sealed class CommunityBrowsePage : ContentPage
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
-    this.config = config ?? AppConfig.FromEnvironment();
+    this.config = config ?? AppConfig.FromAssembly(typeof(CommunityBrowsePage).Assembly);
     lastSearchWasStaff = IsStaffViewer();
     sessionChangedHandler = (_, _) => Dispatcher.Dispatch(() => _ = RefreshAfterSessionChangedAsync());
     BindingContext = viewModel;

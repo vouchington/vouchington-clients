@@ -47,7 +47,7 @@ public static partial class MauiProgram
     builder.ConfigureMauiHandlers(handlers => handlers.AddHandler<ProviderEmbedWebView, ProviderEmbedWebViewHandler>());
 #endif
 
-    builder.Services.AddSingleton(AppConfig.FromEnvironment());
+    builder.Services.AddSingleton(AppConfig.FromAssembly(typeof(MauiProgram).Assembly));
     AddAuthSessionServices(builder.Services);
     AddLocalizationServices(builder.Services);
     builder.Services.AddSingleton<IHnDiscussionsSettings>(sp =>

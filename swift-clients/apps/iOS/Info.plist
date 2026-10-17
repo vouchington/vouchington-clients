@@ -29,6 +29,25 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Voucha connects to language models on your local network.</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
@@ -53,24 +72,11 @@
 			</dict>
 		</dict>
 	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<false/>
-			</dict>
-		</dict>
-	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Voucha connects to language models on your local network.</string>
+	<key>VOUCHA_API_BASE_URL</key>
+	<string>$(VOUCHA_API_BASE_URL)</string>
+	<key>VOUCHA_IMAGE_BASE_URL</key>
+	<string>$(VOUCHA_IMAGE_BASE_URL)</string>
+	<key>VOUCHA_TURNSTILE_SITE_KEY</key>
+	<string>$(VOUCHA_TURNSTILE_SITE_KEY)</string>
 </dict>
 </plist>

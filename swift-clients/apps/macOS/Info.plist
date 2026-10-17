@@ -74,5 +74,11 @@
 			</dict>
 		</dict>
 	</array>
+	<key>VOUCHA_API_BASE_URL</key>
+	<string>$(VOUCHA_API_BASE_URL)</string>
+	<key>VOUCHA_IMAGE_BASE_URL</key>
+	<string>$(VOUCHA_IMAGE_BASE_URL)</string>
+	<key>VOUCHA_TURNSTILE_SITE_KEY</key>
+	<string>$(VOUCHA_TURNSTILE_SITE_KEY)</string>
 </dict>
 </plist>

@@ -65,6 +65,15 @@ intentionally do not keep a checked-in site-key fallback because Cloudflare regi
 production widgets separately. App startup must not fail solely because the site key is absent. In
 Xcode: Product → Scheme → Edit → Run → Arguments → Environment Variables.
 
+Packaged macOS/iOS apps read configuration in this order: process environment, the app's
+`Info.plist`, then production API/image defaults. XcodeGen writes `VOUCHA_API_BASE_URL`,
+`VOUCHA_IMAGE_BASE_URL`, and `VOUCHA_TURNSTILE_SITE_KEY` into the plist from the corresponding
+build settings. Set the public Turnstile site key in the existing local XCConfig or pass
+`VOUCHA_TURNSTILE_SITE_KEY` to `xcodebuild` when creating a Release build. Release automation
+should map its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build setting;
+scheme environment variables alone do not configure an installed app. A missing key remains
+empty and CAPTCHA-gated operations fail closed. No site key or credential is checked in.
+
 ## Workflow
 
 CI builds the macOS app shell and compiles the generated iOS app for a generic iOS Simulator
