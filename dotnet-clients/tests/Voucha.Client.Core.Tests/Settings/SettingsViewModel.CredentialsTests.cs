@@ -258,19 +258,25 @@ public sealed partial class SettingsViewModelTests
   }
 
   [Fact]
-  public async Task UnknownCatalogueDescriptionsFailTruthfullyWithoutRawPresentationCopy()
+  public async Task UnknownCatalogueDescriptionDoesNotDisableKnownScopesOrInventCopy()
   {
     var service = new FakeSettingsService
     {
-      Catalog = new ScopeCatalogResponse([new("rss:read", "api", "rss", "read", ["api-key"], "unknown_description", null)]),
+      Catalog = new ScopeCatalogResponse([
+          new("mcp.user:read", "user", "mcp.user", "read", ["api-key", "oauth"], "mcp_user_full_access", null),
+          new("mcp.user:future", "user", "mcp", "read", ["api-key"], "future_scope_description", null),
+      ]),
     };
-    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader" };
+    using var model = new SettingsViewModel(service) { ApiKeyLabel = "Reader", ApiKeyType = "mcp" };
     await model.LoadAsync(TestContext.Current.CancellationToken);
 
-    Assert.Empty(model.ApiKeyScopes);
-    Assert.False(model.CanCreateApiKey);
-    Assert.NotNull(model.CredentialNotice);
-    Assert.DoesNotContain("unknown_description", model.CredentialNotice, StringComparison.Ordinal);
+    Assert.Null(model.CredentialNotice);
+    Assert.Equal(["mcp.user:read", "mcp.user:future"], model.ApiKeyScopes.Select(scope => scope.Scope));
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeCredentialsMcpUserFullAccess),
+        model.ApiKeyScopes[0].Description);
+    Assert.Empty(model.ApiKeyScopes[1].Description);
+    model.SetApiKeyScopeSelected("mcp.user:read", true);
+    Assert.True(model.CanCreateApiKey);
   }
 
   [Theory]

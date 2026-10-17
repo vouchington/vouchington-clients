@@ -68,8 +68,6 @@ public sealed partial class SettingsViewModel
     {
       var response = await settingsService.FetchScopeCatalogAsync(cancellationToken).ConfigureAwait(true);
       if (!IsCurrentSettingsLoad(generation)) return;
-      if (response.Scopes.Any(scope => !SettingsScopeRow.IsSupportedDescriptionKey(scope.DescriptionKey)))
-        throw new InvalidOperationException("Unknown scope description.");
       scopeCatalog = response.Scopes;
       RebuildScopeSelection();
       SetCredentialNotice(null);
