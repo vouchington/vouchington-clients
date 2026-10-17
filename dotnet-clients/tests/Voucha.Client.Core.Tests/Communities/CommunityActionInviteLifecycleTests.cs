@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Communities;
+using Voucha.Client.Core.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Communities;
@@ -64,7 +65,7 @@ public sealed class CommunityActionInviteLifecycleTests
       responses[index].SetResult(new HttpResponseMessage(HttpStatusCode.OK)
       {
         Content = new StringContent(
-            $$"""{"community_invite":{"id":"invite-1","community_id":"community-1","code":"{{code}}","invited_user_id":null,"invited_email":"person@example.com","invited_by_id":"moderator-1","accepted_at":null,"accepted_by_id":null,"declined_at":null,"revoked_at":null,"created_at":"2026-07-01T00:00:00Z"}}""",
+            $$$"""{"community_invite":{"id":"invite-1","community_id":"community-1","code":"{{{code}}}","invited_user_id":null,"invited_email":"person@example.com","invited_by_id":"moderator-1","accepted_at":null,"accepted_by_id":null,"declined_at":null,"revoked_at":null,"created_at":"2026-07-01T00:00:00Z"}}""",
             Encoding.UTF8,
             "application/json"),
       });
