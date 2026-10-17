@@ -101,7 +101,8 @@ public sealed class SettingsLinkedinOAuthRenderingTests
         new VouchaApiClient(new HttpClient(new JsonHandler(json, includeStartResponse)) { BaseAddress = new Uri("https://api.test") }),
         new EmptyPersistence(),
         new RecordingBrowser(),
-        session);
+        session,
+        now: () => new DateTimeOffset(2027, 7, 29, 21, 55, 0, TimeSpan.Zero));
   }
 
   private static void Refresh(SettingsPage page) =>
