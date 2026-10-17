@@ -45,9 +45,13 @@ extension MemberMCPClient {
                 delegateQueue: nil
             )
             defer { session.invalidateAndCancel() }
+            try retryCooldown.check()
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
             if http.statusCode == 401 { throw Failure.unauthorized }
+            if http.statusCode == 429 {
+                throw rateLimitFailure(http)
+            }
             guard http.statusCode == 202 else { throw Failure.httpStatus(http.statusCode) }
             initialized = true
         } catch {

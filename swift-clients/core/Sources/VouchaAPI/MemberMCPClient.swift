@@ -26,6 +26,7 @@ public actor MemberMCPClient {
     let endpoint: URL
     let configuration: URLSessionConfiguration
     let responseTimeout: TimeInterval
+    var retryCooldown: MemberMCPRetryCooldown
     private var nextRequestId = 0
     var protocolVersion: String?
     var sessionId: String?
@@ -33,7 +34,11 @@ public actor MemberMCPClient {
     var closed = false
     var initialization: Task<Void, Error>?
 
-    public init(siteOrigin: URL, protocolClasses: [AnyClass]? = nil, responseTimeout: TimeInterval = 120) throws {
+    public init(
+        siteOrigin: URL, protocolClasses: [AnyClass]? = nil, responseTimeout: TimeInterval = 120,
+        retryUptime: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        retryDate: @escaping @Sendable () -> Date = { Date() }
+    ) throws {
         let origin = URLComponents(url: siteOrigin, resolvingAgainstBaseURL: false)
         guard origin?.scheme == "https", origin?.host != nil,
               origin?.user == nil, origin?.password == nil,
@@ -43,6 +48,7 @@ public actor MemberMCPClient {
         guard responseTimeout.isFinite, responseTimeout > 0 else { throw Failure.invalidResponse }
         endpoint = siteOrigin.appendingPathComponent("api/v1/mcp")
         self.responseTimeout = responseTimeout
+        retryCooldown = MemberMCPRetryCooldown(uptime: retryUptime, date: retryDate)
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForResource = responseTimeout
         config.httpCookieStorage = nil
@@ -66,23 +72,7 @@ public actor MemberMCPClient {
             "name": .string(name), "arguments": .object(arguments)
         ])
         let result: ToolResult = try await send(method: "tools/call", params: params, token: accessToken)
-        if result.isError == true {
-            for content in result.content {
-                guard case let .object(block) = content,
-                      case let .string(text)? = block["text"],
-                      let data = text.data(using: .utf8),
-                      let value = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
-                      case let .object(body) = value,
-                      case let .object(error)? = body["error"],
-                      case let .string(code)? = error["code"], code == "RATE_LIMIT"
-                else { continue }
-                let seconds: Int? = if case let .number(value)? = error["retryAfterSeconds"],
-                                       value > 0, value < Double(Int.max), value.rounded() == value {
-                    Int(value)
-                } else { nil }
-                throw Failure.rateLimited(retryAfterSeconds: seconds)
-            }
-        }
+        if let failure = rateLimitFailure(result) { throw failure }
         return result
     }
 
@@ -91,6 +81,7 @@ public actor MemberMCPClient {
         params: DecodedJSONValue,
         token: String
     ) async throws -> Result {
+        try Task.checkCancellation()
         try await ensureInitialized(token: token)
         do {
             return try await sendRPC(method: method, params: params, token: token)
@@ -106,6 +97,8 @@ public actor MemberMCPClient {
         token: String
     ) async throws -> Result {
         if closed, method != "initialize" { throw Failure.closed }
+        try Task.checkCancellation()
+        try retryCooldown.check()
         nextRequestId += 1
         let id = String(nextRequestId)
         let body: DecodedJSONValue = .object([
@@ -141,9 +134,7 @@ public actor MemberMCPClient {
             throw Failure.sessionExpired
         }
         if http.statusCode == 429 {
-            throw Failure.rateLimited(retryAfterSeconds: Self.retryDelay(
-                http.value(forHTTPHeaderField: "Retry-After")
-            ))
+            throw rateLimitFailure(http)
         }
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
         let responseSession = try sessionForReply(to: method, response: http, previous: requestSession)
