@@ -88,16 +88,21 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertNotNil(records.first?["expires"])
     }
 
-    func testCookieSnapshotsKeepFoundationResolvedMaxAgeExpiryAbsolute() throws {
+    func testVersionZeroMaxAgeOverridesExpiresAndSnapshotDeadlineIsAbsolute() throws {
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
             .name: "dt",
             .value: "device-secret",
             .domain: ".voucha.ai",
             .path: "/",
+            .version: "0",
             .expires: Date(timeIntervalSince1970: 4_102_444_800),
             .maximumAge: "60"
         ]))
-        let expectedExpiry = try XCTUnwrap(cookie.expiresDate)
+        XCTAssertNil(cookie.expiresDate, "Version-0 FoundationNetworking cookies do not resolve Max-Age")
+        let properties = try XCTUnwrap(cookie.properties)
+        let createdSeconds = try XCTUnwrap(properties[HTTPCookiePropertyKey("Created")] as? NSNumber)
+        let expectedExpiry = Date(timeIntervalSinceReferenceDate: createdSeconds.doubleValue)
+            .addingTimeInterval(60)
 
         let firstSnapshot = try XCTUnwrap(AndroidSessionCookieStorage.CookieRecord(cookie: cookie))
         let encodedSnapshot = try JSONEncoder().encode(firstSnapshot)
@@ -111,6 +116,20 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertLessThan(expectedExpiry, Date().addingTimeInterval(120))
         XCTAssertEqual(firstSnapshot.expires, expectedExpiry)
         XCTAssertEqual(laterSnapshot.expires, expectedExpiry)
+    }
+
+    func testVersionZeroMaxAgeZeroIsNotPersistedDespiteFutureExpires() throws {
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .name: "expired",
+            .value: "no-session",
+            .domain: "voucha.ai",
+            .path: "/",
+            .version: "0",
+            .expires: Date(timeIntervalSince1970: 4_102_444_800),
+            .maximumAge: "0"
+        ]))
+
+        XCTAssertNil(AndroidSessionCookieStorage.CookieRecord(cookie: cookie))
     }
 
     func testMaxAgeZeroDeletesCookieDespiteFutureExpires() throws {
