@@ -4,11 +4,16 @@ import VouchaModels
 struct NativeChatMCPOutputContract {
     let root: DecodedJSONValue
     private let options: [String: DecodedJSONValue]?
+    private let rootOptions: Set<String>
 
     init(fields: [String: DecodedJSONValue]) throws {
         guard let schema = fields["outputSchema"] else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         root = schema
+        rootOptions = if case let .object(meta)? = fields["_meta"],
+                         case let .object(mapping)? = meta["voucha/optionOutputPointers"] {
+            Set(mapping.compactMap { key, value in if case .string("#") = value { key } else { nil } })
+        } else { [] }
         if let meta = fields["_meta"], case .object = meta {} else if fields["_meta"] != nil {
             throw NativeChatMCPToolBridge.Failure.invalidCatalog
         }
@@ -30,16 +35,16 @@ struct NativeChatMCPOutputContract {
 
     func validate(_ result: MemberMCPClient.ToolResult, arguments: [String: DecodedJSONValue]) throws {
         guard result.isError != true else { return }
-        var selected = root
+        var selected: DecodedJSONValue?
         if let options {
             guard case let .string(option)? = arguments["option"], let schema = options[option] else {
                 throw NativeChatMCPToolBridge.Failure.invalidOutput
             }
-            selected = schema
+            selected = rootOptions.contains(option) ? nil : schema
         }
         guard let value = result.structuredContent,
               try NativeChatMCPInputSchema.acceptsOutput(
-                  value, schema: root, root: root, selectedSchema: options == nil ? nil : selected
+                  value, schema: root, root: root, selectedSchema: selected
               ) else {
             throw NativeChatMCPToolBridge.Failure.invalidOutput
         }

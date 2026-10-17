@@ -18,7 +18,8 @@ extension NativeChatMCPInputSchema {
             remainingWork: &remainingWork,
             output: output
         ),
-            checkScalarAssertions(value, fields: fields) else { return false }
+            try checkScalarAssertions(value, fields: fields, remainingWork: &remainingWork, output: output)
+        else { return false }
         guard try checkCompositions(
             value,
             fields: fields,
@@ -74,12 +75,22 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkScalarAssertions(
-        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue]
-    ) -> Bool {
+        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
+        remainingWork: inout Int, output: Bool
+    ) throws -> Bool {
         if let expected = fields["type"], !matchesType(value, expected: expected) { return false }
-        if let constant = fields["const"], !same(value, constant) { return false }
-        if case let .array(choices)? = fields["enum"], !choices.contains(where: { same(value, $0) }) {
+        if let constant = fields["const"],
+           try !(output ? sameOutput(value, constant, remainingWork: &remainingWork) : same(value, constant)) {
             return false
+        }
+        if case let .array(choices)? = fields["enum"] {
+            var matched = false
+            for choice in choices
+                where try output ? sameOutput(value, choice, remainingWork: &remainingWork) : same(value, choice) {
+                matched = true
+                break
+            }
+            if !matched { return false }
         }
         return true
     }
