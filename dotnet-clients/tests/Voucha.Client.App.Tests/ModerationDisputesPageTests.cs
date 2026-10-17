@@ -97,7 +97,10 @@ public sealed class ModerationDisputesPageTests
 
     Find<Button>(card, "review-dispute-approve").SendClicked();
     await WaitForBarrierAsync(service.UpdateStarted.Task, "the card mutation to start its public-response update");
-    page.CancelLifecycleOperations();
+    typeof(ModerationDisputesPage).GetMethod(
+        "OnDisappearing",
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .Invoke(page, null);
 
     await WaitForBarrierAsync(service.CancellationObserved.Task, "page disappearance to cancel the public-response update");
 
