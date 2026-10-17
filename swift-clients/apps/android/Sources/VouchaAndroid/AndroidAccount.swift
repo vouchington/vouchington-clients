@@ -121,23 +121,24 @@ final class AndroidAccount {
             .shared
         #endif
     }
-
-    #if SKIP
-        static func configuredAndroidApiBaseURL() -> String {
-            androidManifestValue("ai.voucha.VOUCHA_API_BASE_URL") ?? "https://voucha.ai"
-        }
-
-        static func configuredAndroidTurnstileSiteKey() -> String {
-            androidManifestValue("ai.voucha.VOUCHA_TURNSTILE_SITE_KEY") ?? ""
-        }
-
-        private static func androidManifestValue(_ name: String) -> String? {
-            let context = ProcessInfo.processInfo.androidContext
-            let info = context.getPackageManager().getApplicationInfo(
-                context.getPackageName(),
-                PackageManager.GET_META_DATA
-            )
-            return info.metaData?.getString(name)
-        }
-    #endif
 }
+
+// Top-level Kotlin helpers are bridged into the native Swift Android module.
+#if SKIP
+    func configuredAndroidApiBaseURL() -> String {
+        androidManifestValue("ai.voucha.VOUCHA_API_BASE_URL") ?? "https://voucha.ai"
+    }
+
+    func configuredAndroidTurnstileSiteKey() -> String {
+        androidManifestValue("ai.voucha.VOUCHA_TURNSTILE_SITE_KEY") ?? ""
+    }
+
+    private func androidManifestValue(_ name: String) -> String? {
+        let context = ProcessInfo.processInfo.androidContext
+        let info = context.getPackageManager().getApplicationInfo(
+            context.getPackageName(),
+            PackageManager.GET_META_DATA
+        )
+        return info.metaData?.getString(name)
+    }
+#endif

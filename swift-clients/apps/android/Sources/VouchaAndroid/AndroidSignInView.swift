@@ -68,6 +68,13 @@ struct AndroidTurnstileChallenge: View {
     let siteKey: String
     let onToken: (String?) -> Void
 
+    // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
+    // swiftformat:disable:next redundantMemberwiseInit
+    init(siteKey: String, onToken: @escaping (String?) -> Void) {
+        self.siteKey = siteKey
+        self.onToken = onToken
+    }
+
     var body: some View {
         #if os(Android)
             TurnstileWebChallenge(siteKey: siteKey) { token in
@@ -90,6 +97,13 @@ struct AndroidTurnstileChallenge: View {
     struct TurnstileWebChallenge: View {
         let siteKey: String
         let onToken: (String?) -> Void
+
+        // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
+        // swiftformat:disable:next redundantMemberwiseInit
+        init(siteKey: String, onToken: @escaping (String?) -> Void) {
+            self.siteKey = siteKey
+            self.onToken = onToken
+        }
 
         var body: some View {
             ComposeView { context in
