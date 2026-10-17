@@ -95,6 +95,8 @@ rules:
     scope: repository
     options:
       permanentPackages:
+        - name: agent-blackboard
+          reason: First-party agent journaling client, a vouchington-tooling dependency.
         - name: coverage-check
           reason: First-party native patch-coverage utility.
         - name: no-mistakes
