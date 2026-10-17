@@ -11,30 +11,57 @@ struct ContentView: View {
     var tab = ContentTab.chat
     @State
     var viewModel = ViewModel()
+    @State
+    var account = AndroidAccount()
     @Environment(\.locale)
     var locale
 
     var body: some View {
-        TabView(selection: $tab) {
-            NavigationStack {
-                AndroidChatView(viewModel: viewModel)
-                    .navigationTitle(message(.nativeSwiftAndroidChat))
-            }
-            .tabItem { Text(message(.nativeSwiftAndroidChat)) }
-            .tag(ContentTab.chat)
+        Group {
+            if account.isRestoring {
+                ProgressView()
+            } else if account.session.isSignedIn {
+                TabView(selection: $tab) {
+                    NavigationStack {
+                        AndroidChatView(viewModel: viewModel)
+                            .navigationTitle(message(.nativeSwiftAndroidChat))
+                    }
+                    .tabItem { Text(message(.nativeSwiftAndroidChat)) }
+                    .tag(ContentTab.chat)
 
-            NavigationStack {
-                AndroidSettingsView(viewModel: viewModel)
-                    .navigationTitle(message(.nativeSwiftAndroidLocalModels))
+                    NavigationStack {
+                        AndroidSettingsView(viewModel: viewModel) {
+                            await signOutAndReplaceAccount()
+                        }
+                        .navigationTitle(message(.nativeSwiftAndroidLocalModels))
+                    }
+                    .tabItem { Text(message(.nativeSwiftAndroidSettings)) }
+                    .tag(ContentTab.settings)
+                }
+            } else {
+                AndroidSignInView(account: account)
             }
-            .tabItem { Text(message(.nativeSwiftAndroidSettings)) }
-            .tag(ContentTab.settings)
         }
-        .task { await viewModel.refreshStatus() }
+        .onChange(of: account.session.currentUserId) { _, _ in
+            viewModel.resetForAccountTransition()
+        }
+        .task {
+            await account.restore()
+            await viewModel.refreshStatus()
+        }
     }
 
     private func message(_ key: UiMessageKey) -> String {
         UiMessages.string(key, locale: locale)
+    }
+
+    @MainActor
+    private func signOutAndReplaceAccount() async {
+        let config = account.config
+        await account.signOut()
+        guard !account.session.isSignedIn else { return }
+        account = AndroidAccount(config: config)
+        await account.restore()
     }
 }
 
@@ -78,6 +105,7 @@ struct AndroidChatView: View {
 struct AndroidSettingsView: View {
     @Bindable
     var viewModel: ViewModel
+    var signOut: () async -> Void
     @State
     var endpointStatus: String?
     @Environment(\.locale)
@@ -119,6 +147,11 @@ struct AndroidSettingsView: View {
                 }
                 if let endpointStatus {
                     Text(endpointStatus)
+                }
+            }
+            Section(UiMessages.string(.nativeAuthSignIn, locale: locale)) {
+                Button(message(.nativeSwiftProfileSignOut), role: .destructive) {
+                    Task { await signOut() }
                 }
             }
         }
