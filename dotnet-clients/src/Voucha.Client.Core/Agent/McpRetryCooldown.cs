@@ -18,12 +18,13 @@ internal sealed class McpRetryCooldown(TimeProvider timeProvider)
   {
     lock (gate)
     {
-      if (retryAfter is { } candidate && candidate > TimeSpan.Zero && candidate > Remaining())
+      var remaining = Remaining();
+      if (retryAfter is { } candidate && candidate > TimeSpan.Zero && candidate > remaining)
       {
         started = timeProvider.GetTimestamp();
         delay = candidate;
+        remaining = candidate;
       }
-      var remaining = Remaining();
       return new McpRateLimitException(remaining > TimeSpan.Zero ? remaining : null);
     }
   }

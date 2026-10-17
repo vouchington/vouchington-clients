@@ -9,6 +9,16 @@ namespace Voucha.Client.Core.Tests.Agent;
 
 public sealed class MemberMcpRetryCooldownTests
 {
+  [Fact]
+  public async Task FirstRefusalRetainsExactServerDelayWhenTimestampAdvances()
+  {
+    var clock = new RetryClock { TimestampAdvance = TimeSpan.FromTicks(1) };
+    var handler = new RetryHandler(clock, "seconds", "tools/list");
+    using var client = new MemberMcpClient(new Uri("https://example.test"), handler, timeProvider: clock);
+    var error = await Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(client, "tools/list"));
+    Assert.Equal(TimeSpan.FromSeconds(17), error.RetryAfter);
+  }
+
   [Theory]
   [InlineData("seconds", "tools/list")]
   [InlineData("date", "tools/list")]
@@ -163,8 +173,9 @@ public sealed class MemberMcpRetryCooldownTests
   {
     private long ticks;
     private long wallTicks;
+    public TimeSpan TimestampAdvance { get; init; }
     public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-    public override long GetTimestamp() => Interlocked.Read(ref ticks);
+    public override long GetTimestamp() => Interlocked.Add(ref ticks, TimestampAdvance.Ticks);
     public override DateTimeOffset GetUtcNow() => new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero)
         .AddTicks(Interlocked.Read(ref wallTicks));
     public void Advance(TimeSpan value) => Interlocked.Add(ref ticks, value.Ticks);
