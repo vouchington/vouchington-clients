@@ -16,14 +16,18 @@ struct AndroidSignInView: View {
                             UiMessages.string(.nativeAuthAuthenticatorTitle, locale: locale),
                             text: $account.totp
                         )
+                        #if os(iOS) || os(Android) || SKIP
                         .keyboardType(.numberPad)
+                        #endif
                         Button(UiMessages.string(.nativeAuthVerify, locale: locale)) {
                             Task { await account.verifyMFA() }
                         }.disabled(account.isAuthenticating || account.totp.isEmpty || loginAttemptID.isEmpty)
                     } else if account.otpRequested {
                         Text(UiMessages.string(.nativeAuthCheckEmail, locale: locale))
                         TextField(UiMessages.string(.nativeAuthCodePlaceholder, locale: locale), text: $account.otp)
+                        #if os(iOS) || os(Android) || SKIP
                             .keyboardType(.numberPad)
+                        #endif
                         Button(UiMessages.string(.nativeAuthVerifyCode, locale: locale)) {
                             Task { await account.verifyOTP() }
                         }.disabled(account.isAuthenticating || account.otp.isEmpty)
@@ -33,8 +37,10 @@ struct AndroidSignInView: View {
                         }
                     } else {
                         TextField(UiMessages.string(.nativeAuthEmailAddress, locale: locale), text: $account.email)
+                        #if os(iOS) || os(Android) || SKIP
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
+                        #endif
                         if account.config.turnstileSiteKey.isEmpty {
                             Text(UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale))
                                 .foregroundStyle(.red)
