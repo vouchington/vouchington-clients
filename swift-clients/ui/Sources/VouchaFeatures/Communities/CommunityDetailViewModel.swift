@@ -30,6 +30,7 @@ final class CommunityDetailViewModel {
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""
     private(set) var oneTimeInviteCode: String?
+    var isSubmittingInvite = false
     @ObservationIgnored
     var inviteOperationRevision = 0
 

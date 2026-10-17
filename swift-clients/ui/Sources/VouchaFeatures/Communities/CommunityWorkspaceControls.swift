@@ -102,6 +102,7 @@ struct CommunityTabControls: View {
                     Button(UiMessages.string(.nativeSwiftCommunitiesInvite, locale: nativeUiLocale)) {
                         Task { await viewModel.invite() }
                     }
+                    .disabled(viewModel.isSubmittingInvite || viewModel.oneTimeInviteCode != nil)
                 }
                 if let code = viewModel.oneTimeInviteCode {
                     Text(UiMessages.string(.nativeSwiftCommunitiesOneTimeInviteCodeNotice, locale: nativeUiLocale))

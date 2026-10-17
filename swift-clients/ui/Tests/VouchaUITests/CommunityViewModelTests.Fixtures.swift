@@ -70,6 +70,10 @@ extension CommunityViewModelTests {
             Data(#"{"results":[],"posts":{}}"#.utf8),
             200
         )
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/list-items/counts"] = (
+            Data(#"{"topic":0,"rss_feed":0,"post":0,"url_hostname":0,"url":0}"#.utf8),
+            200
+        )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/members"] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/application-questions"] = (

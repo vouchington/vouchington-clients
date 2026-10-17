@@ -176,6 +176,65 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.contains { $0?.contains(#""archive":false"#) == true })
     }
 
+    func testInvitePublishesCodeBeforeRefreshAndSerializesSubmissions() async throws {
+        registerDetailFixtures(membershipRole: "owner")
+        let invitePath = "/api/v1/communities/builders/invites"
+        let communityPath = "/api/v1/communities/builders"
+        CannedFeedURLProtocol.requestHandlers["POST \(invitePath)"] = (inviteResponse(code: "one-time-code"), 201)
+        CannedFeedURLProtocol.suspendResponse(path: invitePath)
+        CannedFeedURLProtocol.suspendResponse(path: communityPath)
+        defer {
+            CannedFeedURLProtocol.releaseResponse(path: invitePath)
+            CannedFeedURLProtocol.releaseResponse(path: communityPath)
+        }
+
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+        viewModel.inviteRecipient = "alice"
+        let invitePost = CannedFeedURLProtocol.requestBarrier(path: invitePath, method: "POST")
+        let communityRefresh = CannedFeedURLProtocol.requestBarrier(path: communityPath, method: "GET")
+        let firstSubmission = Task { await viewModel.invite() }
+
+        _ = try await invitePost.wait()
+        XCTAssertTrue(viewModel.isSubmittingInvite)
+        let duplicateReturned = expectation(description: "duplicate invite submission is rejected")
+        let duplicateSubmission = Task {
+            await viewModel.invite()
+            duplicateReturned.fulfill()
+        }
+        await fulfillment(of: [duplicateReturned], timeout: 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.method == "POST" }.count, 1)
+
+        CannedFeedURLProtocol.releaseResponse(path: invitePath)
+        _ = try await communityRefresh.wait()
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertTrue(viewModel.isSubmittingInvite)
+        let surface = CommunityWorkspaceSurface(viewModel: viewModel)
+        XCTAssertEqual(try surface.inspect().find(text: "one-time-code").string(), "one-time-code")
+        let controls = CommunityTabControls(viewModel: viewModel, isSignedIn: true, showSignIn: {})
+        XCTAssertTrue(try controls.inspect().find(button: "Invite").isDisabled())
+
+        CannedFeedURLProtocol.releaseResponse(path: communityPath)
+        await firstSubmission.value
+        await duplicateSubmission.value
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertFalse(viewModel.isSubmittingInvite)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.method == "POST" }.count, 1)
+    }
+
+    func testInviteCodeSurvivesRefreshFailure() async throws {
+        registerDetailFixtures()
+        let invitePath = "/api/v1/communities/builders/invites"
+        CannedFeedURLProtocol.requestHandlers["POST \(invitePath)"] = (inviteResponse(code: "one-time-code"), 201)
+        CannedFeedURLProtocol.errors["/api/v1/communities/builders"] = URLError(.notConnectedToInternet)
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+        viewModel.inviteRecipient = "alice"
+
+        await viewModel.invite()
+
+        XCTAssertEqual(viewModel.oneTimeInviteCode, "one-time-code")
+        XCTAssertFalse(viewModel.isSubmittingInvite)
+    }
+
     func testApplicationQuestionsRequireAnswersBeforeApply() async throws {
         registerDetailFixtures()
         CannedFeedURLProtocol.queuedHandlers["/api/v1/communities/builders/applications"] = [
