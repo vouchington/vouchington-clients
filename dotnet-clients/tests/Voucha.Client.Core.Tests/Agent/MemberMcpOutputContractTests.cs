@@ -80,7 +80,7 @@ public sealed class MemberMcpOutputContractTests
     if (removed == "meta") tool.Remove("_meta");
     else if (removed == "output") tool.Remove("outputSchema");
     else tool["_meta"]!.AsObject().Remove("voucha/optionOutputPointers");
-    using var catalog = JsonDocument.Parse("{"tools":[" + tool.ToJsonString() + "]}");
+    using var catalog = JsonDocument.Parse(new JsonObject { ["tools"] = new JsonArray(tool) }.ToJsonString());
     Assert.Throws<InvalidDataException>(() => new MemberMcpToolBridge(catalog.RootElement));
   }
 
