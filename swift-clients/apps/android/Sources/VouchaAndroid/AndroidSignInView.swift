@@ -113,7 +113,7 @@ struct AndroidTurnstileChallenge: View {
                     view.settings.domStorageEnabled = true
                     CookieManager.getInstance().setAcceptThirdPartyCookies(view, true)
                     view.webViewClient = TurnstileNavigationClient(onToken: onToken)
-                    view.loadDataWithBaseURL("https://voucha.ai", turnstileHTML(siteKey), "text/html", "UTF-8", null)
+                    view.loadDataWithBaseURL("https://voucha.ai", turnstileHTML(siteKey), "text/html", "UTF-8", nil)
                     return view
                 }, modifier: context.modifier, update: { _ in })
             }
@@ -127,7 +127,9 @@ struct AndroidTurnstileChallenge: View {
             self.onToken = onToken
         }
 
-        override func shouldOverrideUrlLoading(view _: WebView?, url: String?) -> Bool {
+        // Skip needs named override parameters; wildcards emit unsupported Kotlin locals.
+        // swiftformat:disable:next unusedArguments
+        override func shouldOverrideUrlLoading(view: WebView?, url: String?) -> Bool {
             guard let url else { return true }
             if url.hasPrefix("voucha://turnstile?token=") {
                 let raw = String(url.dropFirst("voucha://turnstile?token=".count))
@@ -148,7 +150,9 @@ struct AndroidTurnstileChallenge: View {
             return true
         }
 
-        override func onReceivedError(view _: WebView?, request: WebResourceRequest?, error _: WebResourceError?) {
+        // Skip needs named override parameters; wildcards emit unsupported Kotlin locals.
+        // swiftformat:disable:next unusedArguments
+        override func onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
             if request?.isForMainFrame == true { onToken(nil) }
         }
     }
