@@ -1,5 +1,5 @@
 import Foundation
-import VouchaAndroid
+@testable import VouchaAndroid
 
 final class AndroidAuthURLProtocol: URLProtocol {
     private static let lock = NSLock()
