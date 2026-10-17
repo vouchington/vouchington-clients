@@ -54,7 +54,7 @@
                     Text="{DynamicResource native.common.retry}"
                     Clicked="OnRetryOAuthCapabilitiesClicked"
                     IsVisible="False" />
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
                     <VerticalStackLayout>
                         <Label Text="{DynamicResource native.taxonomy.settings.facebook}" Style="{StaticResource Body}" />
                         <Label x:Name="FacebookOAuthIdentity" Style="{StaticResource Metadata}" />
@@ -103,6 +103,16 @@
                         Grid.Row="4"
                         Grid.Column="1"
                         CommandParameter="microsoft"
+                        Clicked="OnOAuthAccountClicked" />
+                    <VerticalStackLayout Grid.Row="5">
+                        <Label Text="{DynamicResource native.taxonomy.settings.google}" Style="{StaticResource Body}" />
+                        <Label x:Name="GoogleOAuthIdentity" Style="{StaticResource Metadata}" />
+                    </VerticalStackLayout>
+                    <Button
+                        x:Name="GoogleOAuthAccountButton"
+                        Grid.Row="5"
+                        Grid.Column="1"
+                        CommandParameter="google"
                         Clicked="OnOAuthAccountClicked" />
                 </Grid>
                 <Button

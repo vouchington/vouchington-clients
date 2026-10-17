@@ -62,6 +62,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertNoThrow(try sut.inspect().find(button: "Facebook"))
         XCTAssertNoThrow(try sut.inspect().find(button: "GitHub"))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Google"))
         XCTAssertThrowsError(try sut.inspect().find(button: "X"))
 
         fixture.coordinator.isWorking = true
@@ -462,7 +463,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
     private func oauthCapabilities() -> Data {
         Data("""
         {
-          "providers": ["facebook", "x", "github"],
+          "providers": ["facebook", "x", "github", "google"],
           "broker_capabilities": {
             "facebook": {
               "version": 1,
@@ -475,6 +476,11 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
               "purposes": ["authenticate", "connect"]
             },
             "github": {
+              "version": 1,
+              "modes": {"web": true, "native": true},
+              "purposes": ["authenticate", "connect"]
+            },
+            "google": {
               "version": 1,
               "modes": {"web": true, "native": true},
               "purposes": ["authenticate", "connect"]

@@ -41,6 +41,9 @@ public sealed partial class VouchaApiClientTests
     Assert.True(providers.BrokerCapabilities.Linkedin?.SupportsNative(OAuthAuthorizationPurpose.Connect));
     Assert.True(providers.BrokerCapabilities.Microsoft?.Modes.Web);
     Assert.True(providers.BrokerCapabilities.Microsoft?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(providers.BrokerCapabilities.Google?.Modes.Web);
+    Assert.True(providers.BrokerCapabilities.Google?.SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(providers.BrokerCapabilities.Google?.SupportsNative(OAuthAuthorizationPurpose.Connect));
     Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]
         .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
     Assert.True(providers.BrokerCapabilities[OAuthBrokerProvider.Linkedin]
@@ -89,6 +92,30 @@ public sealed partial class VouchaApiClientTests
         .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
     Assert.False(capabilities[OAuthBrokerProvider.Linkedin]
         .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.False(capabilities[OAuthBrokerProvider.Google]
+        .SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+  }
+
+  [Fact]
+  public void GoogleBrokerRoutesAndCapabilitiesUseExplicitProviderContract()
+  {
+    const string advertised = """
+        {"facebook":{"version":1,"modes":{"web":false,"native":false},"purposes":[]},
+         "x":{"version":1,"modes":{"web":false,"native":false},"purposes":[]},
+         "github":{"version":1,"modes":{"web":false,"native":false},"purposes":[]},
+         "google":{"version":1,"modes":{"web":true,"native":true},"purposes":["authenticate","connect"]}}
+        """;
+    var capability = JsonSerializer.Deserialize<OAuthBrokerCapabilities>(advertised, VouchaApiJson.Options);
+    var begin = VouchaApiEndpoints.BeginOAuthAuthorization(
+        OAuthBrokerProvider.Google,
+        OAuthAuthorizationPurpose.Authenticate,
+        "challenge");
+    var disconnect = VouchaApiEndpoints.DisconnectOAuthAccount(OAuthBrokerProvider.Google);
+
+    Assert.True(capability![OAuthBrokerProvider.Google].SupportsNative(OAuthAuthorizationPurpose.Authenticate));
+    Assert.True(capability[OAuthBrokerProvider.Google].SupportsNative(OAuthAuthorizationPurpose.Connect));
+    Assert.Equal("/api/v1/auth/oauth/google/authorizations", begin.Path);
+    Assert.Equal("/api/v1/auth/oauth/google/connect", disconnect.Path);
   }
 
   [Fact]

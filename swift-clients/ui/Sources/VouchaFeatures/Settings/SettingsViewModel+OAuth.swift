@@ -132,6 +132,7 @@ public extension SettingsViewModel {
         case .github: identity.githubAccount
         case .linkedin: identity.linkedinAccount
         case .microsoft: identity.microsoftAccount
+        case .google: identity.googleAccount
         }
     }
 

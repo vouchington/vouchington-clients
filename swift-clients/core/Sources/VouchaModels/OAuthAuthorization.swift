@@ -27,13 +27,15 @@ public struct OAuthBrokerCapabilities: Codable, Equatable, Sendable {
     public let github: OAuthBrokerCapability
     public let linkedin: OAuthBrokerCapability?
     public let microsoft: OAuthBrokerCapability?
+    public let google: OAuthBrokerCapability?
 
     static let disabled = OAuthBrokerCapabilities(
         facebook: .disabled,
         x: .disabled,
         github: .disabled,
         linkedin: nil,
-        microsoft: nil
+        microsoft: nil,
+        google: nil
     )
 
     public subscript(provider: NativeOAuthProvider) -> OAuthBrokerCapability {
@@ -43,6 +45,7 @@ public struct OAuthBrokerCapabilities: Codable, Equatable, Sendable {
         case .github: github
         case .linkedin: linkedin ?? .disabled
         case .microsoft: microsoft ?? .disabled
+        case .google: google ?? .disabled
         }
     }
 }

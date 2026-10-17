@@ -17,6 +17,70 @@ namespace Voucha.Client.App.Tests;
 public sealed class MicrosoftOAuthRenderedControlsTests
 {
   [Fact]
+  public async Task GoogleControlsAreCapabilityGatedAndConnectTheGoogleProvider()
+  {
+    PrepareMaui();
+    var disabled = new OAuthHandler(nativeEnabled: false);
+    using var disabledCoordinator = Coordinator(disabled, new OAuthSessionStore());
+    await disabledCoordinator.LoadCapabilitiesAsync(TestContext.Current.CancellationToken);
+    var disabledPage = new AuthPage(disabledCoordinator);
+    disabledPage.RefreshOAuthForTest();
+    Assert.False(GoogleLoginButton(disabledPage).IsVisible);
+
+    var enabled = new OAuthHandler(nativeEnabled: true);
+    var persistence = new OAuthPersistence();
+    using var coordinator = Coordinator(enabled, new OAuthSessionStore(), persistence);
+    await coordinator.LoadCapabilitiesAsync(TestContext.Current.CancellationToken);
+    var loginPage = new AuthPage(coordinator);
+    loginPage.RefreshOAuthForTest();
+    var login = GoogleLoginButton(loginPage);
+    Assert.True(login.IsVisible);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeTaxonomySettingsGoogle), login.Text);
+    login.SendClicked();
+    var loginPending = await persistence.Written.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.Equal(OAuthBrokerProvider.Google, loginPending.Provider);
+    Assert.Equal(OAuthAuthorizationPurpose.Authenticate, loginPending.Purpose);
+    Assert.Contains(enabled.Requests, request => request.Method == HttpMethod.Post &&
+        request.Path == "/api/v1/auth/oauth/google/authorizations");
+
+    var store = new OAuthSessionStore();
+    var connectHandler = new OAuthHandler(nativeEnabled: true);
+    var connectPersistence = new OAuthPersistence();
+    using var connectCoordinator = Coordinator(connectHandler, store, connectPersistence);
+    await connectCoordinator.LoadCapabilitiesAsync(TestContext.Current.CancellationToken);
+    using var settingsModel = new SettingsViewModel(DispatchProxy.Create<ISettingsService, EmptySettingsService>());
+    var settingsPage = new SettingsPage(settingsModel, store, connectCoordinator);
+    settingsPage.RefreshOAuthForTest();
+    var connect = GoogleSettingsButton(settingsPage);
+    Assert.True(connect.IsVisible);
+    connect.SendClicked();
+    var connectPending = await connectPersistence.Written.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.Equal(OAuthBrokerProvider.Google, connectPending.Provider);
+    Assert.Equal(OAuthAuthorizationPurpose.Connect, connectPending.Purpose);
+
+    var connectedStore = new OAuthSessionStore(new SessionSnapshot(new User(
+        "user-1", "testuser", GoogleAccount: new UserDisplayAccount("google-user", "Google User"))));
+    var disconnectHandler = new OAuthHandler(nativeEnabled: false);
+    using var disconnectCoordinator = Coordinator(disconnectHandler, connectedStore);
+    await disconnectCoordinator.LoadCapabilitiesAsync(TestContext.Current.CancellationToken);
+    var connectedPage = new SettingsPage(settingsModel, connectedStore, disconnectCoordinator);
+    connectedPage.RefreshOAuthForTest();
+    var disconnect = GoogleSettingsButton(connectedPage);
+    Assert.True(disconnect.IsVisible);
+    Assert.Contains(Descendants<Label>(connectedPage), label => label.Text == "Google User");
+    var googleDisconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    connectedStore.SessionChanged += (_, change) =>
+    {
+      if (change.Current.Identity?.GoogleAccount is null) googleDisconnected.TrySetResult();
+    };
+    disconnect.SendClicked();
+    var deleted = await disconnectHandler.Deleted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    await googleDisconnected.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.Equal("/api/v1/auth/oauth/google/connect", deleted.Path);
+    Assert.Null(connectedStore.Current.Identity?.GoogleAccount);
+  }
+
+  [Fact]
   public async Task LoginControlIsHiddenUntilAdvertisedAndStartsOnlyMicrosoftAuthorization()
   {
     PrepareMaui();
@@ -104,6 +168,13 @@ public sealed class MicrosoftOAuthRenderedControlsTests
   private static Button MicrosoftSettingsButton(SettingsPage page) =>
       Descendants<Button>(page).Single(button => Equals(button.CommandParameter, "microsoft"));
 
+  private static Button GoogleLoginButton(AuthPage page) =>
+      Descendants<Button>(page).Single(button => button.Text ==
+          UiLocalization.English.Localize(UiMessageKey.NativeTaxonomySettingsGoogle));
+
+  private static Button GoogleSettingsButton(SettingsPage page) =>
+      Descendants<Button>(page).Single(button => Equals(button.CommandParameter, "google"));
+
   private static IEnumerable<T> Descendants<T>(Element element) where T : Element
   {
     foreach (var child in ((IVisualTreeElement)element).GetVisualChildren().OfType<Element>())
@@ -163,7 +234,8 @@ public sealed class MicrosoftOAuthRenderedControlsTests
               "facebook":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
               "x":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
               "github":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
-              "microsoft":{"version":1,"modes":{"web":false,"native":NATIVE_ENABLED},"purposes":["authenticate","connect"]}
+              "microsoft":{"version":1,"modes":{"web":false,"native":NATIVE_ENABLED},"purposes":["authenticate","connect"]},
+              "google":{"version":1,"modes":{"web":false,"native":NATIVE_ENABLED},"purposes":["authenticate","connect"]}
             }}
             """.Replace("NATIVE_ENABLED", nativeEnabled ? "true" : "false", StringComparison.Ordinal),
         "/api/v1/auth/oauth/microsoft/authorizations" => """
@@ -210,7 +282,12 @@ public sealed class MicrosoftOAuthRenderedControlsTests
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public void ApplyCommittedOAuthDisconnect(OAuthBrokerProvider provider)
     {
-      Current = new SessionSnapshot(Current.Identity is { } identity ? identity with { MicrosoftAccount = null } : null);
+      Current = new SessionSnapshot(Current.Identity is { } identity ? provider switch
+      {
+        OAuthBrokerProvider.Microsoft => identity with { MicrosoftAccount = null },
+        OAuthBrokerProvider.Google => identity with { GoogleAccount = null },
+        _ => identity,
+      } : null);
       SessionChanged?.Invoke(this, new SessionChangedEventArgs(Current));
     }
   }

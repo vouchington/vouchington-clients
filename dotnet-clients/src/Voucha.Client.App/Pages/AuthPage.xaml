@@ -71,6 +71,11 @@
                         Clicked="OnMicrosoftOAuthClicked"
                         IsVisible="False" />
                     <Button
+                        x:Name="GoogleOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.google}"
+                        Clicked="OnGoogleOAuthClicked"
+                        IsVisible="False" />
+                    <Button
                         x:Name="CancelOAuthButton"
                         Text="{DynamicResource native.swift.settings.blueskyCancel}"
                         Clicked="OnCancelOAuthClicked"

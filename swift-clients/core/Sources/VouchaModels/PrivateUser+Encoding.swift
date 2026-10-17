@@ -59,6 +59,7 @@ public extension PrivateUser {
         object["github_account"] = githubAccount.map { Self.encodedOAuthAccount($0) }
         object["linkedin_account"] = linkedinAccount.map { Self.encodedOAuthAccount($0) }
         object["microsoft_account"] = microsoftAccount.map { Self.encodedOAuthAccount($0) }
+        object["google_account"] = googleAccount.map { Self.encodedOAuthAccount($0) }
         object["processing_restricted_at"] = processingRestrictedAt
             .map { .string(ISO8601DateFormatter().string(from: $0)) }
         object["third_party_marketing"] = thirdPartyMarketing.map { .bool($0) }
