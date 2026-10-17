@@ -37,10 +37,12 @@ import Foundation
             guard leftType == "object",
                   let leftProperties = left["properties"] as? [String: [String: Any]],
                   let rightProperties = right["properties"] as? [String: [String: Any]] else { return false }
-            let commonRequired = Set(left["required"] as? [String] ?? [])
-                .intersection(right["required"] as? [String] ?? [])
+            let commonRequired = Set((left["required"] as? [String] ?? []).map { Data($0.utf8) })
+                .intersection((right["required"] as? [String] ?? []).map { Data($0.utf8) })
+            let leftPropertiesByName = exactNameMap(leftProperties)
+            let rightPropertiesByName = exactNameMap(rightProperties)
             return commonRequired.contains { key in
-                guard let leftProperty = leftProperties[key], let rightProperty = rightProperties[key],
+                guard let leftProperty = leftPropertiesByName[key], let rightProperty = rightPropertiesByName[key],
                       let leftValues = stringDomain(leftProperty), let rightValues = stringDomain(rightProperty)
                 else { return false }
                 return leftValues.isDisjoint(with: rightValues)

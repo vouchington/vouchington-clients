@@ -331,7 +331,7 @@ import XCTest
         func callTool(
             accountId _: String,
             name _: String,
-            arguments _: [String: DecodedJSONValue]
+            arguments _: DecodedJSONObject
         ) async throws -> MemberMCPClient.ToolResult {
             let index = calls
             calls += 1

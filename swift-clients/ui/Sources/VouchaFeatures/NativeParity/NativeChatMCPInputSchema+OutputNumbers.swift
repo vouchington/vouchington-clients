@@ -9,7 +9,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkOutputNumber(
-        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue], remainingWork: inout Int
+        _ value: DecodedJSONValue, fields: DecodedJSONObject, remainingWork: inout Int
     ) throws -> Bool {
         guard let text = outputNumberText(value) else { return true }
         guard text.count <= remainingWork else { throw Failure.unsupportedSchema }

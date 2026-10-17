@@ -3,11 +3,11 @@ import VouchaModels
 
 struct NativeChatMCPOutputContract {
     let root: DecodedJSONValue
-    private let options: [String: DecodedJSONValue]?
+    private let options: DecodedJSONObject?
     private let rootOptions: Set<String>
     private let rootAnyOfOptions: [String: Int]
 
-    init(fields: [String: DecodedJSONValue]) throws {
+    init(fields: DecodedJSONObject) throws {
         guard let schema = fields["outputSchema"] else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         root = schema
@@ -23,16 +23,17 @@ struct NativeChatMCPOutputContract {
             options = nil
             return
         }
-        guard case let .object(mapping) = pointers, let names, names == Set(mapping.keys) else {
+        guard case let .object(mapping) = pointers, !mapping.hasCanonicallyEquivalentMemberNames,
+              let names, names == Set(mapping.keys) else {
             throw NativeChatMCPToolBridge.Failure.invalidCatalog
         }
-        options = try mapping.mapValues { pointer in
+        options = try DecodedJSONObject(members: mapping.map { key, pointer in
             guard case let .string(path) = pointer else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
-            return try Self.resolve(path, root: schema)
-        }
+            return try (key, Self.resolve(path, root: schema))
+        })
     }
 
-    func validate(_ result: MemberMCPClient.ToolResult, arguments: [String: DecodedJSONValue]) throws {
+    func validate(_ result: MemberMCPClient.ToolResult, arguments: DecodedJSONObject) throws {
         guard result.isError != true else { return }
         var selected: DecodedJSONValue?
         var selectedIndex: Int?
@@ -88,20 +89,20 @@ struct NativeChatMCPOutputContract {
         return names
     }
 
-    private static func pointerMapping(_ fields: [String: DecodedJSONValue]) -> [String: DecodedJSONValue] {
+    private static func pointerMapping(_ fields: DecodedJSONObject) -> DecodedJSONObject {
         guard case let .object(meta)? = fields["_meta"],
               case let .object(mapping)? = meta["voucha/optionOutputPointers"] else { return [:] }
         return mapping
     }
 
-    private static func rootAnyOfIndices(_ fields: [String: DecodedJSONValue]) -> [String: Int] {
+    private static func rootAnyOfIndices(_ fields: DecodedJSONObject) -> [String: Int] {
         pointerMapping(fields).reduce(into: [:]) { indices, entry in
-            if case let .string(path) = entry.value, path.hasPrefix("#/anyOf/"),
-               let index = Int(path.dropFirst("#/anyOf/".count)) { indices[entry.key] = index }
+            if case let .string(path) = entry.1, path.hasPrefix("#/anyOf/"),
+               let index = Int(path.dropFirst("#/anyOf/".count)) { indices[entry.0] = index }
         }
     }
 
-    private static func rootPointerOptions(_ fields: [String: DecodedJSONValue]) -> Set<String> {
+    private static func rootPointerOptions(_ fields: DecodedJSONObject) -> Set<String> {
         Set(pointerMapping(fields).compactMap { key, value in
             if case .string("#") = value { key } else { nil }
         })
