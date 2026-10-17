@@ -35,18 +35,29 @@ extension NativeChatMCPInputSchema {
     ) throws -> Bool {
         var remainingWork = 262_144
         guard try check(
-            value, schema: schema, root: root, depth: 0, remainingWork: &remainingWork
+            value, schema: schema, root: root, depth: 0, remainingWork: &remainingWork, output: true
         ) else { return false }
         guard let selectedSchema else { return true }
-        return try check(value, schema: selectedSchema, root: root, depth: 0, remainingWork: &remainingWork)
+        return try check(
+            value,
+            schema: selectedSchema,
+            root: root,
+            depth: 0,
+            remainingWork: &remainingWork,
+            output: true
+        )
     }
 
-    static func validDateTime(_ text: String) -> Bool {
+    private static let outputDateTimeExpression: NSRegularExpression? = {
         let pattern = #"^([0-9]{4})-([0-9]{2})-([0-9]{2})"# +
             #"[Tt\x09-\x0D\x20\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]"# +
             #"([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?"# +
             #"(?:([Zz])|([+-])([0-9]{2})(?::?([0-9]{2}))?)\z"#
-        guard let regex = try? NSRegularExpression(pattern: pattern),
+        return try? NSRegularExpression(pattern: pattern)
+    }()
+
+    static func validDateTime(_ text: String) -> Bool {
+        guard let regex = outputDateTimeExpression,
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return false }
         func part(_ index: Int) -> Int {
             guard let range = Range(match.range(at: index), in: text) else { return 0 }

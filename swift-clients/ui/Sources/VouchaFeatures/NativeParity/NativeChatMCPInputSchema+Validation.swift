@@ -4,36 +4,73 @@ import VouchaModels
 extension NativeChatMCPInputSchema {
     static func check(
         _ value: DecodedJSONValue, schema: DecodedJSONValue,
-        root: DecodedJSONValue, depth: Int, remainingWork: inout Int
+        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         guard remainingWork > 0, depth < 32, case let .object(fields) = schema else {
             throw Failure.unsupportedSchema
         }
         remainingWork -= 1
-        guard try checkReference(value, fields: fields, root: root, depth: depth, remainingWork: &remainingWork),
-              checkScalarAssertions(value, fields: fields) else { return false }
-        guard try checkCompositions(value, fields: fields, root: root, depth: depth, remainingWork: &remainingWork)
+        guard try checkReference(
+            value,
+            fields: fields,
+            root: root,
+            depth: depth,
+            remainingWork: &remainingWork,
+            output: output
+        ),
+            checkScalarAssertions(value, fields: fields) else { return false }
+        guard try checkCompositions(
+            value,
+            fields: fields,
+            root: root,
+            depth: depth,
+            remainingWork: &remainingWork,
+            output: output
+        )
         else { return false }
         switch value {
         case let .object(object):
-            return try checkObject(object, fields: fields, root: root, depth: depth, remainingWork: &remainingWork)
+            return try checkObject(
+                object,
+                fields: fields,
+                root: root,
+                depth: depth,
+                remainingWork: &remainingWork,
+                output: output
+            )
         case let .array(items):
-            return try checkArray(items, fields: fields, root: root, depth: depth, remainingWork: &remainingWork)
+            return try checkArray(
+                items,
+                fields: fields,
+                root: root,
+                depth: depth,
+                remainingWork: &remainingWork,
+                output: output
+            )
         case let .string(text): return try checkString(text, fields: fields)
-        default: return checkNumber(value, fields: fields)
+        default: return try output
+            ? checkOutputNumber(value, fields: fields, remainingWork: &remainingWork)
+            : checkNumber(value, fields: fields)
         }
     }
 
     static func checkReference(
         _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
-        root: DecodedJSONValue, depth: Int, remainingWork: inout Int
+        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         guard case let .string(path)? = fields["$ref"] else { return true }
         guard let name = localDefinitionName(from: path) else { throw Failure.unsupportedSchema }
         guard case let .object(rootFields) = root,
               case let .object(defs)? = rootFields["$defs"],
               let target = defs[name] else { throw Failure.unsupportedSchema }
-        return try check(value, schema: target, root: root, depth: depth + 1, remainingWork: &remainingWork)
+        return try check(
+            value,
+            schema: target,
+            root: root,
+            depth: depth + 1,
+            remainingWork: &remainingWork,
+            output: output
+        )
     }
 
     static func checkScalarAssertions(
@@ -49,14 +86,14 @@ extension NativeChatMCPInputSchema {
 
     static func checkCompositions(
         _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
-        root: DecodedJSONValue, depth: Int, remainingWork: inout Int
+        root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         for keyword in ["allOf", "anyOf", "oneOf"] {
             guard case let .array(branches)? = fields[keyword] else { continue }
             var matched = 0
             for branch in branches {
                 let acceptsBranch = try check(
-                    value, schema: branch, root: root, depth: depth + 1, remainingWork: &remainingWork
+                    value, schema: branch, root: root, depth: depth + 1, remainingWork: &remainingWork, output: output
                 )
                 if acceptsBranch {
                     matched += 1
