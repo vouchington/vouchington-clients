@@ -11,7 +11,9 @@ extension NativeChatMCPInputSchema {
     }
 
     static func validDateTime(_ text: String) -> Bool {
-        let pattern = #"^([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt\s]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?"# +
+        let pattern = #"^([0-9]{4})-([0-9]{2})-([0-9]{2})"# +
+            #"[Tt\x09-\x0D\x20\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]"# +
+            #"([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?"# +
             #"(?:([Zz])|([+-])([0-9]{2})(?::?([0-9]{2}))?)\z"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return false }

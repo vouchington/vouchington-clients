@@ -7,7 +7,7 @@ namespace Voucha.Client.Core.Agent;
 internal static partial class MemberMcpInputSchema
 {
   private static readonly Regex DateTimePattern = new(
-      @"^([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt\s]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?" +
+      @"^([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt\x09-\x0D\x20\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?" +
       @"(?:([Zz])|([+-])([0-9]{2})(?::?([0-9]{2}))?)\z",
       RegexOptions.NonBacktracking | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
