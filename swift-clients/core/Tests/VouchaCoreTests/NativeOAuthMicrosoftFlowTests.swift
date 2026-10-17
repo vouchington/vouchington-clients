@@ -1,7 +1,6 @@
 import Foundation
 @testable import VouchaAuth
 @testable import VouchaCore
-@testable import VouchaModels
 import XCTest
 
 @MainActor
