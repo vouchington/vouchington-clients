@@ -54,6 +54,34 @@ public sealed class CommunityActionInvitePageLifecycleTests
     Assert.Equal("one-time-code", Find<Entry>(action, "community-created-invite-code").Text);
   }
 
+  [Theory]
+  [InlineData("member", true, false, false, true, false)]
+  [InlineData("member", false, false, false, false, false)]
+  [InlineData("moderator", false, false, false, true, true)]
+  [InlineData(null, true, false, false, false, false)]
+  [InlineData(null, true, false, true, false, false)]
+  [InlineData("moderator", false, true, false, false, false)]
+  public async Task InvitePanelSeparatesMemberCreationFromModeratorRevocation(
+      string? membershipRole, bool memberInvitesAllowed, bool archived, bool administrator, bool canCreate, bool canRevoke)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
+    var service = DispatchProxy.Create<ICommunitiesService, InviteSurfaceService>();
+    var script = (InviteSurfaceService)service;
+    script.MembershipRole = membershipRole;
+    script.MemberInvitesAllowed = memberInvitesAllowed;
+    script.Archived = archived;
+    var session = new SessionStore(administrator);
+    using var model = new CommunityDetailViewModel(service, session);
+    var page = new CommunityInvitesPage(model, session) { Slug = "community-1" };
+
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Invites, TestContext.Current.CancellationToken);
+
+    var buttons = page.GetVisualTreeDescendants().OfType<Button>().Where(button => button.IsVisible).ToArray();
+    Assert.Equal(canCreate, buttons.Any(button => button.AutomationId == "community-create-invite"));
+    Assert.Equal(canRevoke, buttons.Any(button => button.AutomationId == "community-revoke-invite"));
+  }
+
   [Fact]
   public async Task DelayedInviteAfterPageDisappearsDoesNotRenderOneTimeCode()
   {
@@ -125,19 +153,43 @@ public sealed class CommunityActionInvitePageLifecycleTests
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(root.GetVisualTreeDescendants().OfType<T>(), element => element.AutomationId == automationId);
 
-  private sealed class SessionStore : ISessionStore
+  private sealed class SessionStore(bool administrator = false) : ISessionStore
   {
     public event EventHandler<SessionChangedEventArgs>? SessionChanged { add { } remove { } }
-    public SessionSnapshot Current { get; } = new(new User(Id: "moderator-1", Username: "moderator", Roles: [], EmailAddress: "moderator@example.com", MembershipPlan: "free"));
+    public SessionSnapshot Current { get; } = new(new User(Id: "moderator-1", Username: "moderator", Roles: administrator ? ["administrator"] : [], EmailAddress: "moderator@example.com", MembershipPlan: "free"));
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
   public class InviteSurfaceService : CommunityModerationPageAutomodNavigationTests.CommunityServiceProxy
   {
-    protected override object? Invoke(MethodInfo? method, object?[]? args) => method?.Name == nameof(ICommunitiesService.FetchInvitesPageAsync)
-        ? Task.FromResult(new CommunityInvitesResponse([], new PageInfo(null, false, null), new Dictionary<string, CommunityInvite>()))
-        : base.Invoke(method, args);
+    public string? MembershipRole { get; set; } = "moderator";
+    public bool MemberInvitesAllowed { get; set; }
+    public bool Archived { get; set; }
+
+    protected override object? Invoke(MethodInfo? method, object?[]? args) => method?.Name switch
+    {
+      nameof(ICommunitiesService.FetchInvitesPageAsync) => MembershipRole is "owner" or "moderator"
+          ? Task.FromResult(new CommunityInvitesResponse([], new PageInfo(null, false, null), new Dictionary<string, CommunityInvite>()))
+          : Task.FromException<CommunityInvitesResponse>(new HttpRequestException("Forbidden", null, HttpStatusCode.Forbidden)),
+      nameof(ICommunitiesService.FetchDetailAsync) => DetailAsync((Task<CommunityResponse>)base.Invoke(method, args)!),
+      _ => base.Invoke(method, args),
+    };
+
+    private async Task<CommunityResponse> DetailAsync(Task<CommunityResponse> pending)
+    {
+      var detail = await pending.ConfigureAwait(false);
+      var role = MembershipRole;
+      return detail with
+      {
+        Community = detail.Community with
+        {
+          MemberInvitesAllowedAt = MemberInvitesAllowed ? DateTimeOffset.UnixEpoch : null,
+          ArchivedAt = Archived ? DateTimeOffset.UnixEpoch : null,
+        },
+        Membership = role is null ? null : detail.Membership! with { Role = role },
+      };
+    }
   }
 
   private sealed class TokenProvider : Voucha.Client.App.ITurnstileTokenProvider

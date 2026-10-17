@@ -9,8 +9,9 @@ public abstract partial class CommunitySectionPage
       section switch
       {
         CommunityDetailSurfaceSection.Settings => viewModel.CanModerateCommunity,
+        CommunityDetailSurfaceSection.Invites => viewModel.CanCreateInvite || viewModel.CanRevokeInvite,
         CommunityDetailSurfaceSection.Lists or CommunityDetailSurfaceSection.Applications or
-            CommunityDetailSurfaceSection.Invites or CommunityDetailSurfaceSection.PinnedPosts or
+            CommunityDetailSurfaceSection.PinnedPosts or
             CommunityDetailSurfaceSection.Bans or CommunityDetailSurfaceSection.Restrictions or
             CommunityDetailSurfaceSection.ModeratorVacation or CommunityDetailSurfaceSection.AiAgents or
             CommunityDetailSurfaceSection.AgentPrompts or CommunityDetailSurfaceSection.Moderation or
