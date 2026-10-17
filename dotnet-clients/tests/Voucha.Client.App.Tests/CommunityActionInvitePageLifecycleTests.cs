@@ -1,6 +1,8 @@
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
@@ -12,6 +14,7 @@ using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Support;
+using Voucha.Client.Core.Tests.Api;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -52,6 +55,35 @@ public sealed class CommunityActionInvitePageLifecycleTests
 
     Assert.Equal("/api/v1/communities/community-1/invites", handler.RequestPath);
     Assert.Equal("one-time-code", Find<Entry>(action, "community-created-invite-code").Text);
+  }
+
+  [Theory]
+  [InlineData("en", "Unknown recipient")]
+  [InlineData("es", "Destinatario desconocido")]
+  public async Task MetadataOnlyInviteRowRendersUnknownRecipient(string language, string expected)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
+    var service = DispatchProxy.Create<ICommunitiesService, InviteSurfaceService>();
+    var fixture = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+        "responses/web.communities.invites.default.json")))!;
+    foreach (var entry in fixture["community_invites"]!.AsObject())
+    {
+      entry.Value!["invited_email"] = null;
+      entry.Value["invited_user_id"] = null;
+    }
+    ((InviteSurfaceService)service).Invites = fixture.Deserialize<CommunityInvitesResponse>(
+        new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider(language));
+    using var model = new CommunityDetailViewModel(service, new SessionStore(), new UiLocalization(locale), locale);
+    var page = new CommunityInvitesPage(model, new SessionStore()) { Slug = "community-1" };
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Invites, TestContext.Current.CancellationToken);
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page));
+    var row = Assert.IsAssignableFrom<View>(collection.ItemTemplate!.CreateContent());
+    row.BindingContext = Assert.Single(model.Invites);
+    Assert.Contains(row.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == expected);
+    Assert.DoesNotContain(row.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == model.Invites[0].Id);
   }
 
   [Theory]
@@ -166,11 +198,12 @@ public sealed class CommunityActionInvitePageLifecycleTests
     public string? MembershipRole { get; set; } = "moderator";
     public bool MemberInvitesAllowed { get; set; }
     public bool Archived { get; set; }
+    public CommunityInvitesResponse? Invites { get; set; }
 
     protected override object? Invoke(MethodInfo? method, object?[]? args) => method?.Name switch
     {
       nameof(ICommunitiesService.FetchInvitesPageAsync) => MembershipRole is "owner" or "moderator"
-          ? Task.FromResult(new CommunityInvitesResponse([], new PageInfo(null, false, null), new Dictionary<string, CommunityInvite>()))
+          ? Task.FromResult(Invites ?? new CommunityInvitesResponse([], new PageInfo(null, false, null), new Dictionary<string, CommunityInvite>()))
           : Task.FromException<CommunityInvitesResponse>(new HttpRequestException("Forbidden", null, HttpStatusCode.Forbidden)),
       nameof(ICommunitiesService.FetchDetailAsync) => DetailAsync((Task<CommunityResponse>)base.Invoke(method, args)!),
       _ => base.Invoke(method, args),

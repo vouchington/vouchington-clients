@@ -535,6 +535,7 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let nativeSwiftCommunitiesTestText = UiMessageKey(rawValue: "native.swift.communities.testText")
     public static let nativeSwiftCommunitiesTransferOwnership = UiMessageKey(rawValue: "native.swift.communities.transferOwnership")
     public static let nativeSwiftCommunitiesTransferToUserId = UiMessageKey(rawValue: "native.swift.communities.transferToUserId")
+    public static let nativeSwiftCommunitiesUnknownRecipient = UiMessageKey(rawValue: "native.swift.communities.unknownRecipient")
     public static let nativeSwiftCommunitiesUpdatePinnedPosts = UiMessageKey(rawValue: "native.swift.communities.updatePinnedPosts")
     public static let nativeSwiftCommunitiesUpdateRole = UiMessageKey(rawValue: "native.swift.communities.updateRole")
     public static let nativeSwiftCommunitiesUserId = UiMessageKey(rawValue: "native.swift.communities.userId")
