@@ -170,6 +170,15 @@ Release builds default to `https://voucha.ai`. Set `VOUCHA_API_BASE_URL` and `VO
 for local development. Set `VOUCHA_TURNSTILE_SITE_KEY` when testing CAPTCHA-gated flows; app startup
 must remain safe when the key is absent.
 
+The MAUI project embeds the public `VouchaApiBaseUrl` and `VouchaTurnstileSiteKey` MSBuild
+properties as assembly metadata. The properties accept `VOUCHA_API_BASE_URL` and
+`VOUCHA_TURNSTILE_SITE_KEY` from the build environment; the site key also accepts the producer's
+public `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` input. Runtime environment values override
+the packaged values, followed by production defaults. Pass the environment's public site key
+at Release build time; a development machine's runtime environment does not configure an
+installed app. Missing site keys remain empty and CAPTCHA-gated operations fail closed. No
+site key or credential is checked in, and this does not introduce a packaging/signing pipeline.
+
 ## Agent rules
 
 Read [AGENTS.md](AGENTS.md) before implementation for native parity, portable-core boundaries,

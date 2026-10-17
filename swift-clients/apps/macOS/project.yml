@@ -10,6 +10,9 @@ settings:
     SWIFT_VERSION: '5.9'
     MACOSX_DEPLOYMENT_TARGET: '14.0'
     CODE_SIGN_STYLE: Automatic
+    VOUCHA_API_BASE_URL: 'https://voucha.ai'
+    VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
+    VOUCHA_TURNSTILE_SITE_KEY: ''
     ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: YES
 
@@ -32,6 +35,9 @@ targets:
     info:
       path: Info.plist
       properties:
+        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
+        VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
         CFBundleURLTypes:
           - CFBundleURLName: ai.voucha.macos
             CFBundleURLSchemes:

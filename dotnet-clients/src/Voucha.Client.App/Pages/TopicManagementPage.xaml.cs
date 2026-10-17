@@ -34,7 +34,7 @@ public partial class TopicManagementPage : ContentPage
     InitializeComponent();
     this.topicsService = topicsService ?? throw new ArgumentNullException(nameof(topicsService));
     this.imageUploadService = imageUploadService ?? throw new ArgumentNullException(nameof(imageUploadService));
-    this.config = config ?? AppConfig.FromEnvironment();
+    this.config = config ?? AppConfig.FromAssembly(typeof(TopicManagementPage).Assembly);
     MarkdownEditor.ApiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
     this.topicIdOrSlug = topicIdOrSlug;
     SyncAliasesPaginationControl();

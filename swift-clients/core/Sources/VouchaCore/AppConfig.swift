@@ -16,20 +16,29 @@ public struct AppConfig: Sendable {
     /// the shared computed initializer and unit tests reference them directly.
     public static let defaultAPIBaseURL = "https://voucha.ai"
     static let defaultImageBaseURL = URL(string: "https://images.voucha.ai")!
-    public static let shared: AppConfig = from(environment: ProcessInfo.processInfo.environment)
+    public static let shared: AppConfig = from(
+        environment: ProcessInfo.processInfo.environment,
+        packagedConfiguration: Bundle.main.infoDictionary?.compactMapValues { $0 as? String } ?? [:]
+    )
 
-    public static func from(environment: [String: String]) -> AppConfig {
-        let raw = read(environment, "VOUCHA_API_BASE_URL") ?? defaultAPIBaseURL
+    public static func from(
+        environment: [String: String],
+        packagedConfiguration: [String: String] = [:]
+    ) -> AppConfig {
+        let raw = read(environment, "VOUCHA_API_BASE_URL") ??
+            read(packagedConfiguration, "VOUCHA_API_BASE_URL") ?? defaultAPIBaseURL
         guard let url = URL(string: raw) else {
             preconditionFailure("Invalid VOUCHA_API_BASE_URL: \(raw)")
         }
-        let imageRaw = read(environment, "VOUCHA_IMAGE_BASE_URL") ?? defaultImageBaseURL.absoluteString
+        let imageRaw = read(environment, "VOUCHA_IMAGE_BASE_URL") ??
+            read(packagedConfiguration, "VOUCHA_IMAGE_BASE_URL") ?? defaultImageBaseURL.absoluteString
         guard let imageUrl = URL(string: imageRaw) else {
             preconditionFailure("Invalid VOUCHA_IMAGE_BASE_URL: \(imageRaw)")
         }
         let turnstileSiteKey =
             read(environment, "VOUCHA_TURNSTILE_SITE_KEY") ??
-            read(environment, "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY")
+            read(environment, "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY") ??
+            read(packagedConfiguration, "VOUCHA_TURNSTILE_SITE_KEY")
         return AppConfig(baseURL: url, imageBaseURL: imageUrl, turnstileSiteKey: turnstileSiteKey ?? "")
     }
 

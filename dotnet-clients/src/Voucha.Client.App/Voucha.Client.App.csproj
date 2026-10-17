@@ -21,6 +21,18 @@
     <CodesignEntitlements Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">Platforms/MacCatalyst/Entitlements.plist</CodesignEntitlements>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <VouchaApiBaseUrl Condition="'$(VouchaApiBaseUrl)' == ''">$(VOUCHA_API_BASE_URL)</VouchaApiBaseUrl>
+    <VouchaApiBaseUrl Condition="'$(VouchaApiBaseUrl)' == ''">https://voucha.ai</VouchaApiBaseUrl>
+    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(VOUCHA_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
+    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="VOUCHA_API_BASE_URL" Value="$(VouchaApiBaseUrl)" />
+    <AssemblyMetadata Include="VOUCHA_TURNSTILE_SITE_KEY" Value="$(VouchaTurnstileSiteKey)" />
+  </ItemGroup>
+
   <ItemGroup>
     <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#2563EB" />
     <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#2563EB" BaseSize="128,128" />
