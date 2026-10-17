@@ -12,6 +12,16 @@ public sealed partial class EngineeringQueuesViewModel : ObservableObject
   private IReadOnlyList<QueueStats> queues = [];
   private IReadOnlyList<ScheduledJob> scheduledJobs = [];
   private IReadOnlyList<Backfill> backfills = [];
+  private IReadOnlyList<QueueDomain> domains = [];
+  public IReadOnlyList<QueueDomain> Domains
+  {
+    get => domains;
+    private set
+    {
+      if (SetProperty(ref domains, value)) OnPropertyChanged(nameof(HasDomains));
+    }
+  }
+  public bool HasDomains => Domains.Count > 0;
   private bool isLoading;
   private bool isMutating;
   private string? errorMessage;
@@ -62,7 +72,7 @@ public sealed partial class EngineeringQueuesViewModel : ObservableObject
   }
 
   public Task PauseQueueAsync(string name, CancellationToken cancellationToken = default) =>
-      RunAndReloadAsync(() => service.PauseQueueAsync(name, cancellationToken), cancellationToken);
+      name == "background" ? Task.CompletedTask : RunAndReloadAsync(() => service.PauseQueueAsync(name, cancellationToken), cancellationToken);
 
   public Task ResumeQueueAsync(string name, CancellationToken cancellationToken = default) =>
       RunAndReloadAsync(() => service.ResumeQueueAsync(name, cancellationToken), cancellationToken);
@@ -107,8 +117,13 @@ public sealed partial class EngineeringQueuesViewModel : ObservableObject
     var backfillsTask = service.FetchBackfillsAsync(cancellationToken);
     await Task.WhenAll(statsTask, queuesTask, scheduledTask, backfillsTask).ConfigureAwait(true);
 
+    var loadedQueues = (await queuesTask.ConfigureAwait(true)).Queues;
+    IReadOnlyList<QueueDomain> loadedDomains = loadedQueues.Any(queue => queue.Name == "background")
+        ? (await service.FetchQueueDomainsAsync("background", cancellationToken).ConfigureAwait(true)).Domains
+        : [];
     Stats = (await statsTask.ConfigureAwait(true)).Stats;
-    Queues = (await queuesTask.ConfigureAwait(true)).Queues;
+    Queues = loadedQueues;
+    Domains = loadedDomains;
     ScheduledJobs = (await scheduledTask.ConfigureAwait(true)).Jobs;
     Backfills = (await backfillsTask.ConfigureAwait(true)).Backfills;
   }

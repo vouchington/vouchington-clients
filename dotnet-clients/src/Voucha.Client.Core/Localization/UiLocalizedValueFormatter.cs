@@ -1,3 +1,5 @@
+using Voucha.Client.Core.Api;
+
 namespace Voucha.Client.Core.Localization;
 
 public sealed class UiLocalizedValueFormatter
@@ -19,12 +21,20 @@ public sealed class UiLocalizedValueFormatter
 
     return mode switch
     {
+      "domainCount" => FormatDomainCount(value),
       "dateTime" => FormatDateTime(value),
       "number" => FormatNumber(value),
       "percent" => localization.FormatPercent(ToDecimal(value)),
       "signedNumber" => FormatSignedNumber(value),
       _ => throw new ArgumentException($"Unknown localized value format mode '{mode}'.", nameof(mode)),
     };
+  }
+
+  private string FormatDomainCount(object? value)
+  {
+    if (value is not DomainStateCount count)
+      throw new ArgumentException("Domain count formatting requires a DomainStateCount.", nameof(value));
+    return count.Complete ? localization.FormatNumber(count.Count) : $"{localization.FormatNumber(count.Count)}+";
   }
 
   private string Render(object? value, string mode) => mode switch

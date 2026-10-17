@@ -9,6 +9,18 @@ public sealed class ApiEngineeringService : IEngineeringService
   public ApiEngineeringService(VouchaApiClient client) =>
       this.client = client ?? throw new ArgumentNullException(nameof(client));
 
+  public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default) =>
+      client.SendAsync<QueueDomainsResponse>(VouchaApiEndpoints.FetchQueueDomains(name), cancellationToken);
+
+  public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default) =>
+      client.SendAsync<EngineeringSuccessResponse>(VouchaApiEndpoints.PauseQueueDomain(name, domain, reason), cancellationToken);
+
+  public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+      client.SendAsync<EngineeringSuccessResponse>(VouchaApiEndpoints.ResumeQueueDomain(name, domain), cancellationToken);
+
+  public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+      client.SendAsync<RetryQueueDomainResponse>(VouchaApiEndpoints.RetryQueueDomain(name, domain), cancellationToken);
+
   public Task<AiCostTotalsResponse> FetchAiCostsAsync(
       string? after = null,
       CancellationToken cancellationToken = default) =>

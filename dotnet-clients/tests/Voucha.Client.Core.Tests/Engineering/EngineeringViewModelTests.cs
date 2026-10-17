@@ -9,6 +9,49 @@ namespace Voucha.Client.Core.Tests.Engineering;
 public sealed class EngineeringViewModelTests
 {
   [Fact]
+  public async Task DomainLoadFailureRetainsThePreviouslyLoadedSnapshot()
+  {
+    var token = TestContext.Current.CancellationToken;
+    var service = new StubEngineeringService
+    {
+      QueuesResponse = new([new QueueStats("emails", 1, 0, 0, 0, false)], 1),
+    };
+    var viewModel = new EngineeringQueuesViewModel(service);
+    await viewModel.LoadAsync(token);
+    var previousStats = viewModel.Stats;
+    service.QueuesResponse = new([new QueueStats("background", 5, 0, 0, 0, false)], 1);
+    service.DomainFailure = new HttpRequestException("domains unavailable");
+    await viewModel.LoadAsync(token);
+    Assert.Equal("domains unavailable", viewModel.ErrorMessage);
+    Assert.Equal("emails", Assert.Single(viewModel.Queues).Name);
+    Assert.Same(previousStats, viewModel.Stats);
+    Assert.Empty(viewModel.Domains);
+  }
+
+  [Fact]
+  public async Task BackgroundLoadsDomainsAndRestrictsActionsToTheSelectedDomain()
+  {
+    var token = TestContext.Current.CancellationToken;
+    var service = new StubEngineeringService
+    {
+      QueuesResponse = new([new QueueStats("background", 1, 2, 3, 4, false)], 1),
+    };
+    var viewModel = new EngineeringQueuesViewModel(service);
+    await viewModel.LoadAsync(token);
+    Assert.Contains("domains:background", service.Calls);
+    service.Calls.Clear();
+    await viewModel.PauseQueueAsync("background", token);
+    Assert.Empty(service.Calls);
+    await viewModel.PauseDomainAsync("openai-moderation", "Maintenance", token);
+    await viewModel.ResumeDomainAsync("openai-moderation", token);
+    await viewModel.RetryDomainAsync("openai-moderation", token);
+    Assert.Equal([
+        "domain-pause:background:openai-moderation:Maintenance", "domains:background",
+        "domain-resume:background:openai-moderation", "domains:background",
+        "domain-retry:background:openai-moderation", "domains:background"], service.Calls);
+  }
+
+  [Fact]
   public async Task QueuesViewModelLoadsAndMutatesQueueState()
   {
     var cancellationToken = TestContext.Current.CancellationToken;
@@ -247,6 +290,28 @@ public sealed class EngineeringViewModelTests
 
   private sealed class StubEngineeringService : IEngineeringService
   {
+    public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default)
+    {
+      Calls.Add($"domains:{name}");
+      if (DomainFailure is not null) return Task.FromException<QueueDomainsResponse>(DomainFailure);
+      return Task.FromResult(new QueueDomainsResponse([]));
+    }
+    public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default)
+    {
+      Calls.Add($"domain-pause:{name}:{domain}:{reason}");
+      return Task.FromResult(new EngineeringSuccessResponse(true));
+    }
+    public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default)
+    {
+      Calls.Add($"domain-resume:{name}:{domain}");
+      return Task.FromResult(new EngineeringSuccessResponse(true));
+    }
+    public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default)
+    {
+      Calls.Add($"domain-retry:{name}:{domain}");
+      return Task.FromResult(new RetryQueueDomainResponse(true, 0));
+    }
+
     public QueueStatsSummaryResponse StatsResponse { get; set; } = new(new QueueStatsSummary(0, 0, 0, 0, 0));
     public QueueStatsResponse QueuesResponse { get; set; } = new([], 0);
     public ScheduledJobsResponse ScheduledJobsResponse { get; set; } = new([]);
@@ -257,6 +322,7 @@ public sealed class EngineeringViewModelTests
     public ArticleSyncJobStatusResponse ArticleSyncStatusResponse { get; set; } = new("active", null, null);
     public CacheGroupsResponse CacheGroupsResponse { get; set; } = new([]);
     public Exception? Failure { get; set; }
+    public Exception? DomainFailure { get; set; }
     public int FetchQueueStatsCalls { get; private set; }
     public int FetchQueuesCalls { get; private set; }
     public int FetchScheduledJobsCalls { get; private set; }

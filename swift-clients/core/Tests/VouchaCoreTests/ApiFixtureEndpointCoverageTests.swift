@@ -19,6 +19,18 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
         .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
         .merging([
+            "web.admin.mq.queues.domains.default": .mqQueueDomains(name: "background"),
+            "web.admin.mq.queues.domains.pause.default": .mqPauseDomain(
+                queue: "background", domain: "openai-moderation", reason: "Maintenance"
+            ),
+            "web.admin.mq.queues.domains.resume.default": .mqResumeDomain(
+                queue: "background",
+                domain: "openai-moderation"
+            ),
+            "web.admin.mq.queues.domains.retry-failed.default": .mqRetryFailedDomain(
+                queue: "background",
+                domain: "openai-moderation"
+            ),
             "native.import-export.rss-feeds.submit.default": .importRssFeeds(
                 .urls(["https://example.test/feed.xml", "https://invalid.example.test/feed.xml"])
             ),

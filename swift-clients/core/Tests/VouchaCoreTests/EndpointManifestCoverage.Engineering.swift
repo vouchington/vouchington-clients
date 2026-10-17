@@ -2,6 +2,18 @@
 
 extension EndpointManifestCoverage {
     static let engineeringEndpoints: [ManifestRegisteredEndpoint] = [
+        ManifestRegisteredEndpoint(id: "web.admin.mq.queues.domains.default") {
+            Endpoint.mqQueueDomains(name: "background")
+        },
+        ManifestRegisteredEndpoint(id: "web.admin.mq.queues.domains.pause.default") {
+            Endpoint.mqPauseDomain(queue: "background", domain: "openai-moderation", reason: "Maintenance")
+        },
+        ManifestRegisteredEndpoint(id: "web.admin.mq.queues.domains.resume.default") {
+            Endpoint.mqResumeDomain(queue: "background", domain: "openai-moderation")
+        },
+        ManifestRegisteredEndpoint(id: "web.admin.mq.queues.domains.retry-failed.default") {
+            Endpoint.mqRetryFailedDomain(queue: "background", domain: "openai-moderation")
+        },
         ManifestRegisteredEndpoint(id: "native.admin-ai-costs.default") {
             ApiFixtureEndpointCoverageTests.registry["native.admin-ai-costs.default"]!
         },

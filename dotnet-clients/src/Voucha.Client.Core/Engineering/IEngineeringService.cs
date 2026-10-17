@@ -4,6 +4,10 @@ namespace Voucha.Client.Core.Engineering;
 
 public interface IEngineeringService
 {
+  Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default);
+  Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default);
+  Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default);
+  Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default);
   Task<AiCostTotalsResponse> FetchAiCostsAsync(string? after = null, CancellationToken cancellationToken = default);
   Task<QueueStatsSummaryResponse> FetchQueueStatsAsync(CancellationToken cancellationToken = default);
   Task<QueueStatsResponse> FetchQueuesAsync(CancellationToken cancellationToken = default);

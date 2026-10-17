@@ -160,6 +160,15 @@ public sealed class AiCostsViewModelTests
 
   private sealed class StubService : IEngineeringService
   {
+    public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new QueueDomainsResponse([]));
+    public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RetryQueueDomainResponse(true, 0));
+
     private int pageIndex;
     public List<AiCostTotalsResponse> Pages { get; set; } = [];
     public List<string?> Cursors { get; } = [];

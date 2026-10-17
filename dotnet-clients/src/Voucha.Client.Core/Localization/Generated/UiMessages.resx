@@ -223,6 +223,17 @@
   <data name="extracted.pointValuationsManager.valuationSummary.remove_9fe2f243" xml:space="preserve"><value>Remove?</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.remove_c3812fc4" xml:space="preserve"><value>Remove</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.valuePerPoint_7111fb3c" xml:space="preserve"><value>{value} per point</value></data>
+  <data name="extracted.queues.domainsSection.active_92340695" xml:space="preserve"><value>Active</value></data>
+  <data name="extracted.queues.domainsSection.backgroundDomains_d956d6be" xml:space="preserve"><value>Background domains</value></data>
+  <data name="extracted.queues.domainsSection.completed_22a970d2" xml:space="preserve"><value>Completed</value></data>
+  <data name="extracted.queues.domainsSection.delayed_a5c19c9f" xml:space="preserve"><value>Delayed</value></data>
+  <data name="extracted.queues.domainsSection.failed_031a8f0f" xml:space="preserve"><value>Failed</value></data>
+  <data name="extracted.queues.domainsSection.pause_858e4ba7" xml:space="preserve"><value>Pause</value></data>
+  <data name="extracted.queues.domainsSection.paused_e159b061" xml:space="preserve"><value>Paused</value></data>
+  <data name="extracted.queues.domainsSection.resume_d640c742" xml:space="preserve"><value>Resume</value></data>
+  <data name="extracted.queues.domainsSection.retryFailed_2630f650" xml:space="preserve"><value>Retry failed</value></data>
+  <data name="extracted.queues.domainsSection.running_f4ccae29" xml:space="preserve"><value>Running</value></data>
+  <data name="extracted.queues.domainsSection.waiting_6e293a8c" xml:space="preserve"><value>Waiting</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.manageYourRewardsProgramPointValuations_e3bcc429" xml:space="preserve"><value>Manage your rewards program point valuations</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2" xml:space="preserve"><value>Point Valuations</value></data>
   <data name="extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de" xml:space="preserve"><value>Add a rewards program status</value></data>

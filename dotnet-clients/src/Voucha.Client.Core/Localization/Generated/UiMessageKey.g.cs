@@ -226,6 +226,17 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedPointValuationsManagerValuationSummaryRemove9fe2f243 = new("extracted.pointValuationsManager.valuationSummary.remove_9fe2f243");
     public static readonly UiMessageKey ExtractedPointValuationsManagerValuationSummaryRemoveC3812fc4 = new("extracted.pointValuationsManager.valuationSummary.remove_c3812fc4");
     public static readonly UiMessageKey ExtractedPointValuationsManagerValuationSummaryValuePerPoint7111fb3c = new("extracted.pointValuationsManager.valuationSummary.valuePerPoint_7111fb3c");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionActive92340695 = new("extracted.queues.domainsSection.active_92340695");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionBackgroundDomainsD956d6be = new("extracted.queues.domainsSection.backgroundDomains_d956d6be");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionCompleted22a970d2 = new("extracted.queues.domainsSection.completed_22a970d2");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionDelayedA5c19c9f = new("extracted.queues.domainsSection.delayed_a5c19c9f");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionFailed031a8f0f = new("extracted.queues.domainsSection.failed_031a8f0f");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionPause858e4ba7 = new("extracted.queues.domainsSection.pause_858e4ba7");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionPausedE159b061 = new("extracted.queues.domainsSection.paused_e159b061");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionResumeD640c742 = new("extracted.queues.domainsSection.resume_d640c742");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionRetryFailed2630f650 = new("extracted.queues.domainsSection.retryFailed_2630f650");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionRunningF4ccae29 = new("extracted.queues.domainsSection.running_f4ccae29");
+    public static readonly UiMessageKey ExtractedQueuesDomainsSectionWaiting6e293a8c = new("extracted.queues.domainsSection.waiting_6e293a8c");
     public static readonly UiMessageKey ExtractedRewardsProgramPointValuationsPageManageYourRewardsProgramPointValuationsE3bcc429 = new("extracted.rewardsProgramPointValuations.page.manageYourRewardsProgramPointValuations_e3bcc429");
     public static readonly UiMessageKey ExtractedRewardsProgramPointValuationsPagePointValuationsF90821b2 = new("extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2");
     public static readonly UiMessageKey ExtractedRewardsProgramStatusesManagerAddStatusFormAddArewardsProgramStatus77e8d1de = new("extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de");
@@ -2238,6 +2249,17 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedPointValuationsManagerValuationSummaryRemove9fe2f243,
         ExtractedPointValuationsManagerValuationSummaryRemoveC3812fc4,
         ExtractedPointValuationsManagerValuationSummaryValuePerPoint7111fb3c,
+        ExtractedQueuesDomainsSectionActive92340695,
+        ExtractedQueuesDomainsSectionBackgroundDomainsD956d6be,
+        ExtractedQueuesDomainsSectionCompleted22a970d2,
+        ExtractedQueuesDomainsSectionDelayedA5c19c9f,
+        ExtractedQueuesDomainsSectionFailed031a8f0f,
+        ExtractedQueuesDomainsSectionPause858e4ba7,
+        ExtractedQueuesDomainsSectionPausedE159b061,
+        ExtractedQueuesDomainsSectionResumeD640c742,
+        ExtractedQueuesDomainsSectionRetryFailed2630f650,
+        ExtractedQueuesDomainsSectionRunningF4ccae29,
+        ExtractedQueuesDomainsSectionWaiting6e293a8c,
         ExtractedRewardsProgramPointValuationsPageManageYourRewardsProgramPointValuationsE3bcc429,
         ExtractedRewardsProgramPointValuationsPagePointValuationsF90821b2,
         ExtractedRewardsProgramStatusesManagerAddStatusFormAddArewardsProgramStatus77e8d1de,

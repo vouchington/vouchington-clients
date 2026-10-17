@@ -10,6 +10,7 @@ extension NativeEngineeringQueuesSurface {
         statsSection(viewModel.stats)
         sectionTitle(UiMessages.string(.nativeSwiftEngineeringQueuesQueues, locale: nativeUiLocale))
         queueSection(viewModel)
+        NativeEngineeringQueueDomainsSection(viewModel: viewModel)
         sectionTitle(UiMessages.string(.nativeSwiftEngineeringQueuesScheduledJobs, locale: nativeUiLocale))
         scheduledJobsSection(viewModel)
         sectionTitle(UiMessages.string(.nativeSwiftEngineeringQueuesBackfills, locale: nativeUiLocale))
@@ -59,21 +60,23 @@ extension NativeEngineeringQueuesSurface {
                     detail: .app(queueDetail(queue))
                 )
             )
-            HStack {
-                Spacer()
-                Button(UiMessages.string(
-                    queue.paused
-                        ? .nativeSwiftEngineeringQueuesResume
-                        : .nativeSwiftEngineeringQueuesPause,
-                    locale: nativeUiLocale
-                )) {
-                    Task {
-                        queue.paused ? await viewModel.resumeQueue(name: queue.name)
-                            : await viewModel.pauseQueue(name: queue.name)
+            if queue.name != "background" {
+                HStack {
+                    Spacer()
+                    Button(UiMessages.string(
+                        queue.paused
+                            ? .nativeSwiftEngineeringQueuesResume
+                            : .nativeSwiftEngineeringQueuesPause,
+                        locale: nativeUiLocale
+                    )) {
+                        Task {
+                            queue.paused ? await viewModel.resumeQueue(name: queue.name)
+                                : await viewModel.pauseQueue(name: queue.name)
+                        }
                     }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isActionLoading(queueActionKey(queue)))
                 }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.isActionLoading(queueActionKey(queue)))
             }
         }
     }

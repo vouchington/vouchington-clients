@@ -223,6 +223,17 @@
   <data name="extracted.pointValuationsManager.valuationSummary.remove_9fe2f243" xml:space="preserve"><value>Remover?</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.remove_c3812fc4" xml:space="preserve"><value>Remover</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.valuePerPoint_7111fb3c" xml:space="preserve"><value>{value} por ponto</value></data>
+  <data name="extracted.queues.domainsSection.active_92340695" xml:space="preserve"><value>Ativo</value></data>
+  <data name="extracted.queues.domainsSection.backgroundDomains_d956d6be" xml:space="preserve"><value>Domínios em segundo plano</value></data>
+  <data name="extracted.queues.domainsSection.completed_22a970d2" xml:space="preserve"><value>Concluído</value></data>
+  <data name="extracted.queues.domainsSection.delayed_a5c19c9f" xml:space="preserve"><value>Atrasados</value></data>
+  <data name="extracted.queues.domainsSection.failed_031a8f0f" xml:space="preserve"><value>Com falha</value></data>
+  <data name="extracted.queues.domainsSection.pause_858e4ba7" xml:space="preserve"><value>Pausar</value></data>
+  <data name="extracted.queues.domainsSection.paused_e159b061" xml:space="preserve"><value>Pausado</value></data>
+  <data name="extracted.queues.domainsSection.resume_d640c742" xml:space="preserve"><value>Retomar</value></data>
+  <data name="extracted.queues.domainsSection.retryFailed_2630f650" xml:space="preserve"><value>Tentar falhas novamente</value></data>
+  <data name="extracted.queues.domainsSection.running_f4ccae29" xml:space="preserve"><value>Em execução</value></data>
+  <data name="extracted.queues.domainsSection.waiting_6e293a8c" xml:space="preserve"><value>Aguardando</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.manageYourRewardsProgramPointValuations_e3bcc429" xml:space="preserve"><value>Gerencie as avaliações de pontos do seu programa de recompensas</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2" xml:space="preserve"><value>Avaliações de Pontos</value></data>
   <data name="extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de" xml:space="preserve"><value>Adicionar um status de programa de recompensas</value></data>

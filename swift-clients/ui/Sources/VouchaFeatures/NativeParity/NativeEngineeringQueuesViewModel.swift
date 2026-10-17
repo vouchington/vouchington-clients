@@ -10,11 +10,12 @@ final class NativeEngineeringQueuesViewModel: NativeEngineeringActionPerforming 
     var state: LoadState = .idle
     var stats: EngineeringAggregatedQueueStats?
     var queues: [EngineeringQueueStats] = []
+    var domains: [EngineeringQueueDomain] = []
     var scheduledJobs: [EngineeringScheduledJob] = []
     var backfills: [EngineeringBackfill] = []
     var actionErrorMessage: UiVerbatimText?
 
-    private let client: APIClient
+    let client: APIClient
     var actionLoadingKeys: Set<String> = []
 
     init(client: APIClient) {
@@ -37,6 +38,15 @@ final class NativeEngineeringQueuesViewModel: NativeEngineeringActionPerforming 
             let loadedScheduled = try await scheduledResponse
             let loadedBackfills = try await backfillsResponse
 
+            let loadedDomains: [EngineeringQueueDomain]
+            if loadedQueues.queues.contains(where: { $0.name == "background" }) {
+                let response: EngineeringQueueDomainsResponse = try await client
+                    .send(.mqQueueDomains(name: "background"))
+                loadedDomains = response.domains
+            } else {
+                loadedDomains = []
+            }
+            domains = loadedDomains
             stats = loadedStats.stats
             queues = loadedQueues.queues
             scheduledJobs = loadedScheduled.jobs
@@ -55,6 +65,7 @@ final class NativeEngineeringQueuesViewModel: NativeEngineeringActionPerforming 
     }
 
     func pauseQueue(name: String) async {
+        guard name != "background" else { return }
         await performAction(key: "pause|\(name)") {
             let _: EngineeringSuccessResponse = try await self.client.send(.mqPauseQueue(name: name))
         }

@@ -161,6 +161,15 @@ public sealed class EngineeringValkeyViewModelTests
 
   private sealed class StubEngineeringService : IEngineeringService
   {
+    public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new QueueDomainsResponse([]));
+    public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RetryQueueDomainResponse(true, 0));
+
     public CacheGroupsResponse CacheGroupsResponse { get; set; } = new([]);
     public Exception? Failure { get; set; }
     public TaskCompletionSource<RebuildBloomFilterResponse>? RebuildGate { get; set; }

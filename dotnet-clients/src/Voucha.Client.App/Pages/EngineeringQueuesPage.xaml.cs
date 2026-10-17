@@ -47,6 +47,21 @@ public partial class EngineeringQueuesPage : ContentPage
     await viewModel.PauseQueueAsync(job.Name).ConfigureAwait(true);
   }
 
+  private async void OnToggleDomainPauseClicked(object? sender, EventArgs e)
+  {
+    if (sender is not Button { CommandParameter: QueueDomain domain }) return;
+    if (domain.Paused)
+      await viewModel.ResumeDomainAsync(domain.Domain).ConfigureAwait(true);
+    else
+      await viewModel.PauseDomainAsync(domain.Domain).ConfigureAwait(true);
+  }
+
+  private async void OnRetryDomainClicked(object? sender, EventArgs e)
+  {
+    if (sender is Button { CommandParameter: QueueDomain domain })
+      await viewModel.RetryDomainAsync(domain.Domain).ConfigureAwait(true);
+  }
+
   private async void OnTriggerScheduledJobClicked(object? sender, EventArgs e)
   {
     if (sender is Button { CommandParameter: ScheduledJob job })
