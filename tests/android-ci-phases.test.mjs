@@ -146,7 +146,7 @@ test('stable Android fan-in rejects failed, cancelled or skipped phase and verif
   const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(gate, /needs: \[verify, build-swift-android\]/u)
-  assert.match(gate, /if: \$\{\{ always\(\) \}\}/u)
+  assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
   assert.ok(run)
   const script = run[1].replace(/^ {10}/gmu, '')

@@ -168,7 +168,7 @@ jobs:
 
   validate:
     name: validate
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [contract-tests, dotnet-core, swift-core, tooling-lint, gitleaks, swift-lint]
     runs-on: ubuntu-slim
     timeout-minutes: 2
