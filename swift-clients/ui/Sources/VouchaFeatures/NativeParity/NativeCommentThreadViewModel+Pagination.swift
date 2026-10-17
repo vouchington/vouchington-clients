@@ -65,7 +65,6 @@ extension NativeCommentThreadViewModel {
     }
 
     func resetThreadMetadata() {
-        authorAside = nil
         usersById = [:]
         postMetricsById = [:]
         postElectionsById = [:]
