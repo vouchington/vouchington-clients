@@ -36,8 +36,8 @@ importers:
         specifier: 1.80.0
         version: 1.80.0
       pr-shepherd:
-        specifier: 0.56.5
-        version: 0.56.5(supports-color@7.2.0)
+        specifier: 0.59.1
+        version: 0.59.1(supports-color@7.2.0)
       vouchington-tooling:
         specifier: 0.48.0
         version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4)
@@ -1826,9 +1826,9 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pr-shepherd@0.56.5:
-    resolution: {integrity: sha512-d9C3qfgI4I76sd4kL5TwymtkhIr4UYKqzqUcHB3d1Jx9rjAgOwsM70Y+ixGV9sySNtU6+0p1PcNYFBvLG+zOug==}
-    engines: {node: '>=22.18.0'}
+  pr-shepherd@0.59.1:
+    resolution: {integrity: sha512-gNcFdws9U1+fgKc7I3usV9U5agopTTPFGydmvUuqIw674mUNmNbJr6OJzQE5SnxMfL5xsmgNzfz9H5c2QJqgJA==}
+    engines: {node: '>=22.19.0'}
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -2037,6 +2037,10 @@ packages:
   unbash@4.0.10:
     resolution: {integrity: sha512-b7zoBQvpWp0vuN5q2vK2RRBR2SvuruQAs50DApdDveBSn3eSYd84IaHodFqQIMlvY9K2VnyBUEXgwOBuGU9GBg==}
     engines: {node: '>=14'}
+
+  undici@8.12.2:
+    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
+    engines: {node: '>=22.19.0'}
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
@@ -3998,10 +4002,11 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pr-shepherd@0.56.5(supports-color@7.2.0):
+  pr-shepherd@0.59.1(supports-color@7.2.0):
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       picomatch: 4.0.7
+      undici: 8.12.2
       yaml: 2.9.1
       zod: 4.5.4
     transitivePeerDependencies:
@@ -4243,6 +4248,8 @@ snapshots:
   typescript@6.0.3: {}
 
   unbash@4.0.10: {}
+
+  undici@8.12.2: {}
 
   unified@11.0.5:
     dependencies:
