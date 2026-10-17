@@ -40,6 +40,7 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
     public let xAccount: OAuthAccountInfo?
     public let githubAccount: OAuthAccountInfo?
     public let linkedinAccount: OAuthAccountInfo?
+    public let microsoftAccount: OAuthAccountInfo?
     public let processingRestrictedAt: Date?
     public let thirdPartyMarketing: Bool?
     public let hnDiscussions: Bool?
@@ -57,6 +58,7 @@ public struct PrivateUser: Codable, Identifiable, Sendable {
         case communityDigestFrequency, moderationEmailCadence
         case moderationEmailDaysOfWeek, moderationEmailTimeOfDay, moderationEmailTimezone
         case blueskyAccount, facebookAccount, xAccount, githubAccount, linkedinAccount
+        case microsoftAccount
         case processingRestrictedAt, thirdPartyMarketing, hnDiscussions, country, uiLocale
         case engagementEmailsEnabled = "isEngagementEmailsEnabled"
         case moderationEmailsEnabled = "isModerationEmailsEnabled"

@@ -40,8 +40,12 @@ public sealed class FriendAvatarPlacementRenderingTests
     Assert.Equal("F", initial.Text);
   }
 
-  [Fact]
-  public void RecommendationPageRendersHydratedAvatarAndLeavesInitialWhenAbsent()
+  [Theory]
+  [InlineData(FriendRecommendationProvider.Facebook, "via Facebook")]
+  [InlineData(FriendRecommendationProvider.X, "via X")]
+  [InlineData(FriendRecommendationProvider.Github, "via GitHub")]
+  public void RecommendationPageRendersHydratedAvatarAndProviderLabel(
+      FriendRecommendationProvider provider, string expectedProviderLabel)
   {
     InstallPageResources();
     var page = new FriendRecommendationsPage(
@@ -49,10 +53,11 @@ public sealed class FriendAvatarPlacementRenderingTests
     var collection = Assert.Single(Descendants<CollectionView>(page));
     var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
     var row = new FriendRecommendationRow(
-        new FriendRecommendation("user", "friend-1", OAuthBrokerProvider.Github, "Provider Name"),
+        new FriendRecommendation("user", "friend-1", provider, "Provider Name"),
         new User("friend-1", "friend", ProfileImagePlacement: Placement));
     card.BindingContext = row;
 
+    Assert.Single(Descendants<Label>(card), label => label.Text == expectedProviderLabel);
     var image = Assert.Single(Descendants<Image>(card));
     var initial = Assert.Single(Descendants<Label>(card), label => label.Text == "F");
     var name = Assert.Single(Descendants<Label>(card), label => label.Text == row.PrimaryLabel);

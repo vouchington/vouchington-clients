@@ -43,6 +43,7 @@ extension PrivateUser {
         xAccount = try container.decodeIfPresent(OAuthAccountInfo.self, forKey: .xAccount)
         githubAccount = try container.decodeIfPresent(OAuthAccountInfo.self, forKey: .githubAccount)
         linkedinAccount = try container.decodeIfPresent(OAuthAccountInfo.self, forKey: .linkedinAccount)
+        microsoftAccount = try container.decodeIfPresent(OAuthAccountInfo.self, forKey: .microsoftAccount)
         processingRestrictedAt = try container.decodeIfPresent(Date.self, forKey: .processingRestrictedAt)
         thirdPartyMarketing = try container.decodeIfPresent(Bool.self, forKey: .thirdPartyMarketing)
         hnDiscussions = try container.decodeIfPresent(Bool.self, forKey: .hnDiscussions)

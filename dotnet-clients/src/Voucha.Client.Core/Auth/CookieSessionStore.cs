@@ -65,6 +65,7 @@ public sealed class CookieSessionStore :
       OAuthBrokerProvider.X => identity with { XAccount = null },
       OAuthBrokerProvider.Github => identity with { GithubAccount = null },
       OAuthBrokerProvider.Linkedin => identity with { LinkedinAccount = null },
+      OAuthBrokerProvider.Microsoft => identity with { MicrosoftAccount = null },
       _ => throw new ArgumentOutOfRangeException(nameof(provider)),
     };
     SetCurrent(new SessionSnapshot(disconnectedIdentity));

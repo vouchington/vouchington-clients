@@ -107,6 +107,7 @@ extension NativeOAuthProvider {
         case .x: .nativeSwiftPresentationValuesX
         case .github: .nativeSwiftPresentationValuesGithub
         case .linkedin: .nativeSwiftPresentationValuesLinkedin
+        case .microsoft: .nativeSwiftPresentationValuesMicrosoft
         }
     }
 }

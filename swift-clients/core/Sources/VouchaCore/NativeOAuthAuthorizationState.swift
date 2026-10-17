@@ -6,6 +6,7 @@ public enum NativeOAuthProvider: String, CaseIterable, Codable, Identifiable, Se
     case x
     case github
     case linkedin
+    case microsoft
 
     public var id: String {
         rawValue
