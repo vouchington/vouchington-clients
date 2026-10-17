@@ -4,3 +4,8 @@
 # pr-shepherd matches against the raw name; composite-name entries silently never match.
 ignoreChecks:
   - 'Sourcery review'
+
+# pr-shepherd's bundled bot-noise classification rules.
+classify:
+  standard:
+    all: true
