@@ -5,8 +5,8 @@ import VouchaModels
 enum NativeChatMCPInputSchema {
     enum Failure: Error { case unsupportedSchema }
 
-    static func validateSchema(_ root: DecodedJSONValue) throws {
-        try inspect(root, root: root, depth: 0)
+    static func validateSchema(_ root: DecodedJSONValue, output: Bool = false) throws {
+        try inspect(root, root: root, depth: 0, output: output)
     }
 
     static func accepts(_ value: DecodedJSONValue, schema: DecodedJSONValue) throws -> Bool {
