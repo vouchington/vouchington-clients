@@ -2,13 +2,13 @@ name: Voucha
 options:
   bundleIdPrefix: ai.voucha
   deploymentTarget:
-    macOS: '14.0'
+    macOS: '14.4'
   xcodeVersion: '16.0'
   generateEmptyDirectories: true
 settings:
   base:
     SWIFT_VERSION: '5.9'
-    MACOSX_DEPLOYMENT_TARGET: '14.0'
+    MACOSX_DEPLOYMENT_TARGET: '14.4'
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: YES
@@ -23,7 +23,7 @@ targets:
   Voucha:
     type: application
     platform: macOS
-    deploymentTarget: '14.0'
+    deploymentTarget: '14.4'
     sources:
       - path: Sources
       - path: ../shared-app
@@ -102,7 +102,7 @@ targets:
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing
     platform: macOS
-    deploymentTarget: '14.0'
+    deploymentTarget: '14.4'
     sources:
       - path: ../shared-tests
     dependencies:
