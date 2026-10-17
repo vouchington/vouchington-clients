@@ -61,6 +61,7 @@ struct NativeChatMCPToolBridge {
     struct ValidatedResult {
         let envelope: String
         let isError: Bool
+        let fact: NativeChatMCPFact?
     }
 
     func execute(
@@ -100,7 +101,14 @@ struct NativeChatMCPToolBridge {
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
-        return ValidatedResult(envelope: text, isError: result.isError == true)
+        let fact: NativeChatMCPFact? = if name == "read_my_preferences", case .string("email")? = object["option"],
+                                          result.isError != true,
+                                          let structuredContent = result.structuredContent {
+            NativeChatMCPFact.makeEmailPreferences(structuredContent)
+        } else {
+            nil
+        }
+        return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }
 
     func validate(name: String, rawArguments: String) throws {

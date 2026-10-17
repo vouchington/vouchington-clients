@@ -12,8 +12,9 @@ import XCTest
             state.markStarted()
             try state.record(
                 id: UUID(),
+                callId: "fixture-call-1",
                 name: "read_fixture",
-                result: .init(envelope: "complete first response", isError: false)
+                result: .init(envelope: "complete first response", isError: false, fact: nil)
             )
             state.markStarted()
             do {
@@ -31,7 +32,10 @@ import XCTest
         func testSdkTextCannotTurnAnEstablishedContextStopIntoAnAnswer() async throws {
             let (session, snapshot, state) = try await setup()
             state.markStarted()
-            try state.record(id: UUID(), name: "read_fixture", result: .init(envelope: "whole receipt", isError: false))
+            try state.record(
+                id: UUID(), callId: "fixture-call-1", name: "read_fixture",
+                result: .init(envelope: "whole receipt", isError: false, fact: nil)
+            )
             _ = state.stop(.contextStopped)
             let outcome = try await NativeChatAppleFoundationModelsProvider.completeMCPGeneration(
                 content: "SDK text after stopped tool", state: state, admission: ReceiptAdmission(),
@@ -45,7 +49,10 @@ import XCTest
         func testCompleteLargeAnswerRemainsAllowedInsideActualSdkContext() async throws {
             let (session, snapshot, state) = try await setup()
             state.markStarted()
-            try state.record(id: UUID(), name: "read_fixture", result: .init(envelope: "whole receipt", isError: false))
+            try state.record(
+                id: UUID(), callId: "fixture-call-1", name: "read_fixture",
+                result: .init(envelope: "whole receipt", isError: false, fact: nil)
+            )
             let text = String(repeating: "complete answer ", count: 300).trimmingCharacters(in: .whitespaces)
             let outcome = try await NativeChatAppleFoundationModelsProvider.completeMCPGeneration(
                 content: text, state: state, admission: ReceiptAdmission(), session: session, snapshot: snapshot
@@ -59,7 +66,10 @@ import XCTest
         func testFinalContextFailureKeepsValidatedResponseWithoutAnAnswer() async throws {
             let (session, snapshot, state) = try await setup()
             state.markStarted()
-            try state.record(id: UUID(), name: "read_fixture", result: .init(envelope: "whole receipt", isError: false))
+            try state.record(
+                id: UUID(), callId: "fixture-call-1", name: "read_fixture",
+                result: .init(envelope: "whole receipt", isError: false, fact: nil)
+            )
             let admission = ReceiptAdmission()
             admission.continuationFits = false
             let outcome = try await NativeChatAppleFoundationModelsProvider.completeMCPGeneration(
@@ -75,7 +85,10 @@ import XCTest
         func testStopEstablishedDuringFinalCountingCannotBecomeAnAnswer() async throws {
             let (session, snapshot, state) = try await setup()
             state.markStarted()
-            try state.record(id: UUID(), name: "read_fixture", result: .init(envelope: "whole receipt", isError: false))
+            try state.record(
+                id: UUID(), callId: "fixture-call-1", name: "read_fixture",
+                result: .init(envelope: "whole receipt", isError: false, fact: nil)
+            )
             let admission = ReceiptAdmission()
             admission.holdFinalCount = true
             let counting = expectation(description: "final transcript count suspended")
@@ -98,8 +111,9 @@ import XCTest
                 state.markStarted()
                 try state.record(
                     id: UUID(),
+                    callId: "fixture-call-1",
                     name: "read_fixture",
-                    result: .init(envelope: "whole receipt", isError: false)
+                    result: .init(envelope: "whole receipt", isError: false, fact: nil)
                 )
                 let admission = ReceiptAdmission()
                 admission.holdFinalCount = true

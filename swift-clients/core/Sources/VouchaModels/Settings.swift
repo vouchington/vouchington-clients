@@ -35,7 +35,7 @@ public enum ApiKeyType: String, Codable, CaseIterable, Sendable {
     case mcp
 }
 
-public struct EmailPreferences: Codable, Sendable {
+public struct EmailPreferences: Codable, Equatable, Sendable {
     public let engagementEmailsEnabled: Bool
     public let newsDigestFrequency: String
     public let moderationEmailsEnabled: Bool
