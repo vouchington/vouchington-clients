@@ -5,9 +5,26 @@ namespace Voucha.Client.Core.Communities;
 
 public sealed partial class CommunityActionViewModel
 {
+  private int inviteSubmissionInProgress;
+
   public async Task<bool> SubmitAsync(CancellationToken cancellationToken = default)
   {
-    DismissInviteCode();
+    if (kind == CommunityActionKind.Invite &&
+        Interlocked.CompareExchange(ref inviteSubmissionInProgress, 1, 0) != 0) return false;
+    if (kind != CommunityActionKind.Invite) DismissInviteCode();
+    try
+    {
+      if (kind == CommunityActionKind.Invite && CreatedInviteCode is not null) return false;
+      return await SubmitAdmittedAsync(cancellationToken).ConfigureAwait(true);
+    }
+    finally
+    {
+      if (kind == CommunityActionKind.Invite) Volatile.Write(ref inviteSubmissionInProgress, 0);
+    }
+  }
+
+  private async Task<bool> SubmitAdmittedAsync(CancellationToken cancellationToken)
+  {
     var revision = submissionRevision;
     if (Validation is { IsValid: false } validation)
     {

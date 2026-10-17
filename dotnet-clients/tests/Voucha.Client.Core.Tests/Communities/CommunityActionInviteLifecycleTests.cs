@@ -27,16 +27,19 @@ public sealed class CommunityActionInviteLifecycleTests
     Assert.Equal(LoadState.Loading, viewModel.State);
 
     // CommunityActionPage.OnDisappearing uses this same public invalidation path.
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken)
+        .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
     viewModel.DismissInviteCode();
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken)
+        .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+    handler.Complete(0, "stale-code");
+    Assert.False(await firstSubmission);
+    Assert.Equal(LoadState.Idle, viewModel.State);
+    Assert.Null(viewModel.CreatedInviteCode);
+
     viewModel.Email = "second@example.com";
     var secondSubmission = viewModel.SubmitAsync(TestContext.Current.CancellationToken);
     await handler.WaitForRequestAsync(TestContext.Current.CancellationToken);
-
-    handler.Complete(0, "stale-code");
-    Assert.False(await firstSubmission);
-    Assert.Equal(LoadState.Loading, viewModel.State);
-    Assert.Null(viewModel.CreatedInviteCode);
-
     handler.Complete(1, "current-code");
     Assert.True(await secondSubmission);
     Assert.Equal(LoadState.Loaded, viewModel.State);

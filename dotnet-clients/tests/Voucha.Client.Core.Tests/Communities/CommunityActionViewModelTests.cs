@@ -115,7 +115,7 @@ public sealed class CommunityActionViewModelTests
   }
 
   [Fact]
-  public async Task SubmitAsyncShowsCreationCodeUntilDismissedOrNextSubmit()
+  public async Task SubmitAsyncPreservesCreationCodeUntilExplicitDismiss()
   {
     var (viewModel, handler) = CreateViewModel(CommunityActionKind.Invite,
         new RecordedResponse(CreatedInviteResponse),
@@ -131,10 +131,21 @@ public sealed class CommunityActionViewModelTests
     Assert.Equal("/api/v1/communities/test-community/invites", handler.Requests[0].PathAndQuery);
     Assert.Contains("\"email\":\"person@example.com\"", handler.Requests[0].Body!, StringComparison.Ordinal);
     Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    viewModel.Email = null;
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    Assert.Single(handler.Requests);
+    viewModel.Email = "second@example.com";
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.Single(handler.Requests);
     viewModel.DismissInviteCode();
     Assert.Null(viewModel.CreatedInviteCode);
     Assert.True(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
     Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.Equal("fresh-code", viewModel.CreatedInviteCode);
+    Assert.Equal(2, handler.Requests.Count);
+    viewModel.DismissInviteCode();
     Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
     Assert.Null(viewModel.CreatedInviteCode);
   }

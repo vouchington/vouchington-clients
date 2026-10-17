@@ -75,7 +75,6 @@ public sealed partial class CommunityActionPage : ContentPage
   {
     if (isSubmitInProgress) return;
     isSubmitInProgress = true;
-    viewModel.DismissInviteCode();
     try
     {
       viewModel.CommunitySlug = communitySlugEntry.Text ?? string.Empty;
@@ -132,6 +131,8 @@ public sealed partial class CommunityActionPage : ContentPage
     submitButton.SetDynamicResource(Button.TextProperty, UiMessageKey.NativeDotnetCsharpSubmit.Value);
     errorLabel.Text = viewModel.ErrorMessage ?? string.Empty;
     errorLabel.IsVisible = viewModel.HasError;
+    submitButton.IsEnabled = viewModel.State != Voucha.Client.Core.Support.LoadState.Loading &&
+        (viewModel.Kind != CommunityActionKind.Invite || viewModel.CreatedInviteCode is null);
     RenderInviteCodeNotice();
     RenderApplicationQuestions();
   }
