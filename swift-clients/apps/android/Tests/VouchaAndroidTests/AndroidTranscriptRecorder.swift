@@ -1,4 +1,7 @@
 import Foundation
+#if !canImport(Darwin)
+    import FoundationNetworking
+#endif
 
 final class AndroidTranscriptRecorder: @unchecked Sendable {
     private struct RequestWaiter {

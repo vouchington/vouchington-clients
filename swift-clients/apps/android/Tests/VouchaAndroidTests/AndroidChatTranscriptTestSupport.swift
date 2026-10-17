@@ -1,4 +1,7 @@
 import Foundation
+#if !canImport(Darwin)
+    import FoundationNetworking
+#endif
 import VouchaTestSupport
 
 class AndroidTranscriptURLProtocol: URLProtocol {

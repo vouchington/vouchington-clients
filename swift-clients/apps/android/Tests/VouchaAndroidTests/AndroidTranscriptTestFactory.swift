@@ -1,4 +1,7 @@
 import Foundation
+#if !canImport(Darwin)
+    import FoundationNetworking
+#endif
 @testable import VouchaAndroid
 import VouchaAPI
 import VouchaCore
