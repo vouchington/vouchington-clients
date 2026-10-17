@@ -1,3 +1,4 @@
+@testable import VouchaAndroid
 import VouchaCore
 
 struct EndpointGeneratingTestContext {
