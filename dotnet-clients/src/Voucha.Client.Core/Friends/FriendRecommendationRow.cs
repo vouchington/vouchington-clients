@@ -35,10 +35,9 @@ public sealed record FriendRecommendationRow(
 
   private UiMessageKey ProviderMessageKey() => Recommendation.Provider switch
   {
-    OAuthBrokerProvider.Facebook => UiMessageKey.NativeSwiftPresentationValuesFacebook,
-    OAuthBrokerProvider.X => UiMessageKey.NativeSwiftPresentationValuesX,
-    OAuthBrokerProvider.Github => UiMessageKey.NativeSwiftPresentationValuesGithub,
-    OAuthBrokerProvider.Linkedin => UiMessageKey.NativeTaxonomySettingsLinkedin,
+    FriendRecommendationProvider.Facebook => UiMessageKey.NativeSwiftPresentationValuesFacebook,
+    FriendRecommendationProvider.X => UiMessageKey.NativeSwiftPresentationValuesX,
+    FriendRecommendationProvider.Github => UiMessageKey.NativeSwiftPresentationValuesGithub,
     _ => throw new ArgumentOutOfRangeException(nameof(Recommendation.Provider)),
   };
 
