@@ -35,6 +35,8 @@ import XCTest
             XCTAssertTrue(try XCTUnwrap(value["structuredContent"] as? NSDictionary).isEqual(to: fixture.structured))
             XCTAssertEqual(value["isError"] as? Bool, false)
             XCTAssertNil(value["truncated"])
+            XCTAssertEqual(state.receipts.first?.callId, try XCTUnwrap(admission.preparedCallIds.first))
+            XCTAssertEqual(admission.retainedCallIds, admission.preparedCallIds)
         }
 
         func testLargeValidatedResultStopsAfterOneCallWithoutPreviewOrRedispatch() async throws {
@@ -303,6 +305,7 @@ import XCTest
                 structured
             )
         }
+
     }
 
     @MainActor
