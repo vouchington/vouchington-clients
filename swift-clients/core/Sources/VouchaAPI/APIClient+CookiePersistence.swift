@@ -4,6 +4,14 @@ import Foundation
 #endif
 
 extension APIClient {
+    /// Clears the cookie jar used by this client's transports and persists the cleared state.
+    public func clearSessionCookies() {
+        for cookie in cookieStorage.cookies ?? [] {
+            cookieStorage.deleteCookie(cookie)
+        }
+        persistCookies?()
+    }
+
     static func cookieSessionConfiguration(
         _ provided: URLSessionConfiguration?, cookieStorage: HTTPCookieStorage
     ) -> URLSessionConfiguration {

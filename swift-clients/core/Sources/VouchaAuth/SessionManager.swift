@@ -137,6 +137,7 @@ public final class SessionManager {
         } catch {
             // ignore sign-out errors — clear locally regardless
         }
+        await client.clearSessionCookies()
         for cookie in cookieStorage.cookies ?? [] {
             cookieStorage.deleteCookie(cookie)
         }

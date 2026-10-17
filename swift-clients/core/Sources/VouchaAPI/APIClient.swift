@@ -19,6 +19,8 @@ public actor APIClient {
     let sessionBootstrapEnabled: Bool
     var sessionBootstrapTask: Task<Void, Error>?
 
+    /// Bootstrap defaults retain the legacy `protocolClasses` policy. When supplying a
+    /// configuration with a custom test transport, explicitly pass `bootstrapSession: false`.
     public init(
         config: AppConfig = .shared,
         cookieStorage: HTTPCookieStorage = .shared,

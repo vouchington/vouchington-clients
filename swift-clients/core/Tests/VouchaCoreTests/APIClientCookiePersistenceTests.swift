@@ -27,6 +27,44 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         let _: Empty = try await client.send(Endpoint(.GET, path: "/empty"))
     }
 
+    func testDefaultAndEphemeralConfigurationsKeepProductionBootstrapEnabled() async throws {
+        let defaultClient = APIClient(cookieStorage: IsolatedHTTPCookieStorage.make())
+        let defaultEnabled = await defaultClient.sessionBootstrapEnabled
+        XCTAssertTrue(defaultEnabled)
+        let configuration = URLSessionConfiguration.ephemeral
+        let jar = try XCTUnwrap(configuration.httpCookieStorage)
+        let configuredClient = APIClient(cookieStorage: jar, sessionConfiguration: configuration)
+        let configuredEnabled = await configuredClient.sessionBootstrapEnabled
+        XCTAssertTrue(configuredEnabled)
+    }
+
+    func testLegacyProtocolClassArgumentKeepsBootstrapDisabled() async {
+        let client = APIClient(
+            cookieStorage: IsolatedHTTPCookieStorage.make(), protocolClasses: [CookiePersistenceURLProtocol.self]
+        )
+        let enabled = await client.sessionBootstrapEnabled
+        XCTAssertFalse(enabled)
+    }
+
+    func testConfigurationOnlyProtocolClassesRequireAnExplicitBootstrapOverride() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        let jar = try XCTUnwrap(configuration.httpCookieStorage)
+        configuration.protocolClasses = [CookiePersistenceURLProtocol.self]
+        let defaultClient = APIClient(cookieStorage: jar, sessionConfiguration: configuration)
+        let defaultEnabled = await defaultClient.sessionBootstrapEnabled
+        XCTAssertTrue(defaultEnabled)
+        let overriddenClient = try APIClient(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
+            cookieStorage: jar, bootstrapSession: false, sessionConfiguration: configuration
+        )
+
+        let _: Empty = try await overriddenClient.send(Endpoint(.GET, path: "/empty"))
+
+        XCTAssertTrue(jar.cookies?.isEmpty ?? true)
+        let overriddenEnabled = await overriddenClient.sessionBootstrapEnabled
+        XCTAssertFalse(overriddenEnabled)
+    }
+
     func testBootstrapPersistsJSONTokensBeforeReturningTheRequestedResponse() async throws {
         let (client, recorder) = try makeClient(bootstrap: true)
 
