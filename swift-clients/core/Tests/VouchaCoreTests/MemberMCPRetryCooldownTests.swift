@@ -12,6 +12,19 @@ final class MemberMCPRetryCooldownTests: XCTestCase {
         super.tearDown()
     }
 
+    func testInitialHintRemainsExactAtFractionalUptime() async throws {
+        for (mode, method) in [
+            ("seconds", "tools/list"), ("date", "tools/list"), ("in-band", "tools/call")
+        ] {
+            let clock = RetryCooldownClock()
+            clock.advance(1_023.9999999999999)
+            RetryCooldownURLProtocol.configure(mode: mode, method: method)
+            let client = try makeClient(clock)
+            let first = try await limited { try await self.invoke(client, method: method) }
+            XCTAssertEqual(first, 17)
+        }
+    }
+
     func testRefusalBlocksDispatchUntilMonotonicDeadlineWithoutRedispatch() async throws {
         for (mode, method) in [
             ("seconds", "tools/list"), ("date", "tools/list"), ("in-band", "tools/call"),
