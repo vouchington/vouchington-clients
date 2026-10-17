@@ -551,7 +551,6 @@
   <data name="native.dotnet.csharpCommunities.aiAgents" xml:space="preserve"><value>Agentes de IA</value></data>
   <data name="native.dotnet.csharpCommunities.allocate" xml:space="preserve"><value>Atribuir</value></data>
   <data name="native.dotnet.csharpCommunities.allocated" xml:space="preserve"><value>Atribuído</value></data>
-  <data name="native.dotnet.csharpCommunities.anyoneWithCode" xml:space="preserve"><value>Qualquer pessoa com o código</value></data>
   <data name="native.dotnet.csharpCommunities.applicationId" xml:space="preserve"><value>ID da candidatura</value></data>
   <data name="native.dotnet.csharpCommunities.applications" xml:space="preserve"><value>Candidaturas</value></data>
   <data name="native.dotnet.csharpCommunities.apply" xml:space="preserve"><value>Candidatar-se à comunidade</value></data>

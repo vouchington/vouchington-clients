@@ -538,6 +538,7 @@
 "native.swift.communities.testText" = "Texto de teste";
 "native.swift.communities.transferOwnership" = "Transferir propriedade";
 "native.swift.communities.transferToUserId" = "Transferir para o ID de utilizador";
+"native.swift.communities.unknownRecipient" = "Destinatário desconhecido";
 "native.swift.communities.updatePinnedPosts" = "Atualizar publicações afixadas";
 "native.swift.communities.updateRole" = "Atualizar função";
 "native.swift.communities.userId" = "ID do usuário";

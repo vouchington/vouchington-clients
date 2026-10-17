@@ -1,11 +1,13 @@
 import Foundation
+import SwiftUI
+import ViewInspector
 @testable import VouchaFeatures
 import VouchaLocalization
 import XCTest
 
 @MainActor
 final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
-    func testCodeOnlyInviteUsesLocalizedGenericRowTitle() async throws {
+    func testMetadataOnlyInviteUsesLocalizedUnknownRecipient() async throws {
         registerCommunityAdminFixtures()
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (
             Data(
@@ -20,9 +22,39 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertEqual(
             viewModel.summary.rows.map(\.title),
-            [UiMessages.string(.nativeSwiftCommunitiesInvite, locale: .english)]
+            ["Unknown recipient"]
         )
         XCTAssertFalse(viewModel.summary.rows.contains { $0.title.contains("opaque-invite-id") })
+        let row = try XCTUnwrap(viewModel.summary.rows.first)
+        for (locale, expected) in [("en", "Unknown recipient"), ("es", "Destinatario desconocido")] {
+            let surface = NativeSurfaceRow(row: row).environment(\.locale, Locale(identifier: locale))
+            XCTAssertEqual(try surface.inspect().find(text: expected).string(), expected)
+            XCTAssertThrowsError(try surface.inspect().find(text: "opaque-invite-id"))
+        }
+    }
+
+    func testInviteRecipientPreservesEmailThenUserIdVerbatim() async throws {
+        for (email, userId, expected) in [
+            ("person@example.test", "recipient-id", "person@example.test"),
+            (nil, "recipient-id", "recipient-id")
+        ] as [(String?, String?, String)] {
+            registerCommunityAdminFixtures()
+            let path = "/api/v1/communities/builders/invites"
+            let seeded = try XCTUnwrap(CannedFeedURLProtocol.handlers[path]?.0)
+            var response = try XCTUnwrap(JSONSerialization.jsonObject(with: seeded) as? [String: Any])
+            var invites = try XCTUnwrap(response["community_invites"] as? [String: [String: Any]])
+            var invite = try XCTUnwrap(invites["invite-1"])
+            invite["invited_email"] = email.map { $0 as Any } ?? NSNull()
+            invite["invited_user_id"] = userId.map { $0 as Any } ?? NSNull()
+            invites["invite-1"] = invite
+            response["community_invites"] = invites
+            CannedFeedURLProtocol.handlers[path] = try (JSONSerialization.data(withJSONObject: response), 200)
+            let model = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+            await model.load()
+            let row = try XCTUnwrap(model.summary.rows.first)
+            XCTAssertEqual(row.localizedTitle(locale: Locale(identifier: "en")), expected)
+            XCTAssertEqual(row.localizedTitle(locale: Locale(identifier: "es")), expected)
+        }
     }
 
     func testMemberListApplicationInviteAndPinnedActionsCallCommunityEndpoints() async throws {

@@ -551,7 +551,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAiAgents = new("native.dotnet.csharpCommunities.aiAgents");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAllocate = new("native.dotnet.csharpCommunities.allocate");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAllocated = new("native.dotnet.csharpCommunities.allocated");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAnyoneWithCode = new("native.dotnet.csharpCommunities.anyoneWithCode");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesApplicationId = new("native.dotnet.csharpCommunities.applicationId");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesApplications = new("native.dotnet.csharpCommunities.applications");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesApply = new("native.dotnet.csharpCommunities.apply");
@@ -2577,7 +2576,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesAiAgents,
         NativeDotnetCsharpCommunitiesAllocate,
         NativeDotnetCsharpCommunitiesAllocated,
-        NativeDotnetCsharpCommunitiesAnyoneWithCode,
         NativeDotnetCsharpCommunitiesApplicationId,
         NativeDotnetCsharpCommunitiesApplications,
         NativeDotnetCsharpCommunitiesApply,

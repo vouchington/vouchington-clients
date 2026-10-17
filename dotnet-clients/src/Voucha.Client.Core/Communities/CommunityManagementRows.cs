@@ -37,7 +37,7 @@ public sealed record CommunityInviteRow(
     return new(
         invite.Id,
         recipient is null
-            ? UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesAnyoneWithCode)
+            ? UiText.Localized(UiMessageKey.NativeDotnetDirectMessagesUnknownRecipient)
             : UiText.Verbatim(recipient),
         status,
         localization ?? UiLocalization.English);
