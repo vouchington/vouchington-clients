@@ -46,7 +46,12 @@ internal static class WindowsPasskeyAssertion
       Timeout = 60_000,
       Credentials = new BufferList { Count = checked((uint)request.CredentialIds.Count), Items = credentials },
       // Any attachment allows Windows Hello, roaming security keys, and OS-supported passkey providers.
-      UserVerification = 1,
+      UserVerification = request.UserVerification switch
+      {
+        "required" => 1,
+        "discouraged" => 3,
+        _ => 2,
+      },
       CancellationId = cancellation,
     };
     using var registration = token.Register(() => _ = native.CancelOperation(ref cancellationId));
