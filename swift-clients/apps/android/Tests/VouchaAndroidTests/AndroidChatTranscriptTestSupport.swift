@@ -1,4 +1,5 @@
 import Foundation
+import VouchaTestSupport
 
 class AndroidTranscriptURLProtocol: URLProtocol {
     struct ResponsePlan {
@@ -41,10 +42,12 @@ class AndroidTranscriptURLProtocol: URLProtocol {
               let recorder = Self.installLock.withLock({ Self.installedRecorders[host] })
         else { return }
         self.recorder = recorder
-        let (plan, occurrence) = recorder.start(request, owner: self)
+        var recordedRequest = request
+        recordedRequest.httpBody = URLRequestHTTPBody.data(from: request)
+        let (plan, occurrence) = recorder.start(recordedRequest, owner: self)
         requestOccurrence = occurrence
         guard !plan.held else { return }
-        deliver(statusCode: plan.statusCode, data: plan.responseData(for: request))
+        deliver(statusCode: plan.statusCode, data: plan.responseData(for: recordedRequest))
     }
 
     override func stopLoading() {
