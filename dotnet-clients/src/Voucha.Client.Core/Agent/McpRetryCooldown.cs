@@ -16,18 +16,16 @@ internal sealed class McpRetryCooldown(TimeProvider timeProvider)
 
   public McpRateLimitException Limited(TimeSpan? retryAfter)
   {
-    if (retryAfter is { } candidate && candidate > TimeSpan.Zero)
+    lock (gate)
     {
-      lock (gate)
+      if (retryAfter is { } candidate && candidate > TimeSpan.Zero && candidate > Remaining())
       {
-        if (candidate > Remaining())
-        {
-          started = timeProvider.GetTimestamp();
-          delay = candidate;
-        }
+        started = timeProvider.GetTimestamp();
+        delay = candidate;
       }
+      var remaining = Remaining();
+      return new McpRateLimitException(remaining > TimeSpan.Zero ? remaining : null);
     }
-    return new McpRateLimitException(retryAfter);
   }
 
   public void Check()

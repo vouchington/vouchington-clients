@@ -96,7 +96,8 @@ public sealed class MemberMcpRetryCooldownTests
     using var replacement = new MemberMcpClient(new Uri("https://example.test"), replacementHandler, timeProvider: clock);
     await Invoke(replacement, "tools/list");
     handler.Release(1, 2);
-    await second;
+    var lateRefusal = await second;
+    Assert.Equal(TimeSpan.FromSeconds(7), lateRefusal.RetryAfter);
     var admitted = handler.Requests;
     var blocked = await Assert.ThrowsAsync<McpRateLimitException>(() => Invoke(original, "tools/list"));
     Assert.Equal(TimeSpan.FromSeconds(7), blocked.RetryAfter);

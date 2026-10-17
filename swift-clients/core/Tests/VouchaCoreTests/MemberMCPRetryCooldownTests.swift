@@ -101,7 +101,8 @@ final class MemberMCPRetryCooldownTests: XCTestCase {
         let replacement = try makeClient(clock)
         _ = try await replacement.listTools(accessToken: "new-account")
         RetryCooldownURLProtocol.release(1, seconds: 2)
-        _ = try await second.value
+        let lateRefusal = try await second.value
+        XCTAssertEqual(lateRefusal, 7)
         let blocked = try await limited { try await self.invoke(original, method: "tools/list") }
         XCTAssertEqual(blocked, 7)
         _ = try await replacement.listTools(accessToken: "new-account")
