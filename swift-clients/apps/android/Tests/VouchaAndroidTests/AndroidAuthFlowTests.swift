@@ -65,7 +65,7 @@ final class AndroidAuthFlowTests: XCTestCase {
         try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
             .name: "st", .value: "session", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ])))
-        let account = AndroidAccount(
+        let account = try AndroidAccount(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://voucha.ai"))),
             cookieStorage: storage,
             protocolClasses: [AndroidAuthURLProtocol.self]
@@ -93,7 +93,7 @@ final class AndroidAuthFlowTests: XCTestCase {
         try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
             .name: "dt", .value: "device", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ])))
-        let account = AndroidAccount(
+        let account = try AndroidAccount(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://voucha.ai"))),
             cookieStorage: storage,
             protocolClasses: [AndroidAuthURLProtocol.self]
