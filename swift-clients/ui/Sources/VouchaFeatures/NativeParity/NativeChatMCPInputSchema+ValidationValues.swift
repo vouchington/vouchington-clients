@@ -74,6 +74,7 @@ extension NativeChatMCPInputSchema {
             if regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) == nil { return false }
         }
         if case let .string(format)? = fields["format"] {
+            if format == "date-time", !validDateTime(text) { return false }
             if format == "uuid", UUID(uuidString: text) == nil { return false }
             if format == "uri" {
                 guard let components = URLComponents(string: text),

@@ -10,12 +10,12 @@ internal static partial class MemberMcpInputSchema
   private static readonly HashSet<string> Annotations =
       ["title", "description", "default", "examples", "deprecated", "readOnly", "writeOnly"];
 
-  public static void Inspect(JsonElement schema)
+  public static void Inspect(JsonElement schema, bool output = false)
   {
     var remainingWork = 4_096;
     if (!HasUniqueObjectMembers(schema, 0, ref remainingWork))
       throw new InvalidDataException("Duplicate MCP schema member.");
-    InspectNode(schema, schema, 0);
+    InspectNode(schema, schema, 0, output);
   }
 
   public static bool Accepts(JsonElement value, JsonElement schema)
@@ -46,7 +46,7 @@ internal static partial class MemberMcpInputSchema
     return true;
   }
 
-  private static void InspectNode(JsonElement schema, JsonElement root, int depth)
+  private static void InspectNode(JsonElement schema, JsonElement root, int depth, bool output)
   {
     if (depth >= MaxDepth || schema.ValueKind != JsonValueKind.Object)
       throw new InvalidDataException("Unsupported MCP input schema.");
@@ -70,21 +70,21 @@ internal static partial class MemberMcpInputSchema
         case "properties":
         case "$defs":
           if (item.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Invalid MCP schema map.");
-          foreach (var child in item.EnumerateObject()) InspectNode(child.Value, root, depth + 1);
+          foreach (var child in item.EnumerateObject()) InspectNode(child.Value, root, depth + 1, output);
           break;
         case "items":
-          InspectNode(item, root, depth + 1);
+          InspectNode(item, root, depth + 1, output);
           break;
         case "additionalProperties":
           if (item.ValueKind is JsonValueKind.True or JsonValueKind.False) break;
-          InspectNode(item, root, depth + 1);
+          InspectNode(item, root, depth + 1, output);
           break;
         case "oneOf":
         case "anyOf":
         case "allOf":
           if (item.ValueKind != JsonValueKind.Array || item.GetArrayLength() == 0)
             throw new InvalidDataException("Invalid MCP schema composition.");
-          foreach (var child in item.EnumerateArray()) InspectNode(child, root, depth + 1);
+          foreach (var child in item.EnumerateArray()) InspectNode(child, root, depth + 1, output);
           break;
         case "required":
           if (item.ValueKind != JsonValueKind.Array ||
@@ -111,7 +111,7 @@ internal static partial class MemberMcpInputSchema
           if (!Count(item, out _)) throw new InvalidDataException("Unsupported MCP count bound.");
           break;
         case "format":
-          if (item.ValueKind != JsonValueKind.String || item.GetString() is not ("uuid" or "uri"))
+          if (item.ValueKind != JsonValueKind.String || item.GetString() is not ("uuid" or "uri") && !(output && item.GetString() == "date-time"))
             throw new InvalidDataException("Unsupported MCP string format.");
           break;
         case "pattern":

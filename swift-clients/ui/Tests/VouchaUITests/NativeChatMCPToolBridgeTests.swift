@@ -172,6 +172,9 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 
     func testProducerSizedHtmlUnicodeAndSlashesSurviveActualBridgeEncoding() async throws {
         let service = BridgeMCPService()
+        service.catalog = .object(["tools": .array([.object([
+            "name": .string("unstructured_text"), "inputSchema": .object(["type": .string("object")])
+        ])])])
         let text = String(repeating: "<é/\u{007F}\u{0080}\u{2028}", count: 100_000)
         let producer = Data(#"{"content":[{"type":"text","text":""#.utf8) +
             Data(text.utf8) + Data(#""}],"isError":false}"#.utf8)
@@ -184,7 +187,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
 
         let output = try await bridge.execute(
-            name: "read_community", rawArguments: #"{"option":"details","arguments":{"id":"one"}}"#,
+            name: "unstructured_text", rawArguments: "{}",
             session: session, accountId: snapshot.accountId, revision: snapshot.revision
         )
 
@@ -441,6 +444,12 @@ final class BridgeMCPService: NativeChatMCPServicing {
                 "required": .array([.string("option"), .string("arguments")]),
                 "additionalProperties": .bool(false)
             ])])
-        ])
+        ]),
+        "outputSchema": .object([
+            "type": .string("object"),
+            "properties": .object(["quote": .object(["type": .string("string")])]),
+            "required": .array([.string("quote")]), "additionalProperties": .bool(false)
+        ]),
+        "_meta": .object(["voucha/optionOutputPointers": .object(["details": .string("#")])])
     ])])])
 }

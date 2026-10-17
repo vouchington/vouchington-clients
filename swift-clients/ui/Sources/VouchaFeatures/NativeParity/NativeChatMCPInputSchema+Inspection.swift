@@ -2,10 +2,10 @@ import Foundation
 import VouchaModels
 
 extension NativeChatMCPInputSchema {
-    static func inspect(_ schema: DecodedJSONValue, root: DecodedJSONValue, depth: Int) throws {
+    static func inspect(_ schema: DecodedJSONValue, root: DecodedJSONValue, depth: Int, output: Bool = false) throws {
         guard depth < 32, case let .object(fields) = schema else { throw Failure.unsupportedSchema }
         for (key, item) in fields {
-            try inspectKeyword(key, item: item, root: root, depth: depth)
+            try inspectKeyword(key, item: item, root: root, depth: depth, output: output)
         }
         if case .bool(true)? = fields["uniqueItems"] {
             guard let maximum = integer(fields["maxItems"]), maximum <= 256 else {
@@ -13,7 +13,8 @@ extension NativeChatMCPInputSchema {
             }
         }
         if let format = fields["format"] {
-            guard case let .string(name) = format, ["uuid", "uri"].contains(name) else {
+            guard case let .string(name) = format,
+                  ["uuid", "uri"].contains(name) || output && name == "date-time" else {
                 throw Failure.unsupportedSchema
             }
         }
@@ -33,7 +34,7 @@ extension NativeChatMCPInputSchema {
     ]
 
     static func inspectKeyword(
-        _ key: String, item: DecodedJSONValue, root: DecodedJSONValue, depth: Int
+        _ key: String, item: DecodedJSONValue, root: DecodedJSONValue, depth: Int, output: Bool
     ) throws {
         let simple: Set = [
             "type", "const", "enum", "required", "minimum", "maximum", "minLength", "maxLength",
@@ -46,16 +47,16 @@ extension NativeChatMCPInputSchema {
             try inspectReference(item, root: root)
         } else if ["items", "additionalProperties"].contains(key) {
             if key == "additionalProperties", case .bool = item { return }
-            try inspect(item, root: root, depth: depth + 1)
+            try inspect(item, root: root, depth: depth + 1, output: output)
         } else if ["oneOf", "anyOf", "allOf"].contains(key) {
             guard case let .array(branches) = item, !branches.isEmpty else { throw Failure.unsupportedSchema }
             for branch in branches {
-                try inspect(branch, root: root, depth: depth + 1)
+                try inspect(branch, root: root, depth: depth + 1, output: output)
             }
         } else if ["properties", "$defs"].contains(key) {
             guard case let .object(children) = item else { throw Failure.unsupportedSchema }
             for child in children.values {
-                try inspect(child, root: root, depth: depth + 1)
+                try inspect(child, root: root, depth: depth + 1, output: output)
             }
         } else { throw Failure.unsupportedSchema }
     }

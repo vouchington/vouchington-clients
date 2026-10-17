@@ -12,6 +12,7 @@ public sealed class MemberMcpToolBridge
   // three fields; raw validated JSON preserves that bound without re-escaping Unicode.
   public const int MaximumEnvelopeBytes = 1_100_000;
   private readonly Dictionary<string, JsonElement> schemas = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, MemberMcpOutputContract> outputs = new(StringComparer.Ordinal);
   public IReadOnlyList<MemberMcpFunctionTool> Tools { get; }
 
   public MemberMcpToolBridge(JsonElement catalog)
@@ -41,6 +42,12 @@ public sealed class MemberMcpToolBridge
       MemberMcpInputSchema.Inspect(schema);
       var copy = schema.Clone();
       schemas.Add(name, copy);
+      var hasOutput = tool.TryGetProperty("outputSchema", out _);
+      var hasMapping = tool.TryGetProperty("_meta", out var meta) && meta.ValueKind == JsonValueKind.Object &&
+          meta.TryGetProperty("voucha/optionOutputPointers", out _);
+      if (hasMapping && !hasOutput || MemberMcpOutputContract.OptionNames(schema) is not null && (!hasOutput || !hasMapping))
+        throw new InvalidDataException("Missing MCP selected output contract.");
+      if (hasOutput) outputs.Add(name, new MemberMcpOutputContract(tool));
       projected.Add(new MemberMcpFunctionTool(name, description, copy));
     }
     Tools = projected;
@@ -61,6 +68,7 @@ public sealed class MemberMcpToolBridge
     var arguments = ValidatedArguments(name, rawArguments);
     var result = await session.CallToolAsync(snapshot, name, arguments, onAdmitted, cancellationToken)
         .ConfigureAwait(false);
+    if (outputs.TryGetValue(name, out var output)) output.Validate(result, arguments);
     return SerializeResultEnvelope(result);
   }
 
