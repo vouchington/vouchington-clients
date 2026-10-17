@@ -6,6 +6,13 @@ import XCTest
 /// into a local red test: every fixture in `ApiFixtureCoverage.registry` must round-trip every
 /// field through its DTO, and every swift-core/swift-ui-consumed fixture must be registered.
 final class ApiFixtureCoverageTests: XCTestCase {
+    func testCurrentOAuthBrokerFixturePreservesCapabilityFields() throws {
+        let fixture = try XCTUnwrap(ApiFixtureCoverage.registry.first {
+            $0.id == "native.oauth.providers.broker-capabilities"
+        })
+        try fixture.run(fixture.id)
+    }
+
     func testTopicFixturesDecodeImagePlacements() throws {
         let search = try makeVouchaDecoder().decode(
             TopicSearchResponse.self,

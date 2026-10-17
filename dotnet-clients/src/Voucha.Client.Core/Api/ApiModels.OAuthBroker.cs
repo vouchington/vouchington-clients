@@ -35,7 +35,8 @@ public sealed record OAuthBrokerCapabilities(
     [property: JsonPropertyName("x")] OAuthBrokerCapability X,
     [property: JsonPropertyName("github")] OAuthBrokerCapability Github,
     [property: JsonPropertyName("linkedin")] OAuthBrokerCapability? Linkedin = null,
-    [property: JsonPropertyName("microsoft")] OAuthBrokerCapability? Microsoft = null)
+    [property: JsonPropertyName("microsoft")] OAuthBrokerCapability? Microsoft = null,
+    [property: JsonPropertyName("google")] OAuthBrokerCapability? Google = null)
 {
   private static readonly OAuthBrokerCapability Disabled = new(
       0, new OAuthBrokerModes(false, false), []);
