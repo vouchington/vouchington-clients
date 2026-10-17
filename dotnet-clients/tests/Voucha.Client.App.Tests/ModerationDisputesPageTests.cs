@@ -305,10 +305,16 @@ public sealed class ModerationDisputesPageTests
     private async Task<ModerationDisputeResponse> BlockUpdateAsync(
         CancellationToken cancellationToken)
     {
-      using var registration = cancellationToken.Register(
-          CancellationObserved.SetResult);
       UpdateStarted.SetResult();
-      await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      try
+      {
+        await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+      }
+      catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+      {
+        CancellationObserved.SetResult();
+        throw;
+      }
       return new ModerationDisputeResponse(Current);
     }
   }
