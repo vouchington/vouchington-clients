@@ -12,10 +12,14 @@ struct MemberMCPRetryCooldown {
     }
 
     mutating func limited(_ seconds: Int?) -> MemberMCPClient.Failure {
+        let now = uptime()
         if let seconds, seconds > 0 {
-            deadline = max(deadline ?? 0, uptime() + Double(seconds))
+            deadline = max(deadline ?? 0, now + Double(seconds))
         }
-        return .rateLimited(retryAfterSeconds: seconds)
+        let remaining = (deadline ?? now) - now
+        guard remaining > 0 else { return .rateLimited(retryAfterSeconds: nil) }
+        let effectiveSeconds = remaining >= Double(Int.max) ? Int.max : Int(ceil(remaining))
+        return .rateLimited(retryAfterSeconds: effectiveSeconds)
     }
 
     mutating func check() throws {
