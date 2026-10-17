@@ -373,6 +373,14 @@ jobs:
             exit 1
           }
           cp "$reports" TestResults/core/lcov.info
+      - name: Upload .NET Core LCOV
+        timeout-minutes: 2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: dotnet-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/dotnet-clients/TestResults/core/lcov.info
+          retention-days: 1
+          if-no-files-found: error
       - name: Enforce Core patch coverage
         working-directory: candidate-clients
         env:
