@@ -43,6 +43,7 @@ final class RetryCooldownURLProtocol: URLProtocol {
         var requests = 0
         var toolCalls = 0
         var deletes = 0
+        var replies = 0
         var held: [RetryCooldownURLProtocol] = []
         var onHeld: ((Int) -> Void)?
     }
@@ -66,6 +67,10 @@ final class RetryCooldownURLProtocol: URLProtocol {
         snapshot().toolCalls
     }
 
+    static func replies() -> Int {
+        snapshot().replies
+    }
+
     static func deletes() -> Int {
         snapshot().deletes
     }
@@ -79,6 +84,12 @@ final class RetryCooldownURLProtocol: URLProtocol {
     static func release(_ index: Int, seconds: Int) {
         let held = snapshot().held[index]
         held.deliver(status: 429, headers: ["Retry-After": String(seconds)], data: Data())
+    }
+
+    static func releasePing(_ index: Int) {
+        let held = snapshot().held[index]
+        let ping = #"{"jsonrpc":"2.0","id":"server-ping","method":"ping"}"#
+        held.deliver(status: 200, headers: ["Content-Type": "text/event-stream"], data: Data("data: \(ping)\n\n".utf8))
     }
 
     static func stopHolding() {
@@ -114,7 +125,12 @@ final class RetryCooldownURLProtocol: URLProtocol {
             onHeld?(count)
             return
         }
-        let limited = Self.state.mode != "none" && !Self.state.failed && method == Self.state.method
+        let serverReply = method == nil && rpc["id"] as? String == "server-ping"
+        if serverReply { Self.state.replies += 1 }
+        let ping = Self.state.mode == "server-reply" && method == "tools/list" && !Self.state.failed
+        let limited = Self.state.mode == "server-reply"
+            ? serverReply && !Self.state.failed
+            : Self.state.mode != "none" && !Self.state.failed && method == Self.state.method
         if limited { Self.state.failed = true }
         let state = Self.state
         Self.lock.unlock()
@@ -123,6 +139,11 @@ final class RetryCooldownURLProtocol: URLProtocol {
         var result: [String: Any] = ["tools": [], "content": [], "isError": false]
         if method == "initialize" { result = ["protocolVersion": "2025-06-18"] }
         if method == "notifications/initialized" { status = 202 }
+        if ping {
+            let result = #"{"jsonrpc":"2.0","id":"server-ping","method":"ping"}"#
+            deliver(status: 200, headers: ["Content-Type": "text/event-stream"], data: Data("data: \(result)\n\n".utf8))
+            return
+        }
         if limited {
             if state.mode == "in-band" {
                 result = ["isError": true, "content": [[
@@ -130,7 +151,7 @@ final class RetryCooldownURLProtocol: URLProtocol {
                 ]]]
             } else {
                 status = 429
-                if state.mode == "seconds" { headers["Retry-After"] = "17" }
+                if state.mode == "seconds" || state.mode == "server-reply" { headers["Retry-After"] = "17" }
                 else if state.mode == "date" { headers["Retry-After"] = "Sat, 17 Oct 2026 00:00:17 GMT" }
                 else { headers["Retry-After"] = state.header }
             }

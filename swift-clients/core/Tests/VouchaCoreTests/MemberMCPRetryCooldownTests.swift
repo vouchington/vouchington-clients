@@ -37,6 +37,50 @@ final class MemberMCPRetryCooldownTests: XCTestCase {
         }
     }
 
+    func testServerPingReplyRefusalBlocksNextUserRequestUntilExplicitExpiry() async throws {
+        let clock = RetryCooldownClock()
+        RetryCooldownURLProtocol.configure(mode: "server-reply", method: "tools/list")
+        let client = try makeClient(clock)
+        let first = try await limited { _ = try await client.listTools(accessToken: "account-access") }
+        XCTAssertEqual(first, 17)
+        XCTAssertEqual(RetryCooldownURLProtocol.replies(), 1)
+        let admitted = RetryCooldownURLProtocol.requests()
+        let blocked = try await limited { _ = try await client.listTools(accessToken: "account-access") }
+        XCTAssertEqual(blocked, 17)
+        XCTAssertEqual(RetryCooldownURLProtocol.requests(), admitted)
+        let replacement = try makeClient(clock)
+        _ = try await replacement.listTools(accessToken: "replacement-account")
+        XCTAssertEqual(RetryCooldownURLProtocol.requests(), admitted + 3)
+        clock.advance(17)
+        XCTAssertEqual(RetryCooldownURLProtocol.requests(), admitted + 3)
+        _ = try await client.listTools(accessToken: "account-access")
+        XCTAssertEqual(RetryCooldownURLProtocol.requests(), admitted + 4)
+        XCTAssertEqual(RetryCooldownURLProtocol.replies(), 1)
+    }
+
+    func testAlreadyInFlightPingCannotPostReplyDuringCooldown() async throws {
+        let clock = RetryCooldownClock()
+        let firstHeld = expectation(description: "First request admitted")
+        let bothHeld = expectation(description: "Second request admitted")
+        RetryCooldownURLProtocol.configure(mode: "held", method: "tools/list") { count in
+            if count == 1 { firstHeld.fulfill() }
+            if count == 2 { bothHeld.fulfill() }
+        }
+        let client = try makeClient(clock)
+        let first = Task { try await self.limited { try await self.invoke(client, method: "tools/list") } }
+        await fulfillment(of: [firstHeld], timeout: 5)
+        let second = Task { try await self.limited { try await self.invoke(client, method: "tools/list") } }
+        await fulfillment(of: [bothHeld], timeout: 5)
+        RetryCooldownURLProtocol.release(0, seconds: 17)
+        _ = try await first.value
+        let admitted = RetryCooldownURLProtocol.requests()
+        RetryCooldownURLProtocol.releasePing(1)
+        let replyRefusal = try await second.value
+        XCTAssertEqual(replyRefusal, 17)
+        XCTAssertEqual(RetryCooldownURLProtocol.requests(), admitted)
+        XCTAssertEqual(RetryCooldownURLProtocol.replies(), 0)
+    }
+
     func testMissingAndInvalidDelayDoNotInventCooldown() async throws {
         for header in [nil, "invalid", "0", "-1"] as [String?] {
             let clock = RetryCooldownClock()
