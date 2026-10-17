@@ -9,8 +9,8 @@ extension AndroidTranscriptTestFactory {
         { request in
             guard let body = request.httpBody,
                   let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let userMessageID = object["userMessageId"] as? String,
-                  let assistantMessageID = object["assistantMessageId"] as? String
+                  let userMessageID = object["user_message_id"] as? String,
+                  let assistantMessageID = object["assistant_message_id"] as? String
             else { return Data() }
             return generatedChatResponse(
                 conversationID: conversationID,
@@ -30,8 +30,8 @@ extension AndroidTranscriptTestFactory {
         { request in
             guard let body = request.httpBody,
                   let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let userMessageID = object["userMessageId"] as? String,
-                  let assistantMessageID = object["assistantMessageId"] as? String,
+                  let userMessageID = object["user_message_id"] as? String,
+                  let assistantMessageID = object["assistant_message_id"] as? String,
                   var response = try? generatedChatResponse(
                       conversationID: conversationID,
                       userText: userText,
@@ -55,8 +55,8 @@ extension AndroidTranscriptTestFactory {
         { request in
             guard let body = request.httpBody,
                   let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let userMessageID = object["userMessageId"] as? String,
-                  let assistantMessageID = object["assistantMessageId"] as? String,
+                  let userMessageID = object["user_message_id"] as? String,
+                  let assistantMessageID = object["assistant_message_id"] as? String,
                   var response = try? generatedChatResponse(
                       conversationID: conversationID,
                       userText: userText,

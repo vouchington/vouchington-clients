@@ -1,6 +1,6 @@
 import Foundation
 @testable import VouchaAndroid
-import VouchaAPI
+@testable import VouchaAPI
 import VouchaCore
 import VouchaModels
 import XCTest
@@ -55,7 +55,7 @@ final class AndroidChatTranscriptTests: XCTestCase {
             conversationID: conversationID
         )
         await viewModel.retryPendingTurn()
-        try assertCompletedRetry(viewModel, recorder: recorder, conversationID: conversationID)
+        try await assertCompletedRetry(viewModel, recorder: recorder, conversationID: conversationID)
     }
 
     func testLateHistoryResponseCannotReplaceNewAccountTranscript() async throws {
@@ -134,7 +134,7 @@ private extension AndroidChatTranscriptTests {
         _ viewModel: ViewModel,
         recorder: AndroidTranscriptRecorder,
         conversationID: String
-    ) throws {
+    ) async throws {
         XCTAssertNil(viewModel.pendingTurnForSelectedConversation)
         XCTAssertEqual(viewModel.messages.map(\.role), ["user", "assistant"])
         let path = "/api/v1/conversations/\(conversationID)/client-generated-chat"
@@ -143,16 +143,25 @@ private extension AndroidChatTranscriptTests {
         let firstBody = try XCTUnwrap(posts[0].httpBody).jsonObject()
         let retryBody = try XCTUnwrap(posts[1].httpBody).jsonObject()
         XCTAssertEqual(viewModel.messages.map(\.id), try [
-            XCTUnwrap(firstBody["userMessageId"] as? String),
-            XCTUnwrap(firstBody["assistantMessageId"] as? String)
+            XCTUnwrap(firstBody["user_message_id"] as? String),
+            XCTUnwrap(firstBody["assistant_message_id"] as? String)
         ])
         XCTAssertEqual(
             try JSONSerialization.data(withJSONObject: firstBody, options: [.sortedKeys]),
             try JSONSerialization.data(withJSONObject: retryBody, options: [.sortedKeys])
         )
-        XCTAssertEqual(firstBody["modelProvider"] as? String, "android_aicore")
-        XCTAssertEqual(firstBody["modelName"] as? String, "android-aicore-system")
-        XCTAssertEqual(posts[0].value(forHTTPHeaderField: "Cookie"), "st=fixture-session")
+        XCTAssertEqual(firstBody["model_provider"] as? String, "android_aicore")
+        XCTAssertEqual(firstBody["model_name"] as? String, "android-aicore-system")
+        // Darwin URLProtocol intercepts before Cookie injection; APIClientCookiePersistenceTests
+        // verifies delivery over real HTTP, while this checks the bound authenticated session.
+        let client = try XCTUnwrap(viewModel.apiClient)
+        let jar = await client.cookieStorage
+        let session = await client.session
+        XCTAssertTrue(session.configuration.httpCookieStorage === jar)
+        XCTAssertTrue(session.configuration.httpShouldSetCookies)
+        let postURL = try XCTUnwrap(posts[0].url)
+        let cookies = try XCTUnwrap(jar.cookies(for: postURL))
+        XCTAssertEqual(cookies.map { "\($0.name)=\($0.value)" }, ["st=fixture-session"])
         XCTAssertFalse(recorder.requestSnapshot().contains { $0.url?.path == "/api/v1/chat" })
     }
 }

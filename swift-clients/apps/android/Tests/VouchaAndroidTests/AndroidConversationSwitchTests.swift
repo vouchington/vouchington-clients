@@ -82,8 +82,8 @@ final class AndroidConversationSwitchTests: XCTestCase {
                 conversationID: firstID,
                 userText: "Question for first",
                 assistantText: "Answer for first",
-                userMessageID: XCTUnwrap(body["userMessageId"] as? String),
-                assistantMessageID: XCTUnwrap(body["assistantMessageId"] as? String)
+                userMessageID: XCTUnwrap(body["user_message_id"] as? String),
+                assistantMessageID: XCTUnwrap(body["assistant_message_id"] as? String)
             )
         )
         await send.value

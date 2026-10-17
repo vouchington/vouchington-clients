@@ -7,6 +7,8 @@ import Foundation
 
 final class CookieResponseHTTPServer: @unchecked Sendable {
     private var fileDescriptor: Int32
+    private let requestLock = NSLock()
+    private var capturedCookie: String?
     let port: Int
 
     init() throws {
@@ -47,6 +49,10 @@ final class CookieResponseHTTPServer: @unchecked Sendable {
         }
         fileDescriptor = socketFD
         port = Int(UInt16(bigEndian: bound.sin_port))
+    }
+
+    var receivedCookie: String? {
+        requestLock.withLock { capturedCookie }
     }
 
     func respondOnce() async {
@@ -97,8 +103,11 @@ final class CookieResponseHTTPServer: @unchecked Sendable {
                 #else
                     let sendFlags = Int32(MSG_NOSIGNAL)
                 #endif
-                var request = [UInt8](repeating: 0, count: 4_096)
-                guard recv(connection, &request, request.count, 0) > 0 else { return }
+                guard let headers = Self.receiveHeaders(connection) else { return }
+                let headerLines = headers.components(separatedBy: "\r\n")
+                let cookie = headerLines.first { $0.lowercased().hasPrefix("cookie:") }
+                    .map { String($0.dropFirst("cookie:".count)).trimmingCharacters(in: .whitespaces) }
+                self.requestLock.withLock { self.capturedCookie = cookie }
                 let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\nSet-Cookie: response_session=updated; Path=/; HttpOnly\r\n\r\n{}"
                 response.withCString { bytes in
                     var offset = 0
@@ -110,6 +119,22 @@ final class CookieResponseHTTPServer: @unchecked Sendable {
                 }
             }
         }
+    }
+
+    private static func receiveHeaders(_ connection: Int32) -> String? {
+        let limit = 4_096
+        let delimiter = Data([13, 10, 13, 10])
+        var request = Data()
+        var buffer = [UInt8](repeating: 0, count: 1_024)
+        while request.count < limit {
+            let received = recv(connection, &buffer, min(buffer.count, limit - request.count), 0)
+            guard received > 0 else { return nil }
+            request.append(contentsOf: buffer.prefix(received))
+            if let boundary = request.range(of: delimiter) {
+                return String(decoding: request[..<boundary.lowerBound], as: UTF8.self)
+            }
+        }
+        return nil
     }
 
     func close() {

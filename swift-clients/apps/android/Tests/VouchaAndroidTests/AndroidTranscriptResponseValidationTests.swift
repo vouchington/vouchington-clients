@@ -29,8 +29,8 @@ final class AndroidTranscriptResponseValidationTests: XCTestCase {
         let request = try XCTUnwrap(fixture.recorder.requestSnapshot(path: postPath).last)
         let body = try XCTUnwrap(request.httpBody).jsonObject()
         XCTAssertEqual(viewModel.messages.suffix(2).map(\.id), try [
-            XCTUnwrap(body["userMessageId"] as? String),
-            XCTUnwrap(body["assistantMessageId"] as? String)
+            XCTUnwrap(body["user_message_id"] as? String),
+            XCTUnwrap(body["assistant_message_id"] as? String)
         ])
     }
 }
