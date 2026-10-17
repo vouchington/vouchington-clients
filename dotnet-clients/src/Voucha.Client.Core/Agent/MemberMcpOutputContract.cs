@@ -75,6 +75,8 @@ internal sealed class MemberMcpOutputContract
         names.Add(choices[0].GetString()!);
       else return null;
     }
+    if (names.Count != branches.GetArrayLength())
+      throw new InvalidDataException("Duplicate MCP option literal.");
     return names;
   }
 

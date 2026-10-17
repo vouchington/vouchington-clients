@@ -2,12 +2,43 @@ import Foundation
 import VouchaModels
 
 extension NativeChatMCPInputSchema {
+    /// Resolves the single local JSON Pointer form supported by output schemas.
+    /// Raw slashes delimit pointer tokens; only escaped slashes belong to a key.
+    static func localDefinitionName(from path: String) -> String? {
+        guard path.hasPrefix("#/$defs/") else { return nil }
+        let token = path.dropFirst("#/$defs/".count)
+        guard !token.contains("/") else { return nil }
+        let scalars = Array(token.unicodeScalars)
+        var decoded = String.UnicodeScalarView()
+        var index = 0
+        while index < scalars.count {
+            guard scalars[index] == "~" else {
+                decoded.append(scalars[index])
+                index += 1
+                continue
+            }
+            guard index + 1 < scalars.count else { return nil }
+            switch scalars[index + 1] {
+            case "0": decoded.append("~")
+            case "1": decoded.append("/")
+            default: return nil
+            }
+            index += 2
+        }
+        return String(decoded)
+    }
+
     /// Output is bounded separately from the much smaller input argument structure.
     static func acceptsOutput(
-        _ value: DecodedJSONValue, schema: DecodedJSONValue, root: DecodedJSONValue
+        _ value: DecodedJSONValue, schema: DecodedJSONValue, root: DecodedJSONValue,
+        selectedSchema: DecodedJSONValue? = nil
     ) throws -> Bool {
         var remainingWork = 262_144
-        return try check(value, schema: schema, root: root, depth: 0, remainingWork: &remainingWork)
+        guard try check(
+            value, schema: schema, root: root, depth: 0, remainingWork: &remainingWork
+        ) else { return false }
+        guard let selectedSchema else { return true }
+        return try check(value, schema: selectedSchema, root: root, depth: 0, remainingWork: &remainingWork)
     }
 
     static func validDateTime(_ text: String) -> Bool {
