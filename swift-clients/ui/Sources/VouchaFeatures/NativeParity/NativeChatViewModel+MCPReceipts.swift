@@ -16,11 +16,14 @@ extension NativeChatViewModel {
             expireMCPReceipts()
             mcpReceiptLedger = .init(owner: owner)
         }
-        return .init(owner: owner, publish: { [weak self] receipt in
-            guard let self, !Task.isCancelled,
-                  isCurrentLocalGeneration(context), isCurrentMCPSnapshot(snapshot),
-                  mcpReceiptLedger?.owner == owner else { return false }
-            return mcpReceiptLedger?.record(receipt) == true
+        let isCurrent: @MainActor @Sendable () -> Bool = { [weak self] in
+            guard let self else { return false }
+            return !Task.isCancelled && isCurrentLocalGeneration(context)
+                && isCurrentMCPSnapshot(snapshot) && mcpReceiptLedger?.owner == owner
+        }
+        return .init(owner: owner, isCurrent: isCurrent, publish: { [weak self] receipt in
+            guard isCurrent() else { return false }
+            return self?.mcpReceiptLedger?.record(receipt) == true
         })
     }
 

@@ -20,6 +20,7 @@ struct NativeChatMCPReceipt: Identifiable, Equatable {
 
 struct NativeChatMCPTurnContext {
     let owner: NativeChatMCPTurnOwner
+    let isCurrent: @MainActor @Sendable () -> Bool
     /// Publication is nonthrowing and guarded by the mounted account and turn.
     let publish: @MainActor @Sendable (NativeChatMCPReceipt) -> Bool
 }

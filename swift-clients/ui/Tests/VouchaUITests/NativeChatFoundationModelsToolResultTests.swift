@@ -146,6 +146,37 @@ import XCTest
             } catch { XCTAssertEqual(largeService.calls, 2) }
         }
 
+        func testEndedNativeTurnBlocksUncancelledCallbackBeforeRpc() async throws {
+            let service = BridgeMCPService()
+            service.catalog = plainCatalog()
+            service.toolResult = try result(text: "complete")
+            let admission = ReceiptAdmission()
+            admission.holdPreparationCall = 1
+            let prepared = expectation(description: "callback waiting in context admission")
+            admission.onPrepared = { prepared.fulfill() }
+            var current = true
+            let (tool, state) = try await makeTool(
+                service: service, admission: admission, isCurrent: { current }
+            )
+            let arguments = try GeneratedContent(json: "{}")
+            let callback = Task { try await tool.call(arguments: arguments) }
+            await fulfillment(of: [prepared], timeout: 5)
+            current = false
+            XCTAssertFalse(callback.isCancelled)
+            admission.releasePreparation()
+            do {
+                _ = try await callback.value
+                XCTFail("An ended native turn must never dispatch")
+            } catch is CancellationError {} catch {
+                XCTFail("Expected stale-turn cancellation, got \(error)")
+            }
+            XCTAssertEqual(service.calls, 0)
+            XCTAssertTrue(state.receipts.isEmpty)
+            XCTAssertFalse(state.attempted)
+            XCTAssertFalse(state.hasAmbiguousAttempt)
+            XCTAssertTrue(admission.retained.isEmpty)
+        }
+
         func testContextStopBlocksSiblingWaitingBeforeRpcAdmission() async throws {
             let service = try HeldReceiptService(result: result(text: "complete"))
             let firstStarted = expectation(description: "first RPC admitted")
@@ -206,7 +237,8 @@ import XCTest
         }
 
         private func makeTool(
-            service: any NativeChatMCPServicing, admission: ReceiptAdmission
+            service: any NativeChatMCPServicing, admission: ReceiptAdmission,
+            isCurrent: @escaping @MainActor @Sendable () -> Bool = { true }
         ) async throws -> (NativeChatFoundationModelsTool, NativeChatFoundationModelsToolState) {
             let session = NativeChatMCPAgentSession(service: service)
             await session.useAccount("member-a")
@@ -214,7 +246,7 @@ import XCTest
             let snapshot = try XCTUnwrap(session.connectedSnapshot())
             let bridge = try NativeChatMCPToolBridge(catalog: snapshot.catalog)
             let descriptor = try XCTUnwrap(bridge.tools.first)
-            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot))
+            let state = NativeChatFoundationModelsToolState(turn: .fixture(snapshot, isCurrent: isCurrent))
             return try (NativeChatFoundationModelsTool(
                 name: descriptor.name, description: descriptor.description,
                 parameters: NativeChatFoundationModelsSchema.project(descriptor.parameters),

@@ -57,11 +57,14 @@ import Foundation
 
     extension NativeChatMCPTurnContext {
         @MainActor
-        static func fixture(_ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot) -> Self {
+        static func fixture(
+            _ snapshot: NativeChatMCPAgentSession.ConnectedSnapshot,
+            isCurrent: @escaping @MainActor @Sendable () -> Bool = { true }
+        ) -> Self {
             .init(owner: .init(
                 accountId: snapshot.accountId, revision: snapshot.revision,
                 conversationId: "conversation-1", userMessageId: "local-user-1"
-            ), publish: { _ in true })
+            ), isCurrent: isCurrent, publish: { _ in isCurrent() })
         }
     }
 #endif

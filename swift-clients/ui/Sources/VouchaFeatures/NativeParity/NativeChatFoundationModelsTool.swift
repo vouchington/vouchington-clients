@@ -28,6 +28,7 @@ import VouchaCore
         }
 
         func checkCapacity(argumentBytes: Int = 0) throws {
+            guard !Task.isCancelled, turn.isCurrent() else { throw CancellationError() }
             if let stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
             guard callCount < 4,
                   argumentBytes <= Self.maximumSessionArgumentBytes - admittedArgumentBytes else {
@@ -55,7 +56,7 @@ import VouchaCore
             session: NativeChatMCPAgentSession, snapshot: NativeChatMCPAgentSession.ConnectedSnapshot
         ) throws {
             try Task.checkCancellation()
-            guard session.isCurrent(snapshot) else { throw CancellationError() }
+            guard turn.isCurrent(), session.isCurrent(snapshot) else { throw CancellationError() }
             if let stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
         }
 
