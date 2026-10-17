@@ -90,8 +90,7 @@ internal static partial class MemberMcpInputSchema
     if (hour > 23 || minute > 59 || offsetHour > 23 || offsetMinute > 59 || second > 60) return false;
     if (second < 60) return true;
     var sign = match.Groups[8].Value == "-" ? -1 : 1;
-    var utcMinute = minute - offsetMinute * sign;
-    var utcHour = hour - offsetHour * sign - (utcMinute < 0 ? 1 : 0);
-    return (utcHour is 23 or -1) && (utcMinute is 59 or -1);
+    var utcMinute = hour * 60 + minute - (offsetHour * 60 + offsetMinute) * sign;
+    return (utcMinute == 1439 && day == days[month]) || (utcMinute == -1 && day == 1);
   }
 }
