@@ -101,12 +101,13 @@ struct NativeChatMCPToolBridge {
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
-        let fact: NativeChatMCPFact? = if name == "read_my_preferences", case .string("email")? = object["option"],
-                                          result.isError != true,
-                                          let structuredContent = result.structuredContent {
-            NativeChatMCPFact.makeEmailPreferences(structuredContent)
-        } else {
-            nil
+        var fact: NativeChatMCPFact?
+        if name == "read_my_preferences", result.isError != true, let structuredContent = result.structuredContent {
+            switch object["option"] {
+            case .string("email"): fact = NativeChatMCPFact.makeEmailPreferences(structuredContent)
+            case .string("general"): fact = NativeChatMCPFact.makeGeneralPreferences(structuredContent)
+            default: break
+            }
         }
         return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }

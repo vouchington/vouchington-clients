@@ -15,8 +15,13 @@ struct NativeChatToolResultStatusView: View {
                         receipt.kind == .toolError ? .sharedChatMcpToolErrorReceived : .sharedChatMcpResultReceived,
                         locale: locale
                     ))
-                    if case let .emailPreferences(preferences)? = receipt.fact {
+                    switch receipt.fact {
+                    case let .emailPreferences(preferences):
                         NativeChatEmailPreferencesFactView(preferences: preferences, locale: locale)
+                    case let .generalPreferences(preferences):
+                        NativeChatGeneralPreferencesFactView(preferences: preferences, locale: locale)
+                    case nil:
+                        EmptyView()
                     }
                 }
             }

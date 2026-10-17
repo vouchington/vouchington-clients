@@ -9,6 +9,46 @@ import XCTest
 final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCase {
     private let persistencePath = "/api/v1/conversations/conversation-1/client-generated-chat"
 
+    func testGeneralFactRejectsAnotherAccountAndExpiresWithItsTurnAndConversation() async throws {
+        let fixture = try NativeChatMCPGeneralPreferenceFixture()
+        let payload = try fixture.value.exactJSONData()
+        let provider = ReceiptTurnProvider { turn in
+            let fact = try XCTUnwrap(NativeChatMCPFact.makeGeneralPreferences(
+                DecodedJSONValue(exactJSONData: payload)
+            ))
+            let otherAccount = NativeChatMCPTurnOwner(
+                accountId: "member-b", revision: turn.owner.revision,
+                conversationId: turn.owner.conversationId, userMessageId: turn.owner.userMessageId
+            )
+            XCTAssertFalse(turn.publish(.init(
+                id: UUID(), callId: "wrong-account-general", owner: otherAccount,
+                toolName: "read_my_preferences", envelope: "fixture envelope", kind: .response, fact: fact
+            )))
+            XCTAssertTrue(turn.publish(.init(
+                id: UUID(), callId: "general-preferences", owner: turn.owner,
+                toolName: "read_my_preferences", envelope: "fixture envelope", kind: .response, fact: fact
+            )))
+            return .toolResultsOnly(.contextStopped)
+        }
+        let viewModel = try await viewModel(provider)
+        viewModel.draftMessage = "Read general preferences"
+        await viewModel.sendDraftMessage()
+        let first = try XCTUnwrap(viewModel.mcpReceiptLedger)
+        guard case .generalPreferences? = first.receipts.first?.fact else {
+            return XCTFail("The current turn must retain its general fact")
+        }
+        XCTAssertEqual(first.receipts.count, 1)
+        viewModel.draftMessage = "Read preferences in another turn"
+        await viewModel.sendDraftMessage()
+        let next = try XCTUnwrap(viewModel.mcpReceiptLedger)
+        XCTAssertNotEqual(first.owner.userMessageId, next.owner.userMessageId)
+        XCTAssertEqual(next.receipts.count, 1)
+        XCTAssertFalse(viewModel.messages.contains { $0.id == first.owner.userMessageId })
+        viewModel.selectedConversationId = nil
+        XCTAssertNil(viewModel.mcpReceiptLedger)
+        XCTAssertEqual(persistedRequests, 0)
+    }
+
     func testReceiptPublicationRejectsWrongConversationAndMissingToolIdentity() async throws {
         let provider = ReceiptTurnProvider { turn in
             let receipt = Self.receipt(turn)

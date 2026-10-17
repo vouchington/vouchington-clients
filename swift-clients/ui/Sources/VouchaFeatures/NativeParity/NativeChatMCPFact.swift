@@ -4,10 +4,18 @@ import VouchaModels
 
 enum NativeChatMCPFact: Equatable {
     case emailPreferences(EmailPreferences)
+    case generalPreferences(GeneralPreferences)
+
+    static func makeGeneralPreferences(_ value: DecodedJSONValue) -> Self? {
+        guard let data = try? value.exactJSONData(),
+              let envelope = try? JSONDecoder.preferenceFact.decode(GeneralPreferencesEnvelope.self, from: data),
+              envelope.success else { return nil }
+        return .generalPreferences(envelope.settings)
+    }
 
     static func makeEmailPreferences(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),
-              let envelope = try? JSONDecoder.emailPreferences.decode(EmailPreferencesEnvelope.self, from: data),
+              let envelope = try? JSONDecoder.preferenceFact.decode(EmailPreferencesEnvelope.self, from: data),
               envelope.success, valid(envelope.emailPreferences) else { return nil }
         return .emailPreferences(envelope.emailPreferences)
     }
@@ -29,8 +37,13 @@ private struct EmailPreferencesEnvelope: Decodable {
     let emailPreferences: EmailPreferences
 }
 
+private struct GeneralPreferencesEnvelope: Decodable {
+    let success: Bool
+    let settings: GeneralPreferences
+}
+
 private extension JSONDecoder {
-    static let emailPreferences: JSONDecoder = {
+    static let preferenceFact: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder

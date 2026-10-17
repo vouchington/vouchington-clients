@@ -10,6 +10,30 @@ import XCTest
 
 @MainActor
 final class NativeChatToolResultStatusViewTests: XCTestCase {
+    func testActualChatDetailRendersGeneralFactBesideTheSameTemporaryReceiptWarning() throws {
+        let fixture = try NativeChatMCPGeneralPreferenceFixture()
+        let fact = try XCTUnwrap(try NativeChatMCPFact.makeGeneralPreferences(fixture.value))
+        var ledger = ledger()
+        XCTAssertTrue(ledger.record(.init(
+            id: UUID(), callId: "general-preferences-call", owner: ledger.owner,
+            toolName: "read_my_preferences", envelope: "untrusted raw general envelope",
+            kind: .response, fact: fact
+        )))
+        let viewModel = NativeChatViewModel(client: nil, routeMatch: nil, currentMemberId: ledger.owner.accountId)
+        viewModel.messages = [.init(
+            id: ledger.owner.userMessageId,
+            role: .user,
+            content: "Fixture preferences request"
+        )]
+        viewModel.mcpReceiptLedger = ledger
+        let inspected = try NativeChatSurface(client: nil, routeMatch: nil).chatDetail(viewModel: viewModel).inspect()
+        let english = Locale(identifier: "en")
+        XCTAssertNoThrow(try inspected.find(text: UiMessages.string(.settingsLanguageCountryLabel, locale: english)))
+        XCTAssertNoThrow(try inspected.find(text: "US"))
+        XCTAssertNoThrow(try inspected.find(text: UiMessages.string(.sharedChatMcpResultNotSaved, locale: english)))
+        XCTAssertThrowsError(try inspected.find(text: "untrusted raw general envelope"))
+    }
+
     func testReceivedAndToolErrorRowsDoNotInferDomainSuccessOrExposeRawEnvelope() throws {
         var ledger = ledger()
         ledger.continuation = .contextStopped

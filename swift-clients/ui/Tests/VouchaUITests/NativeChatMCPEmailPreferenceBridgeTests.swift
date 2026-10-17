@@ -93,7 +93,7 @@ import XCTest
             XCTAssertEqual(state.receipts.first?.kind, .toolError)
         }
 
-        func testDifferentPreferenceOptionDoesNotPublishEmailFact() async throws {
+        func testGeneralPreferenceOptionPublishesDistinctFact() async throws {
             let fixture = try emailPreferencesFixture()
             let service = BridgeMCPService()
             service.catalog = fixture.catalog
@@ -113,7 +113,10 @@ import XCTest
             _ = try await tool.call(arguments: GeneratedContent(json: #"{"option":"general","arguments":{}}"#))
 
             XCTAssertEqual(service.calls, 1)
-            XCTAssertNil(state.receipts.first?.fact)
+            XCTAssertNotNil(state.receipts.first?.fact)
+            if case .emailPreferences? = state.receipts.first?.fact {
+                XCTFail("The general option must not be rendered as email preferences")
+            }
         }
 
         private func makeTool(

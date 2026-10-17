@@ -47,6 +47,7 @@
 "extracted.memberships.benefitCatalog.supportServiceLevel_0c11c1c1" = "Nível de serviço de suporte";
 "extracted.memberships.planComparisonTable.included_ba829a98" = "Incluído";
 "extracted.memberships.planComparisonTable.notIncluded_b665bfc2" = "Não incluído";
+"extracted.my.audienceSelect.loggedInUsers_81dac12b" = "Usuários conectados";
 "extracted.my.pointValuationsManager.pleaseEnterAValidValuePerPoint_67b38bc3" = "Insira um valor válido por ponto";
 "extracted.my.preferencesForm.hackerNewsDiscussions_065664a4" = "Discussões do Hacker News";
 "extracted.my.preferencesForm.showRelatedHackerNewsThreadsWhen_00754911" = "Mostra threads relacionadas do Hacker News quando você lê um post ou artigo com um link.";
@@ -2289,7 +2290,9 @@
 "native.taxonomy.moderation.resolved" = "Resolvido";
 "native.taxonomy.moderation.unpublished" = "Retirado";
 "nav.sources" = "Fontes";
+"settings.language.countryLabel" = "País";
 "settings.language.interfaceLabel" = "Idioma da interface";
+"settings.language.noCountryPreference" = "Sem preferência de país";
 "settings.language.useSiteDefault" = "Usar idioma padrão do site";
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
