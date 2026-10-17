@@ -181,7 +181,7 @@ private extension NativeChatMCPNetworkService {
 
 public extension NativeChatMCPNetworkService {
     func callTool(
-        accountId: String, name: String, arguments: [String: DecodedJSONValue]
+        accountId: String, name: String, arguments: DecodedJSONObject
     ) async throws -> MemberMCPClient.ToolResult {
         guard let context, context.accountId == accountId,
               activeAccountId == accountId else { throw Failure.accountMismatch }

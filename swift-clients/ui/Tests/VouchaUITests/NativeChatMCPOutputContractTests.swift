@@ -11,7 +11,7 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
     func testOutputValidationBudgetFailureUsesInvalidOutputFailure() throws {
         let oversized = String(repeating: "x", count: 262_145)
         let fields = try ["outputSchema": value(["type": "string", "const": "expected"])]
-        let contract = try NativeChatMCPOutputContract(fields: fields)
+        let contract = try NativeChatMCPOutputContract(fields: DecodedJSONObject(fields))
 
         XCTAssertThrowsError(try contract.validate(toolResult(oversized), arguments: [:])) { error in
             guard let failure = error as? NativeChatMCPToolBridge.Failure,
@@ -423,7 +423,7 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         try JSONDecoder().decode(DecodedJSONValue.self, from: JSONSerialization.data(withJSONObject: object))
     }
 
-    private func object(_ value: DecodedJSONValue) throws -> [String: DecodedJSONValue] {
+    private func object(_ value: DecodedJSONValue) throws -> DecodedJSONObject {
         guard case let .object(fields) = value else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         return fields
     }

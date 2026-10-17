@@ -7,23 +7,26 @@ import VouchaModels
     @available(macOS 26.4, iOS 26.4, *)
     extension NativeChatFoundationModelsSchema {
         static func projectionFields(from data: Data) throws -> [String: Any] {
-            guard case let .object(fields) = try JSONDecoder().decode(DecodedJSONValue.self, from: data) else {
+            guard case let .object(fields) = try DecodedJSONValue(exactJSONData: data),
+                  !fields.hasCanonicallyEquivalentMemberNames else {
                 throw Failure.unsupported
             }
-            return try normalizeSingletonAllOf(fields.mapValues(projectionValue))
+            return try normalizeSingletonAllOf(fields.mapValues { try projectionValue($0) })
         }
 
-        private static func projectionValue(_ value: DecodedJSONValue) -> Any {
+        private static func projectionValue(_ value: DecodedJSONValue) throws -> Any {
             switch value {
-            case .null: NSNull()
-            case let .bool(value): value
-            case let .number(value): NSNumber(value: value)
-            case let .integer(value): NSNumber(value: value)
-            case let .unsignedInteger(value): NSNumber(value: value)
-            case let .decimal(value): NSDecimalNumber(decimal: value)
-            case let .string(value): value
-            case let .array(values): values.map(projectionValue)
-            case let .object(fields): fields.mapValues(projectionValue)
+            case .null: return NSNull()
+            case let .bool(value): return value
+            case let .number(value): return NSNumber(value: value)
+            case let .integer(value): return NSNumber(value: value)
+            case let .unsignedInteger(value): return NSNumber(value: value)
+            case let .decimal(value): return NSDecimalNumber(decimal: value)
+            case let .string(value): return value
+            case let .array(values): return try values.map(projectionValue)
+            case let .object(fields):
+                guard !fields.hasCanonicallyEquivalentMemberNames else { throw Failure.unsupported }
+                return try fields.mapValues { try projectionValue($0) }
             }
         }
 

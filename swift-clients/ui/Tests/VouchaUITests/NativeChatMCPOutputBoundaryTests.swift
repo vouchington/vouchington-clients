@@ -112,7 +112,7 @@ final class NativeChatMCPOutputBoundaryTests: XCTestCase {
         let objects = (0 ..< 256).map { index -> DecodedJSONValue in
             var fields = Dictionary(uniqueKeysWithValues: (0 ..< 100).map { ("key\($0)", DecodedJSONValue.null) })
             fields["index"] = .number(Double(index))
-            return .object(fields)
+            return .object(DecodedJSONObject(fields))
         }
         XCTAssertThrowsError(try NativeChatMCPInputSchema.acceptsOutput(
             .array(objects), schema: schema, root: schema

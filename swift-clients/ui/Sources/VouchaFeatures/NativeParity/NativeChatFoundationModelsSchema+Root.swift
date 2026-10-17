@@ -83,20 +83,21 @@ import Foundation
                     guard NativeChatFoundationModelsSchema.projectsOnlyDeclaredProperties(value)
                     else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                     let properties = projectedObjectProperties(value)
-                    let required = Set(value["required"] as? [String] ?? [])
-                    guard required.isSubset(of: properties.keys) else {
+                    let propertyNames = NativeChatFoundationModelsSchema.exactNameMap(properties)
+                    let requiredNames = Set((value["required"] as? [String] ?? []).map { Data($0.utf8) })
+                    guard requiredNames.isSubset(of: propertyNames.keys) else {
                         throw NativeChatFoundationModelsSchema.Failure.unsupported
                     }
-                    try validateObjectBounds(value, requiredCount: required.count, propertyCount: properties.count)
+                    try validateObjectBounds(value, requiredCount: requiredNames.count, propertyCount: properties.count)
                     return try .init(name: key, properties: properties.keys.sorted().map { field in
-                        guard let property = properties[field] else {
+                        guard let property = propertyNames[Data(field.utf8)] else {
                             throw NativeChatFoundationModelsSchema.Failure.unsupported
                         }
                         return try .init(
                             name: field,
                             description: property["description"] as? String,
                             schema: project(property),
-                            isOptional: !required.contains(field)
+                            isOptional: !requiredNames.contains(Data(field.utf8))
                         )
                     })
                 }

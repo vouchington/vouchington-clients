@@ -20,7 +20,7 @@ enum NativeChatMCPToolCatalog {
         var cursor: String?
         var seenCursors = Set<String>()
         var allTools: [DecodedJSONValue] = []
-        var firstPage: [String: DecodedJSONValue]?
+        var firstPage: DecodedJSONObject?
         repeat {
             let page = try await authorized.listTools(cursor: cursor)
             try assertCurrent()
