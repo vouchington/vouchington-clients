@@ -151,6 +151,8 @@ extension NativeOAuthAuthorizationCoordinatorTests {
             fixture.coordinator.result,
             .mfaRequired(provider: .microsoft, loginAttemptId: "microsoft-attempt")
         )
+        XCTAssertNil(fixture.coordinator.errorMessage)
+        XCTAssertNil(fixture.coordinator.pending)
         XCTAssertEqual(OAuthCoordinatorURLProtocol.requests.filter {
             $0.url?.path == "/api/v1/auth/oauth/authorizations/microsoft-retry/complete"
         }.count, 2)
