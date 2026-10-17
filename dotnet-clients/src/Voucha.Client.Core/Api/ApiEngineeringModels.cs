@@ -9,7 +9,11 @@ public sealed record QueueStats(
     int Completed,
     int Failed,
     bool Paused,
-    [property: JsonPropertyName("delayed")] int Delayed = 0);
+    [property: JsonPropertyName("delayed")] int Delayed = 0)
+{
+  [JsonIgnore]
+  public bool CanControlWholeQueue => !string.Equals(Name, "background", StringComparison.Ordinal);
+}
 
 public sealed record QueueStatsResponse(IReadOnlyList<QueueStats> Queues, int Total);
 

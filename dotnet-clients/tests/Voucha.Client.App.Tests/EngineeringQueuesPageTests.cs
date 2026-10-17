@@ -12,6 +12,32 @@ namespace Voucha.Client.App.Tests;
 public sealed class EngineeringQueuesPageTests
 {
   [Fact]
+  public async Task BackgroundHidesWholeQueuePauseAndRendersCappedDomainCounts()
+  {
+    var queue = new QueueStats("background", 10, 0, 0, 0, false);
+    var viewModel = new EngineeringQueuesViewModel(new QueueService(queue));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
+    using var version = new UiLocaleVersion(controller);
+    var page = CreatePage(viewModel, controller, version);
+    var queues = Find<CollectionView>(page, "engineering-queues-list");
+    var queueRow = Assert.IsAssignableFrom<Element>(queues.ItemTemplate.CreateContent());
+    queueRow.BindingContext = queue;
+    Assert.False(Assert.Single(VisualTreeElements.Descendants<Button>(queueRow)).IsVisible);
+    var domains = Find<CollectionView>(page, "engineering-domains-list");
+    var domainRow = Assert.IsAssignableFrom<Element>(domains.ItemTemplate.CreateContent());
+    var domain = new QueueDomain("openai-moderation", true, null, null, "Maintenance <paused>",
+        new(4, false), new(1, true), new(2, true), new(8, true), new(0, false));
+    domainRow.BindingContext = new QueueDomainRow(domain);
+    Assert.Equal("openai-moderation", Find<Label>(domainRow, "domain-name").Text);
+    Assert.Equal("Maintenance <paused>", Find<Label>(domainRow, "domain-reason").Text);
+    Assert.Same(domain, Find<Button>(domainRow, "domain-pause").CommandParameter);
+    Assert.Equal("4+", Find<Label>(domainRow, "domain-waiting").Text);
+    Assert.Equal("1", Find<Label>(domainRow, "domain-active").Text);
+    Assert.Equal("0+", Find<Label>(domainRow, "domain-failed").Text);
+  }
+
+  [Fact]
   public async Task RendersDelayedBacklogBesideWaitingForTotalsAndQueue()
   {
     var queue = new QueueStats("priority", 0, 2, 3, 4, false, 7);
@@ -76,6 +102,15 @@ public sealed class EngineeringQueuesPageTests
 
   private sealed class QueueService(QueueStats queue, int totalDelayed = 9) : IEngineeringService
   {
+    public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new QueueDomainsResponse([]));
+    public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RetryQueueDomainResponse(true, 0));
+
     public Task<QueueStatsSummaryResponse> FetchQueueStatsAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new QueueStatsSummaryResponse(new(0, 2, 3, 4, 1, totalDelayed)));
     public Task<QueueStatsResponse> FetchQueuesAsync(CancellationToken cancellationToken = default) =>

@@ -7,6 +7,37 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed class ApiEngineeringServiceTests
 {
   [Fact]
+  public async Task DomainMethodsDecodeCappedCountsAndTargetTheSelectedDomain()
+  {
+    var (service, handler) = CreateService(
+        "web.admin.mq.queues.domains.default",
+        "web.admin.mq.queues.domains.pause.default",
+        "web.admin.mq.queues.domains.resume.default",
+        "web.admin.mq.queues.domains.retry-failed.default");
+    var token = TestContext.Current.CancellationToken;
+    var response = await service.FetchQueueDomainsAsync("background", token);
+    var domain = Assert.Single(response.Domains, item => item.Paused);
+    Assert.Equal(4, domain.Waiting.Count);
+    Assert.False(domain.Waiting.Complete);
+    Assert.Equal(0, domain.Failed.Count);
+    Assert.False(domain.Failed.Complete);
+    Assert.True(domain.Active.Complete);
+    Assert.True(domain.Paused);
+    Assert.NotNull(domain.Reason);
+    Assert.NotNull(domain.PausedAt);
+    Assert.NotNull(domain.PausedBy);
+    await service.PauseQueueDomainAsync("background", "domain / one", "Maintenance", token);
+    await service.ResumeQueueDomainAsync("background", "domain / one", token);
+    var retry = await service.RetryQueueDomainAsync("background", "domain / one", token);
+    Assert.True(retry.Success);
+    Assert.Collection(handler.Requests,
+        request => AssertRequest(request, HttpMethod.Get, "/api/v1/mq/queues/background/domains"),
+        request => AssertRequest(request, HttpMethod.Post, "/api/v1/mq/queues/background/domains/domain%20%2F%20one/pause", "{\"reason\":\"Maintenance\"}"),
+        request => AssertRequest(request, HttpMethod.Post, "/api/v1/mq/queues/background/domains/domain%20%2F%20one/resume"),
+        request => AssertRequest(request, HttpMethod.Post, "/api/v1/mq/queues/background/domains/domain%20%2F%20one/retry-failed"));
+  }
+
+  [Fact]
   public async Task AiCostsForwardsTheOpaqueCursorWithTheFixedPageSize()
   {
     var (service, handler) = CreateService(

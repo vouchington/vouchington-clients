@@ -7,6 +7,14 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed class VouchaApiEngineeringEndpointTests
 {
   [Fact]
+  public void DomainPauseOmitsTheOptionalBodyAndEscapesBothRouteSegments()
+  {
+    var request = VouchaApiEndpoints.PauseQueueDomain("queue/name", "domain/name");
+    Assert.Equal("/api/v1/mq/queues/queue%2Fname/domains/domain%2Fname/pause", request.Path);
+    Assert.Null(request.Body);
+  }
+
+  [Fact]
   public void QueueEndpointsUseTheExpectedRoutes()
   {
     Assert.Equal("/api/v1/mq/stats", VouchaApiEndpoints.FetchQueueStats().Path);

@@ -77,6 +77,15 @@ public sealed class AiCostsPageTests
 
   private sealed class PageService(AiCostTotalsResponse response) : IEngineeringService
   {
+    public Task<QueueDomainsResponse> FetchQueueDomainsAsync(string name, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new QueueDomainsResponse([]));
+    public Task<EngineeringSuccessResponse> PauseQueueDomainAsync(string name, string domain, string? reason = null, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<EngineeringSuccessResponse> ResumeQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new EngineeringSuccessResponse(true));
+    public Task<RetryQueueDomainResponse> RetryQueueDomainAsync(string name, string domain, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RetryQueueDomainResponse(true, 0));
+
     public AiCostTotalsResponse Response { get; set; } = response;
     public Exception? Failure { get; set; }
     public Task<AiCostTotalsResponse> FetchAiCostsAsync(string? after = null, CancellationToken cancellationToken = default) =>

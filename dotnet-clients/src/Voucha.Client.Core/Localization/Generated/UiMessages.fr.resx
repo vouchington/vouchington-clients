@@ -223,6 +223,17 @@
   <data name="extracted.pointValuationsManager.valuationSummary.remove_9fe2f243" xml:space="preserve"><value>Supprimer?</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.remove_c3812fc4" xml:space="preserve"><value>Supprimer</value></data>
   <data name="extracted.pointValuationsManager.valuationSummary.valuePerPoint_7111fb3c" xml:space="preserve"><value>{value} par point</value></data>
+  <data name="extracted.queues.domainsSection.active_92340695" xml:space="preserve"><value>Actif</value></data>
+  <data name="extracted.queues.domainsSection.backgroundDomains_d956d6be" xml:space="preserve"><value>Domaines en arrière-plan</value></data>
+  <data name="extracted.queues.domainsSection.completed_22a970d2" xml:space="preserve"><value>Terminé</value></data>
+  <data name="extracted.queues.domainsSection.delayed_a5c19c9f" xml:space="preserve"><value>Différés</value></data>
+  <data name="extracted.queues.domainsSection.failed_031a8f0f" xml:space="preserve"><value>Échoués</value></data>
+  <data name="extracted.queues.domainsSection.pause_858e4ba7" xml:space="preserve"><value>Mettre en pause</value></data>
+  <data name="extracted.queues.domainsSection.paused_e159b061" xml:space="preserve"><value>En pause</value></data>
+  <data name="extracted.queues.domainsSection.resume_d640c742" xml:space="preserve"><value>Reprendre</value></data>
+  <data name="extracted.queues.domainsSection.retryFailed_2630f650" xml:space="preserve"><value>Réessayer les échecs</value></data>
+  <data name="extracted.queues.domainsSection.running_f4ccae29" xml:space="preserve"><value>En cours</value></data>
+  <data name="extracted.queues.domainsSection.waiting_6e293a8c" xml:space="preserve"><value>En attente</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.manageYourRewardsProgramPointValuations_e3bcc429" xml:space="preserve"><value>Gérez les évaluations de points de votre programme de récompenses</value></data>
   <data name="extracted.rewardsProgramPointValuations.page.pointValuations_f90821b2" xml:space="preserve"><value>Évaluations de Points</value></data>
   <data name="extracted.rewardsProgramStatusesManager.addStatusForm.addARewardsProgramStatus_77e8d1de" xml:space="preserve"><value>Ajouter un statut de programme de récompenses</value></data>

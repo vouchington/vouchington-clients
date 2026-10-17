@@ -1,6 +1,18 @@
 import VouchaAPI
 
 let engineeringOpsApiFixtureCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "web.admin.mq.queues.domains.default") {
+        try assertFixtureCoversDTO($0, as: EngineeringQueueDomainsResponse.self)
+    },
+    RegisteredFixture(id: "web.admin.mq.queues.domains.pause.default") {
+        try assertFixtureCoversDTO($0, as: EngineeringSuccessResponse.self)
+    },
+    RegisteredFixture(id: "web.admin.mq.queues.domains.resume.default") {
+        try assertFixtureCoversDTO($0, as: EngineeringSuccessResponse.self)
+    },
+    RegisteredFixture(id: "web.admin.mq.queues.domains.retry-failed.default") {
+        try assertFixtureCoversDTO($0, as: EngineeringRetryDomainResponse.self)
+    },
     RegisteredFixture(id: "native.admin-ai-costs.default") {
         try assertFixtureCoversDTO($0, as: AiCostTotalsPage.self)
     },
