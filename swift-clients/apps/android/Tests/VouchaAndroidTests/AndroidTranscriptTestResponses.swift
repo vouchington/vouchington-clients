@@ -23,7 +23,7 @@ extension AndroidTranscriptTestFactory {
         } else {
             NSNull()
         }
-        jsonData([
+        return jsonData([
             "results": [[
                 "id": id,
                 "title": title,

@@ -16,7 +16,7 @@ enum AndroidTranscriptTestFactory {
     static let generatedAssistantMessageID = "0198ffff-0001-7000-8000-000000000002"
 
     @MainActor
-    static func makeViewModel(runtime: FakeAICoreRuntime) -> ViewModel {
+    static func makeViewModel(runtime: any AndroidAICoreRunning) -> ViewModel {
         ViewModel(
             runtime: runtime,
             secretStore: MemorySecrets(),

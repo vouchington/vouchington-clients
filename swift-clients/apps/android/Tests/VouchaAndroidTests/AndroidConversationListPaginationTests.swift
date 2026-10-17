@@ -55,7 +55,7 @@ final class AndroidConversationListPaginationTests: XCTestCase {
             statusCode: 503,
             data: Data(#"{"message":"offline"}"#.utf8)
         )
-        fixture.recorder.enqueue(
+        try fixture.recorder.enqueue(
             path: listPath,
             data: AndroidTranscriptFixtures.data("native.chat.conversations")
         )
