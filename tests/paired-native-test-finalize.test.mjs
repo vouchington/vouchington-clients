@@ -44,6 +44,11 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     '6'.repeat(40),
   )
   const runId = '123456'
+  const artifactDigests = {
+    contract: 'a'.repeat(64),
+    apks: 'b'.repeat(64),
+    runtime: 'c'.repeat(64),
+  }
   const workflow = {
     repository: pairedRepositories.clients,
     ref: 'refs/heads/main',
@@ -112,9 +117,17 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
   )
 
   const artifactRecords = [
-    { id: 101, digest: 'sha256:contract', name: `paired-native-contract-${runId}-1` },
-    { id: 102, digest: 'sha256:apks', name: `paired-native-apks-${runId}-1` },
-    { id: 103, digest: 'sha256:runtime', name: `paired-native-runtime-${runId}-1` },
+    {
+      id: 101,
+      digest: `sha256:${artifactDigests.contract}`,
+      name: `paired-native-contract-${runId}-1`,
+    },
+    { id: 102, digest: `sha256:${artifactDigests.apks}`, name: `paired-native-apks-${runId}-1` },
+    {
+      id: 103,
+      digest: `sha256:${artifactDigests.runtime}`,
+      name: `paired-native-runtime-${runId}-1`,
+    },
   ].map(item => ({ ...item, expired: false, workflow_run: { id: Number(runId), run_attempt: 1 } }))
   const env = {
     GITHUB_API_URL: server.apiURL,
@@ -138,13 +151,13 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     NATIVE_ANDROID_BUILD_RESULT: 'success',
     NATIVE_ANDROID_EMULATOR_RESULT: 'success',
     CONTRACT_ARTIFACT_ID: '101',
-    CONTRACT_ARTIFACT_DIGEST: 'sha256:contract',
+    CONTRACT_ARTIFACT_DIGEST: artifactDigests.contract,
     CONTRACT_ARTIFACT_NAME: `paired-native-contract-${runId}-1`,
     APK_ARTIFACT_ID: '102',
-    APK_ARTIFACT_DIGEST: 'sha256:apks',
+    APK_ARTIFACT_DIGEST: artifactDigests.apks,
     APK_ARTIFACT_NAME: `paired-native-apks-${runId}-1`,
     RUNTIME_ARTIFACT_ID: '103',
-    RUNTIME_ARTIFACT_DIGEST: 'sha256:runtime',
+    RUNTIME_ARTIFACT_DIGEST: artifactDigests.runtime,
     RUNTIME_ARTIFACT_NAME: `paired-native-runtime-${runId}-1`,
     PAIRED_EVIDENCE_ROOT: evidenceRoot,
     APK_BUNDLE_ROOT: apkRoot,
