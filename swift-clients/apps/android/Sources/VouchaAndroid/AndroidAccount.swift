@@ -43,7 +43,7 @@ final class AndroidAccount {
         session = SessionManager(
             client: client,
             cookieStorage: cookieStorage.cookieStorage,
-            clearPersistedCookies: { cookieStorage.clearPersistedCookies() }
+            beforeClearSessionCookies: { try cookieStorage.clearPersistedCookies() }
         )
         signIn = SignInService(client: client, sessionManager: session)
     }
@@ -53,11 +53,13 @@ final class AndroidAccount {
         isRestoring = false
     }
 
-    func signOut() async {
+    @discardableResult
+    func signOut() async -> Bool {
         await session.signOut()
+        return !session.isSignedIn && session.lastSignOutErrorMessage == nil
     }
 
-    func requestOTP() async {
+    func requestOTP(locale: Locale = .current) async {
         guard !isAuthenticating, turnstileToken != nil else { return }
         isAuthenticating = true
         authError = nil
@@ -65,7 +67,11 @@ final class AndroidAccount {
         do {
             let token = turnstileToken
             defer { turnstileToken = nil }
-            try await signIn.requestEmailOTP(email: email, turnstileToken: token)
+            try await signIn.requestEmailOTP(
+                email: email,
+                turnstileToken: token,
+                uiLocale: UiLocaleResolver.resolve(savedUiLocale: locale.identifier, preferredLanguages: []).rawValue
+            )
             otpRequested = true
         } catch {
             turnstileToken = nil

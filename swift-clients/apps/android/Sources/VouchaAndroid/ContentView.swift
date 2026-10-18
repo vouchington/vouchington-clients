@@ -30,7 +30,10 @@ struct ContentView: View {
                     .tag(ContentTab.chat)
 
                     NavigationStack {
-                        AndroidSettingsView(viewModel: viewModel) {
+                        AndroidSettingsView(
+                            viewModel: viewModel,
+                            signOutErrorMessage: account.session.lastSignOutErrorMessage
+                        ) {
                             await signOutAndReplaceAccount()
                         }
                         .navigationTitle(message(.nativeSwiftAndroidLocalModels))
@@ -58,8 +61,7 @@ struct ContentView: View {
     @MainActor
     private func signOutAndReplaceAccount() async {
         let config = account.config
-        await account.signOut()
-        guard !account.session.isSignedIn else { return }
+        guard await account.signOut() else { return }
         account = AndroidAccount(config: config)
         await account.restore()
     }
@@ -105,6 +107,7 @@ struct AndroidChatView: View {
 struct AndroidSettingsView: View {
     @Bindable
     var viewModel: ViewModel
+    var signOutErrorMessage: String?
     var signOut: () async -> Void
     @State
     var endpointStatus: String?
@@ -152,6 +155,10 @@ struct AndroidSettingsView: View {
             Section(UiMessages.string(.nativeAuthSignIn, locale: locale)) {
                 Button(message(.nativeSwiftProfileSignOut), role: .destructive) {
                     Task { await signOut() }
+                }
+                if let signOutErrorMessage {
+                    Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(signOutErrorMessage), locale: locale))
+                        .foregroundStyle(.red)
                 }
             }
         }

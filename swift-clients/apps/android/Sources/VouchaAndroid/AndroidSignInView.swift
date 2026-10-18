@@ -45,13 +45,16 @@ struct AndroidSignInView: View {
                             Text(UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale))
                                 .foregroundStyle(.red)
                         } else {
-                            AndroidTurnstileChallenge(siteKey: account.config.turnstileSiteKey) {
+                            AndroidTurnstileChallenge(
+                                siteKey: account.config.turnstileSiteKey,
+                                baseURL: account.config.baseURL
+                            ) {
                                 account.turnstileTokenDidChange($0, locale: locale)
                             }
                             .frame(minHeight: 72)
                         }
                         Button(UiMessages.string(.nativeAuthSendCode, locale: locale)) {
-                            Task { await account.requestOTP() }
+                            Task { await account.requestOTP(locale: locale) }
                         }.disabled(account.isAuthenticating || account.email.isEmpty || account.turnstileToken == nil)
                     }
                     if let authError = account.authError {
@@ -66,19 +69,23 @@ struct AndroidSignInView: View {
 
 struct AndroidTurnstileChallenge: View {
     let siteKey: String
+    let baseURL: URL
     let onToken: (String?) -> Void
 
     // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
     // swiftformat:disable:next redundantMemberwiseInit
-    init(siteKey: String, onToken: @escaping (String?) -> Void) {
+    init(siteKey: String, baseURL: URL, onToken: @escaping (String?) -> Void) {
         self.siteKey = siteKey
+        self.baseURL = baseURL
         self.onToken = onToken
     }
 
     var body: some View {
         #if os(Android)
-            TurnstileWebChallenge(siteKey: siteKey) { token in
-                onToken(token)
+            if let origin = androidTurnstileOrigin(baseURL) {
+                TurnstileWebChallenge(siteKey: siteKey, origin: origin) { token in
+                    onToken(token)
+                }
             }
         #else
             Text("Turnstile challenge is available in the Android app.")
@@ -96,12 +103,14 @@ struct AndroidTurnstileChallenge: View {
 
     struct TurnstileWebChallenge: View {
         let siteKey: String
+        let origin: String
         let onToken: (String?) -> Void
 
         // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
         // swiftformat:disable:next redundantMemberwiseInit
-        init(siteKey: String, onToken: @escaping (String?) -> Void) {
+        init(siteKey: String, origin: String, onToken: @escaping (String?) -> Void) {
             self.siteKey = siteKey
+            self.origin = origin
             self.onToken = onToken
         }
 
@@ -112,8 +121,8 @@ struct AndroidTurnstileChallenge: View {
                     view.settings.javaScriptEnabled = true
                     view.settings.domStorageEnabled = true
                     CookieManager.getInstance().setAcceptThirdPartyCookies(view, true)
-                    view.webViewClient = TurnstileNavigationClient(onToken: onToken)
-                    view.loadDataWithBaseURL("https://voucha.ai", turnstileHTML(siteKey), "text/html", "UTF-8", nil)
+                    view.webViewClient = TurnstileNavigationClient(origin: origin, onToken: onToken)
+                    view.loadDataWithBaseURL(origin, turnstileHTML(siteKey), "text/html", "UTF-8", nil)
                     return view
                 }, modifier: context.modifier, update: { _ in })
             }
@@ -121,9 +130,11 @@ struct AndroidTurnstileChallenge: View {
     }
 
     private class TurnstileNavigationClient: WebViewClient {
+        let origin: String
         let onToken: (String?) -> Void
 
-        init(onToken: (String?) -> Void) {
+        init(origin: String, onToken: (String?) -> Void) {
+            self.origin = origin
             self.onToken = onToken
         }
 
@@ -144,7 +155,8 @@ struct AndroidTurnstileChallenge: View {
                 onToken(nil)
                 return true
             }
-            if url.hasPrefix("https://voucha.ai/") || url.hasPrefix("https://challenges.cloudflare.com/") {
+            if url == origin || url.hasPrefix(origin + "/") ||
+                url.hasPrefix("https://challenges.cloudflare.com/") {
                 return false
             }
             return true

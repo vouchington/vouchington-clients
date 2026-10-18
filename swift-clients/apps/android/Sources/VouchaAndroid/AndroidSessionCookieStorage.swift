@@ -120,10 +120,10 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         queue.sync { persistenceEnabled = false }
     }
 
-    func clearPersistedCookies() {
-        queue.sync {
+    func clearPersistedCookies() throws {
+        try queue.sync {
+            try secrets.removeValue(forKey: key)
             persistenceEnabled = false
-            try? secrets.removeValue(forKey: key)
         }
     }
 

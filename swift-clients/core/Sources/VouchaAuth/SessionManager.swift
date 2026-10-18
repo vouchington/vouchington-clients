@@ -29,6 +29,7 @@ public final class SessionManager {
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
+    private let beforeClearSessionCookies: (@Sendable () throws -> Void)?
     private let clearPersistedCookies: (@Sendable () -> Void)?
     private let logger = VouchaLogger(category: "SessionManager")
     private var beforeSignOut: (@MainActor (String) async throws -> Void)?
@@ -75,11 +76,13 @@ public final class SessionManager {
 
     public init(
         client: APIClient, cookieStorage: HTTPCookieStorage,
-        clearPersistedCookies: (@Sendable () -> Void)? = nil
+        clearPersistedCookies: (@Sendable () -> Void)? = nil,
+        beforeClearSessionCookies: (@Sendable () throws -> Void)? = nil
     ) {
         self.client = client
         self.cookieStorage = cookieStorage
         self.clearPersistedCookies = clearPersistedCookies
+        self.beforeClearSessionCookies = beforeClearSessionCookies
     }
 
     /// Install device-grant cleanup that must finish before the member identity is discarded.
@@ -131,6 +134,13 @@ public final class SessionManager {
                 lastSignOutErrorMessage = error.localizedDescription
                 return
             }
+        }
+        do {
+            try beforeClearSessionCookies?()
+        } catch {
+            logger.error("Cookie cleanup failed before sign-out: \(error.localizedDescription)")
+            lastSignOutErrorMessage = error.localizedDescription
+            return
         }
         do {
             let _: EmptyResponse = try await client.send(.logout)
