@@ -1,5 +1,6 @@
 using System.Net;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Moderation;
 
@@ -63,23 +64,44 @@ public sealed partial class ModerationAppealsViewModel
   {
     ArgumentNullException.ThrowIfNull(appeal);
     if (!CanRerun(appeal)) return Task.CompletedTask;
+    var revision = Volatile.Read(ref loadRevision);
+    var ownerRevision = Volatile.Read(ref accountRevision);
     return AwaitMutationAsync(appeal.Id, async () =>
     {
-      var queued = await service.RerunResolutionDraftAsync(appeal.Id, cancellationToken).ConfigureAwait(true);
-      if (!queued.Queued) throw new InvalidOperationException("The AI draft was not queued.");
+      if (!CanAccess || ownerRevision != Volatile.Read(ref accountRevision)) return;
+      cancellationToken.ThrowIfCancellationRequested();
+      if (!TrySetPendingAIRerun(appeal, out var admission)) return;
+      ModerationAppealQueueResponse queued;
+      try
+      {
+        queued = await service.RerunResolutionDraftAsync(appeal.Id, cancellationToken).ConfigureAwait(true);
+      }
+      catch (Exception ex) when (!IsAmbiguous(ex))
+      {
+        ClearPendingAIRerun(appeal.Id, admission.Token);
+        throw;
+      }
+      if (!queued.Queued)
+      {
+        ClearPendingAIRerun(appeal.Id, admission.Token);
+        throw new InvalidOperationException(localization.Localize(
+            UiMessageKey.NativeSwiftReviewDisputesRerunNotQueued));
+      }
       for (var attempt = 0; attempt < rerunPollAttempts; attempt++)
       {
+        if (!IsCurrentAIRerunContext(appeal.Id, admission, revision, ownerRevision)) return;
         var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken).ConfigureAwait(true)).Appeal;
-        if (refreshed.AiDraftedAt is not null &&
-            refreshed.AiDraftedAt != appeal.AiDraftedAt &&
-            !string.Equals(refreshed.LatestLifecycleChangeId, appeal.LatestLifecycleChangeId, StringComparison.Ordinal))
+        if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
+        if (admission.IsReconciled(refreshed))
         {
-          Replace(refreshed);
+          ClearPendingAIRerun(appeal.Id, admission.Token);
+          Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
           return;
         }
         if (attempt + 1 < rerunPollAttempts) await rerunPollDelay(cancellationToken).ConfigureAwait(true);
       }
-      throw new TimeoutException("The AI draft is still processing. Refresh to check again.");
+      throw new TimeoutException(localization.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
     }, cancellationToken);
   }
 
@@ -90,6 +112,10 @@ public sealed partial class ModerationAppealsViewModel
       bool markAmbiguousDelivery = false)
   {
     if (IsMutating) return false;
+    var ownerRevision = Volatile.Read(ref accountRevision);
+    activeMutationOwnerRevision = ownerRevision;
+    activeMutationAdmissionToken = admissionStore.TryGet(admissionOwner, id, out var pending)
+        ? pending.Token : null;
     MutatingAppealId = id;
     ErrorMessage = null;
     try
@@ -103,18 +129,25 @@ public sealed partial class ModerationAppealsViewModel
     }
     catch (OperationCanceledException ex)
     {
-      if (markAmbiguousDelivery) ambiguousDeliveryIds.Add(id);
-      ErrorMessage = ex.Message;
+      if (ownerRevision == Volatile.Read(ref accountRevision) && CanAccess)
+      {
+        if (markAmbiguousDelivery) ambiguousDeliveryIds.Add(id);
+        ErrorMessage = ex.Message;
+      }
       return false;
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      if (markAmbiguousDelivery && IsAmbiguous(ex)) ambiguousDeliveryIds.Add(id);
-      ErrorMessage = ex.Message;
+      if (ownerRevision == Volatile.Read(ref accountRevision) && CanAccess)
+      {
+        if (markAmbiguousDelivery && IsAmbiguous(ex)) ambiguousDeliveryIds.Add(id);
+        ErrorMessage = ex.Message;
+      }
       return false;
     }
     finally
     {
+      activeMutationAdmissionToken = null;
       MutatingAppealId = null;
     }
   }
@@ -122,42 +155,10 @@ public sealed partial class ModerationAppealsViewModel
   private async Task AwaitMutationAsync(string id, Func<Task> operation, CancellationToken cancellationToken) =>
       _ = await MutateAsync(id, operation, cancellationToken).ConfigureAwait(true);
 
-  private void SeedDrafts(IEnumerable<ModerationAppeal> loaded)
-  {
-    foreach (var appeal in loaded)
-    {
-      if (!dirtyDraftIds.Contains(appeal.Id)) drafts[appeal.Id] = ServerDraftFor(appeal);
-    }
-  }
-
-  private void Replace(ModerationAppeal appeal)
-  {
-    ConfirmServerDraft(appeal);
-    var updated = Appeals.ToList();
-    var index = updated.FindIndex(item => item.Id == appeal.Id);
-    if (appeal.Status != SelectedStatus)
-    {
-      if (index >= 0) updated.RemoveAt(index);
-    }
-    else if (index >= 0)
-    {
-      updated[index] = appeal;
-    }
-    else
-    {
-      updated.Insert(0, appeal);
-    }
-    Appeals = updated;
-  }
-
-  private void ConfirmServerDraft(ModerationAppeal appeal)
-  {
-    drafts[appeal.Id] = ServerDraftFor(appeal);
-    dirtyDraftIds.Remove(appeal.Id);
-  }
-
   private static bool IsAmbiguous(Exception exception) =>
       exception is OperationCanceledException ||
+      exception is TimeoutException ||
+      exception is VouchaApiDecodeException ||
       exception is HttpRequestException http &&
       (http.StatusCode is null || http.StatusCode == HttpStatusCode.RequestTimeout || http.StatusCode >= HttpStatusCode.InternalServerError);
 }

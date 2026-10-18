@@ -37,6 +37,14 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
       new Button(),
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsRerunAi);
+  private readonly Button refreshAIRerun = UiCopy.Bind(
+      new Button(),
+      Button.TextProperty,
+      UiMessageKey.NativeSwiftReviewDisputesRefreshStatus);
+  private readonly Label aiRerunPending = UiCopy.Bind(
+      new Label(),
+      Label.TextProperty,
+      UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing);
   private readonly Button accept = UiCopy.Bind(
       new Button(),
       Button.TextProperty,
@@ -73,6 +81,8 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
         UiMessageKey.NativeSwiftModerationAppealsPublicResponse));
     Children.Add(publicResponse);
     Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { save, approve, deliver, rerun } });
+    Children.Add(refreshAIRerun);
+    Children.Add(aiRerunPending);
     Children.Add(new HorizontalStackLayout { Spacing = 6, Children = { accept, reduce, deny } });
     Children.Add(refreshDelivery);
     BindingContextChanged += (_, _) => Populate();
@@ -84,6 +94,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     approve.Clicked += async (_, _) => await WithAppeal(viewModel.ApproveAsync).ConfigureAwait(true);
     deliver.Clicked += async (_, _) => await WithAppeal(viewModel.DeliverAsync).ConfigureAwait(true);
     rerun.Clicked += async (_, _) => await WithAppeal(viewModel.RerunAsync).ConfigureAwait(true);
+    refreshAIRerun.Clicked += async (_, _) => await WithAppeal(viewModel.RefreshPendingAIRerunAsync).ConfigureAwait(true);
     accept.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Accept).ConfigureAwait(true);
     reduce.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Reduce).ConfigureAwait(true);
     deny.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Deny).ConfigureAwait(true);
@@ -140,6 +151,9 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     approve.IsEnabled = viewModel.CanApprove(appeal);
     deliver.IsEnabled = viewModel.CanDeliver(appeal);
     rerun.IsEnabled = viewModel.CanRerun(appeal);
+    refreshAIRerun.IsVisible = viewModel.IsAIRerunPending(appeal);
+    refreshAIRerun.IsEnabled = viewModel.CanRefreshAIRerun(appeal);
+    aiRerunPending.IsVisible = refreshAIRerun.IsVisible;
     accept.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Accept);
     reduce.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Reduce);
     deny.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Deny);

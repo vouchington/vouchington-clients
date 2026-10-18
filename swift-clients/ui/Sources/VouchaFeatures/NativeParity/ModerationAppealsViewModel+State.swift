@@ -3,9 +3,20 @@ import VouchaLocalization
 import VouchaModels
 
 extension ModerationAppealsViewModel {
-    func replace(with appeal: ModerationAppeal) {
+    func replace(with appeal: ModerationAppeal, preservingEditedDraft: Bool = false) {
+        if let mutationAdmissionToken,
+           let admission = admissionStore.admission(appeal.id, for: admissionOwner),
+           admission.token == mutationAdmissionToken,
+           admission.baseline.isReconciled(in: appeal) {
+            admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+        }
+        let editedDraft = locallyEditedDraftAppealIds.contains(appeal.id) ? drafts[appeal.id] : nil
         drafts[appeal.id] = draftSeed(for: appeal)
         locallyEditedDraftAppealIds.remove(appeal.id)
+        if preservingEditedDraft, let editedDraft, editedDraft != appeal.publicResponse {
+            drafts[appeal.id] = editedDraft
+            locallyEditedDraftAppealIds.insert(appeal.id)
+        }
         guard appeal.status == selectedStatus else {
             appeals.removeAll { $0.id == appeal.id }
             return

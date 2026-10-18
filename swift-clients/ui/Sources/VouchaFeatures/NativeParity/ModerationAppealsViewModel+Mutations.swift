@@ -56,26 +56,45 @@ extension ModerationAppealsViewModel {
 
     func rerunAI(for appeal: ModerationAppeal) async {
         guard canRerun(appeal), let client else { return }
+        let revision = loadRevision
         _ = await withMutation(appeal.id) {
-            let queued: ModerationAppealQueueResponse = try await client.send(
-                .appealResolutionDrafts(id: appeal.id)
-            )
+            try Task.checkCancellation()
+            guard let admission = admissionStore.admit(appeal, for: admissionOwner) else { return }
+            let queued: ModerationAppealQueueResponse
+            do {
+                queued = try await client.send(.appealResolutionDrafts(id: appeal.id))
+            } catch {
+                if !isAmbiguousDelivery(error) {
+                    admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+                }
+                throw error
+            }
             guard queued.queued else {
-                throw VouchaError.unexpected("The AI draft was not queued.")
+                admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+                throw AppealAIRerunError.notQueued
             }
             for attempt in 0 ..< rerunPollAttempts {
+                guard !Task.isCancelled, revision == loadRevision,
+                      selectedStatus == .pending,
+                      appeals.contains(where: { $0.id == appeal.id }),
+                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
+                else { return }
                 let refreshed: ModerationAppealEnvelope = try await client.send(.appeal(id: appeal.id))
-                if refreshed.appeal.aiDraftedAt != nil,
-                   refreshed.appeal.aiDraftedAt != appeal.aiDraftedAt,
-                   refreshed.appeal.latestLifecycleChangeId != appeal.latestLifecycleChangeId {
-                    replace(with: refreshed.appeal)
+                guard !Task.isCancelled, revision == loadRevision, selectedStatus == .pending,
+                      refreshed.appeal.id == appeal.id,
+                      appeals.contains(where: { $0.id == appeal.id }),
+                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
+                else { return }
+                if admission.baseline.isReconciled(in: refreshed.appeal) {
+                    admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+                    replace(with: refreshed.appeal, preservingEditedDraft: true)
                     return
                 }
                 if attempt + 1 < rerunPollAttempts {
                     try await rerunPollDelay()
                 }
             }
-            throw VouchaError.unexpected("The AI draft is still processing. Refresh to check again.")
+            throw AppealAIRerunError.stillProcessing
         }
     }
 
@@ -88,15 +107,19 @@ extension ModerationAppealsViewModel {
         }
     }
 
-    private func withMutation(
+    func withMutation(
         _ appealId: String,
         marksAmbiguousDelivery: Bool = false,
         operation: () async throws -> Void
     ) async -> Bool {
         guard mutatingAppealId == nil else { return false }
+        mutationAdmissionToken = admissionStore.admission(appealId, for: admissionOwner)?.token
         mutatingAppealId = appealId
         errorMessage = nil
-        defer { mutatingAppealId = nil }
+        defer {
+            mutationAdmissionToken = nil
+            mutatingAppealId = nil
+        }
         do {
             try await operation()
             return true
@@ -104,21 +127,30 @@ extension ModerationAppealsViewModel {
             if marksAmbiguousDelivery, isAmbiguousDelivery(error) {
                 ambiguousDeliveryAppealIds.insert(appealId)
             }
-            errorMessage = message(for: error)
+            if let rerunError = error as? AppealAIRerunError {
+                errorMessage = .message(rerunError == .notQueued
+                    ? .nativeSwiftReviewDisputesRerunNotQueued
+                    : .nativeSwiftReviewDisputesRerunStillProcessing)
+            } else {
+                errorMessage = message(for: error)
+            }
             return false
         }
     }
 
     private func isAmbiguousDelivery(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
         if error is URLError {
             return true
         }
         guard let error = error as? VouchaError else { return false }
         switch error {
-        case .network, .cancelled:
+        case .network, .cancelled, .decodingFailed:
             return true
         case let .api(statusCode, _), let .apiMessage(statusCode, _, _):
-            return statusCode == 0 || statusCode >= 500
+            return statusCode == 0 || statusCode == 408 || statusCode >= 500
         default:
             return false
         }

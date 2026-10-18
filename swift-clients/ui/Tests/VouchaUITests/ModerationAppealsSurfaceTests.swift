@@ -5,7 +5,7 @@ import VouchaModels
 import XCTest
 
 @MainActor
-final class ModerationAppealsSurfaceTests: XCTestCase {
+final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     func testStaffSurfaceRendersFiltersAppealContextDraftAndActions() throws {
         let appeal = try fixtureAppeal(suspensionId: "suspension-1")
         let viewModel = ModerationAppealsViewModel(
@@ -28,6 +28,23 @@ final class ModerationAppealsSurfaceTests: XCTestCase {
         XCTAssertNoThrow(try inspection.find(button: "Re-run AI"))
         XCTAssertTrue(try inspection.find(button: "Accept").isDisabled())
         XCTAssertTrue(try inspection.find(button: "Reduce").isDisabled())
+    }
+
+    func testPendingAIRerunRendersReadOnlyRefreshAndDisablesDuplicatePost() throws {
+        let appeal = try fixtureAppeal(suspensionId: nil)
+        let store = AppealAIRerunAdmissionStore()
+        let viewModel = try ModerationAppealsViewModel(
+            client: makeClient(), isSignedIn: true, isAdministrator: true,
+            isSiteModerator: false, currentUserId: "staff-1", admissionStore: store
+        )
+        viewModel.appeals = [appeal]
+        XCTAssertNotNil(store.admit(appeal, for: viewModel.admissionOwner))
+
+        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+
+        XCTAssertTrue(try inspection.find(button: "Re-run AI").isDisabled())
+        XCTAssertFalse(try inspection.find(button: "Refresh status").isDisabled())
+        XCTAssertNoThrow(try inspection.find(text: "The AI draft is still processing. Refresh to check again."))
     }
 
     func testResolutionActionsAreEnabledOnlyAfterAppealDelivery() throws {

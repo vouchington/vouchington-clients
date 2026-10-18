@@ -101,6 +101,10 @@ public sealed partial class AppShell : Shell
     var navigationShell = BottomTabShellViewModel.Create(viewer, preferenceStore.Load(), localization);
     var tabBar = new TabBar();
 
+    foreach (var content in EnumerateShellContents("moderation"))
+    {
+      if (content.Content is ModerationAppealsPage appealsPage) appealsPage.Dispose();
+    }
     Items.Clear();
     Items.Add(new FlyoutItem
     {

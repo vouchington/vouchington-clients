@@ -14,6 +14,8 @@ final class ModerationAppealsViewModel {
     let isSiteModerator: Bool
     let rerunPollAttempts: Int
     let rerunPollDelay: @Sendable () async throws -> Void
+    let admissionStore: AppealAIRerunAdmissionStore
+    let admissionOwner: AppealAIRerunOwner?
 
     var appealPagination = CursorPaginationState<ModerationAppeal>()
     var appeals: [ModerationAppeal] {
@@ -32,26 +34,41 @@ final class ModerationAppealsViewModel {
     }
 
     var mutatingAppealId: String?
+    var mutationAdmissionToken: UUID?
     var errorMessage: UiVerbatimText?
     var loadMoreErrorMessage: UiVerbatimText?
     var ambiguousDeliveryAppealIds: Set<String> = []
+    var pendingAIReruns: [String: AppealAIRerunBaseline] {
+        admissionStore.pending(for: admissionOwner)
+    }
+
+    var aiRerunTasks: [String: Task<Void, Never>] = [:]
+    var aiRerunTaskTokens: [String: UUID] = [:]
     var selectedStatus: ModerationAppealStatus = .pending
     var drafts: [String: String] = [:]
     var locallyEditedDraftAppealIds: Set<String> = []
 
-    private var loadRevision = 0
+    var loadRevision = 0
 
     init(
         client: APIClient?,
         isSignedIn: Bool,
         isAdministrator: Bool,
         isSiteModerator: Bool,
+        currentUserId: String? = nil,
+        admissionStore: AppealAIRerunAdmissionStore? = nil,
         rerunPollAttempts: Int = 20,
         rerunPollDelay: @escaping @Sendable () async throws -> Void = {
             try await Task.sleep(for: .seconds(3))
         }
     ) {
         self.client = client
+        self.admissionStore = admissionStore ?? (currentUserId == nil
+            ? AppealAIRerunAdmissionStore() : .session)
+        admissionOwner = AppealAIRerunOwner(
+            userId: currentUserId ?? (admissionStore == nil ? UUID().uuidString : nil),
+            baseURL: client?.baseURL
+        )
         self.isSignedIn = isSignedIn
         self.isAdministrator = isAdministrator
         self.isSiteModerator = isSiteModerator
@@ -88,6 +105,7 @@ final class ModerationAppealsViewModel {
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
+            reconcileAIReruns(from: response.appeals)
             seedDrafts(from: response.appeals)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
@@ -128,6 +146,7 @@ final class ModerationAppealsViewModel {
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
+            reconcileAIReruns(from: response.appeals)
             seedDrafts(from: response.appeals)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
@@ -137,35 +156,6 @@ final class ModerationAppealsViewModel {
             appealPagination.fail(request, error: vouchaError(from: error))
             loadMoreErrorMessage = message(for: error)
         }
-    }
-
-    func canApprove(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.approvedAt == nil && appeal.sentAt == nil
-            && !(drafts[appeal.id] ?? appeal.publicResponse ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    func canSend(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.approvedAt != nil && appeal.sentAt == nil
-            && !ambiguousDeliveryAppealIds.contains(appeal.id)
-            && (drafts[appeal.id] ?? appeal.publicResponse ?? "") == (appeal.publicResponse ?? "")
-    }
-
-    func canResolve(_ appeal: ModerationAppeal, action: ModerationAppealAction) -> Bool {
-        guard canMutate(appeal), appeal.sentAt != nil else { return false }
-        return action != .accept || isAdministrator || appeal.userSuspensionId == nil
-    }
-
-    func canRerun(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.approvedAt == nil && appeal.sentAt == nil
-    }
-
-    func canEdit(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.sentAt == nil
-    }
-
-    func canMutate(_ appeal: ModerationAppeal) -> Bool {
-        canAccess && appeal.status == .pending && !isMutating
     }
 
     private func vouchaError(from error: Error) -> VouchaError {
