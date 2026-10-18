@@ -234,6 +234,8 @@ public sealed class ModerationDisputesPageTests
           "recommended_action":"annotate",
           "created_at":"2026-07-01T00:00:00Z",
           "updated_at":"2026-07-02T00:00:00Z",
+          "ai_draft_requested_run_id":"dispute_resolution_00000000-0000-7000-8000-000000000211",
+          "ai_draft_run_id":null,
           "ai_public_response":"Draft response",
           "ai_internal_response":"Internal analysis",
           "internal_notes":"Staff note",
