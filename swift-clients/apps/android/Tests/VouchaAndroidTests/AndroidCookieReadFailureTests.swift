@@ -36,7 +36,7 @@ final class AndroidCookieReadFailureTests: XCTestCase {
         XCTAssertTrue(account.isRestoring)
         XCTAssertTrue(storage.requiresRestorationRetry)
         XCTAssertFalse(storage.persistenceStatus.enabled)
-        XCTAssertFalse(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
+        XCTAssertTrue(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
         XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertTrue(storage.cookies?.isEmpty ?? true)
         XCTAssertTrue(probe.requestPaths().isEmpty)

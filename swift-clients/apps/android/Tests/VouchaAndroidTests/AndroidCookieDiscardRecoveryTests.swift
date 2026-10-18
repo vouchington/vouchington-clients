@@ -8,7 +8,7 @@ import VouchaTestSupport
 import XCTest
 
 final class AndroidCookieDiscardRecoveryTests: XCTestCase {
-    func testTransientRetryReadFailureClearsStaleDiscardEligibility() throws {
+    func testRepeatedReadFailurePreservesExplicitDiscardWithoutAutomaticMutation() throws {
         let secrets = CookieDiscardRecoverySecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
         secrets.seed("malformed snapshot", forKey: persistenceKey)
@@ -19,13 +19,24 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         XCTAssertFalse(storage.retryRestoreCookies())
 
         XCTAssertTrue(storage.requiresRestorationRetry)
-        XCTAssertFalse(storage.persistenceStatus.unreadableSnapshotCanBeDiscarded)
-        XCTAssertFalse(storage.discardUnreadableSnapshot())
+        XCTAssertTrue(storage.persistenceStatus.unreadableSnapshotCanBeDiscarded)
+        XCTAssertEqual(secrets.counts().removals, 0)
+        XCTAssertEqual(secrets.counts().writes, 0)
         XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), "malformed snapshot")
     }
 
     @MainActor
     func testMalformedSnapshotNeedsSuccessfulExplicitDeletionBeforeSignIn() async throws {
+        try await assertExplicitDeletionBeforeSignIn(readFailure: false)
+    }
+
+    @MainActor
+    func testPermanentReadFailureNeedsSuccessfulExplicitDeletionBeforeSignIn() async throws {
+        try await assertExplicitDeletionBeforeSignIn(readFailure: true)
+    }
+
+    @MainActor
+    private func assertExplicitDeletionBeforeSignIn(readFailure: Bool) async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
         let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
         let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
@@ -35,6 +46,9 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         let malformed = "not a cookie snapshot"
         secrets.seed(malformed, forKey: persistenceKey)
         secrets.setRemovalFailure(true)
+        secrets.setReadFailure(readFailure)
+        secrets.seed("other-origin-session", forKey: "voucha.session.cookies.https://other.example:443")
+        secrets.seed("endpoint-secret", forKey: "endpoint-api-key")
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         let probe = CookieDiscardRequestProbe(secrets: secrets, identity: identity, key: persistenceKey)
         CookieDiscardURLProtocol.registry.register(probe, forHost: host)
@@ -46,6 +60,7 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         )
 
         await account.restore()
+        await account.retryCookiePersistenceOrRestoration()
         XCTAssertTrue(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
 
         XCTAssertFalse(account.discardUnreadableCookieSnapshot())
@@ -66,7 +81,22 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         XCTAssertTrue(probe.observations().paths.isEmpty)
         XCTAssertNil(secrets.snapshotValue(forKey: persistenceKey))
         XCTAssertEqual(secrets.counts().removals, 1)
+        XCTAssertEqual(
+            secrets.snapshotValue(forKey: "voucha.session.cookies.https://other.example:443"),
+            "other-origin-session"
+        )
+        XCTAssertEqual(secrets.snapshotValue(forKey: "endpoint-api-key"), "endpoint-secret")
 
+        try await assertFreshBootstrapAfterDiscard(account: account, secrets: secrets, probe: probe)
+
+    }
+
+    @MainActor
+    private func assertFreshBootstrapAfterDiscard(
+        account: AndroidAccount,
+        secrets: CookieDiscardRecoverySecrets,
+        probe: CookieDiscardRequestProbe
+    ) async throws {
         let freshStorage = AndroidSessionCookieStorage(secrets: secrets)
         let freshAccount = try AndroidAccount(
             config: account.config,
@@ -79,4 +109,5 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         XCTAssertEqual(probe.observations().paths, ["/api/v1/my/identity"])
         XCTAssertEqual(probe.observations().snapshots, [nil])
     }
+
 }

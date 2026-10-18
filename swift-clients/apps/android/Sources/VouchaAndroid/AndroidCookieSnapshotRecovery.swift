@@ -17,9 +17,14 @@ final class AndroidCookieSnapshotRecovery {
 
     func loadPersistedCookies() throws {
         unreadableSnapshotCanBeDiscarded = false
-        guard let json = try secrets.string(forKey: key) else {
-            return
+        let json: String?
+        do {
+            json = try secrets.string(forKey: key)
+        } catch {
+            unreadableSnapshotCanBeDiscarded = true
+            throw error
         }
+        guard let json else { return }
         guard let data = json.data(using: .utf8) else {
             unreadableSnapshotCanBeDiscarded = true
             throw CocoaError(.fileReadInapplicableStringEncoding)

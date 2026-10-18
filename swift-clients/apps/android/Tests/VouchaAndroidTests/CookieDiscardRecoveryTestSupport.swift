@@ -46,7 +46,7 @@ final class CookieDiscardRecoverySecrets: AndroidEndpointSecretStoring, @uncheck
     func string(forKey key: String) throws -> String? {
         lock.lock()
         defer { lock.unlock() }
-        if failsReads { throw URLError(.cannotOpenFile) }
+        if failsReads, values[key] != nil { throw URLError(.cannotOpenFile) }
         return values[key]
     }
 
