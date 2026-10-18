@@ -1,0 +1,73 @@
+import Foundation
+import VouchaLocalization
+
+extension AndroidAccount {
+    func requestOTP(locale: Locale = .current) async {
+        guard !isAuthenticating, turnstileToken != nil else { return }
+        isAuthenticating = true
+        authError = nil
+        defer { isAuthenticating = false }
+        do {
+            let token = turnstileToken
+            defer {
+                turnstileToken = nil
+                turnstileChallengeID = UUID()
+            }
+            try await signIn.requestEmailOTP(
+                email: email,
+                turnstileToken: token,
+                uiLocale: UiLocaleResolver.resolve(savedUiLocale: locale.identifier, preferredLanguages: []).rawValue
+            )
+            otpRequested = true
+        } catch {
+            turnstileToken = nil
+            authError = error.localizedDescription
+        }
+    }
+
+    func turnstileTokenDidChange(_ token: String?, challengeID: UUID? = nil, locale: Locale = .current) {
+        guard !isAuthenticating, challengeID == nil || challengeID == turnstileChallengeID else { return }
+        turnstileToken = token
+        authError = token == nil ? UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale) : nil
+    }
+
+    func verifyOTP() async {
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
+        authError = nil
+        defer { isAuthenticating = false }
+        do {
+            if let challenge = try await signIn.verifyEmailOTP(email: email, code: otp) {
+                loginAttemptID = challenge.loginAttemptId
+            }
+        } catch {
+            authError = error.localizedDescription
+        }
+    }
+
+    func verifyMFA() async {
+        guard let loginAttemptID, !isAuthenticating else { return }
+        isAuthenticating = true
+        authError = nil
+        defer { isAuthenticating = false }
+        do {
+            try await signIn.verifyMFATOTP(loginAttemptId: loginAttemptID, code: totp)
+            self.loginAttemptID = nil
+        } catch {
+            authError = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func restartSignIn() -> Bool {
+        guard !isAuthenticating else { return false }
+        loginAttemptID = nil
+        otpRequested = false
+        otp = ""
+        totp = ""
+        turnstileToken = nil
+        turnstileChallengeID = UUID()
+        authError = nil
+        return true
+    }
+}

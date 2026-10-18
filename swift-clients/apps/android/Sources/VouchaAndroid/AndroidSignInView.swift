@@ -22,6 +22,9 @@ struct AndroidSignInView: View {
                         Button(UiMessages.string(.nativeAuthVerify, locale: locale)) {
                             Task { await account.verifyMFA() }
                         }.disabled(account.isAuthenticating || account.totp.isEmpty || loginAttemptID.isEmpty)
+                        Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
+                            account.restartSignIn()
+                        }.disabled(account.isAuthenticating)
                     } else if account.otpRequested {
                         Text(UiMessages.string(.nativeAuthCheckEmail, locale: locale))
                         TextField(UiMessages.string(.nativeAuthCodePlaceholder, locale: locale), text: $account.otp)
@@ -32,15 +35,15 @@ struct AndroidSignInView: View {
                             Task { await account.verifyOTP() }
                         }.disabled(account.isAuthenticating || account.otp.isEmpty)
                         Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
-                            account.otpRequested = false
-                            account.otp = ""
-                        }
+                            account.restartSignIn()
+                        }.disabled(account.isAuthenticating)
                     } else {
                         TextField(UiMessages.string(.nativeAuthEmailAddress, locale: locale), text: $account.email)
                         #if os(iOS) || os(Android) || SKIP
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
                         #endif
+                            .disabled(account.isAuthenticating)
                         if account.config.turnstileSiteKey.isEmpty {
                             Text(UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale))
                                 .foregroundStyle(.red)
@@ -48,9 +51,10 @@ struct AndroidSignInView: View {
                             AndroidTurnstileChallenge(
                                 siteKey: account.config.turnstileSiteKey,
                                 baseURL: account.config.baseURL
-                            ) {
-                                account.turnstileTokenDidChange($0, locale: locale)
+                            ) { [challengeID = account.turnstileChallengeID] token in
+                                account.turnstileTokenDidChange(token, challengeID: challengeID, locale: locale)
                             }
+                            .id(account.turnstileChallengeID)
                             .frame(minHeight: 72)
                         }
                         Button(UiMessages.string(.nativeAuthSendCode, locale: locale)) {

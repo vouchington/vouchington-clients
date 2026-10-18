@@ -17,6 +17,24 @@ struct ContentView: View {
     var locale
 
     var body: some View {
+        VStack {
+            if let error = account.cookiePersistenceNotice.errorMessage {
+                Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(error), locale: locale))
+                    .foregroundStyle(.red)
+                Button(message(.nativeCommonRetry)) { account.retryCookiePersistence() }
+            }
+            accountContent
+        }
+        .onChange(of: account.session.currentUserId) { _, _ in
+            viewModel.resetForAccountTransition()
+        }
+        .task {
+            await account.restore()
+            await viewModel.refreshStatus()
+        }
+    }
+
+    private var accountContent: some View {
         Group {
             if account.isRestoring {
                 ProgressView()
@@ -44,13 +62,6 @@ struct ContentView: View {
             } else {
                 AndroidSignInView(account: account)
             }
-        }
-        .onChange(of: account.session.currentUserId) { _, _ in
-            viewModel.resetForAccountTransition()
-        }
-        .task {
-            await account.restore()
-            await viewModel.refreshStatus()
         }
     }
 
