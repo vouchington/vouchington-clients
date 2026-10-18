@@ -79,11 +79,12 @@ extension ViewModel {
         let creationError = conversationCreationFailed ? conversationCreationErrorMessage : nil
         let restoreGenerationKind = pendingError == nil && generationError != nil
         let transcriptError = pendingError ?? generationError ?? creationError ?? transcriptLoadErrorMessage
-        let selectedError = transcriptError ?? modelErrorMessage
+        let providerError = selectedProvider == .aiCore ? modelErrorMessage : nil
+        let selectedError = transcriptError ?? providerError
         errorMessage = selectedError
         if restoreGenerationKind {
             chatErrorKind = .generation
-        } else if transcriptError == nil, modelErrorMessage != nil {
+        } else if transcriptError == nil, providerError != nil {
             chatErrorKind = .model
         }
     }

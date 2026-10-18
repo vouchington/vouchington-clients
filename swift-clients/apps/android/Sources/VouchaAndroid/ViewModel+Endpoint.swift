@@ -29,7 +29,7 @@ extension ViewModel {
                     throw AndroidAICoreError.endpointSaveFailed
                 }
             }
-            if provider == .aiCore, selectedProvider == .aiCore, errorMessage == nil {
+            if selectedProvider == provider, errorMessage == nil || chatErrorKind == .model {
                 restoreSelectedConversationError()
             }
         } catch {

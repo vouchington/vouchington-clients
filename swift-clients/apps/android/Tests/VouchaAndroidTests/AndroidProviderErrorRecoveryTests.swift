@@ -9,6 +9,42 @@ import XCTest
 
 @MainActor
 final class AndroidProviderErrorRecoveryTests: XCTestCase {
+    func testEndpointSelectionHidesOnlyAICoreErrorUntilProviderReturns() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        try AndroidTranscriptTestFactory.enqueueExistingConversation(on: fixture.recorder)
+        let viewModel = AndroidTranscriptTestFactory.makeViewModel(runtime: UnavailableAICoreRuntime())
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
+        await viewModel.refreshStatus()
+        let retainedError = try XCTUnwrap(viewModel.modelErrorMessage)
+        XCTAssertEqual(viewModel.chatErrorMessageKey, .nativeSwiftAndroidModelUnavailable)
+        viewModel.endpoint = "https://models.example.test"
+        viewModel.endpointModel = "local-model"
+        viewModel.draft = "Ready for the endpoint"
+        try await viewModel.saveEndpointSettings()
+
+        await viewModel.selectProvider(.endpoint)
+
+        XCTAssertTrue(viewModel.canSendTranscriptMessage)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.chatErrorMessageKey)
+        XCTAssertEqual(viewModel.modelErrorMessage, retainedError)
+        fixture.recorder.enqueue(
+            path: "/api/v1/my/conversations/\(AndroidTranscriptTestFactory.newConversationID)/messages",
+            data: AndroidTranscriptTestFactory.emptyMessagePageResponse()
+        )
+        await viewModel.loadConversationMessages(reset: true)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.chatErrorMessageKey)
+
+        await viewModel.selectProvider(.aiCore)
+        XCTAssertEqual(viewModel.errorMessage, retainedError)
+        XCTAssertEqual(viewModel.chatErrorMessageKey, .nativeSwiftAndroidModelUnavailable)
+        viewModel.errorMessage = "Newer settings failure"
+        await viewModel.selectProvider(.endpoint)
+        XCTAssertEqual(viewModel.errorMessage, "Newer settings failure")
+    }
+
     func testAICoreUnavailableErrorReturnsAfterSuccessfulEndpointSendAndProviderSwitch() async throws {
         let fixture = try AndroidTranscriptTestFactory.makeClient()
         defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
