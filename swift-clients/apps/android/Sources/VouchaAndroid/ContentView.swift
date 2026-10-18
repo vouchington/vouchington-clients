@@ -127,7 +127,7 @@ struct AndroidChatView: View {
                     Text(chatMessage.content)
                 }
             }
-            if viewModel.errorMessage != nil {
+            if viewModel.errorMessage != nil || viewModel.transcriptLoadFailed {
                 Text(message(
                     viewModel.transcriptLoadFailed
                         ? .nativeSwiftEmptyStateUnableToLoad
@@ -152,14 +152,19 @@ struct AndroidChatView: View {
                 }
                 .disabled(viewModel.isGenerating || viewModel.isLoadingMessages)
             }
+            if viewModel.failedGenerationForSelectedConversation != nil {
+                Button(message(.nativeCommonRetry)) {
+                    Task { await viewModel.retryFailedGeneration() }
+                }
+                .disabled(viewModel.isGenerating || viewModel.isLoadingMessages || viewModel.isLoadingConversations)
+            }
             HStack {
                 TextField(message(.nativeSwiftAndroidMessage), text: $viewModel.draft)
                     .textFieldStyle(.roundedBorder)
                 Button(message(.nativeSwiftAndroidSend)) {
                     Task { await viewModel.sendOnDevice() }
                 }
-                .disabled(!viewModel.isSelectedProviderAvailable || viewModel.isGenerating || viewModel
-                    .isLoadingMessages || viewModel.pendingTurnForSelectedConversation != nil)
+                .disabled(!viewModel.canSendTranscriptMessage)
             }
             .padding()
         }

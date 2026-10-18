@@ -10,13 +10,40 @@ enum AndroidChatProvider: String {
     case endpoint
 }
 
+enum AndroidTranscriptLoadFailure: Equatable {
+    case conversations(reset: Bool, after: String?)
+    case messages(conversationID: String, reset: Bool, after: String?)
+}
+
+struct AndroidFailedGeneration: Equatable {
+    let text: String
+    let message: String
+}
+
+struct AndroidTranscriptLoadFailureRecord: Equatable {
+    let operation: AndroidTranscriptLoadFailure
+    let message: String
+}
+
+struct AndroidFailedTurnAttempt {
+    let submitted: String
+    let conversationID: String
+    let conversationRevision: UUID
+    let previousMessages: [AndroidChatMessage]
+    let preservingDraft: Bool
+}
+
 @Observable @MainActor
 final class ViewModel {
     var modelState: AndroidModelState = .checking
     var messages: [AndroidChatMessage] = []
     var draft = ""
     var errorMessage: String?
-    var transcriptLoadFailed = false
+    var failedConversationListLoad: AndroidTranscriptLoadFailureRecord?
+    var failedConversationHistoryLoad: AndroidTranscriptLoadFailureRecord?
+    var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
+    var loadedConversationHistoryID: String?
+    var failedGenerations: [String: AndroidFailedGeneration] = [:]
     var isGenerating = false
     var selectedProvider: AndroidChatProvider = .aiCore
     var conversations: [ChatConversation] = []
@@ -27,11 +54,6 @@ final class ViewModel {
     var isCreatingConversation = false
     var hasMoreConversations = false
     var hasOlderMessages = false
-    var pendingTurnForSelectedConversation: AndroidPendingChatTurn? {
-        guard let selectedConversationID else { return nil }
-        return pendingTurns[selectedConversationID]
-    }
-
     var endpoint = ""
     var endpointModel = ""
     var endpointAPIKey = "" {
@@ -84,7 +106,6 @@ final class ViewModel {
 
     func refreshStatus() async {
         errorMessage = nil
-        transcriptLoadFailed = false
         modelState = .checking
         do {
             modelState = try await runtime.status()
@@ -96,7 +117,6 @@ final class ViewModel {
 
     func downloadModel() async {
         errorMessage = nil
-        transcriptLoadFailed = false
         modelState = .downloading
         do {
             modelState = try await runtime.download()
@@ -130,7 +150,11 @@ final class ViewModel {
         messages = []
         draft = ""
         errorMessage = nil
-        transcriptLoadFailed = false
+        failedConversationListLoad = nil
+        failedConversationHistoryLoad = nil
+        latestTranscriptLoadFailure = nil
+        loadedConversationHistoryID = nil
+        failedGenerations = [:]
         isGenerating = false
     }
 

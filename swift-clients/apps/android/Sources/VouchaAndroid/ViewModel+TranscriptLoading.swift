@@ -18,27 +18,16 @@ extension ViewModel {
         }
     }
 
-    func loadMoreConversations() async {
-        await loadConversationPage(reset: false)
-    }
-
-    func retryConversationLoad() async {
-        if selectedConversationID != nil {
-            await loadConversationMessages(reset: true)
-            return
-        }
-        await loadConversationPage(reset: true)
-        if selectedConversationID == nil, let first = conversations.first {
-            await selectConversation(first.id)
-        }
-    }
-
-    private func loadConversationPage(reset: Bool) async {
+    func loadConversationPage(
+        reset: Bool,
+        retryCursor: String? = nil,
+        useRetryCursor: Bool = false
+    ) async {
         guard let client = apiClient, currentAccountUserID != nil,
               !isLoadingConversations, reset || hasMoreConversations
         else { return }
         let accountRevision = accountGeneration
-        let cursor = reset ? nil : conversationListCursor
+        let cursor = useRetryCursor ? retryCursor : (reset ? nil : conversationListCursor)
         isLoadingConversations = true
         defer {
             if accountGeneration == accountRevision { isLoadingConversations = false }
@@ -57,12 +46,16 @@ extension ViewModel {
             }
             conversationListCursor = response.pageInfo.endCursor
             hasMoreConversations = response.pageInfo.hasNextPage && response.pageInfo.endCursor != nil
-            errorMessage = nil
-            transcriptLoadFailed = false
+            clearLoadFailureIfMatching(.conversations(reset: reset, after: cursor))
         } catch {
             guard accountGeneration == accountRevision else { return }
             errorMessage = error.localizedDescription
-            transcriptLoadFailed = true
+            let operation = AndroidTranscriptLoadFailure.conversations(reset: reset, after: cursor)
+            failedConversationListLoad = AndroidTranscriptLoadFailureRecord(
+                operation: operation,
+                message: error.localizedDescription
+            )
+            latestTranscriptLoadFailure = operation
         }
     }
 
@@ -73,9 +66,19 @@ extension ViewModel {
         messages = []
         isLoadingMessages = false
         isLoadingOlderMessages = false
+        loadedConversationHistoryID = nil
         messagePageCursor = nil
         hasOlderMessages = false
-        errorMessage = nil
+        if let failure = failedConversationHistoryLoad,
+           case let .messages(failedID, _, _) = failure.operation,
+           failedID != id {
+            failedConversationHistoryLoad = nil
+            if latestTranscriptLoadFailure == failure.operation {
+                latestTranscriptLoadFailure = failedConversationListLoad?.operation
+            }
+        }
+        errorMessage = failedGenerations[id]?.message ??
+            (transcriptLoadFailure == nil ? nil : transcriptLoadErrorMessage)
         await loadConversationMessages(reset: true)
     }
 
@@ -101,17 +104,18 @@ extension ViewModel {
         }
     }
 
-    func loadOlderMessages() async {
-        await loadConversationMessages(reset: false)
-    }
-
-    private func loadConversationMessages(reset: Bool) async {
+    func loadConversationMessages(
+        reset: Bool,
+        retryCursor: String? = nil,
+        useRetryCursor: Bool = false
+    ) async {
         guard let client = apiClient, let conversationID = selectedConversationID,
               !isLoadingMessages, reset || hasOlderMessages
         else { return }
         let accountRevision = accountGeneration
         let conversationRevision = conversationGeneration
-        let cursor = reset ? nil : messagePageCursor
+        let cursor = useRetryCursor ? retryCursor : (reset ? nil : messagePageCursor)
+        if reset { loadedConversationHistoryID = nil }
         isLoadingMessages = true
         if !reset { isLoadingOlderMessages = true }
         defer {
@@ -129,26 +133,22 @@ extension ViewModel {
                   conversationGeneration == conversationRevision,
                   selectedConversationID == conversationID
             else { return }
-            let loaded = uniqueMessages(response.results.compactMap { makeChatMessage(from: $0) })
-            if reset {
-                messages = loaded
-                appendPendingTurnIfNeeded(for: conversationID)
-            } else {
-                var existing = Set(messages.map(\.id))
-                let older = loaded.filter { existing.insert($0.id).inserted }
-                messages = older + messages
-            }
-            sortMessagesChronologically()
-            messagePageCursor = response.pageInfo.endCursor
-            hasOlderMessages = response.pageInfo.hasNextPage && response.pageInfo.endCursor != nil
-            errorMessage = nil
-            transcriptLoadFailed = false
+            applyConversationMessages(response, conversationID: conversationID, reset: reset, cursor: cursor)
         } catch {
             guard accountGeneration == accountRevision,
                   conversationGeneration == conversationRevision
             else { return }
             errorMessage = error.localizedDescription
-            transcriptLoadFailed = true
+            let operation = AndroidTranscriptLoadFailure.messages(
+                conversationID: conversationID,
+                reset: reset,
+                after: cursor
+            )
+            failedConversationHistoryLoad = AndroidTranscriptLoadFailureRecord(
+                operation: operation,
+                message: error.localizedDescription
+            )
+            latestTranscriptLoadFailure = operation
         }
     }
 
@@ -167,21 +167,26 @@ extension ViewModel {
         return messages.filter { seen.insert($0.id).inserted }
     }
 
-    func sortMessagesChronologically() {
-        messages.sort {
-            if $0.createdAt == $1.createdAt { return $0.id < $1.id }
-            return $0.createdAt < $1.createdAt
-        }
-    }
-
-    func appendPendingTurnIfNeeded(for conversationID: String) {
-        guard let pending = pendingTurns[conversationID] else { return }
-        if !messages.contains(where: { $0.id == pending.userMessageID }) {
-            messages.append(.init(id: pending.userMessageID, role: "user", content: pending.userText))
-        }
-        if !messages.contains(where: { $0.id == pending.assistantMessageID }) {
-            messages.append(.init(id: pending.assistantMessageID, role: "assistant", content: pending.assistantText))
+    private func applyConversationMessages(
+        _ response: ChatMessagesResponse,
+        conversationID: String,
+        reset: Bool,
+        cursor: String?
+    ) {
+        let loaded = uniqueMessages(response.results.compactMap { makeChatMessage(from: $0) })
+        if reset {
+            messages = loaded
+            appendPendingTurnIfNeeded(for: conversationID)
+        } else {
+            var existing = Set(messages.map(\.id))
+            let older = loaded.filter { existing.insert($0.id).inserted }
+            messages = older + messages
         }
         sortMessagesChronologically()
+        messagePageCursor = response.pageInfo.endCursor
+        hasOlderMessages = response.pageInfo.hasNextPage && response.pageInfo.endCursor != nil
+        if reset { loadedConversationHistoryID = conversationID }
+        clearLoadFailureIfMatching(.messages(conversationID: conversationID, reset: reset, after: cursor))
     }
+
 }

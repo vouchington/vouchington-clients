@@ -89,11 +89,24 @@ final class AndroidConversationListPaginationTests: XCTestCase {
         fixture.recorder.enqueue(path: historyPath, statusCode: 503, data: Data(#"{"message":"offline"}"#.utf8))
         try fixture.recorder.enqueue(path: historyPath, data: AndroidTranscriptFixtures.data("native.chat.page-1"))
 
-        let viewModel = AndroidTranscriptTestFactory.makeViewModel(runtime: FakeAICoreRuntime(state: .available))
+        let runtime = FakeAICoreRuntime(state: .available, response: "Must not generate")
+        let viewModel = AndroidTranscriptTestFactory.makeViewModel(runtime: runtime)
+        viewModel.modelState = .available
         await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
         XCTAssertEqual(viewModel.selectedConversationID, conversationID)
         XCTAssertTrue(viewModel.messages.isEmpty)
         XCTAssertNotNil(viewModel.errorMessage)
+
+        viewModel.draft = "Question without history"
+        await viewModel.sendOnDevice()
+
+        XCTAssertEqual(viewModel.draft, "Question without history")
+        XCTAssertNil(viewModel.pendingTurns[conversationID])
+        let generation = await runtime.generationSnapshot()
+        XCTAssertEqual(generation.callCount, 0)
+        XCTAssertTrue(fixture.recorder.requestSnapshot().allSatisfy {
+            $0.url?.path != "/api/v1/conversations/\(conversationID)/client-generated-chat"
+        })
 
         await viewModel.retryConversationLoad()
 

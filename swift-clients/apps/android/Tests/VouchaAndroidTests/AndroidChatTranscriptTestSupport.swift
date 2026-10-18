@@ -19,7 +19,7 @@ class AndroidTranscriptURLProtocol: URLProtocol {
     private static let installLock = NSLock()
     private nonisolated(unsafe) static var installedRecorders: [String: AndroidTranscriptRecorder] = [:]
 
-    private let stateLock = NSLock()
+    private let stateLock = NSRecursiveLock()
     private var stopped = false
     private var requestOccurrence = 0
     private var recorder: AndroidTranscriptRecorder?
@@ -29,7 +29,7 @@ class AndroidTranscriptURLProtocol: URLProtocol {
     }
 
     static func uninstall(host: String) {
-        installLock.withLock { installedRecorders.removeValue(forKey: host) }
+        _ = installLock.withLock { installedRecorders.removeValue(forKey: host) }
     }
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -58,8 +58,9 @@ class AndroidTranscriptURLProtocol: URLProtocol {
     }
 
     func deliver(statusCode: Int, data: Data) {
-        guard let client, let url = request.url,
-              stateLock.withLock({ !stopped })
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped, let client, let url = request.url
         else { return }
         guard let response = HTTPURLResponse(
             url: url,
@@ -68,8 +69,10 @@ class AndroidTranscriptURLProtocol: URLProtocol {
             headerFields: ["Content-Type": "application/json"]
         ) else { return }
         client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        guard !stopped else { return }
         client.urlProtocol(self, didLoad: data)
+        guard !stopped else { return }
+        stopped = true
         client.urlProtocolDidFinishLoading(self)
-        stateLock.withLock { stopped = true }
     }
 }

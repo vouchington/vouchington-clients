@@ -12,14 +12,14 @@ extension ViewModel {
         let operationID = UUID()
         activeSendOperationID = operationID
         isGenerating = true
-        transcriptLoadFailed = false
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
 
         if selectedConversationID == nil {
             await createConversation()
             guard accountGeneration == accountRevision,
                   currentAccountUserID == userID,
-                  selectedConversationID != nil
+                  let conversationID = selectedConversationID,
+                  loadedConversationHistoryID == conversationID
             else { return }
         }
         guard let conversationID = selectedConversationID else { return }
@@ -33,23 +33,23 @@ extension ViewModel {
     }
 
     private func canSend(_ submitted: String) -> Bool {
-        !submitted.isEmpty && isSelectedProviderAvailable && !isGenerating && !isLoadingMessages &&
-            !isLoadingConversations && pendingTurnForSelectedConversation == nil
+        !submitted.isEmpty && canSendTranscriptMessage
     }
 
-    private func generateAndPersistTurn(
+    func generateAndPersistTurn(
         _ submitted: String,
         conversationID: String,
         client: APIClient,
         userID: String,
-        accountRevision: UUID
+        accountRevision: UUID,
+        preservingDraft: Bool = false
     ) async {
         let conversationRevision = conversationGeneration
         let previousMessages = messages
         let ids = AndroidPendingChatTurn.nextMessageIDs()
         let selectedProvider = selectedProvider
         let model = modelIdentity(for: selectedProvider)
-        draft = ""
+        if !preservingDraft { draft = "" }
         errorMessage = nil
         messages.append(.init(id: ids.user, role: "user", content: submitted))
 
@@ -66,6 +66,7 @@ extension ViewModel {
                 modelProvider: model.provider,
                 modelName: model.name
             )
+            failedGenerations.removeValue(forKey: conversationID)
             pendingTurns[conversationID] = pending
             if selectedConversationID == conversationID, conversationGeneration == conversationRevision {
                 messages.append(.init(id: ids.assistant, role: "assistant", content: response))
@@ -74,35 +75,16 @@ extension ViewModel {
         } catch {
             guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
             recoverFailedTurn(
-                submitted,
-                conversationID: conversationID,
-                conversationRevision: conversationRevision,
-                previousMessages: previousMessages,
+                AndroidFailedTurnAttempt(
+                    submitted: submitted,
+                    conversationID: conversationID,
+                    conversationRevision: conversationRevision,
+                    previousMessages: previousMessages,
+                    preservingDraft: preservingDraft
+                ),
                 error: error
             )
         }
-    }
-
-    private func recoverFailedTurn(
-        _ submitted: String,
-        conversationID: String,
-        conversationRevision: UUID,
-        previousMessages: [AndroidChatMessage],
-        error: Error
-    ) {
-        if pendingTurns[conversationID] != nil {
-            if selectedConversationID == conversationID {
-                appendPendingTurnIfNeeded(for: conversationID)
-                errorMessage = error.localizedDescription
-            }
-            return
-        }
-        guard selectedConversationID == conversationID,
-              conversationGeneration == conversationRevision
-        else { return }
-        messages = previousMessages
-        draft = submitted
-        errorMessage = error.localizedDescription
     }
 
     func retryPendingTurn() async {
@@ -117,7 +99,6 @@ extension ViewModel {
         activeSendOperationID = operationID
         isGenerating = true
         errorMessage = nil
-        transcriptLoadFailed = false
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
         do {
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)
@@ -183,7 +164,7 @@ extension ViewModel {
         }
     }
 
-    private func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {
+    func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {
         guard accountGeneration == accountRevision, activeSendOperationID == operationID else { return }
         activeSendOperationID = nil
         isGenerating = false
