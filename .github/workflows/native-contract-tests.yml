@@ -663,8 +663,8 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$(git -C candidate-clients rev-parse HEAD)" == "$CANDIDATE_REVISION" ]]
-          app_apk=candidate-clients/swift-clients/apps/android/Android/app/build/outputs/apk/debug/app-debug.apk
-          test_apk=candidate-clients/swift-clients/apps/android/Android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          app_apk=candidate-clients/swift-clients/apps/android/.build/Android/app/outputs/apk/debug/app-debug.apk
+          test_apk=candidate-clients/swift-clients/apps/android/.build/Android/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           [[ -f "$app_apk" && -f "$test_apk" ]]
           proof_root="$RUNNER_TEMP/android-cookie-apks"
           mkdir -p "$proof_root"
