@@ -5,6 +5,8 @@ import VouchaModels
 enum NativeChatMCPFact: Equatable {
     case emailPreferences(EmailPreferences)
     case generalPreferences(GeneralPreferences)
+    case profileBio(NativeChatProfileBioFact)
+    case profileLinks([NativeChatProfileLinkFact])
 
     static func makeGeneralPreferences(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),

@@ -20,6 +20,10 @@ struct NativeChatToolResultStatusView: View {
                         NativeChatEmailPreferencesFactView(preferences: preferences, locale: locale)
                     case let .generalPreferences(preferences):
                         NativeChatGeneralPreferencesFactView(preferences: preferences, locale: locale)
+                    case let .profileBio(bio):
+                        NativeChatProfileBioFactView(bio: bio, locale: locale)
+                    case let .profileLinks(links):
+                        NativeChatProfileLinksFactView(links: links, locale: locale)
                     case nil:
                         EmptyView()
                     }
