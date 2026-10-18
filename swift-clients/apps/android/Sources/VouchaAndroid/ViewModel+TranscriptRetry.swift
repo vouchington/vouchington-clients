@@ -70,10 +70,13 @@ extension ViewModel {
         let generationError = generationErrorForSelectedConversation
         let creationError = conversationCreationFailed ? conversationCreationErrorMessage : nil
         let restoreGenerationKind = pendingError == nil && generationError != nil
-        let selectedError = pendingError ?? generationError ?? creationError ?? transcriptLoadErrorMessage
+        let transcriptError = pendingError ?? generationError ?? creationError ?? transcriptLoadErrorMessage
+        let selectedError = transcriptError ?? modelErrorMessage
         errorMessage = selectedError
         if restoreGenerationKind {
             chatErrorKind = .generation
+        } else if transcriptError == nil, modelErrorMessage != nil {
+            chatErrorKind = .model
         }
     }
 
@@ -93,6 +96,10 @@ extension ViewModel {
               conversationGeneration == attempt.conversationRevision
         else {
             retainFailedGeneration(attempt.submitted, for: conversationID, error: error)
+            if selectedConversationID == conversationID {
+                errorMessage = error.localizedDescription
+                chatErrorKind = .generation
+            }
             return
         }
         messages = attempt.previousMessages
@@ -115,7 +122,9 @@ extension ViewModel {
     func clearLoadFailureIfMatching(_ operation: AndroidTranscriptLoadFailure) {
         switch operation {
         case .conversations:
-            if failedConversationListLoad?.operation == operation { failedConversationListLoad = nil }
+            if failedConversationListLoad?.operation == operation {
+                failedConversationListLoad = nil
+            }
         case let .messages(conversationID, _, _):
             if failedConversationHistoryLoad?.operation == operation,
                conversationID == selectedConversationID {

@@ -24,13 +24,15 @@ extension ViewModel {
         useRetryCursor: Bool = false
     ) async {
         guard let client = apiClient, currentAccountUserID != nil,
-              !isLoadingConversations, reset || hasMoreConversations
+              !isLoadingConversations, !isCreatingConversation, reset || hasMoreConversations
         else { return }
         let accountRevision = accountGeneration
         let cursor = useRetryCursor ? retryCursor : (reset ? nil : conversationListCursor)
         isLoadingConversations = true
         defer {
-            if accountGeneration == accountRevision { isLoadingConversations = false }
+            if accountGeneration == accountRevision {
+                isLoadingConversations = false
+            }
         }
 
         do {
@@ -89,14 +91,17 @@ extension ViewModel {
         useRetryCursor: Bool = false
     ) async {
         guard let client = apiClient, let conversationID = selectedConversationID,
-              !isLoadingMessages, reset || hasOlderMessages
+              !isLoadingMessages, reset || (!isGenerating && hasOlderMessages)
         else { return }
         let accountRevision = accountGeneration
         let conversationRevision = conversationGeneration
         let cursor = useRetryCursor ? retryCursor : (reset ? nil : messagePageCursor)
-        if reset { loadedConversationHistoryID = nil }
+        let replaceableMessageIDs = replaceableTranscriptMessageIDs
+        if reset {
+            loadedConversationHistoryID = nil
+        }
         isLoadingMessages = true
-        if !reset { isLoadingOlderMessages = true }
+        isLoadingOlderMessages = !reset
         defer {
             if accountGeneration == accountRevision, conversationGeneration == conversationRevision {
                 isLoadingMessages = false
@@ -112,7 +117,13 @@ extension ViewModel {
                   conversationGeneration == conversationRevision,
                   selectedConversationID == conversationID
             else { return }
-            applyConversationMessages(response, conversationID: conversationID, reset: reset, cursor: cursor)
+            applyConversationMessages(
+                response,
+                conversationID: conversationID,
+                reset: reset,
+                cursor: cursor,
+                replaceableMessageIDs: replaceableMessageIDs
+            )
         } catch {
             guard accountGeneration == accountRevision,
                   conversationGeneration == conversationRevision
@@ -131,6 +142,12 @@ extension ViewModel {
         }
     }
 
+    private var replaceableTranscriptMessageIDs: Set<String> {
+        let pending = pendingTurnForSelectedConversation
+        let protectedIDs = [pending?.userMessageID, pending?.assistantMessageID].compactMap { $0 }
+        return Set(messages.map(\.id)).subtracting(protectedIDs)
+    }
+
     private func makeChatMessage(from message: ChatMessage) -> AndroidChatMessage? {
         AndroidChatMessage(transcriptMessage: message)
     }
@@ -144,7 +161,8 @@ extension ViewModel {
         _ response: ChatMessagesResponse,
         conversationID: String,
         reset: Bool,
-        cursor: String?
+        cursor: String?,
+        replaceableMessageIDs: Set<String>
     ) {
         let acknowledgedMessageIDs = acknowledgePendingTurnIfPresent(
             in: response.results,
@@ -153,7 +171,8 @@ extension ViewModel {
         )
         let loaded = uniqueMessages(response.results.compactMap { makeChatMessage(from: $0) })
         if reset {
-            messages = loaded
+            let addedDuringRequest = messages.filter { !replaceableMessageIDs.contains($0.id) }
+            messages = uniqueMessages(loaded + addedDuringRequest)
             appendPendingTurnIfNeeded(for: conversationID)
         } else {
             messages.removeAll { acknowledgedMessageIDs.contains($0.id) }
@@ -164,7 +183,9 @@ extension ViewModel {
         sortMessagesChronologically()
         messagePageCursor = response.pageInfo.endCursor
         hasOlderMessages = response.pageInfo.hasNextPage && response.pageInfo.endCursor != nil
-        if reset { loadedConversationHistoryID = conversationID }
+        if reset {
+            loadedConversationHistoryID = conversationID
+        }
         clearLoadFailureIfMatching(.messages(conversationID: conversationID, reset: reset, after: cursor))
     }
 

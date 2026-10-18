@@ -42,6 +42,7 @@ final class ViewModel {
         didSet { chatErrorKind = .other }
     }
 
+    var modelErrorMessage: String?
     var chatErrorKind = AndroidChatErrorKind.other
     var conversationCreationFailed = false
     var conversationCreationErrorMessage: String?
@@ -114,18 +115,21 @@ final class ViewModel {
     }
 
     func refreshStatus() async {
+        modelErrorMessage = nil
         errorMessage = nil
         modelState = .checking
         do {
             modelState = try await runtime.status()
         } catch {
             modelState = .unavailable
+            modelErrorMessage = error.localizedDescription
             errorMessage = error.localizedDescription
             chatErrorKind = .model
         }
     }
 
     func downloadModel() async {
+        modelErrorMessage = nil
         errorMessage = nil
         modelState = .downloading
         do {
@@ -134,6 +138,7 @@ final class ViewModel {
             modelState = .downloadable
         } catch {
             modelState = .downloadable
+            modelErrorMessage = error.localizedDescription
             errorMessage = error.localizedDescription
             chatErrorKind = .model
         }

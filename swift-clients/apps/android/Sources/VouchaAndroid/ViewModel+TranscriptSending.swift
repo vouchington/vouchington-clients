@@ -5,7 +5,8 @@ import VouchaModels
 
 extension ViewModel {
     func sendOnDevice() async {
-        let submitted = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let draftAtSubmission = draft
+        let submitted = draftAtSubmission.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSend(submitted), let client = apiClient, let userID = currentAccountUserID else { return }
 
         let accountRevision = accountGeneration
@@ -15,8 +16,7 @@ extension ViewModel {
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
 
         if selectedConversationID == nil {
-            guard await createConversation() else { return }
-            guard accountGeneration == accountRevision,
+            guard await createConversation(), accountGeneration == accountRevision,
                   currentAccountUserID == userID,
                   let conversationID = selectedConversationID,
                   loadedConversationHistoryID == conversationID
@@ -28,7 +28,8 @@ extension ViewModel {
             conversationID: conversationID,
             client: client,
             userID: userID,
-            accountRevision: accountRevision
+            accountRevision: accountRevision,
+            draftAtSubmission: draftAtSubmission
         )
     }
 
@@ -42,14 +43,15 @@ extension ViewModel {
         client: APIClient,
         userID: String,
         accountRevision: UUID,
-        preservingDraft: Bool = false
+        preservingDraft: Bool = false,
+        draftAtSubmission: String? = nil
     ) async {
         let conversationRevision = conversationGeneration
         let previousMessages = messages
         let ids = AndroidPendingChatTurn.nextMessageIDs()
         let selectedProvider = selectedProvider
         let model = modelIdentity(for: selectedProvider)
-        if !preservingDraft { draft = "" }
+        clearSubmittedDraftIfUnchanged(draftAtSubmission, preservingDraft: preservingDraft)
         generationErrors.removeValue(forKey: conversationID)
         conversationCreationFailed = false
         conversationCreationErrorMessage = nil
@@ -81,7 +83,9 @@ extension ViewModel {
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)
         } catch {
             guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
-            if let completedPending, pendingTurns[conversationID] != completedPending { return }
+            if let completedPending, pendingTurns[conversationID] != completedPending {
+                return
+            }
             recoverFailedTurn(
                 AndroidFailedTurnAttempt(
                     submitted: submitted,
@@ -105,7 +109,6 @@ extension ViewModel {
               !isCreatingConversation
         else { return }
         let accountRevision = accountGeneration
-        let conversationRevision = conversationGeneration
         let operationID = UUID()
         activeSendOperationID = operationID
         isGenerating = true
@@ -123,8 +126,7 @@ extension ViewModel {
             else { return }
             let message = error.localizedDescription
             pendingTurnErrors[pending.conversationID] = message
-            if selectedConversationID == pending.conversationID,
-               conversationGeneration == conversationRevision {
+            if selectedConversationID == pending.conversationID {
                 errorMessage = message
             }
         }
@@ -176,6 +178,11 @@ extension ViewModel {
         case .endpoint:
             ("openai_compatible", endpointProfile?.selectedModel)
         }
+    }
+
+    private func clearSubmittedDraftIfUnchanged(_ submittedDraft: String?, preservingDraft: Bool) {
+        guard !preservingDraft, let submittedDraft, draft == submittedDraft else { return }
+        draft = ""
     }
 
     func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {

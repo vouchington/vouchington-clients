@@ -13,7 +13,8 @@ struct ContentView: View {
     var viewModel = ViewModel()
     @State
     var account = AndroidAccount()
-    @State var accountReplacement = AndroidAccountReplacementCoordinator()
+    @State
+    var accountReplacement = AndroidAccountReplacementCoordinator()
     @Environment(\.locale)
     var locale
 
@@ -118,7 +119,7 @@ struct AndroidChatView: View {
                 Button(message(.nativeSwiftDirectMessagesLoadOlderMessages)) {
                     Task { await viewModel.loadOlderMessages() }
                 }
-                .disabled(viewModel.isLoadingOlderMessages)
+                .disabled(viewModel.isLoadingOlderMessages || viewModel.isGenerating)
             }
             List(viewModel.messages) { chatMessage in
                 VStack(alignment: .leading, spacing: 4) {
