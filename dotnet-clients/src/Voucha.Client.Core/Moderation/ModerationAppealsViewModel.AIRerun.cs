@@ -91,6 +91,25 @@ public sealed partial class ModerationAppealsViewModel
     OnPropertyChanged(nameof(Appeals));
   }
 
+  private void OnAdmissionChanged(AppealAIRerunAdmissionStore.OwnerKey owner, string appealId)
+  {
+    if (Volatile.Read(ref admissionObserverDisposed) != 0 || admissionOwner != owner) return;
+    if (admissionSynchronizationContext is not null &&
+        SynchronizationContext.Current != admissionSynchronizationContext)
+    {
+      admissionSynchronizationContext.Post(_ => PublishAdmissionChanged(owner, appealId), null);
+      return;
+    }
+    PublishAdmissionChanged(owner, appealId);
+  }
+
+  private void PublishAdmissionChanged(AppealAIRerunAdmissionStore.OwnerKey owner, string appealId)
+  {
+    if (Volatile.Read(ref admissionObserverDisposed) != 0 || admissionOwner != owner ||
+        !CanAccess || !Appeals.Any(item => item.Id == appealId)) return;
+    OnPropertyChanged(nameof(Appeals));
+  }
+
   private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args)
   {
     if (viewer.HasSameIdentityAccess(args.Viewer)) return;

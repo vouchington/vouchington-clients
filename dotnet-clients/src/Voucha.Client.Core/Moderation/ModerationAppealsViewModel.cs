@@ -16,6 +16,7 @@ public sealed partial class ModerationAppealsViewModel :
   private readonly INavigationViewerProvider? viewerProvider;
   private readonly AppealAIRerunAdmissionStore admissionStore;
   private readonly AppealAIRerunAdmissionStore.OwnerKey? admissionOwner;
+  private readonly SynchronizationContext? admissionSynchronizationContext = SynchronizationContext.Current;
   private readonly Func<CancellationToken, Task> rerunPollDelay;
   private readonly int rerunPollAttempts;
   private readonly IDisposable? localeSubscription;
@@ -33,6 +34,7 @@ public sealed partial class ModerationAppealsViewModel :
   private int accountRevision;
   private int activeMutationOwnerRevision;
   private Guid? activeMutationAdmissionToken;
+  private int admissionObserverDisposed;
 
   public bool IsSignedIn { get; }
   public bool IsAdministrator { get; }
@@ -158,6 +160,8 @@ public sealed partial class ModerationAppealsViewModel :
 
   public void Dispose()
   {
+    if (Interlocked.Exchange(ref admissionObserverDisposed, 1) != 0) return;
+    admissionStore.Changed -= OnAdmissionChanged;
     localeSubscription?.Dispose();
     if (viewerProvider is not null) viewerProvider.ViewerChanged -= OnViewerChanged;
   }

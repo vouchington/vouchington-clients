@@ -18,6 +18,7 @@ public sealed class AppealAIRerunAdmissionStore
   }
 
   private readonly Dictionary<(OwnerKey Owner, string Appeal), Admission> pending = [];
+  internal event Action<OwnerKey, string>? Changed;
 
   internal static OwnerKey? ForOwner(string? identityId, Uri? apiBaseUrl)
   {
@@ -54,30 +55,38 @@ public sealed class AppealAIRerunAdmissionStore
       if (pending.ContainsKey((owner.Value, appeal.Id))) return false;
       admission = new Admission(Guid.NewGuid(), appeal.AiDraftedAt, appeal.LatestLifecycleChangeId);
       pending[(owner.Value, appeal.Id)] = admission;
-      return true;
     }
+    Changed?.Invoke(owner.Value, appeal.Id);
+    return true;
   }
 
   internal void Remove(OwnerKey? owner, string appealId, Guid token)
   {
     if (owner is null) return;
+    bool removed;
     lock (pending)
     {
-      if (pending.TryGetValue((owner.Value, appealId), out var current) && current.Token == token)
-        pending.Remove((owner.Value, appealId));
+      removed = pending.TryGetValue((owner.Value, appealId), out var current) &&
+          current.Token == token && pending.Remove((owner.Value, appealId));
     }
+    if (removed) Changed?.Invoke(owner.Value, appealId);
   }
 
   internal void Reconcile(OwnerKey? owner, IEnumerable<ModerationAppeal> appeals)
   {
     if (owner is null) return;
+    List<string> removed = [];
     lock (pending)
     {
       foreach (var appeal in appeals)
       {
         if (pending.TryGetValue((owner.Value, appeal.Id), out var current) && current.IsReconciled(appeal))
+        {
           pending.Remove((owner.Value, appeal.Id));
+          removed.Add(appeal.Id);
+        }
       }
     }
+    foreach (var appealId in removed) Changed?.Invoke(owner.Value, appealId);
   }
 }

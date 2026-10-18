@@ -69,6 +69,7 @@ public sealed partial class ModerationAppealsViewModel
     return AwaitMutationAsync(appeal.Id, async () =>
     {
       if (!CanAccess || ownerRevision != Volatile.Read(ref accountRevision)) return;
+      cancellationToken.ThrowIfCancellationRequested();
       if (!TrySetPendingAIRerun(appeal, out var admission)) return;
       ModerationAppealQueueResponse queued;
       try

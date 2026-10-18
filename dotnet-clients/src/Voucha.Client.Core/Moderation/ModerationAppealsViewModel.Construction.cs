@@ -45,6 +45,7 @@ public sealed partial class ModerationAppealsViewModel
     admissionOwner = admissionStore is null && apiBaseUrl is null
         ? new AppealAIRerunAdmissionStore.OwnerKey(Guid.NewGuid().ToString(), "", "", 0, "")
         : AppealAIRerunAdmissionStore.ForOwner(viewer.IdentityId, apiBaseUrl);
+    this.admissionStore.Changed += OnAdmissionChanged;
     IsSignedIn = viewer.IsAuthenticated;
     IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
     IsModerator = viewer.Roles.Contains("moderator", StringComparer.Ordinal);
