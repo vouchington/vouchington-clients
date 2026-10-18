@@ -14,7 +14,9 @@ struct AppLaunchContent: View {
 
     var body: some View {
         #if DEBUG
-            if Self.isNotificationSettingsFixtureEnabled {
+            if ProcessInfo.processInfo.arguments.contains(FeedFlowUITestingURLProtocol.launchArgument) {
+                FeedFlowUITestingFixture(viewModelFactory: viewModelFactory)
+            } else if Self.isNotificationSettingsFixtureEnabled {
                 NotificationSettingsUITestingFixture()
             } else if ProcessInfo.processInfo.arguments.contains(Self.fediverseUITestingArgument),
                       let route = NativeRouteCatalog.matchingRoute(for: "/fediverse") {
