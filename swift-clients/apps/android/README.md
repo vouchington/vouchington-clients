@@ -10,12 +10,34 @@ Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the 
 - Chat history is bounded before inference.
 - Generation failures restore the draft. They do not retry through another provider.
 - Email OTP, Turnstile, and MFA sign-in use the shared Voucha API/authentication services. The session cookie store uses SkipKeychain, and the app restores or signs out the shared session.
-- Successful chat responses remain in memory and are not synchronized with server conversation history yet; issue #149 tracks that remaining transcript work.
+- On-device generated responses use the shared conversation transcript path; issue #149 tracks
+  broader transcript parity.
 - Turnstile requires an embedded Android WebView challenge because Cloudflare does not support native mobile SDKs for Turnstile ([Cloudflare mobile implementation](https://developers.cloudflare.com/turnstile/get-started/mobile-implementation/)). The challenge is limited to this provider-controlled flow; account entry and sign-in UI remain native. [The adopted provider-only exception and SwiftUI replacement follow-up](https://github.com/vouchington/vouchington-clients/issues/370) record the concrete blocker, strict boundary and replacement acceptance criteria.
 - Android packaging reads `VOUCHA_API_BASE_URL` and `VOUCHA_TURNSTILE_SITE_KEY` from Gradle project properties or the build environment. The public Turnstile key also accepts `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` as a fallback; Gradle passes both values through manifest metadata, and the Android account passes them into the auth UI. For example, pass `-PVOUCHA_TURNSTILE_SITE_KEY=<public-site-key>` to the Android Gradle build. The API URL defaults to `https://voucha.ai`; an absent site key keeps OTP disabled. The site key is public configuration, not a secret.
 - OpenAI-compatible endpoint settings validate the shared native endpoint policy. Cleartext
   requests also re-validate the resolved peer address in `VouchaCore` before `URLSession`
   connects. API keys use SkipKeychain.
+
+## Pending-turn recovery
+
+The #363 Android path saves a completed on-device turn to an owner-scoped, Keystore-encrypted
+app-private record before its first `client-generated-chat` POST. Explicit Retry sends the same
+serialized request bytes and message IDs after an uncertain response. A normal user sign-out first
+checks that any in-memory completed turns were saved, then retains the encrypted records; only the
+same user at the same configured API base can restore them after sign-in. The storage owner includes
+normalized scheme, host, effective port, and API base path. Restoration never posts automatically.
+A verified server response or complete transcript acknowledgement removes a record only after
+checked deletion.
+
+This path still needs full Android app and physical-device force-stop/disk-failure validation before
+#363 acceptance. Forced session invalidation revokes the active account and retries encrypted save;
+if that save fails, the completed turn remains locked to the original owner and API in this app
+process. The same account can restore it after reauthentication, but process termination before an
+encrypted-save acknowledgement can lose it. Intentional sign-out with a failed save keeps the
+authenticated account and turn in place. A permanently unreadable Keystore or ciphertext record
+blocks intentional sign-out until successful Retry or explicit owner-bound confirmed deletion. The
+destructive recovery copy is paired with Vouchington #3304; its native contract and physical-device
+acceptance remain open.
 
 Play Integrity, Play Store signing, and release packaging remain tracked by #6620.
 
@@ -75,7 +97,11 @@ The Android CI cookie-restart job installs the exact candidate debug app and ins
 on a Google APIs emulator. Four separate instrumentation invocations seed synthetic entries in the
 app's existing encrypted preference file, read them after a host-driven force-stop, commit removal
 of only the cookie entry, and read again after another force-stop. The unrelated entry must remain
-unchanged. The runner checks the downloaded APK hashes, candidate revision, API level, and ARM64
-ABI support before accepting the result. This proves the Android storage primitive across process
-restarts; the Swift session tests cover sign-out ordering. It does not exercise a real account,
-the complete sign-out UI, or physical-device storage failure modes.
+unchanged. Four more invocations save synthetic pending chat request bytes for two API-scoped owners
+through the Android Keystore bridge, reload the exact bytes after a force-stop, delete only the
+matching first-owner record, and verify that deletion and second-owner retention after another
+force-stop. The runner checks the downloaded APK hashes, candidate revision, API level, and ARM64
+ABI support before accepting the result. This proves the Android storage primitives across process
+restarts; the Swift tests cover sign-out ordering, owner fencing, explicit retry, and no automatic
+POST. It does not exercise a real account, the complete sign-out UI, server-side replay, sudden
+power loss, or physical-device storage failure modes.

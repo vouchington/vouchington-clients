@@ -49,4 +49,10 @@ extension ViewModel {
             task.cancel()
         }
     }
+
+    func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {
+        guard accountGeneration == accountRevision, activeSendOperationID == operationID else { return }
+        activeSendOperationID = nil
+        isGenerating = false
+    }
 }

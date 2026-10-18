@@ -353,6 +353,8 @@
 "native.swift.android.chatProvider" = "Proveedor de chat";
 "native.swift.android.checkModelStatus" = "Comprobar el estado del modelo";
 "native.swift.android.configuredEndpoint" = "Endpoint configurado";
+"native.swift.android.deleteSavedResponses" = "Eliminar respuestas guardadas";
+"native.swift.android.deleteSavedResponsesConfirmation" = "¿Eliminar de este dispositivo todas las respuestas guardadas para esta cuenta? Se perderán las respuestas que aún no estén guardadas en el historial de tus conversaciones. Esta acción no se puede deshacer.";
 "native.swift.android.downloadModel" = "Descargar el modelo en el dispositivo";
 "native.swift.android.downloadingModel" = "Descargando el modelo en el dispositivo.";
 "native.swift.android.emptyResponse" = "El modelo en el dispositivo devolvió una respuesta vacía.";
@@ -369,6 +371,7 @@
 "native.swift.android.openAiCompatibleEndpoint" = "Endpoint compatible con OpenAI";
 "native.swift.android.providerAICore" = "Android AICore";
 "native.swift.android.saveEndpoint" = "Guardar endpoint";
+"native.swift.android.savedResponsesUnreadable" = "No se pudieron leer las respuestas guardadas en el dispositivo.";
 "native.swift.android.send" = "Enviar";
 "native.swift.android.settings" = "Ajustes";
 "native.swift.android.statusChecking" = "Comprobando el estado del modelo.";

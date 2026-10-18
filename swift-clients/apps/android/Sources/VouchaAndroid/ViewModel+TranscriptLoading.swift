@@ -5,25 +5,13 @@ import VouchaLocalization
 import VouchaModels
 
 extension ViewModel {
-    func bindAccount(client: APIClient?, userID: String?) async {
-        guard currentAccountUserID != userID || apiClient !== client else { return }
-        resetForAccountTransition()
-        currentAccountUserID = userID
-        apiClient = userID == nil ? nil : client
-        guard userID != nil, apiClient != nil else { return }
-
-        await loadConversationPage(reset: true)
-        if selectedConversationID == nil, let first = conversations.first {
-            await selectConversation(first.id)
-        }
-    }
-
     func loadConversationPage(
         reset: Bool,
         retryCursor: String? = nil,
         useRetryCursor: Bool = false
     ) async {
         guard let client = apiClient, currentAccountUserID != nil,
+              !accountExitIsInProgress,
               !isLoadingConversations, !isCreatingConversation, reset || hasMoreConversations
         else { return }
         let accountRevision = accountGeneration
@@ -62,6 +50,7 @@ extension ViewModel {
     }
 
     func selectConversation(_ id: String, revision: UUID = UUID()) async {
+        guard !accountExitIsInProgress else { return }
         guard selectedConversationID != id else { return }
         if let previousID = selectedConversationID,
            let draftBackedFailure = draftBackedGenerationFailures.removeValue(forKey: previousID) {
@@ -95,6 +84,7 @@ extension ViewModel {
         useRetryCursor: Bool = false
     ) async {
         guard let client = apiClient, let conversationID = selectedConversationID,
+              !accountExitIsInProgress,
               !isLoadingMessages, reset || (!isGenerating && hasOlderMessages)
         else { return }
         let accountRevision = accountGeneration
@@ -121,7 +111,7 @@ extension ViewModel {
                   conversationGeneration == conversationRevision,
                   selectedConversationID == conversationID
             else { return }
-            applyConversationMessages(
+            try await applyConversationMessages(
                 response,
                 conversationID: conversationID,
                 reset: reset,
@@ -132,25 +122,33 @@ extension ViewModel {
             guard accountGeneration == accountRevision,
                   conversationGeneration == conversationRevision
             else { return }
-            let operation = AndroidTranscriptLoadFailure.messages(
+            recordConversationMessagesLoadFailure(
+                error,
                 conversationID: conversationID,
                 reset: reset,
-                after: cursor
+                cursor: cursor
             )
-            failedConversationHistoryLoad = AndroidTranscriptLoadFailureRecord(
-                operation: operation,
-                message: error.localizedDescription
-            )
-            latestTranscriptLoadFailure = operation
-            appendPendingTurnIfNeeded(for: conversationID)
-            restoreSelectedConversationError()
         }
     }
 
-    private var replaceableTranscriptMessageIDs: Set<String> {
-        let pending = pendingTurnForSelectedConversation
-        let protectedIDs = [pending?.userMessageID, pending?.assistantMessageID].compactMap { $0 }
-        return Set(messages.map(\.id)).subtracting(protectedIDs)
+    private func recordConversationMessagesLoadFailure(
+        _ error: Error,
+        conversationID: String,
+        reset: Bool,
+        cursor: String?
+    ) {
+        let operation = AndroidTranscriptLoadFailure.messages(
+            conversationID: conversationID,
+            reset: reset,
+            after: cursor
+        )
+        failedConversationHistoryLoad = AndroidTranscriptLoadFailureRecord(
+            operation: operation,
+            message: error.localizedDescription
+        )
+        latestTranscriptLoadFailure = operation
+        appendPendingTurnIfNeeded(for: conversationID)
+        restoreSelectedConversationError()
     }
 
     private func makeChatMessage(from message: ChatMessage) -> AndroidChatMessage? {
@@ -168,12 +166,17 @@ extension ViewModel {
         reset: Bool,
         cursor: String?,
         replaceableMessageIDs: Set<String>
-    ) {
-        let acknowledgedMessageIDs = acknowledgePendingTurnIfPresent(
+    ) async throws {
+        let accountRevision = accountGeneration
+        let conversationRevision = conversationGeneration
+        let acknowledgedMessageIDs = try await acknowledgePendingTurnIfPresent(
             in: response.results,
             conversationID: conversationID,
             reset: reset
         )
+        guard accountGeneration == accountRevision,
+              conversationGeneration == conversationRevision,
+              selectedConversationID == conversationID else { return }
         let loaded = uniqueMessages(response.results.compactMap { makeChatMessage(from: $0) })
         if reset {
             let addedDuringRequest = messages.filter { !replaceableMessageIDs.contains($0.id) }
@@ -193,5 +196,4 @@ extension ViewModel {
         }
         clearLoadFailureIfMatching(.messages(conversationID: conversationID, reset: reset, after: cursor))
     }
-
 }

@@ -8,13 +8,29 @@ private struct UpdateConversationTitleBody: Encodable {
     let title: String
 }
 
-private struct ClientGeneratedChatBody: Encodable {
-    let message: String
-    let userMessageId: String
-    let assistantMessageId: String
-    let assistantContent: String
-    let modelProvider: String
-    let modelName: String?
+public struct ClientGeneratedChatBody: Codable, Sendable, Equatable {
+    public let message: String
+    public let userMessageId: String
+    public let assistantMessageId: String
+    public let assistantContent: String
+    public let modelProvider: String
+    public let modelName: String?
+
+    public init(
+        message: String,
+        userMessageId: String,
+        assistantMessageId: String,
+        assistantContent: String,
+        modelProvider: String,
+        modelName: String?
+    ) {
+        self.message = message
+        self.userMessageId = userMessageId
+        self.assistantMessageId = assistantMessageId
+        self.assistantContent = assistantContent
+        self.modelProvider = modelProvider
+        self.modelName = modelName
+    }
 }
 
 public extension Endpoint {
@@ -52,6 +68,14 @@ public extension Endpoint {
                 modelProvider: model.provider,
                 modelName: model.name
             )
+        )
+    }
+
+    static func clientGeneratedChat(conversationId: String, serializedBody: Data) -> Endpoint {
+        Endpoint(
+            .POST,
+            path: "/api/v1/conversations/\(pathSegment(conversationId))/client-generated-chat",
+            preEncodedJSONBody: serializedBody
         )
     }
 }

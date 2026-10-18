@@ -3,6 +3,7 @@ import Observation
 import SkipFuse
 import VouchaAPI
 import VouchaCore
+import VouchaLocalization
 import VouchaModels
 
 enum AndroidChatProvider: String {
@@ -55,6 +56,11 @@ final class ViewModel {
     var generationErrors: [String: String] = [:]
     var pendingTurnErrors: [String: String] = [:]
     var pendingTurnHistoryAcknowledgements: [String: Set<String>] = [:]
+    var pendingStoreLoadFailed = false
+    var pendingStoreIsLoading = false
+    var pendingStoreDiscardFailed = false
+    var accountExitIsInProgress = false
+    var accountExitErrorKey: UiMessageKey?
     var isGenerating = false
     var selectedProvider: AndroidChatProvider = .aiCore
     var conversations: [ChatConversation] = []
@@ -75,10 +81,12 @@ final class ViewModel {
 
     let runtime: any AndroidAICoreRunning
     let secretStore: any AndroidEndpointSecretStoring
+    let pendingStore: any AndroidPendingTurnStoring
     let settingsStore: LocalLLMSettingsStore
     let endpointClient: any AndroidEndpointGenerating
     var apiClient: APIClient?
     var currentAccountUserID: String?
+    var currentPendingTurnOwnerID: String?
     var endpointProfileID: UUID
     var endpointAPIKeyWasExplicitlyEdited = false
     var activeGenerationTask: Task<String, Error>?
@@ -88,16 +96,20 @@ final class ViewModel {
     var conversationListCursor: String?
     var messagePageCursor: String?
     var pendingTurns: [String: AndroidPendingChatTurn] = [:]
+    @ObservationIgnored var lockedPendingTurnsByOwner: [String: [AndroidPendingChatTurn]] = [:]
+    @ObservationIgnored var inFlightDiscardsByOwner: [String: AndroidPendingOwnerDiscardInFlight] = [:]
     var activeSendOperationID: UUID?
 
     init(
         runtime: any AndroidAICoreRunning = AndroidAICoreRuntime(),
         secretStore: any AndroidEndpointSecretStoring = SkipKeychainEndpointSecretStore(),
+        pendingStore: any AndroidPendingTurnStoring = AndroidPendingTurnStore(),
         settingsStore: LocalLLMSettingsStore = LocalLLMSettingsStore(),
         endpointClient: any AndroidEndpointGenerating = OpenAICompatibleResponsesClient()
     ) {
         self.runtime = runtime
         self.secretStore = secretStore
+        self.pendingStore = AndroidSerializedPendingTurnStore(pendingStore)
         self.settingsStore = settingsStore
         self.endpointClient = endpointClient
         let configuration = settingsStore.load()
@@ -141,42 +153,6 @@ final class ViewModel {
             modelState = .downloadable
             modelErrorMessage = error.localizedDescription
         }
-    }
-
-    func resetForAccountTransition() {
-        activeGenerationTask?.cancel()
-        activeGenerationID = UUID()
-        accountGeneration = UUID()
-        conversationGeneration = UUID()
-        apiClient = nil
-        currentAccountUserID = nil
-        conversations = []
-        selectedConversationID = nil
-        isLoadingConversations = false
-        isLoadingMessages = false
-        isLoadingOlderMessages = false
-        isCreatingConversation = false
-        conversationListCursor = nil
-        messagePageCursor = nil
-        hasMoreConversations = false
-        hasOlderMessages = false
-        pendingTurns = [:]
-        pendingTurnErrors = [:]
-        pendingTurnHistoryAcknowledgements = [:]
-        activeSendOperationID = nil
-        messages = []
-        draft = ""
-        errorMessage = nil
-        conversationCreationFailed = false
-        conversationCreationErrorMessage = nil
-        failedConversationListLoad = nil
-        failedConversationHistoryLoad = nil
-        latestTranscriptLoadFailure = nil
-        loadedConversationHistoryID = nil
-        failedGenerations = [:]
-        draftBackedGenerationFailures = [:]
-        generationErrors = [:]
-        isGenerating = false
     }
 
     func boundedPrompt(latest: String) -> String {

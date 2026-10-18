@@ -57,6 +57,9 @@ struct AndroidSettingsView: View {
                     Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(signOutErrorMessage), locale: locale))
                         .foregroundStyle(.red)
                 }
+                if let accountExitErrorKey = viewModel.accountExitErrorKey {
+                    Text(message(accountExitErrorKey)).foregroundStyle(.red)
+                }
             }
         }
     }

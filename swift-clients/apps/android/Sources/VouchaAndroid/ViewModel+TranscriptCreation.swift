@@ -6,7 +6,9 @@ import VouchaModels
 extension ViewModel {
     @discardableResult
     func createConversation() async -> Bool {
-        guard !isCreatingConversation, !isLoadingConversations, let client = apiClient,
+        guard !isCreatingConversation, !isLoadingConversations,
+              !pendingStoreIsLoading, !pendingStoreLoadFailed, !accountExitIsInProgress,
+              let client = apiClient,
               let userID = currentAccountUserID
         else { return false }
         let accountRevision = accountGeneration

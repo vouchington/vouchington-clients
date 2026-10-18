@@ -353,6 +353,8 @@
 "native.swift.android.chatProvider" = "Fournisseur de discussion";
 "native.swift.android.checkModelStatus" = "Vérifier l’état du modèle";
 "native.swift.android.configuredEndpoint" = "Point de terminaison configuré";
+"native.swift.android.deleteSavedResponses" = "Supprimer les réponses enregistrées";
+"native.swift.android.deleteSavedResponsesConfirmation" = "Supprimer de cet appareil toutes les réponses enregistrées pour ce compte ? Toute réponse qui n’a pas déjà été enregistrée dans l’historique de vos conversations sera perdue. Cette action est irréversible.";
 "native.swift.android.downloadModel" = "Télécharger le modèle sur l’appareil";
 "native.swift.android.downloadingModel" = "Téléchargement du modèle sur l’appareil.";
 "native.swift.android.emptyResponse" = "Le modèle sur l’appareil a renvoyé une réponse vide.";
@@ -369,6 +371,7 @@
 "native.swift.android.openAiCompatibleEndpoint" = "Point de terminaison compatible OpenAI";
 "native.swift.android.providerAICore" = "Android AICore";
 "native.swift.android.saveEndpoint" = "Enregistrer le point de terminaison";
+"native.swift.android.savedResponsesUnreadable" = "Impossible de lire les réponses enregistrées sur l’appareil.";
 "native.swift.android.send" = "Envoyer";
 "native.swift.android.settings" = "Réglages";
 "native.swift.android.statusChecking" = "Vérification de l’état du modèle.";
