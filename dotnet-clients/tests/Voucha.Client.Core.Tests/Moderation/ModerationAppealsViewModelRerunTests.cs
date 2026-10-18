@@ -281,14 +281,17 @@ public sealed partial class ModerationAppealsViewModelTests
   }
 
   [Fact]
-  public async Task AccountChangeRejectsHeldOldOwnerResultAndClearsPendingState()
+  public async Task AccountChangeRejectsHeldOldOwnerResultAndRetainsOldOwnerAdmission()
   {
     var service = new ModerationAppealsTestService();
     var owner = new NavigationViewer(true, ["administrator"], IdentityId: "owner-a");
     var provider = new MutableNavigationViewerProvider();
     provider.SetViewer(owner);
+    var store = new AppealAIRerunAdmissionStore();
+    var apiBaseUrl = new Uri("https://example.test/api");
     using var viewModel = new ModerationAppealsViewModel(
-        service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider);
+        service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider,
+        admissionStore: store, apiBaseUrl: apiBaseUrl);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     var held = new TaskCompletionSource<ModerationAppealResponse>(
@@ -308,6 +311,8 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.False(viewModel.CanAccess);
     Assert.Empty(viewModel.Appeals);
     Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.True(store.Contains(
+        AppealAIRerunAdmissionStore.ForOwner(owner.IdentityId, apiBaseUrl), appeal.Id));
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
   }
 
