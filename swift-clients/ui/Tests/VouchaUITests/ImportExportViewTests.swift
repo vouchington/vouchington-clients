@@ -206,6 +206,27 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
         }
     }
 
+    func testBlankRetryMessageUsesLocalizedFallback() throws {
+        let route = ImportExportRoute.sources(initialExportFilter: nil)
+        let model = makeViewModel(route: route)
+        for error in ["", " \t\n"] {
+            model.results = [ImportResult(
+                input: "https://example.test/feed.xml", status: .pending,
+                error: error, errorCode: .importFailed
+            )]
+            for locale in [UiLocale.english, .spanish] {
+                let view = ImportExportView(route: route, viewModel: model)
+                    .environment(\.locale, Locale(identifier: locale.rawValue))
+                let expected = UiMessages.string(
+                    .nativeSwiftImportExportRetrying,
+                    parameters: ["error": UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)],
+                    locale: locale
+                )
+                XCTAssertNoThrow(try view.inspect().find(text: expected))
+            }
+        }
+    }
+
     func testSourceProgressShowsRetryStopAndStatusRetryControls() throws {
         let route = ImportExportRoute.sources(initialExportFilter: nil)
         let viewModel = makeViewModel(route: route)

@@ -78,6 +78,15 @@ public sealed class RssFeedImportStatusPaginationTests
     Assert.Equal(json, JsonSerializer.Serialize(expected, VouchaApiJson.Options));
   }
 
+  [Theory]
+  [InlineData("0")]
+  [InlineData("999")]
+  public void NumericErrorCodeIsRejected(string json)
+  {
+    Assert.Throws<JsonException>(() =>
+        JsonSerializer.Deserialize<RssFeedImportErrorCode>(json, VouchaApiJson.Options));
+  }
+
   [Fact]
   public void UnknownErrorCodeIsRejected()
   {

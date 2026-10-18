@@ -9,6 +9,10 @@ public static class VouchaApiJson
   {
     AllowOutOfOrderMetadataProperties = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
+    Converters =
+    {
+      new JsonStringEnumConverter<RssFeedImportErrorCode>(allowIntegerValues: false),
+      new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
+    },
   };
 }
