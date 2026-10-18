@@ -31,6 +31,9 @@ final class ViewModel {
     let endpointClient: any AndroidEndpointGenerating
     var endpointProfileID: UUID
     var endpointAPIKeyWasExplicitlyEdited = false
+    private var accountGeneration = UUID()
+    var activeGenerationTask: Task<String, Error>?
+    var activeGenerationID = UUID()
 
     init(
         runtime: any AndroidAICoreRunning = AndroidAICoreRuntime(),
@@ -87,19 +90,34 @@ final class ViewModel {
         draft = ""
         errorMessage = nil
         isGenerating = true
-        defer { isGenerating = false }
+        let submittedAccountGeneration = accountGeneration
+        defer {
+            if accountGeneration == submittedAccountGeneration { isGenerating = false }
+        }
         let priorMessages = messages
         messages.append(.init(role: "user", content: submitted))
 
         do {
             let response = try await generateResponse(for: submitted)
+            guard accountGeneration == submittedAccountGeneration else { return }
             guard !response.isEmpty else { throw AndroidAICoreError.emptyResponse }
             messages.append(.init(role: "assistant", content: response))
         } catch {
+            guard accountGeneration == submittedAccountGeneration else { return }
             messages = priorMessages
             draft = submitted
             errorMessage = error.localizedDescription
         }
+    }
+
+    func resetForAccountTransition() {
+        activeGenerationTask?.cancel()
+        activeGenerationID = UUID()
+        accountGeneration = UUID()
+        messages = []
+        draft = ""
+        errorMessage = nil
+        isGenerating = false
     }
 
     func boundedPrompt(latest: String) -> String {

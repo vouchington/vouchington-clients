@@ -162,25 +162,6 @@ extension ViewModel {
         return profile
     }
 
-    func generateResponse(for message: String) async throws -> String {
-        switch selectedProvider {
-        case .aiCore:
-            return try await runtime.generate(prompt: boundedPrompt(latest: message))
-        case .endpoint:
-            guard let endpoint = endpointProfile else { throw LocalLLMError.invalidEndpoint }
-            let history = messages.dropLast().suffix(6).map {
-                LocalLLMChatMessage(role: $0.role, content: String($0.content.prefix(1_000)))
-            }
-            let apiKey = try secretStore.string(forKey: endpointSecretKey(for: endpoint.id))
-            return try await endpointClient.generateAssistantResponse(
-                message: String(message.prefix(2_000)),
-                history: history,
-                endpoint: endpoint,
-                apiKey: apiKey
-            ) ?? ""
-        }
-    }
-
     func endpointSecretKey(for endpointID: UUID) -> String {
         "openai-compatible-api-key-\(endpointID.uuidString.lowercased())"
     }

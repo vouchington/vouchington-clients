@@ -183,9 +183,45 @@ final class SessionManagerLocalizationTests: XCTestCase {
         XCTAssertNotNil(manager.lastSignOutErrorMessage)
     }
 
+    func testFailedCookieCleanupRetainsIdentityAndCookiesUntilRetrySucceeds() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        let jar = try XCTUnwrap(configuration.httpCookieStorage)
+        let recorder = CookiePersistenceRecorder(jar: jar)
+        let cleanup = RetryingCookieCleanup()
+        let manager = makeSessionManager(
+            cookieStorage: jar,
+            clearPersistedCookies: { recorder.snapshot() },
+            beforeClearSessionCookies: { try cleanup.attempt() }
+        )
+        try manager.synchronize(with: identity(uiLocale: "es"))
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "localhost", .path: "/", .name: "st", .value: "private-session"
+        ]))
+        jar.setCookie(cookie)
+        XCTAssertEqual(jar.cookies?.map(\.value), ["private-session"])
+
+        await manager.signOut()
+
+        XCTAssertTrue(manager.isSignedIn)
+        XCTAssertEqual(manager.currentUserId, "user-abc")
+        XCTAssertEqual(manager.uiLocale, "es")
+        XCTAssertNotNil(manager.lastSignOutErrorMessage)
+        XCTAssertEqual(jar.cookies?.map(\.value), ["private-session"])
+        XCTAssertTrue(recorder.snapshots.isEmpty)
+
+        await manager.signOut()
+
+        XCTAssertFalse(manager.isSignedIn)
+        XCTAssertNil(manager.currentUserId)
+        XCTAssertNil(manager.lastSignOutErrorMessage)
+        XCTAssertTrue(jar.cookies?.isEmpty ?? true)
+        XCTAssertEqual(recorder.snapshots, [[:]])
+    }
+
     private func makeSessionManager(
         cookieStorage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make(),
-        clearPersistedCookies: (@Sendable () -> Void)? = nil
+        clearPersistedCookies: (@Sendable () -> Void)? = nil,
+        beforeClearSessionCookies: (@Sendable () throws -> Void)? = nil
     ) -> SessionManager {
         let client = APIClient(
             config: AppConfig(
@@ -198,7 +234,8 @@ final class SessionManagerLocalizationTests: XCTestCase {
         return SessionManager(
             client: client,
             cookieStorage: cookieStorage,
-            clearPersistedCookies: clearPersistedCookies
+            clearPersistedCookies: clearPersistedCookies,
+            beforeClearSessionCookies: beforeClearSessionCookies
         )
     }
 
@@ -229,4 +266,16 @@ private struct IdentityEnvelope: Decodable {
 
 private enum DeviceCleanupError: Error {
     case failed
+}
+
+private final class RetryingCookieCleanup: @unchecked Sendable {
+    private let lock = NSLock()
+    private var attempts = 0
+
+    func attempt() throws {
+        lock.lock()
+        defer { lock.unlock() }
+        attempts += 1
+        if attempts == 1 { throw URLError(.cannotWriteToFile) }
+    }
 }

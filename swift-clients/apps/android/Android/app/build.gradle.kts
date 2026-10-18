@@ -6,6 +6,15 @@ plugins {
     id("skip-build-plugin")
 }
 
+val configuredApiBaseUrl = providers.gradleProperty("VOUCHA_API_BASE_URL").orNull
+    ?: providers.environmentVariable("VOUCHA_API_BASE_URL").orNull
+    ?: "https://voucha.ai"
+val configuredTurnstileSiteKey = providers.gradleProperty("VOUCHA_TURNSTILE_SITE_KEY").orNull
+    ?: providers.environmentVariable("VOUCHA_TURNSTILE_SITE_KEY").orNull
+    ?: providers.gradleProperty("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
+    ?: providers.environmentVariable("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
+    ?: ""
+
 skip {
 }
 
@@ -43,6 +52,8 @@ android {
         // applicationId = ANDROID_APPLICATION_ID ?? PRODUCT_BUNDLE_IDENTIFIER
         // versionCode = CURRENT_PROJECT_VERSION
         // versionName = MARKETING_VERSION
+        manifestPlaceholders["VOUCHA_API_BASE_URL"] = configuredApiBaseUrl
+        manifestPlaceholders["VOUCHA_TURNSTILE_SITE_KEY"] = configuredTurnstileSiteKey
     }
 
     buildFeatures {
