@@ -31,6 +31,10 @@ The job is required by the native workflow `Tests` fan-in; skipped cases and tes
 accepted as feed-flow evidence. This is partial coverage of #77, with other flows and platforms
 still outstanding.
 
+Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
+and native test planners do not execute the Node contract assertions that check those selectors,
+result predicates and fixture-root wiring.
+
 ## Required dual-OS
 
 Swift core portable tests run on Linux **and** macOS. That is not duplicate work:
