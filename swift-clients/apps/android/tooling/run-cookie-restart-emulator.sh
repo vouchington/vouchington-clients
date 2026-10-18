@@ -82,10 +82,12 @@ trap cleanup EXIT
   echo "Android emulator hardware acceleration is unavailable" >&2
   exit 1
 }
+script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+emulator_binary="$(bash "$script_dir/resolve-emulator-binary.sh")"
 echo no | avdmanager create avd --force -n "$avd_name" -k 'system-images;android-35;google_apis;x86_64'
-emulator_version="$(emulator -version 2>&1)"
+emulator_version="$("$emulator_binary" -version 2>&1)"
 emulator_version="${emulator_version%%$'\n'*}"
-emulator -avd "$avd_name" -no-window -no-audio -no-boot-anim \
+"$emulator_binary" -avd "$avd_name" -no-window -no-audio -no-boot-anim \
   -gpu swiftshader_indirect -no-snapshot -accel on -memory 2048 -cores 2 \
   >"$emulator_log" 2>&1 &
 emulator_pid=$!

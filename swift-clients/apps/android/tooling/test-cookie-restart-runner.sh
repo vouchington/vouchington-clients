@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 runner="$script_dir/run-cookie-restart-emulator.sh"
+emulator_resolver="$script_dir/resolve-emulator-binary.sh"
 test_root="$(mktemp -d)"
 trap 'rm -rf -- "$test_root"' EXIT
 apk_dir="$test_root/apks"
@@ -16,6 +17,27 @@ SCRIPT
 chmod +x "$test_root/bin/emulator"
 export PATH="$test_root/bin:$PATH"
 export VOUCHA_TEST_EMULATOR_MARKER="$test_root/emulator-started"
+
+sdk_root="$test_root/installed-android-sdk"
+emulator_binary="$sdk_root/emulator/emulator"
+if ANDROID_SDK_ROOT="$sdk_root" PATH=/usr/bin:/bin /bin/bash "$emulator_resolver" > "$test_root/emulator-path.log" 2>&1; then
+  echo 'Missing Android SDK emulator executable was accepted' >&2
+  exit 1
+fi
+grep -Fq "Android emulator executable is missing or not executable: $emulator_binary" "$test_root/emulator-path.log"
+mkdir -p "$sdk_root/emulator"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$emulator_binary"
+if ANDROID_SDK_ROOT="$sdk_root" PATH=/usr/bin:/bin /bin/bash "$emulator_resolver" > "$test_root/emulator-path.log" 2>&1; then
+  echo 'Non-executable Android SDK emulator was accepted' >&2
+  exit 1
+fi
+grep -Fq "Android emulator executable is missing or not executable: $emulator_binary" "$test_root/emulator-path.log"
+chmod +x "$emulator_binary"
+resolved_emulator="$(ANDROID_SDK_ROOT="$sdk_root" PATH=/usr/bin:/bin /bin/bash "$emulator_resolver")"
+[[ "$resolved_emulator" == "$emulator_binary" ]] || {
+  echo 'Android SDK emulator executable resolved outside the selected SDK' >&2
+  exit 1
+}
 
 make_synthetic_artifacts() {
   rm -rf -- "$apk_dir"
