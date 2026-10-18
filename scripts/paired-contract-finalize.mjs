@@ -1,0 +1,154 @@
+import { join, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
+import {
+  pairedRepositories,
+  assertCheckoutMatchesSnapshot,
+  assertPairSnapshotUnchanged,
+} from './paired-contract-policy.mjs'
+import { createPairManifest } from './paired-contract-manifest.mjs'
+import { captureLivePair } from './paired-contract-github.mjs'
+import { declaredFilamentsContractPaths } from './contracts.mjs'
+
+function fail(message) {
+  throw new Error(`Paired contract attestation failed: ${message}`)
+}
+
+function requiredString(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
+  return value.trim()
+}
+
+function requiredSha(value, label) {
+  if (typeof value !== 'string' || !/^[0-9a-f]{40}$/u.test(value))
+    fail(`${label} must be a lowercase 40-character commit SHA`)
+  return value
+}
+
+function git(root, args) {
+  return execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim()
+}
+
+async function readJson(path, label) {
+  try {
+    const info = await lstat(path)
+    if (!info.isFile() || info.isSymbolicLink()) fail(`${label} must be a regular file`)
+    return JSON.parse(await readFile(path, 'utf8'))
+  } catch (error) {
+    fail(`cannot read ${label}: ${error.message}`)
+  }
+}
+
+async function listRegularFiles(root, label) {
+  const rootInfo = await lstat(root)
+  if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink())
+    fail(`${label} must be a real directory`)
+  const files = new Map()
+  async function walk(directory, prefix = '') {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name
+      const info = await lstat(path)
+      if (info.isSymbolicLink()) fail(`symbolic link found in ${label} at ${relativePath}`)
+      if (info.isDirectory()) await walk(path, relativePath)
+      else if (info.isFile()) files.set(relativePath, await readFile(path))
+      else fail(`unsupported entry in ${label} at ${relativePath}`)
+    }
+  }
+  await walk(root)
+  if (files.size === 0) fail(`${label} contains no files`)
+  return files
+}
+
+async function assertDirectoryTreesEqual(leftRoot, rightRoot, label) {
+  const [left, right] = await Promise.all([
+    listRegularFiles(leftRoot, `${label} staged tree`),
+    listRegularFiles(rightRoot, `${label} producer source`),
+  ])
+  if (left.size !== right.size) fail(`${label} staged tree differs from producer source`)
+  for (const [path, bytes] of left) {
+    if (!right.has(path) || !bytes.equals(right.get(path)))
+      fail(`${label} staged file differs from producer source: ${path}`)
+  }
+}
+
+function decodeSnapshot() {
+  const encoded = requiredString(process.env.PAIR_SNAPSHOT_BASE64, 'captured pair snapshot')
+  const bytes = Buffer.from(encoded, 'base64url')
+  if (bytes.toString('base64url') !== encoded) fail('captured pair snapshot encoding is invalid')
+  try {
+    return JSON.parse(bytes.toString('utf8'))
+  } catch (error) {
+    fail(`captured pair snapshot is invalid: ${error.message}`)
+  }
+}
+
+export async function createManifestCommand() {
+  const captured = decodeSnapshot()
+  const evidenceRoot = resolve(requiredString(process.env.PAIRED_EVIDENCE_ROOT, 'evidence root'))
+  const candidateEvidence = await readJson(
+    join(evidenceRoot, 'candidate-evidence.json'),
+    'candidate checkout evidence',
+  )
+  const { dispatch, pair: after } = await captureLivePair()
+  assertPairSnapshotUnchanged(captured.pair, after)
+  const trustedRoot = resolve(
+    requiredString(process.env.TRUSTED_CLIENTS_ROOT, 'trusted clients root'),
+  )
+  if (
+    git(trustedRoot, ['rev-parse', 'HEAD']) !==
+    requiredSha(process.env.GITHUB_SHA, 'trusted workflow revision')
+  )
+    fail('trusted clients checkout changed during validation')
+  if (git(trustedRoot, ['status', '--porcelain', '--untracked-files=all']) !== '')
+    fail(`trusted checkout changed during validation: ${trustedRoot}`)
+  const contractConfig = await readJson(
+    join(trustedRoot, 'contracts/filaments.json'),
+    'trusted contract configuration',
+  )
+  if (JSON.stringify(candidateEvidence.candidateConfig) !== JSON.stringify(contractConfig))
+    fail('candidate contract configuration differs from the trusted main declaration')
+  assertCheckoutMatchesSnapshot(captured.pair.producer, candidateEvidence.producer)
+  assertCheckoutMatchesSnapshot(captured.pair.clients, candidateEvidence.clients)
+  const workflow = {
+    repository: requiredString(process.env.GITHUB_REPOSITORY, 'workflow repository'),
+    ref: requiredString(process.env.GITHUB_REF, 'workflow ref'),
+    workflowRef: requiredString(process.env.GITHUB_WORKFLOW_REF, 'workflow definition ref'),
+    sha: requiredSha(process.env.GITHUB_SHA, 'workflow SHA'),
+    runId: requiredString(process.env.GITHUB_RUN_ID, 'workflow run ID'),
+    runAttempt: Number(requiredString(process.env.GITHUB_RUN_ATTEMPT, 'workflow run attempt')),
+    name: requiredString(process.env.GITHUB_WORKFLOW, 'workflow name'),
+  }
+  if (
+    workflow.repository !== pairedRepositories.clients ||
+    workflow.ref !== 'refs/heads/main' ||
+    workflow.workflowRef !==
+      `${pairedRepositories.clients}/.github/workflows/paired-native-contract-attestation.yml@refs/heads/main` ||
+    workflow.runAttempt !== 1
+  )
+    fail('workflow identity changed during validation')
+  const contractRoot = resolve(
+    requiredString(process.env.CONTRACT_STAGE_ROOT, 'contract stage root'),
+  )
+  const producerRoot = resolve(
+    requiredString(process.env.PRODUCER_CANDIDATE_ROOT, 'producer candidate root'),
+  )
+  await assertDirectoryTreesEqual(
+    join(contractRoot, ...declaredFilamentsContractPaths[0].split('/')),
+    join(producerRoot, ...declaredFilamentsContractPaths[0].split('/')),
+    'fixture contract',
+  )
+  const manifest = await createPairManifest({
+    dispatch,
+    pair: captured.pair,
+    checkoutRevisions: candidateEvidence,
+    contractConfig,
+    stageRoot: contractRoot,
+    workflow,
+  })
+  await writeFile(
+    join(evidenceRoot, 'paired-attestation.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    { flag: 'wx' },
+  )
+}
