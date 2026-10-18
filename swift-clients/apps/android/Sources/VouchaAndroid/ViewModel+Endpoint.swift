@@ -163,6 +163,10 @@ extension ViewModel {
     }
 
     func generateResponse(for message: String) async throws -> String {
+        try await performGeneration { try await self.generateProviderResponse(for: message) }
+    }
+
+    private func generateProviderResponse(for message: String) async throws -> String {
         switch selectedProvider {
         case .aiCore:
             return try await runtime.generate(prompt: boundedPrompt(latest: message))

@@ -51,11 +51,19 @@ struct AndroidAICoreRuntime: AndroidAICoreRunning {
 
     func generate(prompt: String) async throws -> String {
         #if os(Android)
-            return try await Task.detached {
-                let bridge = try D.voucha.android.AICoreBridge.INSTANCE()
-                let response: String = try bridge.generate(prompt) ?? ""
-                return response.trimmingCharacters(in: .whitespacesAndNewlines)
-            }.value
+            let requestID = UUID().uuidString
+            try D.voucha.android.AICoreBridge.INSTANCE().prepareGeneration(requestID)
+            defer { try? D.voucha.android.AICoreBridge.INSTANCE().finishGeneration(requestID) }
+            return try await withTaskCancellationHandler {
+                try Task.checkCancellation()
+                return try await Task.detached {
+                    let bridge = try D.voucha.android.AICoreBridge.INSTANCE()
+                    let response: String = try bridge.generate(prompt, requestID) ?? ""
+                    return response.trimmingCharacters(in: .whitespacesAndNewlines)
+                }.value
+            } onCancel: {
+                try? D.voucha.android.AICoreBridge.INSTANCE().cancelGeneration(requestID)
+            }
         #else
             throw AndroidAICoreError.unsupportedPlatform
         #endif

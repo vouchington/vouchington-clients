@@ -70,6 +70,7 @@ extension AndroidAccount {
             authError = .verbatim(error.localizedDescription)
             return
         }
+        otpRequested = false
         isRestoring = true
         sessionRestoreError = .verbatim(refreshError)
         authError = nil

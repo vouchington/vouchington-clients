@@ -32,6 +32,8 @@ final class ViewModel {
     var endpointProfileID: UUID
     var endpointAPIKeyWasExplicitlyEdited = false
     private var accountGeneration = UUID()
+    var activeGenerationTask: Task<String, Error>?
+    var activeGenerationID = UUID()
 
     init(
         runtime: any AndroidAICoreRunning = AndroidAICoreRuntime(),
@@ -109,6 +111,8 @@ final class ViewModel {
     }
 
     func resetForAccountTransition() {
+        activeGenerationTask?.cancel()
+        activeGenerationID = UUID()
         accountGeneration = UUID()
         messages = []
         draft = ""
