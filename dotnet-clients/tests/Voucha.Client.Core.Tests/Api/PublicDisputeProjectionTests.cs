@@ -44,6 +44,32 @@ public sealed class PublicDisputeProjectionTests
     Assert.Equal(staff.Dispute.DisputantUserId, encodedStaff.GetProperty("disputant_user_id").GetString());
   }
 
+  [Theory]
+  [InlineData("native.moderation.disputes.member.default", false)]
+  [InlineData("native.moderation.disputes.member.default", true)]
+  [InlineData("native.moderation.disputes.detail.member.default", false)]
+  [InlineData("native.moderation.disputes.detail.member.default", true)]
+  public void PublicRoundTripOmitsProtectedFieldsUnderBothNullPolicies(string fixtureId, bool includeNulls)
+  {
+    var source = JsonNode.Parse(ApiFixtureLoader.LoadResponse(fixtureId))!;
+    var original = source["dispute"] ?? source["disputes"]![0]!;
+    var options = new JsonSerializerOptions(VouchaApiJson.Options)
+    {
+      DefaultIgnoreCondition = includeNulls
+          ? System.Text.Json.Serialization.JsonIgnoreCondition.Never
+          : System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+    var decoded = Assert.IsType<ModerationDispute>(JsonSerializer.Deserialize<ModerationDispute>(
+        original, options));
+    var encoded = JsonSerializer.SerializeToElement(decoded, options);
+
+    AssertNoProtectedFields(encoded);
+    Assert.Equal(original["id"]!.GetValue<string>(), encoded.GetProperty("id").GetString());
+    var roundTrip = Assert.IsType<ModerationDispute>(JsonSerializer.Deserialize<ModerationDispute>(encoded, options));
+    Assert.Equal(decoded.Id, roundTrip.Id);
+    Assert.Equal(decoded.PostContent?.Text, roundTrip.PostContent?.Text);
+  }
+
   [Fact]
   public void AnyProtectedFieldMarksStaffEvenWhenNull()
   {

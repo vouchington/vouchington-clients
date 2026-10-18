@@ -22,6 +22,27 @@ public sealed class ModerationDisputeRunIdentityTests
   }
 
   [Fact]
+  public void StaffWriteRetainsRequestedAndNullableSavedIdentityWhenNullsAreIncluded()
+  {
+    var source = DisputeObject();
+    source["ai_draft_run_id"] = null;
+    var options = new JsonSerializerOptions(VouchaApiJson.Options)
+    {
+      DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
+    };
+    var decoded = Assert.IsType<ModerationDispute>(JsonSerializer.Deserialize<ModerationDispute>(source, options));
+    var encoded = JsonSerializer.SerializeToElement(decoded, options);
+
+    Assert.Equal(source["ai_draft_requested_run_id"]!.GetValue<string>(),
+        encoded.GetProperty("ai_draft_requested_run_id").GetString());
+    Assert.Equal(JsonValueKind.Null, encoded.GetProperty("ai_draft_run_id").ValueKind);
+    var roundTrip = Assert.IsType<ModerationDispute>(JsonSerializer.Deserialize<ModerationDispute>(encoded, options));
+    Assert.Equal(decoded.AiDraftRequestedRunId, roundTrip.AiDraftRequestedRunId);
+    Assert.Null(roundTrip.AiDraftRunId);
+    Assert.Equal(decoded.ClaimText, roundTrip.ClaimText);
+  }
+
+  [Fact]
   public void MutationStaffProjectionRetainsRunIdentities()
   {
     var response = JsonNode.Parse(ApiFixtureLoader.LoadResponse("native.moderation.disputes.update.default"))!;

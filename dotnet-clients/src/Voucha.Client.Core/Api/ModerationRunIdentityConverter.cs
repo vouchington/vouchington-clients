@@ -37,7 +37,7 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
     var projection = JsonSerializer.SerializeToElement(value, WithoutThisConverter(options));
     var isStaff = projection.EnumerateObject().Any(property =>
         ProtectedFields.Contains(property.Name) &&
-        (property.Name != SavedRun || property.Value.ValueKind != JsonValueKind.Null));
+        property.Value.ValueKind != JsonValueKind.Null);
     if (isStaff)
     {
       ValidateStaffIdentities(projection);
@@ -45,7 +45,7 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
     writer.WriteStartObject();
     foreach (var property in projection.EnumerateObject())
     {
-      if (!isStaff && property.Name is RequestedRun or SavedRun)
+      if (!isStaff && ProtectedFields.Contains(property.Name))
       {
         continue;
       }
