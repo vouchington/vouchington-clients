@@ -119,6 +119,11 @@ extension ViewModel {
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
         do {
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)
+            restoreErrorAfterPendingRetry(
+                accountRevision: accountRevision,
+                userID: userID,
+                conversationID: pending.conversationID
+            )
         } catch {
             guard accountGeneration == accountRevision,
                   currentAccountUserID == userID,
@@ -178,11 +183,6 @@ extension ViewModel {
         case .endpoint:
             ("openai_compatible", endpointProfile?.selectedModel)
         }
-    }
-
-    private func clearSubmittedDraftIfUnchanged(_ submittedDraft: String?, preservingDraft: Bool) {
-        guard !preservingDraft, let submittedDraft, draft == submittedDraft else { return }
-        draft = ""
     }
 
     func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {

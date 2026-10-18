@@ -119,6 +119,18 @@ extension ViewModel {
         )
     }
 
+    func clearSubmittedDraftIfUnchanged(_ submittedDraft: String?, preservingDraft: Bool) {
+        guard !preservingDraft, let submittedDraft, draft == submittedDraft else { return }
+        draft = ""
+    }
+
+    func restoreErrorAfterPendingRetry(accountRevision: UUID, userID: String, conversationID: String) {
+        guard accountGeneration == accountRevision, currentAccountUserID == userID,
+              selectedConversationID == conversationID, errorMessage == nil
+        else { return }
+        restoreSelectedConversationError()
+    }
+
     func clearLoadFailureIfMatching(_ operation: AndroidTranscriptLoadFailure) {
         switch operation {
         case .conversations:

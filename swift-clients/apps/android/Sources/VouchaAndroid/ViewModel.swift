@@ -116,22 +116,22 @@ final class ViewModel {
 
     func refreshStatus() async {
         modelErrorMessage = nil
-        errorMessage = nil
+        restoreSelectedConversationError()
         modelState = .checking
+        defer { restoreSelectedConversationError() }
         do {
             modelState = try await runtime.status()
         } catch {
             modelState = .unavailable
             modelErrorMessage = error.localizedDescription
-            errorMessage = error.localizedDescription
-            chatErrorKind = .model
         }
     }
 
     func downloadModel() async {
         modelErrorMessage = nil
-        errorMessage = nil
+        restoreSelectedConversationError()
         modelState = .downloading
+        defer { restoreSelectedConversationError() }
         do {
             modelState = try await runtime.download()
         } catch is CancellationError {
@@ -139,8 +139,6 @@ final class ViewModel {
         } catch {
             modelState = .downloadable
             modelErrorMessage = error.localizedDescription
-            errorMessage = error.localizedDescription
-            chatErrorKind = .model
         }
     }
 
