@@ -351,9 +351,15 @@ it('runs the fixed eight Android phases, force-stops between them, and emits val
     assert.equal(execution.error, undefined)
     assert.ok(
       execution.invocations.some(
-        ({ program, args }) => program.endsWith('/sdkmanager') && !args.includes('emulator'),
+        ({ program, args }) => program === 'sdkmanager' && !args.includes('emulator'),
       ),
-      'SDK manager must not install over the separately pinned emulator',
+      'SDK manager must resolve from setup-android PATH and not install over the pinned emulator',
+    )
+    assert.ok(
+      execution.invocations.some(
+        ({ program, args }) => program === 'avdmanager' && args[0] === 'create',
+      ),
+      'AVD manager must resolve from setup-android PATH',
     )
     assert.deepEqual(execution.versionProbes, [execution.emulatorPath])
     const instrumentCalls = execution.commands.filter(

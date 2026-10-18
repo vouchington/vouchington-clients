@@ -111,7 +111,7 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
   } catch {
     fail('KVM is unavailable to the emulator runner')
   }
-  const sdkManager = join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'sdkmanager')
+  const sdkManager = 'sdkmanager'
   runCommand(
     sdkManager,
     [
@@ -124,7 +124,7 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
   )
   const avdName = `paired-native-${runId}`
   runCommand(
-    join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'avdmanager'),
+    'avdmanager',
     [
       'create',
       'avd',
