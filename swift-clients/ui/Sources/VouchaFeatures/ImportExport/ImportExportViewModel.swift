@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import VouchaLocalization
 import VouchaModels
 
 public enum ImportExportValidationError: LocalizedError, Equatable {
@@ -53,7 +54,15 @@ public final class ImportExportViewModel {
     public internal(set) var batchId: String?
     public internal(set) var isWorking = false
     public internal(set) var isMonitoring = false
-    public internal(set) var errorMessage: String?
+    public internal(set) var errorMessage: String? {
+        didSet { errorMessageKey = nil }
+    }
+
+    var errorMessageKey: UiMessageKey?
+    var errorText: UiVerbatimText? {
+        errorMessageKey.map { .message($0) } ?? errorMessage.map(UiVerbatimText.verbatim)
+    }
+
     public internal(set) var exportURL: URL?
 
     let service: ImportExportService

@@ -1,6 +1,8 @@
 import Foundation
 import VouchaModels
 
+enum SourceStatusPageError: Error { case invalidPage }
+
 struct SourceImportPages {
     var cursor: String?
     var cursors: Set<String> = []
@@ -14,12 +16,12 @@ struct SourceImportPages {
             guard page.import.totalRows == summary.totalRows,
                   page.import.completedRows + page.import.failedRows >= summary.completedRows + summary.failedRows,
                   page.import.pendingRows <= summary.pendingRows
-            else { throw URLError(.badServerResponse) }
+            else { throw SourceStatusPageError.invalidPage }
         }
         let next = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : nil
         if page.pageInfo.hasNextPage {
             guard !page.rows.isEmpty, let next, !next.isEmpty, !cursors.contains(next)
-            else { throw URLError(.badServerResponse) }
+            else { throw SourceStatusPageError.invalidPage }
         }
         if summary == nil { startedTerminal = page.import.pendingRows == 0 || page.import.completedAt != nil }
         for row in page.rows {
@@ -45,7 +47,7 @@ extension ImportExportViewModel {
         guard generation == self.generation, batchId == self.batchId else { throw CancellationError() }
         guard page.import.id == batchId else {
             if sourcePages.cursor == nil { return nil }
-            throw URLError(.badServerResponse)
+            throw SourceStatusPageError.invalidPage
         }
         let snapshot = try sourcePages.accept(page)
         if snapshot != nil {

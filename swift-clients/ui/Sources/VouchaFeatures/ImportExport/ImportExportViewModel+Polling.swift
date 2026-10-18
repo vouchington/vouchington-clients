@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaLocalization
 import VouchaModels
 
 extension ImportExportViewModel {
@@ -30,6 +31,7 @@ extension ImportExportViewModel {
     }
 
     func startMonitoring(batchId: String) {
+        errorMessageKey = nil
         generation += 1
         let currentGeneration = generation
         monitorTask?.cancel()
@@ -68,12 +70,21 @@ extension ImportExportViewModel {
                 try await delay()
             } catch is CancellationError {
                 return
+            } catch is SourceStatusPageError {
+                recordSourcePageError(batchId: batchId, generation: generation)
+                return
             } catch {
                 guard generation == self.generation else { return }
                 errorMessage = Self.message(for: error)
                 return
             }
         }
+    }
+
+    private func recordSourcePageError(batchId: String, generation: Int) {
+        guard !Task.isCancelled, generation == self.generation, batchId == self.batchId else { return }
+        errorMessage = nil
+        errorMessageKey = .nativeSwiftImportExportUnknownError
     }
 
     private func isNonRegressing(_ candidate: RssFeedImportSummary) -> Bool {

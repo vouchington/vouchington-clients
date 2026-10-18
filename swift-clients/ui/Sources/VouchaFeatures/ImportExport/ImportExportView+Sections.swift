@@ -68,7 +68,7 @@ extension ImportExportView {
                     ), role: .cancel) { viewModel.stopMonitoring() }
                 } else if viewModel.canResumeMonitoring {
                     Button(UiMessages.string(
-                        viewModel.errorMessage == nil
+                        viewModel.errorText == nil
                             ? .nativeSwiftImportExportResumeMonitoring
                             : .nativeSwiftImportExportTryStatusAgain,
                         locale: nativeUiLocale

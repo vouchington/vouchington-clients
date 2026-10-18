@@ -1,5 +1,8 @@
 import Foundation
+import Observation
+import VouchaCore
 @testable import VouchaFeatures
+import VouchaLocalization
 import VouchaModels
 import XCTest
 
@@ -65,7 +68,7 @@ final class ImportExportPaginationTests: XCTestCase {
             let model = makeModel(recorder)
             await model.importText()
             await model.monitorTask?.value
-            XCTAssertNotNil(model.errorMessage)
+            XCTAssertNotNil(model.errorText)
             let calls = await recorder.cursors
             XCTAssertEqual(calls.count, 2)
             XCTAssertTrue(model.canResumeMonitoring)
@@ -177,11 +180,70 @@ final class ImportExportPaginationTests: XCTestCase {
             let model = makeModel(recorder)
             await model.importText()
             await model.monitorTask?.value
-            XCTAssertNotNil(model.errorMessage)
+            XCTAssertNotNil(model.errorText)
             XCTAssertTrue(model.results.isEmpty)
             XCTAssertTrue(model.canResumeMonitoring)
             let calls = await recorder.cursors
             XCTAssertEqual(calls, [nil, "next"])
+        }
+    }
+
+    func testTypedValidationErrorsRefreshWithAppLocaleAndClearDuringHeldRetry() async throws {
+        for failure in ["cursor", "foreign", "regression"] {
+            let invalidSummary = RssFeedImportSummary(
+                id: failure == "foreign" ? "foreign" : "batch", totalRows: 2,
+                completedRows: failure == "regression" ? 0 : 2, failedRows: 0,
+                pendingRows: failure == "regression" ? 2 : 0, completedAt: nil,
+                createdAt: Date(timeIntervalSince1970: 0)
+            )
+            let invalid = failure == "cursor"
+                ? page([row("2", .error)], terminal: true, hasNext: true)
+                : RssFeedImportStatus(import: invalidSummary, rows: [row("2", .error)])
+            let requested = expectation(description: "retry held")
+            let recorder = SourcePageRecorder([
+                .page(page([row("1", .followed)], cursor: "next", terminal: true)),
+                .page(invalid), .held(requested)
+            ])
+            let model = makeModel(recorder)
+            await model.importText()
+            await model.monitorTask?.value
+            XCTAssertEqual(model.errorMessageKey, .nativeSwiftImportExportUnknownError)
+            XCTAssertNil(model.errorMessage)
+            let typed = try XCTUnwrap(model.errorText)
+            let locale = UiLocaleController(savedUiLocale: "es", preferredLanguages: [])
+            let spanish = locale.string(typed)
+            XCTAssertEqual(spanish, locale.string(.nativeSwiftImportExportUnknownError))
+            locale.update(savedUiLocale: "fr")
+            XCTAssertEqual(locale.string(typed), locale.string(.nativeSwiftImportExportUnknownError))
+            XCTAssertNotEqual(locale.string(typed), spanish)
+            let cleared = expectation(description: "typed error cleared")
+            withObservationTracking { _ = model.errorText } onChange: { cleared.fulfill() }
+            model.resumeMonitoring()
+            await fulfillment(of: [requested, cleared], timeout: 2)
+            XCTAssertNil(model.errorText)
+            await recorder.release(page([row("2", .followed)], terminal: true))
+            await model.monitorTask?.value
+            let calls = await recorder.cursors
+            let submissions = await recorder.submissions
+            XCTAssertEqual(calls, [nil, "next", "next"])
+            XCTAssertEqual(submissions, 1)
+            XCTAssertEqual(model.results.map(\.id), ["1", "2"])
+        }
+    }
+
+    func testTransportAndServerDetailsRemainVerbatimAcrossAppLocaleChanges() async throws {
+        for failure in [SourcePageRecorder.Step.failure, .serverFailure] {
+            let recorder = SourcePageRecorder([failure])
+            let model = makeModel(recorder)
+            await model.importText()
+            await model.monitorTask?.value
+            let raw = try XCTUnwrap(model.errorMessage)
+            XCTAssertNil(model.errorMessageKey)
+            XCTAssertEqual(model.errorText, .verbatim(raw))
+            let locale = UiLocaleController(savedUiLocale: "es", preferredLanguages: [])
+            XCTAssertEqual(try locale.string(XCTUnwrap(model.errorText)), raw)
+            locale.update(savedUiLocale: "fr")
+            XCTAssertEqual(try locale.string(XCTUnwrap(model.errorText)), raw)
         }
     }
 
@@ -197,7 +259,7 @@ final class ImportExportPaginationTests: XCTestCase {
 }
 
 private actor SourcePageRecorder {
-    enum Step { case page(RssFeedImportStatus), failure, held(XCTestExpectation) }
+    enum Step { case page(RssFeedImportStatus), failure, serverFailure, held(XCTestExpectation) }
     private var steps: [Step]
     private let submissionTerminal: Bool
     private var continuation: CheckedContinuation<RssFeedImportStatus, Never>?
@@ -234,6 +296,11 @@ private actor SourcePageRecorder {
         switch steps.removeFirst() {
         case let .page(page): return page
         case .failure: throw URLError(.cannotConnectToHost)
+        case .serverFailure: throw VouchaError.apiMessage(
+                statusCode: 503,
+                preconditionCode: nil,
+                message: "Server boundary detail"
+            )
         case let .held(requested):
             return await withCheckedContinuation { continuation in
                 self.continuation = continuation
