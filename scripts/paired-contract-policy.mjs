@@ -6,6 +6,7 @@ export const pairedRepositories = Object.freeze({
 const shaPattern = /^[0-9a-f]{40}$/u
 const numberPattern = /^[1-9][0-9]{0,8}$/u
 const maintainerPermissions = new Set(['admin', 'maintain'])
+const nativeTestProfiles = new Set(['cookie-snapshot', 'pending-turn-recovery'])
 
 function fail(message) {
   throw new Error(`Paired contract attestation failed: ${message}`)
@@ -70,9 +71,16 @@ export function validateDispatch({
       'expected producer head SHA',
     ),
     producerNumber: requiredNumber(inputs?.producerPullRequest, 'producer pull request number'),
+    nativeTestProfile: requiredNativeTestProfile(inputs?.nativeTestProfile, 'native test profile'),
     reviewedBothSnapshots: true,
     clientsPermission,
   })
+}
+
+function requiredNativeTestProfile(value, label) {
+  if (typeof value !== 'string' || !nativeTestProfiles.has(value))
+    fail(`${label} must be one of the fixed native test profiles`)
+  return value
 }
 
 function repositoryName(value, label) {

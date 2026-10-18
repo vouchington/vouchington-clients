@@ -1,10 +1,8 @@
 import { dirname, join } from 'node:path'
 import { once } from 'node:events'
-import {
-  androidPhases,
-  createInstrumentationResult,
-  parseInstrumentationOutput,
-} from './paired-native-test-evidence.mjs'
+import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
+import { createInstrumentationResult } from './paired-native-test-runtime-result.mjs'
+import { parseInstrumentationOutput } from './paired-native-test-evidence.mjs'
 
 async function waitForBoot(runCommand, sleep) {
   runCommand('adb', ['wait-for-device'], { timeout: 120000 })
@@ -20,6 +18,7 @@ export async function runAndroidSession({
   emulatorPath,
   avdName,
   runId,
+  nativeTestProfile,
   clientsMergeSha,
   apkSha256,
   appApk,
@@ -111,7 +110,7 @@ export async function runAndroidSession({
     )
       throw new Error('instrumentation runner package does not target the reviewed application')
     const phases = []
-    for (const method of androidPhases) {
+    for (const method of androidPhasesForProfile(nativeTestProfile)) {
       const [className, methodName] = method.split('#')
       const output = runCommand(
         'adb',
@@ -133,6 +132,7 @@ export async function runAndroidSession({
     }
     const result = createInstrumentationResult({
       runId,
+      nativeTestProfile,
       clientsMergeSha,
       apkSha256,
       emulator: {

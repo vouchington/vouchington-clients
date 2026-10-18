@@ -44,6 +44,7 @@ it('requires exact reviewed PR heads and explicit operator review', async () => 
     'clients_pull_request:',
     'expected_clients_head_sha:',
     'reviewed_both_snapshots:',
+    'native_test_profile:',
   ])
     assert.ok(workflow.includes(input), `missing dispatch input ${input}`)
   assert.match(workflow, /GITHUB_REF: \$\{\{ github\.ref \}\}/u)
@@ -52,6 +53,22 @@ it('requires exact reviewed PR heads and explicit operator review', async () => 
   assert.match(workflow, /GITHUB_RUN_ATTEMPT: \$\{\{ github\.run_attempt \}\}/u)
   assert.match(workflow, /permissions:\n  contents: read\n  pull-requests: read/u)
   assert.match(workflow, /run_native_tests:[\s\S]*default: false/u)
+  assert.match(
+    workflow,
+    /native_test_profile:[\s\S]*type: choice[\s\S]*cookie-snapshot[\s\S]*pending-turn-recovery/u,
+  )
+})
+
+it('passes the selected profile to every authenticated live-pair recapture', async () => {
+  const workflow = await readWorkflow()
+  for (const name of [
+    'Resolve and bind the reviewed pull request snapshots',
+    'Recheck live identities and write exact informational evidence',
+    'Bind exact artifacts and recheck live pair',
+  ]) {
+    const step = stepBlock(workflow, name)
+    assert.match(step, /INPUT_NATIVE_TEST_PROFILE: \$\{\{ inputs\.native_test_profile \}\}/u)
+  }
 })
 
 it('isolates candidate code from every authenticated identity-resolution step', async () => {
@@ -122,19 +139,31 @@ it('checks out captured immutable PR merge SHAs without persisting credentials',
 it('keeps native test execution opt-in, isolated, and informational', async () => {
   const workflow = await readWorkflow()
   const linux = jobBlock(workflow, 'native-linux-tests')
+  const macSwift = jobBlock(workflow, 'native-swift-core-macos')
   const android = jobBlock(workflow, 'native-android-build')
   const emulator = jobBlock(workflow, 'native-android-emulator')
   const finalizer = jobBlock(workflow, 'finalize-native-tests')
-  for (const block of [linux, android, emulator, finalizer])
+  for (const block of [linux, macSwift, android, emulator, finalizer])
     assert.match(block, /if: \$\{\{ inputs\.run_native_tests \}\}/u)
   assert.match(linux, /runs-on: ubuntu-latest/u)
+  assert.match(macSwift, /runs-on: macos-latest/u)
   assert.match(android, /runs-on: macos-latest/u)
   assert.match(emulator, /runs-on: ubuntu-24\.04/u)
-  for (const block of [linux, android, emulator]) {
+  for (const block of [linux, macSwift, android, emulator]) {
     assert.match(block, /permissions:\n      contents: read/u)
     assert.doesNotMatch(block, /GITHUB_TOKEN:|github\.token|secrets\.|actions\/cache/u)
     assert.match(block, /persist-credentials: false/u)
   }
+  assert.match(linux, /client-root: clients-candidate[\s\S]*tool: swift/u)
+  assert.match(linux, /client-root: clients-candidate[\s\S]*tool: dotnet/u)
+  assert.match(linux, /working-directory: clients-candidate[\s\S]*mise exec swift/u)
+  assert.match(linux, /working-directory: clients-candidate[\s\S]*mise exec -- dotnet test/u)
+  assert.match(macSwift, /client-root: clients-candidate[\s\S]*tool: swift/u)
+  assert.match(macSwift, /working-directory: clients-candidate[\s\S]*mise exec swift/u)
+  assert.match(macSwift, /swift-clients\/core/u)
+  assert.match(workflow, /INPUT_NATIVE_TEST_PROFILE: \$\{\{ inputs\.native_test_profile \}\}/u)
+  assert.match(workflow, /NATIVE_TEST_PROFILE: \$\{\{ inputs\.native_test_profile \}\}/u)
+  assert.match(workflow, /needs\.native-swift-core-macos\.result/u)
   assert.match(
     android,
     /swift test --package-path "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android"/u,

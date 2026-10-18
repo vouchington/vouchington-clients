@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { access, lstat, mkdir, writeFile } from 'node:fs/promises'
 import { constants, createWriteStream } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
 import { validateNativeAbiEntries, verifyApkBundle } from './paired-native-test-evidence.mjs'
 import { runAndroidSession } from './paired-native-android-session.mjs'
 
@@ -85,15 +86,17 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
   const resultPath = env.RUNTIME_RESULT_PATH
   const logPath = env.EMULATOR_LOG_PATH
   const clientsMergeSha = env.CLIENTS_MERGE_SHA
+  const nativeTestProfile = env.NATIVE_TEST_PROFILE
   const runId = env.GITHUB_RUN_ID
   const runAttempt = Number(env.GITHUB_RUN_ATTEMPT)
   if (
-    ![apkRoot, resultPath, logPath, clientsMergeSha, runId].every(
+    ![apkRoot, resultPath, logPath, clientsMergeSha, runId, nativeTestProfile].every(
       value => typeof value === 'string' && value.length > 0,
     )
   )
     fail('required runtime inputs are missing')
   if (runAttempt !== 1) fail('rerun attempts are not accepted')
+  androidPhasesForProfile(nativeTestProfile)
   const sdkRoot = env.ANDROID_HOME ?? env.ANDROID_SDK_ROOT
   if (!sdkRoot) fail('Android SDK root is missing')
   const emulatorPath = await verifyPinnedEmulatorPath(env.RUNNER_TEMP, env.PINNED_EMULATOR_PATH)
@@ -158,6 +161,7 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
     emulatorPath,
     avdName,
     runId,
+    nativeTestProfile,
     clientsMergeSha,
     apkSha256: apkDigests['app-debug.apk'],
     appApk,

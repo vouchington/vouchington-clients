@@ -6,7 +6,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { it } from 'node:test'
-import { androidPhases } from '../scripts/paired-native-test-evidence.mjs'
+import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 import { runAndroidSession } from '../scripts/paired-native-android-session.mjs'
 
 it('opens the emulator log before attaching it to a real child process', async () => {
@@ -46,6 +46,7 @@ it('opens the emulator log before attaching it to a real child process', async (
       emulatorPath: process.execPath,
       avdName: 'paired-native-test',
       runId: '1234',
+      nativeTestProfile: 'pending-turn-recovery',
       clientsMergeSha: 'a'.repeat(40),
       apkSha256: 'b'.repeat(64),
       appApk: join(root, 'app-debug.apk'),

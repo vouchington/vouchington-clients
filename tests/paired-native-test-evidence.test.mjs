@@ -5,16 +5,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { it } from 'node:test'
 import {
-  androidPhases,
   bindArtifact,
-  createInstrumentationResult,
   parseInstrumentationOutput,
   sha256,
-  validateInstrumentationResult,
   validateNativeAbiEntries,
   verifyApkBundle,
 } from '../scripts/paired-native-test-evidence.mjs'
+import {
+  createInstrumentationResult,
+  validateInstrumentationResult,
+} from '../scripts/paired-native-test-runtime-result.mjs'
 import { runPairedAndroidEmulator } from '../scripts/paired-native-android-emulator.mjs'
+import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 
 it('binds an artifact to exact action metadata and the current run', () => {
   const digest = 'a'.repeat(64)
@@ -145,6 +147,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
     schema: 1,
     runId: '42',
     runAttempt: 1,
+    nativeTestProfile: 'pending-turn-recovery',
     clientsMergeSha: 'a'.repeat(40),
     apkSha256: 'b'.repeat(64),
     emulator,
@@ -153,6 +156,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
   assert.equal(
     validateInstrumentationResult(value, {
       runId: '42',
+      nativeTestProfile: 'pending-turn-recovery',
       clientsMergeSha: 'a'.repeat(40),
       apkSha256: 'b'.repeat(64),
     }),
@@ -164,6 +168,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
         { ...value, phases: value.phases.slice(1) },
         {
           runId: '42',
+          nativeTestProfile: 'pending-turn-recovery',
           clientsMergeSha: 'a'.repeat(40),
           apkSha256: 'b'.repeat(64),
         },
@@ -174,6 +179,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
     () =>
       validateInstrumentationResult(value, {
         runId: '43',
+        nativeTestProfile: 'pending-turn-recovery',
         clientsMergeSha: 'a'.repeat(40),
         apkSha256: 'b'.repeat(64),
       }),
@@ -183,6 +189,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
     () =>
       validateInstrumentationResult(value, {
         runId: '42',
+        nativeTestProfile: 'pending-turn-recovery',
         clientsMergeSha: 'c'.repeat(40),
         apkSha256: 'b'.repeat(64),
       }),
@@ -194,6 +201,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
         { ...value, emulator: { ...emulator, version: 37 } },
         {
           runId: '42',
+          nativeTestProfile: 'pending-turn-recovery',
           clientsMergeSha: 'a'.repeat(40),
           apkSha256: 'b'.repeat(64),
         },
@@ -230,6 +238,7 @@ function instrumentationOutput(method, { missingResult = false, failure = false 
 }
 
 async function runDriver({
+  nativeTestProfile = 'pending-turn-recovery',
   wrongPackage = false,
   failedMethod,
   missingMethod,
@@ -314,6 +323,7 @@ async function runDriver({
       CLIENTS_MERGE_SHA: 'a'.repeat(40),
       GITHUB_RUN_ID: '7654',
       GITHUB_RUN_ATTEMPT: '1',
+      NATIVE_TEST_PROFILE: nativeTestProfile,
       RUNTIME_RESULT_PATH: join(root, 'runtime', 'runtime-result.json'),
       EMULATOR_LOG_PATH: join(root, 'logs', 'emulator.log'),
     },
@@ -396,6 +406,7 @@ it('runs the fixed eight Android phases, force-stops between them, and emits val
     assert.equal(
       createInstrumentationResult({
         runId: json.runId,
+        nativeTestProfile: json.nativeTestProfile,
         clientsMergeSha: json.clientsMergeSha,
         apkSha256: json.apkSha256,
         emulator: json.emulator,
@@ -406,6 +417,7 @@ it('runs the fixed eight Android phases, force-stops between them, and emits val
     assert.equal(
       validateInstrumentationResult(json, {
         runId: '7654',
+        nativeTestProfile: 'pending-turn-recovery',
         clientsMergeSha: 'a'.repeat(40),
         apkSha256: sha256(Buffer.from('verified app apk bytes')),
       }),

@@ -2,12 +2,8 @@ import { join } from 'node:path'
 import { lstat, readFile, writeFile } from 'node:fs/promises'
 import { assertPairSnapshotUnchanged } from './paired-contract-policy.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
-import {
-  bindArtifact,
-  listRegularFiles,
-  validateInstrumentationResult,
-  verifyApkBundle,
-} from './paired-native-test-evidence.mjs'
+import { bindArtifact, listRegularFiles, verifyApkBundle } from './paired-native-test-evidence.mjs'
+import { validateInstrumentationResult } from './paired-native-test-runtime-result.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
 import { assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
 
@@ -51,8 +47,10 @@ export async function finalizeNativeTestsCommand() {
   const runId = required(process.env.GITHUB_RUN_ID, 'workflow run ID')
   const runAttempt = Number(required(process.env.GITHUB_RUN_ATTEMPT, 'workflow run attempt'))
   if (runAttempt !== 1) fail('rerun attempts are not accepted')
+  const nativeTestProfile = required(process.env.INPUT_NATIVE_TEST_PROFILE, 'native test profile')
   for (const job of [
     'NATIVE_LINUX_RESULT',
+    'NATIVE_SWIFT_CORE_MACOS_RESULT',
     'NATIVE_ANDROID_BUILD_RESULT',
     'NATIVE_ANDROID_EMULATOR_RESULT',
   ])
@@ -107,6 +105,8 @@ export async function finalizeNativeTestsCommand() {
   if (snapshotBytes.toString('base64url') !== encodedSnapshot)
     fail('captured pair snapshot encoding is invalid')
   const pairSnapshot = JSON.parse(snapshotBytes.toString('utf8'))
+  if (pairSnapshot.dispatch?.nativeTestProfile !== nativeTestProfile)
+    fail('native test profile differs from the captured operator dispatch')
   if (
     JSON.stringify(contractManifest.producer) !== JSON.stringify(pairSnapshot.pair.producer) ||
     JSON.stringify(contractManifest.clients) !== JSON.stringify(pairSnapshot.pair.clients)
@@ -123,6 +123,7 @@ export async function finalizeNativeTestsCommand() {
   const apkHashes = await verifyApkBundle(apkRoot, contractManifest.clients.merge.sha)
   validateInstrumentationResult(result, {
     runId,
+    nativeTestProfile,
     clientsMergeSha: contractManifest.clients.merge.sha,
     apkSha256: apkHashes['app-debug.apk'],
   })
@@ -137,7 +138,12 @@ export async function finalizeNativeTestsCommand() {
     runAttempt,
     reviewedPair: pairSnapshot.pair,
     artifacts: expectedArtifacts,
-    linuxTests: 'success',
+    nativeTestProfile,
+    nativeTests: {
+      swiftCoreLinux: 'success',
+      dotnetCoreLinux: 'success',
+      swiftCoreMacOS: 'success',
+    },
     androidBuild: { status: 'success', apkSha256: apkHashes },
     androidRuntime: result,
     livePairRechecked: true,

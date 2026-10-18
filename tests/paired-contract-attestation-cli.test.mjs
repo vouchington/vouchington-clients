@@ -39,6 +39,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     assert.equal(snapshot.pair.producer.base.sha, '3'.repeat(40))
     assert.equal(snapshot.pair.producer.main.sha, 'b'.repeat(40))
     assert.equal(snapshot.dispatch.clientsPermission, 'maintain')
+    assert.equal(snapshot.dispatch.nativeTestProfile, 'cookie-snapshot')
 
     const trustedRoot = join(temporaryRoot, 'trusted')
     const evidenceRoot = join(temporaryRoot, 'evidence')

@@ -7,7 +7,8 @@ import { it } from 'node:test'
 import { declaredFilamentsContractPaths } from '../scripts/contracts.mjs'
 import { pairedRepositories } from '../scripts/paired-contract-policy.mjs'
 import { finalizeNativeTestsCommand } from '../scripts/paired-native-test-finalize.mjs'
-import { androidPhases, sha256 } from '../scripts/paired-native-test-evidence.mjs'
+import { sha256 } from '../scripts/paired-native-test-evidence.mjs'
+import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 import { startFakeGitHub } from './paired-contract-cli-test-support.mjs'
 
 function finalizerSnapshot(repository, number, baseSha, headSha, mergeSha) {
@@ -85,7 +86,11 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
       files,
     },
   }
-  const pairSnapshot = { pair: { producer, clients } }
+  const nativeTestProfile = 'pending-turn-recovery'
+  const pairSnapshot = {
+    dispatch: { nativeTestProfile },
+    pair: { producer, clients },
+  }
   const app = Buffer.from('app candidate')
   const testApk = Buffer.from('test candidate')
   await writeFile(join(evidenceRoot, 'paired-attestation.json'), JSON.stringify(manifest))
@@ -102,6 +107,7 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
       schema: 1,
       runId,
       runAttempt: 1,
+      nativeTestProfile,
       clientsMergeSha: clients.merge.sha,
       apkSha256: sha256(app),
       emulator: {
@@ -146,8 +152,10 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     INPUT_EXPECTED_PRODUCER_HEAD_SHA: producer.head.sha,
     INPUT_CLIENTS_PULL_REQUEST: '376',
     INPUT_EXPECTED_CLIENTS_HEAD_SHA: clients.head.sha,
+    INPUT_NATIVE_TEST_PROFILE: nativeTestProfile,
     INPUT_REVIEWED_BOTH_SNAPSHOTS: 'true',
     NATIVE_LINUX_RESULT: 'success',
+    NATIVE_SWIFT_CORE_MACOS_RESULT: 'success',
     NATIVE_ANDROID_BUILD_RESULT: 'success',
     NATIVE_ANDROID_EMULATOR_RESULT: 'success',
     CONTRACT_ARTIFACT_ID: '101',
@@ -178,8 +186,15 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
       await readFile(join(evidenceRoot, 'paired-native-test-evidence.json'), 'utf8'),
     )
     assert.equal(output.classification, 'untrusted-candidate-execution-informational')
+    assert.equal(output.nativeTestProfile, nativeTestProfile)
     assert.equal(output.androidRuntime.phases.length, androidPhases.length)
     assert.equal(output.livePairRechecked, true)
+    process.env.INPUT_NATIVE_TEST_PROFILE = 'cookie-snapshot'
+    await assert.rejects(
+      finalizeNativeTestsCommand(),
+      /differs from the captured operator dispatch/u,
+    )
+    process.env.INPUT_NATIVE_TEST_PROFILE = nativeTestProfile
     const changedManifest = structuredClone(manifest)
     changedManifest.producer.base.sha = 'c'.repeat(40)
     await writeFile(join(evidenceRoot, 'paired-attestation.json'), JSON.stringify(changedManifest))
