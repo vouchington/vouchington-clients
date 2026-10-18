@@ -95,4 +95,29 @@ final class AndroidTranscriptErrorScopeTests: XCTestCase {
         XCTAssertNil(viewModel.chatErrorMessageKey)
         XCTAssertEqual(viewModel.selectedConversationID, newID)
     }
+
+    func testGenerationFailureRestoredToEmptyDraftKeepsGenerationCopy() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        try AndroidTranscriptTestFactory.enqueueExistingConversation(on: fixture.recorder)
+        let runtime = DelayedTranscriptRuntime()
+        let viewModel = AndroidTranscriptTestFactory.makeViewModel(runtime: runtime)
+        viewModel.modelState = .available
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
+        viewModel.draft = "Restore this failed question"
+        let send = Task { await viewModel.sendOnDevice() }
+        try await runtime.waitUntilStarted()
+        await runtime.fail("generation unavailable")
+        await send.value
+        XCTAssertEqual(viewModel.draft, "Restore this failed question")
+        XCTAssertNil(viewModel.failedGenerationForSelectedConversation)
+        XCTAssertEqual(viewModel.chatErrorMessageKey, .nativeSwiftAndroidGenerationFailed)
+        viewModel.errorMessage = "A later settings operation failed"
+        XCTAssertEqual(viewModel.chatErrorKind, .other)
+        XCTAssertEqual(viewModel.chatErrorMessageKey, .nativeSwiftEmptyStateUnableToLoad)
+        viewModel.resetForAccountTransition()
+        XCTAssertEqual(viewModel.chatErrorKind, .other)
+        XCTAssertNil(viewModel.chatErrorMessageKey)
+    }
+
 }

@@ -99,7 +99,7 @@ struct AndroidChatView: View {
                         Button {
                             Task { await viewModel.loadMoreConversations() }
                         } label: {
-                            Image(systemName: "ellipsis")
+                            Label(message(.nativeSwiftCommonLoadMore), systemImage: "ellipsis")
                         }
                     }
                 } label: {

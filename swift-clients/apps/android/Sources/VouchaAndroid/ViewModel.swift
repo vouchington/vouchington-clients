@@ -38,7 +38,11 @@ final class ViewModel {
     var modelState: AndroidModelState = .checking
     var messages: [AndroidChatMessage] = []
     var draft = ""
-    var errorMessage: String?
+    var errorMessage: String? {
+        didSet { chatErrorKind = .other }
+    }
+
+    var chatErrorKind = AndroidChatErrorKind.other
     var conversationCreationFailed = false
     var failedConversationListLoad: AndroidTranscriptLoadFailureRecord?
     var failedConversationHistoryLoad: AndroidTranscriptLoadFailureRecord?
@@ -113,6 +117,7 @@ final class ViewModel {
         } catch {
             modelState = .unavailable
             errorMessage = error.localizedDescription
+            chatErrorKind = .model
         }
     }
 
@@ -126,6 +131,7 @@ final class ViewModel {
         } catch {
             modelState = .downloadable
             errorMessage = error.localizedDescription
+            chatErrorKind = .model
         }
     }
 

@@ -87,6 +87,7 @@ extension ViewModel {
             draft = attempt.submitted
         }
         errorMessage = error.localizedDescription
+        chatErrorKind = .generation
     }
 
     private func retainFailedGeneration(_ text: String, for conversationID: String, error: Error) {

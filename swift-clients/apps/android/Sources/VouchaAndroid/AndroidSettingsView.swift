@@ -49,7 +49,7 @@ struct AndroidSettingsView: View {
                     Text(endpointStatus)
                 }
             }
-            Section(UiMessages.string(.nativeAuthSignIn, locale: locale)) {
+            Section(message(.nativeSwiftProfileSignOut)) {
                 Button(message(.nativeSwiftProfileSignOut), role: .destructive) {
                     Task { await signOut() }
                 }

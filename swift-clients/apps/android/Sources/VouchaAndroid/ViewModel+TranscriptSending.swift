@@ -93,7 +93,9 @@ extension ViewModel {
               let client = apiClient,
               let userID = currentAccountUserID,
               !isGenerating,
-              !isLoadingMessages
+              !isLoadingMessages,
+              !isLoadingConversations,
+              !isCreatingConversation
         else { return }
         let accountRevision = accountGeneration
         let conversationRevision = conversationGeneration

@@ -1,13 +1,22 @@
 import VouchaCore
 import VouchaLocalization
 
+enum AndroidChatErrorKind: Equatable {
+    case other
+    case model
+    case generation
+}
+
 extension ViewModel {
     var chatErrorMessageKey: UiMessageKey? {
         guard errorMessage != nil || transcriptLoadFailed else { return nil }
         if transcriptLoadFailed { return .nativeSwiftEmptyStateUnableToLoad }
         if pendingTurnForSelectedConversation != nil { return .nativeSwiftChatUnableToPersistOnDeviceResponse }
         if conversationCreationFailed { return .nativeSwiftChatUnableToCreateConversation }
-        return .nativeSwiftAndroidGenerationFailed
+        if chatErrorKind == .generation || failedGenerationForSelectedConversation !=
+            nil { return .nativeSwiftAndroidGenerationFailed }
+        if chatErrorKind == .model { return .nativeSwiftAndroidModelUnavailable }
+        return .nativeSwiftEmptyStateUnableToLoad
     }
 
     var transcriptLoadFailure: AndroidTranscriptLoadFailure? {
