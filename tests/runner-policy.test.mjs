@@ -47,9 +47,16 @@ describe('GitHub-hosted runner policy', () => {
       const labels = [...workflow.matchAll(/^\s+runs-on:\s*(.+)$/gmu)].map(match => match[1].trim())
       assert.ok(labels.length > 0, `${name} must declare runs-on`)
       for (const label of labels) {
-        assert.ok(allowedLabels.has(label), `${name} uses disallowed runs-on ${label}`)
+        assert.ok(
+          allowedLabels.has(label) ||
+            (name === 'native-contract-tests.yml' && label === 'ubuntu-24.04'),
+          `${name} uses disallowed runs-on ${label}`,
+        )
       }
       if (name === 'native-contract-tests.yml') {
+        // The Android emulator needs one pinned public Linux image; no other job may use it.
+        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
+        assertRunner(workflow, 'test-swift-android-cookie', 'ubuntu-24.04')
         assert.equal(labels.filter(label => label === 'windows-latest').length, 2)
         const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
         assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)
