@@ -7,6 +7,21 @@ internal static partial class ApiFixtureCoverage
   private static Dictionary<string, ApiRequest> WithModerationParityEndpoints(
       this Dictionary<string, ApiRequest> registry)
   {
+    registry["native.moderation.appeals.member.default"] =
+        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Pending, mine: true);
+    registry["native.moderation.appeals.member.page-2"] = VouchaApiEndpoints.Appeals(
+        ModerationAppealStatus.Pending,
+        after: ApiFixtureLoader.QueryValue("native.moderation.appeals.member.page-2", "after"), mine: true);
+    registry["native.moderation.appeals.member.resolved"] =
+        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Resolved, mine: true);
+    registry["native.moderation.appeals.detail.member.default"] =
+        VouchaApiEndpoints.Appeal(Id("native.moderation.appeals.detail.member.default"));
+    registry["native.moderation.appeals.detail.member.sent"] =
+        VouchaApiEndpoints.Appeal(Id("native.moderation.appeals.detail.member.sent"));
+    registry["native.moderation.appeals.create.member.default"] = VouchaApiEndpoints.SubmitAppeal(
+        new ModerationAppealSubmissionRequest(
+            ModerationAppealTargetType.Suspension, null, ModerationAppealReason.Other,
+            "Please review this again."));
     registry["native.moderation.removed-posts.default"] =
         VouchaApiEndpoints.PersonalRemovedPosts();
     registry["native.moderation.removed-posts.page-2"] =

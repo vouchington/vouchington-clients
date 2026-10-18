@@ -104,7 +104,7 @@ final class MemberAppealsSuspensionMatchingTests: NativeRouteSurfaceViewModelTes
         contextSuspensionId: String? = nil,
         createdAt: String,
         includesTargetContext: Bool = true
-    ) throws -> ModerationAppeal {
+    ) throws -> ModerationAppealReadProjection {
         let contextId = contextSuspensionId ?? suspensionId ?? "missing-suspension"
         let context = """
         "target_context":{
@@ -118,6 +118,6 @@ final class MemberAppealsSuspensionMatchingTests: NativeRouteSurfaceViewModelTes
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(ModerationAppeal.self, from: Data(json.utf8))
+        return try decoder.decode(ModerationAppealReadProjection.self, from: Data(json.utf8))
     }
 }

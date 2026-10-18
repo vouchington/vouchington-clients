@@ -81,6 +81,20 @@ extension NativeRouteSurfaceViewModel {
     }
 
     private func loadAppealPage(client: APIClient, after: String?, mine: Bool) async throws -> NativeForwardPage {
+        if mine {
+            let response: MemberAppealListResponse = try await client.send(
+                .appeals(limit: 25, after: after, mine: true)
+            )
+            let rows = response.appeals.map {
+                forwardRow(
+                    id: $0.id,
+                    icon: "arrow.uturn.left.circle",
+                    title: rawText($0.caseId ?? $0.id),
+                    detail: appText($0.status.titleKey)
+                )
+            }
+            return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)
+        }
         let response: ModerationAppealListResponse = try await client.send(
             .appeals(limit: 25, after: after, mine: mine)
         )

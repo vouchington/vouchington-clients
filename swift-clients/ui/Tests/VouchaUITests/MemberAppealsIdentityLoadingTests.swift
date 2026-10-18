@@ -20,7 +20,7 @@ final class MemberAppealsIdentityLoadingTests: NativeRouteSurfaceViewModelTestCa
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
         let pending = try decoder.decode(
-            ModerationAppealListResponse.self,
+            MemberAppealListResponse.self,
             from: ModerationAppealsTestSupport.list([])
         )
 

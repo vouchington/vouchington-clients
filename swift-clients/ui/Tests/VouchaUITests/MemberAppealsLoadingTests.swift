@@ -79,7 +79,7 @@ final class MemberAppealsLoadingTests: NativeRouteSurfaceViewModelTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
         let response = try decoder.decode(
-            ModerationAppealListResponse.self,
+            MemberAppealListResponse.self,
             from: ModerationAppealsTestSupport.list([
                 ModerationAppealsTestSupport.appeal(
                     postId: "post-1",
@@ -446,12 +446,12 @@ final class MemberAppealsLoadingTests: NativeRouteSurfaceViewModelTestCase {
 
     private func decodedAppeals(
         _ appeals: [String] = [ModerationAppealsTestSupport.appeal()]
-    ) throws -> [ModerationAppeal] {
+    ) throws -> [ModerationAppealReadProjection] {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(
-            ModerationAppealListResponse.self,
+            MemberAppealListResponse.self,
             from: ModerationAppealsTestSupport.list(appeals)
         ).appeals
     }

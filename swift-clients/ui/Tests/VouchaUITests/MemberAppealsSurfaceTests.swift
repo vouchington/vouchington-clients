@@ -452,7 +452,7 @@ final class MemberAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         postId: String? = nil,
         suspensionId: String? = nil,
         replacing replacements: [(String, String)] = []
-    ) throws -> ModerationAppeal {
+    ) throws -> ModerationAppealReadProjection {
         var json = ModerationAppealsTestSupport.appeal(
             status: status,
             suspensionId: suspensionId,
@@ -468,7 +468,7 @@ final class MemberAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             json = json.replacingOccurrences(of: replacement.0, with: replacement.1)
         }
         return try JSONDecoder.vouchaFixtureDecoder.decode(
-            ModerationAppeal.self,
+            ModerationAppealReadProjection.self,
             from: Data(json.utf8)
         )
     }
