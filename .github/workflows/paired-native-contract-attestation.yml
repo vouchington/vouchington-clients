@@ -1,0 +1,345 @@
+name: Paired native contract review evidence
+run-name: >-
+  Paired native contract evidence for producer PR ${{ inputs.producer_pull_request }} and clients PR ${{ inputs.clients_pull_request }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      producer_pull_request:
+        description: Open Vouchington producer pull request number
+        required: true
+        type: string
+      expected_producer_head_sha:
+        description: Exact producer head SHA reviewed by the operator
+        required: true
+        type: string
+      clients_pull_request:
+        description: Open native clients pull request number
+        required: true
+        type: string
+      expected_clients_head_sha:
+        description: Exact clients head SHA reviewed by the operator
+        required: true
+        type: string
+      reviewed_both_snapshots:
+        description: Confirm both exact pull request snapshots above were reviewed
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: paired-native-contract-attestation-${{ inputs.producer_pull_request }}-${{ inputs.clients_pull_request }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve reviewed PR snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      pair_snapshot_base64: ${{ steps.snapshot.outputs.pair_snapshot_base64 }}
+      producer_merge_ref: ${{ steps.snapshot.outputs.producer_merge_ref }}
+      clients_merge_ref: ${{ steps.snapshot.outputs.clients_merge_ref }}
+    steps:
+      - name: Check out trusted clients main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+
+      - name: Set up Node.js from trusted clients main
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+
+      - name: Resolve and bind the reviewed pull request snapshots
+        id: snapshot
+        env:
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          INPUT_PRODUCER_PULL_REQUEST: ${{ inputs.producer_pull_request }}
+          INPUT_EXPECTED_PRODUCER_HEAD_SHA: ${{ inputs.expected_producer_head_sha }}
+          INPUT_CLIENTS_PULL_REQUEST: ${{ inputs.clients_pull_request }}
+          INPUT_EXPECTED_CLIENTS_HEAD_SHA: ${{ inputs.expected_clients_head_sha }}
+          INPUT_REVIEWED_BOTH_SNAPSHOTS: ${{ inputs.reviewed_both_snapshots }}
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs capture
+
+  candidate:
+    name: Validate isolated candidate snapshots
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out trusted clients main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+
+      - name: Set up Node.js from trusted clients main
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+
+      - name: Materialize the captured immutable PR snapshot
+        env:
+          PAIR_SNAPSHOT_BASE64: ${{ needs.resolve.outputs.pair_snapshot_base64 }}
+          PAIR_SNAPSHOT_PATH: ${{ runner.temp }}/paired-contract-${{ github.run_id }}-${{ github.run_attempt }}.json
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs materialize-snapshot
+
+      - name: Check out the exact producer merge snapshot as untrusted data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vouchington/vouchington
+          ref: ${{ needs.resolve.outputs.producer_merge_ref }}
+          path: producer-candidate
+          fetch-depth: 0
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+
+      - name: Check out the exact clients merge snapshot as untrusted data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vouchington/vouchington-clients
+          ref: ${{ needs.resolve.outputs.clients_merge_ref }}
+          path: clients-candidate
+          fetch-depth: 0
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+
+      - name: Verify immutable merge snapshots and trusted contract declaration
+        env:
+          PAIR_SNAPSHOT_PATH: ${{ runner.temp }}/paired-contract-${{ github.run_id }}-${{ github.run_attempt }}.json
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
+          GITHUB_SHA: ${{ github.sha }}
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs verify-checkouts
+
+      - name: Pull the pinned isolated exporter runtime
+        run: >-
+          docker pull --platform linux/amd64
+          node:26.12.0-bookworm@sha256:662de7348097c97cc0a43dd71649bf2f5b721da6587eb390c4ee4ad78213bcf1
+
+      - name: Fetch the exact reviewed exporter dependency bundle
+        env:
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKAGE_BUNDLE_ROOT"
+          node trusted-clients/scripts/fetch-paired-exporter-dependencies.mjs \
+            --producer-root "$PRODUCER_CANDIDATE_ROOT" \
+            --output-root "$PACKAGE_BUNDLE_ROOT"
+
+      - name: Verify candidate execution is isolated from runner credentials and host state
+        env:
+          PAIRED_ISOLATION_TEST_REQUIRED: 'true'
+          PAIRED_TEST_PRODUCER_ROOT: ${{ github.workspace }}/producer-candidate
+          PAIRED_EXPORTER_PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          node --test
+          trusted-clients/tests/paired-exporter-dependency-bundle.test.mjs
+          trusted-clients/tests/paired-contract-isolated-exporter.test.mjs
+
+      - name: Run the producer exporter in the isolated pinned runtime
+        env:
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          EXPORTER_OUTPUT_ROOT: ${{ runner.temp }}/paired-contract-exporter-${{ github.run_id }}-${{ github.run_attempt }}
+          PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+          EXPORTER_RUNTIME_EVIDENCE: ${{ runner.temp }}/paired-exporter-runtime-${{ github.run_id }}-${{ github.run_attempt }}.json
+        run: |
+          set -euo pipefail
+          mkdir -p "$EXPORTER_OUTPUT_ROOT"
+          node trusted-clients/scripts/run-isolated-native-exporter.mjs \
+            --producer-root "$PRODUCER_CANDIDATE_ROOT" \
+            --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
+            --output-root "$EXPORTER_OUTPUT_ROOT" \
+            --package-bundle-root "$PACKAGE_BUNDLE_ROOT" \
+            --runtime-evidence-path "$EXPORTER_RUNTIME_EVIDENCE"
+
+      - name: Stage the explicitly declared contract paths
+        env:
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+          EXPORTER_OUTPUT_ROOT: ${{ runner.temp }}/paired-contract-exporter-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$CONTRACT_STAGE_ROOT"
+          node trusted-clients/scripts/stage-native-contract.mjs \
+            --filaments-root "$PRODUCER_CANDIDATE_ROOT" \
+            --output-root "$CONTRACT_STAGE_ROOT" \
+            --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
+            --exporter-output-root "$EXPORTER_OUTPUT_ROOT"
+
+      - name: Assert extracted localization representatives
+        env:
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: >-
+          node trusted-clients/scripts/assert-extracted-localization.mjs
+          --contract-root "$CONTRACT_STAGE_ROOT"
+
+      - name: Check paired candidate generated localization against staged contract
+        env:
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: >-
+          node trusted-clients/scripts/contracts.mjs check
+          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+
+      - name: Record candidate checkout identities for final trusted validation
+        env:
+          PAIR_SNAPSHOT_PATH: ${{ runner.temp }}/paired-contract-${{ github.run_id }}-${{ github.run_attempt }}.json
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
+          PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs record-candidate
+
+      - name: Attach verified isolated runtime and dependency evidence
+        env:
+          EXPORTER_RUNTIME_EVIDENCE: ${{ runner.temp }}/paired-exporter-runtime-${{ github.run_id }}-${{ github.run_attempt }}.json
+          PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+        run: cp "$EXPORTER_RUNTIME_EVIDENCE" "$PAIRED_EVIDENCE_ROOT/exporter-runtime.json"
+
+      - name: Upload untrusted candidate contract data for final validation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: paired-native-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+  finalize:
+    name: Finalize trusted paired snapshot evidence
+    needs: [resolve, candidate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted clients main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+
+      - name: Set up Node.js from trusted clients main
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+
+      - name: Download untrusted candidate data
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.3.0
+        with:
+          name: paired-native-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Materialize the captured immutable PR snapshot
+        env:
+          PAIR_SNAPSHOT_BASE64: ${{ needs.resolve.outputs.pair_snapshot_base64 }}
+          PAIR_SNAPSHOT_PATH: ${{ runner.temp }}/paired-contract-${{ github.run_id }}-${{ github.run_attempt }}.json
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs materialize-snapshot
+
+      - name: Check out the exact producer merge snapshot as untrusted data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vouchington/vouchington
+          ref: ${{ needs.resolve.outputs.producer_merge_ref }}
+          path: producer-candidate
+          fetch-depth: 0
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+
+      - name: Check out the exact clients merge snapshot as untrusted data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vouchington/vouchington-clients
+          ref: ${{ needs.resolve.outputs.clients_merge_ref }}
+          path: clients-candidate
+          fetch-depth: 0
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+
+      - name: Verify immutable merge snapshots and trusted contract declaration
+        env:
+          PAIR_SNAPSHOT_PATH: ${{ runner.temp }}/paired-contract-${{ github.run_id }}-${{ github.run_attempt }}.json
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
+          GITHUB_SHA: ${{ github.sha }}
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs verify-checkouts
+
+      - name: Assert extracted localization representatives from untrusted data
+        env:
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: >-
+          node trusted-clients/scripts/assert-extracted-localization.mjs
+          --contract-root "$CONTRACT_STAGE_ROOT"
+
+      - name: Check exact candidate generated localization against untrusted data
+        env:
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: >-
+          node trusted-clients/scripts/contracts.mjs check
+          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+
+      - name: Recheck live identities and write exact informational evidence
+        env:
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          INPUT_PRODUCER_PULL_REQUEST: ${{ inputs.producer_pull_request }}
+          INPUT_EXPECTED_PRODUCER_HEAD_SHA: ${{ inputs.expected_producer_head_sha }}
+          INPUT_CLIENTS_PULL_REQUEST: ${{ inputs.clients_pull_request }}
+          INPUT_EXPECTED_CLIENTS_HEAD_SHA: ${{ inputs.expected_clients_head_sha }}
+          INPUT_REVIEWED_BOTH_SNAPSHOTS: ${{ inputs.reviewed_both_snapshots }}
+          PAIR_SNAPSHOT_BASE64: ${{ needs.resolve.outputs.pair_snapshot_base64 }}
+          PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          CONTRACT_STAGE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs create-manifest
+
+      - name: Upload informational paired contract evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: paired-native-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
