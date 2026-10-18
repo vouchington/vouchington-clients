@@ -488,6 +488,7 @@ jobs:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
           VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          GRADLE_USER_HOME: ${{ runner.temp }}/skip-swift-home/.cache/voucha/gradle
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
         run: |
           set -euo pipefail
@@ -495,6 +496,17 @@ jobs:
           mise exec swift@6.3.3 -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android" --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$RUNNER_TEMP/swift-android-downloads"
           mise exec -- env VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600 bash "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/tooling/pre-push.sh" --phase app
+          mise exec -- env \
+            HOME="$VOUCHA_SKIP_SWIFT_HOME" \
+            CFFIXED_USER_HOME="$VOUCHA_SKIP_SWIFT_HOME" \
+            TMPDIR="$RUNNER_TEMP/swift-tmp" \
+            ANDROID_NDK_ROOT="$VOUCHA_SKIP_SWIFT_HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30" \
+            ANDROID_NDK_HOME="$VOUCHA_SKIP_SWIFT_HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30" \
+            PATH="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/artifacts/skip/skip/skip.artifactbundle/bin:$PATH" \
+            VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600 \
+            "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/Android/gradlew" \
+            -p "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/Android" \
+            :app:assembleDebugAndroidTest
           mkdir -p "$RUNNER_TEMP/paired-apks"
           app_apk="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/Android/app/outputs/apk/debug/app-debug.apk"
           test_apk="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/Android/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"

@@ -140,7 +140,28 @@ it('keeps native test execution opt-in, isolated, and informational', async () =
     /swift test --package-path "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android"/u,
   )
   assert.match(android, /pre-push\.sh" --phase app/u)
-  assert.doesNotMatch(android, /gradlew.*assembleDebug/u)
+  const androidTestAssembly = android.indexOf(':app:assembleDebugAndroidTest')
+  const testApkCopy = android.indexOf('cp "$test_apk"')
+  assert.ok(androidTestAssembly > android.indexOf('--phase app'))
+  assert.ok(androidTestAssembly < testApkCopy)
+  assert.match(android, /HOME="\$VOUCHA_SKIP_SWIFT_HOME"/u)
+  assert.match(android, /CFFIXED_USER_HOME="\$VOUCHA_SKIP_SWIFT_HOME"/u)
+  assert.match(
+    android,
+    /GRADLE_USER_HOME: \$\{\{ runner\.temp \}\}\/skip-swift-home\/\.cache\/voucha\/gradle/u,
+  )
+  assert.match(android, /TMPDIR="\$RUNNER_TEMP\/swift-tmp"/u)
+  assert.match(
+    android,
+    /ANDROID_NDK_ROOT="\$VOUCHA_SKIP_SWIFT_HOME\/Library\/org\.swift\.swiftpm\/swift-sdks\/swift-6\.4\.0-RELEASE_android\.artifactbundle\/swift-android\/android-ndk-r30"/u,
+  )
+  assert.match(
+    android,
+    /ANDROID_NDK_HOME="\$VOUCHA_SKIP_SWIFT_HOME\/Library\/org\.swift\.swiftpm\/swift-sdks\/swift-6\.4\.0-RELEASE_android\.artifactbundle\/swift-android\/android-ndk-r30"/u,
+  )
+  assert.match(android, /\.build\/artifacts\/skip\/skip\/skip\.artifactbundle\/bin:\$PATH/u)
+  assert.match(android, /-p "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android\/Android"/u)
+  assert.doesNotMatch(android, /gradlew.*:app:assembleDebug(?:\s|$)/u)
   assert.match(emulator, /paired-native-android-emulator\.mjs/u)
   assert.match(
     emulator,
