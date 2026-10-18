@@ -41,7 +41,10 @@ struct SourceImportPages {
 
 extension ImportExportViewModel {
     /// One bounded server page per tick. Failed pages retain their opaque cursor and prior rows.
-    func loadSourcePages(batchId: String, generation: Int) async throws -> RssFeedImportStatus? {
+    func loadSourcePages(
+        batchId: String,
+        generation: Int
+    ) async throws -> (status: RssFeedImportStatus, startedTerminal: Bool)? {
         let page = try await service.sourceStatus(batchId, sourcePages.cursor)
         try Task.checkCancellation()
         guard generation == self.generation, batchId == self.batchId else { throw CancellationError() }
@@ -49,11 +52,9 @@ extension ImportExportViewModel {
             if sourcePages.cursor == nil { return nil }
             throw SourceStatusPageError.invalidPage
         }
-        let snapshot = try sourcePages.accept(page)
-        if snapshot != nil {
-            sourceSnapshotStartedTerminal = sourcePages.startedTerminal
-            sourcePages = SourceImportPages()
-        }
-        return snapshot
+        guard let snapshot = try sourcePages.accept(page) else { return nil }
+        let candidate = (snapshot, sourcePages.startedTerminal)
+        sourcePages = SourceImportPages()
+        return candidate
     }
 }

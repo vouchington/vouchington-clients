@@ -22,7 +22,7 @@ public sealed partial class ImportExportViewModel
   }
 
   // One bounded server page per tick; failures preserve the cursor and accumulated rows.
-  private async Task<RssFeedImportStatus?> LoadSourcePagesAsync(int operation, string batch, CancellationToken token)
+  private async Task<(RssFeedImportStatus Status, bool StartedTerminal)?> LoadSourcePagesAsync(int operation, string batch, CancellationToken token)
   {
     var page = await service.GetSourceStatusAsync(batch, sourcePageCursor, token).ConfigureAwait(true);
     token.ThrowIfCancellationRequested();
@@ -58,8 +58,8 @@ public sealed partial class ImportExportViewModel
       return null;
     }
     var snapshot = page with { Rows = sourcePageRows.ToArray() };
-    sourceSnapshotStartedTerminal = sourcePagesStartedTerminal;
+    var startedTerminal = sourcePagesStartedTerminal;
     ResetSourcePages();
-    return snapshot;
+    return (snapshot, startedTerminal);
   }
 }

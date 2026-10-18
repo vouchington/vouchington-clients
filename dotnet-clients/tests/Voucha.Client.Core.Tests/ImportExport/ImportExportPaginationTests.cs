@@ -113,7 +113,7 @@ public sealed class ImportExportPaginationTests
     var service = new PagesService();
     var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var held = new TaskCompletionSource<RssFeedImportStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
-    service.Pages.Enqueue(() => Task.FromResult(Page([Row("1")], "next")));
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("1")], "next", terminal: false)));
     service.Pages.Enqueue(() => { requested.SetResult(); return held.Task; });
     using var model = Model(service);
     var oldImport = model.ImportAsync(TestContext.Current.CancellationToken);
@@ -127,6 +127,8 @@ public sealed class ImportExportPaginationTests
     Assert.Equal("replacement", model.BatchId);
     Assert.Equal("new", Assert.Single(model.Results).Id);
     Assert.Null(model.ErrorMessage);
+    Assert.False(model.CanResume);
+    Assert.False(model.CanRetryStatus);
   }
 
   [Fact]
@@ -245,6 +247,44 @@ public sealed class ImportExportPaginationTests
   {
     public bool IsDispatchRequired => false;
     public void Dispatch(Action action) => action();
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task RejectedTerminalCandidateCannotDisableRetryAfterNextFailure(bool validationFailure)
+  {
+    var service = new PagesService();
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("1", ImportResultStatus.Pending)], "initial", terminal: false)));
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("2")])));
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("stale", ImportResultStatus.Error)]) with
+    { Import = Summary("batch", true) with { CompletedRows = 1 } }));
+    if (validationFailure)
+    {
+      service.Pages.Enqueue(() => Task.FromResult(Page([Row("1")], "retry")));
+      service.Pages.Enqueue(() => Task.FromResult(Page([Row("2")], hasNext: true)));
+      service.Pages.Enqueue(() => Task.FromResult(Page([Row("2")])));
+    }
+    else
+    {
+      service.Pages.Enqueue(() => throw new IOException("next refresh unavailable"));
+      service.Pages.Enqueue(() => Task.FromResult(Page([Row("1"), Row("2")])));
+    }
+    using var model = Model(service);
+    await model.ImportAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, model.Progress?.CompletedRows);
+    Assert.Equal(0, model.Progress?.PendingRows);
+    Assert.Equal([ImportResultStatus.Pending, ImportResultStatus.Followed], model.Results.Select(row => row.Status));
+    Assert.NotNull(model.ErrorMessage);
+    Assert.True(model.CanRetryStatus);
+    await model.TryStatusAgainAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(validationFailure ? [null, "initial", null, null, "retry", "retry"] :
+        new string?[] { null, "initial", null, null, null }, service.Cursors);
+    Assert.Equal(1, service.Submissions);
+    Assert.All(model.Results, row => Assert.Equal(ImportResultStatus.Followed, row.Status));
+    Assert.Null(model.ErrorMessage);
+    Assert.False(model.CanResume);
+    Assert.False(model.CanRetryStatus);
   }
 
   private static ImportExportViewModel Model(PagesService service) => new(

@@ -52,15 +52,17 @@ extension ImportExportViewModel {
         }
         while !Task.isCancelled {
             do {
-                guard let status = try await loadSourcePages(batchId: batchId, generation: generation) else {
+                guard let candidate = try await loadSourcePages(batchId: batchId, generation: generation) else {
                     try await delay()
                     continue
                 }
                 guard generation == self.generation, batchId == self.batchId else { return }
+                let status = candidate.status
                 guard status.import.id == batchId, isNonRegressing(status.import) else {
                     try await delay()
                     continue
                 }
+                sourceSnapshotStartedTerminal = candidate.startedTerminal
                 sourceSummary = status.import
                 results = status.rows
                 errorMessage = nil

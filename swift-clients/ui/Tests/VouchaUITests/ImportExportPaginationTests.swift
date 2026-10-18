@@ -87,6 +87,11 @@ final class ImportExportPaginationTests: XCTestCase {
         await fulfillment(of: [requested], timeout: 2)
         model.cancelOperations()
         model.batchId = "replacement"
+        model.sourceSummary = RssFeedImportSummary(
+            id: "replacement", totalRows: 1, completedRows: 1, failedRows: 0, pendingRows: 0,
+            completedAt: Date(timeIntervalSince1970: 1), createdAt: Date(timeIntervalSince1970: 0)
+        )
+        XCTAssertTrue(model.canResumeMonitoring)
         model.results = [row("new", .followed)]
         await recorder.release(page([row("2", .error)], terminal: true))
         let completed = expectation(description: "old request drained")
@@ -96,6 +101,7 @@ final class ImportExportPaginationTests: XCTestCase {
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(model.batchId, "replacement")
         XCTAssertEqual(model.results.map(\.id), ["new"])
+        XCTAssertTrue(model.canResumeMonitoring)
         XCTAssertNil(model.errorMessage)
     }
 
@@ -245,6 +251,55 @@ final class ImportExportPaginationTests: XCTestCase {
             locale.update(savedUiLocale: "fr")
             XCTAssertEqual(try locale.string(XCTUnwrap(model.errorText)), raw)
         }
+    }
+
+    func testRejectedTerminalCandidateCannotDisableRetryAfterNextFailure() async {
+        for validationFailure in [false, true] {
+            let recorder = SourcePageRecorder(terminalRejectionSteps(validationFailure: validationFailure))
+            let model = makeModel(recorder)
+            await model.importText()
+            await model.monitorTask?.value
+            XCTAssertEqual(model.sourceSummary?.completedRows, 2)
+            XCTAssertEqual(model.sourceSummary?.pendingRows, 0)
+            XCTAssertEqual(model.results.map(\.status), [.pending, .followed])
+            XCTAssertNotNil(model.errorText)
+            XCTAssertTrue(model.canResumeMonitoring)
+            model.resumeMonitoring()
+            await model.monitorTask?.value
+            let calls = await recorder.cursors
+            let submissions = await recorder.submissions
+            XCTAssertEqual(
+                calls, validationFailure
+                    ? [nil, "initial", nil, nil, "retry", "retry"]
+                    : [nil, "initial", nil, nil, nil]
+            )
+            XCTAssertEqual(submissions, 1)
+            XCTAssertEqual(model.results.map(\.status), [.followed, .followed])
+            XCTAssertNil(model.errorText)
+            XCTAssertFalse(model.canResumeMonitoring)
+        }
+    }
+
+    private func terminalRejectionSteps(validationFailure: Bool) -> [SourcePageRecorder.Step] {
+        let staleTerminal = RssFeedImportSummary(
+            id: "batch", totalRows: 2, completedRows: 1, failedRows: 0, pendingRows: 0,
+            completedAt: Date(timeIntervalSince1970: 1), createdAt: Date(timeIntervalSince1970: 0)
+        )
+        var steps: [SourcePageRecorder.Step] = [
+            .page(page([row("1", .pending)], cursor: "initial", terminal: false)),
+            .page(page([row("2", .followed)], terminal: true)),
+            .page(RssFeedImportStatus(import: staleTerminal, rows: [row("stale", .error)]))
+        ]
+        if validationFailure {
+            steps += [
+                .page(page([row("1", .followed)], cursor: "retry", terminal: true)),
+                .page(page([row("2", .followed)], terminal: true, hasNext: true)),
+                .page(page([row("2", .followed)], terminal: true))
+            ]
+        } else {
+            steps += [.failure, .page(page([row("1", .followed), row("2", .followed)], terminal: true))]
+        }
+        return steps
     }
 
     private func makeModel(_ recorder: SourcePageRecorder) -> ImportExportViewModel {
