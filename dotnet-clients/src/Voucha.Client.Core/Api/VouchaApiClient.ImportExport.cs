@@ -18,7 +18,10 @@ public sealed partial class VouchaApiClient
       SendAsync<RssFeedImportSubmission>(VouchaApiEndpoints.ImportRssFeedOpml(opml), token);
 
   public Task<RssFeedImportStatus> RssFeedImportStatusAsync(string importId, CancellationToken token = default) =>
-      SendAsync<RssFeedImportStatus>(VouchaApiEndpoints.RssFeedImportStatus(importId), token);
+      RssFeedImportStatusAsync(importId, null, token);
+
+  public Task<RssFeedImportStatus> RssFeedImportStatusAsync(string importId, string? after, CancellationToken token) =>
+      SendAsync<RssFeedImportStatus>(VouchaApiEndpoints.RssFeedImportStatus(importId, after), token);
 
   public Task<string> DownloadRssFeedsExportAsync(string? feedType, string format, CancellationToken token = default) =>
       DownloadToTemporaryFileAsync(VouchaApiEndpoints.ExportRssFeeds(feedType, format), $"rss-feeds.{format}", token);

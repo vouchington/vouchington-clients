@@ -223,7 +223,7 @@ final class NativeImportExportFilesTests: XCTestCase {
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in exportedURL }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)
@@ -251,7 +251,7 @@ final class NativeImportExportFilesTests: XCTestCase {
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)

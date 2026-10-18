@@ -54,7 +54,7 @@ private actor SelectedFileSubmissionRecorder {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { input in await self.submit(input) },
-            sourceStatus: { _ in await self.status() },
+            sourceStatus: { _, _ in await self.status() },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }

@@ -1,7 +1,8 @@
 import Foundation
 
 public enum ScopeAudience: String, Codable, Sendable {
-    case user, api, admin
+    case user, api, admin, brand, legal
+    case communityModeration = "community_moderation"
 }
 
 public enum ScopeAction: String, Codable, Sendable {

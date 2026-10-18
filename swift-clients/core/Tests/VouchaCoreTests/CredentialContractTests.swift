@@ -89,10 +89,13 @@ final class CredentialContractTests: XCTestCase {
         var selection = ApiKeyScopeSelection(scopes: catalog.scopes, type: .mcp)
         XCTAssertTrue(selection.setSelected("mcp.user:read", selected: true))
         XCTAssertEqual(selection.permissions, ["mcp.user:read"])
-        XCTAssertTrue(selection.setSelected(write.scope, selected: true))
-        XCTAssertEqual(selection.permissions, [read.scope, write.scope, "mcp.user:read"].sorted())
-        XCTAssertTrue(selection.setSelected(read.scope, selected: false))
+        XCTAssertFalse(selection.setSelected(write.scope, selected: true))
         XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+        selection.clear()
+        XCTAssertTrue(selection.setSelected(write.scope, selected: true))
+        XCTAssertEqual(selection.permissions, [read.scope, write.scope].sorted())
+        XCTAssertTrue(selection.setSelected(read.scope, selected: false))
+        XCTAssertTrue(selection.permissions.isEmpty)
     }
 
     func testStagedGrantsPreserveClientScopeAndActivityMetadata() throws {

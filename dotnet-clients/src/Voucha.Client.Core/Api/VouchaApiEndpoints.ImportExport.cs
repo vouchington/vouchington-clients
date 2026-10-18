@@ -21,8 +21,12 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest ImportRssFeedOpml(string opml) =>
       new(HttpMethod.Post, "/api/v1/my/import/rss-feeds") { Body = new RssFeedOpmlImportBody(opml) };
 
-  public static ApiRequest RssFeedImportStatus(string importId) =>
-      Get($"/api/v1/my/import/rss-feeds/{Path(importId)}");
+  public static ApiRequest RssFeedImportStatus(string importId, string? after = null) =>
+      Get($"/api/v1/my/import/rss-feeds/{Path(importId)}") with
+      {
+        Query = after is null ? new Dictionary<string, string>(StringComparer.Ordinal) :
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["after"] = after },
+      };
 
   public static ApiRequest ExportRssFeeds(string? feedType, string format)
   {

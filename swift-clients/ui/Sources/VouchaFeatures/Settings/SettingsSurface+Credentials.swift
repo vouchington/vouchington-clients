@@ -49,7 +49,7 @@ extension SettingsSurface {
             LabeledContent(UiMessages.string(.nativeCredentialsAction, locale: nativeUiLocale)) {
                 Text(UiMessages.string(scope.action.titleKey, locale: nativeUiLocale))
             }
-            Text(UiMessages.string(scope.audience.titleKey, locale: nativeUiLocale))
+            Text(UiMessages.string(scope.audience.titleText, locale: nativeUiLocale))
         }
     }
 
@@ -135,11 +135,12 @@ private extension ScopeAction {
 }
 
 private extension ScopeAudience {
-    var titleKey: UiMessageKey {
+    var titleText: UiVerbatimText {
         switch self {
-        case .user: .nativeCredentialsUserAudience
-        case .api: .nativeCredentialsApiAudience
-        case .admin: .nativeCredentialsInvalidSelection
+        case .user: .message(.nativeCredentialsUserAudience)
+        case .api: .message(.nativeCredentialsApiAudience)
+        case .admin: .message(.nativeCredentialsInvalidSelection)
+        case .communityModeration, .brand, .legal: .protocolValue(rawValue)
         }
     }
 }

@@ -116,7 +116,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
             let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
-            let server = try XCTUnwrap(servers.first { $0["surface"] as? String == "mcp" })
+            let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
             let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
             let publishedTools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
             let catalog = try JSONDecoder().decode(DecodedJSONValue.self, from: JSONSerialization.data(
@@ -208,7 +208,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
         let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
         let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
-        let server = try XCTUnwrap(servers.first { $0["surface"] as? String == "mcp" })
+        let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
         let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
         let tools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
         let catalog = try JSONDecoder().decode(

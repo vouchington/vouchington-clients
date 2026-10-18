@@ -47,7 +47,7 @@ final class ImportExportTopicRetryViewTests: XCTestCase {
                 ])
             },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)
@@ -70,7 +70,7 @@ private actor TopicRetryRecorder {
         ImportExportService(
             importTopics: { names in try await self.importTopics(names) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }

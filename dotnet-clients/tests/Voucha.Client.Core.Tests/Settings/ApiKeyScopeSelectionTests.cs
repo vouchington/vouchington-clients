@@ -52,6 +52,26 @@ public sealed class ApiKeyScopeSelectionTests
     Assert.Equal("other:read", Assert.Single(selection.Scopes).Scope);
   }
 
+  [Theory]
+  [InlineData("community_moderation")]
+  [InlineData("brand")]
+  public void DifferentAudiencesCannotMixOrSupplyPrerequisites(string audience)
+  {
+    var selection = new ApiKeyScopeSelection([
+        Scope("member:read"),
+        new("separate:read", audience, "fixture", "read", ["api-key"], null, null),
+        new("invalid:write", audience, "fixture", "write", ["api-key"], null, "member:read"),
+    ]);
+    selection.SetSelected("member:read", true);
+    Assert.Throws<InvalidOperationException>(() => selection.SetSelected("separate:read", true));
+    Assert.Equal(["member:read"], selection.SelectedScopes);
+    selection.SetSelected("member:read", false);
+    Assert.Throws<InvalidOperationException>(() => selection.SetSelected("invalid:write", true));
+    Assert.Empty(selection.SelectedScopes);
+    selection.SetSelected("separate:read", true);
+    Assert.Equal(["separate:read"], selection.SelectedScopes);
+  }
+
   private static ScopeCatalogEntry Scope(string name, string? requires = null) =>
       new(name, "user", "resource", "read", ["api-key"], null, requires);
 }

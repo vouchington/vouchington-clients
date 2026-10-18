@@ -131,7 +131,7 @@ private actor DelayedImportExportRecorder {
         ImportExportService(
             importTopics: { names in try await self.importTopics(names) },
             importSources: { input in try await self.importSources(input) },
-            sourceStatus: { id in await self.sourceStatus(id) },
+            sourceStatus: { id, _ in await self.sourceStatus(id) },
             downloadExport: { _, _, _ in try await self.downloadTopics() }
         )
     }

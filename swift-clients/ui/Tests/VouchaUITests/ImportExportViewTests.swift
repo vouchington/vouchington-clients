@@ -2,11 +2,25 @@ import SwiftUI
 import UniformTypeIdentifiers
 import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 import VouchaModels
 import XCTest
 
 @MainActor
 final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
+    func testTypedStatusErrorAlertUsesSelectedAppLocale() throws {
+        let model = makeViewModel(route: .sources(initialExportFilter: nil))
+        model.errorMessageKey = .nativeSwiftImportExportUnknownError
+        for locale in [Locale(identifier: "es"), Locale(identifier: "fr")] {
+            let view = ImportExportView(route: model.route, viewModel: model).environment(\.locale, locale)
+            let alert = try view.inspect().find(ViewType.Form.self).alert()
+            XCTAssertEqual(
+                try alert.message().text().string(),
+                UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)
+            )
+        }
+    }
+
     func testSourceFilePickerOnlyOffersSupportedFormats() {
         XCTAssertEqual(ImportExportView.sourceImportContentTypes, [.commaSeparatedText, .xml, .vouchaOPML])
         XCTAssertFalse(ImportExportView.sourceImportContentTypes.contains(.plainText))
@@ -230,7 +244,7 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
             service: ImportExportService(
                 importTopics: { _ in TopicImportResponse(results: []) },
                 importSources: { _ in throw URLError(.badServerResponse) },
-                sourceStatus: { _ in throw URLError(.badServerResponse) },
+                sourceStatus: { _, _ in throw URLError(.badServerResponse) },
                 downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
             )
         )
@@ -247,7 +261,7 @@ private actor RenderedStatusRecorder {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in await self.status() },
+            sourceStatus: { _, _ in await self.status() },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }
