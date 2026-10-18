@@ -49,6 +49,8 @@ final class ViewModel {
     var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
     var loadedConversationHistoryID: String?
     var failedGenerations: [String: AndroidFailedGeneration] = [:]
+    var pendingTurnErrors: [String: String] = [:]
+    var pendingTurnHistoryAcknowledgements: [String: Set<String>] = [:]
     var isGenerating = false
     var selectedProvider: AndroidChatProvider = .aiCore
     var conversations: [ChatConversation] = []
@@ -153,6 +155,8 @@ final class ViewModel {
         hasMoreConversations = false
         hasOlderMessages = false
         pendingTurns = [:]
+        pendingTurnErrors = [:]
+        pendingTurnHistoryAcknowledgements = [:]
         activeSendOperationID = nil
         messages = []
         draft = ""

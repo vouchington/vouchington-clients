@@ -15,7 +15,7 @@ extension ViewModel {
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
 
         if selectedConversationID == nil {
-            await createConversation()
+            guard await createConversation() else { return }
             guard accountGeneration == accountRevision,
                   currentAccountUserID == userID,
                   let conversationID = selectedConversationID,
@@ -53,6 +53,7 @@ extension ViewModel {
         conversationCreationFailed = false
         errorMessage = nil
         messages.append(.init(id: ids.user, role: "user", content: submitted))
+        var completedPending: AndroidPendingChatTurn?
 
         do {
             let response = try await generateResponse(for: submitted, provider: selectedProvider)
@@ -67,14 +68,18 @@ extension ViewModel {
                 modelProvider: model.provider,
                 modelName: model.name
             )
+            completedPending = pending
             failedGenerations.removeValue(forKey: conversationID)
             pendingTurns[conversationID] = pending
+            pendingTurnErrors.removeValue(forKey: conversationID)
+            pendingTurnHistoryAcknowledgements.removeValue(forKey: conversationID)
             if selectedConversationID == conversationID, conversationGeneration == conversationRevision {
                 messages.append(.init(id: ids.assistant, role: "assistant", content: response))
             }
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)
         } catch {
             guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
+            if let completedPending, pendingTurns[conversationID] != completedPending { return }
             recoverFailedTurn(
                 AndroidFailedTurnAttempt(
                     submitted: submitted,
@@ -102,6 +107,7 @@ extension ViewModel {
         let operationID = UUID()
         activeSendOperationID = operationID
         isGenerating = true
+        pendingTurnErrors.removeValue(forKey: pending.conversationID)
         errorMessage = nil
         conversationCreationFailed = false
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
@@ -110,10 +116,14 @@ extension ViewModel {
         } catch {
             guard accountGeneration == accountRevision,
                   currentAccountUserID == userID,
-                  selectedConversationID == pending.conversationID,
-                  conversationGeneration == conversationRevision
+                  pendingTurns[pending.conversationID] == pending
             else { return }
-            errorMessage = error.localizedDescription
+            let message = error.localizedDescription
+            pendingTurnErrors[pending.conversationID] = message
+            if selectedConversationID == pending.conversationID,
+               conversationGeneration == conversationRevision {
+                errorMessage = message
+            }
         }
     }
 
@@ -144,6 +154,8 @@ extension ViewModel {
         }
         guard pendingTurns[pending.conversationID] == pending else { return }
         pendingTurns.removeValue(forKey: pending.conversationID)
+        pendingTurnErrors.removeValue(forKey: pending.conversationID)
+        pendingTurnHistoryAcknowledgements.removeValue(forKey: pending.conversationID)
         guard selectedConversationID == pending.conversationID else { return }
         messages.removeAll {
             $0.id == pending.userMessageID || $0.id == pending.assistantMessageID ||

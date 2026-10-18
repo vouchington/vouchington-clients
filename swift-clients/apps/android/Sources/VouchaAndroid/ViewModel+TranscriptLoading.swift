@@ -59,11 +59,11 @@ extension ViewModel {
         }
     }
 
-    func selectConversation(_ id: String) async {
+    func selectConversation(_ id: String, revision: UUID = UUID()) async {
         guard selectedConversationID != id else { return }
         selectedConversationID = id
         conversationCreationFailed = false
-        conversationGeneration = UUID()
+        conversationGeneration = revision
         messages = []
         isLoadingMessages = false
         isLoadingOlderMessages = false
@@ -78,35 +78,8 @@ extension ViewModel {
                 latestTranscriptLoadFailure = failedConversationListLoad?.operation
             }
         }
-        errorMessage = failedGenerations[id]?.message ??
-            (transcriptLoadFailure == nil ? nil : transcriptLoadErrorMessage)
+        restoreSelectedConversationError()
         await loadConversationMessages(reset: true)
-    }
-
-    func createConversation() async {
-        guard !isCreatingConversation, !isLoadingConversations, let client = apiClient,
-              let userID = currentAccountUserID
-        else { return }
-        let accountRevision = accountGeneration
-        conversationCreationFailed = false
-        errorMessage = nil
-        isCreatingConversation = true
-        defer {
-            if accountGeneration == accountRevision { isCreatingConversation = false }
-        }
-        do {
-            let response: ChatConversationResponse = try await client.send(.createConversation())
-            guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
-            if !conversations.contains(where: { $0.id == response.conversation.id }) {
-                conversations.insert(response.conversation, at: 0)
-            }
-            conversationCreationFailed = false
-            await selectConversation(response.conversation.id)
-        } catch {
-            guard accountGeneration == accountRevision else { return }
-            conversationCreationFailed = true
-            errorMessage = error.localizedDescription
-        }
     }
 
     func loadConversationMessages(
@@ -172,11 +145,17 @@ extension ViewModel {
         reset: Bool,
         cursor: String?
     ) {
+        let acknowledgedMessageIDs = acknowledgePendingTurnIfPresent(
+            in: response.results,
+            conversationID: conversationID,
+            reset: reset
+        )
         let loaded = uniqueMessages(response.results.compactMap { makeChatMessage(from: $0) })
         if reset {
             messages = loaded
             appendPendingTurnIfNeeded(for: conversationID)
         } else {
+            messages.removeAll { acknowledgedMessageIDs.contains($0.id) }
             var existing = Set(messages.map(\.id))
             let older = loaded.filter { existing.insert($0.id).inserted }
             messages = older + messages

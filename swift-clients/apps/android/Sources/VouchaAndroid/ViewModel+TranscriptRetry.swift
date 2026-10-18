@@ -65,12 +65,19 @@ extension ViewModel {
             (selectedConversationID == nil || loadedConversationHistoryID == selectedConversationID)
     }
 
+    func restoreSelectedConversationError() {
+        let pendingError = selectedConversationID.flatMap { pendingTurnErrors[$0] }
+        errorMessage = transcriptLoadErrorMessage ?? pendingError ?? failedGenerationForSelectedConversation?.message
+    }
+
     func recoverFailedTurn(_ attempt: AndroidFailedTurnAttempt, error: Error) {
         let conversationID = attempt.conversationID
         if pendingTurns[conversationID] != nil {
+            let message = error.localizedDescription
+            pendingTurnErrors[conversationID] = message
             if selectedConversationID == conversationID {
                 appendPendingTurnIfNeeded(for: conversationID)
-                errorMessage = error.localizedDescription
+                errorMessage = message
             }
             return
         }
@@ -111,6 +118,6 @@ extension ViewModel {
             latestTranscriptLoadFailure = failedConversationHistoryLoad?.operation ?? failedConversationListLoad?
                 .operation
         }
-        errorMessage = transcriptLoadErrorMessage ?? failedGenerationForSelectedConversation?.message
+        restoreSelectedConversationError()
     }
 }

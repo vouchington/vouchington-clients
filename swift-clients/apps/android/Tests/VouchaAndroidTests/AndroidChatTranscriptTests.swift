@@ -116,7 +116,7 @@ private extension AndroidChatTranscriptTests {
         historyPath: String,
         conversationID: String
     ) async throws {
-        let reload = Task { await viewModel.retryConversationLoad() }
+        let reload = Task { await viewModel.loadConversationMessages(reset: true) }
         _ = try await recorder.waitForRequest(path: historyPath, occurrence: 2)
         await viewModel.retryPendingTurn()
         XCTAssertEqual(
