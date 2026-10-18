@@ -31,3 +31,18 @@ Stage those producer outputs with `scripts/stage-native-contract.mjs`, then poin
 CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
 Linux and macOS only because those jobs compile different networking and Security slices. See
 [native CI test placement](native-ci-test-placement.md).
+
+## Refresh a stale stacked pull-request candidate
+
+The native contract handoff is bound to the event's pull request number, base SHA, head SHA, and
+merge revision. If verification reports that the live pull request no longer matches the artifact,
+that run is stale. Do not reuse its artifact or rely on rerunning the same event: the original event
+identity remains unchanged.
+
+For a stacked pull request, wait until its parent has landed on the intended base. Then update the
+child's base and branch to the current parent result and push the real child update. Use only the new
+pull-request event run, after its artifact's number, base SHA, head SHA, and merge revision all
+match the live pull request and merge ref. Artifact verification also binds the producing run ID
+and attempt; both must match the new run. If any identity differs, keep the stale run rejected and
+refresh the child again from the current parent result. This recovery preserves exact-candidate
+verification; it does not turn a stale artifact into a valid one.
