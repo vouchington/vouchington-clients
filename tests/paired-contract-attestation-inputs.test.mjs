@@ -9,6 +9,7 @@ function dispatch(overrides = {}) {
     expectedProducerHeadSha: '1'.repeat(40),
     clientsPullRequest: '376',
     expectedClientsHeadSha: '2'.repeat(40),
+    nativeTestProfile: 'cookie-snapshot',
     reviewedBothSnapshots: true,
     ...overrides.inputs,
   }
@@ -32,6 +33,10 @@ describe('paired contract operator attestation inputs', () => {
   it('accepts only an explicit, first-run main dispatch by a live maintainer', () => {
     assert.equal(dispatch().actor, 'maintainer')
     assert.equal(dispatch({ clientsPermission: 'admin' }).clientsPermission, 'admin')
+    assert.equal(
+      dispatch({ inputs: { nativeTestProfile: 'pending-turn-recovery' } }).nativeTestProfile,
+      'pending-turn-recovery',
+    )
   })
 
   it('rejects non-main events, reruns, actor changes, and unconfirmed snapshots', () => {
@@ -44,6 +49,8 @@ describe('paired contract operator attestation inputs', () => {
       { runAttempt: 2 },
       { triggeringActor: 'different-actor' },
       { clientsPermission: 'write' },
+      { inputs: { nativeTestProfile: '' } },
+      { inputs: { nativeTestProfile: 'auto-detect' } },
       { inputs: { reviewedBothSnapshots: false } },
     ])
       assert.throws(() => dispatch(override), /Paired contract attestation failed/u)

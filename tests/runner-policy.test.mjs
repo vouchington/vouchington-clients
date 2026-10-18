@@ -47,12 +47,27 @@ describe('GitHub-hosted runner policy', () => {
       const labels = [...workflow.matchAll(/^\s+runs-on:\s*(.+)$/gmu)].map(match => match[1].trim())
       assert.ok(labels.length > 0, `${name} must declare runs-on`)
       for (const label of labels) {
-        assert.ok(
-          allowedLabels.has(label) ||
-            (name === 'native-contract-tests.yml' && label === 'ubuntu-24.04'),
-          `${name} uses disallowed runs-on ${label}`,
-        )
+        if (label === 'ubuntu-24.04') {
+          if (name === 'paired-native-contract-attestation.yml') {
+            const emulator = jobBlock(workflow, 'native-android-emulator')
+            assert.match(emulator, /runs-on: ubuntu-24\.04/u)
+            assert.match(emulator, /if: \$\{\{ inputs\.run_native_tests \}\}/u)
+            assert.match(emulator, /name: Candidate instrumentation on API 35 ARM64 bridge/u)
+            assert.match(emulator, /timeout-minutes: 45/u)
+            assert.match(emulator, /test -c \/dev\/kvm/u)
+          } else {
+            assert.equal(
+              name,
+              'native-contract-tests.yml',
+              'ubuntu-24.04 is reserved for the native Android jobs',
+            )
+          }
+        } else {
+          assert.ok(allowedLabels.has(label), `${name} uses disallowed runs-on ${label}`)
+        }
       }
+      if (name === 'paired-native-contract-attestation.yml')
+        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
       if (name === 'native-contract-tests.yml') {
         // The Android emulator needs one pinned public Linux image; no other job may use it.
         assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)

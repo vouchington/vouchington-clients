@@ -49,3 +49,26 @@ later push makes the evidence stale for that new source revision; dispatch the w
 with the new exact heads after reviewing them. The workflow does not publish a check run, approve
 either pull request, or claim the full native compiler and platform test matrix passed. A real
 dispatch requires this workflow to be present on the repository's default branch first.
+
+The optional `run_native_tests` input adds a selected native evidence pass. It defaults to false,
+so the existing data-only review path stays unchanged. When enabled, Linux runs Swift Core and
+portable .NET tests against the exact captured clients merge SHA, and macOS runs Swift Core against
+that same SHA because Darwin networking and security behavior differs from Linux. A separate macOS
+runner runs the Android host tests and builds the app and instrumentation APKs. A fresh Linux API 35
+emulator runner executes the selected restart profile using those reviewed APK bytes. The explicit
+`native_test_profile` choice is either `cookie-snapshot` (the four cookie persistence phases) or
+`pending-turn-recovery` (all four cookie phases plus all four pending-turn phases). There is no
+automatic phase detection or downgrade: the runtime artifact and trusted finalizer both bind the
+selected profile and exact ordered phase list. The Linux and macOS Swift Core jobs and Linux .NET
+job install toolchains from the exact candidate's pinned configuration. The Android host build uses
+the workflow's fixed Swift 6.3.3 host compiler and pinned Skip Swift 6.4.0 Android SDK/NDK target.
+Candidate test jobs have no GitHub token or secrets, do not persist checkout credentials, and share
+no dependency cache.
+
+Each native execution job uploads an untrusted, short-lived artifact. A separate trusted finalizer
+binds each artifact's ID and digest to the current workflow run and the upload action outputs,
+validates the fixed APK file set, source SHA, emulator properties, and every phase required by the
+captured profile, then rechecks both live pull request snapshots. The supplemental artifact is
+informational and candidate-controlled; it is not a signed test result or a GitHub check. The
+workflow does not change default required checks. Successful evidence reflects only the selected
+commands and platforms, not the full native matrix or physical-device acceptance.

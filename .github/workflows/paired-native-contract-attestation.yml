@@ -26,6 +26,19 @@ on:
         required: true
         type: boolean
         default: false
+      native_test_profile:
+        description: Fixed Android restart phase set for the optional native evidence run
+        required: true
+        type: choice
+        options:
+          - cookie-snapshot
+          - pending-turn-recovery
+        default: cookie-snapshot
+      run_native_tests:
+        description: Run selected native tests on the reviewed snapshots in isolated jobs
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,8 +58,8 @@ jobs:
       pull-requests: read
     outputs:
       pair_snapshot_base64: ${{ steps.snapshot.outputs.pair_snapshot_base64 }}
-      producer_merge_ref: ${{ steps.snapshot.outputs.producer_merge_ref }}
-      clients_merge_ref: ${{ steps.snapshot.outputs.clients_merge_ref }}
+      producer_merge_sha: ${{ steps.snapshot.outputs.producer_merge_sha }}
+      clients_merge_sha: ${{ steps.snapshot.outputs.clients_merge_sha }}
     steps:
       - name: Check out trusted clients main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -77,6 +90,7 @@ jobs:
           INPUT_EXPECTED_PRODUCER_HEAD_SHA: ${{ inputs.expected_producer_head_sha }}
           INPUT_CLIENTS_PULL_REQUEST: ${{ inputs.clients_pull_request }}
           INPUT_EXPECTED_CLIENTS_HEAD_SHA: ${{ inputs.expected_clients_head_sha }}
+          INPUT_NATIVE_TEST_PROFILE: ${{ inputs.native_test_profile }}
           INPUT_REVIEWED_BOTH_SNAPSHOTS: ${{ inputs.reviewed_both_snapshots }}
         run: node trusted-clients/scripts/paired-contract-attestation.mjs capture
 
@@ -110,7 +124,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vouchington/vouchington
-          ref: ${{ needs.resolve.outputs.producer_merge_ref }}
+          ref: ${{ needs.resolve.outputs.producer_merge_sha }}
           path: producer-candidate
           fetch-depth: 0
           persist-credentials: false
@@ -120,7 +134,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vouchington/vouchington-clients
-          ref: ${{ needs.resolve.outputs.clients_merge_ref }}
+          ref: ${{ needs.resolve.outputs.clients_merge_sha }}
           path: clients-candidate
           fetch-depth: 0
           persist-credentials: false
@@ -236,6 +250,9 @@ jobs:
   finalize:
     name: Finalize trusted paired snapshot evidence
     needs: [resolve, candidate]
+    outputs:
+      artifact_id: ${{ steps.upload-contract.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload-contract.outputs.artifact-digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -270,7 +287,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vouchington/vouchington
-          ref: ${{ needs.resolve.outputs.producer_merge_ref }}
+          ref: ${{ needs.resolve.outputs.producer_merge_sha }}
           path: producer-candidate
           fetch-depth: 0
           persist-credentials: false
@@ -280,7 +297,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vouchington/vouchington-clients
-          ref: ${{ needs.resolve.outputs.clients_merge_ref }}
+          ref: ${{ needs.resolve.outputs.clients_merge_sha }}
           path: clients-candidate
           fetch-depth: 0
           persist-credentials: false
@@ -327,6 +344,7 @@ jobs:
           INPUT_EXPECTED_PRODUCER_HEAD_SHA: ${{ inputs.expected_producer_head_sha }}
           INPUT_CLIENTS_PULL_REQUEST: ${{ inputs.clients_pull_request }}
           INPUT_EXPECTED_CLIENTS_HEAD_SHA: ${{ inputs.expected_clients_head_sha }}
+          INPUT_NATIVE_TEST_PROFILE: ${{ inputs.native_test_profile }}
           INPUT_REVIEWED_BOTH_SNAPSHOTS: ${{ inputs.reviewed_both_snapshots }}
           PAIR_SNAPSHOT_BASE64: ${{ needs.resolve.outputs.pair_snapshot_base64 }}
           PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
@@ -336,10 +354,405 @@ jobs:
         run: node trusted-clients/scripts/paired-contract-attestation.mjs create-manifest
 
       - name: Upload informational paired contract evidence
+        id: upload-contract
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           name: paired-native-contract-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+  native-linux-tests:
+    name: Candidate Swift Core and .NET tests (Linux)
+    if: ${{ inputs.run_native_tests }}
+    needs: [resolve, finalize]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out trusted toolchain setup
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+      - name: Check out exact reviewed clients snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.clients_merge_sha }}
+          path: clients-candidate
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+      - name: Download exact paired contract artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-contract
+      - name: Set up Swift toolchain
+        uses: ./trusted-clients/.github/actions/setup-mise-toolchain
+        with:
+          client-root: clients-candidate
+          tool: swift
+      - name: Set up candidate-pinned .NET toolchain
+        uses: ./trusted-clients/.github/actions/setup-mise-toolchain
+        with:
+          client-root: clients-candidate
+          tool: dotnet
+      - name: Test Swift Core
+        working-directory: clients-candidate
+        env:
+          MISE_DISABLE_TOOLS: ''
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
+      - name: Test portable .NET
+        working-directory: clients-candidate
+        env:
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          MSBuildEnableWorkloadResolver: 'false'
+        run: >-
+          mise exec -- dotnet test
+          "$CLIENTS_CANDIDATE_ROOT/dotnet-clients/tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj"
+
+  native-swift-core-macos:
+    name: Candidate Swift Core tests (macOS)
+    if: ${{ inputs.run_native_tests }}
+    needs: [resolve, finalize]
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out trusted toolchain setup
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+      - name: Check out exact reviewed clients snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.clients_merge_sha }}
+          path: clients-candidate
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Set up candidate-pinned Swift toolchain
+        uses: ./trusted-clients/.github/actions/setup-mise-toolchain
+        with:
+          client-root: clients-candidate
+          tool: swift
+      - name: Download exact paired contract artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-contract
+      - name: Test candidate Swift Core on macOS
+        working-directory: clients-candidate
+        env:
+          MISE_DISABLE_TOOLS: ''
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
+
+  native-android-build:
+    name: Candidate Android host tests and APKs (macOS)
+    if: ${{ inputs.run_native_tests }}
+    needs: [resolve, finalize]
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      artifact_id: ${{ steps.upload-apks.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload-apks.outputs.artifact-digest }}
+      artifact_name: paired-native-apks-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out trusted workflow tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+      - name: Check out exact reviewed clients snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.clients_merge_sha }}
+          path: clients-candidate
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: Download exact paired contract artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-contract
+      - name: Set up trusted Swift toolchain
+        uses: ./trusted-clients/.github/actions/setup-mise-toolchain
+        with:
+          client-root: trusted-clients
+          tool: swift
+      - name: Select Xcode 26.6 and prepare Java
+        working-directory: trusted-clients
+        run: |
+          bash dotnet-clients/tooling/select-xcode.sh 26.6
+          if java -version >/dev/null 2>&1; then
+            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
+          elif command -v brew >/dev/null 2>&1; then
+            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
+          else
+            echo 'Java is unavailable on this runner.' >&2
+            exit 1
+          fi
+          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
+          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
+          echo "$java_home/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_HOME=$RUNNER_TEMP/android-sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> "$GITHUB_ENV"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+      - name: Install the pinned Android host Swift compiler
+        working-directory: trusted-clients
+        run: mise install swift@6.3.3
+      - name: Create isolated Skip compiler home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home"
+      - name: Install checksummed Skip Android SDK for the candidate build
+        working-directory: clients-candidate
+        env:
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+        run: |
+          set -euo pipefail
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$RUNNER_TEMP/swift-android-downloads"
+          bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+      - name: Run host tests and build app/test APKs
+        working-directory: trusted-clients
+        env:
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          GRADLE_USER_HOME: ${{ runner.temp }}/skip-swift-home/.cache/voucha/gradle
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p "$VOUCHA_SKIP_SWIFT_HOME"
+          mise exec swift@6.3.3 -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android" --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$RUNNER_TEMP/swift-android-downloads"
+          export PATH="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/artifacts/skip/skip/skip.artifactbundle/bin:$PATH"
+          mise exec -- env VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600 bash "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/tooling/pre-push.sh" --phase app
+          mise exec -- env \
+            HOME="$VOUCHA_SKIP_SWIFT_HOME" \
+            CFFIXED_USER_HOME="$VOUCHA_SKIP_SWIFT_HOME" \
+            TMPDIR="$RUNNER_TEMP/swift-tmp" \
+            ANDROID_NDK_ROOT="$VOUCHA_SKIP_SWIFT_HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30" \
+            ANDROID_NDK_HOME="$VOUCHA_SKIP_SWIFT_HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30" \
+            VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600 \
+            "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/Android/gradlew" \
+            -p "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/Android" \
+            :app:assembleDebugAndroidTest
+          mkdir -p "$RUNNER_TEMP/paired-apks"
+          app_apk="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/Android/app/outputs/apk/debug/app-debug.apk"
+          test_apk="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/Android/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          test -n "$app_apk" && test -n "$test_apk"
+          cp "$app_apk" "$RUNNER_TEMP/paired-apks/app-debug.apk"
+          cp "$test_apk" "$RUNNER_TEMP/paired-apks/app-debug-androidTest.apk"
+          printf '%s\n' '${{ needs.resolve.outputs.clients_merge_sha }}' > "$RUNNER_TEMP/paired-apks/candidate-revision.txt"
+          (cd "$RUNNER_TEMP/paired-apks" && shasum -a 256 app-debug.apk app-debug-androidTest.apk > sha256sums.txt)
+      - name: Upload untrusted candidate APK data
+        id: upload-apks
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: paired-native-apks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-apks
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+  native-android-emulator:
+    name: Candidate instrumentation on API 35 ARM64 bridge (Linux)
+    if: ${{ inputs.run_native_tests }}
+    needs: [resolve, native-android-build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+    permissions:
+      contents: read
+    outputs:
+      artifact_id: ${{ steps.upload-runtime.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload-runtime.outputs.artifact-digest }}
+      artifact_name: paired-native-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out trusted runtime driver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Download candidate APK artifact by immutable ID
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.native-android-build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-apks
+      - name: Set up API 35 emulator tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;36.0.0
+            system-images;android-35;google_apis;x86_64
+      - name: Download and install pinned Android emulator 37.2.12.0
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/emulator-linux_x64-16428233.zip"
+          stage="$RUNNER_TEMP/paired-pinned-emulator"
+          entries="$RUNNER_TEMP/emulator-package-entries.txt"
+          curl --fail --location --silent --show-error --max-time 900 \
+            --output "$archive" \
+            https://dl.google.com/android/repository/emulator-linux_x64-16428233.zip
+          test "$(stat -c '%s' "$archive")" = 349654171
+          printf '%s  %s\n' \
+            b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1 \
+            "$archive" | sha256sum --check --status
+          timeout 60s unzip -Z1 "$archive" > "$entries"
+          test -s "$entries"
+          test "$(wc -l < "$entries")" -le 20000
+          while IFS= read -r entry; do
+            case "$entry" in emulator/*) ;; *) exit 1 ;; esac
+            case "/$entry/" in */../*) exit 1 ;; esac
+          done < "$entries"
+          mkdir "$stage"
+          timeout 600s unzip -q "$archive" -d "$stage"
+          test -x "$stage/emulator/emulator"
+      - name: Install Android emulator runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libx11-6 libpulse0 libpng16-16t64 libnss3 libexpat1 \
+            libdrm2 libxi6 libxext6 libxkbfile1
+      - name: Require disposable KVM emulator
+        run: test -c /dev/kvm && sudo chmod 0666 /dev/kvm
+      - name: Execute the fixed trusted profile driver
+        env:
+          APK_BUNDLE_ROOT: ${{ runner.temp }}/paired-apks
+          CLIENTS_MERGE_SHA: ${{ needs.resolve.outputs.clients_merge_sha }}
+          NATIVE_TEST_PROFILE: ${{ inputs.native_test_profile }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          EMULATOR_LOG_PATH: ${{ runner.temp }}/paired-emulator.log
+          PINNED_EMULATOR_PATH: ${{ runner.temp }}/paired-pinned-emulator/emulator/emulator
+          RUNTIME_RESULT_PATH: ${{ runner.temp }}/paired-runtime/runtime-result.json
+        run: node scripts/paired-native-android-emulator.mjs
+      - name: Upload untrusted candidate runtime result
+        id: upload-runtime
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: paired-native-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-runtime
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: false
+
+  finalize-native-tests:
+    name: Finalize informational native test evidence
+    if: ${{ inputs.run_native_tests }}
+    needs:
+      [
+        resolve,
+        finalize,
+        native-linux-tests,
+        native-swift-core-macos,
+        native-android-build,
+        native-android-emulator,
+      ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted finalizer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted-clients
+          persist-credentials: false
+      - name: Set up trusted Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+      - name: Download exact contract artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-contract
+      - name: Download exact candidate APK artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.native-android-build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-apks
+      - name: Download exact candidate runtime artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.native-android-emulator.outputs.artifact_id }}
+          path: ${{ runner.temp }}/paired-runtime
+      - name: Bind exact artifacts and recheck live pair
+        env:
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_WORKFLOW_REF: ${{ github.workflow_ref }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          INPUT_PRODUCER_PULL_REQUEST: ${{ inputs.producer_pull_request }}
+          INPUT_EXPECTED_PRODUCER_HEAD_SHA: ${{ inputs.expected_producer_head_sha }}
+          INPUT_CLIENTS_PULL_REQUEST: ${{ inputs.clients_pull_request }}
+          INPUT_EXPECTED_CLIENTS_HEAD_SHA: ${{ inputs.expected_clients_head_sha }}
+          INPUT_NATIVE_TEST_PROFILE: ${{ inputs.native_test_profile }}
+          INPUT_REVIEWED_BOTH_SNAPSHOTS: ${{ inputs.reviewed_both_snapshots }}
+          NATIVE_LINUX_RESULT: ${{ needs.native-linux-tests.result }}
+          NATIVE_SWIFT_CORE_MACOS_RESULT: ${{ needs.native-swift-core-macos.result }}
+          NATIVE_ANDROID_BUILD_RESULT: ${{ needs.native-android-build.result }}
+          NATIVE_ANDROID_EMULATOR_RESULT: ${{ needs.native-android-emulator.result }}
+          CONTRACT_ARTIFACT_ID: ${{ needs.finalize.outputs.artifact_id }}
+          CONTRACT_ARTIFACT_DIGEST: ${{ needs.finalize.outputs.artifact_digest }}
+          CONTRACT_ARTIFACT_NAME: paired-native-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          APK_ARTIFACT_ID: ${{ needs.native-android-build.outputs.artifact_id }}
+          APK_ARTIFACT_DIGEST: ${{ needs.native-android-build.outputs.artifact_digest }}
+          APK_ARTIFACT_NAME: ${{ needs.native-android-build.outputs.artifact_name }}
+          RUNTIME_ARTIFACT_ID: ${{ needs.native-android-emulator.outputs.artifact_id }}
+          RUNTIME_ARTIFACT_DIGEST: ${{ needs.native-android-emulator.outputs.artifact_digest }}
+          RUNTIME_ARTIFACT_NAME: ${{ needs.native-android-emulator.outputs.artifact_name }}
+          PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract
+          APK_BUNDLE_ROOT: ${{ runner.temp }}/paired-apks
+          RUNTIME_RESULT_ROOT: ${{ runner.temp }}/paired-runtime
+          PAIR_SNAPSHOT_BASE64: ${{ needs.resolve.outputs.pair_snapshot_base64 }}
+        run: node trusted-clients/scripts/paired-contract-attestation.mjs finalize-native-tests
+      - name: Upload informational native test evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: paired-native-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paired-contract/paired-native-test-evidence.json
           if-no-files-found: error
           retention-days: 1
           overwrite: false

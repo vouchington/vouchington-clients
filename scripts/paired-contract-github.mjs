@@ -45,6 +45,7 @@ export async function captureLivePair() {
       producerPullRequest: process.env.INPUT_PRODUCER_PULL_REQUEST,
       expectedClientsHeadSha: process.env.INPUT_EXPECTED_CLIENTS_HEAD_SHA,
       expectedProducerHeadSha: process.env.INPUT_EXPECTED_PRODUCER_HEAD_SHA,
+      nativeTestProfile: process.env.INPUT_NATIVE_TEST_PROFILE,
       reviewedBothSnapshots: process.env.INPUT_REVIEWED_BOTH_SNAPSHOTS,
     },
     clientsPermission: 'admin',

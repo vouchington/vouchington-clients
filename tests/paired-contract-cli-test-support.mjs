@@ -115,6 +115,7 @@ export function dispatchEnvironment(apiURL, outputPath, extra = {}) {
     INPUT_EXPECTED_PRODUCER_HEAD_SHA: sha('1'),
     INPUT_CLIENTS_PULL_REQUEST: '376',
     INPUT_EXPECTED_CLIENTS_HEAD_SHA: sha('2'),
+    INPUT_NATIVE_TEST_PROFILE: 'cookie-snapshot',
     INPUT_REVIEWED_BOTH_SNAPSHOTS: 'true',
     GITHUB_OUTPUT: outputPath,
     ...extra,

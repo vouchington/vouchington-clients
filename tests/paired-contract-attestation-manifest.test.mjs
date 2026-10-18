@@ -32,6 +32,7 @@ function dispatch(overrides = {}) {
     expectedProducerHeadSha: producerHead,
     clientsPullRequest: '376',
     expectedClientsHeadSha: clientsHead,
+    nativeTestProfile: 'cookie-snapshot',
     reviewedBothSnapshots: true,
     ...overrides.inputs,
   }
