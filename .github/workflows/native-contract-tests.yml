@@ -242,39 +242,40 @@ jobs:
           node --input-type=module <<'NODE'
           import { appendFileSync, readFileSync } from 'node:fs'
           import { execFileSync } from 'node:child_process'
+          import { validatePullRequestCandidate } from './scripts/validate-native-contract-candidate.mjs'
 
           const manifest = JSON.parse(readFileSync(`${process.env.ARTIFACT_ROOT}/manifest.json`, 'utf8'))
           if (process.env.EVENT_NAME === 'pull_request') {
-            if (manifest.candidate.event !== 'pull_request') throw new Error('artifact is not for a pull request')
-            if (manifest.candidate.number !== Number(process.env.PR_NUMBER)) throw new Error('pull request number changed')
-            if (manifest.candidate.base !== process.env.PR_BASE_SHA) throw new Error('event base SHA changed')
-            if (manifest.candidate.head !== process.env.PR_HEAD_SHA) throw new Error('event head SHA changed')
-
-            const pr = JSON.parse(execFileSync('gh', [
-              'api',
-              `repos/${manifest.clientsRepository}/pulls/${manifest.candidate.number}`,
-            ], { encoding: 'utf8' }))
-            if (pr.state !== 'open') throw new Error(`pull request is ${pr.state}`)
-            if (pr.base.sha !== manifest.candidate.base) throw new Error('pull request base SHA changed')
-            if (pr.head.sha !== manifest.candidate.head) throw new Error('pull request head SHA changed')
-
-            const revision = JSON.parse(execFileSync('gh', [
-              'api',
-              `repos/${manifest.clientsRepository}/git/ref/pull/${manifest.candidate.number}/merge`,
-            ], { encoding: 'utf8' })).object.sha
-            if (revision !== manifest.candidate.revision) throw new Error('pull request merge SHA changed')
+            const identity = validatePullRequestCandidate({
+              candidate: manifest.candidate,
+              event: {
+                number: process.env.PR_NUMBER,
+                baseSha: process.env.PR_BASE_SHA,
+                headSha: process.env.PR_HEAD_SHA,
+              },
+              readPullRequest: number => JSON.parse(execFileSync('gh', [
+                'api',
+                `repos/${manifest.clientsRepository}/pulls/${number}`,
+              ], { encoding: 'utf8' })),
+              readCurrentMergeRevision: number => JSON.parse(execFileSync('gh', [
+                'api',
+                `repos/${manifest.clientsRepository}/git/ref/pull/${number}/merge`,
+              ], { encoding: 'utf8' })).object.sha,
+            })
+            appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${identity.baseSha}\n`)
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${identity.revisionSha}\n`)
           } else if (process.env.EVENT_NAME === 'push' && process.env.EVENT_REF === 'refs/heads/main') {
             if (manifest.candidate.event !== 'push') throw new Error('artifact is not for a push')
             if (manifest.candidate.number !== null) throw new Error('push artifact has a pull request number')
             if (manifest.candidate.base !== process.env.EVENT_BEFORE) throw new Error('push base SHA changed')
             if (manifest.candidate.head !== process.env.EVENT_SHA) throw new Error('push head SHA changed')
             if (manifest.candidate.revision !== process.env.EVENT_SHA) throw new Error('push revision SHA changed')
+            appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           } else {
             throw new Error(`unsupported native test event ${process.env.EVENT_NAME}`)
           }
 
-          appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
-          appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           NODE
       - name: Check out exact candidate revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
