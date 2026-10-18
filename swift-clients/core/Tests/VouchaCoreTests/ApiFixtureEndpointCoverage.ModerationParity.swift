@@ -9,6 +9,8 @@ extension ApiFixtureEndpointCoverageTests {
             limit: 25
         ),
         "native.moderation.disputes.detail.default": .dispute(id: moderationDisputeFixtureId),
+        "native.moderation.disputes.member.default": .disputes(status: .pending, limit: 25),
+        "native.moderation.disputes.detail.member.default": .dispute(id: moderationDisputeFixtureId),
         "native.moderation.disputes.update.default": .updateDisputeDraft(
             id: moderationDisputeFixtureId,
             publicResponse: "We reviewed your dispute.",

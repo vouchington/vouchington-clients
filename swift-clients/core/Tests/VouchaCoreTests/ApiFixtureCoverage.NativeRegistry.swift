@@ -117,6 +117,9 @@ let nativeModerationCoverage: [RegisteredFixture] = [
             ]
         )
     },
+    RegisteredFixture(id: "native.moderation.disputes.member.default") {
+        try assertFixtureCoversDTO($0, as: ModerationDisputeListResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.disputes.default") {
         try assertFixtureCoversDTO(
             $0,
