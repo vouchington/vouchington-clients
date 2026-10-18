@@ -26,6 +26,7 @@ public final class SessionManager {
     public private(set) var isRefreshing: Bool = false
     public private(set) var uiLocale: String?
     public private(set) var lastSignOutErrorMessage: String?
+    public private(set) var lastRefreshErrorMessage: String?
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
@@ -99,6 +100,7 @@ public final class SessionManager {
     @discardableResult
     public func refresh() async -> Bool {
         guard !isRefreshing else { return false }
+        lastRefreshErrorMessage = nil
         isRefreshing = true
         defer { isRefreshing = false }
         do {
@@ -119,6 +121,7 @@ public final class SessionManager {
             uiLocale = nil
             return false
         } catch {
+            lastRefreshErrorMessage = error.localizedDescription
             logger.error("Session refresh failed: \(error.localizedDescription)")
             return false
         }

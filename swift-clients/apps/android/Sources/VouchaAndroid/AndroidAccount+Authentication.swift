@@ -21,14 +21,14 @@ extension AndroidAccount {
             otpRequested = true
         } catch {
             turnstileToken = nil
-            authError = error.localizedDescription
+            authError = .verbatim(error.localizedDescription)
         }
     }
 
-    func turnstileTokenDidChange(_ token: String?, challengeID: UUID? = nil, locale: Locale = .current) {
+    func turnstileTokenDidChange(_ token: String?, challengeID: UUID? = nil, locale _: Locale = .current) {
         guard !isAuthenticating, challengeID == nil || challengeID == turnstileChallengeID else { return }
         turnstileToken = token
-        authError = token == nil ? UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale) : nil
+        authError = token == nil ? .message(.nativeAuthVerificationTokenRequired) : nil
     }
 
     func verifyOTP() async {
@@ -41,7 +41,7 @@ extension AndroidAccount {
                 loginAttemptID = challenge.loginAttemptId
             }
         } catch {
-            authError = error.localizedDescription
+            authError = .verbatim(error.localizedDescription)
         }
     }
 
@@ -54,7 +54,7 @@ extension AndroidAccount {
             try await signIn.verifyMFATOTP(loginAttemptId: loginAttemptID, code: totp)
             self.loginAttemptID = nil
         } catch {
-            authError = error.localizedDescription
+            authError = .verbatim(error.localizedDescription)
         }
     }
 

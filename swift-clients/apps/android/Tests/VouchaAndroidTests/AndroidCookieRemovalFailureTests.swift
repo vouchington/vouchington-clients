@@ -29,7 +29,8 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         await account.restore()
         XCTAssertTrue(account.session.isSignedIn)
         let userID = account.session.currentUserId
-        let originalValue = secrets.snapshotValue(forKey: "voucha.session.cookies")
+        let originalValue = try secrets
+            .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL)))
         let requestsBeforeSignOut = AndroidAuthURLProtocol.requestSnapshot().count
         secrets.setRemovalFailure(true)
 
@@ -39,7 +40,11 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         XCTAssertTrue(account.session.isSignedIn)
         XCTAssertEqual(account.session.currentUserId, userID)
         XCTAssertNotNil(account.session.lastSignOutErrorMessage)
-        XCTAssertEqual(secrets.snapshotValue(forKey: "voucha.session.cookies"), originalValue)
+        XCTAssertEqual(
+            try secrets
+                .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))),
+            originalValue
+        )
         XCTAssertEqual(storage.cookies?.map(\.value), ["original-session"])
         XCTAssertEqual(AndroidAuthURLProtocol.requestSnapshot().count, requestsBeforeSignOut)
 
@@ -50,7 +55,8 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         XCTAssertFalse(account.session.isSignedIn)
         XCTAssertNil(account.session.lastSignOutErrorMessage)
         XCTAssertTrue(storage.cookies?.isEmpty ?? true)
-        XCTAssertNil(secrets.snapshotValue(forKey: "voucha.session.cookies"))
+        XCTAssertNil(try secrets
+            .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))))
         storage.cookieStorage.setCookie(cookie)
         storage.persistCookies()
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
@@ -71,7 +77,8 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         try storage.setCookie(sessionCookie(value: "late-session"))
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
-        XCTAssertNil(secrets.snapshotValue(forKey: "voucha.session.cookies"))
+        XCTAssertNil(try secrets
+            .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))))
     }
 
     private func sessionCookie(value: String) throws -> HTTPCookie {

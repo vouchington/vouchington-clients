@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import VouchaCore
 #if !canImport(Darwin)
     import FoundationNetworking
 #endif
@@ -56,7 +57,8 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         await fulfillment(of: [published], timeout: 2)
 
         XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
-        XCTAssertNil(secrets.snapshot()["voucha.session.cookies"])
+        XCTAssertNil(try secrets
+            .snapshot()[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))])
     }
 
     func testOutOfOrderFailuresCannotReplaceSuccessfulRetryOrDisabledStatus() throws {

@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 #if !canImport(Darwin)
     import FoundationNetworking
 #endif
@@ -10,6 +11,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     let cookieStorage: HTTPCookieStorage
     private let secrets: any AndroidEndpointSecretStoring
     private let key: String
+    private let snapshotRecovery: AndroidCookieSnapshotRecovery
     private let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
 
     private var persistenceEnabled = true
@@ -20,8 +22,11 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     init(
         secrets: any AndroidEndpointSecretStoring = SkipKeychainEndpointSecretStore(),
-        key: String = "voucha.session.cookies"
+        baseURL: URL = AppConfig.shared.baseURL
     ) {
+        guard let key = AndroidSessionCookieNamespace.key(for: baseURL) else {
+            preconditionFailure("Android authentication requires an HTTP(S) API origin")
+        }
         let configuration = URLSessionConfiguration.ephemeral
         guard let cookieStorage = configuration.httpCookieStorage else {
             preconditionFailure("Android authentication requires URLSession's ephemeral cookie store")
@@ -30,6 +35,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         self.cookieStorage = cookieStorage
         self.secrets = secrets
         self.key = key
+        snapshotRecovery = AndroidCookieSnapshotRecovery(secrets: secrets, key: key, cookieStorage: cookieStorage)
         restoreCookies()
     }
 
@@ -70,24 +76,6 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         if let result { notify(result) }
     }
 
-    var cookies: [HTTPCookie]? {
-        cookieStorage.cookies
-    }
-
-    func cookies(for url: URL) -> [HTTPCookie]? {
-        cookieStorage.cookies(for: url)
-    }
-
-    func setCookie(_ cookie: HTTPCookie) {
-        cookieStorage.setCookie(cookie)
-        persistCookies()
-    }
-
-    func deleteCookie(_ cookie: HTTPCookie) {
-        cookieStorage.deleteCookie(cookie)
-        persistCookies()
-    }
-
     /// Permanently fences this client's callbacks before logout or account replacement.
     func disablePersistenceWrites() {
         let status = queue.sync { disableHoldingQueue() }
@@ -109,7 +97,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
                 return (persistenceEnabled, statusHoldingQueue())
             }
             do {
-                try loadPersistedCookies()
+                try snapshotRecovery.loadPersistedCookies()
                 restorationBlocked = false
                 persistenceEnabled = true
                 persistenceErrorMessage = nil
@@ -120,6 +108,25 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
             return (!restorationBlocked, statusHoldingQueue())
         }
         guard let result else { return true }
+        notify(result.1)
+        return result.0
+    }
+
+    @discardableResult
+    func discardUnreadableSnapshot() -> Bool {
+        let result = queue.sync { () -> (Bool, PersistenceStatus) in
+            guard restorationBlocked, snapshotRecovery.unreadableSnapshotCanBeDiscarded else {
+                return (false, statusHoldingQueue())
+            }
+            do {
+                try snapshotRecovery.discardUnreadableSnapshot()
+            } catch {
+                persistenceErrorMessage = error.localizedDescription
+                persistenceRevision += 1
+                return (false, statusHoldingQueue())
+            }
+            return (true, disableHoldingQueue())
+        }
         notify(result.1)
         return result.0
     }
@@ -137,7 +144,8 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
             revision: persistenceRevision,
             errorMessage: persistenceErrorMessage,
             enabled: persistenceEnabled,
-            restorationBlocked: restorationBlocked
+            restorationBlocked: restorationBlocked,
+            unreadableSnapshotCanBeDiscarded: restorationBlocked && snapshotRecovery.unreadableSnapshotCanBeDiscarded
         )
     }
 
@@ -148,46 +156,12 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     private func restoreCookies() {
         do {
-            try loadPersistedCookies()
+            try snapshotRecovery.loadPersistedCookies()
         } catch {
             restorationBlocked = true
             persistenceEnabled = false
             persistenceErrorMessage = error.localizedDescription
             persistenceRevision += 1
-        }
-    }
-
-    private func loadPersistedCookies() throws {
-        guard let json = try secrets.string(forKey: key) else { return }
-        guard let data = json.data(using: .utf8) else {
-            throw CocoaError(.fileReadInapplicableStringEncoding)
-        }
-        let records = try JSONDecoder().decode([CookieRecord].self, from: data)
-        for record in records where record.expires.map({ $0 > Date() }) ?? true {
-            if let cookie = record.cookie {
-                cookieStorage.setCookie(cookie)
-            }
-        }
-    }
-}
-
-extension AndroidSessionCookieStorage {
-    struct PersistenceStatus {
-        let revision: Int
-        let errorMessage: String?
-        let enabled: Bool
-        let restorationBlocked: Bool
-
-        init(
-            revision: Int,
-            errorMessage: String?,
-            enabled: Bool,
-            restorationBlocked: Bool = false
-        ) {
-            self.revision = revision
-            self.errorMessage = errorMessage
-            self.enabled = enabled
-            self.restorationBlocked = restorationBlocked
         }
     }
 

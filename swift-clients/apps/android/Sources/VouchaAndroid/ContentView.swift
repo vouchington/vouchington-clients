@@ -13,17 +13,14 @@ struct ContentView: View {
     var viewModel = ViewModel()
     @State
     var account = AndroidAccount()
+    @State var accountReplacement = AndroidAccountReplacementCoordinator()
     @Environment(\.locale)
     var locale
 
     var body: some View {
         VStack {
-            if let error = account.cookiePersistenceNotice.errorMessage {
-                Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(error), locale: locale))
-                    .foregroundStyle(.red)
-                Button(message(.nativeCommonRetry)) {
-                    Task { await account.retryCookiePersistenceOrRestoration() }
-                }
+            AndroidAccountRecoveryView(account: account, isReplacing: accountReplacement.isReplacing) {
+                Task { await discardAndReplaceUnreadableSession() }
             }
             accountContent
         }
@@ -61,6 +58,7 @@ struct ContentView: View {
                     .tabItem { Text(message(.nativeSwiftAndroidSettings)) }
                     .tag(ContentTab.settings)
                 }
+                .disabled(accountReplacement.isReplacing)
             } else {
                 AndroidSignInView(account: account)
             }
@@ -73,11 +71,10 @@ struct ContentView: View {
 
     @MainActor
     private func signOutAndReplaceAccount() async {
-        let config = account.config
-        guard await account.signOut() else { return }
-        account = AndroidAccount(config: config)
-        await account.restore()
+        let capturedAccount = account
+        await replaceAccount(capturedAccount) { await capturedAccount.signOut() }
     }
+
 }
 
 struct AndroidChatView: View {

@@ -89,7 +89,7 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
         account.totp = "654321"
         account.loginAttemptID = "mfa-attempt"
         account.turnstileToken = "old-token"
-        account.authError = "previous error"
+        account.authError = .verbatim("previous error")
         let oldChallengeID = account.turnstileChallengeID
 
         XCTAssertTrue(account.restartSignIn())

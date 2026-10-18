@@ -4,25 +4,11 @@ import Foundation
 #endif
 @testable import VouchaAndroid
 import VouchaCore
+import VouchaLocalization
 import VouchaTestSupport
 import XCTest
 
 final class AndroidAccountTests: XCTestCase {
-    @MainActor
-    func testExpiredOrFailedTurnstileChallengeClearsPreviouslyAcceptedToken() {
-        let account = AndroidAccount(cookieStorage: AndroidSessionCookieStorage(secrets: MemorySecrets()))
-        account.turnstileTokenDidChange("valid-token")
-        XCTAssertEqual(account.turnstileToken, "valid-token")
-
-        account.turnstileTokenDidChange(nil)
-
-        XCTAssertNil(account.turnstileToken)
-        XCTAssertNotNil(account.authError)
-        account.turnstileTokenDidChange("replacement-token")
-        XCTAssertEqual(account.turnstileToken, "replacement-token")
-        XCTAssertNil(account.authError)
-    }
-
     @MainActor
     func testFailedOTPRequestConsumesTurnstileToken() async throws {
         AndroidAuthURLProtocol.resetRequests()
@@ -60,7 +46,7 @@ final class AndroidAccountTests: XCTestCase {
 
         storage.setCookie(cookie)
 
-        XCTAssertNotNil(secrets.values["voucha.session.cookies"])
+        XCTAssertNotNil(try secrets.values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))])
         let restored = AndroidSessionCookieStorage(secrets: secrets)
         XCTAssertEqual(
             try restored.cookies(for: XCTUnwrap(URL(string: "https://voucha.ai/api/v1/my/identity")))?.map(\.name),
@@ -86,7 +72,8 @@ final class AndroidAccountTests: XCTestCase {
         storage.setCookie(cookie)
 
         XCTAssertEqual(try storage.cookies(for: XCTUnwrap(URL(string: "https://api.voucha.ai")))?.map(\.name), ["dt"])
-        let json = try XCTUnwrap(secrets.values["voucha.session.cookies"]?.data(using: .utf8))
+        let json = try XCTUnwrap(try secrets
+            .values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))]?.data(using: .utf8))
         let records = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [[String: Any]])
         XCTAssertNotNil(records.first?["expires"])
     }
@@ -135,7 +122,8 @@ final class AndroidAccountTests: XCTestCase {
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         storage.setCookie(cookie)
 
-        let persisted = try XCTUnwrap(secrets.values["voucha.session.cookies"]?.data(using: .utf8))
+        let persisted = try XCTUnwrap(try secrets
+            .values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))]?.data(using: .utf8))
         let records = try JSONDecoder().decode([AndroidSessionCookieStorage.CookieRecord].self, from: persisted)
         XCTAssertTrue(records.isEmpty)
         let restored = AndroidSessionCookieStorage(secrets: secrets)

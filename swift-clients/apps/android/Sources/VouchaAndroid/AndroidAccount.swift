@@ -16,7 +16,8 @@ final class AndroidAccount {
     let session: SessionManager
     let signIn: SignInService
     var isRestoring = true
-    private var isRetryingCookieRestoration = false
+    var isRestoringSession = false
+    var sessionRestoreError: UiVerbatimText?
     private var editableEmail = ""
     var email: String {
         get { editableEmail }
@@ -33,14 +34,15 @@ final class AndroidAccount {
     var loginAttemptID: String?
     var otpRequested = false
     var isAuthenticating = false
-    var authError: String?
+    var authError: UiVerbatimText?
 
     init(
         config: AppConfig? = nil,
-        cookieStorage: AndroidSessionCookieStorage = AndroidSessionCookieStorage(),
+        cookieStorage: AndroidSessionCookieStorage? = nil,
         protocolClasses: [AnyClass]? = nil
     ) {
         let config = config ?? Self.applicationConfig
+        let cookieStorage = cookieStorage ?? AndroidSessionCookieStorage(baseURL: config.baseURL)
         self.config = config
         self.cookieStorage = cookieStorage
         let client = APIClient(
@@ -61,41 +63,6 @@ final class AndroidAccount {
         cookieStorage.observePersistence { [weak notice] status in
             Task { @MainActor in notice?.accept(status) }
         }
-    }
-
-    func retryCookiePersistence() {
-        cookieStorage.persistCookies()
-        cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
-    }
-
-    func retryCookiePersistenceOrRestoration() async {
-        if cookieStorage.requiresRestorationRetry {
-            await retryCookieRestoration()
-        } else {
-            retryCookiePersistence()
-        }
-    }
-
-    private func retryCookieRestoration() async {
-        guard !isRetryingCookieRestoration else { return }
-        isRetryingCookieRestoration = true
-        defer { isRetryingCookieRestoration = false }
-        guard cookieStorage.retryRestoreCookies() else {
-            cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
-            return
-        }
-        cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
-        await session.restoreSession()
-        isRestoring = false
-    }
-
-    func restore() async {
-        guard !cookieStorage.requiresRestorationRetry else {
-            cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
-            return
-        }
-        await session.restoreSession()
-        isRestoring = false
     }
 
     @discardableResult

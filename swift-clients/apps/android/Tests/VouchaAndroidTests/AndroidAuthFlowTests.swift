@@ -111,7 +111,8 @@ final class AndroidAuthFlowTests: XCTestCase {
         ])))
 
         XCTAssertTrue(account.session.isSignedIn)
-        XCTAssertTrue(secrets.values["voucha.session.cookies"]?.contains("still-active") == true)
+        XCTAssertTrue(try secrets.values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))]?
+            .contains("still-active") == true)
     }
 }
 

@@ -62,7 +62,7 @@ struct AndroidSignInView: View {
                         }.disabled(account.isAuthenticating || account.email.isEmpty || account.turnstileToken == nil)
                     }
                     if let authError = account.authError {
-                        Text(authError).foregroundStyle(.red)
+                        Text(verbatim: UiMessages.string(authError, locale: locale)).foregroundStyle(.red)
                     }
                 }
             }
