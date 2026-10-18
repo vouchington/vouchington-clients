@@ -13,6 +13,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     private let key: String
     private let snapshotRecovery: AndroidCookieSnapshotRecovery
     private let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
+    private let notificationQueue = DispatchQueue(label: "ai.voucha.android.session-cookie-notices")
 
     private var persistenceEnabled = true
     private var restorationBlocked = false
@@ -21,7 +22,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     private var observer: (@Sendable (PersistenceStatus) -> Void)?
 
     init(
-        secrets: any AndroidEndpointSecretStoring = SkipKeychainEndpointSecretStore(),
+        secrets: any AndroidEndpointSecretStoring = AndroidCheckedCookieSecretStore(),
         baseURL: URL = AppConfig.shared.baseURL
     ) {
         guard let key = AndroidSessionCookieNamespace.key(for: baseURL) else {
@@ -56,11 +57,13 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     }
 
     func persistCookies() {
-        let result = queue.sync { () -> PersistenceStatus? in
-            guard persistenceEnabled, !restorationBlocked else { return nil }
+        // Capture the URLSession jar on the callback thread. Reading it later on the
+        // persistence queue can race CFNetwork's in-place cookie mutations.
+        let records = (cookieStorage.cookies ?? []).compactMap(CookieRecord.init(cookie:))
+            .filter { $0.expires.map { $0 > Date() } ?? true }
+        queue.async { [self] in
+            guard persistenceEnabled, !restorationBlocked else { return }
             do {
-                let records = (cookieStorage.cookies ?? []).compactMap(CookieRecord.init(cookie:))
-                    .filter { $0.expires.map { $0 > Date() } ?? true }
                 let data = try JSONEncoder().encode(records)
                 guard let json = String(data: data, encoding: .utf8) else {
                     throw CocoaError(.fileWriteInapplicableStringEncoding)
@@ -71,9 +74,20 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
                 persistenceErrorMessage = error.localizedDescription
             }
             persistenceRevision += 1
-            return statusHoldingQueue()
+            let status = statusHoldingQueue()
+            if let observer {
+                // Keep the persistence queue available to the observer's own storage calls.
+                notificationQueue.async { observer(status) }
+            }
         }
-        if let result { notify(result) }
+    }
+
+    /// Wait for queued cookie writes without running their disk I/O on the caller's actor.
+    func flushPendingPersistence() async {
+        await Task.detached {
+            self.queue.sync {}
+            self.notificationQueue.sync {}
+        }.value
     }
 
     /// Permanently fences this client's callbacks before logout or account replacement.
@@ -82,7 +96,11 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         notify(status)
     }
 
-    func clearPersistedCookies() throws {
+    func clearPersistedCookies() async throws {
+        try await Task.detached { try self.clearPersistedCookiesOffMain() }.value
+    }
+
+    private func clearPersistedCookiesOffMain() throws {
         let status = try queue.sync {
             try secrets.removeValue(forKey: key)
             return disableHoldingQueue()
@@ -113,8 +131,14 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     }
 
     @discardableResult
-    func discardUnreadableSnapshot() -> Bool {
-        let result = queue.sync { () -> (Bool, PersistenceStatus) in
+    func discardUnreadableSnapshot() async -> Bool {
+        let result = await Task.detached { self.discardUnreadableSnapshotOffMain() }.value
+        notify(result.1)
+        return result.0
+    }
+
+    private func discardUnreadableSnapshotOffMain() -> (Bool, PersistenceStatus) {
+        queue.sync { () -> (Bool, PersistenceStatus) in
             guard restorationBlocked, snapshotRecovery.unreadableSnapshotCanBeDiscarded else {
                 return (false, statusHoldingQueue())
             }
@@ -127,10 +151,11 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
             }
             return (true, disableHoldingQueue())
         }
-        notify(result.1)
-        return result.0
     }
 
+}
+
+private extension AndroidSessionCookieStorage {
     private func disableHoldingQueue() -> PersistenceStatus {
         persistenceEnabled = false
         restorationBlocked = false

@@ -58,7 +58,7 @@ final class AndroidAccount {
         session = SessionManager(
             client: client,
             cookieStorage: cookieStorage.cookieStorage,
-            beforeClearSessionCookies: { try cookieStorage.clearPersistedCookies() }
+            beforeClearSessionCookies: { try await cookieStorage.clearPersistedCookies() }
         )
         signIn = SignInService(client: client, sessionManager: session)
         let notice = cookiePersistenceNotice

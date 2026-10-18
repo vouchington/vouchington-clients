@@ -21,6 +21,8 @@ skip {
 dependencies {
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    // Match the pinned SkipKeychain 0.3.2 encrypted preference format for checked cookie commits.
+    implementation("androidx.security:security-crypto:1.0.0")
 }
 
 kotlin {

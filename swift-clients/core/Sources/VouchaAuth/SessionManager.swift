@@ -30,7 +30,7 @@ public final class SessionManager {
 
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
-    private let beforeClearSessionCookies: (@Sendable () throws -> Void)?
+    private let beforeClearSessionCookies: (@Sendable () async throws -> Void)?
     private let clearPersistedCookies: (@Sendable () -> Void)?
     private let logger = VouchaLogger(category: "SessionManager")
     private var beforeSignOut: (@MainActor (String) async throws -> Void)?
@@ -78,7 +78,7 @@ public final class SessionManager {
     public init(
         client: APIClient, cookieStorage: HTTPCookieStorage,
         clearPersistedCookies: (@Sendable () -> Void)? = nil,
-        beforeClearSessionCookies: (@Sendable () throws -> Void)? = nil
+        beforeClearSessionCookies: (@Sendable () async throws -> Void)? = nil
     ) {
         self.client = client
         self.cookieStorage = cookieStorage
@@ -139,7 +139,7 @@ public final class SessionManager {
             }
         }
         do {
-            try beforeClearSessionCookies?()
+            try await beforeClearSessionCookies?()
         } catch {
             logger.error("Cookie cleanup failed before sign-out: \(error.localizedDescription)")
             lastSignOutErrorMessage = error.localizedDescription

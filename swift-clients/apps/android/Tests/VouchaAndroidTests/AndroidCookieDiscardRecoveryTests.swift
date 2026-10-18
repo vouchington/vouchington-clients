@@ -63,7 +63,8 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         await account.retryCookiePersistenceOrRestoration()
         XCTAssertTrue(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
 
-        XCTAssertFalse(account.discardUnreadableCookieSnapshot())
+        let firstDiscard = await account.discardUnreadableCookieSnapshot()
+        XCTAssertFalse(firstDiscard)
         XCTAssertTrue(account.isRestoring)
         XCTAssertTrue(storage.requiresRestorationRetry)
         XCTAssertTrue(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
@@ -72,7 +73,8 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         XCTAssertEqual(secrets.counts().writes, 0)
 
         secrets.setRemovalFailure(false)
-        XCTAssertTrue(account.discardUnreadableCookieSnapshot())
+        let retriedDiscard = await account.discardUnreadableCookieSnapshot()
+        XCTAssertTrue(retriedDiscard)
 
         XCTAssertTrue(account.isRestoring)
         XCTAssertFalse(storage.requiresRestorationRetry)

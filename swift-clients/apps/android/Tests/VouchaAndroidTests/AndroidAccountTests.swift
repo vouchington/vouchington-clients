@@ -32,7 +32,7 @@ final class AndroidAccountTests: XCTestCase {
         ])
     }
 
-    func testSessionCookiesPersistSecurelyAndAreScopedToOrigin() throws {
+    func testSessionCookiesPersistSecurelyAndAreScopedToOrigin() async throws {
         let secrets = MemorySecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
@@ -45,6 +45,7 @@ final class AndroidAccountTests: XCTestCase {
         ]))
 
         storage.setCookie(cookie)
+        await storage.flushPendingPersistence()
 
         XCTAssertNotNil(try secrets.values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))])
         let restored = AndroidSessionCookieStorage(secrets: secrets)
@@ -58,7 +59,7 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertTrue(try restored.cookies(for: XCTUnwrap(URL(string: "https://example.com/")))?.isEmpty ?? true)
     }
 
-    func testDomainCookieIncludesSubdomainsAndMaxAgePersistsAsAbsoluteExpiry() throws {
+    func testDomainCookieIncludesSubdomainsAndMaxAgePersistsAsAbsoluteExpiry() async throws {
         let secrets = MemorySecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
@@ -70,6 +71,7 @@ final class AndroidAccountTests: XCTestCase {
         ]))
 
         storage.setCookie(cookie)
+        await storage.flushPendingPersistence()
 
         XCTAssertEqual(try storage.cookies(for: XCTUnwrap(URL(string: "https://api.voucha.ai")))?.map(\.name), ["dt"])
         let json = try XCTUnwrap(try secrets
@@ -107,7 +109,7 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertEqual(laterSnapshot.expires, expectedExpiry)
     }
 
-    func testVersionZeroMaxAgeZeroIsNotPersistedDespiteFutureExpires() throws {
+    func testVersionZeroMaxAgeZeroIsNotPersistedDespiteFutureExpires() async throws {
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
             .name: "expired",
             .value: "no-session",
@@ -121,6 +123,7 @@ final class AndroidAccountTests: XCTestCase {
         let secrets = MemorySecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         storage.setCookie(cookie)
+        await storage.flushPendingPersistence()
 
         let persisted = try XCTUnwrap(try secrets
             .values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))]?.data(using: .utf8))
@@ -148,7 +151,7 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertTrue(storage.cookies(for: url)?.isEmpty ?? true)
     }
 
-    func testDeletingSessionCookieRemovesItFromDurableStorage() throws {
+    func testDeletingSessionCookieRemovesItFromDurableStorage() async throws {
         let secrets = MemorySecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
@@ -157,6 +160,7 @@ final class AndroidAccountTests: XCTestCase {
         storage.setCookie(cookie)
 
         storage.deleteCookie(cookie)
+        await storage.flushPendingPersistence()
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
     }

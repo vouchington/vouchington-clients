@@ -1,8 +1,9 @@
 import VouchaLocalization
 
 extension AndroidAccount {
-    func retryCookiePersistence() {
+    func retryCookiePersistence() async {
         cookieStorage.persistCookies()
+        await cookieStorage.flushPendingPersistence()
         cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
     }
 
@@ -18,13 +19,13 @@ extension AndroidAccount {
         } else if isRestoring || sessionRestoreError != nil {
             await restore()
         } else {
-            retryCookiePersistence()
+            await retryCookiePersistence()
         }
     }
 
     @discardableResult
-    func discardUnreadableCookieSnapshot() -> Bool {
-        let discarded = cookieStorage.discardUnreadableSnapshot()
+    func discardUnreadableCookieSnapshot() async -> Bool {
+        let discarded = await cookieStorage.discardUnreadableSnapshot()
         cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
         return discarded
     }

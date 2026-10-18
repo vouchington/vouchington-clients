@@ -13,11 +13,15 @@ extension ContentView {
     @MainActor
     func discardAndReplaceUnreadableSession() async {
         let capturedAccount = account
-        await accountReplacement.perform(operation: { capturedAccount.discardUnreadableCookieSnapshot() }, isCurrent: {
-            account === capturedAccount
-        }, replace: {
-            account = AndroidAccount(config: capturedAccount.config)
-            await account.restore()
-        })
+        await accountReplacement.perform(
+            operation: { await capturedAccount.discardUnreadableCookieSnapshot() },
+            isCurrent: {
+                account === capturedAccount
+            },
+            replace: {
+                account = AndroidAccount(config: capturedAccount.config)
+                await account.restore()
+            }
+        )
     }
 }
