@@ -69,7 +69,7 @@ enum ReviewDisputesTestSupport {
         Data("{\"dispute\":\(dispute)}".utf8)
     }
 
-    static let queued = Data(#"{"queued":true,"rerun_by_id":"admin-1"}"#.utf8)
+    static let queued = ApiFixtureLoader.data("native.moderation.disputes.resolution-drafts.default")
 
     private static func json(_ value: String?) -> String {
         value.map { "\"\($0)\"" } ?? "null"

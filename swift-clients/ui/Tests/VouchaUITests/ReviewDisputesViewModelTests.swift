@@ -359,8 +359,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         let viewModel = try staffViewModel(rerunPollAttempts: 1)
         await viewModel.load()
         let dispute = try XCTUnwrap(viewModel.disputes.first)
-        CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = (
-            Data(#"{"queued":false,"rerun_by_id":null}"#.utf8), 202
+        var declined = try XCTUnwrap(JSONSerialization.jsonObject(with: Support.queued) as? [String: Any])
+        declined["queued"] = false
+        declined["rerun_by_id"] = NSNull()
+        CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = try (
+            JSONSerialization.data(withJSONObject: declined), 202
         )
 
         await viewModel.rerunAI(for: dispute)
