@@ -71,7 +71,7 @@ public sealed class MicrosoftOAuthRenderedControlsTests
     var googleDisconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     connectedStore.SessionChanged += (_, change) =>
     {
-      if (change.Current.Identity?.GoogleAccount is null) googleDisconnected.TrySetResult();
+      if (change.Snapshot.Identity?.GoogleAccount is null) googleDisconnected.TrySetResult();
     };
     disconnect.SendClicked();
     var deleted = await disconnectHandler.Deleted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -230,7 +230,7 @@ public sealed class MicrosoftOAuthRenderedControlsTests
       var body = path switch
       {
         "/api/v1/auth/oauth/providers" => """
-            {"providers":["facebook","x","github","linkedin","microsoft"],"broker_capabilities":{
+            {"providers":["facebook","x","github","linkedin","microsoft","google"],"broker_capabilities":{
               "facebook":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
               "x":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
               "github":{"version":1,"modes":{"web":false,"native":false},"purposes":["authenticate","connect"]},
@@ -240,6 +240,9 @@ public sealed class MicrosoftOAuthRenderedControlsTests
             """.Replace("NATIVE_ENABLED", nativeEnabled ? "true" : "false", StringComparison.Ordinal),
         "/api/v1/auth/oauth/microsoft/authorizations" => """
             {"flow_id":"019fafb8-a44c-73e2-890a-497ff3dd27a6","redirect_url":"https://login.microsoftonline.com/common/oauth2/v2.0/authorize","expires_at":"2027-07-29T22:00:00.000Z"}
+            """,
+        "/api/v1/auth/oauth/google/authorizations" => """
+            {"flow_id":"019fafb8-a44c-73e2-890a-497ff3dd27a6","redirect_url":"https://accounts.google.com/o/oauth2/v2/auth","expires_at":"2027-07-29T22:00:00.000Z"}
             """,
         _ => "{}",
       };
