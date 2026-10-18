@@ -85,8 +85,9 @@ trap cleanup EXIT
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 emulator_binary="$(bash "$script_dir/resolve-emulator-binary.sh")"
 echo no | avdmanager create avd --force -n "$avd_name" -k 'system-images;android-35;google_apis;x86_64'
-emulator_version="$("$emulator_binary" -version 2>&1)"
-emulator_version="${emulator_version%%$'\n'*}"
+echo 'Android AVD creation completed; probing the selected SDK emulator executable'
+emulator_version="$(bash "$script_dir/probe-emulator-version.sh" "$emulator_binary" \
+  "${RUNNER_TEMP:-/tmp}/voucha-cookie-emulator-failure-tail.log")"
 "$emulator_binary" -avd "$avd_name" -no-window -no-audio -no-boot-anim \
   -gpu swiftshader_indirect -no-snapshot -accel on -memory 2048 -cores 2 \
   >"$emulator_log" 2>&1 &

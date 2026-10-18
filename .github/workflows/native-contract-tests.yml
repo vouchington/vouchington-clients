@@ -683,7 +683,7 @@ jobs:
   test-swift-android-cookie:
     name: Android cookie restart
     needs: [verify, build-swift-android]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       actions: read
@@ -711,6 +711,13 @@ jobs:
           android_sdk="$RUNNER_TEMP/android-sdk"
           echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
+      - name: Install Android emulator Linux runtime libraries
+        timeout-minutes: 4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libx11-6 libpulse0 libpng16-16t64 libnss3 libexpat1 \
+            libdrm2 libxi6 libxext6 libxkbfile1
       - name: Install Android emulator and API 35 Google APIs image
         timeout-minutes: 10
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4

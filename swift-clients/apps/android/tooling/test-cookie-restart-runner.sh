@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 runner="$script_dir/run-cookie-restart-emulator.sh"
 emulator_resolver="$script_dir/resolve-emulator-binary.sh"
+emulator_probe="$script_dir/probe-emulator-version.sh"
 test_root="$(mktemp -d)"
 trap 'rm -rf -- "$test_root"' EXIT
 apk_dir="$test_root/apks"
@@ -38,6 +39,21 @@ resolved_emulator="$(ANDROID_SDK_ROOT="$sdk_root" PATH=/usr/bin:/bin /bin/bash "
   echo 'Android SDK emulator executable resolved outside the selected SDK' >&2
   exit 1
 }
+printf '#!/usr/bin/env bash\nprintf "Android Emulator 36.3.10\\n"\n' > "$emulator_binary"
+[[ "$(bash "$emulator_probe" "$emulator_binary" "$test_root/emulator-failure.log")" == 'Android Emulator 36.3.10' ]]
+[[ ! -e "$test_root/emulator-failure.log" ]]
+printf '#!/usr/bin/env bash\necho "synthetic loader failure" >&2\nexit 127\n' > "$emulator_binary"
+if bash "$emulator_probe" "$emulator_binary" "$test_root/emulator-failure.log" > "$test_root/emulator-version.log" 2>&1; then
+  echo 'Android emulator version probe accepted a failing executable' >&2
+  exit 1
+else
+  [[ "$?" -eq 127 ]] || {
+    echo 'Android emulator version probe did not preserve exit status 127' >&2
+    exit 1
+  }
+fi
+grep -Fq 'Android SDK emulator version probe exited 127: synthetic loader failure' "$test_root/emulator-version.log"
+grep -Fq 'Android SDK emulator version probe exited 127: synthetic loader failure' "$test_root/emulator-failure.log"
 
 make_synthetic_artifacts() {
   rm -rf -- "$apk_dir"
