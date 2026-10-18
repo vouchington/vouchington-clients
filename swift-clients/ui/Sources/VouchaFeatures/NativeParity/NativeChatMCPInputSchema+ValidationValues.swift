@@ -3,12 +3,12 @@ import VouchaModels
 
 extension NativeChatMCPInputSchema {
     static func checkObject(
-        _ object: [String: DecodedJSONValue], fields: [String: DecodedJSONValue],
+        _ object: DecodedJSONObject, fields: DecodedJSONObject,
         root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         if let minimum = integer(fields["minProperties"]), object.count < minimum { return false }
         if let maximum = integer(fields["maxProperties"]), object.count > maximum { return false }
-        let properties: [String: DecodedJSONValue] = if case let .object(declared)? = fields["properties"] {
+        let properties: DecodedJSONObject = if case let .object(declared)? = fields["properties"] {
             declared
         } else { [:] }
         guard hasRequiredProperties(object, fields: fields) else { return false }
@@ -43,7 +43,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func hasRequiredProperties(
-        _ object: [String: DecodedJSONValue], fields: [String: DecodedJSONValue]
+        _ object: DecodedJSONObject, fields: DecodedJSONObject
     ) -> Bool {
         guard case let .array(required)? = fields["required"] else { return true }
         for key in required {
@@ -53,7 +53,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkArray(
-        _ items: [DecodedJSONValue], fields: [String: DecodedJSONValue],
+        _ items: [DecodedJSONValue], fields: DecodedJSONObject,
         root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         if let minimum = integer(fields["minItems"]), items.count < minimum { return false }
@@ -82,7 +82,7 @@ extension NativeChatMCPInputSchema {
         return true
     }
 
-    static func checkString(_ text: String, fields: [String: DecodedJSONValue]) throws -> Bool {
+    static func checkString(_ text: String, fields: DecodedJSONObject) throws -> Bool {
         let length = text.unicodeScalars.count
         if let minimum = integer(fields["minLength"]), length < minimum { return false }
         if let maximum = integer(fields["maxLength"]), length > maximum { return false }
@@ -101,7 +101,7 @@ extension NativeChatMCPInputSchema {
         return true
     }
 
-    static func checkNumber(_ value: DecodedJSONValue, fields: [String: DecodedJSONValue]) -> Bool {
+    static func checkNumber(_ value: DecodedJSONValue, fields: DecodedJSONObject) -> Bool {
         switch value {
         case .number, .integer, .unsignedInteger, .decimal: break
         default: return true

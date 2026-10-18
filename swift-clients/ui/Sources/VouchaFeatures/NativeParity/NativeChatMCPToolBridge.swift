@@ -12,7 +12,7 @@ struct NativeChatMCPToolBridge {
     private let outputs: [String: NativeChatMCPOutputContract]
 
     init(catalog: DecodedJSONValue) throws {
-        let catalogData = try JSONEncoder().encode(catalog)
+        let catalogData = try catalog.exactJSONData()
         guard catalogData.count <= 512_000 else { throw Failure.invalidCatalog }
         guard case let .object(body) = catalog,
               case let .array(entries)? = body["tools"], entries.count <= NativeChatMCPToolCatalog.maximumTools else {
@@ -30,7 +30,7 @@ struct NativeChatMCPToolBridge {
             guard description.utf8.count <= 8_192 else { throw Failure.invalidCatalog }
             let value = DecodedJSONValue.object(schema)
             try NativeChatMCPInputSchema.validateSchema(value)
-            let parameters = try JSONEncoder().encode(value)
+            let parameters = try value.exactJSONData()
             guard parameters.count <= 32_000 else { throw Failure.invalidCatalog }
             projected.append(.init(
                 name: name, description: description,
@@ -95,9 +95,7 @@ struct NativeChatMCPToolBridge {
             "content": .array(result.content),
             "isError": .bool(result.isError == true)
         ])
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .withoutEscapingSlashes
-        let output = try encoder.encode(envelope)
+        let output = try envelope.exactJSONData(withoutEscapingSlashes: true)
         guard output.count <= OpenAICompatibleResponsesClient.maximumToolResultBytes,
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
@@ -109,11 +107,11 @@ struct NativeChatMCPToolBridge {
         _ = try validatedArguments(name: name, rawArguments: rawArguments)
     }
 
-    private func validatedArguments(name: String, rawArguments: String) throws -> [String: DecodedJSONValue] {
+    private func validatedArguments(name: String, rawArguments: String) throws -> DecodedJSONObject {
         guard let schema = schemas[name] else { throw Failure.unknownTool }
         guard rawArguments.utf8.count <= 64_000,
               let data = rawArguments.data(using: .utf8),
-              let arguments = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
+              let arguments = try? DecodedJSONValue(exactJSONData: data),
               case let .object(object) = arguments,
               (try? NativeChatMCPInputSchema.accepts(arguments, schema: schema)) == true
         else { throw Failure.invalidArguments }

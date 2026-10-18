@@ -411,7 +411,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 @MainActor
 final class BridgeMCPService: NativeChatMCPServicing {
     private(set) var calls = 0
-    private(set) var lastArguments: [String: DecodedJSONValue]?
+    private(set) var lastArguments: DecodedJSONObject?
     var holdCalls = false
     var toolResult: MemberMCPClient.ToolResult?
     var catalog = BridgeMCPService.defaultCatalog
@@ -439,7 +439,7 @@ final class BridgeMCPService: NativeChatMCPServicing {
     func disconnect(accountId _: String) async throws {}
 
     func callTool(
-        accountId _: String, name _: String, arguments: [String: DecodedJSONValue]
+        accountId _: String, name _: String, arguments: DecodedJSONObject
     ) async throws -> MemberMCPClient.ToolResult {
         calls += 1
         lastArguments = arguments

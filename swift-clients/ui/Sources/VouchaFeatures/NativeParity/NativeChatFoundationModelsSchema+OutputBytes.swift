@@ -94,16 +94,18 @@ import Foundation
             activeReferences: Set<String>
         ) throws -> Int {
             let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
-            let required = Set(fields["required"] as? [String] ?? [])
+            let propertiesByName = NativeChatFoundationModelsSchema.exactNameMap(properties)
+            let required = Set((fields["required"] as? [String] ?? []).map { Data($0.utf8) })
             var total = 2
-            for key in required {
-                guard let property = properties[key],
-                      let keyData = try? JSONSerialization.data(withJSONObject: key, options: .fragmentsAllowed)
+            for keyData in required {
+                guard let property = propertiesByName[keyData],
+                      let key = String(data: keyData, encoding: .utf8),
+                      let serializedKey = try? JSONSerialization.data(withJSONObject: key, options: .fragmentsAllowed)
                 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 let valueBytes = try minimumOutputBytes(
                     property, definitions: definitions, activeReferences: activeReferences
                 )
-                total += keyData.count + 1 + valueBytes + (total == 2 ? 0 : 1)
+                total += serializedKey.count + 1 + valueBytes + (total == 2 ? 0 : 1)
                 guard total <= 4_096 else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
             }
             return total

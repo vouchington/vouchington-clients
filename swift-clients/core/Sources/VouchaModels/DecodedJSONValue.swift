@@ -1,5 +1,11 @@
 import Foundation
 
+/// JSON values for native model and API contracts.
+///
+/// Codable is suitable for ordinary model objects. A keyed `Decoder` may
+/// canonicalize Unicode member names, so arbitrary JSON that must preserve
+/// exact names must enter through `init(exactJSONData:)` and leave through
+/// `exactJSONData()`.
 public enum DecodedJSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -9,7 +15,7 @@ public enum DecodedJSONValue: Codable, Sendable {
     case decimal(Decimal)
     case string(String)
     case array([DecodedJSONValue])
-    case object([String: DecodedJSONValue])
+    case object(DecodedJSONObject)
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -35,7 +41,7 @@ public enum DecodedJSONValue: Codable, Sendable {
         } else if let value = try? container.decode([DecodedJSONValue].self) {
             self = .array(value)
         } else {
-            let value = try container.decode([String: DecodedJSONValue].self)
+            let value = try container.decode(DecodedJSONObject.self)
             self = .object(value)
         }
     }
