@@ -48,7 +48,7 @@ extension AndroidAccount {
                 loginAttemptID = challenge.loginAttemptId
             }
         } catch {
-            authError = .verbatim(error.localizedDescription)
+            handleVerificationFailure(error)
         }
     }
 
@@ -61,8 +61,21 @@ extension AndroidAccount {
             try await signIn.verifyMFATOTP(loginAttemptId: loginAttemptID, code: totp)
             self.loginAttemptID = nil
         } catch {
-            authError = .verbatim(error.localizedDescription)
+            handleVerificationFailure(error)
         }
+    }
+
+    private func handleVerificationFailure(_ error: Error) {
+        guard let refreshError = session.lastRefreshErrorMessage else {
+            authError = .verbatim(error.localizedDescription)
+            return
+        }
+        isRestoring = true
+        sessionRestoreError = .verbatim(refreshError)
+        authError = nil
+        loginAttemptID = nil
+        otp = ""
+        totp = ""
     }
 
     @discardableResult

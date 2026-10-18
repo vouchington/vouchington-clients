@@ -31,6 +31,17 @@ final class HeldAuthenticationURLProtocol: URLProtocol {
         return expectation
     }
 
+    static func advance(host: String, to path: String, statusCode: Int, body: Data) -> XCTestExpectation {
+        let expectation = XCTestExpectation(description: "Held auth request to \(path)")
+        let instance = registryLock.withLock { () -> HeldAuthenticationURLProtocol? in
+            let instance = requests[host]?.protocolInstance
+            requests[host] = WaitingRequest(path: path, started: expectation)
+            return instance
+        }
+        XCTAssertTrue(instance?.deliver(statusCode: statusCode, body: body) == true)
+        return expectation
+    }
+
     static func removeRequest(host: String) {
         _ = registryLock.withLock { requests.removeValue(forKey: host) }
     }
