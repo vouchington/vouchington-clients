@@ -41,6 +41,7 @@ public sealed partial class ModerationAppealsViewModel
       var response = await service.FetchAppealsAsync(expectedStatus, cursor, cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!IsCurrent(revision, expectedStatus)) return;
       Appeals = replace ? Deduplicate(response.Appeals) : Merge(Appeals, response.Appeals);
+      ReconcileAIReruns(response.Appeals);
       SeedDrafts(response.Appeals);
       endCursor = response.PageInfo.EndCursor;
       HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
@@ -67,9 +68,14 @@ public sealed partial class ModerationAppealsViewModel
   private async Task RefreshAppealAsync(string id, CancellationToken cancellationToken)
   {
     if (IsMutating) return;
+    var revision = Volatile.Read(ref loadRevision);
+    var ownerRevision = Volatile.Read(ref accountRevision);
     try
     {
       var response = await service.FetchAppealAsync(id, cancellationToken).ConfigureAwait(true);
+      if (!CanAccess || revision != Volatile.Read(ref loadRevision) ||
+          ownerRevision != Volatile.Read(ref accountRevision) ||
+          !Appeals.Any(appeal => appeal.Id == id) || response.Appeal.Id != id) return;
       ambiguousDeliveryIds.Remove(id);
       Replace(response.Appeal);
       ErrorMessage = null;
@@ -80,11 +86,11 @@ public sealed partial class ModerationAppealsViewModel
     }
     catch (OperationCanceledException ex)
     {
-      ErrorMessage = ex.Message;
+      if (CanAccess && ownerRevision == Volatile.Read(ref accountRevision)) ErrorMessage = ex.Message;
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      ErrorMessage = ex.Message;
+      if (CanAccess && ownerRevision == Volatile.Read(ref accountRevision)) ErrorMessage = ex.Message;
     }
   }
 

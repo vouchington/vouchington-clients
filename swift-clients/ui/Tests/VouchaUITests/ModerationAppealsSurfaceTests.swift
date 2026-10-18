@@ -30,6 +30,21 @@ final class ModerationAppealsSurfaceTests: XCTestCase {
         XCTAssertTrue(try inspection.find(button: "Reduce").isDisabled())
     }
 
+    func testPendingAIRerunRendersReadOnlyRefreshAndDisablesDuplicatePost() throws {
+        let appeal = try fixtureAppeal(suspensionId: nil)
+        let viewModel = ModerationAppealsViewModel(
+            client: nil, isSignedIn: true, isAdministrator: true, isSiteModerator: false
+        )
+        viewModel.appeals = [appeal]
+        viewModel.pendingAIReruns[appeal.id] = AppealAIRerunBaseline(appeal: appeal)
+
+        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+
+        XCTAssertTrue(try inspection.find(button: "Re-run AI").isDisabled())
+        XCTAssertFalse(try inspection.find(button: "Refresh status").isDisabled())
+        XCTAssertNoThrow(try inspection.find(text: "The AI draft is still processing. Refresh to check again."))
+    }
+
     func testResolutionActionsAreEnabledOnlyAfterAppealDelivery() throws {
         let unsent = try fixtureAppeal(suspensionId: nil)
         let sent = try fixtureAppeal(

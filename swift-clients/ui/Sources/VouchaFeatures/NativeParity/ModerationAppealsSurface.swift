@@ -44,6 +44,7 @@ struct ModerationAppealsSurface: View {
         } else {
             staffContent
                 .task { await viewModel.load() }
+                .onDisappear { viewModel.cancelAIReruns() }
         }
     }
 

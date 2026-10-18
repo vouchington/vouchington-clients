@@ -72,6 +72,7 @@ struct NativeRouteDestinationSurface: View {
                     isAdministrator: isAdministrator,
                     isSiteModerator: isSiteModerator
                 )
+                .id("\(currentUserId ?? "")|\(viewModel.client?.baseURL.absoluteString ?? "")")
             } else if isDedicatedStaffDisputesRoute {
                 ReviewDisputesSurface(
                     client: reviewDisputesClient,
@@ -87,6 +88,7 @@ struct NativeRouteDestinationSurface: View {
             }
         }
         .onChange(of: isSignedIn) { _, _ in rebuildViewModels() }
+        .onChange(of: currentUserId) { _, _ in rebuildViewModels() }
         .onChange(of: isAdministrator) { _, _ in rebuildViewModels() }
         .onChange(of: isSiteModerator) { _, _ in rebuildViewModels() }
         .onReceive(NotificationCenter.default.publisher(for: .vouchaMembershipEntitlementDidChange)) { _ in

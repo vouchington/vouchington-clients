@@ -1,5 +1,6 @@
 using System.Net;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Moderation;
 
@@ -63,23 +64,43 @@ public sealed partial class ModerationAppealsViewModel
   {
     ArgumentNullException.ThrowIfNull(appeal);
     if (!CanRerun(appeal)) return Task.CompletedTask;
+    var revision = Volatile.Read(ref loadRevision);
+    var ownerRevision = Volatile.Read(ref accountRevision);
     return AwaitMutationAsync(appeal.Id, async () =>
     {
-      var queued = await service.RerunResolutionDraftAsync(appeal.Id, cancellationToken).ConfigureAwait(true);
-      if (!queued.Queued) throw new InvalidOperationException("The AI draft was not queued.");
+      SetPendingAIRerun(appeal);
+      ModerationAppealQueueResponse queued;
+      try
+      {
+        queued = await service.RerunResolutionDraftAsync(appeal.Id, cancellationToken).ConfigureAwait(true);
+      }
+      catch (Exception ex) when (!IsAmbiguous(ex))
+      {
+        ClearPendingAIRerun(appeal.Id);
+        throw;
+      }
+      if (!queued.Queued)
+      {
+        ClearPendingAIRerun(appeal.Id);
+        throw new InvalidOperationException(localization.Localize(
+            UiMessageKey.NativeSwiftReviewDisputesRerunNotQueued));
+      }
+      if (!TryGetPendingAIRerun(appeal.Id, out var baseline)) return;
       for (var attempt = 0; attempt < rerunPollAttempts; attempt++)
       {
+        if (!IsCurrentAIRerunContext(appeal.Id, baseline, revision, ownerRevision)) return;
         var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken).ConfigureAwait(true)).Appeal;
-        if (refreshed.AiDraftedAt is not null &&
-            refreshed.AiDraftedAt != appeal.AiDraftedAt &&
-            !string.Equals(refreshed.LatestLifecycleChangeId, appeal.LatestLifecycleChangeId, StringComparison.Ordinal))
+        if (!IsCurrentAIRerun(appeal.Id, baseline, revision, ownerRevision, refreshed)) return;
+        if (baseline.IsReconciled(refreshed))
         {
-          Replace(refreshed);
+          ClearPendingAIRerun(appeal.Id);
+          Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
           return;
         }
         if (attempt + 1 < rerunPollAttempts) await rerunPollDelay(cancellationToken).ConfigureAwait(true);
       }
-      throw new TimeoutException("The AI draft is still processing. Refresh to check again.");
+      throw new TimeoutException(localization.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
     }, cancellationToken);
   }
 
@@ -90,6 +111,7 @@ public sealed partial class ModerationAppealsViewModel
       bool markAmbiguousDelivery = false)
   {
     if (IsMutating) return false;
+    var ownerRevision = Volatile.Read(ref accountRevision);
     MutatingAppealId = id;
     ErrorMessage = null;
     try
@@ -103,14 +125,20 @@ public sealed partial class ModerationAppealsViewModel
     }
     catch (OperationCanceledException ex)
     {
-      if (markAmbiguousDelivery) ambiguousDeliveryIds.Add(id);
-      ErrorMessage = ex.Message;
+      if (ownerRevision == Volatile.Read(ref accountRevision) && CanAccess)
+      {
+        if (markAmbiguousDelivery) ambiguousDeliveryIds.Add(id);
+        ErrorMessage = ex.Message;
+      }
       return false;
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      if (markAmbiguousDelivery && IsAmbiguous(ex)) ambiguousDeliveryIds.Add(id);
-      ErrorMessage = ex.Message;
+      if (ownerRevision == Volatile.Read(ref accountRevision) && CanAccess)
+      {
+        if (markAmbiguousDelivery && IsAmbiguous(ex)) ambiguousDeliveryIds.Add(id);
+        ErrorMessage = ex.Message;
+      }
       return false;
     }
     finally
@@ -130,9 +158,16 @@ public sealed partial class ModerationAppealsViewModel
     }
   }
 
-  private void Replace(ModerationAppeal appeal)
+  private void Replace(ModerationAppeal appeal, bool preserveUnconfirmedDirtyDraft = false)
   {
+    var editedDraft = dirtyDraftIds.Contains(appeal.Id) ? DraftFor(appeal) : null;
     ConfirmServerDraft(appeal);
+    if (preserveUnconfirmedDirtyDraft && editedDraft is not null &&
+        !string.Equals(editedDraft, appeal.PublicResponse, StringComparison.Ordinal))
+    {
+      drafts[appeal.Id] = editedDraft;
+      dirtyDraftIds.Add(appeal.Id);
+    }
     var updated = Appeals.ToList();
     var index = updated.FindIndex(item => item.Id == appeal.Id);
     if (appeal.Status != SelectedStatus)
@@ -158,6 +193,7 @@ public sealed partial class ModerationAppealsViewModel
 
   private static bool IsAmbiguous(Exception exception) =>
       exception is OperationCanceledException ||
+      exception is TimeoutException ||
       exception is HttpRequestException http &&
       (http.StatusCode is null || http.StatusCode == HttpStatusCode.RequestTimeout || http.StatusCode >= HttpStatusCode.InternalServerError);
 }

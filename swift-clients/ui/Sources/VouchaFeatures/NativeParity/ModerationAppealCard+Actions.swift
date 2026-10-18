@@ -32,13 +32,19 @@ extension ModerationAppealCard {
                     parameters: ["id": appeal.id]
                 ))
                 Button(localized(.nativeSwiftModerationAppealsRerunAi)) {
-                    Task { await viewModel.rerunAI(for: appeal) }
+                    viewModel.startAIRerun(for: appeal)
                 }
                 .disabled(!viewModel.canRerun(appeal))
                 .accessibilityLabel(localized(
                     .nativeSwiftModerationAppealsRerunAiAccessibility,
                     parameters: ["id": appeal.id]
                 ))
+                if viewModel.pendingAIReruns[appeal.id] != nil {
+                    Button(localized(.nativeSwiftReviewDisputesRefreshStatus)) {
+                        Task { await viewModel.refreshPendingAIRerun(for: appeal) }
+                    }
+                    .disabled(!viewModel.canRefreshAIRerun(appeal))
+                }
                 ForEach([ModerationAppealAction.accept, .reduce, .deny], id: \.self) { action in
                     Button(UiMessages.string(action.titleKey, locale: nativeUiLocale)) {
                         Task { await viewModel.resolve(appeal, action: action) }
@@ -61,6 +67,11 @@ extension ModerationAppealCard {
                         parameters: ["id": appeal.id]
                     ))
                 }
+            }
+            if viewModel.pendingAIReruns[appeal.id] != nil {
+                Text(localized(.nativeSwiftReviewDisputesRerunStillProcessing))
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.secondaryLabel)
             }
         }
     }

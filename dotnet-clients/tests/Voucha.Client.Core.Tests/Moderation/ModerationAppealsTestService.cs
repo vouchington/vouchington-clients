@@ -18,6 +18,7 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
   public Queue<ModerationAppeal> Details { get; } = [];
   public Exception? NextError { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingDelivery { get; set; }
+  public TaskCompletionSource<ModerationAppealResponse>? PendingDetail { get; set; }
   public TaskCompletionSource<ModerationAppealListResponse>? PendingFetch { get; set; }
   public ModerationAppeal Current { get; set; }
   public bool QueueAccepted { get; set; } = true;
@@ -59,6 +60,11 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
   {
     Calls.Add($"detail:{id}");
     ThrowIfNeeded();
+    if (PendingDetail is { } pending)
+    {
+      PendingDetail = null;
+      return pending.Task;
+    }
     return Task.FromResult(new ModerationAppealResponse(
         Details.TryDequeue(out var detail) ? detail : Current));
   }

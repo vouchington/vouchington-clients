@@ -14,7 +14,8 @@ public static partial class MauiProgram
     services.AddTransient(sp => new ModerationAppealsViewModel(
         sp.GetRequiredService<IModerationAppealsService>(),
         sp.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
-        sp.GetRequiredService<IUiLocaleController>()));
+        sp.GetRequiredService<IUiLocaleController>(),
+        sp.GetRequiredService<INavigationViewerProvider>()));
     services.AddTransient<ModerationAppealsPage>();
     services.AddSingleton<IMemberAppealsService, ApiMemberAppealsService>();
     services.AddSingleton<MemberAppealDraftStore>();

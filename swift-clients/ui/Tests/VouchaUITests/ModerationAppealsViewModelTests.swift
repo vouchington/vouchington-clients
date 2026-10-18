@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
@@ -305,7 +306,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Local edit")
         XCTAssertEqual(
             viewModel.errorMessage,
-            "The AI draft is still processing. Refresh to check again."
+            .message(.nativeSwiftReviewDisputesRerunStillProcessing)
         )
     }
 

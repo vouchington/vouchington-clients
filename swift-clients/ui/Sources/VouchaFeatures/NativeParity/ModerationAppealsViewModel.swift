@@ -35,11 +35,14 @@ final class ModerationAppealsViewModel {
     var errorMessage: UiVerbatimText?
     var loadMoreErrorMessage: UiVerbatimText?
     var ambiguousDeliveryAppealIds: Set<String> = []
+    var pendingAIReruns: [String: AppealAIRerunBaseline] = [:]
+    var aiRerunTasks: [String: Task<Void, Never>] = [:]
+    var aiRerunTaskTokens: [String: UUID] = [:]
     var selectedStatus: ModerationAppealStatus = .pending
     var drafts: [String: String] = [:]
     var locallyEditedDraftAppealIds: Set<String> = []
 
-    private var loadRevision = 0
+    var loadRevision = 0
 
     init(
         client: APIClient?,
@@ -88,6 +91,7 @@ final class ModerationAppealsViewModel {
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
+            reconcileAIReruns(from: response.appeals)
             seedDrafts(from: response.appeals)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
@@ -128,6 +132,7 @@ final class ModerationAppealsViewModel {
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
+            reconcileAIReruns(from: response.appeals)
             seedDrafts(from: response.appeals)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
@@ -154,10 +159,6 @@ final class ModerationAppealsViewModel {
     func canResolve(_ appeal: ModerationAppeal, action: ModerationAppealAction) -> Bool {
         guard canMutate(appeal), appeal.sentAt != nil else { return false }
         return action != .accept || isAdministrator || appeal.userSuspensionId == nil
-    }
-
-    func canRerun(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.approvedAt == nil && appeal.sentAt == nil
     }
 
     func canEdit(_ appeal: ModerationAppeal) -> Bool {
