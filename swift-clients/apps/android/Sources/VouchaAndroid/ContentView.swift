@@ -69,12 +69,6 @@ struct ContentView: View {
         UiMessages.string(key, locale: locale)
     }
 
-    @MainActor
-    private func signOutAndReplaceAccount() async {
-        let capturedAccount = account
-        await replaceAccount(capturedAccount) { await capturedAccount.signOut() }
-    }
-
 }
 
 struct AndroidChatView: View {
