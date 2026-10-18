@@ -42,7 +42,11 @@ function exactKeys(value, keys, label) {
 
 export function bindArtifact({ artifact, expected, runId, runAttempt }) {
   exactKeys(expected, ['id', 'digest', 'name'], 'expected artifact')
-  if (!artifact || artifact.id !== expected.id || artifact.digest !== expected.digest)
+  if (!/^[0-9a-f]{64}$/u.test(expected.digest))
+    fail('upload action digest must be a SHA-256 hex value')
+  const apiDigest =
+    typeof artifact?.digest === 'string' ? /^sha256:([0-9a-f]{64})$/u.exec(artifact.digest) : null
+  if (!artifact || artifact.id !== expected.id || apiDigest?.[1] !== expected.digest)
     fail('artifact API identity differs from the upload action output')
   if (artifact.name !== expected.name || artifact.expired !== false)
     fail('artifact name or expiration state is invalid')

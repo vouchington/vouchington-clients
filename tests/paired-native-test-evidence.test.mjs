@@ -17,27 +17,44 @@ import {
 import { runPairedAndroidEmulator } from '../scripts/paired-native-android-emulator.mjs'
 
 it('binds an artifact to exact action metadata and the current run', () => {
-  const expected = { id: 42, digest: 'sha256:abc', name: 'paired-native-apks-1-1' }
+  const digest = 'a'.repeat(64)
+  const expected = { id: 42, digest, name: 'paired-native-apks-1-1' }
+  const artifact = {
+    ...expected,
+    digest: `sha256:${digest}`,
+    expired: false,
+    workflow_run: { id: 77 },
+  }
   assert.equal(
     bindArtifact({
       expected,
       runId: '77',
       runAttempt: 1,
-      artifact: { ...expected, expired: false, workflow_run: { id: 77 } },
+      artifact,
     }),
     true,
   )
   for (const mutate of [
-    artifact => ({ ...artifact, id: 43 }),
-    artifact => ({ ...artifact, digest: 'sha256:changed' }),
-    artifact => ({ ...artifact, expired: true }),
-    artifact => ({ ...artifact, workflow_run: { id: 78 } }),
+    value => ({ ...value, id: 43 }),
+    value => ({ ...value, digest: `sha256:${'b'.repeat(64)}` }),
+    value => ({ ...value, digest: `sha512:${digest}` }),
+    value => ({ ...value, digest: 'sha256:not-a-digest' }),
+    value => ({ ...value, expired: true }),
+    value => ({ ...value, workflow_run: { id: 78 } }),
   ]) {
-    const artifact = { ...expected, expired: false, workflow_run: { id: 77 } }
     assert.throws(() =>
       bindArtifact({ expected, runId: '77', runAttempt: 1, artifact: mutate(artifact) }),
     )
   }
+  for (const badDigest of ['sha256:abc', 'A'.repeat(64), `${digest}:suffix`])
+    assert.throws(() =>
+      bindArtifact({
+        expected: { ...expected, digest: badDigest },
+        runId: '77',
+        runAttempt: 1,
+        artifact,
+      }),
+    )
 })
 
 it('accepts only the fixed APK pair, reviewed revision, and matching checksums', async () => {
