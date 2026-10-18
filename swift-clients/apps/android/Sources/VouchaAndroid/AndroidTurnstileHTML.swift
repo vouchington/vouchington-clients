@@ -1,5 +1,8 @@
 import Foundation
 
+// Skip 1.9.13 requires a plain directive; a documentation comment does not export this helper.
+// swiftformat:disable:next docComments
+// SKIP @bridge
 func androidTurnstileHTML(_ key: String) -> String {
     let escaped = key.replacingOccurrences(of: "&", with: "&amp;")
         .replacingOccurrences(of: "\"", with: "&quot;")
