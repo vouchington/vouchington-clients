@@ -29,10 +29,7 @@ public sealed class ImportExportViewModelTests
     var fiveHundredOne = fiveHundred + "\nhttps://example.test/501,Feed 501";
 
     Assert.Null(ImportExportValidation.Validate(new(SourceImportFormat.Csv, Text: fiveHundred)));
-    Assert.Equal(
-        "Import up to 500 sources at a time.",
-        UiLocalization.English.Resolve(
-            ImportExportValidation.Validate(new(SourceImportFormat.Csv, Text: fiveHundredOne))!.Value));
+    Assert.Null(ImportExportValidation.Validate(new(SourceImportFormat.Csv, Text: fiveHundredOne)));
   }
 
   [Fact]

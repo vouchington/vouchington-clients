@@ -35,10 +35,6 @@ public static class ImportExportValidation
     }
     if (rowCount == 0)
       return UiText.Localized(UiMessageKey.NativeSwiftImportExportAddSource);
-    if (rowCount > MaximumRows)
-      return UiText.Localized(
-          UiMessageKey.NativeSwiftImportExportSourceLimit,
-          ("count", MaximumRows));
     object body = request.Format switch
     {
       SourceImportFormat.Urls => new RssFeedUrlsImportBody(request.Urls ?? []),

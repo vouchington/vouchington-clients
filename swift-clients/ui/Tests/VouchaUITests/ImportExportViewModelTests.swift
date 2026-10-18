@@ -18,6 +18,11 @@ final class ImportExportViewModelTests: XCTestCase {
         let topicNames = await recorder.topicNames
         XCTAssertEqual(topicNames, ["Travel", "Local News"])
         XCTAssertEqual(viewModel.results.map(\.status), [.followed, .recommendationCreated])
+        viewModel.inputText = Array(repeating: "Topic", count: 501).joined(separator: "\n")
+        await viewModel.importText()
+        XCTAssertEqual(viewModel.errorMessage, "Imports can contain up to 500 rows.")
+        let submits = await recorder.topicSubmitCount
+        XCTAssertEqual(submits, 1)
     }
 
     func testTopicImportUsesExactTransportEncodedSizeBoundary() async throws {
@@ -49,7 +54,7 @@ final class ImportExportViewModelTests: XCTestCase {
         XCTAssertEqual(topicSubmitCount, 1)
     }
 
-    func testSourceValidationRejectsEmptyOversizedAndTooManyInputs() async {
+    func testSourceValidationRejectsEmptyAndOversizedInputs() async {
         let recorder = ImportExportRecorder()
         let viewModel = ImportExportViewModel(route: .sources(initialExportFilter: nil), service: recorder.service())
         await viewModel.importText()
@@ -60,17 +65,25 @@ final class ImportExportViewModelTests: XCTestCase {
             XCTAssertEqual(viewModel.errorMessage, "Enter at least one value.")
         }
 
-        viewModel.inputText = Array(repeating: "https://example.test", count: 501).joined(separator: "\n")
-        await viewModel.importText()
-        XCTAssertEqual(viewModel.errorMessage, "Imports can contain up to 500 rows.")
-
         await viewModel.importFileContents(String(repeating: "x", count: 2_097_152), format: .csv)
         XCTAssertEqual(viewModel.errorMessage, "The encoded request must be 2 MiB or smaller.")
         let sourceSubmitCount = await recorder.sourceSubmitCount
         XCTAssertEqual(sourceSubmitCount, 0)
     }
 
-    func testFileImportsRejectMoreThanMaximumParsedFeedURLs() async {
+    func testSourceImportsSubmitMoreThanFiveHundredUrlsWithoutTruncation() async {
+        let urls = (0 ..< 501).map { "https://example.test/feed/\($0)" }
+        let urlRecorder = ImportExportRecorder()
+        let urlViewModel = ImportExportViewModel(
+            route: .sources(initialExportFilter: nil), service: urlRecorder.service()
+        )
+        urlViewModel.inputText = urls.joined(separator: "\n")
+        await urlViewModel.importText()
+        let submittedUrls = await urlRecorder.sourceInput
+        XCTAssertEqual(submittedUrls, .urls(urls))
+        XCTAssertNil(urlViewModel.errorMessage)
+        urlViewModel.cancelOperations()
+
         let csvRecorder = ImportExportRecorder()
         let csvViewModel = ImportExportViewModel(
             route: .sources(initialExportFilter: nil),
@@ -79,8 +92,11 @@ final class ImportExportViewModelTests: XCTestCase {
         let csv = "url\n" + Array(repeating: "https://example.test/feed.xml", count: 501).joined(separator: "\n")
         await csvViewModel.importFileContents(csv, format: .csv)
         let csvSubmitCount = await csvRecorder.sourceSubmitCount
-        XCTAssertEqual(csvSubmitCount, 0)
-        XCTAssertEqual(csvViewModel.errorMessage, "Imports can contain up to 500 rows.")
+        XCTAssertEqual(csvSubmitCount, 1)
+        let submittedCsv = await csvRecorder.sourceInput
+        XCTAssertEqual(submittedCsv, .csv(csv))
+        XCTAssertNil(csvViewModel.errorMessage)
+        csvViewModel.cancelOperations()
 
         let opmlRecorder = ImportExportRecorder()
         let opmlViewModel = ImportExportViewModel(
@@ -88,10 +104,14 @@ final class ImportExportViewModelTests: XCTestCase {
             service: opmlRecorder.service()
         )
         let outlines = Array(repeating: #"<outline xmlUrl="https://example.test/feed.xml"/>"#, count: 501)
-        await opmlViewModel.importFileContents("<opml>\(outlines.joined())</opml>", format: .opml)
+        let opml = "<opml>\(outlines.joined())</opml>"
+        await opmlViewModel.importFileContents(opml, format: .opml)
         let opmlSubmitCount = await opmlRecorder.sourceSubmitCount
-        XCTAssertEqual(opmlSubmitCount, 0)
-        XCTAssertEqual(opmlViewModel.errorMessage, "Imports can contain up to 500 rows.")
+        XCTAssertEqual(opmlSubmitCount, 1)
+        let submittedOpml = await opmlRecorder.sourceInput
+        XCTAssertEqual(submittedOpml, .opml(opml))
+        XCTAssertNil(opmlViewModel.errorMessage)
+        opmlViewModel.cancelOperations()
     }
 
     func testFileImportCountsOnlyParsedFeedURLs() async {
@@ -254,6 +274,7 @@ private actor ImportExportRecorder {
     private(set) var topicNames: [String] = []
     private(set) var topicSubmitCount = 0
     private(set) var sourceSubmitCount = 0
+    private(set) var sourceInput: SourceImportInput?
     private(set) var statusCount = 0
     private var statuses: [Status]
 
@@ -278,8 +299,9 @@ private actor ImportExportRecorder {
         })
     }
 
-    private func submit(_: SourceImportInput) -> RssFeedImportSubmission {
+    private func submit(_ input: SourceImportInput) -> RssFeedImportSubmission {
         sourceSubmitCount += 1
+        sourceInput = input
         return RssFeedImportSubmission(import: summary(completed: 0, failed: 0, pending: 2), statusUrl: "/status")
     }
 

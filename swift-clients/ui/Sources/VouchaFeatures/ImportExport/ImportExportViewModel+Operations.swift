@@ -47,8 +47,8 @@ extension ImportExportViewModel {
     func performTextImport(token: UUID) async {
         let rows = Self.nonemptyLines(inputText)
         do {
-            try Self.validateRows(rows)
             if route.isTopics {
+                try Self.validateRows(rows)
                 try Self.validateRequestSize(TopicImportBody(names: rows))
                 let response = try await service.importTopics(rows)
                 guard operationIsCurrent(token) else { return }

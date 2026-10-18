@@ -5,8 +5,8 @@ import VouchaModels
 extension ImportExportViewModel {
     func submitSourceInput(_ input: SourceImportInput, validating rows: [String]?, token: UUID) async throws {
         try Self.validateRequestSize(input)
-        if let rows {
-            try Self.validateRows(rows)
+        if let rows, rows.isEmpty {
+            throw ImportExportValidationError.emptyInput
         }
         resetMonitoringForSubmission()
         let submission = try await service.importSources(input)

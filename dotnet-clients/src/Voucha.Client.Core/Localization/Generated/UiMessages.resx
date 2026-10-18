@@ -1566,7 +1566,6 @@
   <data name="native.swift.importExport.someItemsFailed" xml:space="preserve"><value>Some items failed.</value></data>
   <data name="native.swift.importExport.sourceCreated" xml:space="preserve"><value>Source created</value></data>
   <data name="native.swift.importExport.sourceFileTooLarge" xml:space="preserve"><value>Import files must be 2 MiB or smaller.</value></data>
-  <data name="native.swift.importExport.sourceLimit" xml:space="preserve"><value>Import up to {count} sources at a time.</value></data>
   <data name="native.swift.importExport.sourceType" xml:space="preserve"><value>Source type</value></data>
   <data name="native.swift.importExport.stopMonitoring" xml:space="preserve"><value>Stop monitoring</value></data>
   <data name="native.swift.importExport.title" xml:space="preserve"><value>Import/export</value></data>

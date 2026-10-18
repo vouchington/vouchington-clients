@@ -1562,7 +1562,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftImportExportSomeItemsFailed = new("native.swift.importExport.someItemsFailed");
     public static readonly UiMessageKey NativeSwiftImportExportSourceCreated = new("native.swift.importExport.sourceCreated");
     public static readonly UiMessageKey NativeSwiftImportExportSourceFileTooLarge = new("native.swift.importExport.sourceFileTooLarge");
-    public static readonly UiMessageKey NativeSwiftImportExportSourceLimit = new("native.swift.importExport.sourceLimit");
     public static readonly UiMessageKey NativeSwiftImportExportSourceType = new("native.swift.importExport.sourceType");
     public static readonly UiMessageKey NativeSwiftImportExportStopMonitoring = new("native.swift.importExport.stopMonitoring");
     public static readonly UiMessageKey NativeSwiftImportExportTitle = new("native.swift.importExport.title");
@@ -3589,7 +3588,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftImportExportSomeItemsFailed,
         NativeSwiftImportExportSourceCreated,
         NativeSwiftImportExportSourceFileTooLarge,
-        NativeSwiftImportExportSourceLimit,
         NativeSwiftImportExportSourceType,
         NativeSwiftImportExportStopMonitoring,
         NativeSwiftImportExportTitle,
