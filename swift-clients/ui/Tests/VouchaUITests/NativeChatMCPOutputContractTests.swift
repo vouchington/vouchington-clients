@@ -294,24 +294,36 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(schema))
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         for timestamp in [
-            "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00", "2016-12-31T23:59:60Z",
-            // The producer's current Ajv date-time validator accepts UTC leap-second minutes
-            // beyond month-end; preserve its current output boundary rather than narrowing Swift.
-            "2026-10-09T23:59:60Z",
-            "2017-01-01T00:29:60+00:30", "2016-12-31T23:29:60-00:30", "2016-12-31T23:59:60.5Z",
-            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z",
-            "2017-01-01T00:59:60+01:00"
+            "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00",
+            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z"
         ] {
             XCTAssertTrue(try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema))
         }
         for timestamp in [
-            "2025-02-29T00:00:00Z", "2026-10-09\u{0085}00:00:00Z", "2016-12-31T12:00:60Z", "2016-12-31T23:59:61Z",
+            "2025-02-29T00:00:00Z", "2026-10-09\u{0085}00:00:00Z",
             "2026-10-09",
             "2026-10-09T00:00:00",
             "2026-10-09T24:00:00Z",
             "2026-10-09T00:00:00Z\n"
         ] {
             XCTAssertFalse(try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema))
+        }
+    }
+
+    func testOutputDateTimeMatchesProducerLeapSecondPlacementFixture() throws {
+        let fixture = try fixtureObject("mcp-date-time.json")
+        XCTAssertEqual(fixture["version"] as? Int, 1)
+        let schema = try value(XCTUnwrap(fixture["schema"]))
+        let cases = try XCTUnwrap(fixture["cases"] as? [[String: Any]])
+        for row in cases {
+            let id = try XCTUnwrap(row["id"] as? String)
+            let timestamp = try XCTUnwrap(row["value"] as? String)
+            let expected = try XCTUnwrap(row["valid"] as? Bool)
+            XCTAssertEqual(
+                try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema),
+                expected,
+                id
+            )
         }
     }
 
