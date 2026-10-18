@@ -17,11 +17,12 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
                 conversationId: "another-conversation", userMessageId: turn.owner.userMessageId
             )
             XCTAssertFalse(turn.publish(.init(
-                id: UUID(), owner: otherConversation, toolName: receipt.toolName,
-                envelope: receipt.envelope, kind: receipt.kind
+                id: UUID(), callId: "late-call", owner: otherConversation, toolName: receipt.toolName,
+                envelope: receipt.envelope, kind: receipt.kind, fact: receipt.fact
             )))
             XCTAssertFalse(turn.publish(.init(
-                id: UUID(), owner: turn.owner, toolName: "", envelope: receipt.envelope, kind: receipt.kind
+                id: UUID(), callId: "late-call", owner: turn.owner, toolName: "", envelope: receipt.envelope,
+                kind: receipt.kind, fact: nil
             )))
             XCTAssertTrue(turn.publish(receipt))
             return .toolResultsOnly(.contextStopped)
@@ -32,6 +33,7 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         let receipts = try XCTUnwrap(viewModel.mcpReceiptLedger?.receipts)
         XCTAssertEqual(receipts.count, 1)
         XCTAssertEqual(receipts.first?.toolName, "read_fixture")
+        XCTAssertEqual(receipts.first?.fact, Self.emailPreferenceFact)
         XCTAssertEqual(persistedRequests, 0)
     }
 
@@ -45,6 +47,7 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         await viewModel.sendDraftMessage()
         let first = try XCTUnwrap(viewModel.mcpReceiptLedger)
         XCTAssertEqual(first.receipts.count, 1)
+        XCTAssertEqual(first.receipts.first?.fact, Self.emailPreferenceFact)
         XCTAssertEqual(first.continuation, .contextStopped)
         XCTAssertEqual(viewModel.messages.filter { $0.role == .user }.count, 1)
         XCTAssertTrue(viewModel.messages.filter { $0.role == .assistant }.isEmpty)
@@ -59,6 +62,7 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNotEqual(next.owner.userMessageId, first.owner.userMessageId)
         XCTAssertFalse(viewModel.messages.contains { $0.id == first.owner.userMessageId })
         XCTAssertEqual(next.receipts.count, 1)
+        XCTAssertEqual(next.receipts.first?.fact, Self.emailPreferenceFact)
         let calls = await provider.calls
         XCTAssertEqual(calls, 2)
         XCTAssertEqual(persistedRequests, 0)
@@ -118,6 +122,7 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         await held.release()
         await sending.value
         XCTAssertEqual(viewModel.mcpReceiptLedger?.receipts.count, 1)
+        XCTAssertEqual(viewModel.mcpReceiptLedger?.receipts.first?.fact, Self.emailPreferenceFact)
         XCTAssertEqual(viewModel.mcpReceiptLedger?.continuation, .cancelled)
         XCTAssertEqual(viewModel.messages.filter { $0.role == .user }.count, 1)
         XCTAssertTrue(viewModel.messages.filter { $0.role == .assistant }.isEmpty)
@@ -197,6 +202,8 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         viewModel.draftMessage = "Read and answer once"
         await viewModel.sendDraftMessage()
         let receipt = try XCTUnwrap(viewModel.mcpReceiptLedger?.receipts.first)
+        XCTAssertEqual(receipt.fact, Self.emailPreferenceFact)
+        XCTAssertEqual(receipt.callId, "fixture-call")
         XCTAssertEqual(viewModel.pendingLocalTurn?.response.content, "Original model answer")
         XCTAssertEqual(viewModel.draftMessage, "Read and answer once")
         XCTAssertEqual(persistedRequests, 1)
@@ -238,13 +245,19 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
 
     private static func receipt(_ turn: NativeChatMCPTurnContext) -> NativeChatMCPReceipt {
         .init(
-            id: UUID(),
+            id: UUID(), callId: "fixture-call",
             owner: turn.owner,
             toolName: "read_fixture",
             envelope: #"{"content":[],"structuredContent":{"success":true},"isError":false}"#,
-            kind: .response
+            kind: .response, fact: emailPreferenceFact
         )
     }
+
+    private static let emailPreferenceFact: NativeChatMCPFact? = {
+        let payload = #"{"success":true,"email_preferences":{"is_engagement_emails_enabled":true,"news_digest_frequency":"weekly","is_moderation_emails_enabled":false,"community_digest_frequency":"none","moderation_email_cadence":"selected_days","moderation_email_days_of_week":[1,3,5],"moderation_email_time_of_day":"09:30","moderation_email_timezone":"Europe/Paris"}}"#
+        guard let value = try? DecodedJSONValue(exactJSONData: Data(payload.utf8)) else { return nil }
+        return NativeChatMCPFact.makeEmailPreferences(value)
+    }()
 }
 
 private actor ReceiptTurnProvider: NativeChatTitleProviding {

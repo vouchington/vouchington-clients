@@ -16,17 +16,21 @@ import Foundation
         var onRetain: ((String) -> Void)?
         var onPrepared: (() -> Void)?
         var retained: [String] = []
+        var preparedCallIds: [String] = []
+        var retainedCallIds: [String] = []
         var prepareCalls = 0
 
         func prepare(name _: String, arguments _: String) async throws -> String {
             prepareCalls += 1
-            let id = UUID().uuidString
+            let id = "provider-call-\(prepareCalls)"
+            preparedCallIds.append(id)
             onPrepared?()
             if holdPreparationCall == prepareCalls { await withCheckedContinuation { prepareHold = $0 } }
             return id
         }
 
-        func retain(callId _: String, name _: String, envelope: String) async throws -> Bool {
+        func retain(callId: String, name _: String, envelope: String) async throws -> Bool {
+            retainedCallIds.append(callId)
             retained.append(envelope)
             onRetain?(envelope)
             if holdRetention { await withCheckedContinuation { retentionHold = $0 } }
