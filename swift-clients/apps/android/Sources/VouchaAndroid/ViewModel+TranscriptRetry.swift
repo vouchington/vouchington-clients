@@ -67,7 +67,14 @@ extension ViewModel {
 
     func restoreSelectedConversationError() {
         let pendingError = selectedConversationID.flatMap { pendingTurnErrors[$0] }
-        errorMessage = transcriptLoadErrorMessage ?? pendingError ?? failedGenerationForSelectedConversation?.message
+        let generationError = generationErrorForSelectedConversation
+        let creationError = conversationCreationFailed ? conversationCreationErrorMessage : nil
+        let restoreGenerationKind = pendingError == nil && generationError != nil
+        let selectedError = pendingError ?? generationError ?? creationError ?? transcriptLoadErrorMessage
+        errorMessage = selectedError
+        if restoreGenerationKind {
+            chatErrorKind = .generation
+        }
     }
 
     func recoverFailedTurn(_ attempt: AndroidFailedTurnAttempt, error: Error) {
@@ -81,6 +88,7 @@ extension ViewModel {
             }
             return
         }
+        generationErrors[conversationID] = error.localizedDescription
         guard selectedConversationID == conversationID,
               conversationGeneration == attempt.conversationRevision
         else {

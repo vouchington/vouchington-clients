@@ -63,6 +63,7 @@ extension ViewModel {
         guard selectedConversationID != id else { return }
         selectedConversationID = id
         conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
         conversationGeneration = revision
         messages = []
         isLoadingMessages = false

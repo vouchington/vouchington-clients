@@ -8,13 +8,17 @@ enum AndroidChatErrorKind: Equatable {
 }
 
 extension ViewModel {
+    var generationErrorForSelectedConversation: String? {
+        guard let id = selectedConversationID else { return nil }
+        return generationErrors[id] ?? failedGenerations[id]?.message
+    }
+
     var chatErrorMessageKey: UiMessageKey? {
         guard errorMessage != nil || transcriptLoadFailed else { return nil }
-        if transcriptLoadFailed { return .nativeSwiftEmptyStateUnableToLoad }
         if pendingTurnForSelectedConversation != nil { return .nativeSwiftChatUnableToPersistOnDeviceResponse }
+        if chatErrorKind == .generation { return .nativeSwiftAndroidGenerationFailed }
         if conversationCreationFailed { return .nativeSwiftChatUnableToCreateConversation }
-        if chatErrorKind == .generation || failedGenerationForSelectedConversation !=
-            nil { return .nativeSwiftAndroidGenerationFailed }
+        if transcriptLoadFailed { return .nativeSwiftEmptyStateUnableToLoad }
         if chatErrorKind == .model { return .nativeSwiftAndroidModelUnavailable }
         return .nativeSwiftEmptyStateUnableToLoad
     }

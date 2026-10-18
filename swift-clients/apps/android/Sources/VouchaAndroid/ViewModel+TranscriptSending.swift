@@ -50,7 +50,9 @@ extension ViewModel {
         let selectedProvider = selectedProvider
         let model = modelIdentity(for: selectedProvider)
         if !preservingDraft { draft = "" }
+        generationErrors.removeValue(forKey: conversationID)
         conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
         errorMessage = nil
         messages.append(.init(id: ids.user, role: "user", content: submitted))
         var completedPending: AndroidPendingChatTurn?
@@ -110,6 +112,7 @@ extension ViewModel {
         pendingTurnErrors.removeValue(forKey: pending.conversationID)
         errorMessage = nil
         conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
         do {
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)

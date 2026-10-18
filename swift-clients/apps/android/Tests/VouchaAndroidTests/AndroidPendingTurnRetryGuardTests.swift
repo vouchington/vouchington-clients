@@ -16,8 +16,8 @@ final class AndroidPendingTurnRetryGuardTests: XCTestCase {
         let path = "/api/v1/conversations/\(conversationID)/client-generated-chat"
         let pending = AndroidPendingChatTurn(
             conversationID: conversationID,
-            userMessageID: "retry-user-message",
-            assistantMessageID: "retry-assistant-message",
+            userMessageID: AndroidTranscriptTestFactory.generatedUserMessageID,
+            assistantMessageID: AndroidTranscriptTestFactory.generatedAssistantMessageID,
             userText: "Persist this exact turn",
             assistantText: "The already generated answer",
             modelProvider: "android_aicore",

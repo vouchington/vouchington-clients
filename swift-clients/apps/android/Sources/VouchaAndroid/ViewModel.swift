@@ -44,11 +44,13 @@ final class ViewModel {
 
     var chatErrorKind = AndroidChatErrorKind.other
     var conversationCreationFailed = false
+    var conversationCreationErrorMessage: String?
     var failedConversationListLoad: AndroidTranscriptLoadFailureRecord?
     var failedConversationHistoryLoad: AndroidTranscriptLoadFailureRecord?
     var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
     var loadedConversationHistoryID: String?
     var failedGenerations: [String: AndroidFailedGeneration] = [:]
+    var generationErrors: [String: String] = [:]
     var pendingTurnErrors: [String: String] = [:]
     var pendingTurnHistoryAcknowledgements: [String: Set<String>] = [:]
     var isGenerating = false
@@ -162,11 +164,13 @@ final class ViewModel {
         draft = ""
         errorMessage = nil
         conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
         failedConversationListLoad = nil
         failedConversationHistoryLoad = nil
         latestTranscriptLoadFailure = nil
         loadedConversationHistoryID = nil
         failedGenerations = [:]
+        generationErrors = [:]
         isGenerating = false
     }
 

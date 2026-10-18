@@ -12,6 +12,7 @@ extension ViewModel {
         let accountRevision = accountGeneration
         let selectionRevision = conversationGeneration
         conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
         errorMessage = nil
         isCreatingConversation = true
         defer {
@@ -25,6 +26,7 @@ extension ViewModel {
             }
             guard conversationGeneration == selectionRevision else { return false }
             conversationCreationFailed = false
+            conversationCreationErrorMessage = nil
             let createdSelectionRevision = UUID()
             await selectConversation(response.conversation.id, revision: createdSelectionRevision)
             return conversationGeneration == createdSelectionRevision &&
@@ -34,6 +36,7 @@ extension ViewModel {
             guard accountGeneration == accountRevision,
                   conversationGeneration == selectionRevision else { return false }
             conversationCreationFailed = true
+            conversationCreationErrorMessage = error.localizedDescription
             errorMessage = error.localizedDescription
             return false
         }
