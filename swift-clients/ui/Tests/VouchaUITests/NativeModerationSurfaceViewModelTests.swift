@@ -203,6 +203,8 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
             "ai_internal_response": null,
             "model": null,
             "ai_drafted_at": null,
+            "ai_draft_requested_run_id": "dispute_resolution_00000000-0000-7000-8000-000000000211",
+            "ai_draft_run_id": null,
             "public_response": null,
             "internal_notes": null,
             "drafted_at": null,
