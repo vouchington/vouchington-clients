@@ -52,6 +52,11 @@ android {
     defaultConfig {
         minSdk = 28
         targetSdk = libs.versions.android.sdk.compile.get().toInt()
+        // Skip's Swift runtime is packaged for ARM64 only. Do not advertise an ABI
+        // supplied by a transitive JNI dependency without the Swift bridge.
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // skip.tools.skip-build-plugin will automatically use Skip.env properties for:
         // applicationId = ANDROID_APPLICATION_ID ?? PRODUCT_BUNDLE_IDENTIFIER

@@ -64,6 +64,17 @@ make_synthetic_artifacts() {
   (cd "$apk_dir" && sha256sum app-debug.apk app-debug-androidTest.apk > sha256sums.txt)
 }
 
+make_native_apk() {
+  rm -rf -- "$test_root/native-archive"
+  rm -f -- "$test_root/native.apk"
+  mkdir -p "$test_root/native-archive/lib/arm64-v8a"
+  local library
+  for library in libSkipAndroidBridge.so libSwiftJNI.so libVouchaAndroid.so; do
+    : > "$test_root/native-archive/lib/arm64-v8a/$library"
+  done
+  (cd "$test_root/native-archive" && zip -q -r "$test_root/native.apk" lib)
+}
+
 expect_rejection() {
   local expected_error="$1"
   shift
@@ -99,6 +110,19 @@ expect_rejection 'Invalid instrumentation APK' run "$apk_dir" "$revision"
 make_synthetic_artifacts
 printf '%s  %s\n' "$(sha256sum "$apk_dir/app-debug.apk" | cut -d ' ' -f 1)" other.apk > "$apk_dir/sha256sums.txt"
 expect_rejection 'APK checksum file list mismatch' run "$apk_dir" "$revision"
+
+make_native_apk
+bash "$runner" verify-native-abi "$test_root/native.apk"
+mkdir -p "$test_root/native-archive/lib/x86_64"
+: > "$test_root/native-archive/lib/x86_64/libandroidx.graphics.path.so"
+(cd "$test_root/native-archive" && zip -q "$test_root/native.apk" lib/x86_64/libandroidx.graphics.path.so)
+expect_rejection 'Candidate app APK advertises unsupported native ABI x86_64' verify-native-abi "$test_root/native.apk"
+
+make_native_apk
+rm "$test_root/native-archive/lib/arm64-v8a/libSkipAndroidBridge.so"
+rm "$test_root/native.apk"
+(cd "$test_root/native-archive" && zip -q -r "$test_root/native.apk" lib)
+expect_rejection 'Candidate app APK lacks ARM64 libSkipAndroidBridge.so' verify-native-abi "$test_root/native.apk"
 
 printf 'INSTRUMENTATION_CODE: -1\n' > "$test_root/instrumentation.log"
 expect_rejection 'Instrumentation did not report one successful test' verify-instrumentation-output "$test_root/instrumentation.log"

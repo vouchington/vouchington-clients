@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ "$#" -lt 1 ]]; then
-  echo "Usage: $0 run|verify-artifact <apk-directory> <revision> | verify-instrumentation-output <file>" >&2
+  echo "Usage: $0 run|verify-artifact <apk-directory> <revision> | verify-native-abi <apk> | verify-instrumentation-output <file>" >&2
   exit 64
 fi
 
@@ -30,11 +30,34 @@ verify_instrumentation_output() {
     grep -Eq '^INSTRUMENTATION_CODE: -1$' <<<"$output"
 }
 
+verify_native_abi() {
+  local app_apk="$1"
+  [[ -f "$app_apk" && ! -L "$app_apk" ]] || fail "Invalid app APK"
+  local apk_entries
+  apk_entries="$(unzip -Z1 "$app_apk")" || fail "Cannot list app APK native libraries"
+  local required_library
+  for required_library in libSkipAndroidBridge.so libSwiftJNI.so libVouchaAndroid.so; do
+    grep -Fxq "lib/arm64-v8a/$required_library" <<<"$apk_entries" ||
+      fail "Candidate app APK lacks ARM64 $required_library"
+  done
+  local entry
+  while IFS= read -r entry; do
+    if [[ "$entry" =~ ^lib/([^/]+)/[^/]+[.]so$ && "${BASH_REMATCH[1]}" != arm64-v8a ]]; then
+      fail "Candidate app APK advertises unsupported native ABI ${BASH_REMATCH[1]}"
+    fi
+  done <<<"$apk_entries"
+}
+
 mode="$1"
 shift
 if [[ "$mode" == verify-instrumentation-output ]]; then
   [[ "$#" -eq 1 && -f "$1" ]] || fail "Expected one instrumentation output file"
   verify_instrumentation_output "$(tr -d '\r' < "$1")" || fail "Instrumentation did not report one successful test"
+  exit 0
+fi
+if [[ "$mode" == verify-native-abi ]]; then
+  [[ "$#" -eq 1 ]] || fail "Expected one app APK"
+  verify_native_abi "$1"
   exit 0
 fi
 [[ "$mode" == run || "$mode" == verify-artifact ]] || fail "Unknown cookie restart mode"
@@ -45,6 +68,7 @@ verify_artifact "$apk_dir" "$expected_revision"
 if [[ "$mode" == verify-artifact ]]; then
   exit 0
 fi
+verify_native_abi "$apk_dir/app-debug.apk"
 
 aapt="${ANDROID_HOME:?ANDROID_HOME is required}/build-tools/36.0.0/aapt"
 [[ -x "$aapt" ]]
@@ -54,12 +78,6 @@ test_id="$("$aapt" dump badging "$apk_dir/app-debug-androidTest.apk" | sed -n "s
   echo "Unexpected Android app or test package identity" >&2
   exit 1
 }
-apk_entries="$(unzip -Z1 "$apk_dir/app-debug.apk")"
-grep -Eq '^lib/arm64-v8a/[^/]+\.so$' <<<"$apk_entries" || {
-  echo "Candidate app APK has no ARM64 native library" >&2
-  exit 1
-}
-
 avd_name="voucha-cookie-restart-${GITHUB_RUN_ID:-local}"
 emulator_pid=
 emulator_log="${RUNNER_TEMP:-/tmp}/voucha-cookie-emulator.log"
