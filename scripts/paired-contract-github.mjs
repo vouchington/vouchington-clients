@@ -58,7 +58,32 @@ export async function captureLivePair() {
   const dispatch = validateDispatch({ ...staticDispatch, clientsPermission: permission })
   const readPullRequest = async (repository, number) =>
     githubRequest(`repos/${repository}/pulls/${number}`, { authenticated: true })
-  const pair = await capturePairSnapshot({ dispatch, readPullRequest })
+  const readMergeCommit = async (repository, sha) =>
+    githubRequest(`repos/${repository}/commits/${sha}`, { authenticated: true })
+  const readMain = async repository => {
+    const ref = await githubRequest(`repos/${repository}/git/ref/heads/main`, {
+      authenticated: true,
+    })
+    return ref?.object?.sha
+  }
+  const isAncestor = async (repository, ancestor, descendant) => {
+    const comparison = await githubRequest(
+      `repos/${repository}/compare/${ancestor}...${descendant}`,
+      { authenticated: true },
+    )
+    return (
+      comparison?.base_commit?.sha === ancestor &&
+      comparison?.merge_base_commit?.sha === ancestor &&
+      ['ahead', 'identical'].includes(comparison?.status)
+    )
+  }
+  const pair = await capturePairSnapshot({
+    dispatch,
+    readPullRequest,
+    readMergeCommit,
+    readMain,
+    isAncestor,
+  })
   return { dispatch, pair }
 }
 

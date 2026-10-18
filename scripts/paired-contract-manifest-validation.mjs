@@ -19,7 +19,7 @@ function exactKeys(record, expected, label) {
 function validateSnapshot(snapshot, expectedRepository, expectedHead, label) {
   exactKeys(
     snapshot,
-    ['repository', 'number', 'state', 'base', 'head', 'merge'],
+    ['repository', 'number', 'state', 'base', 'head', 'merge', 'main'],
     `${label} snapshot`,
   )
   if (
@@ -32,6 +32,7 @@ function validateSnapshot(snapshot, expectedRepository, expectedHead, label) {
   exactKeys(snapshot.base, ['repository', 'ref', 'sha'], `${label} base`)
   exactKeys(snapshot.head, ['repository', 'sha'], `${label} head`)
   exactKeys(snapshot.merge, ['sha', 'parents'], `${label} merge`)
+  exactKeys(snapshot.main, ['sha'], `${label} main`)
   if (
     snapshot.base.repository !== expectedRepository ||
     snapshot.base.ref !== 'main' ||
@@ -40,9 +41,11 @@ function validateSnapshot(snapshot, expectedRepository, expectedHead, label) {
     !shaIsValid(snapshot.head.sha) ||
     snapshot.head.sha !== expectedHead ||
     !shaIsValid(snapshot.merge.sha) ||
+    !shaIsValid(snapshot.main.sha) ||
     !Array.isArray(snapshot.merge.parents) ||
-    JSON.stringify(snapshot.merge.parents) !==
-      JSON.stringify([snapshot.base.sha, snapshot.head.sha])
+    snapshot.merge.parents.length !== 2 ||
+    !snapshot.merge.parents.every(shaIsValid) ||
+    snapshot.merge.parents[1] !== snapshot.head.sha
   )
     fail(`${label} snapshot revisions are invalid`)
 }

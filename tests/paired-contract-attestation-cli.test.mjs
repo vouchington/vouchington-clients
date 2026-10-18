@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url'
 import { it } from 'node:test'
 import { declaredFilamentsContractPaths } from '../scripts/contracts.mjs'
 import {
+  pairedExporterImage,
+  pairedExporterPackages,
+} from '../scripts/paired-exporter-runtime-evidence.mjs'
+import {
   dispatchEnvironment,
   runCli,
   startFakeGitHub,
@@ -31,6 +35,9 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     assert.ok(encodedSnapshot)
     const snapshot = JSON.parse(Buffer.from(encodedSnapshot, 'base64url').toString('utf8'))
     assert.equal(snapshot.pair.producer.merge.sha, '5'.repeat(40))
+    assert.deepEqual(snapshot.pair.producer.merge.parents, ['a'.repeat(40), '1'.repeat(40)])
+    assert.equal(snapshot.pair.producer.base.sha, '3'.repeat(40))
+    assert.equal(snapshot.pair.producer.main.sha, 'b'.repeat(40))
     assert.equal(snapshot.dispatch.clientsPermission, 'maintain')
 
     const trustedRoot = join(temporaryRoot, 'trusted')
@@ -70,9 +77,32 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     await writeFile(
       join(evidenceRoot, 'candidate-evidence.json'),
       JSON.stringify({
-        producer: { revision: '5'.repeat(40), parents: ['3'.repeat(40), '1'.repeat(40)] },
-        clients: { revision: '6'.repeat(40), parents: ['4'.repeat(40), '2'.repeat(40)] },
+        producer: { revision: '5'.repeat(40), parents: ['a'.repeat(40), '1'.repeat(40)] },
+        clients: { revision: '6'.repeat(40), parents: ['a'.repeat(40), '2'.repeat(40)] },
         candidateConfig: config,
+      }),
+    )
+    await writeFile(join(producerRoot, 'pnpm-lock.yaml'), 'lockfileVersion: "9.0"\n')
+    const producerGit = args =>
+      execFileSync('git', ['-C', producerRoot, ...args], { encoding: 'utf8' }).trim()
+    producerGit(['init', '-q'])
+    producerGit(['config', 'user.email', 'test@example.invalid'])
+    producerGit(['config', 'user.name', 'Paired contract test'])
+    producerGit(['add', '.'])
+    producerGit(['commit', '-q', '-m', 'test candidate source'])
+    const producerLockBlob = producerGit(['rev-parse', 'HEAD:pnpm-lock.yaml'])
+    await writeFile(
+      join(evidenceRoot, 'exporter-runtime.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        producerRootHead: '5'.repeat(40),
+        producerLockBlob,
+        image: pairedExporterImage,
+        packages: pairedExporterPackages.map(record => ({
+          ...record,
+          file: `${record.name.replaceAll('@', '').replaceAll('/', '_')}-${record.version}.tgz`,
+          size: 1,
+        })),
       }),
     )
     const git = args => execFileSync('git', args, { cwd: trustedRoot, encoding: 'utf8' }).trim()
@@ -207,4 +237,21 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     await server.close()
     await rm(temporaryRoot, { recursive: true, force: true })
   }
+})
+
+it('does not dispatch a CLI command when the attestation module is imported', async () => {
+  const result = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `process.argv[2] = 'capture'; await import(${JSON.stringify(cli)});`,
+    ],
+    {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH ?? '/usr/bin:/bin' },
+    },
+  )
+  assert.equal(result, '')
 })

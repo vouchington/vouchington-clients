@@ -101,7 +101,13 @@ function pullRequestSnapshot(repository, number, pullRequest) {
   }
 }
 
-export async function capturePairSnapshot({ dispatch, readPullRequest }) {
+export async function capturePairSnapshot({
+  dispatch,
+  readPullRequest,
+  readMergeCommit,
+  readMain,
+  isAncestor,
+}) {
   const [producerPR, clientsPR] = await Promise.all([
     readPullRequest(pairedRepositories.producer, dispatch.producerNumber),
     readPullRequest(pairedRepositories.clients, dispatch.clientsNumber),
@@ -112,6 +118,27 @@ export async function capturePairSnapshot({ dispatch, readPullRequest }) {
     producerPR,
   )
   const clients = pullRequestSnapshot(pairedRepositories.clients, dispatch.clientsNumber, clientsPR)
+  for (const snapshot of [producer, clients]) {
+    const [mergeCommit, mainSha] = await Promise.all([
+      readMergeCommit(snapshot.repository, snapshot.merge.sha),
+      readMain(snapshot.repository),
+    ])
+    const parents = mergeCommit?.parents?.map(parent => parent?.sha)
+    if (
+      mergeCommit?.sha !== snapshot.merge.sha ||
+      !Array.isArray(parents) ||
+      parents.length !== 2 ||
+      parents.some(parent => !shaPattern.test(parent ?? ''))
+    )
+      fail(`${snapshot.repository} merge commit has invalid parent identities`)
+    if (parents[1] !== snapshot.head.sha)
+      fail(`${snapshot.repository} merge commit second parent does not match the pull request head`)
+    const liveMainSha = requiredSha(mainSha, `${snapshot.repository} live main SHA`)
+    if (!(await isAncestor(snapshot.repository, parents[0], liveMainSha)))
+      fail(`${snapshot.repository} merge base is not an ancestor of live main`)
+    snapshot.merge.parents = parents
+    snapshot.main = { sha: liveMainSha }
+  }
   if (producer.head.sha !== dispatch.expectedProducerHeadSha)
     fail('live producer head does not match the operator-reviewed SHA')
   if (clients.head.sha !== dispatch.expectedClientsHeadSha)
@@ -133,7 +160,7 @@ export function assertCheckoutMatchesSnapshot(snapshot, checkout) {
     !Array.isArray(checkout.parents) ||
     JSON.stringify(checkout.parents) !== JSON.stringify(snapshot.merge.parents)
   )
-    fail(`${snapshot.repository} merge revision does not have the captured base and head parents`)
+    fail(`${snapshot.repository} merge revision does not have the captured merge parents`)
 }
 
 export function shaIsValid(value) {

@@ -127,6 +127,54 @@ test('runs the Filaments-owned exporter from the producer root', async t => {
   assert.equal(await stageNativeContract(options), 'exporter')
 })
 
+test('stages an isolated exporter output tree as data without executing producer code', async t => {
+  const options = await fixture(t, { legacy: false })
+  const exporterOutputRoot = join(options.filamentsRoot, '..', 'isolated-exporter-output')
+  await mkdir(exporterOutputRoot)
+  await mkdir(join(options.filamentsRoot, 'dev'), { recursive: true })
+  await writeTree(exporterOutputRoot, {
+    'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift': 'isolated swift\n',
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
+      'isolated dotnet\n',
+  })
+  await writeFile(
+    join(options.filamentsRoot, 'dev/native-localization.mts'),
+    'throw new Error("candidate exporter must not run on the trusted host");\n',
+  )
+  assert.equal(
+    await stageNativeContract({ ...options, exporterOutputRoot }),
+    'isolated-exporter-data',
+  )
+  assert.equal(
+    await readFile(
+      join(
+        options.outputRoot,
+        'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift',
+      ),
+      'utf8',
+    ),
+    'isolated swift\n',
+  )
+
+  const unexpected = join(options.filamentsRoot, '..', 'isolated-exporter-unexpected')
+  await mkdir(unexpected)
+  const secondOutputRoot = join(options.filamentsRoot, '..', 'stage-two')
+  await mkdir(secondOutputRoot)
+  await writeTree(unexpected, {
+    'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift': 'swift\n',
+    'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs': 'dotnet\n',
+    'api-fixtures/v1/manifest.json': 'must not replace producer fixtures\n',
+  })
+  await assert.rejects(
+    stageNativeContract({
+      ...options,
+      outputRoot: secondOutputRoot,
+      exporterOutputRoot: unexpected,
+    }),
+    /unexpected staged contract path api-fixtures/u,
+  )
+})
+
 test('asserts extracted representatives from the staged client contract', async t => {
   const options = await fixture(t, { legacy: false })
   await stageNativeContract({

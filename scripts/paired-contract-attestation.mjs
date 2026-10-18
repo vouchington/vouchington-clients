@@ -8,4 +8,8 @@ export {
 export { createPairManifest } from './paired-contract-manifest.mjs'
 export { validatePairManifest } from './paired-contract-manifest-validation.mjs'
 
-import './paired-contract-commands.mjs'
+import { runPairedContractCommand } from './paired-contract-commands.mjs'
+
+export { runPairedContractCommand }
+
+if (import.meta.main) await runPairedContractCommand(process.argv[2])

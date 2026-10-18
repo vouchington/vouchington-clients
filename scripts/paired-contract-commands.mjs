@@ -139,10 +139,11 @@ async function recordCandidateCommand() {
   )
 }
 
-const command = process.argv[2]
-if (command === 'capture') await captureCommand()
-else if (command === 'materialize-snapshot') await materializeSnapshotCommand()
-else if (command === 'verify-checkouts') await verifyCheckoutsCommand()
-else if (command === 'record-candidate') await recordCandidateCommand()
-else if (command === 'create-manifest') await createManifestCommand()
-else if (command !== undefined) fail(`unknown command ${command}`)
+export async function runPairedContractCommand(command) {
+  if (command === 'capture') await captureCommand()
+  else if (command === 'materialize-snapshot') await materializeSnapshotCommand()
+  else if (command === 'verify-checkouts') await verifyCheckoutsCommand()
+  else if (command === 'record-candidate') await recordCandidateCommand()
+  else if (command === 'create-manifest') await createManifestCommand()
+  else fail(`unknown command ${command}`)
+}

@@ -43,6 +43,45 @@ export async function startFakeGitHub() {
       )
       return
     }
+    const commit = request.url.match(/^\/repos\/(.+)\/commits\/([0-9a-f]{40})$/u)
+    if (commit) {
+      const repository = commit[1]
+      const pullRequest = [...pullRequests.entries()].find(([path]) =>
+        path.startsWith(`/repos/${repository}/`),
+      )?.[1]
+      if (pullRequest?.merge_commit_sha === commit[2]) {
+        response.end(
+          JSON.stringify({
+            sha: commit[2],
+            parents: [{ sha: 'a'.repeat(40) }, { sha: pullRequest.head.sha }],
+          }),
+        )
+        return
+      }
+    }
+    const mainRef = request.url.match(/^\/repos\/(.+)\/git\/ref\/heads\/main$/u)
+    if (mainRef) {
+      const pullRequest = [...pullRequests.entries()].find(([path]) =>
+        path.startsWith(`/repos/${mainRef[1]}/`),
+      )?.[1]
+      if (pullRequest) {
+        response.end(JSON.stringify({ object: { sha: 'b'.repeat(40) } }))
+        return
+      }
+    }
+    const comparison = request.url.match(
+      /^\/repos\/(.+)\/compare\/([0-9a-f]{40})\.\.\.([0-9a-f]{40})$/u,
+    )
+    if (comparison) {
+      response.end(
+        JSON.stringify({
+          base_commit: { sha: comparison[2] },
+          merge_base_commit: { sha: comparison[2] },
+          status: 'ahead',
+        }),
+      )
+      return
+    }
     const snapshot = pullRequests.get(request.url)
     if (snapshot) {
       response.end(JSON.stringify(snapshot))

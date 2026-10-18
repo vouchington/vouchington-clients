@@ -135,16 +135,48 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: node trusted-clients/scripts/paired-contract-attestation.mjs verify-checkouts
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: latest-12
+      - name: Pull the pinned isolated exporter runtime
+        run: >-
+          docker pull --platform linux/amd64
+          node:26.12.0-bookworm@sha256:662de7348097c97cc0a43dd71649bf2f5b721da6587eb390c4ee4ad78213bcf1
 
-      - name: Install candidate producer exporter dependencies
-        working-directory: producer-candidate
+      - name: Fetch the exact reviewed exporter dependency bundle
         env:
-          pnpm_config_store_dir: ${{ runner.temp }}/paired-contract-pnpm-store
-        run: pnpm install --frozen-lockfile
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKAGE_BUNDLE_ROOT"
+          node trusted-clients/scripts/fetch-paired-exporter-dependencies.mjs \
+            --producer-root "$PRODUCER_CANDIDATE_ROOT" \
+            --output-root "$PACKAGE_BUNDLE_ROOT"
+
+      - name: Verify candidate execution is isolated from runner credentials and host state
+        env:
+          PAIRED_ISOLATION_TEST_REQUIRED: 'true'
+          PAIRED_TEST_PRODUCER_ROOT: ${{ github.workspace }}/producer-candidate
+          PAIRED_EXPORTER_PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          node --test
+          trusted-clients/tests/paired-exporter-dependency-bundle.test.mjs
+          trusted-clients/tests/paired-contract-isolated-exporter.test.mjs
+
+      - name: Run the producer exporter in the isolated pinned runtime
+        env:
+          PRODUCER_CANDIDATE_ROOT: ${{ github.workspace }}/producer-candidate
+          CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
+          EXPORTER_OUTPUT_ROOT: ${{ runner.temp }}/paired-contract-exporter-${{ github.run_id }}-${{ github.run_attempt }}
+          PACKAGE_BUNDLE_ROOT: ${{ runner.temp }}/paired-exporter-packages-${{ github.run_id }}-${{ github.run_attempt }}
+          EXPORTER_RUNTIME_EVIDENCE: ${{ runner.temp }}/paired-exporter-runtime-${{ github.run_id }}-${{ github.run_attempt }}.json
+        run: |
+          set -euo pipefail
+          mkdir -p "$EXPORTER_OUTPUT_ROOT"
+          node trusted-clients/scripts/run-isolated-native-exporter.mjs \
+            --producer-root "$PRODUCER_CANDIDATE_ROOT" \
+            --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
+            --output-root "$EXPORTER_OUTPUT_ROOT" \
+            --package-bundle-root "$PACKAGE_BUNDLE_ROOT" \
+            --runtime-evidence-path "$EXPORTER_RUNTIME_EVIDENCE"
 
       - name: Stage the explicitly declared contract paths
         env:
@@ -152,13 +184,15 @@ jobs:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
           TRUSTED_CLIENTS_ROOT: ${{ github.workspace }}/trusted-clients
           CONTRACT_STAGE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+          EXPORTER_OUTPUT_ROOT: ${{ runner.temp }}/paired-contract-exporter-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           mkdir -p "$CONTRACT_STAGE_ROOT"
           node trusted-clients/scripts/stage-native-contract.mjs \
             --filaments-root "$PRODUCER_CANDIDATE_ROOT" \
             --output-root "$CONTRACT_STAGE_ROOT" \
-            --consumer-root "$CLIENTS_CANDIDATE_ROOT"
+            --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
+            --exporter-output-root "$EXPORTER_OUTPUT_ROOT"
 
       - name: Assert extracted localization representatives
         env:
@@ -183,6 +217,12 @@ jobs:
           PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           GITHUB_SHA: ${{ github.sha }}
         run: node trusted-clients/scripts/paired-contract-attestation.mjs record-candidate
+
+      - name: Attach verified isolated runtime and dependency evidence
+        env:
+          EXPORTER_RUNTIME_EVIDENCE: ${{ runner.temp }}/paired-exporter-runtime-${{ github.run_id }}-${{ github.run_attempt }}.json
+          PAIRED_EVIDENCE_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+        run: cp "$EXPORTER_RUNTIME_EVIDENCE" "$PAIRED_EVIDENCE_ROOT/exporter-runtime.json"
 
       - name: Upload untrusted candidate contract data for final validation
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0

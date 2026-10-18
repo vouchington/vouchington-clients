@@ -53,18 +53,37 @@ it('requires exact reviewed PR heads and explicit operator review', async () => 
 })
 
 it('isolates candidate code from every authenticated identity-resolution step', async () => {
-  const workflow = await readWorkflow()
+  const [workflow, isolatedRunner] = await Promise.all([
+    readWorkflow(),
+    readFile(new URL('../scripts/paired-exporter-runner.mjs', import.meta.url), 'utf8'),
+  ])
   const candidate = jobBlock(workflow, 'candidate')
   assert.match(candidate, /needs: resolve/u)
   assert.match(candidate, /permissions:\n      contents: read\n/u)
   assert.doesNotMatch(candidate, /GITHUB_TOKEN:|github\.token|secrets\./u)
   for (const step of [
-    'Install candidate producer exporter dependencies',
+    'Pull the pinned isolated exporter runtime',
+    'Fetch the exact reviewed exporter dependency bundle',
+    'Verify candidate execution is isolated from runner credentials and host state',
+    'Run the producer exporter in the isolated pinned runtime',
     'Stage the explicitly declared contract paths',
     'Assert extracted localization representatives',
     'Check paired candidate generated localization against staged contract',
   ])
     assert.match(candidate, new RegExp(`- name: ${step}`, 'u'))
+  assert.doesNotMatch(candidate, /pnpm install|pnpm\/action-setup|npm install/u)
+  assert.match(candidate, /docker pull --platform linux\/amd64/u)
+  assert.match(candidate, /node:26\.12\.0-bookworm@sha256:[a-f0-9]{64}/u)
+  assert.match(candidate, /run-isolated-native-exporter\.mjs/u)
+  assert.match(isolatedRunner, /--cap-drop=ALL/u)
+  assert.match(isolatedRunner, /--network=none/u)
+  assert.match(isolatedRunner, /--read-only/u)
+  assert.match(isolatedRunner, /--security-opt=no-new-privileges:true/u)
+  assert.match(isolatedRunner, /--tmpfs[\s\S]*\/output:rw,noexec,nosuid,size=256m/u)
+  assert.match(isolatedRunner, /--tmpfs[\s\S]*\/node_modules:rw,noexec,nosuid,size=128m/u)
+  assert.match(isolatedRunner, /decodeCandidateOutput/u)
+  assert.match(candidate, /fetch-paired-exporter-dependencies\.mjs/u)
+  assert.doesNotMatch(candidate, /type=bind,src=\$\{EXPORTER_OUTPUT_ROOT\},dst=\/output/u)
   assert.match(jobBlock(workflow, 'resolve'), /GITHUB_TOKEN: \$\{\{ github\.token \}\}/u)
   assert.match(jobBlock(workflow, 'finalize'), /GITHUB_TOKEN: \$\{\{ github\.token \}\}/u)
   assert.match(jobBlock(workflow, 'finalize'), /needs: \[resolve, candidate\]/u)
@@ -130,4 +149,8 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
   assert.match(finalUpload, /name: paired-native-contract-\$\{\{ github\.run_id \}\}/u)
   assert.match(finalUpload, /retention-days: 1/u)
   assert.doesNotMatch(finalUpload, /overwrite: true/u)
+  assert.doesNotMatch(
+    finalize,
+    /run-isolated-native-exporter|native-localization\.mts|pnpm install/u,
+  )
 })

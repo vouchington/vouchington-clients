@@ -77,6 +77,28 @@ function readPair(overrides = {}) {
   }
 }
 
+function snapshotReaders(overrides = {}) {
+  const readPullRequest = readPair(overrides)
+  return {
+    readPullRequest,
+    readMergeCommit: async (repository, sha) => {
+      const pr = await readPullRequest(
+        repository,
+        repository === pairedRepositories.producer ? '3292' : '376',
+      )
+      return { sha, parents: [{ sha: pr.base.sha }, { sha: pr.head.sha }] }
+    },
+    readMain: async repository => {
+      const pr = await readPullRequest(
+        repository,
+        repository === pairedRepositories.producer ? '3292' : '376',
+      )
+      return pr.base.sha
+    },
+    isAncestor: async () => true,
+  }
+}
+
 describe('paired contract exact file evidence', () => {
   it('builds and validates a sorted hash manifest for only the declared contract paths', async () => {
     const stageRoot = await mkdtemp(join(tmpdir(), 'paired-contract-stage-'))
@@ -86,7 +108,7 @@ describe('paired contract exact file evidence', () => {
       await mkdir(directory, { recursive: true })
       await writeFile(join(directory, `fixture-${index}.txt`), `fixture-${index}\n`)
     }
-    const pair = await capturePairSnapshot({ dispatch: dispatch(), readPullRequest: readPair() })
+    const pair = await capturePairSnapshot({ dispatch: dispatch(), ...snapshotReaders() })
     const manifest = await createPairManifest({
       dispatch: dispatch(),
       pair,
@@ -124,7 +146,7 @@ describe('paired contract exact file evidence', () => {
     changedRun.attestation.workflow.runAttempt = 2
     assert.throws(() => validatePairManifest(changedRun), /workflow identity is invalid/u)
     const changedParent = structuredClone(manifest)
-    changedParent.clients.merge.parents[0] = 'e'.repeat(40)
+    changedParent.clients.merge.parents[1] = 'e'.repeat(40)
     assert.throws(() => validatePairManifest(changedParent), /snapshot revisions are invalid/u)
     for (const path of [
       'api-fixtures/v1/../secrets.json',
@@ -151,7 +173,7 @@ describe('paired contract exact file evidence', () => {
     }
     await mkdir(join(stageRoot, 'unexpected'), { recursive: true })
     await writeFile(join(stageRoot, 'unexpected', 'payload.txt'), 'not allowed')
-    const pair = await capturePairSnapshot({ dispatch: dispatch(), readPullRequest: readPair() })
+    const pair = await capturePairSnapshot({ dispatch: dispatch(), ...snapshotReaders() })
     await assert.rejects(
       createPairManifest({
         dispatch: dispatch(),

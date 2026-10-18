@@ -7,6 +7,7 @@ import {
   assertPairSnapshotUnchanged,
 } from './paired-contract-policy.mjs'
 import { createPairManifest } from './paired-contract-manifest.mjs'
+import { validatePairedExporterRuntimeEvidence } from './paired-exporter-runtime-evidence.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
 import { declaredFilamentsContractPaths } from './contracts.mjs'
 
@@ -152,6 +153,14 @@ export async function createManifestCommand() {
   const producerRoot = resolve(
     requiredString(process.env.PRODUCER_CANDIDATE_ROOT, 'producer candidate root'),
   )
+  const exporterRuntimePath = join(evidenceRoot, 'exporter-runtime.json')
+  await assertNoSymlinkComponents(evidenceRoot, exporterRuntimePath, 'exporter runtime evidence')
+  const exporterRuntime = await readJson(exporterRuntimePath, 'exporter runtime evidence')
+  const producerLockBlob = git(producerRoot, ['rev-parse', 'HEAD:pnpm-lock.yaml'])
+  validatePairedExporterRuntimeEvidence(exporterRuntime, {
+    producerHead: candidateEvidence.producer.revision,
+    lockBlob: producerLockBlob,
+  })
   for (const contractPath of declaredFilamentsContractPaths)
     await assertNoSymlinkComponents(
       contractRoot,
