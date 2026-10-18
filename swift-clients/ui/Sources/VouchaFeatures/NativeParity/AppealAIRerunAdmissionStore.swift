@@ -24,6 +24,14 @@ struct AppealAIRerunOwner: Hashable {
         self.port = port
         basePath = normalizedPath
     }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(userId)
+        hasher.combine(scheme)
+        hasher.combine(host)
+        hasher.combine(port)
+        hasher.combine(basePath)
+    }
 }
 
 @Observable
