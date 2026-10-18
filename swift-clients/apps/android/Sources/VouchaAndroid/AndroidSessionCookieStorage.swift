@@ -11,13 +11,9 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     private let secrets: any AndroidEndpointSecretStoring
     private let key: String
     private let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
-    struct PersistenceStatus {
-        let revision: Int
-        let errorMessage: String?
-        let enabled: Bool
-    }
 
     private var persistenceEnabled = true
+    private var restorationBlocked = false
     private var persistenceRevision = 0
     private var persistenceErrorMessage: String?
     private var observer: (@Sendable (PersistenceStatus) -> Void)?
@@ -41,6 +37,10 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         queue.sync { statusHoldingQueue() }
     }
 
+    var requiresRestorationRetry: Bool {
+        queue.sync { restorationBlocked }
+    }
+
     func observePersistence(_ observer: @escaping @Sendable (PersistenceStatus) -> Void) {
         let status = queue.sync {
             self.observer = observer
@@ -51,7 +51,7 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     func persistCookies() {
         let result = queue.sync { () -> PersistenceStatus? in
-            guard persistenceEnabled else { return nil }
+            guard persistenceEnabled, !restorationBlocked else { return nil }
             do {
                 let records = (cookieStorage.cookies ?? []).compactMap(CookieRecord.init(cookie:))
                     .filter { $0.expires.map { $0 > Date() } ?? true }
@@ -102,8 +102,31 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         notify(status)
     }
 
+    @discardableResult
+    func retryRestoreCookies() -> Bool {
+        let result = queue.sync { () -> (Bool, PersistenceStatus)? in
+            guard restorationBlocked else {
+                return (persistenceEnabled, statusHoldingQueue())
+            }
+            do {
+                try loadPersistedCookies()
+                restorationBlocked = false
+                persistenceEnabled = true
+                persistenceErrorMessage = nil
+            } catch {
+                persistenceErrorMessage = error.localizedDescription
+            }
+            persistenceRevision += 1
+            return (!restorationBlocked, statusHoldingQueue())
+        }
+        guard let result else { return true }
+        notify(result.1)
+        return result.0
+    }
+
     private func disableHoldingQueue() -> PersistenceStatus {
         persistenceEnabled = false
+        restorationBlocked = false
         persistenceErrorMessage = nil
         persistenceRevision += 1
         return statusHoldingQueue()
@@ -113,7 +136,8 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         PersistenceStatus(
             revision: persistenceRevision,
             errorMessage: persistenceErrorMessage,
-            enabled: persistenceEnabled
+            enabled: persistenceEnabled,
+            restorationBlocked: restorationBlocked
         )
     }
 
@@ -123,12 +147,48 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     }
 
     private func restoreCookies() {
-        guard let json = try? secrets.string(forKey: key), let data = json.data(using: .utf8),
-              let records = try? JSONDecoder().decode([CookieRecord].self, from: data) else { return }
+        do {
+            try loadPersistedCookies()
+        } catch {
+            restorationBlocked = true
+            persistenceEnabled = false
+            persistenceErrorMessage = error.localizedDescription
+            persistenceRevision += 1
+        }
+    }
+
+    private func loadPersistedCookies() throws {
+        guard let json = try secrets.string(forKey: key) else { return }
+        guard let data = json.data(using: .utf8) else {
+            throw CocoaError(.fileReadInapplicableStringEncoding)
+        }
+        let records = try JSONDecoder().decode([CookieRecord].self, from: data)
         for record in records where record.expires.map({ $0 > Date() }) ?? true {
             if let cookie = record.cookie {
                 cookieStorage.setCookie(cookie)
             }
         }
     }
+}
+
+extension AndroidSessionCookieStorage {
+    struct PersistenceStatus {
+        let revision: Int
+        let errorMessage: String?
+        let enabled: Bool
+        let restorationBlocked: Bool
+
+        init(
+            revision: Int,
+            errorMessage: String?,
+            enabled: Bool,
+            restorationBlocked: Bool = false
+        ) {
+            self.revision = revision
+            self.errorMessage = errorMessage
+            self.enabled = enabled
+            self.restorationBlocked = restorationBlocked
+        }
+    }
+
 }

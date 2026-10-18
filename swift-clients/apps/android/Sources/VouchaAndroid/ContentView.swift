@@ -21,7 +21,9 @@ struct ContentView: View {
             if let error = account.cookiePersistenceNotice.errorMessage {
                 Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(error), locale: locale))
                     .foregroundStyle(.red)
-                Button(message(.nativeCommonRetry)) { account.retryCookiePersistence() }
+                Button(message(.nativeCommonRetry)) {
+                    Task { await account.retryCookiePersistenceOrRestoration() }
+                }
             }
             accountContent
         }

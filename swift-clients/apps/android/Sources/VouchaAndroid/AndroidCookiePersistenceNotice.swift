@@ -8,6 +8,6 @@ final class AndroidCookiePersistenceNotice {
     func accept(_ status: AndroidSessionCookieStorage.PersistenceStatus) {
         guard status.revision > revision else { return }
         revision = status.revision
-        errorMessage = status.enabled ? status.errorMessage : nil
+        errorMessage = status.restorationBlocked || status.enabled ? status.errorMessage : nil
     }
 }

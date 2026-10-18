@@ -16,6 +16,7 @@ final class AndroidAccount {
     let session: SessionManager
     let signIn: SignInService
     var isRestoring = true
+    private var isRetryingCookieRestoration = false
     private var editableEmail = ""
     var email: String {
         get { editableEmail }
@@ -67,7 +68,32 @@ final class AndroidAccount {
         cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
     }
 
+    func retryCookiePersistenceOrRestoration() async {
+        if cookieStorage.requiresRestorationRetry {
+            await retryCookieRestoration()
+        } else {
+            retryCookiePersistence()
+        }
+    }
+
+    private func retryCookieRestoration() async {
+        guard !isRetryingCookieRestoration else { return }
+        isRetryingCookieRestoration = true
+        defer { isRetryingCookieRestoration = false }
+        guard cookieStorage.retryRestoreCookies() else {
+            cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
+            return
+        }
+        cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
+        await session.restoreSession()
+        isRestoring = false
+    }
+
     func restore() async {
+        guard !cookieStorage.requiresRestorationRetry else {
+            cookiePersistenceNotice.accept(cookieStorage.persistenceStatus)
+            return
+        }
         await session.restoreSession()
         isRestoring = false
     }
