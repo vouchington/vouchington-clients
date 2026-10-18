@@ -10,6 +10,29 @@ import XCTest
 
 @MainActor
 final class AndroidTranscriptGenerationErrorTests: XCTestCase {
+    func testLateListFailureKeepsEarlierGenerationFailureVisible() async throws {
+        let setup = try await makeGenerationListRetrySetup(listHeld: true)
+        defer { AndroidTranscriptURLProtocol.uninstall(host: setup.fixture.host) }
+        try await setup.runtime.waitUntilStarted()
+        let pagination = Task { await setup.viewModel.loadConversationPage(reset: false) }
+        _ = try await setup.fixture.recorder.waitForRequest(path: setup.listPath, occurrence: 2)
+        setup.viewModel.draft = "Newer draft"
+        await setup.runtime.fail("generation unavailable")
+        await setup.send.value
+        let generationError = try XCTUnwrap(setup.viewModel.errorMessage)
+        setup.fixture.recorder.completeHeld(
+            path: setup.listPath, occurrence: 2, statusCode: 503, data: Data("{}".utf8)
+        )
+        await pagination.value
+
+        XCTAssertNotNil(setup.viewModel.failedConversationListLoad)
+        XCTAssertNotNil(setup.viewModel.failedGenerationForSelectedConversation)
+        XCTAssertEqual(setup.viewModel.errorMessage, generationError)
+        XCTAssertEqual(setup.viewModel.chatErrorKind, .generation)
+        XCTAssertEqual(setup.viewModel.chatErrorMessageKey, .nativeSwiftAndroidGenerationFailed)
+        XCTAssertEqual(setup.viewModel.draft, "Newer draft")
+    }
+
     func testDraftBackedGenerationErrorSurvivesListRetry() async throws {
         let setup = try await makeGenerationListRetrySetup()
         defer { AndroidTranscriptURLProtocol.uninstall(host: setup.fixture.host) }
@@ -101,7 +124,7 @@ private struct GenerationListRetrySetup {
 }
 
 @MainActor
-private func makeGenerationListRetrySetup() async throws -> GenerationListRetrySetup {
+private func makeGenerationListRetrySetup(listHeld: Bool = false) async throws -> GenerationListRetrySetup {
     let fixture = try AndroidTranscriptTestFactory.makeClient()
     let conversationID = AndroidTranscriptTestFactory.newConversationID
     let listPath = "/api/v1/my/conversations"
@@ -121,7 +144,8 @@ private func makeGenerationListRetrySetup() async throws -> GenerationListRetryS
     fixture.recorder.enqueue(
         path: listPath,
         statusCode: 503,
-        data: Data(#"{"message":"list unavailable"}"#.utf8)
+        data: Data(#"{"message":"list unavailable"}"#.utf8),
+        held: listHeld
     )
     AndroidTranscriptTestFactory.enqueueGeneratedTurn(
         on: fixture.recorder,

@@ -51,13 +51,13 @@ extension ViewModel {
             clearLoadFailureIfMatching(.conversations(reset: reset, after: cursor))
         } catch {
             guard accountGeneration == accountRevision else { return }
-            errorMessage = error.localizedDescription
             let operation = AndroidTranscriptLoadFailure.conversations(reset: reset, after: cursor)
             failedConversationListLoad = AndroidTranscriptLoadFailureRecord(
                 operation: operation,
                 message: error.localizedDescription
             )
             latestTranscriptLoadFailure = operation
+            restoreSelectedConversationError()
         }
     }
 
@@ -132,7 +132,6 @@ extension ViewModel {
             guard accountGeneration == accountRevision,
                   conversationGeneration == conversationRevision
             else { return }
-            errorMessage = error.localizedDescription
             let operation = AndroidTranscriptLoadFailure.messages(
                 conversationID: conversationID,
                 reset: reset,
@@ -143,6 +142,8 @@ extension ViewModel {
                 message: error.localizedDescription
             )
             latestTranscriptLoadFailure = operation
+            appendPendingTurnIfNeeded(for: conversationID)
+            restoreSelectedConversationError()
         }
     }
 
