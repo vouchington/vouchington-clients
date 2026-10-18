@@ -303,7 +303,7 @@ public sealed class ModerationDisputesPageTests
     public Task<ModerationDisputeQueueResponse> RerunResolutionDraftAsync(
         string id,
         CancellationToken cancellationToken = default) =>
-      Task.FromResult(new ModerationDisputeQueueResponse(true, "staff-1"));
+      Task.FromResult(new ModerationDisputeQueueResponse(true, "staff-1", "dispute-rerun-job-1"));
 
     private async Task<ModerationDisputeResponse> BlockUpdateAsync(
         CancellationToken cancellationToken)

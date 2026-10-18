@@ -133,6 +133,8 @@ public enum ModerationDisputeStatus: String, Codable, Sendable {
 }
 
 public struct ModerationDispute: Codable, Identifiable, Sendable {
+    @TolerantNullable
+    public var aiDraftRunId: String?
     public let id: String
     public let postId: String?
     public let status: ModerationDisputeStatus

@@ -38,8 +38,10 @@ public struct ReviewDisputeActorSummary: Codable, Sendable {
 public struct ReviewDisputePostContext: Codable, Sendable {
     public let id: String
     public let title: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
     @RequiredNullable
     public var slug: String?
     public let markdownPreview: String
@@ -69,11 +71,15 @@ public struct ReviewDisputeStaffContext: Codable, Sendable {
 
 public struct ReviewDisputePostContent: Codable, Sendable {
     public let text: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
 }
 
 public struct ReviewDispute: Codable, Identifiable, Sendable {
+    @TolerantNullable
+    public var aiDraftRunId: String?
     public let id: String
     public let postId: String
     public let topicId: String
@@ -101,7 +107,8 @@ public struct ReviewDispute: Codable, Identifiable, Sendable {
     public let latestLifecycleChangeId: String?
     public let createdAt: Date
     public let updatedAt: Date
-    @RequiredNullable public var postContent: ReviewDisputePostContent?
+    @RequiredNullable
+    public var postContent: ReviewDisputePostContent?
     public let staffContext: ReviewDisputeStaffContext?
 }
 
@@ -115,6 +122,7 @@ public struct ReviewDisputeResponse: Codable, Sendable {
 }
 
 public struct ReviewDisputeQueueResponse: Codable, Sendable {
+    public let runId: String
     public let queued: Bool
     public let rerunById: String?
 }

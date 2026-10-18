@@ -118,7 +118,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   {
     Calls.Add($"rerun:{id}");
     ThrowNext();
-    return Task.FromResult(new ModerationDisputeQueueResponse(QueueAccepted, "staff-1"));
+    return Task.FromResult(new ModerationDisputeQueueResponse(QueueAccepted, "staff-1", "dispute-rerun-job-1"));
   }
 
   public void FailNext(Exception exception) => NextError = exception;
