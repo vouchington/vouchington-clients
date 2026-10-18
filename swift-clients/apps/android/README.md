@@ -35,9 +35,10 @@ mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
 
 Despite its historical filename, `pre-push.sh` is a manually and CI-invoked validation wrapper; it
 does not install or run as a Git hook. The wrapper runs the host Swift tests, verifies that `:app`
-is the only root Gradle subproject, compiles the generated Android project with Gradle
-`:app:assembleDebug`, then builds Skip test libraries without ADB device discovery. Qualifying the
-task builds only the app's `:skipstone:` dependency tree.
+is the only root Gradle subproject, compiles the generated Android app and instrumentation APKs
+with Gradle `:app:assembleDebug :app:assembleDebugAndroidTest`, then builds Skip test libraries
+without ADB device discovery. Qualifying the tasks builds only the app's `:skipstone:` dependency
+tree.
 CI prefetches every pinned `skip-macos.zip` (source.skip.tools and the GitHub releases alias,
 same checksum) into SwiftPM's artifact cache so the build does not live-fetch the archive. Seeding
 both aliases also protects Android Studio and other direct Gradle callers from whichever canonical
@@ -69,3 +70,12 @@ symlink (NSPOSIX Code 20).
 
 The ML Kit Prompt API requires supported physical hardware for inference evidence. An emulator can
 validate the shell and unavailable-device state, but it cannot prove AICore generation.
+
+The Android CI cookie-restart job installs the exact candidate debug app and instrumentation APKs
+on a Google APIs emulator. Four separate instrumentation invocations seed synthetic entries in the
+app's existing encrypted preference file, read them after a host-driven force-stop, commit removal
+of only the cookie entry, and read again after another force-stop. The unrelated entry must remain
+unchanged. The runner checks the downloaded APK hashes, candidate revision, API level, and ARM64
+ABI support before accepting the result. This proves the Android storage primitive across process
+restarts; the Swift session tests cover sign-out ordering. It does not exercise a real account,
+the complete sign-out UI, or physical-device storage failure modes.

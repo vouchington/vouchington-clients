@@ -23,6 +23,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Match the pinned SkipKeychain 0.3.2 encrypted preference format for checked cookie commits.
     implementation("androidx.security:security-crypto:1.0.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
 }
 
 kotlin {
@@ -50,6 +52,7 @@ android {
     defaultConfig {
         minSdk = 28
         targetSdk = libs.versions.android.sdk.compile.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // skip.tools.skip-build-plugin will automatically use Skip.env properties for:
         // applicationId = ANDROID_APPLICATION_ID ?? PRODUCT_BUNDLE_IDENTIFIER
         // versionCode = CURRENT_PROJECT_VERSION

@@ -168,10 +168,10 @@ if [[ "$phase" != test-libs ]]; then
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
-    ./gradlew :app:assembleDebug
+    ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
   )
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
-  echo "Android Gradle :app:assembleDebug completed in ${gradle_elapsed_seconds}s"
+  echo "Android Gradle debug app and instrumentation APKs completed in ${gradle_elapsed_seconds}s"
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     {
       printf '### Android Gradle timing\n\n'
@@ -179,7 +179,7 @@ if [[ "$phase" != test-libs ]]; then
       printf '| --- | ---: |\n'
       # The backticked task name is intentionally literal Markdown.
       # shellcheck disable=SC2016
-      printf '| `:app:assembleDebug` | %ss |\n' "$gradle_elapsed_seconds"
+      printf '| `:app:assembleDebug :app:assembleDebugAndroidTest` | %ss |\n' "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
   fi
 fi
