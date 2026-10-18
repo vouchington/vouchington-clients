@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { lstat, readFile, writeFile } from 'node:fs/promises'
 import { assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
+import { finalizeNativeTestsCommand } from './paired-native-test-finalize.mjs'
 
 function fail(message) {
   throw new Error(`Paired contract attestation failed: ${message}`)
@@ -59,9 +60,9 @@ async function captureCommand() {
   const outputs = [
     `pair_snapshot_base64=${Buffer.from(JSON.stringify(captured)).toString('base64url')}`,
     `producer_number=${captured.pair.producer.number}`,
-    `producer_merge_ref=refs/pull/${captured.pair.producer.number}/merge`,
+    `producer_merge_sha=${captured.pair.producer.merge.sha}`,
     `clients_number=${captured.pair.clients.number}`,
-    `clients_merge_ref=refs/pull/${captured.pair.clients.number}/merge`,
+    `clients_merge_sha=${captured.pair.clients.merge.sha}`,
   ]
   await writeFile(outputPath, `${outputs.join('\n')}\n`, { flag: 'a' })
 }
@@ -145,5 +146,6 @@ export async function runPairedContractCommand(command) {
   else if (command === 'verify-checkouts') await verifyCheckoutsCommand()
   else if (command === 'record-candidate') await recordCandidateCommand()
   else if (command === 'create-manifest') await createManifestCommand()
+  else if (command === 'finalize-native-tests') await finalizeNativeTestsCommand()
   else fail(`unknown command ${command}`)
 }

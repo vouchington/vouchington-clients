@@ -49,3 +49,20 @@ later push makes the evidence stale for that new source revision; dispatch the w
 with the new exact heads after reviewing them. The workflow does not publish a check run, approve
 either pull request, or claim the full native compiler and platform test matrix passed. A real
 dispatch requires this workflow to be present on the repository's default branch first.
+
+The optional `run_native_tests` input adds a selected native evidence pass. It defaults to false,
+so the existing data-only review path stays unchanged. When enabled, Linux runs Swift Core and
+portable .NET tests against the exact captured clients merge SHA. A separate macOS runner runs the
+Android host tests and builds the app and instrumentation APKs from that same SHA. A fresh Linux
+API 35 emulator runner executes the fixed cookie and pending-turn restart phases using the reviewed
+APK bytes. Candidate jobs have no GitHub token or secrets, do not persist checkout credentials,
+and share no dependency cache. The emulator phase is selected explicitly because native storage
+restart behavior is not covered by compilation alone.
+
+Each native execution job uploads an untrusted, short-lived artifact. A separate trusted finalizer
+binds each artifact's ID and digest to the current workflow run and the upload action outputs,
+validates the fixed APK file set, source SHA, emulator properties, and all eight phase results,
+then rechecks both live pull request snapshots. The supplemental artifact is informational and
+candidate-controlled; it is not a signed test result or a GitHub check. The workflow does not
+change default required checks. Successful evidence reflects only the selected commands and
+platforms, not the full native matrix or physical-device acceptance.

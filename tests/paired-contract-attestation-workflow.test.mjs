@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
+import { runPairedContractCommand } from '../scripts/paired-contract-attestation.mjs'
 
 const workflowPath = '../.github/workflows/paired-native-contract-attestation.yml'
 const readWorkflow = () => readFile(new URL(workflowPath, import.meta.url), 'utf8')
@@ -50,6 +51,7 @@ it('requires exact reviewed PR heads and explicit operator review', async () => 
   assert.match(workflow, /GITHUB_TRIGGERING_ACTOR: \$\{\{ github\.triggering_actor \}\}/u)
   assert.match(workflow, /GITHUB_RUN_ATTEMPT: \$\{\{ github\.run_attempt \}\}/u)
   assert.match(workflow, /permissions:\n  contents: read\n  pull-requests: read/u)
+  assert.match(workflow, /run_native_tests:[\s\S]*default: false/u)
 })
 
 it('isolates candidate code from every authenticated identity-resolution step', async () => {
@@ -90,18 +92,18 @@ it('isolates candidate code from every authenticated identity-resolution step', 
   assert.match(jobBlock(workflow, 'finalize'), /actions\/download-artifact@[a-f0-9]{40}/u)
 })
 
-it('checks out fixed PR merge refs without persisting checkout credentials', async () => {
+it('checks out captured immutable PR merge SHAs without persisting credentials', async () => {
   const workflow = await readWorkflow()
   for (const [name, repository, refOutput] of [
     [
       'Check out the exact producer merge snapshot as untrusted data',
       'vouchington/vouchington',
-      'producer_merge_ref',
+      'producer_merge_sha',
     ],
     [
       'Check out the exact clients merge snapshot as untrusted data',
       'vouchington/vouchington-clients',
-      'clients_merge_ref',
+      'clients_merge_sha',
     ],
   ]) {
     const step = stepBlock(workflow, name)
@@ -115,6 +117,62 @@ it('checks out fixed PR merge refs without persisting checkout credentials', asy
     assert.match(step, /allow-unsafe-pr-checkout: true/u)
   }
   assert.doesNotMatch(workflow, /ref: \$\{\{ inputs\.(?:expected_|.*_ref)/u)
+})
+
+it('keeps native test execution opt-in, isolated, and informational', async () => {
+  const workflow = await readWorkflow()
+  const linux = jobBlock(workflow, 'native-linux-tests')
+  const android = jobBlock(workflow, 'native-android-build')
+  const emulator = jobBlock(workflow, 'native-android-emulator')
+  const finalizer = jobBlock(workflow, 'finalize-native-tests')
+  for (const block of [linux, android, emulator, finalizer])
+    assert.match(block, /if: \$\{\{ inputs\.run_native_tests \}\}/u)
+  assert.match(linux, /runs-on: ubuntu-latest/u)
+  assert.match(android, /runs-on: macos-latest/u)
+  assert.match(emulator, /runs-on: ubuntu-24\.04/u)
+  for (const block of [linux, android, emulator]) {
+    assert.match(block, /permissions:\n      contents: read/u)
+    assert.doesNotMatch(block, /GITHUB_TOKEN:|github\.token|secrets\.|actions\/cache/u)
+    assert.match(block, /persist-credentials: false/u)
+  }
+  assert.match(
+    android,
+    /swift test --package-path "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android"/u,
+  )
+  assert.match(android, /pre-push\.sh" --phase app/u)
+  assert.doesNotMatch(android, /gradlew.*assembleDebug/u)
+  assert.match(emulator, /paired-native-android-emulator\.mjs/u)
+  assert.match(
+    emulator,
+    /^    env:\n      ANDROID_HOME: \$\{\{ github\.workspace \}\}\/\.android-sdk\n      ANDROID_SDK_ROOT: \$\{\{ github\.workspace \}\}\/\.android-sdk$/mu,
+  )
+  assert.match(emulator, /libx11-6 libpulse0 libpng16-16t64 libnss3 libexpat1/u)
+  assert.match(emulator, /libdrm2 libxi6 libxext6 libxkbfile1/u)
+  assert.match(emulator, /emulator-linux_x64-16428233\.zip/u)
+  assert.match(emulator, /b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1/u)
+  assert.match(emulator, /test "\$\(stat -c '%s' "\$archive"\)" = 349654171/u)
+  assert.match(emulator, /timeout 600s unzip -q/u)
+  assert.match(emulator, /stage="\$RUNNER_TEMP\/paired-pinned-emulator"/u)
+  assert.match(
+    emulator,
+    /PINNED_EMULATOR_PATH: \$\{\{ runner\.temp \}\}\/paired-pinned-emulator\/emulator\/emulator/u,
+  )
+  assert.doesNotMatch(emulator, /mv "\$stage\/emulator" "\$ANDROID_HOME\/emulator"/u)
+  assert.doesNotMatch(
+    stepBlock(workflow, 'Download and install pinned Android emulator 37.2.12.0'),
+    /\n        env:/u,
+  )
+  assert.doesNotMatch(emulator, /\n\s+emulator\n/u)
+  assert.match(emulator, /permissions:\n      contents: read/u)
+  assert.match(
+    finalizer,
+    /permissions:\n      actions: read\n      contents: read\n      pull-requests: read/u,
+  )
+  assert.match(finalizer, /finalize-native-tests/u)
+  assert.match(finalizer, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/u)
+  assert.match(workflow, /outputs\.artifact-digest/u)
+  assert.match(finalizer, /live pair/u)
+  assert.doesNotMatch(workflow, /createCheckRun|statuses\.create|\bstatus: [^\n]*success/u)
 })
 
 it('keeps candidate artifacts untrusted until a clean final job rechecks live identities', async () => {
@@ -153,4 +211,17 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
     finalize,
     /run-isolated-native-exporter|native-localization\.mts|pnpm install/u,
   )
+})
+
+it('routes the finalizer CLI command to the native evidence finalizer', async () => {
+  const priorRunId = process.env.GITHUB_RUN_ID
+  delete process.env.GITHUB_RUN_ID
+  try {
+    await assert.rejects(
+      runPairedContractCommand('finalize-native-tests'),
+      /workflow run ID is required/u,
+    )
+  } finally {
+    if (priorRunId !== undefined) process.env.GITHUB_RUN_ID = priorRunId
+  }
 })
