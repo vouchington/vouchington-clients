@@ -39,7 +39,7 @@ final class AndroidPendingTurnStore: AndroidPendingTurnStoring {
             let conversationID = turn.conversationID
             let body = turn.requestBody.base64EncodedString()
             try await Task.detached {
-                try D.voucha.android.PendingTurnStoreBridge.INSTANCE().save(ownerID, conversationID, body)
+                let _: Void = try D.voucha.android.PendingTurnStoreBridge.INSTANCE().save(ownerID, conversationID, body)
             }.value
         #else
             if let old = records[ownerID]?[turn.conversationID], old != turn {
@@ -54,7 +54,11 @@ final class AndroidPendingTurnStore: AndroidPendingTurnStoring {
             let conversationID = turn.conversationID
             let body = turn.requestBody.base64EncodedString()
             try await Task.detached {
-                try D.voucha.android.PendingTurnStoreBridge.INSTANCE().delete(ownerID, conversationID, body)
+                let _: Void = try D.voucha.android.PendingTurnStoreBridge.INSTANCE().delete(
+                    ownerID,
+                    conversationID,
+                    body
+                )
             }.value
         #else
             guard records[ownerID]?[turn.conversationID] == turn else {
@@ -67,7 +71,7 @@ final class AndroidPendingTurnStore: AndroidPendingTurnStoring {
     func discardOwner(ownerID: String) async throws {
         #if os(Android)
             try await Task.detached {
-                try D.voucha.android.PendingTurnStoreBridge.INSTANCE().discardOwner(ownerID)
+                let _: Void = try D.voucha.android.PendingTurnStoreBridge.INSTANCE().discardOwner(ownerID)
             }.value
         #else
             records.removeValue(forKey: ownerID)
