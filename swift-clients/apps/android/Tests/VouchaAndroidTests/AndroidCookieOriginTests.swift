@@ -43,6 +43,7 @@ final class AndroidCookieOriginTests: XCTestCase {
         try await first.clearPersistedCookies()
         try first.setCookie(cookie("late-first"))
         first.persistCookies()
+        await first.flushPendingPersistence()
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets, baseURL: firstURL).cookies?.isEmpty ?? true)
         XCTAssertEqual(

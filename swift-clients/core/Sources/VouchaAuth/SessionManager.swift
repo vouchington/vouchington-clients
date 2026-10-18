@@ -31,6 +31,7 @@ public final class SessionManager {
     private let client: APIClient
     private let cookieStorage: HTTPCookieStorage
     private let beforeClearSessionCookies: (@Sendable () async throws -> Void)?
+    private let beforePublishSignedIn: (@Sendable () async throws -> Void)?
     private let clearPersistedCookies: (@Sendable () -> Void)?
     private let logger = VouchaLogger(category: "SessionManager")
     private var beforeSignOut: (@MainActor (String) async throws -> Void)?
@@ -78,12 +79,14 @@ public final class SessionManager {
     public init(
         client: APIClient, cookieStorage: HTTPCookieStorage,
         clearPersistedCookies: (@Sendable () -> Void)? = nil,
-        beforeClearSessionCookies: (@Sendable () async throws -> Void)? = nil
+        beforeClearSessionCookies: (@Sendable () async throws -> Void)? = nil,
+        beforePublishSignedIn: (@Sendable () async throws -> Void)? = nil
     ) {
         self.client = client
         self.cookieStorage = cookieStorage
         self.clearPersistedCookies = clearPersistedCookies
         self.beforeClearSessionCookies = beforeClearSessionCookies
+        self.beforePublishSignedIn = beforePublishSignedIn
     }
 
     /// Install device-grant cleanup that must finish before the member identity is discarded.
@@ -107,6 +110,17 @@ public final class SessionManager {
             struct IdentityResponse: Decodable { let identity: PrivateUser }
             let response: IdentityResponse = try await client.send(.myIdentity)
             let identity = response.identity
+            do {
+                try await beforePublishSignedIn?()
+            } catch {
+                // The jar may now belong to the fetched account. Keep an existing
+                // identity only when it is the same owner as that jar.
+                if let currentUserId, currentUserId != identity.id {
+                    state = .anonymous
+                    uiLocale = nil
+                }
+                throw error
+            }
             state = .signedIn(
                 userId: identity.id, username: identity.username,
                 membershipPlan: identity.membershipPlan,

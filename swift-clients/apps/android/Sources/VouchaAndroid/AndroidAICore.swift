@@ -28,15 +28,27 @@ struct SkipKeychainEndpointSecretStore: AndroidEndpointSecretStoring {
     }
 
     func string(forKey key: String) throws -> String? {
-        try keychain.string(forKey: key)
+        #if os(Android)
+            try D.voucha.android.CookieSnapshotBridge.INSTANCE().stringValue(key)
+        #else
+            try keychain.string(forKey: key)
+        #endif
     }
 
     func set(_ value: String, forKey key: String) throws {
-        try keychain.set(value, forKey: key)
+        #if os(Android)
+            let _: Void = try D.voucha.android.CookieSnapshotBridge.INSTANCE().setValue(key, value)
+        #else
+            try keychain.set(value, forKey: key)
+        #endif
     }
 
     func removeValue(forKey key: String) throws {
-        try keychain.removeValue(forKey: key)
+        #if os(Android)
+            let _: Void = try D.voucha.android.CookieSnapshotBridge.INSTANCE().removeValue(key)
+        #else
+            try keychain.removeValue(forKey: key)
+        #endif
     }
 }
 

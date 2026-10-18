@@ -79,6 +79,7 @@ final class AndroidAuthFlowTests: XCTestCase {
             .name: "st", .value: "late-response", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ])))
         storage.persistCookies()
+        await storage.flushPendingPersistence()
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
     }

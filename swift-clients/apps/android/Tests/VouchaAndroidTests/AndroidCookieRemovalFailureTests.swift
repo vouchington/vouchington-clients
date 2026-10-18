@@ -104,6 +104,7 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
             .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))))
         storage.cookieStorage.setCookie(cookie)
         storage.persistCookies()
+        await storage.flushPendingPersistence()
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
     }
 
@@ -124,6 +125,7 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
 
         try await storage.clearPersistedCookies()
         try storage.setCookie(sessionCookie(value: "late-session"))
+        await storage.flushPendingPersistence()
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
         XCTAssertNil(try secrets

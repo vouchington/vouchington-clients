@@ -4,16 +4,18 @@ import VouchaCore
     import FoundationNetworking
 #endif
 
-/// Keeps URLSession cookies in its ephemeral jar and persists snapshots only through SkipKeychain.
+/// Keeps URLSession cookies in its ephemeral jar and persists snapshots in the encrypted keychain file.
 final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     let sessionConfiguration: URLSessionConfiguration
     let cookieStorage: HTTPCookieStorage
     private let secrets: any AndroidEndpointSecretStoring
     private let key: String
+    private let captureRecords: (HTTPCookieStorage) -> [CookieRecord]
     private let snapshotRecovery: AndroidCookieSnapshotRecovery
     private let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
     private let notificationQueue = DispatchQueue(label: "ai.voucha.android.session-cookie-notices")
+    private let captureLock = NSLock()
 
     private var persistenceEnabled = true
     private var restorationBlocked = false
@@ -23,7 +25,8 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     init(
         secrets: any AndroidEndpointSecretStoring = AndroidCheckedCookieSecretStore(),
-        baseURL: URL = AppConfig.shared.baseURL
+        baseURL: URL = AppConfig.shared.baseURL,
+        captureRecords: ((HTTPCookieStorage) -> [CookieRecord])? = nil
     ) {
         guard let key = AndroidSessionCookieNamespace.key(for: baseURL) else {
             preconditionFailure("Android authentication requires an HTTP(S) API origin")
@@ -36,6 +39,10 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
         self.cookieStorage = cookieStorage
         self.secrets = secrets
         self.key = key
+        self.captureRecords = captureRecords ?? { storage in
+            (storage.cookies ?? []).compactMap(CookieRecord.init(cookie:))
+                .filter { $0.expires.map { $0 > Date() } ?? true }
+        }
         snapshotRecovery = AndroidCookieSnapshotRecovery(secrets: secrets, key: key, cookieStorage: cookieStorage)
         restoreCookies()
     }
@@ -57,10 +64,12 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
     }
 
     func persistCookies() {
+        // Keep capture and enqueue in the same order across concurrent URLSession callbacks.
+        captureLock.lock()
+        defer { captureLock.unlock() }
         // Capture the URLSession jar on the callback thread. Reading it later on the
         // persistence queue can race CFNetwork's in-place cookie mutations.
-        let records = (cookieStorage.cookies ?? []).compactMap(CookieRecord.init(cookie:))
-            .filter { $0.expires.map { $0 > Date() } ?? true }
+        let records = captureRecords(cookieStorage)
         queue.async { [self] in
             guard persistenceEnabled, !restorationBlocked else { return }
             do {
@@ -75,10 +84,8 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
             }
             persistenceRevision += 1
             let status = statusHoldingQueue()
-            if let observer {
-                // Keep the persistence queue available to the observer's own storage calls.
-                notificationQueue.async { observer(status) }
-            }
+            // Keep the persistence queue available to the observer's own storage calls.
+            if let observer { notificationQueue.async { observer(status) } }
         }
     }
 

@@ -59,7 +59,71 @@ final class SessionManagerRefreshRecoveryTests: XCTestCase {
         XCTAssertEqual(fixture.transport.requestPaths().count, 2)
     }
 
-    private func makeSession(responses: [SessionRefreshReply]) throws -> SessionRefreshSetup {
+    func testSignedInStateWaitsForPersistenceAcknowledgementAndFailureStaysRetryable() async throws {
+        let gate = RefreshPersistenceGate()
+        let fixture = try makeSession(
+            responses: [
+                .http(200, ApiFixtureLoader.data("swift.my.identity.default")),
+                .http(200, ApiFixtureLoader.data("swift.my.identity.default"))
+            ],
+            beforePublishSignedIn: { try await gate.waitForAcknowledgement() }
+        )
+        defer { SessionRefreshURLProtocol.unregister(host: fixture.host) }
+
+        let firstRefresh = Task { await fixture.manager.refresh() }
+        await gate.waitUntilEntered()
+        XCTAssertFalse(fixture.manager.isSignedIn)
+        await gate.reject()
+        let firstRecovered = await firstRefresh.value
+        XCTAssertFalse(firstRecovered)
+        XCTAssertFalse(fixture.manager.isSignedIn)
+        XCTAssertNotNil(fixture.manager.lastRefreshErrorMessage)
+
+        let secondRefresh = Task { await fixture.manager.refresh() }
+        await gate.waitUntilEnteredAgain()
+        XCTAssertFalse(fixture.manager.isSignedIn)
+        await gate.acknowledge()
+        let secondRecovered = await secondRefresh.value
+        XCTAssertTrue(secondRecovered)
+        XCTAssertTrue(fixture.manager.isSignedIn)
+        XCTAssertNil(fixture.manager.lastRefreshErrorMessage)
+    }
+
+    func testPersistenceFailureRetainsSameOwnerButClearsDifferentOwner() async throws {
+        let originalData = ApiFixtureLoader.data("swift.my.identity.default")
+        let originalIdentity = try APIClient.makeDecoder().decode(
+            RefreshIdentityEnvelope.self, from: originalData
+        ).identity
+        var differentEnvelope = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: originalData) as? [String: Any]
+        )
+        var differentIdentity = try XCTUnwrap(differentEnvelope["identity"] as? [String: Any])
+        differentIdentity["id"] = "different-account-id"
+        differentEnvelope["identity"] = differentIdentity
+        let differentData = try JSONSerialization.data(withJSONObject: differentEnvelope)
+
+        for (responseData, shouldRetainOwner) in [(originalData, true), (differentData, false)] {
+            let fixture = try makeSession(
+                responses: [.http(200, responseData)],
+                beforePublishSignedIn: { throw URLError(.cannotWriteToFile) }
+            )
+            fixture.manager.synchronize(with: originalIdentity)
+
+            let refreshed = await fixture.manager.refresh()
+
+            XCTAssertFalse(refreshed)
+            XCTAssertEqual(fixture.manager.currentUserId, shouldRetainOwner ? originalIdentity.id : nil)
+            XCTAssertEqual(fixture.manager.uiLocale, shouldRetainOwner ? originalIdentity.uiLocale : nil)
+            XCTAssertNotNil(fixture.manager.lastRefreshErrorMessage)
+            XCTAssertEqual(fixture.transport.requestPaths(), ["/api/v1/my/identity"])
+            SessionRefreshURLProtocol.unregister(host: fixture.host)
+        }
+    }
+
+    private func makeSession(
+        responses: [SessionRefreshReply],
+        beforePublishSignedIn: (@Sendable () async throws -> Void)? = nil
+    ) throws -> SessionRefreshSetup {
         let host = "refresh-\(UUID().uuidString.lowercased()).example.test"
         let transport = SessionRefreshTransport(responses: responses)
         SessionRefreshURLProtocol.register(transport, host: host)
@@ -77,9 +141,45 @@ final class SessionManagerRefreshRecoveryTests: XCTestCase {
             sessionConfiguration: configuration
         )
         return SessionRefreshSetup(
-            manager: SessionManager(client: client, cookieStorage: jar),
+            manager: SessionManager(
+                client: client, cookieStorage: jar, beforePublishSignedIn: beforePublishSignedIn
+            ),
             jar: jar, transport: transport, host: host
         )
+    }
+}
+
+private actor RefreshPersistenceGate {
+    private var pending: CheckedContinuation<Void, Error>?
+    private var calls = 0
+    private var enteredWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func waitForAcknowledgement() async throws {
+        calls += 1
+        let waiters = enteredWaiters
+        enteredWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+        try await withCheckedThrowingContinuation { pending = $0 }
+    }
+
+    func waitUntilEntered() async {
+        if calls > 0 { return }
+        await withCheckedContinuation { enteredWaiters.append($0) }
+    }
+
+    func waitUntilEnteredAgain() async {
+        if calls > 1 { return }
+        await withCheckedContinuation { enteredWaiters.append($0) }
+    }
+
+    func reject() {
+        pending?.resume(throwing: URLError(.cannotWriteToFile))
+        pending = nil
+    }
+
+    func acknowledge() {
+        pending?.resume()
+        pending = nil
     }
 }
 

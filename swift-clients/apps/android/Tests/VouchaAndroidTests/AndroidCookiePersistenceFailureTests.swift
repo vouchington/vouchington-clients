@@ -102,9 +102,9 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         XCTAssertEqual(notifications.snapshot().last?.revision, disabled.revision)
     }
 
-    private func cookie(_ value: String) throws -> HTTPCookie {
+    private func cookie(_ value: String, name: String = "st") throws -> HTTPCookie {
         try XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: value, .domain: "voucha.ai", .path: "/", .secure: "TRUE"
+            .name: name, .value: value, .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ]))
     }
 }
@@ -126,7 +126,7 @@ private final class CookiePersistenceNotifications: @unchecked Sendable {
     }
 }
 
-private final class FailingCookieWriteSecrets: AndroidEndpointSecretStoring {
+final class FailingCookieWriteSecrets: AndroidEndpointSecretStoring {
     private let lock = NSLock()
     private var values: [String: String] = [:]
     private var fails = false

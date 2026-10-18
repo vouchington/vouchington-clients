@@ -1,7 +1,7 @@
 import Foundation
 @testable import VouchaAndroid
 
-/// Models SharedPreferences.commit(): memory changes first, while a false result leaves disk unchanged.
+/// Models Android 15 SharedPreferences: a failed synchronous commit leaves disk generation behind.
 final class VolatileCookieDeletionSecrets: AndroidEndpointSecretStoring {
     final class Disk {
         let lock = NSLock()
@@ -10,6 +10,8 @@ final class VolatileCookieDeletionSecrets: AndroidEndpointSecretStoring {
 
     private let disk: Disk
     private var volatile: [String: String]
+    private var memoryGeneration = 0
+    private var diskGeneration = 0
     var failDeletionCommit = false
 
     init() {
@@ -32,14 +34,19 @@ final class VolatileCookieDeletionSecrets: AndroidEndpointSecretStoring {
     }
 
     func set(_ value: String, forKey key: String) throws {
+        if volatile[key] != value { memoryGeneration += 1 }
         volatile[key] = value
-        disk.lock.withLock { disk.values[key] = value }
+        disk.lock.withLock { disk.values = volatile }
+        diskGeneration = memoryGeneration
     }
 
     func removeValue(forKey key: String) throws {
-        volatile.removeValue(forKey: key)
+        if volatile.removeValue(forKey: key) != nil { memoryGeneration += 1 }
         if failDeletionCommit { throw URLError(.cannotWriteToFile) }
-        _ = disk.lock.withLock { disk.values.removeValue(forKey: key) }
+        if diskGeneration < memoryGeneration {
+            disk.lock.withLock { disk.values = volatile }
+            diskGeneration = memoryGeneration
+        }
     }
 }
 
