@@ -334,7 +334,10 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             NativeAuthorizationCompletionProof.fromVerifier("verifier").challenge,
             "iMnq5o6zALKXGivsnlom_0F5_WYda32GHkxlV7mq7hQ"
         )
-        XCTAssertEqual(NativeOAuthProvider.allCases.map(\.id), ["facebook", "x", "github", "linkedin", "microsoft"])
+        XCTAssertEqual(
+            NativeOAuthProvider.allCases.map(\.id),
+            ["facebook", "x", "github", "linkedin", "microsoft", "google"]
+        )
 
         let capability = OAuthBrokerCapability(
             version: 2,
