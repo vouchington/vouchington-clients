@@ -19,7 +19,8 @@ public static partial class MauiProgram
         sp.GetRequiredService<IUiLocaleController>(),
         sp.GetRequiredService<INavigationViewerProvider>(),
         sp.GetRequiredService<AppealAIRerunAdmissionStore>(),
-        sp.GetRequiredService<AppConfig>().ApiBaseUrl));
+        sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+        sp.GetRequiredService<IUiThreadDispatcher>()));
     services.AddTransient<ModerationAppealsPage>();
     services.AddSingleton<IMemberAppealsService, ApiMemberAppealsService>();
     services.AddSingleton<MemberAppealDraftStore>();

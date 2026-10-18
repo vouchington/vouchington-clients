@@ -94,13 +94,7 @@ public sealed partial class ModerationAppealsViewModel
   private void OnAdmissionChanged(AppealAIRerunAdmissionStore.OwnerKey owner, string appealId)
   {
     if (Volatile.Read(ref admissionObserverDisposed) != 0 || admissionOwner != owner) return;
-    if (admissionSynchronizationContext is not null &&
-        SynchronizationContext.Current != admissionSynchronizationContext)
-    {
-      admissionSynchronizationContext.Post(_ => PublishAdmissionChanged(owner, appealId), null);
-      return;
-    }
-    PublishAdmissionChanged(owner, appealId);
+    DispatchBoundState(() => PublishAdmissionChanged(owner, appealId));
   }
 
   private void PublishAdmissionChanged(AppealAIRerunAdmissionStore.OwnerKey owner, string appealId)
@@ -112,9 +106,31 @@ public sealed partial class ModerationAppealsViewModel
 
   private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args)
   {
-    if (viewer.HasSameIdentityAccess(args.Viewer)) return;
+    if (Volatile.Read(ref admissionObserverDisposed) != 0 || viewer.HasSameIdentityAccess(args.Viewer)) return;
     _ = Interlocked.Increment(ref accountRevision);
     _ = Interlocked.Increment(ref loadRevision);
+    DispatchBoundState(ResetForViewerChange);
+  }
+
+  private void DispatchBoundState(Action action)
+  {
+    if (uiDispatcher is not null)
+    {
+      uiDispatcher.Dispatch(action);
+    }
+    else if (uiSynchronizationContext is not null && SynchronizationContext.Current != uiSynchronizationContext)
+    {
+      uiSynchronizationContext.Post(_ => action(), null);
+    }
+    else
+    {
+      action();
+    }
+  }
+
+  private void ResetForViewerChange()
+  {
+    if (Volatile.Read(ref admissionObserverDisposed) != 0) return;
     drafts.Clear();
     dirtyDraftIds.Clear();
     ambiguousDeliveryIds.Clear();

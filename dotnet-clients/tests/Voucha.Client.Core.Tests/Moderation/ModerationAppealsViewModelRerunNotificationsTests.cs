@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
+using System.Net;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Navigation;
 using Xunit;
@@ -7,6 +10,23 @@ namespace Voucha.Client.Core.Tests.Moderation;
 
 public sealed partial class ModerationAppealsViewModelTests
 {
+  [Fact]
+  public async Task SuccessfulPostWithUndecodableResponseKeepsAdmissionUntilRead()
+  {
+    var service = new ModerationAppealsTestService();
+    using var viewModel = PollingStaffViewModel(service, attempts: 1);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    service.NextError = new VouchaApiDecodeException(HttpStatusCode.Accepted, "invalid queue response");
+
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+
+    Assert.True(viewModel.IsAIRerunPending(appeal));
+    Assert.False(viewModel.CanRerun(appeal));
+    Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
+  }
+
   [Fact]
   public async Task AlreadyCanceledRerunDoesNotAdmitOrSend()
   {
@@ -76,5 +96,76 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.True(reopened.CanRerun(reopened.Appeals.Single()));
     Assert.Equal(0, otherOwnerNotifications);
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
+  }
+
+  [Fact]
+  public async Task BackgroundViewerChangeFencesWorkBeforeMarshallingBoundState()
+  {
+    var service = new ModerationAppealsTestService();
+    var provider = new MutableNavigationViewerProvider();
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    provider.SetViewer(owner);
+    var dispatcher = new QueuedAppealDispatcher();
+    var viewModel = new ModerationAppealsViewModel(
+        service, owner, viewerProvider: provider, uiDispatcher: dispatcher);
+    using (viewModel)
+    {
+      await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+      Assert.Single(viewModel.Appeals);
+      var notifications = 0;
+      viewModel.PropertyChanged += (_, args) =>
+      {
+        if (args.PropertyName == nameof(ModerationAppealsViewModel.Appeals))
+        {
+          Assert.True(dispatcher.IsDraining);
+          notifications++;
+        }
+      };
+      var originalAppealId = viewModel.Appeals.Single().Id;
+      var heldLoad = new TaskCompletionSource<ModerationAppealListResponse>(
+          TaskCreationOptions.RunContinuationsAsynchronously);
+      service.PendingFetch = heldLoad;
+      var reload = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+      await Task.Run(() => provider.SetViewer(NavigationViewer.Anonymous), TestContext.Current.CancellationToken);
+      heldLoad.SetResult(new ModerationAppealListResponse(
+          [service.Appeal("stale-appeal")], new PageInfo(null, false, null)));
+      await reload;
+      Assert.False(viewModel.CanAccess);
+      Assert.Equal(originalAppealId, viewModel.Appeals.Single().Id);
+      Assert.Equal(0, notifications);
+      dispatcher.Drain();
+      Assert.Empty(viewModel.Appeals);
+      Assert.Equal(1, notifications);
+
+      await Task.Run(
+          () => provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2")),
+          TestContext.Current.CancellationToken);
+      viewModel.Dispose();
+      dispatcher.Drain();
+      Assert.Equal(1, notifications);
+    }
+  }
+
+  private sealed class QueuedAppealDispatcher : IUiThreadDispatcher
+  {
+    private readonly ConcurrentQueue<Action> queued = new();
+
+    public bool IsDispatchRequired => true;
+    public bool IsDraining { get; private set; }
+    public void Dispatch(Action action) => queued.Enqueue(action);
+
+    public void Drain()
+    {
+      IsDraining = true;
+      try
+      {
+        while (queued.TryDequeue(out var action)) action();
+      }
+      finally
+      {
+        IsDraining = false;
+      }
+    }
   }
 }

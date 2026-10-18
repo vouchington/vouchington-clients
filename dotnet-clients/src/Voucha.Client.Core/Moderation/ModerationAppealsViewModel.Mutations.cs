@@ -158,6 +158,7 @@ public sealed partial class ModerationAppealsViewModel
   private static bool IsAmbiguous(Exception exception) =>
       exception is OperationCanceledException ||
       exception is TimeoutException ||
+      exception is VouchaApiDecodeException ||
       exception is HttpRequestException http &&
       (http.StatusCode is null || http.StatusCode == HttpStatusCode.RequestTimeout || http.StatusCode >= HttpStatusCode.InternalServerError);
 }

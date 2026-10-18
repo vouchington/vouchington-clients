@@ -16,7 +16,8 @@ public sealed partial class ModerationAppealsViewModel :
   private readonly INavigationViewerProvider? viewerProvider;
   private readonly AppealAIRerunAdmissionStore admissionStore;
   private readonly AppealAIRerunAdmissionStore.OwnerKey? admissionOwner;
-  private readonly SynchronizationContext? admissionSynchronizationContext = SynchronizationContext.Current;
+  private readonly IUiThreadDispatcher? uiDispatcher;
+  private readonly SynchronizationContext? uiSynchronizationContext = SynchronizationContext.Current;
   private readonly Func<CancellationToken, Task> rerunPollDelay;
   private readonly int rerunPollAttempts;
   private readonly IDisposable? localeSubscription;

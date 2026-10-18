@@ -102,6 +102,22 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 1)
     }
 
+    func testSuccessfulPostWithUndecodableResponseRetainsAdmission() async throws {
+        let path = "/api/v1/appeals/appeal-1/resolution-drafts"
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        let viewModel = try staffViewModel()
+        await viewModel.load()
+        let appeal = try XCTUnwrap(viewModel.appeals.first)
+        CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 202)
+
+        await viewModel.rerunAI(for: appeal)
+        await viewModel.rerunAI(for: appeal)
+
+        XCTAssertNotNil(viewModel.pendingAIReruns[appeal.id])
+        XCTAssertFalse(viewModel.canRerun(appeal))
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 1)
+    }
+
     func testSameOwnerReopenKeepsAdmissionUntilReadConfirmsResult() async throws {
         let path = "/api/v1/appeals/appeal-1"
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)

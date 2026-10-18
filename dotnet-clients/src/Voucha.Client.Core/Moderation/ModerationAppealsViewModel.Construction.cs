@@ -12,7 +12,8 @@ public sealed partial class ModerationAppealsViewModel
       IUiLocaleController? localeController = null,
       INavigationViewerProvider? viewerProvider = null,
       AppealAIRerunAdmissionStore? admissionStore = null,
-      Uri? apiBaseUrl = null)
+      Uri? apiBaseUrl = null,
+      IUiThreadDispatcher? uiDispatcher = null)
       : this(
           service,
           viewer,
@@ -21,7 +22,8 @@ public sealed partial class ModerationAppealsViewModel
           localeController,
           viewerProvider,
           admissionStore,
-          apiBaseUrl)
+          apiBaseUrl,
+          uiDispatcher)
   {
   }
 
@@ -33,13 +35,15 @@ public sealed partial class ModerationAppealsViewModel
       IUiLocaleController? localeController = null,
       INavigationViewerProvider? viewerProvider = null,
       AppealAIRerunAdmissionStore? admissionStore = null,
-      Uri? apiBaseUrl = null)
+      Uri? apiBaseUrl = null,
+      IUiThreadDispatcher? uiDispatcher = null)
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     ArgumentNullException.ThrowIfNull(viewer);
     localization = localeController is null ? UiLocalization.English : new UiLocalization(localeController);
     this.viewer = viewer;
     this.viewerProvider = viewerProvider;
+    this.uiDispatcher = uiDispatcher;
     if (viewerProvider is not null) viewerProvider.ViewerChanged += OnViewerChanged;
     this.admissionStore = admissionStore ?? new AppealAIRerunAdmissionStore();
     admissionOwner = admissionStore is null && apiBaseUrl is null
