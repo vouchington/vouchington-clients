@@ -78,7 +78,7 @@ test('APK phase needs no Android test runner and never packages test libraries',
     await f.gradle()
     const result = f.run(['--phase', 'app'])
     assert.equal(result.status, 0, result.stderr)
-    assert.deepEqual(await f.lines(), ['gradle :app:assembleDebug'])
+    assert.deepEqual(await f.lines(), ['gradle :app:assembleDebug :app:assembleDebugAndroidTest'])
   } finally {
     await f.clean()
   }
@@ -140,22 +140,32 @@ test('stable Android fan-in rejects failed, cancelled or skipped phase and verif
   )
   const matrixJob = workflow
     .split('  build-swift-android:\n')[1]
-    .split('  test-swift-android:\n')[0]
+    .split('  test-swift-android-cookie:\n')[0]
   assert.match(matrixJob, /fail-fast: false/u)
   assert.match(matrixJob, /phase: \[app, test-libs\]/u)
   const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
-  assert.match(gate, /needs: \[verify, build-swift-android\]/u)
+  assert.match(gate, /needs: \[verify, build-swift-android, test-swift-android-cookie\]/u)
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
   assert.ok(run)
   const script = run[1].replace(/^ {10}/gmu, '')
   for (const verify of ['success', 'failure', 'cancelled', 'skipped']) {
     for (const phases of ['success', 'failure', 'cancelled', 'skipped']) {
-      const result = spawnSync('bash', ['-e', '-c', script], {
-        env: { ...process.env, VERIFY_RESULT: verify, ANDROID_PHASES_RESULT: phases },
-      })
-      assert.equal(result.status === 0, verify === 'success' && phases === 'success')
+      for (const cookie of ['success', 'failure', 'cancelled', 'skipped']) {
+        const result = spawnSync('bash', ['-e', '-c', script], {
+          env: {
+            ...process.env,
+            VERIFY_RESULT: verify,
+            ANDROID_PHASES_RESULT: phases,
+            ANDROID_COOKIE_RESULT: cookie,
+          },
+        })
+        assert.equal(
+          result.status === 0,
+          verify === 'success' && phases === 'success' && cookie === 'success',
+        )
+      }
     }
   }
 })
