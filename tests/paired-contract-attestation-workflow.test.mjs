@@ -159,7 +159,18 @@ it('keeps native test execution opt-in, isolated, and informational', async () =
     android,
     /ANDROID_NDK_HOME="\$VOUCHA_SKIP_SWIFT_HOME\/Library\/org\.swift\.swiftpm\/swift-sdks\/swift-6\.4\.0-RELEASE_android\.artifactbundle\/swift-android\/android-ndk-r30"/u,
   )
-  assert.match(android, /\.build\/artifacts\/skip\/skip\/skip\.artifactbundle\/bin:\$PATH/u)
+  const skipPathExport = android.indexOf(
+    'export PATH="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/artifacts/skip/skip/skip.artifactbundle/bin:$PATH"',
+  )
+  const pinnedMiseBuild = android.indexOf(
+    'mise exec -- env VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600',
+  )
+  assert.ok(skipPathExport >= 0)
+  assert.ok(skipPathExport < pinnedMiseBuild)
+  assert.doesNotMatch(
+    android,
+    /\n\s+PATH="\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android\/.build\/artifacts\/skip\/skip\/skip\.artifactbundle\/bin:\$PATH"/u,
+  )
   assert.match(android, /-p "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android\/Android"/u)
   assert.doesNotMatch(android, /gradlew.*:app:assembleDebug(?:\s|$)/u)
   assert.match(emulator, /paired-native-android-emulator\.mjs/u)
