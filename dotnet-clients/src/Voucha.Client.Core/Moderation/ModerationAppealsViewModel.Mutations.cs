@@ -112,6 +112,9 @@ public sealed partial class ModerationAppealsViewModel
   {
     if (IsMutating) return false;
     var ownerRevision = Volatile.Read(ref accountRevision);
+    activeMutationOwnerRevision = ownerRevision;
+    activeMutationAdmissionToken = admissionStore.TryGet(admissionOwner, id, out var pending)
+        ? pending.Token : null;
     MutatingAppealId = id;
     ErrorMessage = null;
     try
@@ -143,53 +146,13 @@ public sealed partial class ModerationAppealsViewModel
     }
     finally
     {
+      activeMutationAdmissionToken = null;
       MutatingAppealId = null;
     }
   }
 
   private async Task AwaitMutationAsync(string id, Func<Task> operation, CancellationToken cancellationToken) =>
       _ = await MutateAsync(id, operation, cancellationToken).ConfigureAwait(true);
-
-  private void SeedDrafts(IEnumerable<ModerationAppeal> loaded)
-  {
-    foreach (var appeal in loaded)
-    {
-      if (!dirtyDraftIds.Contains(appeal.Id)) drafts[appeal.Id] = ServerDraftFor(appeal);
-    }
-  }
-
-  private void Replace(ModerationAppeal appeal, bool preserveUnconfirmedDirtyDraft = false)
-  {
-    var editedDraft = dirtyDraftIds.Contains(appeal.Id) ? DraftFor(appeal) : null;
-    ConfirmServerDraft(appeal);
-    if (preserveUnconfirmedDirtyDraft && editedDraft is not null &&
-        !string.Equals(editedDraft, appeal.PublicResponse, StringComparison.Ordinal))
-    {
-      drafts[appeal.Id] = editedDraft;
-      dirtyDraftIds.Add(appeal.Id);
-    }
-    var updated = Appeals.ToList();
-    var index = updated.FindIndex(item => item.Id == appeal.Id);
-    if (appeal.Status != SelectedStatus)
-    {
-      if (index >= 0) updated.RemoveAt(index);
-    }
-    else if (index >= 0)
-    {
-      updated[index] = appeal;
-    }
-    else
-    {
-      updated.Insert(0, appeal);
-    }
-    Appeals = updated;
-  }
-
-  private void ConfirmServerDraft(ModerationAppeal appeal)
-  {
-    drafts[appeal.Id] = ServerDraftFor(appeal);
-    dirtyDraftIds.Remove(appeal.Id);
-  }
 
   private static bool IsAmbiguous(Exception exception) =>
       exception is OperationCanceledException ||

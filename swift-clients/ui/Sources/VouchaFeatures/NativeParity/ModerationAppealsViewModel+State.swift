@@ -4,6 +4,12 @@ import VouchaModels
 
 extension ModerationAppealsViewModel {
     func replace(with appeal: ModerationAppeal, preservingEditedDraft: Bool = false) {
+        if let mutationAdmissionToken,
+           let admission = admissionStore.admission(appeal.id, for: admissionOwner),
+           admission.token == mutationAdmissionToken,
+           admission.baseline.isReconciled(in: appeal) {
+            admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+        }
         let editedDraft = locallyEditedDraftAppealIds.contains(appeal.id) ? drafts[appeal.id] : nil
         drafts[appeal.id] = draftSeed(for: appeal)
         locallyEditedDraftAppealIds.remove(appeal.id)

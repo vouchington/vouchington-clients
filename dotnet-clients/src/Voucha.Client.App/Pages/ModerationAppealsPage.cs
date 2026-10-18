@@ -5,7 +5,7 @@ using Voucha.Client.Core.Moderation;
 
 namespace Voucha.Client.App.Pages;
 
-public sealed class ModerationAppealsPage : ContentPage
+public sealed class ModerationAppealsPage : ContentPage, IDisposable
 {
   private readonly ModerationAppealsViewModel viewModel;
   private readonly Picker statusPicker = UiCopy.Bind(
@@ -22,6 +22,7 @@ public sealed class ModerationAppealsPage : ContentPage
     VerticalTextAlignment = TextAlignment.Center,
   }, Label.TextProperty, UiMessageKey.NativeSwiftModerationAppealsNoAppealsMatch);
   private CancellationTokenSource? loadCancellation;
+  private bool disposed;
 
   public ModerationAppealsPage(ModerationAppealsViewModel viewModel)
   {
@@ -43,18 +44,30 @@ public sealed class ModerationAppealsPage : ContentPage
     loadingIndicator.SetBinding(ActivityIndicator.IsRunningProperty, nameof(ModerationAppealsViewModel.IsLoading));
     loadingIndicator.SetBinding(IsVisibleProperty, nameof(ModerationAppealsViewModel.IsLoading));
     emptyLabel.SetBinding(IsVisibleProperty, nameof(ModerationAppealsViewModel.IsEmpty));
-    viewModel.PropertyChanged += (_, args) =>
-    {
-      if (args.PropertyName == nameof(ModerationAppealsViewModel.Appeals))
-        ConfigureStatusPicker();
-    };
+    viewModel.PropertyChanged += ViewModelPropertyChanged;
     Content = CreateContent();
   }
 
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    if (disposed) return;
     await ReloadAsync().ConfigureAwait(true);
+  }
+
+  public void Dispose()
+  {
+    if (disposed) return;
+    disposed = true;
+    loadCancellation?.Cancel();
+    loadCancellation?.Dispose();
+    loadCancellation = null;
+    statusPicker.SelectedIndexChanged -= StatusChangedAsync;
+    appealsView.RemainingItemsThresholdReached -= LoadMoreAsync;
+    paginationControl.LoadNextPageRequested -= OnLoadNextPageRequested;
+    viewModel.PropertyChanged -= ViewModelPropertyChanged;
+    viewModel.Dispose();
+    BindingContext = null;
   }
 
   protected override void OnDisappearing()
@@ -126,8 +139,17 @@ public sealed class ModerationAppealsPage : ContentPage
   private async void OnLoadNextPageRequested(object? sender, EventArgs args) =>
       await viewModel.LoadMoreAsync().ConfigureAwait(true);
 
-  public async Task ReloadAsync() =>
-      await viewModel.LoadAsync(StartLoad()).ConfigureAwait(true);
+  public async Task ReloadAsync()
+  {
+    if (disposed) return;
+    await viewModel.LoadAsync(StartLoad()).ConfigureAwait(true);
+  }
+
+  private void ViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+  {
+    if (args.PropertyName == nameof(ModerationAppealsViewModel.Appeals))
+      ConfigureStatusPicker();
+  }
 
   private CancellationToken StartLoad()
   {

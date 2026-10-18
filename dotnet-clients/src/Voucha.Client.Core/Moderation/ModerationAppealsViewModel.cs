@@ -31,6 +31,8 @@ public sealed partial class ModerationAppealsViewModel :
   private string? mutatingAppealId;
   private int loadRevision;
   private int accountRevision;
+  private int activeMutationOwnerRevision;
+  private Guid? activeMutationAdmissionToken;
 
   public bool IsSignedIn { get; }
   public bool IsAdministrator { get; }

@@ -50,6 +50,80 @@ public sealed partial class ModerationAppealsViewModelTests
   }
 
   [Fact]
+  public async Task ApprovalResponseClearsTimedOutRerunWithoutAnotherRead()
+  {
+    var service = new ModerationAppealsTestService();
+    var viewModel = PollingStaffViewModel(service, attempts: 1);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsAIRerunPending(appeal));
+    var detailCount = service.Calls.Count(call => call == $"detail:{appeal.Id}");
+
+    viewModel.SetDraft(appeal, "Approved reply");
+    await viewModel.ApproveAsync(appeal, TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.False(viewModel.CanRerun(viewModel.Appeals.Single()));
+    Assert.Equal(detailCount, service.Calls.Count(call => call == $"detail:{appeal.Id}"));
+    Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
+  }
+
+  [Fact]
+  public async Task LateApprovalCannotClearNewerSameOwnerAdmission()
+  {
+    var service = new ModerationAppealsTestService { Current = new ModerationAppealsTestService().Appeal(response: "Ready") };
+    var store = new AppealAIRerunAdmissionStore();
+    var apiBaseUrl = new Uri("https://example.test/api");
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var viewModel = new ModerationAppealsViewModel(
+        service, owner, 1, _ => Task.CompletedTask,
+        admissionStore: store, apiBaseUrl: apiBaseUrl);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+    var ownerKey = AppealAIRerunAdmissionStore.ForOwner(owner.IdentityId, apiBaseUrl);
+    Assert.True(store.TryGet(ownerKey, appeal.Id, out var original));
+
+    var held = new TaskCompletionSource<ModerationAppealResponse>(
+        TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingApproval = held;
+    var approval = viewModel.ApproveAsync(appeal, TestContext.Current.CancellationToken);
+    store.Remove(ownerKey, appeal.Id, original.Token);
+    Assert.True(store.TryAdmit(ownerKey, appeal, out var newer));
+    held.SetResult(new ModerationAppealResponse(appeal with { ApprovedAt = DateTimeOffset.UtcNow }));
+    await approval;
+
+    Assert.True(store.TryGet(ownerKey, appeal.Id, out var retained));
+    Assert.Equal(newer.Token, retained.Token);
+  }
+
+  [Fact]
+  public async Task AccountRoundTripRejectsHeldApprovalResponse()
+  {
+    var service = new ModerationAppealsTestService { Current = new ModerationAppealsTestService().Appeal(response: "Ready") };
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var provider = new MutableNavigationViewerProvider();
+    provider.SetViewer(owner);
+    using var viewModel = new ModerationAppealsViewModel(
+        service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    var held = new TaskCompletionSource<ModerationAppealResponse>(
+        TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingApproval = held;
+    var approval = viewModel.ApproveAsync(appeal, TestContext.Current.CancellationToken);
+
+    provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
+    provider.SetViewer(owner);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    held.SetResult(new ModerationAppealResponse(appeal with { ApprovedAt = DateTimeOffset.UtcNow }));
+    await approval;
+
+    Assert.Null(viewModel.Appeals.Single().ApprovedAt);
+  }
+
+  [Fact]
   public async Task PendingRerunRetriesOnlyTheTargetedReadAndRetainsDirtyDraft()
   {
     var service = new ModerationAppealsTestService();

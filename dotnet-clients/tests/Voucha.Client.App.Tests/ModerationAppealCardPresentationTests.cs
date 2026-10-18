@@ -1,3 +1,4 @@
+using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
@@ -151,6 +152,29 @@ public sealed class ModerationAppealCardPresentationTests
     Assert.True(refresh.IsEnabled);
     Assert.Contains(card.Children.OfType<Label>(), label =>
         label.IsVisible && label.Text == UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
+  }
+
+  [Fact]
+  public async Task ReplacingAppealsPageDisposesViewerSubscription()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var provider = new MutableNavigationViewerProvider();
+    provider.SetViewer(owner);
+    var viewModel = new ModerationAppealsViewModel(
+        new PendingAIRerunService(Appeal(null)), owner, viewerProvider: provider);
+    var page = new ModerationAppealsPage(viewModel);
+    await page.ReloadAsync();
+    var original = Assert.Single(viewModel.Appeals);
+    var content = new ShellContent { Content = page };
+
+    ModerationDisputesPageLifetime.Replace(content, new ContentPage());
+    provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
+
+    Assert.Null(page.BindingContext);
+    Assert.Same(original, Assert.Single(viewModel.Appeals));
+    page.Dispose();
   }
 
   private sealed class PendingAIRerunService(ModerationAppeal appeal) : IModerationAppealsService

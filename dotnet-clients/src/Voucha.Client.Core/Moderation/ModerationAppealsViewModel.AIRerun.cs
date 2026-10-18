@@ -68,6 +68,14 @@ public sealed partial class ModerationAppealsViewModel
     OnPropertyChanged(nameof(Appeals));
   }
 
+  private void ReconcileCurrentMutation(ModerationAppeal appeal, Guid? token)
+  {
+    if (token is not { } expected ||
+        !admissionStore.TryGet(admissionOwner, appeal.Id, out var current) ||
+        current.Token != expected || !current.IsReconciled(appeal)) return;
+    ClearPendingAIRerun(appeal.Id, expected);
+  }
+
   private bool TrySetPendingAIRerun(
       ModerationAppeal appeal,
       out AppealAIRerunAdmissionStore.Admission admission)

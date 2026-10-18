@@ -34,6 +34,7 @@ final class ModerationAppealsViewModel {
     }
 
     var mutatingAppealId: String?
+    var mutationAdmissionToken: UUID?
     var errorMessage: UiVerbatimText?
     var loadMoreErrorMessage: UiVerbatimText?
     var ambiguousDeliveryAppealIds: Set<String> = []

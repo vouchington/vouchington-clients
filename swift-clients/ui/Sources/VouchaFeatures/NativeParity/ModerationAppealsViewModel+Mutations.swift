@@ -58,6 +58,7 @@ extension ModerationAppealsViewModel {
         guard canRerun(appeal), let client else { return }
         let revision = loadRevision
         _ = await withMutation(appeal.id) {
+            try Task.checkCancellation()
             guard let admission = admissionStore.admit(appeal, for: admissionOwner) else { return }
             let queued: ModerationAppealQueueResponse
             do {
@@ -112,9 +113,13 @@ extension ModerationAppealsViewModel {
         operation: () async throws -> Void
     ) async -> Bool {
         guard mutatingAppealId == nil else { return false }
+        mutationAdmissionToken = admissionStore.admission(appealId, for: admissionOwner)?.token
         mutatingAppealId = appealId
         errorMessage = nil
-        defer { mutatingAppealId = nil }
+        defer {
+            mutationAdmissionToken = nil
+            mutatingAppealId = nil
+        }
         do {
             try await operation()
             return true
