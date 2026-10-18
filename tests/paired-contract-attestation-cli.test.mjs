@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -105,6 +105,86 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     assert.ok(result.contract.files.every(file => file.sha256.length === 64))
 
     await rm(manifestPath)
+    const evidenceOriginal = join(temporaryRoot, 'evidence-original')
+    await rename(evidenceRoot, evidenceOriginal)
+    await symlink(evidenceOriginal, evidenceRoot)
+    const evidenceSymlink = await runCli(
+      cli,
+      'create-manifest',
+      trustedRoot,
+      dispatchEnvironment(server.apiURL, captureOutput, {
+        GITHUB_SHA: trustedSha,
+        GITHUB_WORKFLOW: 'Paired native contract review evidence',
+        GITHUB_RUN_ID: '123456',
+        PAIR_SNAPSHOT_BASE64: encodedSnapshot,
+        PAIRED_EVIDENCE_ROOT: evidenceRoot,
+        CONTRACT_STAGE_ROOT: stageRoot,
+        PRODUCER_CANDIDATE_ROOT: producerRoot,
+        TRUSTED_CLIENTS_ROOT: trustedRoot,
+      }),
+    )
+    assert.notEqual(evidenceSymlink.code, 0)
+    assert.match(evidenceSymlink.stderr, /symbolic link found in candidate evidence/u)
+    await rm(evidenceRoot)
+    await rename(evidenceOriginal, evidenceRoot)
+
+    const producerFixtures = join(producerRoot, 'api-fixtures')
+    const producerFixturesOriginal = join(producerRoot, 'api-fixtures-original')
+    const externalProducerFixtures = join(temporaryRoot, 'external-producer-fixtures')
+    await rename(producerFixtures, producerFixturesOriginal)
+    await mkdir(join(externalProducerFixtures, 'v1'), { recursive: true })
+    await writeFile(join(externalProducerFixtures, 'v1/sample-0.txt'), 'sample-0\n')
+    await symlink(externalProducerFixtures, producerFixtures)
+    const producerSymlink = await runCli(
+      cli,
+      'create-manifest',
+      trustedRoot,
+      dispatchEnvironment(server.apiURL, captureOutput, {
+        GITHUB_SHA: trustedSha,
+        GITHUB_WORKFLOW: 'Paired native contract review evidence',
+        GITHUB_RUN_ID: '123456',
+        PAIR_SNAPSHOT_BASE64: encodedSnapshot,
+        PAIRED_EVIDENCE_ROOT: evidenceRoot,
+        CONTRACT_STAGE_ROOT: stageRoot,
+        PRODUCER_CANDIDATE_ROOT: producerRoot,
+        TRUSTED_CLIENTS_ROOT: trustedRoot,
+      }),
+    )
+    assert.notEqual(producerSymlink.code, 0)
+    assert.match(producerSymlink.stderr, /symbolic link found in fixture contract producer source/u)
+    await rm(producerFixtures)
+    await rename(producerFixturesOriginal, producerFixtures)
+
+    const stageFixtures = join(stageRoot, 'api-fixtures')
+    const stageFixturesOriginal = join(stageRoot, 'api-fixtures-original')
+    const externalStageFixtures = join(temporaryRoot, 'external-stage-fixtures')
+    await rename(stageFixtures, stageFixturesOriginal)
+    await mkdir(join(externalStageFixtures, 'v1'), { recursive: true })
+    await writeFile(join(externalStageFixtures, 'v1/sample-0.txt'), 'sample-0\n')
+    await symlink(externalStageFixtures, stageFixtures)
+    const stageSymlink = await runCli(
+      cli,
+      'create-manifest',
+      trustedRoot,
+      dispatchEnvironment(server.apiURL, captureOutput, {
+        GITHUB_SHA: trustedSha,
+        GITHUB_WORKFLOW: 'Paired native contract review evidence',
+        GITHUB_RUN_ID: '123456',
+        PAIR_SNAPSHOT_BASE64: encodedSnapshot,
+        PAIRED_EVIDENCE_ROOT: evidenceRoot,
+        CONTRACT_STAGE_ROOT: stageRoot,
+        PRODUCER_CANDIDATE_ROOT: producerRoot,
+        TRUSTED_CLIENTS_ROOT: trustedRoot,
+      }),
+    )
+    assert.notEqual(stageSymlink.code, 0)
+    assert.match(
+      stageSymlink.stderr,
+      /symbolic link found in (?:staged contract path api-fixtures\/v1|fixture contract staged tree)/u,
+    )
+    await rm(stageFixtures)
+    await rename(stageFixturesOriginal, stageFixtures)
+
     await writeFile(join(stageRoot, 'api-fixtures/v1/sample-0.txt'), 'tampered\n')
     const tampered = await runCli(
       cli,

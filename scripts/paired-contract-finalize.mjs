@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
 import {
@@ -39,6 +39,22 @@ async function readJson(path, label) {
   }
 }
 
+async function assertNoSymlinkComponents(root, target, label) {
+  const pathFromRoot = relative(root, target)
+  if (pathFromRoot.split(sep).includes('..') || isAbsolute(pathFromRoot))
+    fail(`${label} is outside its trusted root`)
+
+  let current = root
+  const components = pathFromRoot === '' ? [] : pathFromRoot.split(sep)
+  for (let index = -1; index < components.length; index += 1) {
+    if (index >= 0) current = join(current, components[index])
+    const info = await lstat(current)
+    if (info.isSymbolicLink()) fail(`symbolic link found in ${label} at ${current}`)
+    if (index < components.length - 1 && !info.isDirectory())
+      fail(`${label} contains a non-directory path component at ${current}`)
+  }
+}
+
 async function listRegularFiles(root, label) {
   const rootInfo = await lstat(root)
   if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink())
@@ -60,7 +76,11 @@ async function listRegularFiles(root, label) {
   return files
 }
 
-async function assertDirectoryTreesEqual(leftRoot, rightRoot, label) {
+async function assertDirectoryTreesEqual(leftRoot, rightRoot, label, leftBase, rightBase) {
+  await Promise.all([
+    assertNoSymlinkComponents(leftBase, leftRoot, `${label} staged tree`),
+    assertNoSymlinkComponents(rightBase, rightRoot, `${label} producer source`),
+  ])
   const [left, right] = await Promise.all([
     listRegularFiles(leftRoot, `${label} staged tree`),
     listRegularFiles(rightRoot, `${label} producer source`),
@@ -86,10 +106,9 @@ function decodeSnapshot() {
 export async function createManifestCommand() {
   const captured = decodeSnapshot()
   const evidenceRoot = resolve(requiredString(process.env.PAIRED_EVIDENCE_ROOT, 'evidence root'))
-  const candidateEvidence = await readJson(
-    join(evidenceRoot, 'candidate-evidence.json'),
-    'candidate checkout evidence',
-  )
+  const candidateEvidencePath = join(evidenceRoot, 'candidate-evidence.json')
+  await assertNoSymlinkComponents(evidenceRoot, candidateEvidencePath, 'candidate evidence')
+  const candidateEvidence = await readJson(candidateEvidencePath, 'candidate checkout evidence')
   const { dispatch, pair: after } = await captureLivePair()
   assertPairSnapshotUnchanged(captured.pair, after)
   const trustedRoot = resolve(
@@ -133,10 +152,18 @@ export async function createManifestCommand() {
   const producerRoot = resolve(
     requiredString(process.env.PRODUCER_CANDIDATE_ROOT, 'producer candidate root'),
   )
+  for (const contractPath of declaredFilamentsContractPaths)
+    await assertNoSymlinkComponents(
+      contractRoot,
+      join(contractRoot, ...contractPath.split('/')),
+      `staged contract path ${contractPath}`,
+    )
   await assertDirectoryTreesEqual(
     join(contractRoot, ...declaredFilamentsContractPaths[0].split('/')),
     join(producerRoot, ...declaredFilamentsContractPaths[0].split('/')),
     'fixture contract',
+    contractRoot,
+    producerRoot,
   )
   const manifest = await createPairManifest({
     dispatch,

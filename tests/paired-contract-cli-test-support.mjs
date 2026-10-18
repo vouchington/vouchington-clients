@@ -28,6 +28,11 @@ export async function startFakeGitHub() {
   ])
   const server = createServer((request, response) => {
     response.setHeader('content-type', 'application/json')
+    if (request.headers.authorization !== 'Bearer test-token') {
+      response.statusCode = 401
+      response.end(JSON.stringify({ message: 'authentication required' }))
+      return
+    }
     if (request.url === `/repos/${clientsRepository}/collaborators/operator/permission`) {
       response.end(
         JSON.stringify({

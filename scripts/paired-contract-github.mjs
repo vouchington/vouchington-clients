@@ -57,7 +57,7 @@ export async function captureLivePair() {
   const permission = normalizeMaintainerPermission(permissionResponse)
   const dispatch = validateDispatch({ ...staticDispatch, clientsPermission: permission })
   const readPullRequest = async (repository, number) =>
-    githubRequest(`repos/${repository}/pulls/${number}`)
+    githubRequest(`repos/${repository}/pulls/${number}`, { authenticated: true })
   const pair = await capturePairSnapshot({ dispatch, readPullRequest })
   return { dispatch, pair }
 }
