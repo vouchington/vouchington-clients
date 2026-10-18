@@ -51,7 +51,8 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
 
     public init(from decoder: any Decoder) throws {
         let staffFields = try decoder.container(keyedBy: ProtectedDisputeField.self)
-        if staffFields.allKeys.isEmpty {
+        let containsStaffField = staffFields.allKeys.contains(where: \.requiresStaffProjection)
+        if !containsStaffField {
             self = try .member(PublicReviewDispute(from: decoder))
         } else {
             // Keep the targeted staff identity/claim validation and the generic snapshot's
@@ -78,4 +79,15 @@ private enum ProtectedDisputeField: String, CodingKey {
     case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId
     case internalNotes, draftedAt, editedAt, editedById, approvedById, resolvedById
     case latestLifecycleChangeId, staffContext
+
+    /// Explicit references keep protocol-driven keys visible to static analysis.
+    var requiresStaffProjection: Bool {
+        switch self {
+        case .disputantUserId, .claimText, .recommendedAction,
+             .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt, .aiDraftRunId,
+             .internalNotes, .draftedAt, .editedAt, .editedById, .approvedById, .resolvedById,
+             .latestLifecycleChangeId, .staffContext:
+            true
+        }
+    }
 }
