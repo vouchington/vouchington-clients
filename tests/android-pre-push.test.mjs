@@ -16,9 +16,11 @@ const gradleSettingsPath = join(
   'swift-clients/apps/android/Android/settings.gradle.kts',
 )
 
-test('builds only the Android app Gradle task closure', async () => {
+test('builds only the Android app and instrumentation Gradle task closures', async () => {
   const prePush = await readFile(prePushPath, 'utf8')
-  const qualifiedAssemble = prePush.indexOf('./gradlew :app:assembleDebug')
+  const qualifiedAssemble = prePush.indexOf(
+    './gradlew :app:assembleDebug :app:assembleDebugAndroidTest',
+  )
   const unqualifiedAssemble = prePush.indexOf('./gradlew assembleDebug')
   const nativeTestBuild = prePush.indexOf('skip android build \\')
   const runnerLink = prePush.indexOf('link-swift64-android-test-runner.sh')
@@ -26,7 +28,7 @@ test('builds only the Android app Gradle task closure', async () => {
 
   assert.ok(qualifiedAssemble >= 0, 'pre-push must qualify the Android app task')
   assert.equal(unqualifiedAssemble, -1, 'pre-push must not assemble every Gradle subproject')
-  assert.match(prePush, /Android Gradle :app:assembleDebug completed in/)
+  assert.match(prePush, /Android Gradle debug app and instrumentation APKs completed in/)
   assert.match(prePush, /GITHUB_STEP_SUMMARY/)
   assert.match(prePush, /Warning: unable to write GitHub step summary/)
   assert.ok(nativeTestBuild > qualifiedAssemble)

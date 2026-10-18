@@ -79,6 +79,7 @@ final class AndroidAuthFlowTests: XCTestCase {
             .name: "st", .value: "late-response", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ])))
         storage.persistCookies()
+        await storage.flushPendingPersistence()
 
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
     }
@@ -109,6 +110,7 @@ final class AndroidAuthFlowTests: XCTestCase {
         try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
             .name: "st", .value: "still-active", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ])))
+        await storage.flushPendingPersistence()
 
         XCTAssertTrue(account.session.isSignedIn)
         XCTAssertTrue(try secrets.values[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))]?

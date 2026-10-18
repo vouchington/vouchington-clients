@@ -52,6 +52,7 @@ final class AndroidCookieReadFailureTests: XCTestCase {
 
         secrets.setReadFailure(false)
         await account.retryCookiePersistenceOrRestoration()
+        await storage.flushPendingPersistence()
 
         XCTAssertFalse(account.isRestoring)
         XCTAssertFalse(storage.requiresRestorationRetry)
@@ -99,7 +100,7 @@ final class AndroidCookieReadFailureTests: XCTestCase {
         XCTAssertEqual(secrets.writeCount(), 0)
     }
 
-    func testPermanentDisableCannotBeUndoneByRestoreRetry() throws {
+    func testPermanentDisableCannotBeUndoneByRestoreRetry() async throws {
         let secrets = CookieReadFailureSecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
         let rawSnapshot = try CookieReadFailureTestFixture.cookieSnapshot(value: "original-session")
@@ -110,7 +111,8 @@ final class AndroidCookieReadFailureTests: XCTestCase {
         storage.disablePersistenceWrites()
 
         XCTAssertFalse(storage.retryRestoreCookies())
-        XCTAssertFalse(storage.discardUnreadableSnapshot())
+        let discarded = await storage.discardUnreadableSnapshot()
+        XCTAssertFalse(discarded)
         XCTAssertFalse(storage.persistenceStatus.enabled)
         try storage.setCookie(CookieReadFailureTestFixture.sessionCookie(value: "late-response"))
         XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), rawSnapshot)

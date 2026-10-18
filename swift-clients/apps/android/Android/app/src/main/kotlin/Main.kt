@@ -38,11 +38,14 @@ open class AndroidAppMain: Application {
     override fun onCreate() {
         super.onCreate()
         logger.info("starting app")
+        cookieSnapshotContext = applicationContext
         ProcessInfo.launch(applicationContext)
         AppDelegate.shared.onInit()
     }
 
     companion object {
+        lateinit var cookieSnapshotContext: android.content.Context
+            private set
     }
 }
 

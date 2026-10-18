@@ -9,30 +9,31 @@ import XCTest
 
 @MainActor
 final class AndroidCookiePersistenceFailureTests: XCTestCase {
-    func testWriteFailureIsVisibleAndExplicitRetryStoresCurrentCookies() throws {
+    func testWriteFailureIsVisibleAndExplicitRetryStoresCurrentCookies() async throws {
         let secrets = FailingCookieWriteSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         try storage.setCookie(cookie("old-session"))
+        await storage.flushPendingPersistence()
         let previousSnapshot = secrets.snapshot()
         let account = AndroidAccount(cookieStorage: storage, protocolClasses: [AndroidAuthURLProtocol.self])
         secrets.setWriteFailure(true)
         try storage.setCookie(cookie("new-session"))
 
-        account.retryCookiePersistence()
+        await account.retryCookiePersistence()
 
         XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertEqual(secrets.snapshot(), previousSnapshot)
         XCTAssertEqual(AndroidSessionCookieStorage(secrets: secrets).cookies?.map(\.value), ["old-session"])
         secrets.setWriteFailure(false)
 
-        account.retryCookiePersistence()
+        await account.retryCookiePersistence()
 
         XCTAssertNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertEqual(AndroidSessionCookieStorage(secrets: secrets).cookies?.map(\.value), ["new-session"])
-        try storage.clearPersistedCookies()
+        try await storage.clearPersistedCookies()
         let writesAfterRemoval = secrets.writeCount()
         try storage.cookieStorage.setCookie(cookie("late-session"))
-        account.retryCookiePersistence()
+        await account.retryCookiePersistence()
         XCTAssertEqual(secrets.writeCount(), writesAfterRemoval)
         XCTAssertNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
@@ -61,7 +62,7 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
             .snapshot()[XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))])
     }
 
-    func testOutOfOrderFailuresCannotReplaceSuccessfulRetryOrDisabledStatus() throws {
+    func testOutOfOrderFailuresCannotReplaceSuccessfulRetryOrDisabledStatus() async throws {
         let secrets = FailingCookieWriteSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
         let notifications = CookiePersistenceNotifications()
@@ -69,10 +70,12 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         let notice = AndroidCookiePersistenceNotice()
         secrets.setWriteFailure(true)
         try storage.setCookie(cookie("new-session"))
+        await storage.flushPendingPersistence()
         let failure = try XCTUnwrap(notifications.snapshot().last)
         XCTAssertNotNil(failure.errorMessage)
         secrets.setWriteFailure(false)
         storage.persistCookies()
+        await storage.flushPendingPersistence()
         let success = try XCTUnwrap(notifications.snapshot().last)
 
         notice.accept(success)
@@ -81,6 +84,7 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         XCTAssertNil(notice.errorMessage)
         secrets.setWriteFailure(true)
         storage.persistCookies()
+        await storage.flushPendingPersistence()
         let laterFailure = try XCTUnwrap(notifications.snapshot().last)
         notice.accept(laterFailure)
         XCTAssertNotNil(notice.errorMessage)
@@ -90,6 +94,7 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         notice.accept(laterFailure)
         let writesBeforeLateCallback = secrets.writeCount()
         storage.persistCookies()
+        await storage.flushPendingPersistence()
 
         XCTAssertNil(notice.errorMessage)
         XCTAssertFalse(disabled.enabled)
@@ -97,9 +102,9 @@ final class AndroidCookiePersistenceFailureTests: XCTestCase {
         XCTAssertEqual(notifications.snapshot().last?.revision, disabled.revision)
     }
 
-    private func cookie(_ value: String) throws -> HTTPCookie {
+    private func cookie(_ value: String, name: String = "st") throws -> HTTPCookie {
         try XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: value, .domain: "voucha.ai", .path: "/", .secure: "TRUE"
+            .name: name, .value: value, .domain: "voucha.ai", .path: "/", .secure: "TRUE"
         ]))
     }
 }
@@ -121,7 +126,7 @@ private final class CookiePersistenceNotifications: @unchecked Sendable {
     }
 }
 
-private final class FailingCookieWriteSecrets: AndroidEndpointSecretStoring {
+final class FailingCookieWriteSecrets: AndroidEndpointSecretStoring {
     private let lock = NSLock()
     private var values: [String: String] = [:]
     private var fails = false

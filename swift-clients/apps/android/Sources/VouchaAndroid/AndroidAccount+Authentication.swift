@@ -18,6 +18,7 @@ extension AndroidAccount {
                 turnstileToken: token,
                 uiLocale: UiLocaleResolver.resolve(savedUiLocale: locale.identifier, preferredLanguages: []).rawValue
             )
+            try await cookieStorage.flushCheckedPersistence()
             otpRequested = true
         } catch {
             turnstileToken = nil
@@ -44,7 +45,9 @@ extension AndroidAccount {
         authError = nil
         defer { isAuthenticating = false }
         do {
-            if let challenge = try await signIn.verifyEmailOTP(email: email, code: otp) {
+            let challenge = try await signIn.verifyEmailOTP(email: email, code: otp)
+            if let challenge {
+                try await cookieStorage.flushCheckedPersistence()
                 loginAttemptID = challenge.loginAttemptId
             }
         } catch {
