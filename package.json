@@ -38,7 +38,7 @@
     "lint:shell": "git ls-files -z '*.sh' 'dev/*' | xargs -0 mise exec -- shellcheck",
     "lint:swift": "bash swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests",
     "pr:shepherd": "pr-shepherd",
-    "prepare": "husky",
+    "prepare": "node scripts/prepare-hooks.mjs",
     "quality:check": "pnpm run lint",
     "test:plan:dotnet": "no-mistakes tests plan dotnet --format commands --lock-timeout 300",
     "test:plan:swift": "no-mistakes tests plan swift --format commands --lock-timeout 300",
