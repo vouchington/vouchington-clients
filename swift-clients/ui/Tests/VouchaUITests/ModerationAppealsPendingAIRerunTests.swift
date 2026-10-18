@@ -101,6 +101,72 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 1)
     }
 
+    func testSameOwnerReopenKeepsAdmissionUntilReadConfirmsResult() async throws {
+        let path = "/api/v1/appeals/appeal-1"
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
+        let store = AppealAIRerunAdmissionStore()
+        let first = try sessionViewModel(store: store, userId: "staff-1")
+        await first.load()
+        let appeal = try XCTUnwrap(first.appeals.first)
+        await first.rerunAI(for: appeal)
+
+        let reopened = try sessionViewModel(store: store, userId: "staff-1")
+        await reopened.load()
+        let reopenedAppeal = try XCTUnwrap(reopened.appeals.first)
+        XCTAssertFalse(reopened.canRerun(reopenedAppeal))
+        await reopened.rerunAI(for: reopenedAppeal)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
+
+        let otherOwner = try sessionViewModel(store: store, userId: "staff-2")
+        await otherOwner.load()
+        let otherAppeal = try XCTUnwrap(otherOwner.appeals.first)
+        XCTAssertTrue(otherOwner.canRerun(otherAppeal))
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
+            aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2"
+        )), 200)
+        await reopened.refreshPendingAIRerun(for: reopenedAppeal)
+        let completedAppeal = try XCTUnwrap(reopened.appeals.first)
+        XCTAssertTrue(reopened.canRerun(completedAppeal))
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
+    }
+
+    func testAdmissionOwnerNormalizesEquivalentApiAndSeparatesDifferentBasePath() throws {
+        let standardURL = try XCTUnwrap(URL(string: "https://EXAMPLE.test/api/"))
+        let equivalentURL = try XCTUnwrap(URL(string: "https://example.test:443/api"))
+        let differentPathURL = try XCTUnwrap(URL(string: "https://example.test/other"))
+        let standard = AppealAIRerunOwner(
+            userId: "staff-1", baseURL: standardURL
+        )
+        let equivalent = AppealAIRerunOwner(
+            userId: "staff-1", baseURL: equivalentURL
+        )
+        let differentPath = AppealAIRerunOwner(
+            userId: "staff-1", baseURL: differentPathURL
+        )
+        XCTAssertEqual(standard, equivalent)
+        XCTAssertNotEqual(standard, differentPath)
+    }
+
+    func testLateOldClaimRemovalCannotClearNewerAdmission() throws {
+        let appeal = Support.appeal()
+        let baseURL = try XCTUnwrap(URL(string: "https://example.test/api"))
+        let owner = AppealAIRerunOwner(
+            userId: "staff-1", baseURL: baseURL
+        )
+        let store = AppealAIRerunAdmissionStore()
+        let first = try XCTUnwrap(store.admit(appeal, for: owner))
+        store.reconcile([Support.appeal(
+            aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2"
+        )], for: owner)
+        let second = try XCTUnwrap(store.admit(appeal, for: owner))
+
+        store.remove(appeal.id, for: owner, matching: first.token)
+
+        XCTAssertEqual(store.admission(appeal.id, for: owner)?.token, second.token)
+    }
+
     func testListReloadKeepsPendingUntilBothResultMarkersAdvance() async throws {
         let path = "/api/v1/appeals/appeal-1"
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
@@ -165,6 +231,16 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         try ModerationAppealsViewModel(
             client: makeClient(), isSignedIn: true, isAdministrator: true,
             isSiteModerator: false, rerunPollAttempts: 1, rerunPollDelay: {}
+        )
+    }
+
+    private func sessionViewModel(
+        store: AppealAIRerunAdmissionStore, userId: String
+    ) throws -> ModerationAppealsViewModel {
+        try ModerationAppealsViewModel(
+            client: makeClient(), isSignedIn: true, isAdministrator: true,
+            isSiteModerator: false, currentUserId: userId, admissionStore: store,
+            rerunPollAttempts: 1, rerunPollDelay: {}
         )
     }
 }

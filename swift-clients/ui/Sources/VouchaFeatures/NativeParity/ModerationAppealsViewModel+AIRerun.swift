@@ -23,7 +23,7 @@ struct AppealAIRerunBaseline: Equatable {
 
 extension ModerationAppealsViewModel {
     func canRerun(_ appeal: ModerationAppeal) -> Bool {
-        canMutate(appeal) && appeal.approvedAt == nil && appeal.sentAt == nil
+        admissionOwner != nil && canMutate(appeal) && appeal.approvedAt == nil && appeal.sentAt == nil
             && appeals.contains(where: { $0.id == appeal.id })
             && pendingAIReruns[appeal.id] == nil
     }
@@ -57,14 +57,12 @@ extension ModerationAppealsViewModel {
     }
 
     func reconcileAIReruns(from appeals: [ModerationAppeal]) {
-        for appeal in appeals where pendingAIReruns[appeal.id]?.isReconciled(in: appeal) == true {
-            pendingAIReruns.removeValue(forKey: appeal.id)
-        }
+        admissionStore.reconcile(appeals, for: admissionOwner)
     }
 
     func refreshPendingAIRerun(for appeal: ModerationAppeal) async {
         guard canRefreshAIRerun(appeal), let client,
-              let baseline = pendingAIReruns[appeal.id]
+              let admission = admissionStore.admission(appeal.id, for: admissionOwner)
         else { return }
         let revision = loadRevision
         _ = await withMutation(appeal.id) {
@@ -72,12 +70,12 @@ extension ModerationAppealsViewModel {
             guard revision == loadRevision, selectedStatus == .pending,
                   response.appeal.id == appeal.id,
                   appeals.contains(where: { $0.id == appeal.id }),
-                  pendingAIReruns[appeal.id] == baseline
+                  admissionStore.admission(appeal.id, for: admissionOwner) == admission
             else { return }
-            guard baseline.isReconciled(in: response.appeal) else {
+            guard admission.baseline.isReconciled(in: response.appeal) else {
                 throw AppealAIRerunError.stillProcessing
             }
-            pendingAIReruns.removeValue(forKey: appeal.id)
+            admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
             replace(with: response.appeal, preservingEditedDraft: true)
         }
     }

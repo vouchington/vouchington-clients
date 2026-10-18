@@ -7,13 +7,10 @@ namespace Voucha.Client.Core.Moderation;
 
 public sealed partial class ModerationAppealsViewModel
 {
-  private readonly Dictionary<string, AIRerunBaseline> pendingAIReruns =
-      new(StringComparer.Ordinal);
-
   public bool IsAIRerunPending(ModerationAppeal appeal)
   {
     ArgumentNullException.ThrowIfNull(appeal);
-    lock (pendingAIReruns) return pendingAIReruns.ContainsKey(appeal.Id);
+    return CanAccess && admissionStore.Contains(admissionOwner, appeal.Id);
   }
 
   public bool CanRefreshAIRerun(ModerationAppeal appeal)
@@ -28,7 +25,7 @@ public sealed partial class ModerationAppealsViewModel
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(appeal);
-    if (!CanRefreshAIRerun(appeal) || !TryGetPendingAIRerun(appeal.Id, out var baseline))
+    if (!CanRefreshAIRerun(appeal) || !admissionStore.TryGet(admissionOwner, appeal.Id, out var admission))
       return Task.CompletedTask;
     var revision = Volatile.Read(ref loadRevision);
     var ownerRevision = Volatile.Read(ref accountRevision);
@@ -36,60 +33,54 @@ public sealed partial class ModerationAppealsViewModel
     {
       var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken)
           .ConfigureAwait(true)).Appeal;
-      if (!IsCurrentAIRerun(appeal.Id, baseline, revision, ownerRevision, refreshed)) return;
-      if (!baseline.IsReconciled(refreshed))
+      if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
+      if (!admission.IsReconciled(refreshed))
         throw new TimeoutException(localization.Localize(
             UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
-      ClearPendingAIRerun(appeal.Id);
+      ClearPendingAIRerun(appeal.Id, admission.Token);
       Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
     }, cancellationToken);
   }
 
   private bool IsCurrentAIRerun(
       string appealId,
-      AIRerunBaseline baseline,
+      AppealAIRerunAdmissionStore.Admission admission,
       int revision,
       int ownerRevision,
       ModerationAppeal refreshed) =>
       refreshed.Id == appealId &&
-      IsCurrentAIRerunContext(appealId, baseline, revision, ownerRevision);
+      IsCurrentAIRerunContext(appealId, admission, revision, ownerRevision);
 
   private bool IsCurrentAIRerunContext(
       string appealId,
-      AIRerunBaseline baseline,
+      AppealAIRerunAdmissionStore.Admission admission,
       int revision,
       int ownerRevision) =>
       CanAccess && ownerRevision == Volatile.Read(ref accountRevision) &&
       revision == Volatile.Read(ref loadRevision) &&
       SelectedStatus == ModerationAppealStatus.Pending &&
       Appeals.Any(item => item.Id == appealId) &&
-      TryGetPendingAIRerun(appealId, out var current) && current == baseline;
+      admissionStore.TryGet(admissionOwner, appealId, out var current) && current == admission;
 
   private void ReconcileAIReruns(IEnumerable<ModerationAppeal> loaded)
   {
-    foreach (var appeal in loaded)
-    {
-      if (TryGetPendingAIRerun(appeal.Id, out var baseline) && baseline.IsReconciled(appeal))
-        ClearPendingAIRerun(appeal.Id);
-    }
-  }
-
-  private void SetPendingAIRerun(ModerationAppeal appeal)
-  {
-    lock (pendingAIReruns)
-      pendingAIReruns[appeal.Id] = new(appeal.AiDraftedAt, appeal.LatestLifecycleChangeId);
+    admissionStore.Reconcile(admissionOwner, loaded);
     OnPropertyChanged(nameof(Appeals));
   }
 
-  private void ClearPendingAIRerun(string appealId)
+  private bool TrySetPendingAIRerun(
+      ModerationAppeal appeal,
+      out AppealAIRerunAdmissionStore.Admission admission)
   {
-    lock (pendingAIReruns) pendingAIReruns.Remove(appealId);
+    if (!admissionStore.TryAdmit(admissionOwner, appeal, out admission)) return false;
     OnPropertyChanged(nameof(Appeals));
+    return true;
   }
 
-  private bool TryGetPendingAIRerun(string appealId, out AIRerunBaseline baseline)
+  private void ClearPendingAIRerun(string appealId, Guid token)
   {
-    lock (pendingAIReruns) return pendingAIReruns.TryGetValue(appealId, out baseline!);
+    admissionStore.Remove(admissionOwner, appealId, token);
+    OnPropertyChanged(nameof(Appeals));
   }
 
   private void OnViewerChanged(object? sender, NavigationViewerChangedEventArgs args)
@@ -97,7 +88,6 @@ public sealed partial class ModerationAppealsViewModel
     if (viewer.HasSameIdentityAccess(args.Viewer)) return;
     _ = Interlocked.Increment(ref accountRevision);
     _ = Interlocked.Increment(ref loadRevision);
-    lock (pendingAIReruns) pendingAIReruns.Clear();
     drafts.Clear();
     dirtyDraftIds.Clear();
     ambiguousDeliveryIds.Clear();
@@ -107,15 +97,4 @@ public sealed partial class ModerationAppealsViewModel
     OnPropertyChanged(nameof(Appeals));
   }
 
-  private sealed record AIRerunBaseline(
-      DateTimeOffset? AiDraftedAt,
-      string? LifecycleChangeId)
-  {
-    public bool IsReconciled(ModerationAppeal appeal) =>
-        appeal.AiDraftedAt is not null &&
-        appeal.AiDraftedAt != AiDraftedAt &&
-        !string.Equals(appeal.LatestLifecycleChangeId, LifecycleChangeId, StringComparison.Ordinal) ||
-        appeal.ApprovedAt is not null || appeal.SentAt is not null ||
-        appeal.Status != ModerationAppealStatus.Pending;
-  }
 }

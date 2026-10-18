@@ -56,37 +56,36 @@ extension ModerationAppealsViewModel {
 
     func rerunAI(for appeal: ModerationAppeal) async {
         guard canRerun(appeal), let client else { return }
-        let baseline = AppealAIRerunBaseline(appeal: appeal)
         let revision = loadRevision
         _ = await withMutation(appeal.id) {
-            pendingAIReruns[appeal.id] = baseline
+            guard let admission = admissionStore.admit(appeal, for: admissionOwner) else { return }
             let queued: ModerationAppealQueueResponse
             do {
                 queued = try await client.send(.appealResolutionDrafts(id: appeal.id))
             } catch {
                 if !isAmbiguousDelivery(error) {
-                    pendingAIReruns.removeValue(forKey: appeal.id)
+                    admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
                 }
                 throw error
             }
             guard queued.queued else {
-                pendingAIReruns.removeValue(forKey: appeal.id)
+                admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
                 throw AppealAIRerunError.notQueued
             }
             for attempt in 0 ..< rerunPollAttempts {
                 guard !Task.isCancelled, revision == loadRevision,
                       selectedStatus == .pending,
                       appeals.contains(where: { $0.id == appeal.id }),
-                      pendingAIReruns[appeal.id] == baseline
+                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
                 else { return }
                 let refreshed: ModerationAppealEnvelope = try await client.send(.appeal(id: appeal.id))
                 guard !Task.isCancelled, revision == loadRevision, selectedStatus == .pending,
                       refreshed.appeal.id == appeal.id,
                       appeals.contains(where: { $0.id == appeal.id }),
-                      pendingAIReruns[appeal.id] == baseline
+                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
                 else { return }
-                if baseline.isReconciled(in: refreshed.appeal) {
-                    pendingAIReruns.removeValue(forKey: appeal.id)
+                if admission.baseline.isReconciled(in: refreshed.appeal) {
+                    admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
                     replace(with: refreshed.appeal, preservingEditedDraft: true)
                     return
                 }

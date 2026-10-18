@@ -14,6 +14,8 @@ public sealed partial class ModerationAppealsViewModel :
   private readonly IUiLocalization localization;
   private readonly NavigationViewer viewer;
   private readonly INavigationViewerProvider? viewerProvider;
+  private readonly AppealAIRerunAdmissionStore admissionStore;
+  private readonly AppealAIRerunAdmissionStore.OwnerKey? admissionOwner;
   private readonly Func<CancellationToken, Task> rerunPollDelay;
   private readonly int rerunPollAttempts;
   private readonly IDisposable? localeSubscription;
@@ -29,43 +31,6 @@ public sealed partial class ModerationAppealsViewModel :
   private string? mutatingAppealId;
   private int loadRevision;
   private int accountRevision;
-
-  public ModerationAppealsViewModel(
-      IModerationAppealsService service,
-      NavigationViewer viewer,
-      IUiLocaleController? localeController = null,
-      INavigationViewerProvider? viewerProvider = null)
-      : this(
-          service,
-          viewer,
-          20,
-          token => Task.Delay(TimeSpan.FromSeconds(3), token),
-          localeController,
-          viewerProvider)
-  {
-  }
-
-  internal ModerationAppealsViewModel(
-      IModerationAppealsService service,
-      NavigationViewer viewer,
-      int rerunPollAttempts,
-      Func<CancellationToken, Task> rerunPollDelay,
-      IUiLocaleController? localeController = null,
-      INavigationViewerProvider? viewerProvider = null)
-  {
-    this.service = service ?? throw new ArgumentNullException(nameof(service));
-    ArgumentNullException.ThrowIfNull(viewer);
-    localization = localeController is null ? UiLocalization.English : new UiLocalization(localeController);
-    this.viewer = viewer;
-    this.viewerProvider = viewerProvider;
-    if (viewerProvider is not null) viewerProvider.ViewerChanged += OnViewerChanged;
-    IsSignedIn = viewer.IsAuthenticated;
-    IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
-    IsModerator = viewer.Roles.Contains("moderator", StringComparer.Ordinal);
-    this.rerunPollAttempts = rerunPollAttempts;
-    this.rerunPollDelay = rerunPollDelay;
-    localeSubscription = localeController?.SubscribeLocaleChanges(this);
-  }
 
   public bool IsSignedIn { get; }
   public bool IsAdministrator { get; }
@@ -173,7 +138,7 @@ public sealed partial class ModerationAppealsViewModel :
         !IsDeliveryAmbiguous(appeal) &&
         string.Equals(DraftFor(appeal), appeal.PublicResponse ?? string.Empty, StringComparison.Ordinal);
   }
-  public bool CanRerun(ModerationAppeal appeal) { ArgumentNullException.ThrowIfNull(appeal); return CanMutate(appeal) && appeal.ApprovedAt is null && appeal.SentAt is null && Appeals.Any(item => item.Id == appeal.Id) && !IsAIRerunPending(appeal); }
+  public bool CanRerun(ModerationAppeal appeal) { ArgumentNullException.ThrowIfNull(appeal); return admissionOwner is not null && CanMutate(appeal) && appeal.ApprovedAt is null && appeal.SentAt is null && Appeals.Any(item => item.Id == appeal.Id) && !IsAIRerunPending(appeal); }
   public bool CanResolve(ModerationAppeal appeal, ModerationAppealAction action)
   {
     ArgumentNullException.ThrowIfNull(appeal);

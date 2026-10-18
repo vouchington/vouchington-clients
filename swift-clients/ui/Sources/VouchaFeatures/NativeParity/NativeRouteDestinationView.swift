@@ -70,7 +70,8 @@ struct NativeRouteDestinationSurface: View {
                     client: viewModel.client,
                     isSignedIn: isSignedIn,
                     isAdministrator: isAdministrator,
-                    isSiteModerator: isSiteModerator
+                    isSiteModerator: isSiteModerator,
+                    currentUserId: currentUserId
                 )
                 .id("\(currentUserId ?? "")|\(viewModel.client?.baseURL.absoluteString ?? "")")
             } else if isDedicatedStaffDisputesRoute {

@@ -68,7 +68,8 @@ public sealed partial class ModerationAppealsViewModel
     var ownerRevision = Volatile.Read(ref accountRevision);
     return AwaitMutationAsync(appeal.Id, async () =>
     {
-      SetPendingAIRerun(appeal);
+      if (!CanAccess || ownerRevision != Volatile.Read(ref accountRevision)) return;
+      if (!TrySetPendingAIRerun(appeal, out var admission)) return;
       ModerationAppealQueueResponse queued;
       try
       {
@@ -76,24 +77,23 @@ public sealed partial class ModerationAppealsViewModel
       }
       catch (Exception ex) when (!IsAmbiguous(ex))
       {
-        ClearPendingAIRerun(appeal.Id);
+        ClearPendingAIRerun(appeal.Id, admission.Token);
         throw;
       }
       if (!queued.Queued)
       {
-        ClearPendingAIRerun(appeal.Id);
+        ClearPendingAIRerun(appeal.Id, admission.Token);
         throw new InvalidOperationException(localization.Localize(
             UiMessageKey.NativeSwiftReviewDisputesRerunNotQueued));
       }
-      if (!TryGetPendingAIRerun(appeal.Id, out var baseline)) return;
       for (var attempt = 0; attempt < rerunPollAttempts; attempt++)
       {
-        if (!IsCurrentAIRerunContext(appeal.Id, baseline, revision, ownerRevision)) return;
+        if (!IsCurrentAIRerunContext(appeal.Id, admission, revision, ownerRevision)) return;
         var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken).ConfigureAwait(true)).Appeal;
-        if (!IsCurrentAIRerun(appeal.Id, baseline, revision, ownerRevision, refreshed)) return;
-        if (baseline.IsReconciled(refreshed))
+        if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
+        if (admission.IsReconciled(refreshed))
         {
-          ClearPendingAIRerun(appeal.Id);
+          ClearPendingAIRerun(appeal.Id, admission.Token);
           Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
           return;
         }

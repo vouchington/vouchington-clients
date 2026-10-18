@@ -14,13 +14,17 @@ struct ModerationAppealsSurface: View {
         client: APIClient?,
         isSignedIn: Bool,
         isAdministrator: Bool,
-        isSiteModerator: Bool
+        isSiteModerator: Bool,
+        currentUserId: String? = nil,
+        admissionStore: AppealAIRerunAdmissionStore? = nil
     ) {
         _viewModel = State(initialValue: ModerationAppealsViewModel(
             client: client,
             isSignedIn: isSignedIn,
             isAdministrator: isAdministrator,
-            isSiteModerator: isSiteModerator
+            isSiteModerator: isSiteModerator,
+            currentUserId: currentUserId,
+            admissionStore: admissionStore
         ))
     }
 
