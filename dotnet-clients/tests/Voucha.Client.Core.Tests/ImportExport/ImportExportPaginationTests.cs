@@ -126,6 +126,7 @@ public sealed class ImportExportPaginationTests
     await oldImport.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.Equal("replacement", model.BatchId);
     Assert.Equal("new", Assert.Single(model.Results).Id);
+    Assert.Null(service.Cursors[^1]);
     Assert.Null(model.ErrorMessage);
     Assert.False(model.CanResume);
     Assert.False(model.CanRetryStatus);
