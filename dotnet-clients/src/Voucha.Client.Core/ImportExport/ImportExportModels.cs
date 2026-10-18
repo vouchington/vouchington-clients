@@ -124,7 +124,7 @@ public static class ImportResultStateExtensions
 {
   public static bool IsRetrying(this ImportResult result) =>
       (result ?? throw new ArgumentNullException(nameof(result))).Status == ImportResultStatus.Pending &&
-      !string.IsNullOrWhiteSpace(result.Error);
+      (!string.IsNullOrWhiteSpace(result.Error) || result.ErrorCode is not null);
 
   public static bool IsTerminalFailure(this ImportResult result) =>
       (result ?? throw new ArgumentNullException(nameof(result))).Status == ImportResultStatus.Error;

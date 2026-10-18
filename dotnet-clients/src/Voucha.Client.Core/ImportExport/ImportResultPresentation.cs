@@ -15,10 +15,12 @@ public sealed record ImportResultPresentation(
 
   private UiText StatusText() => Result.Status switch
   {
-    ImportResultStatus.Pending when !string.IsNullOrWhiteSpace(Result.Error) =>
+    ImportResultStatus.Pending when Result.IsRetrying() =>
         UiText.Localized(
             UiMessageKey.NativeSwiftImportExportRetrying,
-            ("error", UiText.ExternalContent(Result.Error))),
+            ("error", string.IsNullOrWhiteSpace(Result.Error)
+                ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
+                : UiText.ExternalContent(Result.Error))),
     ImportResultStatus.Pending =>
         UiText.Localized(UiMessageKey.NativeSwiftImportExportPending),
     ImportResultStatus.Followed =>

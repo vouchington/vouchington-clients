@@ -4,10 +4,11 @@ import VouchaModels
 
 extension ImportExportView {
     func statusText(_ result: ImportResult) -> UiVerbatimText {
-        if result.status == .pending, let error = result.error {
+        if result.isRetrying {
             return .message(
                 .nativeSwiftImportExportRetrying,
-                textParameters: ["error": .verbatim(error)]
+                textParameters: ["error": result.error.map(UiVerbatimText.verbatim)
+                    ?? .message(.nativeSwiftImportExportUnknownError)]
             )
         }
         if result.status == .error {

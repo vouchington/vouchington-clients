@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -178,6 +179,31 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
         let view = ImportExportView(route: .topics, viewModel: viewModel)
 
         XCTAssertEqual(try view.inspect().find(text: "Share export").string(), "Share export")
+    }
+
+    func testCanonicalPendingErrorCodeRendersLocalizedRetrying() throws {
+        let status = try APIClient.makeDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        )
+        let route = ImportExportRoute.sources(initialExportFilter: nil)
+        let model = makeViewModel(route: route)
+        model.results = status.rows
+        model.sourceSummary = status.import
+        for locale in [UiLocale.english, .spanish] {
+            let view = ImportExportView(route: route, viewModel: model)
+                .environment(\.locale, Locale(identifier: locale.rawValue))
+            let expected = UiMessages.string(
+                .nativeSwiftImportExportRetrying,
+                parameters: ["error": UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)],
+                locale: locale
+            )
+            XCTAssertNoThrow(try view.inspect().find(text: expected))
+            XCTAssertNoThrow(try view.inspect().find(text: UiMessages.string(
+                .nativeSwiftImportExportPending,
+                locale: locale
+            )))
+            XCTAssertThrowsError(try view.inspect().find(text: "IMPORT_FAILED"))
+        }
     }
 
     func testSourceProgressShowsRetryStopAndStatusRetryControls() throws {
