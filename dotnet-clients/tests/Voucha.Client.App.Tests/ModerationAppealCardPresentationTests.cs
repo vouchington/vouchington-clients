@@ -117,6 +117,15 @@ public sealed class ModerationAppealCardPresentationTests
   public async Task PendingAIRerunRendersReadOnlyRefreshAndDisablesDuplicatePost()
   {
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    _ = new Application { Resources =
+    {
+      [UiMessageKey.NativeSwiftModerationAppealsRerunAi.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftModerationAppealsRerunAi),
+      [UiMessageKey.NativeSwiftReviewDisputesRefreshStatus.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRefreshStatus),
+      [UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing),
+    } };
     var appeal = Appeal(null) with
     {
       AiDraftedAt = Instant,
@@ -134,14 +143,14 @@ public sealed class ModerationAppealCardPresentationTests
 
     var rerun = card.Children.OfType<HorizontalStackLayout>()
         .SelectMany(layout => layout.Children.OfType<Button>())
-        .Single(button => button.Text == "Re-run AI");
+        .Single(button => button.Text == UiCopy.Localize(UiMessageKey.NativeSwiftModerationAppealsRerunAi));
     var refresh = card.Children.OfType<Button>()
-        .Single(button => button.Text == "Refresh status");
+        .Single(button => button.Text == UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesRefreshStatus));
     Assert.False(rerun.IsEnabled);
     Assert.True(refresh.IsVisible);
     Assert.True(refresh.IsEnabled);
     Assert.Contains(card.Children.OfType<Label>(), label =>
-        label.IsVisible && label.Text == "The AI draft is still processing. Refresh to check again.");
+        label.IsVisible && label.Text == UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
   }
 
   private sealed class PendingAIRerunService(ModerationAppeal appeal) : IModerationAppealsService

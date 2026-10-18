@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 @MainActor
@@ -150,16 +151,17 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
     }
 
     func testLateOldClaimRemovalCannotClearNewerAdmission() throws {
-        let appeal = Support.appeal()
+        let appeal = try decodedAppeal()
         let baseURL = try XCTUnwrap(URL(string: "https://example.test/api"))
         let owner = AppealAIRerunOwner(
             userId: "staff-1", baseURL: baseURL
         )
         let store = AppealAIRerunAdmissionStore()
         let first = try XCTUnwrap(store.admit(appeal, for: owner))
-        store.reconcile([Support.appeal(
+        let advanced = try decodedAppeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2"
-        )], for: owner)
+        )
+        store.reconcile([advanced], for: owner)
         let second = try XCTUnwrap(store.admit(appeal, for: owner))
 
         store.remove(appeal.id, for: owner, matching: first.token)
@@ -242,5 +244,17 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
             isSiteModerator: false, currentUserId: userId, admissionStore: store,
             rerunPollAttempts: 1, rerunPollDelay: {}
         )
+    }
+
+    private func decodedAppeal(
+        aiDraftedAt: String? = "2026-07-01T10:00:00Z",
+        lifecycleChangeId: String? = "change-1"
+    ) throws -> ModerationAppeal {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(ModerationAppeal.self, from: Data(Support.appeal(
+            aiDraftedAt: aiDraftedAt, lifecycleChangeId: lifecycleChangeId
+        ).utf8))
     }
 }

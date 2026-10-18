@@ -120,6 +120,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationDisputeCardPresentation.cs" Link="Pages/ModerationDisputeCardPresentation.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardPresentation.cs" Link="Pages/ModerationAppealCardPresentation.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardPresentation.Context.cs" Link="Pages/ModerationAppealCardPresentation.Context.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationAppealCardView.cs" Link="Pages/ModerationAppealCardView.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PaymentCardsPage.xaml" Link="Pages/PaymentCardsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PaymentCardsPage.xaml.cs" Link="Pages/PaymentCardsPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/MauiProgram.PaymentCards.cs" Link="MauiProgram.PaymentCards.cs" />
