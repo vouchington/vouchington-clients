@@ -83,6 +83,8 @@ public sealed class MemberAppealContractTests
         "community_ban_id":null,"post_id":null,"community_id":null,
         "post_removal_kind":null,"appeal_reason":"reason","status":"pending",
         "recommended_action":null,"ai_public_response":null,"ai_internal_response":null,
+        "ai_draft_requested_run_id":"appeal_resolution_00000000-0000-7000-8000-000000000202",
+        "ai_draft_run_id":null,
         "model":null,"ai_drafted_at":null,"public_response":null,"internal_notes":null,
         "drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,
         "approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,
