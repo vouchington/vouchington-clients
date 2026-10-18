@@ -16,6 +16,9 @@ internal static partial class ApiFixtureCoverage
                 "after"));
     registry["native.moderation.disputes.detail.default"] = VouchaApiEndpoints.Dispute(
         Id("native.moderation.disputes.detail.default"));
+    registry["native.moderation.disputes.member.default"] = VouchaApiEndpoints.Disputes("pending");
+    registry["native.moderation.disputes.detail.member.default"] = VouchaApiEndpoints.Dispute(
+        Id("native.moderation.disputes.detail.member.default"));
     registry["native.moderation.disputes.update.default"] = VouchaApiEndpoints.UpdateDispute(
         Id("native.moderation.disputes.update.default"),
         "We reviewed your dispute.",

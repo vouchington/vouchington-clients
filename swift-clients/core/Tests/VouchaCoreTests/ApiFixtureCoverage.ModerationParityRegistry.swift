@@ -7,6 +7,9 @@ let moderationParityFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.moderation.removed-posts.page-2") {
         try assertFixtureCoversDTO($0, as: MemberRemovedPostNoticesResponse.self)
     },
+    RegisteredFixture(id: "native.moderation.disputes.detail.member.default") {
+        try assertFixtureCoversDTO($0, as: ModerationDisputeReadResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.disputes.detail.default") {
         try assertFixtureCoversDTO(
             $0,
