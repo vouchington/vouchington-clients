@@ -13,7 +13,8 @@ struct ContentView: View {
     var viewModel = ViewModel()
     @State
     var account = AndroidAccount()
-    @State var accountReplacement = AndroidAccountReplacementCoordinator()
+    @State
+    var accountReplacement = AndroidAccountReplacementCoordinator()
     @Environment(\.locale)
     var locale
 
@@ -25,11 +26,12 @@ struct ContentView: View {
             accountContent
         }
         .onChange(of: account.session.currentUserId) { _, _ in
-            viewModel.resetForAccountTransition()
+            Task { await bindAccountSession() }
         }
         .task {
             await account.restore()
             await viewModel.refreshStatus()
+            await bindAccountSession()
         }
     }
 
@@ -69,6 +71,12 @@ struct ContentView: View {
         UiMessages.string(key, locale: locale)
     }
 
+    @MainActor
+    private func bindAccountSession() async {
+        let userID = account.session.currentUserId
+        await viewModel.bindAccount(client: userID == nil ? nil : account.apiClient, userID: userID)
+    }
+
 }
 
 struct AndroidChatView: View {
@@ -79,17 +87,77 @@ struct AndroidChatView: View {
 
     var body: some View {
         VStack {
+            HStack {
+                Menu {
+                    ForEach(viewModel.conversations) { conversation in
+                        Button {
+                            Task { await viewModel.selectConversation(conversation.id) }
+                        } label: {
+                            Text(verbatim: androidConversationMenuTitle(conversation.title, locale: locale))
+                        }
+                    }
+                    if viewModel.hasMoreConversations {
+                        Button {
+                            Task { await viewModel.loadMoreConversations() }
+                        } label: {
+                            Label(message(.nativeSwiftCommonLoadMore), systemImage: "ellipsis")
+                        }
+                    }
+                } label: {
+                    Text(message(.nativeSwiftChatChats))
+                }
+                .disabled(viewModel.isLoadingConversations)
+
+                Button(message(.nativeSwiftChatNewConversation)) {
+                    Task { await viewModel.createConversation() }
+                }
+                .disabled(viewModel.isCreatingConversation || viewModel.isGenerating || viewModel
+                    .isLoadingConversations)
+            }
+            .padding(.horizontal)
+            if viewModel.hasOlderMessages {
+                Button(message(.nativeSwiftDirectMessagesLoadOlderMessages)) {
+                    Task { await viewModel.loadOlderMessages() }
+                }
+                .disabled(viewModel.isLoadingOlderMessages || viewModel.isGenerating)
+            }
             List(viewModel.messages) { chatMessage in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(chatMessage.role == "user" ? message(.nativeSwiftChatYou) : message(.nativeSwiftChatAssistant))
                         .font(.caption)
-                    Text(chatMessage.content)
+                    if !chatMessage.content.isEmpty {
+                        Text(chatMessage.content)
+                    }
+                    if let error = chatMessage.error {
+                        Text(verbatim: UiMessages.string(error, locale: locale))
+                            .foregroundStyle(.red)
+                    }
                 }
             }
-            if viewModel.errorMessage != nil {
-                Text(message(.nativeSwiftAndroidGenerationFailed))
+            if let errorKey = viewModel.chatErrorMessageKey {
+                Text(message(errorKey))
                     .foregroundStyle(.red)
                     .padding(.horizontal)
+            }
+            if viewModel.transcriptLoadFailed,
+               viewModel.apiClient != nil,
+               viewModel.pendingTurnForSelectedConversation == nil {
+                Button(message(.nativeCommonRetry)) {
+                    Task { await viewModel.retryConversationLoad() }
+                }
+                .disabled(viewModel.isLoadingConversations || viewModel.isLoadingMessages)
+            }
+            if viewModel.pendingTurnForSelectedConversation != nil {
+                Button(message(.nativeCommonRetry)) {
+                    Task { await viewModel.retryPendingTurn() }
+                }
+                .disabled(viewModel.isGenerating || viewModel.isLoadingMessages)
+            }
+            if viewModel.failedGenerationForSelectedConversation != nil {
+                Button(message(.nativeCommonRetry)) {
+                    Task { await viewModel.retryFailedGeneration() }
+                }
+                .disabled(viewModel.isGenerating || viewModel.isLoadingMessages || viewModel.isLoadingConversations)
             }
             HStack {
                 TextField(message(.nativeSwiftAndroidMessage), text: $viewModel.draft)
@@ -97,84 +165,9 @@ struct AndroidChatView: View {
                 Button(message(.nativeSwiftAndroidSend)) {
                     Task { await viewModel.sendOnDevice() }
                 }
-                .disabled(!viewModel.isSelectedProviderAvailable || viewModel.isGenerating)
+                .disabled(!viewModel.canSendTranscriptMessage)
             }
             .padding()
-        }
-    }
-
-    private func message(_ key: UiMessageKey) -> String {
-        UiMessages.string(key, locale: locale)
-    }
-}
-
-struct AndroidSettingsView: View {
-    @Bindable
-    var viewModel: ViewModel
-    var signOutErrorMessage: String?
-    var signOut: () async -> Void
-    @State
-    var endpointStatus: String?
-    @Environment(\.locale)
-    var locale
-
-    var body: some View {
-        Form {
-            Section(message(.nativeSwiftAndroidProviderAicore)) {
-                Text(modelStatusText)
-                if viewModel.modelState == .downloadable {
-                    Button(message(.nativeSwiftAndroidDownloadModel)) {
-                        Task { await viewModel.downloadModel() }
-                    }
-                }
-                Button(message(.nativeSwiftAndroidCheckModelStatus)) {
-                    Task { await viewModel.refreshStatus() }
-                }
-            }
-            Section(message(.nativeSwiftAndroidOpenAiCompatibleEndpoint)) {
-                Picker(message(.nativeSwiftAndroidChatProvider), selection: Binding(
-                    get: { viewModel.selectedProvider },
-                    set: { provider in Task { await viewModel.selectProvider(provider) } }
-                )) {
-                    Text(message(.nativeSwiftAndroidProviderAicore)).tag(AndroidChatProvider.aiCore)
-                    Text(message(.nativeSwiftAndroidConfiguredEndpoint)).tag(AndroidChatProvider.endpoint)
-                }
-                TextField(message(.nativeSwiftAndroidEndpointUrl), text: $viewModel.endpoint)
-                TextField(message(.nativeSwiftAndroidModelName), text: $viewModel.endpointModel)
-                SecureField(message(.nativeSwiftAndroidApiKey), text: $viewModel.endpointAPIKey)
-                Button(message(.nativeSwiftAndroidSaveEndpoint)) {
-                    Task {
-                        do {
-                            try await viewModel.saveEndpointSettings()
-                            endpointStatus = message(.nativeSwiftAndroidEndpointSaved)
-                        } catch {
-                            endpointStatus = message(.nativeSwiftAndroidEndpointSaveFailed)
-                        }
-                    }
-                }
-                if let endpointStatus {
-                    Text(endpointStatus)
-                }
-            }
-            Section(UiMessages.string(.nativeAuthSignIn, locale: locale)) {
-                Button(message(.nativeSwiftProfileSignOut), role: .destructive) {
-                    Task { await signOut() }
-                }
-                if let signOutErrorMessage {
-                    Text(verbatim: UiMessages.string(UiVerbatimText.verbatim(signOutErrorMessage), locale: locale))
-                        .foregroundStyle(.red)
-                }
-            }
-        }
-    }
-
-    var modelStatusText: String {
-        switch viewModel.modelState {
-        case .checking: message(.nativeSwiftAndroidStatusChecking)
-        case .unavailable: message(.nativeSwiftAndroidModelUnavailable)
-        case .downloadable: message(.nativeSwiftAndroidModelDownloadable)
-        case .downloading: message(.nativeSwiftAndroidDownloadingModel)
-        case .available: message(.nativeSwiftAndroidModelAvailable)
         }
     }
 

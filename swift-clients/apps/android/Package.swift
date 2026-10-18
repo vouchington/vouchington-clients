@@ -24,6 +24,7 @@ let package = Package(
             .product(name: "VouchaCore", package: "core"),
             .product(name: "VouchaAPI", package: "core"),
             .product(name: "VouchaAuth", package: "core"),
+            .product(name: "VouchaModels", package: "core"),
             .product(name: "VouchaLocalization", package: "ui"),
             .product(name: "SkipFuseUI", package: "skip-fuse-ui"),
             .product(name: "SkipKeychain", package: "skip-keychain")
@@ -31,6 +32,8 @@ let package = Package(
         .testTarget(name: "VouchaAndroidTests", dependencies: [
             "VouchaAndroid",
             .product(name: "VouchaCore", package: "core"),
+            .product(name: "VouchaAPI", package: "core"),
+            .product(name: "VouchaModels", package: "core"),
             .product(name: "VouchaLocalization", package: "ui"),
             .product(name: "VouchaTestSupport", package: "test-support")
         ])

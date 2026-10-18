@@ -14,26 +14,24 @@ final class AndroidGenerationCancellationTests: XCTestCase {
             let runtime = CancellableGenerationRuntime(
                 started: started, cancelled: cancelled, prematureStart: prematureStart
             )
-            let model = ViewModel(
-                runtime: runtime,
-                secretStore: MemorySecrets(),
-                settingsStore: LocalLLMSettingsStore(
-                    fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
-                    secretStore: InMemoryLocalLLMSecretStore()
-                ),
-                endpointClient: runtime
-            )
-            if provider == .endpoint {
-                model.endpoint = "https://models.example.test"
-                model.endpointModel = "local-model"
-                try await model.saveEndpointSettings()
-                await model.selectProvider(.endpoint)
+            let model = try await makeModel(provider: provider, runtime: runtime)
+            let initial = try AndroidTranscriptTestFactory.makeClient()
+            let replacement = try AndroidTranscriptTestFactory.makeClient()
+            defer {
+                AndroidTranscriptURLProtocol.uninstall(host: initial.host)
+                AndroidTranscriptURLProtocol.uninstall(host: replacement.host)
             }
+            AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: initial.recorder)
+            AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: replacement.recorder)
+            AndroidTranscriptTestFactory.enqueueGeneratedTurn(
+                on: replacement.recorder, userText: "New account prompt", assistantText: "New account answer"
+            )
+            await model.bindAccount(client: initial.client, userID: "old-user")
             model.modelState = .available
             model.draft = "Old account prompt"
             let oldGeneration = Task { await model.sendOnDevice() }
             await fulfillment(of: [started], timeout: 2)
-            model.resetForAccountTransition()
+            await model.bindAccount(client: replacement.client, userID: "new-user")
             model.draft = "New account prompt"
             let newGeneration = Task { await model.sendOnDevice() }
             await fulfillment(of: [cancelled], timeout: 2)
@@ -47,7 +45,31 @@ final class AndroidGenerationCancellationTests: XCTestCase {
             XCTAssertEqual(model.messages.map(\.content), ["New account prompt", "New account answer"])
             XCTAssertFalse(model.isGenerating)
             XCTAssertNil(model.errorMessage)
+            let path = "/api/v1/conversations/\(AndroidTranscriptTestFactory.newConversationID)/client-generated-chat"
+            XCTAssertTrue(initial.recorder.requestSnapshot(path: path).isEmpty)
+            XCTAssertEqual(replacement.recorder.requestSnapshot(path: path).count, 1)
         }
+    }
+
+    private func makeModel(
+        provider: AndroidChatProvider, runtime: CancellableGenerationRuntime
+    ) async throws -> ViewModel {
+        let model = ViewModel(
+            runtime: runtime,
+            secretStore: MemorySecrets(),
+            settingsStore: LocalLLMSettingsStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
+                secretStore: InMemoryLocalLLMSecretStore()
+            ),
+            endpointClient: runtime
+        )
+        if provider == .endpoint {
+            model.endpoint = "https://models.example.test"
+            model.endpointModel = "local-model"
+            try await model.saveEndpointSettings()
+            await model.selectProvider(.endpoint)
+        }
+        return model
     }
 }
 

@@ -106,12 +106,6 @@ enum AndroidAICoreError: LocalizedError {
     }
 }
 
-struct AndroidChatMessage: Identifiable, Equatable {
-    let id = UUID()
-    let role: String
-    let content: String
-}
-
 protocol AndroidEndpointGenerating: Sendable {
     func generateAssistantResponse(
         message: String,

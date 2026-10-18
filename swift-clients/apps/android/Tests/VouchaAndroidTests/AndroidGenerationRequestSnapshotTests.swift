@@ -13,10 +13,25 @@ final class AndroidGenerationRequestSnapshotTests: XCTestCase {
             let runtime = CancellableGenerationRuntime(started: started, cancelled: cancelled, prematureStart: nil)
             defer { runtime.releaseOldGeneration() }
             let model = try await makeModel(provider: provider, runtime: runtime)
+            let initial = try AndroidTranscriptTestFactory.makeClient()
+            let replacement = try AndroidTranscriptTestFactory.makeClient()
+            defer {
+                AndroidTranscriptURLProtocol.uninstall(host: initial.host)
+                AndroidTranscriptURLProtocol.uninstall(host: replacement.host)
+            }
+            AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: initial.recorder)
+            AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: replacement.recorder)
+            AndroidTranscriptTestFactory.enqueueGeneratedTurn(
+                on: replacement.recorder, userText: "Admitted prompt", assistantText: "New account answer"
+            )
+            await model.bindAccount(client: initial.client, userID: "old-user")
+            model.modelState = .available
             model.draft = "Old account prompt"
             let old = Task { await model.sendOnDevice() }
             await fulfillment(of: [started], timeout: 2)
-            model.resetForAccountTransition()
+            await model.bindAccount(client: replacement.client, userID: "new-user")
+            let created = await model.createConversation()
+            XCTAssertTrue(created)
             await fulfillment(of: [cancelled], timeout: 2)
             model.messages = [.init(role: "assistant", content: "Original conversation")]
             model.draft = "Admitted prompt"
@@ -34,7 +49,19 @@ final class AndroidGenerationRequestSnapshotTests: XCTestCase {
             await old.value
             await new.value
             try assertOriginalInput(runtime.requestInput, provider: provider)
+            try assertPersistedInput(initial: initial.recorder, replacement: replacement.recorder, provider: provider)
         }
+    }
+
+    private func assertPersistedInput(
+        initial: AndroidTranscriptRecorder, replacement: AndroidTranscriptRecorder, provider: AndroidChatProvider
+    ) throws {
+        let path = "/api/v1/conversations/\(AndroidTranscriptTestFactory.newConversationID)/client-generated-chat"
+        XCTAssertTrue(initial.requestSnapshot(path: path).isEmpty)
+        let request = try XCTUnwrap(replacement.requestSnapshot(path: path).first)
+        let body = try XCTUnwrap(request.httpBody).jsonObject()
+        XCTAssertEqual(body["model_provider"] as? String, provider == .aiCore ? "android_aicore" : "openai_compatible")
+        if provider == .endpoint { XCTAssertEqual(body["model_name"] as? String, "original-model") }
     }
 
     private func makeModel(

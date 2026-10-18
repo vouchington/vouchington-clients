@@ -1,11 +1,36 @@
 import Foundation
 import Observation
 import SkipFuse
+import VouchaAPI
 import VouchaCore
+import VouchaModels
 
 enum AndroidChatProvider: String {
     case aiCore
     case endpoint
+}
+
+enum AndroidTranscriptLoadFailure: Equatable {
+    case conversations(reset: Bool, after: String?)
+    case messages(conversationID: String, reset: Bool, after: String?)
+}
+
+struct AndroidFailedGeneration: Equatable {
+    let text: String
+    let message: String
+}
+
+struct AndroidTranscriptLoadFailureRecord: Equatable {
+    let operation: AndroidTranscriptLoadFailure
+    let message: String
+}
+
+struct AndroidFailedTurnAttempt {
+    let submitted: String
+    let conversationID: String
+    let conversationRevision: UUID
+    let previousMessages: [AndroidChatMessage]
+    let preservingDraft: Bool
 }
 
 @Observable @MainActor
@@ -13,10 +38,33 @@ final class ViewModel {
     var modelState: AndroidModelState = .checking
     var messages: [AndroidChatMessage] = []
     var draft = ""
-    var errorMessage: String?
+    var errorMessage: String? {
+        didSet { chatErrorKind = .other }
+    }
+
+    var modelErrorMessage: String?
+    var chatErrorKind = AndroidChatErrorKind.other
+    var conversationCreationFailed = false
+    var conversationCreationErrorMessage: String?
+    var failedConversationListLoad: AndroidTranscriptLoadFailureRecord?
+    var failedConversationHistoryLoad: AndroidTranscriptLoadFailureRecord?
+    var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
+    var loadedConversationHistoryID: String?
+    var failedGenerations: [String: AndroidFailedGeneration] = [:]
+    var draftBackedGenerationFailures: [String: AndroidFailedGeneration] = [:]
+    var generationErrors: [String: String] = [:]
+    var pendingTurnErrors: [String: String] = [:]
+    var pendingTurnHistoryAcknowledgements: [String: Set<String>] = [:]
     var isGenerating = false
     var selectedProvider: AndroidChatProvider = .aiCore
-
+    var conversations: [ChatConversation] = []
+    var selectedConversationID: String?
+    var isLoadingConversations = false
+    var isLoadingMessages = false
+    var isLoadingOlderMessages = false
+    var isCreatingConversation = false
+    var hasMoreConversations = false
+    var hasOlderMessages = false
     var endpoint = ""
     var endpointModel = ""
     var endpointAPIKey = "" {
@@ -29,11 +77,18 @@ final class ViewModel {
     let secretStore: any AndroidEndpointSecretStoring
     let settingsStore: LocalLLMSettingsStore
     let endpointClient: any AndroidEndpointGenerating
+    var apiClient: APIClient?
+    var currentAccountUserID: String?
     var endpointProfileID: UUID
     var endpointAPIKeyWasExplicitlyEdited = false
-    private var accountGeneration = UUID()
     var activeGenerationTask: Task<String, Error>?
     var activeGenerationID = UUID()
+    var accountGeneration = UUID()
+    var conversationGeneration = UUID()
+    var conversationListCursor: String?
+    var messagePageCursor: String?
+    var pendingTurns: [String: AndroidPendingChatTurn] = [:]
+    var activeSendOperationID: UUID?
 
     init(
         runtime: any AndroidAICoreRunning = AndroidAICoreRuntime(),
@@ -61,52 +116,30 @@ final class ViewModel {
     }
 
     func refreshStatus() async {
-        errorMessage = nil
+        modelErrorMessage = nil
+        restoreSelectedConversationError()
         modelState = .checking
+        defer { restoreSelectedConversationError() }
         do {
             modelState = try await runtime.status()
         } catch {
             modelState = .unavailable
-            errorMessage = error.localizedDescription
+            modelErrorMessage = error.localizedDescription
         }
     }
 
     func downloadModel() async {
-        errorMessage = nil
+        modelErrorMessage = nil
+        restoreSelectedConversationError()
         modelState = .downloading
+        defer { restoreSelectedConversationError() }
         do {
             modelState = try await runtime.download()
         } catch is CancellationError {
             modelState = .downloadable
         } catch {
             modelState = .downloadable
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func sendOnDevice() async {
-        let submitted = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !submitted.isEmpty, isSelectedProviderAvailable, !isGenerating else { return }
-        draft = ""
-        errorMessage = nil
-        isGenerating = true
-        let submittedAccountGeneration = accountGeneration
-        defer {
-            if accountGeneration == submittedAccountGeneration { isGenerating = false }
-        }
-        let priorMessages = messages
-        messages.append(.init(role: "user", content: submitted))
-
-        do {
-            let response = try await generateResponse(for: submitted)
-            guard accountGeneration == submittedAccountGeneration else { return }
-            guard !response.isEmpty else { throw AndroidAICoreError.emptyResponse }
-            messages.append(.init(role: "assistant", content: response))
-        } catch {
-            guard accountGeneration == submittedAccountGeneration else { return }
-            messages = priorMessages
-            draft = submitted
-            errorMessage = error.localizedDescription
+            modelErrorMessage = error.localizedDescription
         }
     }
 
@@ -114,9 +147,35 @@ final class ViewModel {
         activeGenerationTask?.cancel()
         activeGenerationID = UUID()
         accountGeneration = UUID()
+        conversationGeneration = UUID()
+        apiClient = nil
+        currentAccountUserID = nil
+        conversations = []
+        selectedConversationID = nil
+        isLoadingConversations = false
+        isLoadingMessages = false
+        isLoadingOlderMessages = false
+        isCreatingConversation = false
+        conversationListCursor = nil
+        messagePageCursor = nil
+        hasMoreConversations = false
+        hasOlderMessages = false
+        pendingTurns = [:]
+        pendingTurnErrors = [:]
+        pendingTurnHistoryAcknowledgements = [:]
+        activeSendOperationID = nil
         messages = []
         draft = ""
         errorMessage = nil
+        conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
+        failedConversationListLoad = nil
+        failedConversationHistoryLoad = nil
+        latestTranscriptLoadFailure = nil
+        loadedConversationHistoryID = nil
+        failedGenerations = [:]
+        draftBackedGenerationFailures = [:]
+        generationErrors = [:]
         isGenerating = false
     }
 

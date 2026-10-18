@@ -83,6 +83,27 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         XCTAssertEqual(recorder.snapshots.last?["st"], "session-token")
     }
 
+    func testProvidedEphemeralJarSendsSessionCookieOverHTTP() async throws {
+        let server = try CookieResponseHTTPServer()
+        defer { server.close() }
+        let configuration = URLSessionConfiguration.ephemeral
+        let jar = try XCTUnwrap(configuration.httpCookieStorage)
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "127.0.0.1", .path: "/", .name: "st", .value: "fixture-session"
+        ]))
+        jar.setCookie(cookie)
+        let client = try APIClient(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://127.0.0.1:\(server.port)"))),
+            cookieStorage: jar, bootstrapSession: false, sessionConfiguration: configuration
+        )
+        async let response: Void = server.respondOnce()
+
+        let _: Empty = try await client.send(Endpoint(.POST, path: "/authenticated"))
+        await response
+
+        XCTAssertEqual(server.receivedCookie, "st=fixture-session")
+    }
+
     func testOrdinaryResponseCookieIsPersistedAfterTheJarUpdates() async throws {
         let server = try CookieResponseHTTPServer()
         defer { server.close() }
