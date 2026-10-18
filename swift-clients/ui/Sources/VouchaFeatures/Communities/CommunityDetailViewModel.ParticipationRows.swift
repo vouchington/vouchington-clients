@@ -54,7 +54,7 @@ extension CommunityDetailViewModel {
                     icon: "envelope",
                     title: invite.invitedEmail.map(UiVerbatimText.verbatim)
                         ?? invite.invitedUserId.map(UiVerbatimText.verbatim)
-                        ?? .message(.nativeSwiftCommunitiesInvite),
+                        ?? .message(.nativeSwiftCommunitiesUnknownRecipient),
                     detail: .message(
                         invite.acceptedAt == nil
                             ? .nativeSwiftCommunityRowsOpen
