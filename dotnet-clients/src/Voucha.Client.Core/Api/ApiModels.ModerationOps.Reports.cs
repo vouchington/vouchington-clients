@@ -10,6 +10,7 @@ public enum ModerationReportSort { Severity, MostReported, CreatedAtAsc, Created
 public enum ModerationReportResolution { Reviewed, Dismissed }
 
 public sealed record ModerationReportJudgement(
+    [property: JsonPropertyName("id"), JsonRequired] string Id,
     [property: JsonPropertyName("recommended_action")] string RecommendedAction,
     [property: JsonPropertyName("public_response")] string PublicResponse,
     [property: JsonPropertyName("internal_response")] string InternalResponse,

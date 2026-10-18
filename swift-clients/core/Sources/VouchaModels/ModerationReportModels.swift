@@ -3,8 +3,10 @@ import Foundation
 public struct AuthoredContentText: Codable, Sendable {
     public let kind: String
     public let text: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
 }
 
 public enum ModerationReportStatus: String, Codable, CaseIterable, Sendable {
@@ -23,6 +25,7 @@ public enum ModerationReportResolution: String, Codable, Sendable {
 }
 
 public struct ModerationReportJudgement: Codable, Sendable {
+    public let id: String
     public let recommendedAction: String
     public let publicResponse: String
     public let internalResponse: String
@@ -43,7 +46,8 @@ public struct StaffModerationReport: Codable, Identifiable, Sendable {
     public let targetPath: String?
     public let targetUserId: String?
     public let targetAvailable: Bool?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let targetIsRestricted: Bool
     public let reason: String
     public let status: ModerationReportStatus
@@ -72,7 +76,8 @@ public struct MemberModerationReport: Codable, Identifiable, Sendable {
     public let targetLabel: String?
     public let targetPath: String?
     public let targetAvailable: Bool?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let reason: String
     public let status: ModerationReportStatus
     public let reportCount: Int
@@ -130,7 +135,8 @@ public struct StaffModerationReportEntityCluster: Codable, Identifiable, Sendabl
     public let adminActionPath: String?
     public let targetUserId: String?
     public let targetAvailable: Bool?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let targetIsRestricted: Bool
     public let indicators: ModerationReportIndicators
     public let reports: [StaffModerationReport]
