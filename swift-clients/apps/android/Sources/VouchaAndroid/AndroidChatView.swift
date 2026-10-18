@@ -5,7 +5,7 @@ struct AndroidChatView: View {
     @Bindable
     var viewModel: ViewModel
     @State
-    private var discardConfirmation: AndroidPendingTurnDiscardConfirmation?
+    var discardConfirmation: AndroidPendingTurnDiscardConfirmation?
     @Environment(\.locale)
     var locale
 
