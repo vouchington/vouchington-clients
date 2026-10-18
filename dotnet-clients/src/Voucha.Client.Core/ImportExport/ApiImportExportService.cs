@@ -16,8 +16,8 @@ public sealed class ApiImportExportService(VouchaApiClient apiClient) : IImportE
         _ => throw new ArgumentOutOfRangeException(nameof(request)),
       };
 
-  public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, CancellationToken token) =>
-      apiClient.RssFeedImportStatusAsync(importId, token);
+  public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, string? after, CancellationToken token) =>
+      apiClient.RssFeedImportStatusAsync(importId, after, token);
 
   public async Task<ExportDocument> ExportTopicsAsync(CancellationToken token)
   {

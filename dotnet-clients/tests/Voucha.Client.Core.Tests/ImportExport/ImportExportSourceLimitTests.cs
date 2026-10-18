@@ -72,7 +72,7 @@ public sealed class ImportExportSourceLimitTests
       return Task.FromResult(new RssFeedImportSubmission(Summary, new Uri("/status", UriKind.Relative)));
     }
 
-    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, CancellationToken token) =>
+    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, string? after, CancellationToken token) =>
         Task.FromResult(new RssFeedImportStatus(Summary, []));
 
     public Task<TopicImportResponse> ImportTopicsAsync(IReadOnlyList<string> names, CancellationToken token) =>

@@ -230,7 +230,7 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
             service: ImportExportService(
                 importTopics: { _ in TopicImportResponse(results: []) },
                 importSources: { _ in throw URLError(.badServerResponse) },
-                sourceStatus: { _ in throw URLError(.badServerResponse) },
+                sourceStatus: { _, _ in throw URLError(.badServerResponse) },
                 downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
             )
         )
@@ -247,7 +247,7 @@ private actor RenderedStatusRecorder {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in await self.status() },
+            sourceStatus: { _, _ in await self.status() },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }

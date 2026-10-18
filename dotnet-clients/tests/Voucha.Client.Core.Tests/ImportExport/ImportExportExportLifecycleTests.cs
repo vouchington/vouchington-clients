@@ -119,7 +119,7 @@ public sealed class ImportExportExportLifecycleTests
     public Task<RssFeedImportSubmission> SubmitSourcesAsync(SourceImportRequest request, CancellationToken token) =>
         Task.FromResult(new RssFeedImportSubmission(Summary(0, 0, 1), new Uri($"/status/{ImportId}", UriKind.Relative)));
 
-    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, CancellationToken token)
+    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, string? after, CancellationToken token)
     {
       StatusToken = token;
       return PendingStatus?.Task ?? Task.FromResult(new RssFeedImportStatus(Summary(0, 0, 1), []));

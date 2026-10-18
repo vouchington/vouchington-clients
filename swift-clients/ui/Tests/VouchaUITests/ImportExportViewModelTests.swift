@@ -161,7 +161,7 @@ final class ImportExportViewModelTests: XCTestCase {
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.cannotConnectToHost) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
         let viewModel = ImportExportViewModel(route: .sources(initialExportFilter: nil), service: service)
@@ -286,7 +286,7 @@ private actor ImportExportRecorder {
         ImportExportService(
             importTopics: { names in await self.recordTopics(names) },
             importSources: { input in await self.submit(input) },
-            sourceStatus: { id in try await self.status(id) },
+            sourceStatus: { id, _ in try await self.status(id) },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }

@@ -19,7 +19,12 @@ public sealed partial class ImportExportViewModel
     {
       while (!token.IsCancellationRequested && operation == generation && BatchId == batch)
       {
-        var status = await service.GetSourceStatusAsync(batch, token).ConfigureAwait(true);
+        var status = await LoadSourcePagesAsync(operation, batch, token).ConfigureAwait(true);
+        if (status is null)
+        {
+          await delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(true);
+          continue;
+        }
         if (token.IsCancellationRequested || operation != generation || BatchId != batch) return;
         var accepted = status.Import.Id == batch && !IsRegression(status.Import);
         if (accepted)
@@ -27,7 +32,7 @@ public sealed partial class ImportExportViewModel
           Progress = status.Import;
           Results = status.Rows;
         }
-        if (accepted && status.Import.IsTerminal()) return;
+        if (accepted && sourceSnapshotStartedTerminal && status.Import.IsTerminal()) return;
         await delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(true);
       }
     }

@@ -75,8 +75,8 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   public string InputText { get => inputText; set => SetProperty(ref inputText, value ?? string.Empty); }
   public bool IsBusy { get => isBusy; private set { if (SetProperty(ref isBusy, value)) { OnPropertyChanged(nameof(CanImport)); OnPropertyChanged(nameof(CanExport)); OnPropertyChanged(nameof(CanCancelActiveOperation)); } } }
   public bool IsMonitoring { get => isMonitoring; private set { if (SetProperty(ref isMonitoring, value)) { OnPropertyChanged(nameof(CanResume)); OnPropertyChanged(nameof(CanRetryStatus)); OnPropertyChanged(nameof(CanImport)); OnPropertyChanged(nameof(CanExport)); OnPropertyChanged(nameof(CanCancelActiveOperation)); } } }
-  public bool CanResume => BatchId is not null && !IsMonitoring && Progress is not null && !Progress.IsTerminal() && ErrorMessage is null;
-  public bool CanRetryStatus => BatchId is not null && !IsMonitoring && Progress is not null && !Progress.IsTerminal() && ErrorMessage is not null;
+  public bool CanResume => BatchId is not null && !IsMonitoring && Progress is not null && (!Progress.IsTerminal() || !sourceSnapshotStartedTerminal) && ErrorMessage is null;
+  public bool CanRetryStatus => BatchId is not null && !IsMonitoring && Progress is not null && (!Progress.IsTerminal() || !sourceSnapshotStartedTerminal) && ErrorMessage is not null;
   public string? ErrorMessage
   {
     get => localizedErrorText is { } text ? localization.Resolve(text) : errorMessage;

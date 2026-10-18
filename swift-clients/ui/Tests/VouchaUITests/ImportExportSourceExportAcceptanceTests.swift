@@ -56,7 +56,7 @@ private actor SourceExportRecorder {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, filter, format in try await self.export(filter: filter, format: format) }
         )
     }

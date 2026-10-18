@@ -13,7 +13,7 @@ final class ImportExportDownloadFileTests: XCTestCase {
         let service = ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in throw URLError(.badServerResponse) },
+            sourceStatus: { _, _ in throw URLError(.badServerResponse) },
             downloadExport: { _, _, _ in url }
         )
         let viewModel = ImportExportViewModel(route: .topics, service: service)

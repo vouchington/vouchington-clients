@@ -47,10 +47,23 @@ final class ImportExportEndpointTests: XCTestCase {
         )
     }
 
+    func testStatusCursorSurvivesRequestEncoding() async throws {
+        let client = APIClient(bootstrapSession: false)
+        let request = try await client.buildRequest(.rssFeedImportStatus(importId: "batch", after: "opaque+/=?&"))
+        let url = try XCTUnwrap(request.url)
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        XCTAssertEqual(url.path, "/api/v1/my/import/rss-feeds/batch")
+        XCTAssertEqual(query, [.init(name: "after", value: "opaque+/=?&")])
+    }
+
     func testSourceStatusAndExportEndpoints() {
         assertEndpoint(
             .rssFeedImportStatus(importId: "70000000-0000-7000-8000-000000000001"),
             path: "/api/v1/my/import/rss-feeds/70000000-0000-7000-8000-000000000001"
+        )
+        XCTAssertEqual(
+            Endpoint.rssFeedImportStatus(importId: "batch", after: "opaque+/=").queryItems,
+            [.init(name: "after", value: "opaque+/=")]
         )
         let csv = Endpoint.exportRssFeeds(feedType: .podcast, format: .csv)
         XCTAssertEqual(

@@ -24,6 +24,8 @@ extension ImportExportViewModel {
         isMonitoring = false
         batchId = nil
         sourceSummary = nil
+        sourcePages = SourceImportPages()
+        sourceSnapshotStartedTerminal = false
         results = []
     }
 
@@ -48,7 +50,10 @@ extension ImportExportViewModel {
         }
         while !Task.isCancelled {
             do {
-                let status = try await service.sourceStatus(batchId)
+                guard let status = try await loadSourcePages(batchId: batchId, generation: generation) else {
+                    try await delay()
+                    continue
+                }
                 guard generation == self.generation, batchId == self.batchId else { return }
                 guard status.import.id == batchId, isNonRegressing(status.import) else {
                     try await delay()
@@ -57,7 +62,7 @@ extension ImportExportViewModel {
                 sourceSummary = status.import
                 results = status.rows
                 errorMessage = nil
-                if status.import.pendingRows == 0 || status.import.completedAt != nil {
+                if sourceSnapshotStartedTerminal, status.import.pendingRows == 0 || status.import.completedAt != nil {
                     return
                 }
                 try await delay()

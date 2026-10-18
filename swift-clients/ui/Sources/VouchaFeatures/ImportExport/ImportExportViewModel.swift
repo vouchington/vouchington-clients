@@ -61,6 +61,8 @@ public final class ImportExportViewModel {
     var fileReader: @Sendable (URL) async throws -> (String, SourceImportFileFormat)
     var monitorTask: Task<Void, Never>?
     var generation = 0
+    var sourcePages = SourceImportPages()
+    var sourceSnapshotStartedTerminal = false
     var operationTask: Task<Void, Never>?
     var operationToken: UUID?
 
@@ -79,7 +81,7 @@ public final class ImportExportViewModel {
     }
 
     public var canResumeMonitoring: Bool {
-        batchId != nil && !isMonitoring && sourceSummary?.pendingRows != 0
+        batchId != nil && !isMonitoring && (sourceSummary?.pendingRows != 0 || !sourceSnapshotStartedTerminal)
     }
 
     var resultRows: [ImportResultRow] {

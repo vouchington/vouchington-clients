@@ -467,7 +467,7 @@ public sealed class ImportExportViewModelTests
       return PendingSubmission?.Task ?? Task.FromResult(Submission);
     }
 
-    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, CancellationToken token)
+    public Task<RssFeedImportStatus> GetSourceStatusAsync(string importId, string? after, CancellationToken token)
     {
       StatusCalls++;
       if (StatusFailure is { } failure) throw failure;
