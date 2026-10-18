@@ -190,7 +190,8 @@ public sealed class ModerationAppealCardPresentationTests
 
     public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(
         string id, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ModerationAppealQueueResponse(true, "staff-1"));
+        Task.FromResult(new ModerationAppealQueueResponse(
+            true, "staff-1", "appeal_resolution_00000000-0000-7000-8000-000000000202"));
 
     public Task<ModerationAppealResponse> UpdatePublicResponseAsync(
         string id, string response, CancellationToken cancellationToken = default) =>
