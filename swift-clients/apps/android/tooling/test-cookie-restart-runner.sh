@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 runner="$script_dir/run-cookie-restart-emulator.sh"
+instrumentation_invoker="$script_dir/invoke-cookie-instrumentation.sh"
 emulator_resolver="$script_dir/resolve-emulator-binary.sh"
 emulator_probe="$script_dir/probe-emulator-version.sh"
 test_root="$(mktemp -d)"
@@ -126,8 +127,32 @@ expect_rejection 'Candidate app APK lacks ARM64 libSkipAndroidBridge.so' verify-
 
 printf 'INSTRUMENTATION_CODE: -1\n' > "$test_root/instrumentation.log"
 expect_rejection 'Instrumentation did not report one successful test' verify-instrumentation-output "$test_root/instrumentation.log"
+printf '\nTime: 0.272\n\nOK (1 test)\n' > "$test_root/instrumentation.log"
+expect_rejection 'Instrumentation did not report one successful test' verify-instrumentation-output "$test_root/instrumentation.log"
 printf 'OK (1 test)\nINSTRUMENTATION_CODE: 0\n' > "$test_root/instrumentation.log"
 expect_rejection 'Instrumentation did not report one successful test' verify-instrumentation-output "$test_root/instrumentation.log"
 printf 'OK (1 test)\nINSTRUMENTATION_CODE: -1\n' > "$test_root/instrumentation.log"
+bash "$runner" verify-instrumentation-output "$test_root/instrumentation.log"
+cat > "$test_root/bin/adb" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$VOUCHA_TEST_ADB_ARGUMENTS"
+printf 'INSTRUMENTATION_RESULT: stream=\n\nTime: 0.272\n\nOK (1 test)\nINSTRUMENTATION_CODE: -1\n'
+SCRIPT
+chmod +x "$test_root/bin/adb"
+export VOUCHA_TEST_ADB_ARGUMENTS="$test_root/adb-arguments.txt"
+bash "$instrumentation_invoker" voucha.android.test CookieSnapshotBridgeRestartTest#seedCheckedEntries \
+  > "$test_root/instrumentation.log"
+cat > "$test_root/expected-adb-arguments.txt" <<'ARGS'
+shell
+am
+instrument
+-w
+-r
+-e
+class
+voucha.android.CookieSnapshotBridgeRestartTest#seedCheckedEntries
+voucha.android.test/androidx.test.runner.AndroidJUnitRunner
+ARGS
+cmp "$test_root/expected-adb-arguments.txt" "$VOUCHA_TEST_ADB_ARGUMENTS"
 bash "$runner" verify-instrumentation-output "$test_root/instrumentation.log"
 echo 'Cookie restart host artifact and instrumentation parsers passed synthetic checks'

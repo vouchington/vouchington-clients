@@ -161,8 +161,8 @@ adb shell pm list instrumentation | grep -Fq "$test_id/androidx.test.runner.Andr
 run_method() {
   local method="$1"
   local output
-  if ! output="$(adb shell am instrument -w -e class "voucha.android.CookieSnapshotBridgeRestartTest#$method" \
-    "$test_id/androidx.test.runner.AndroidJUnitRunner" | tr -d '\r')"; then
+  if ! output="$(bash "$script_dir/invoke-cookie-instrumentation.sh" "$test_id" \
+    "CookieSnapshotBridgeRestartTest#$method" | tr -d '\r')"; then
     printf '%s\n' "$output" >&2
     echo "Android instrumentation did not complete: $method" >&2
     return 1
