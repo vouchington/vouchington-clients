@@ -155,4 +155,128 @@ voucha.android.test/androidx.test.runner.AndroidJUnitRunner
 ARGS
 cmp "$test_root/expected-adb-arguments.txt" "$VOUCHA_TEST_ADB_ARGUMENTS"
 bash "$runner" verify-instrumentation-output "$test_root/instrumentation.log"
-echo 'Cookie restart host artifact and instrumentation parsers passed synthetic checks'
+
+# This host-only check exercises the runner's real shutdown helper. It does not
+# stand in for a device or emulator test.
+cat > "$test_root/cleanup-case.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+source "$1"
+desired_status="$2"
+RUNNER_TEMP="$3"
+emulator_log="$3/emulator.log"
+printf 'synthetic emulator diagnostic\n' > "$emulator_log"
+python3 - "$3/emulator.pid" "$4" <<'PY' &
+import os
+import signal
+import sys
+import time
+
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+with open(sys.argv[1], "w", encoding="utf-8") as marker:
+    marker.write(str(os.getpid()))
+if sys.argv[2] == "stop":
+    os.kill(os.getpid(), signal.SIGSTOP)
+time.sleep(60)
+PY
+emulator_pid=$!
+for _ in {1..100}; do
+  [[ -f "$3/emulator.pid" ]] && break
+  sleep 0.02
+done
+[[ -f "$3/emulator.pid" ]]
+if [[ "$4" == stop ]]; then
+  stopped=0
+  for _ in {1..100}; do
+    process_state="$(ps -o stat= -p "$emulator_pid" 2>/dev/null || true)"
+    if [[ "$process_state" =~ ^[[:space:]]*T ]]; then
+      stopped=1
+      break
+    fi
+    sleep 0.02
+  done
+  [[ "$stopped" -eq 1 ]] || {
+    echo 'Synthetic emulator never entered the stopped job state' >&2
+    kill -KILL "$emulator_pid" 2>/dev/null || true
+    wait "$emulator_pid" 2>/dev/null || true
+    exit 1
+  }
+fi
+if [[ "$4" == fail ]]; then
+  stop_owned_emulator() {
+    kill -KILL "$1" 2>/dev/null || true
+    wait "$1" 2>/dev/null || true
+    echo 'synthetic cleanup failure' >&2
+    return 1
+  }
+fi
+trap cookie_emulator_cleanup EXIT
+exit "$desired_status"
+SCRIPT
+cat > "$test_root/bin/adb" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$VOUCHA_TEST_ADB_CALLS"
+SCRIPT
+cat > "$test_root/bin/timeout" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$VOUCHA_TEST_TIMEOUT_CALLS"
+shift 2
+"$@"
+SCRIPT
+chmod +x "$test_root/bin/adb" "$test_root/bin/timeout"
+export VOUCHA_TEST_ADB_CALLS="$test_root/cleanup-adb-calls.log"
+export VOUCHA_TEST_TIMEOUT_CALLS="$test_root/cleanup-timeout-calls.log"
+python3 - "$script_dir/stop-owned-emulator.sh" "$test_root" <<'PY'
+import os
+import pathlib
+import signal
+import subprocess
+import sys
+
+helper, root = sys.argv[1:]
+unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+try:
+    for initial_status, expected_status, mode in ((0, 0, "term"), (7, 7, "term"),
+                                                  (0, 0, "stop"), (0, 1, "fail"),
+                                                  (7, 7, "fail")):
+        case = pathlib.Path(root, f"cleanup-{initial_status}-{mode}")
+        case.mkdir()
+        command = ["bash", str(pathlib.Path(root, "cleanup-case.sh")), helper,
+                   str(initial_status), str(case), mode]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        try:
+            stdout, stderr = process.communicate(timeout=18)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+            raise AssertionError("cookie restart emulator cleanup exceeded its deadline")
+        assert process.returncode == expected_status, (process.returncode, stdout, stderr)
+        if mode == "fail":
+            assert "synthetic cleanup failure" in stderr, stderr
+        else:
+            assert "ignored graceful shutdown; sending KILL" in stderr, stderr
+        if initial_status == 7:
+            assert "synthetic emulator diagnostic" in stderr, stderr
+            assert (case / "voucha-cookie-emulator-failure-tail.log").read_text() == (
+                "synthetic emulator diagnostic\n"
+            )
+        else:
+            assert not (case / "voucha-cookie-emulator-failure-tail.log").exists()
+        emulator_pid = int((case / "emulator.pid").read_text(encoding="utf-8"))
+        try:
+            os.kill(emulator_pid, 0)
+        except ProcessLookupError:
+            pass
+        else:
+            raise AssertionError("synthetic emulator survived cookie restart cleanup")
+        assert unrelated.poll() is None, "cleanup killed an unrelated process"
+finally:
+    unrelated.terminate()
+    unrelated.wait(timeout=5)
+calls = pathlib.Path(root, "cleanup-adb-calls.log").read_text(encoding="utf-8")
+assert calls.splitlines() == ["emu kill"] * 3, calls
+timeouts = pathlib.Path(root, "cleanup-timeout-calls.log").read_text(encoding="utf-8")
+assert timeouts.splitlines() == ["--kill-after=2s 5s adb emu kill"] * 3, timeouts
+PY
+echo 'Cookie restart host artifact, instrumentation, and cleanup checks passed'

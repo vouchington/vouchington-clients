@@ -81,20 +81,9 @@ test_id="$("$aapt" dump badging "$apk_dir/app-debug-androidTest.apk" | sed -n "s
 avd_name="voucha-cookie-restart-${GITHUB_RUN_ID:-local}"
 emulator_pid=
 emulator_log="${RUNNER_TEMP:-/tmp}/voucha-cookie-emulator.log"
-cleanup() {
-  local status=$?
-  if [[ "$status" -ne 0 && -f "$emulator_log" ]]; then
-    tail -n 120 "$emulator_log" > "${RUNNER_TEMP:-/tmp}/voucha-cookie-emulator-failure-tail.log" || true
-    echo "Last 120 emulator log lines after cookie restart failure:" >&2 || true
-    cat "${RUNNER_TEMP:-/tmp}/voucha-cookie-emulator-failure-tail.log" >&2 || true
-  fi
-  if [[ -n "$emulator_pid" ]]; then
-    timeout 15s adb emu kill >/dev/null 2>&1 || true
-    kill "$emulator_pid" 2>/dev/null || true
-    wait "$emulator_pid" 2>/dev/null || true
-  fi
-}
-trap cleanup EXIT
+# shellcheck source=swift-clients/apps/android/tooling/stop-owned-emulator.sh
+source "$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)/stop-owned-emulator.sh"
+trap cookie_emulator_cleanup EXIT
 
 [[ -c /dev/kvm && -r /dev/kvm && -w /dev/kvm ]] || {
   echo "Android emulator hardware acceleration is unavailable" >&2

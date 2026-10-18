@@ -46,7 +46,7 @@ export function bindArtifact({ artifact, expected, runId, runAttempt }) {
   return true
 }
 
-export async function listRegularFiles(root, { maxFiles = 16, maxDepth = 2 } = {}) {
+export async function listRegularFiles(root, { maxFiles = 16, maxDepth = 2, fileByteLimits } = {}) {
   const rootInfo = await lstat(root)
   if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink())
     fail('artifact root must be a real directory')
@@ -67,7 +67,10 @@ export async function listRegularFiles(root, { maxFiles = 16, maxDepth = 2 } = {
         if (depth >= maxDepth) fail('artifact exceeds the fixed file-tree limit')
         await walk(path, name, depth + 1)
       } else if (info.isFile()) {
-        if (info.size > 256 * 1024 * 1024 || totalBytes + info.size > 512 * 1024 * 1024)
+        if (fileByteLimits && !fileByteLimits.has(name))
+          fail('artifact file set differs from the fixed allowlist')
+        const fileLimit = fileByteLimits?.get(name) ?? 256 * 1024 * 1024
+        if (info.size > fileLimit || totalBytes + info.size > 512 * 1024 * 1024)
           fail('artifact exceeds the fixed size limit')
         totalBytes += info.size
         files.set(name, await readFile(path))
@@ -79,13 +82,18 @@ export async function listRegularFiles(root, { maxFiles = 16, maxDepth = 2 } = {
 }
 
 export async function verifyApkBundle(root, expectedRevision) {
-  const allowed = [
-    'app-debug.apk',
-    'app-debug-androidTest.apk',
-    'candidate-revision.txt',
-    'sha256sums.txt',
-  ]
-  const files = await listRegularFiles(root, { maxFiles: allowed.length, maxDepth: 0 })
+  const fileByteLimits = new Map([
+    ['app-debug.apk', 384 * 1024 * 1024],
+    ['app-debug-androidTest.apk', 32 * 1024 * 1024],
+    ['candidate-revision.txt', 128],
+    ['sha256sums.txt', 1024],
+  ])
+  const allowed = [...fileByteLimits.keys()]
+  const files = await listRegularFiles(root, {
+    maxFiles: allowed.length,
+    maxDepth: 0,
+    fileByteLimits,
+  })
   if (
     files.size !== allowed.length ||
     JSON.stringify([...files.keys()].sort()) !== JSON.stringify([...allowed].sort())
