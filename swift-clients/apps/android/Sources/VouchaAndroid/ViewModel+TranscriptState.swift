@@ -1,6 +1,15 @@
 import VouchaCore
+import VouchaLocalization
 
 extension ViewModel {
+    var chatErrorMessageKey: UiMessageKey? {
+        guard errorMessage != nil || transcriptLoadFailed else { return nil }
+        if transcriptLoadFailed { return .nativeSwiftEmptyStateUnableToLoad }
+        if pendingTurnForSelectedConversation != nil { return .nativeSwiftChatUnableToPersistOnDeviceResponse }
+        if conversationCreationFailed { return .nativeSwiftChatUnableToCreateConversation }
+        return .nativeSwiftAndroidGenerationFailed
+    }
+
     var transcriptLoadFailure: AndroidTranscriptLoadFailure? {
         latestTranscriptLoadFailure
     }

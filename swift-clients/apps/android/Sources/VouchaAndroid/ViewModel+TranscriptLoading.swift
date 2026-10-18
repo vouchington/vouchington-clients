@@ -62,6 +62,7 @@ extension ViewModel {
     func selectConversation(_ id: String) async {
         guard selectedConversationID != id else { return }
         selectedConversationID = id
+        conversationCreationFailed = false
         conversationGeneration = UUID()
         messages = []
         isLoadingMessages = false
@@ -87,6 +88,8 @@ extension ViewModel {
               let userID = currentAccountUserID
         else { return }
         let accountRevision = accountGeneration
+        conversationCreationFailed = false
+        errorMessage = nil
         isCreatingConversation = true
         defer {
             if accountGeneration == accountRevision { isCreatingConversation = false }
@@ -97,9 +100,11 @@ extension ViewModel {
             if !conversations.contains(where: { $0.id == response.conversation.id }) {
                 conversations.insert(response.conversation, at: 0)
             }
+            conversationCreationFailed = false
             await selectConversation(response.conversation.id)
         } catch {
             guard accountGeneration == accountRevision else { return }
+            conversationCreationFailed = true
             errorMessage = error.localizedDescription
         }
     }
@@ -153,13 +158,7 @@ extension ViewModel {
     }
 
     private func makeChatMessage(from message: ChatMessage) -> AndroidChatMessage? {
-        let role = message.content.role == "assistant" ? "assistant" : "user"
-        return AndroidChatMessage(
-            id: message.id,
-            role: role,
-            content: message.content.displayText,
-            createdAt: message.createdAt
-        )
+        AndroidChatMessage(transcriptMessage: message)
     }
 
     private func uniqueMessages(_ messages: [AndroidChatMessage]) -> [AndroidChatMessage] {

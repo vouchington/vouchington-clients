@@ -39,6 +39,7 @@ final class ViewModel {
     var messages: [AndroidChatMessage] = []
     var draft = ""
     var errorMessage: String?
+    var conversationCreationFailed = false
     var failedConversationListLoad: AndroidTranscriptLoadFailureRecord?
     var failedConversationHistoryLoad: AndroidTranscriptLoadFailureRecord?
     var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
@@ -150,6 +151,7 @@ final class ViewModel {
         messages = []
         draft = ""
         errorMessage = nil
+        conversationCreationFailed = false
         failedConversationListLoad = nil
         failedConversationHistoryLoad = nil
         latestTranscriptLoadFailure = nil

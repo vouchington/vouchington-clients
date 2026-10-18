@@ -124,19 +124,19 @@ struct AndroidChatView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(chatMessage.role == "user" ? message(.nativeSwiftChatYou) : message(.nativeSwiftChatAssistant))
                         .font(.caption)
-                    Text(chatMessage.content)
+                    if !chatMessage.content.isEmpty {
+                        Text(chatMessage.content)
+                    }
+                    if let error = chatMessage.error {
+                        Text(verbatim: UiMessages.string(error, locale: locale))
+                            .foregroundStyle(.red)
+                    }
                 }
             }
-            if viewModel.errorMessage != nil || viewModel.transcriptLoadFailed {
-                Text(message(
-                    viewModel.transcriptLoadFailed
-                        ? .nativeSwiftEmptyStateUnableToLoad
-                        : viewModel.pendingTurnForSelectedConversation != nil
-                        ? .nativeSwiftChatUnableToPersistOnDeviceResponse
-                        : .nativeSwiftAndroidGenerationFailed
-                ))
-                .foregroundStyle(.red)
-                .padding(.horizontal)
+            if let errorKey = viewModel.chatErrorMessageKey {
+                Text(message(errorKey))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
             }
             if viewModel.transcriptLoadFailed,
                viewModel.apiClient != nil,

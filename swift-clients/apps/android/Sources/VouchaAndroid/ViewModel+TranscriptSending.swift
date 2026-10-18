@@ -50,6 +50,7 @@ extension ViewModel {
         let selectedProvider = selectedProvider
         let model = modelIdentity(for: selectedProvider)
         if !preservingDraft { draft = "" }
+        conversationCreationFailed = false
         errorMessage = nil
         messages.append(.init(id: ids.user, role: "user", content: submitted))
 
@@ -95,15 +96,21 @@ extension ViewModel {
               !isLoadingMessages
         else { return }
         let accountRevision = accountGeneration
+        let conversationRevision = conversationGeneration
         let operationID = UUID()
         activeSendOperationID = operationID
         isGenerating = true
         errorMessage = nil
+        conversationCreationFailed = false
         defer { finishSendOperation(operationID, accountRevision: accountRevision) }
         do {
             try await persist(pending, client: client, accountRevision: accountRevision, userID: userID)
         } catch {
-            guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
+            guard accountGeneration == accountRevision,
+                  currentAccountUserID == userID,
+                  selectedConversationID == pending.conversationID,
+                  conversationGeneration == conversationRevision
+            else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -140,18 +147,8 @@ extension ViewModel {
             $0.id == pending.userMessageID || $0.id == pending.assistantMessageID ||
                 $0.id == response.userMessage.id || $0.id == response.assistantMessage.id
         }
-        messages.append(.init(
-            id: response.userMessage.id,
-            role: "user",
-            content: response.userMessage.content.displayText,
-            createdAt: response.userMessage.createdAt
-        ))
-        messages.append(.init(
-            id: response.assistantMessage.id,
-            role: "assistant",
-            content: response.assistantMessage.content.displayText,
-            createdAt: response.assistantMessage.createdAt
-        ))
+        messages.append(.init(transcriptMessage: response.userMessage))
+        messages.append(.init(transcriptMessage: response.assistantMessage))
         sortMessagesChronologically()
     }
 
