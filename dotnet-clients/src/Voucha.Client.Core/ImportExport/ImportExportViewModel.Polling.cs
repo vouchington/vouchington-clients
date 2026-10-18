@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.ImportExport;
 
@@ -37,6 +38,11 @@ public sealed partial class ImportExportViewModel
       }
     }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    catch (SourceStatusPageException)
+    {
+      if (!token.IsCancellationRequested && operation == generation && BatchId == batch)
+        SetLocalizedError(UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed));
+    }
     catch (Exception ex) { if (operation == generation && BatchId == batch) ErrorMessage = ex.Message; }
     finally
     {

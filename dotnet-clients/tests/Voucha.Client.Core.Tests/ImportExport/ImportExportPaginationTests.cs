@@ -1,6 +1,7 @@
 using Xunit;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.ImportExport;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Tests.ImportExport;
 
@@ -164,6 +165,86 @@ public sealed class ImportExportPaginationTests
     Assert.Empty(model.Results);
     Assert.True(model.CanRetryStatus);
     Assert.Equal([null, "next"], service.Cursors);
+  }
+
+  [Theory]
+  [InlineData("cursor")]
+  [InlineData("foreign")]
+  [InlineData("regression")]
+  public async Task ClientPageValidationUsesLiveLocalizedCopyAndRetriesSameCursor(string failure)
+  {
+    var service = new PagesService();
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("1")], "next")));
+    service.Pages.Enqueue(() => Task.FromResult(failure switch
+    {
+      "foreign" => Page([Row("2")], batch: "foreign"),
+      "regression" => Page([Row("2")], terminal: false),
+      _ => Page([Row("2")], hasNext: true),
+    }));
+    var retryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var retryPage = new TaskCompletionSource<RssFeedImportStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.Pages.Enqueue(() => { retryStarted.SetResult(); return retryPage.Task; });
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("es"), new InlineDispatcher());
+    var localization = new UiLocalization(controller);
+    using var model = new ImportExportViewModel(
+        ImportExportRouteContext.FromPath("/my/sources/import-export"), service,
+        (_, _) => Task.CompletedTask, localization, controller)
+    { InputText = "https://example.test/feed" };
+    await model.ImportAsync(TestContext.Current.CancellationToken);
+    var spanish = localization.Localize(UiMessageKey.NativeDotnetCsharpActionFailed);
+    Assert.Equal(spanish, model.ErrorMessage);
+    Assert.True(model.CanRetryStatus);
+    List<string?> changed = [];
+    model.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+    controller.ApplySavedLocale("fr");
+    Assert.Equal(localization.Localize(UiMessageKey.NativeDotnetCsharpActionFailed), model.ErrorMessage);
+    Assert.NotEqual(spanish, model.ErrorMessage);
+    Assert.Contains(nameof(model.ErrorMessage), changed);
+    changed.Clear();
+    var retry = model.TryStatusAgainAsync(TestContext.Current.CancellationToken);
+    await retryStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.Null(model.ErrorMessage);
+    Assert.Single(changed, name => name == nameof(model.ErrorMessage));
+    Assert.Contains(nameof(model.CanRetryStatus), changed);
+    retryPage.SetResult(Page([Row("2")]));
+    await retry.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.Equal([null, "next", "next"], service.Cursors);
+    Assert.Equal(["1", "2"], model.Results.Select(row => row.Id));
+    Assert.Equal(1, service.Submissions);
+    Assert.Null(model.ErrorMessage);
+    Assert.False(model.CanRetryStatus);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task UnrelatedTransportOrServerFailureRetainsOriginalDetailAcrossLocaleChanges(bool server)
+  {
+    var service = new PagesService();
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("1")], "next")));
+    Exception failure = server
+        ? new VouchaApiException(System.Net.HttpStatusCode.BadGateway, "upstream response body")
+        : new IOException("transport detail supplied by boundary");
+    service.Pages.Enqueue(() => throw failure);
+    service.Pages.Enqueue(() => Task.FromResult(Page([Row("2")])));
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("es"), new InlineDispatcher());
+    using var model = new ImportExportViewModel(
+        ImportExportRouteContext.FromPath("/my/sources/import-export"), service,
+        (_, _) => Task.CompletedTask, new UiLocalization(controller), controller)
+    { InputText = "https://example.test/feed" };
+    await model.ImportAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(failure.Message, model.ErrorMessage);
+    controller.ApplySavedLocale("fr");
+    Assert.Equal(failure.Message, model.ErrorMessage);
+    await model.TryStatusAgainAsync(TestContext.Current.CancellationToken);
+    Assert.Equal([null, "next", "next"], service.Cursors);
+    Assert.Null(model.ErrorMessage);
+  }
+
+  private sealed class InlineDispatcher : IUiThreadDispatcher
+  {
+    public bool IsDispatchRequired => false;
+    public void Dispatch(Action action) => action();
   }
 
   private static ImportExportViewModel Model(PagesService service) => new(

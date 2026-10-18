@@ -30,16 +30,16 @@ public sealed partial class ImportExportViewModel
     if (page.Import.Id != batch)
     {
       if (sourcePageCursor is null) return null;
-      throw new InvalidDataException("Invalid import status page.");
+      throw new SourceStatusPageException();
     }
     if (sourcePageSummary is { } previous && (page.Import.TotalRows != previous.TotalRows ||
         page.Import.CompletedRows + page.Import.FailedRows < previous.CompletedRows + previous.FailedRows ||
         page.Import.PendingRows > previous.PendingRows))
-      throw new InvalidDataException("Regressing import status page.");
+      throw new SourceStatusPageException();
     var next = page.PageInfo?.HasNextPage == true ? page.PageInfo.EndCursor : null;
     if (page.PageInfo?.HasNextPage == true &&
         (page.Rows.Count == 0 || string.IsNullOrEmpty(next) || sourcePageCursors.Contains(next)))
-      throw new InvalidDataException("Invalid import status cursor.");
+      throw new SourceStatusPageException();
     if (sourcePageSummary is null) sourcePagesStartedTerminal = page.Import.IsTerminal();
     foreach (var row in page.Rows)
     {

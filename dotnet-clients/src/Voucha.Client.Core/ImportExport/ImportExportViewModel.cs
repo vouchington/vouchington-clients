@@ -82,8 +82,11 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
     get => localizedErrorText is { } text ? localization.Resolve(text) : errorMessage;
     private set
     {
+      var hadLocalizedError = localizedErrorText is not null;
       localizedErrorText = null;
-      if (SetProperty(ref errorMessage, value))
+      var rawChanged = SetProperty(ref errorMessage, value);
+      if (!rawChanged && hadLocalizedError) OnPropertyChanged();
+      if (rawChanged || hadLocalizedError)
       {
         OnPropertyChanged(nameof(CanResume));
         OnPropertyChanged(nameof(CanRetryStatus));
