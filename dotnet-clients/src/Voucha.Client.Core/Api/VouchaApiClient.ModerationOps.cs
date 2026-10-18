@@ -100,6 +100,13 @@ public sealed partial class VouchaApiClient
       SendAsync<ModerationReportJudgementResponse>(
           VouchaApiEndpoints.RerunModerationReportJudgement(reportId), cancellationToken);
 
+  public Task<ModerationReportJudgementRunResponse> GetModerationReportJudgementRunAsync(
+      string reportId,
+      string runId,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<ModerationReportJudgementRunResponse>(
+          VouchaApiEndpoints.ModerationReportJudgementRun(reportId, runId), cancellationToken);
+
   public Task<AdminUserWarningResponse> IssueAdminWarningAsync(
       IssueAdminWarningRequest request,
       CancellationToken cancellationToken = default) =>

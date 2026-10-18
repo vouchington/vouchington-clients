@@ -18,6 +18,15 @@ public sealed class ModerationReportJudgementIdentityTests
   }
 
   [Fact]
+  public void NullJudgementIdentityIsRejected()
+  {
+    var judgement = JudgementObject();
+    judgement["id"] = null;
+    Assert.Throws<JsonException>(() =>
+        JsonSerializer.Deserialize<ModerationReportJudgement>(judgement, VouchaApiJson.Options));
+  }
+
+  [Fact]
   public void MissingJudgementIdentityIsRejected()
   {
     var judgement = JudgementObject();

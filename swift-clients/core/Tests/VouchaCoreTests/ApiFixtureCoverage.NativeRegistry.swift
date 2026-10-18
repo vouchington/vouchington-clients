@@ -72,6 +72,9 @@ let nativeModerationCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.moderation.report-judgement.default") {
         try assertFixtureCoversDTO($0, as: ModerationReportJudgementResponse.self)
     },
+    RegisteredFixture(id: "native.moderation.report-judgement-run.pending") {
+        try assertFixtureCoversDTO($0, as: ModerationReportJudgementRunResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.report-resolution.reviewed") {
         try assertFixtureCoversDTO($0, as: ModerationReportResolutionResponse.self)
     },

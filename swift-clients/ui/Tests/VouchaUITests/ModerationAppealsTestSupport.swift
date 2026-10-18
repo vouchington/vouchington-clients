@@ -39,6 +39,9 @@ enum ModerationAppealsTestSupport {
           "status":"\(status)","recommended_action":"reduce",
           "ai_public_response":\(json(aiPublicResponse)),"ai_internal_response":"Internal AI context",
           "model":"native-test-model","ai_drafted_at":\(json(aiDraftedAt)),
+          "ai_draft_requested_run_id":"appeal_resolution_00000000-0000-7000-8000-000000000202",
+          "ai_draft_run_id":\(json(aiDraftedAt == nil ? nil :
+                  "appeal_resolution_00000000-0000-7000-8000-000000000202")),
           "public_response":\(json(publicResponse)),"internal_notes":\(json(internalNotes)),
           "drafted_at":\(json(draftedAt)),"edited_at":\(json(editedAt)),"edited_by_id":\(json(editedById)),
           "approved_at":\(json(approvedAt)),"approved_by_id":\(approvedAt == nil ? "null" : json(approvedById)),
@@ -68,7 +71,9 @@ enum ModerationAppealsTestSupport {
         Data("{\"appeal\":\(appeal)}".utf8)
     }
 
-    static let queued = Data(#"{"queued":true,"rerun_by_id":"admin-1"}"#.utf8)
+    static var queued: Data {
+        ApiFixtureLoader.data("native.moderation.appeals.resolution-drafts.default")
+    }
 
     static func waitForSuspendedCannedFeedResponse(path: String) async -> Bool {
         await waitForCannedFeedCondition(

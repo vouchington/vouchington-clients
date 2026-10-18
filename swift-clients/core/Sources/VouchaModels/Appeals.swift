@@ -56,6 +56,9 @@ public struct ModerationAppealSubmissionRequest: Sendable {
 }
 
 public struct ModerationAppeal: Codable, Identifiable, Sendable {
+    public let aiDraftRequestedRunId: String
+    @RequiredNullable
+    public var aiDraftRunId: String?
     public let id: String
     public let caseId: String?
     public let appellantUserId: String?
@@ -124,6 +127,7 @@ public struct ModerationAppealSubmissionResponse: Codable, Sendable {
 }
 
 public struct ModerationAppealQueueResponse: Codable, Sendable {
+    public let runId: String
     public let queued: Bool
     public let rerunById: String?
 }
@@ -133,7 +137,8 @@ public enum ModerationDisputeStatus: String, Codable, Sendable {
 }
 
 public struct ModerationDispute: Codable, Identifiable, Sendable {
-    @TolerantNullable
+    public let aiDraftRequestedRunId: String
+    @RequiredNullable
     public var aiDraftRunId: String?
     public let id: String
     public let postId: String?

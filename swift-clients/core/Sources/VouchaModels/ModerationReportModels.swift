@@ -35,6 +35,7 @@ public struct ModerationReportJudgement: Codable, Sendable {
 }
 
 public struct StaffModerationReport: Codable, Identifiable, Sendable {
+    public let automaticJudgementEnabled: Bool
     public let id: String
     public let caseId: String
     public let createdAt: Date

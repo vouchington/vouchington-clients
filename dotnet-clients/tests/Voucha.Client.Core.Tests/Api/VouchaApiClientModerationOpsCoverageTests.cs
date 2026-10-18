@@ -14,7 +14,7 @@ public sealed partial class VouchaApiClientTests
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.reports.clustered.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.reports.default")),
       new RecordedResponse("{}"),
-      new RecordedResponse("{}"),
+      new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.report-judgement.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.review-queue.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.clearance.approved")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.modlog.default")),

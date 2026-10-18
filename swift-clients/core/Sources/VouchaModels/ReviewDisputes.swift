@@ -78,7 +78,8 @@ public struct ReviewDisputePostContent: Codable, Sendable {
 }
 
 public struct ReviewDispute: Codable, Identifiable, Sendable {
-    @TolerantNullable
+    public let aiDraftRequestedRunId: String
+    @RequiredNullable
     public var aiDraftRunId: String?
     public let id: String
     public let postId: String

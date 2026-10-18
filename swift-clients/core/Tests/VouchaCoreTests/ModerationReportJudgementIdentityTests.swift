@@ -15,6 +15,15 @@ final class ModerationReportJudgementIdentityTests: XCTestCase {
         XCTAssertEqual(object["id"] as? String, "00000000-0000-7000-8000-000000000301")
     }
 
+    func testNullJudgementIdentityIsRejected() throws {
+        var object = try judgementObject()
+        object["id"] = NSNull()
+        XCTAssertThrowsError(try JSONDecoder.vouchaFixtureDecoder.decode(
+            ModerationReportJudgement.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        ))
+    }
+
     func testMissingJudgementIdentityIsRejected() throws {
         var object = try judgementObject()
         object.removeValue(forKey: "id")

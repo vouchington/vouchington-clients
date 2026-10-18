@@ -97,7 +97,7 @@ public sealed record ModerationDisputeResponse(
 public sealed record ModerationDisputeQueueResponse(
     [property: JsonPropertyName("queued")] bool Queued,
     [property: JsonPropertyName("rerun_by_id")] string? RerunById,
-    [property: JsonPropertyName("run_id"), JsonRequired] string RunId);
+    [property: JsonPropertyName("run_id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string RunId);
 
 public sealed record AdminReviewQueueImage(
     [property: JsonPropertyName("image_id")] string ImageId,

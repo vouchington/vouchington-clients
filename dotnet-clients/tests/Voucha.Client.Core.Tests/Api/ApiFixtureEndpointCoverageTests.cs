@@ -129,6 +129,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             after: "eyJjbHVzdGVyIjp0cnVlLCJjcmVhdGVkX2F0IjoiMjAyNi0wNi0wMVQxMjowNTowMC4wMDAwMDBaIiwiZW50aXR5X3R5cGUiOiJwb3N0IiwiaWQiOiIwMDAwMDAwMC0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAxMDMiLCJzb3J0IjoiY3JlYXRlZF9hdF9kZXNjIiwic3RhdHVzIjoicGVuZGluZyIsInNjb3BlIjoie1wiYXVkaWVuY2VcIjpcInN0YWZmXCIsXCJvd25lcklkXCI6bnVsbH0ifQ",
             limit: 3),
         ["native.moderation.report-judgement.default"] = VouchaApiEndpoints.RerunModerationReportJudgement("019f6559-6b31-7171-b5b1-ccd9d702c45e"),
+        ["native.moderation.report-judgement-run.pending"] = VouchaApiEndpoints.ModerationReportJudgementRun("019f6559-6b31-7171-b5b1-ccd9d702c45e", "00000000-0000-7000-8000-000000000303"),
         ["native.moderation.report-resolution.reviewed"] = VouchaApiEndpoints.ResolveModerationReport("019f6559-6b31-7171-b5b1-ccd9d702c45e", ModerationReportResolution.Reviewed),
         ["native.moderation.admin-warning.report"] = VouchaApiEndpoints.IssueAdminWarning(
             new IssueAdminWarningRequest("user-2", "Repeated harassment", "Stop contacting this user.", "019f6559-6b31-7171-b5b1-ccd9d702c45e")),

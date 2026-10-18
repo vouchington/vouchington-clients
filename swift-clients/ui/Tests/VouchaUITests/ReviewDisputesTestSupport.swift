@@ -21,6 +21,9 @@ enum ReviewDisputesTestSupport {
           "status":"\(status)","recommended_action":"remove","is_overdue":true,
           "ai_public_response":\(json(aiPublicResponse)),
           "ai_internal_response":"Internal evidence","model":"native-test-model",
+          "ai_draft_requested_run_id":"dispute_resolution_00000000-0000-7000-8000-000000000211",
+          "ai_draft_run_id":\(json(aiDraftedAt == nil ? nil :
+                  "dispute_resolution_00000000-0000-7000-8000-000000000211")),
           "ai_drafted_at":\(json(aiDraftedAt)),"public_response":\(json(publicResponse)),
           "internal_notes":"Private staff notes","drafted_at":null,"edited_at":null,
           "edited_by_id":null,"approved_at":\(json(approvedAt)),

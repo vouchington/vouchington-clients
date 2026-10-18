@@ -87,7 +87,9 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("is_overdue")] bool? IsOverdue,
     [property: JsonPropertyName("user_suspension_id")] string? UserSuspensionId = null,
     [property: JsonPropertyName("target_context")] ModerationAppealTargetContext? TargetContext = null,
-    [property: JsonPropertyName("staff_context")] ModerationAppealStaffContext? StaffContext = null);
+    [property: JsonPropertyName("staff_context")] ModerationAppealStaffContext? StaffContext = null,
+    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
+    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
 
 public sealed record ModerationAppealListResponse(
     [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppeal> Appeals,
@@ -98,7 +100,8 @@ public sealed record ModerationAppealResponse(
 
 public sealed record ModerationAppealQueueResponse(
     [property: JsonPropertyName("queued")] bool Queued,
-    [property: JsonPropertyName("rerun_by_id")] string? RerunById);
+    [property: JsonPropertyName("rerun_by_id")] string? RerunById,
+    [property: JsonPropertyName("run_id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string RunId);
 
 public enum ModerationDisputeStatus
 {
@@ -137,7 +140,8 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("latest_lifecycle_change_id")] string? LatestLifecycleChangeId = null,
     [property: JsonPropertyName("post_content")] ModerationDisputePostContent? PostContent = null,
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null,
-    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
+    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
+    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null);
 
 public sealed record AuthoredContentText
 {
