@@ -57,6 +57,11 @@ struct AndroidSignInView: View {
                             .id(account.turnstileChallengeID)
                             .frame(minHeight: 72)
                         }
+                        if account.turnstileToken == nil, account.authError != nil {
+                            Button(UiMessages.string(.nativeCommonRetry, locale: locale)) {
+                                account.retryTurnstileChallenge()
+                            }.disabled(account.isAuthenticating)
+                        }
                         Button(UiMessages.string(.nativeAuthSendCode, locale: locale)) {
                             Task { await account.requestOTP(locale: locale) }
                         }.disabled(account.isAuthenticating || account.email.isEmpty || account.turnstileToken == nil)
@@ -126,7 +131,7 @@ struct AndroidTurnstileChallenge: View {
                     view.settings.domStorageEnabled = true
                     CookieManager.getInstance().setAcceptThirdPartyCookies(view, true)
                     view.webViewClient = TurnstileNavigationClient(origin: origin, onToken: onToken)
-                    view.loadDataWithBaseURL(origin, turnstileHTML(siteKey), "text/html", "UTF-8", nil)
+                    view.loadDataWithBaseURL(origin, androidTurnstileHTML(siteKey), "text/html", "UTF-8", nil)
                     return view
                 }, modifier: context.modifier, update: { _ in })
             }
@@ -173,20 +178,4 @@ struct AndroidTurnstileChallenge: View {
         }
     }
 
-    private func turnstileHTML(_ key: String) -> String {
-        let escaped = key.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-        return """
-        <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></head>
-        <body><div class="cf-turnstile" data-sitekey="\(escaped)" data-callback="tokenReady"
-        data-expired-callback="tokenExpired" data-error-callback="tokenError"></div>
-        <script>
-        function tokenReady(token){location.href='voucha://turnstile?token='+encodeURIComponent(token);}
-        function tokenExpired(){location.href='voucha://turnstile?expired';}
-        function tokenError(){location.href='voucha://turnstile?error';}
-        </script></body></html>
-        """
-    }
 #endif

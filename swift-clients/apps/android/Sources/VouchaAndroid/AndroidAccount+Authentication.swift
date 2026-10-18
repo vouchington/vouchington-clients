@@ -31,6 +31,13 @@ extension AndroidAccount {
         authError = token == nil ? .message(.nativeAuthVerificationTokenRequired) : nil
     }
 
+    func retryTurnstileChallenge() {
+        guard !isAuthenticating else { return }
+        turnstileToken = nil
+        turnstileChallengeID = UUID()
+        authError = nil
+    }
+
     func verifyOTP() async {
         guard !isAuthenticating else { return }
         isAuthenticating = true
