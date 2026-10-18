@@ -36,11 +36,11 @@ importers:
         specifier: 1.80.0
         version: 1.80.0
       pr-shepherd:
-        specifier: 0.56.5
-        version: 0.56.5(supports-color@7.2.0)
+        specifier: 0.59.1
+        version: 0.59.1(supports-color@7.2.0)
       vouchington-tooling:
-        specifier: 0.46.0
-        version: 0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)
+        specifier: 0.48.0
+        version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4)
 
 packages:
 
@@ -1020,6 +1020,11 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  agent-blackboard@0.7.0:
+    resolution: {integrity: sha512-5bdwJ5Kpg9y1+8MK4ALk+PYP7Uwshk8EC0jVSOKJep13Nh7W2A1tNivp63easQaIF0c1GpcLu4wGKvY9+EA/XQ==}
+    engines: {node: '>=24.0.0'}
+    hasBin: true
+
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
 
@@ -1821,9 +1826,9 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pr-shepherd@0.56.5:
-    resolution: {integrity: sha512-d9C3qfgI4I76sd4kL5TwymtkhIr4UYKqzqUcHB3d1Jx9rjAgOwsM70Y+ixGV9sySNtU6+0p1PcNYFBvLG+zOug==}
-    engines: {node: '>=22.18.0'}
+  pr-shepherd@0.59.1:
+    resolution: {integrity: sha512-gNcFdws9U1+fgKc7I3usV9U5agopTTPFGydmvUuqIw674mUNmNbJr6OJzQE5SnxMfL5xsmgNzfz9H5c2QJqgJA==}
+    engines: {node: '>=22.19.0'}
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -2033,6 +2038,10 @@ packages:
     resolution: {integrity: sha512-b7zoBQvpWp0vuN5q2vK2RRBR2SvuruQAs50DApdDveBSn3eSYd84IaHodFqQIMlvY9K2VnyBUEXgwOBuGU9GBg==}
     engines: {node: '>=14'}
 
+  undici@8.12.2:
+    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
+    engines: {node: '>=22.19.0'}
+
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
 
@@ -2065,19 +2074,16 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vouchington-tooling@0.46.0:
-    resolution: {integrity: sha512-6kuThKw9xevFOAXYm8GuJaWrS5pMj40415BuccqMHUhuTOGx6Mf4FqYkdBPjbox8CMlMNjAvVNJdQ9gztAzmKg==}
+  vouchington-tooling@0.48.0:
+    resolution: {integrity: sha512-y4ADM6pzF0w6tzUYZYTC/iYeO3u4H3m5JSnwbsPjGyuRKQnEqaps5b97Sy6JFBUmjb4/MORz2MipJMUMDp70AA==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.31.0
-      agent-blackboard: ^0.6.1
       no-mistakes: '*'
       vitest: '>=5'
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
-        optional: true
-      agent-blackboard:
         optional: true
       no-mistakes:
         optional: true
@@ -2912,6 +2918,14 @@ snapshots:
       acorn: 8.18.0
 
   acorn@8.18.0: {}
+
+  agent-blackboard@0.7.0(supports-color@7.2.0)(zod@4.5.4):
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
+      - zod
 
   ajv-formats@3.0.1:
     dependencies:
@@ -3988,10 +4002,11 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pr-shepherd@0.56.5(supports-color@7.2.0):
+  pr-shepherd@0.59.1(supports-color@7.2.0):
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       picomatch: 4.0.7
+      undici: 8.12.2
       yaml: 2.9.1
       zod: 4.5.4
     transitivePeerDependencies:
@@ -4234,6 +4249,8 @@ snapshots:
 
   unbash@4.0.10: {}
 
+  undici@8.12.2: {}
+
   unified@11.0.5:
     dependencies:
       '@types/unist': 3.0.3
@@ -4281,11 +4298,12 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0):
+  vouchington-tooling@0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
       '@typescript-eslint/parser': 8.71.2(@typescript/typescript6@6.0.2)(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      agent-blackboard: 0.7.0(supports-color@7.2.0)(zod@4.5.4)
       csv-parse: 7.0.3
       csv-stringify: 6.9.0
       dockerfile-ast: 0.7.1
@@ -4301,8 +4319,10 @@ snapshots:
       '@typescript/typescript6': 6.0.2
       no-mistakes: 0.53.2
     transitivePeerDependencies:
+      - '@cfworker/json-schema'
       - eslint
       - supports-color
+      - zod
 
   vscode-languageserver-textdocument@1.0.14: {}
 
