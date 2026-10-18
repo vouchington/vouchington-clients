@@ -52,10 +52,7 @@ extension ViewModel {
         let selectedProvider = selectedProvider
         let model = modelIdentity(for: selectedProvider)
         clearSubmittedDraftIfUnchanged(draftAtSubmission, preservingDraft: preservingDraft)
-        generationErrors.removeValue(forKey: conversationID)
-        conversationCreationFailed = false
-        conversationCreationErrorMessage = nil
-        errorMessage = nil
+        clearErrorsForNewGeneration(in: conversationID)
         messages.append(.init(id: ids.user, role: "user", content: submitted))
         var completedPending: AndroidPendingChatTurn?
 

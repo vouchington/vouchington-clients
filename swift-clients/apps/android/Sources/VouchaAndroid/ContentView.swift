@@ -93,7 +93,7 @@ struct AndroidChatView: View {
                         Button {
                             Task { await viewModel.selectConversation(conversation.id) }
                         } label: {
-                            Text(verbatim: UiMessages.string(.userContent(conversation.title), locale: locale))
+                            Text(verbatim: androidConversationMenuTitle(conversation.title, locale: locale))
                         }
                     }
                     if viewModel.hasMoreConversations {

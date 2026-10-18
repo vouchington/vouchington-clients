@@ -4,6 +4,14 @@ import VouchaCore
 import VouchaModels
 
 extension ViewModel {
+    func clearErrorsForNewGeneration(in conversationID: String) {
+        generationErrors.removeValue(forKey: conversationID)
+        draftBackedGenerationFailures.removeValue(forKey: conversationID)
+        conversationCreationFailed = false
+        conversationCreationErrorMessage = nil
+        errorMessage = nil
+    }
+
     func retryConversationLoad() async {
         switch latestTranscriptLoadFailure {
         case let .conversations(reset, cursor):
@@ -107,12 +115,17 @@ extension ViewModel {
             retainFailedGeneration(attempt.submitted, for: conversationID, error: error)
         } else {
             draft = attempt.submitted
+            draftBackedGenerationFailures[conversationID] = AndroidFailedGeneration(
+                text: attempt.submitted,
+                message: error.localizedDescription
+            )
         }
         errorMessage = error.localizedDescription
         chatErrorKind = .generation
     }
 
     private func retainFailedGeneration(_ text: String, for conversationID: String, error: Error) {
+        draftBackedGenerationFailures.removeValue(forKey: conversationID)
         failedGenerations[conversationID] = AndroidFailedGeneration(
             text: text,
             message: error.localizedDescription

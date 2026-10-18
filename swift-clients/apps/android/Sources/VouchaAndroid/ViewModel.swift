@@ -51,6 +51,7 @@ final class ViewModel {
     var latestTranscriptLoadFailure: AndroidTranscriptLoadFailure?
     var loadedConversationHistoryID: String?
     var failedGenerations: [String: AndroidFailedGeneration] = [:]
+    var draftBackedGenerationFailures: [String: AndroidFailedGeneration] = [:]
     var generationErrors: [String: String] = [:]
     var pendingTurnErrors: [String: String] = [:]
     var pendingTurnHistoryAcknowledgements: [String: Set<String>] = [:]
@@ -173,6 +174,7 @@ final class ViewModel {
         latestTranscriptLoadFailure = nil
         loadedConversationHistoryID = nil
         failedGenerations = [:]
+        draftBackedGenerationFailures = [:]
         generationErrors = [:]
         isGenerating = false
     }

@@ -29,6 +29,9 @@ extension ViewModel {
                     throw AndroidAICoreError.endpointSaveFailed
                 }
             }
+            if provider == .aiCore, selectedProvider == .aiCore, errorMessage == nil {
+                restoreSelectedConversationError()
+            }
         } catch {
             selectedProvider = settingsStore.load().selectedProviderID == AndroidChatProvider.endpoint.rawValue
                 ? .endpoint

@@ -63,6 +63,10 @@ extension ViewModel {
 
     func selectConversation(_ id: String, revision: UUID = UUID()) async {
         guard selectedConversationID != id else { return }
+        if let previousID = selectedConversationID,
+           let draftBackedFailure = draftBackedGenerationFailures.removeValue(forKey: previousID) {
+            failedGenerations[previousID] = draftBackedFailure
+        }
         selectedConversationID = id
         conversationCreationFailed = false
         conversationCreationErrorMessage = nil
