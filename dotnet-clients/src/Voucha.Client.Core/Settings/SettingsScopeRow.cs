@@ -16,12 +16,13 @@ public sealed record SettingsScopeRow(
     "write" => UiMessageKey.NativeCredentialsWriteAction,
     _ => UiMessageKey.NativeCredentialsInvalidSelection,
   }));
-  public string Audience => Localization.Resolve(UiText.Localized(ProtocolValue.Audience switch
+  public string Audience => Localization.Resolve(ProtocolValue.Audience switch
   {
-    "user" => UiMessageKey.NativeCredentialsUserAudience,
-    "api" => UiMessageKey.NativeCredentialsApiAudience,
-    _ => UiMessageKey.NativeCredentialsInvalidSelection,
-  }));
+    "user" => UiText.Localized(UiMessageKey.NativeCredentialsUserAudience),
+    "api" => UiText.Localized(UiMessageKey.NativeCredentialsApiAudience),
+    "community_moderation" or "brand" or "legal" => UiText.ProtocolValue(ProtocolValue.Audience),
+    _ => UiText.Localized(UiMessageKey.NativeCredentialsInvalidSelection),
+  });
   public string Requires => ProtocolValue.Requires is { } scope
       ? Localization.Format(UiMessageKey.NativeCredentialsRequires, ("scope", UiText.ProtocolValue(scope)))
       : string.Empty;

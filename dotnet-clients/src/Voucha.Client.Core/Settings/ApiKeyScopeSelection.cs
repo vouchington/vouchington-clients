@@ -28,6 +28,8 @@ public sealed class ApiKeyScopeSelection
     {
       var closure = new HashSet<string>(StringComparer.Ordinal);
       IncludePrerequisites(scope, closure, new HashSet<string>(StringComparer.Ordinal));
+      if (selected.Union(closure).Select(name => scopes[name].Audience).Distinct(StringComparer.Ordinal).Count() != 1)
+        throw new InvalidOperationException("Scopes must share one audience.");
       if (maxSelected is { } limit && selected.Union(closure).Count() > limit)
         throw new InvalidOperationException("Too many scopes selected.");
       selected.UnionWith(closure);

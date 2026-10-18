@@ -77,6 +77,28 @@ final class ApiKeyScopeSelectionTests: XCTestCase {
         XCTAssertEqual(selection.availableScopes.map(\.scope), ["new-feed:read"])
     }
 
+    func testMemberAudiencesRemainDistinctAndUnsupportedAudiencesAreExcluded() throws {
+        let audiences = ["user", "community_moderation", "brand", "legal", "admin", "api"]
+        let scopes = try audiences.map { audience in
+            try JSONDecoder().decode(CredentialScope.self, from: Data("""
+            {"scope":"\(audience):read","resource":"fixture","action":"read",
+             "audience":"\(audience)","surfaces":["api-key"],"requires":null,"descriptionKey":null}
+            """.utf8))
+        }
+        var selection = ApiKeyScopeSelection(scopes: scopes, type: .mcp)
+        XCTAssertEqual(selection.availableScopes.map(\.scope), ["brand:read", "community_moderation:read", "user:read"])
+        for audience in ["user", "community_moderation", "brand"] {
+            selection.clear()
+            XCTAssertTrue(selection.setSelected("\(audience):read", selected: true))
+            XCTAssertTrue(selection.isValid)
+            for other in audiences where other != audience {
+                XCTAssertFalse(selection.setSelected("\(other):read", selected: true))
+            }
+            XCTAssertEqual(selection.permissions, ["\(audience):read"])
+        }
+        XCTAssertThrowsError(try JSONDecoder().decode(ScopeAudience.self, from: Data("\"future\"".utf8)))
+    }
+
     private func makeSelection() throws -> ApiKeyScopeSelection {
         ApiKeyScopeSelection(scopes: [
             scope("data:read"), scope("data:write", requires: "data:read"),
