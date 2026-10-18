@@ -51,7 +51,7 @@ final class AndroidGenerationCancellationTests: XCTestCase {
     }
 }
 
-private final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidEndpointGenerating, @unchecked Sendable {
+final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidEndpointGenerating, @unchecked Sendable {
     // All mutable continuation and counter state is protected by lock.
     private let lock = NSLock()
     private let started: XCTestExpectation
@@ -61,8 +61,9 @@ private final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidE
     private var requests = 0
     private var cancellations = 0
     private var prematureStart: XCTestExpectation?
+    private var lastInput: CancellableGenerationInput?
 
-    init(started: XCTestExpectation, cancelled: XCTestExpectation, prematureStart: XCTestExpectation) {
+    init(started: XCTestExpectation, cancelled: XCTestExpectation, prematureStart: XCTestExpectation? = nil) {
         self.started = started
         self.cancelled = cancelled
         self.prematureStart = prematureStart
@@ -84,10 +85,21 @@ private final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidE
         .available
     }
 
-    func generate(prompt _: String) async throws -> String {
+    var requestInput: CancellableGenerationInput? {
+        lock.withLock { lastInput }
+    }
+
+    func generate(prompt: String) async throws -> String {
+        try await respond(to: .aiCore(prompt))
+    }
+
+    private func respond(to input: CancellableGenerationInput) async throws -> String {
         let first = lock.withLock {
             requests += 1
-            if requests > 1 { prematureStart?.fulfill() }
+            if requests > 1 {
+                lastInput = input
+                prematureStart?.fulfill()
+            }
             return requests == 1
         }
         guard first else { return "New account answer" }
@@ -111,10 +123,10 @@ private final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidE
     }
 
     func generateAssistantResponse(
-        message: String, history _: [LocalLLMChatMessage],
-        endpoint _: LocalLLMEndpointProfile, apiKey _: String?
+        message: String, history: [LocalLLMChatMessage],
+        endpoint: LocalLLMEndpointProfile, apiKey: String?
     ) async throws -> String? {
-        try await generate(prompt: message)
+        try await respond(to: .endpoint(message, history, endpoint, apiKey))
     }
 
     func releaseOldGeneration() {
@@ -130,4 +142,9 @@ private final class CancellableGenerationRuntime: AndroidAICoreRunning, AndroidE
             continuation?.resume(returning: "Uncancelled old response")
         }
     }
+}
+
+enum CancellableGenerationInput {
+    case aiCore(String)
+    case endpoint(String, [LocalLLMChatMessage], LocalLLMEndpointProfile, String?)
 }
