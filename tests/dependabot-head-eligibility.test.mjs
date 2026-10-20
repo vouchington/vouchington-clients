@@ -85,6 +85,7 @@ describe('trusted Dependabot head eligibility', () => {
     ['unsigned maintainer repair', commit('maintainer', false)],
     ['unsigned automated repair', commit('dependabot[bot]', false)],
     ['unassociated commit author', commit(null)],
+    ['unassociated commit committer', { ...commit(), committer: null }],
     ['verified bot author with human committer', commit('dependabot[bot]', true, 'maintainer')],
   ]) {
     it(`leaves a ${label} to ordinary reviewed CI`, () => {
@@ -98,7 +99,6 @@ describe('trusted Dependabot head eligibility', () => {
     ['wrong commit identity', { ...commit(), sha: 'c'.repeat(40) }],
     ['missing verification', { sha, author: { login: 'dependabot[bot]' } }],
     ['malformed verification', commit('dependabot[bot]', 'true')],
-    ['null committer', { ...commit(), committer: null }],
     ['malformed committer', { ...commit(), committer: { login: true } }],
   ]) {
     it(`fails closed for ${label}`, () => {
@@ -124,8 +124,121 @@ describe('trusted Dependabot head eligibility', () => {
     assert.match(workflow, /needs\.prepare\.outputs\.eligible == 'true'/u)
     assert.match(workflow, /uses: dependabot\/fetch-metadata@[a-f0-9]{40}/u)
     assert.doesNotMatch(preparation, /skip-verification|continue-on-error/u)
-    const cleanup = workflow.split('\n  cleanup-retargeted-automerge:')[1]
+    const cleanup = workflow
+      .split('\n  cleanup-retargeted-automerge:')[1]
+      .split('\n  cleanup-ineligible-automerge:')[0]
     assert.match(cleanup, /base\.ref != github\.event\.repository\.default_branch/u)
     assert.match(cleanup, /Disable stale Dependabot auto-merge/u)
+  })
+
+  it('disables inherited auto-merge only for the freshly verified ineligible PR head', () => {
+    const job = workflow.split('\n  cleanup-ineligible-automerge:\n')[1]
+    assert.ok(job)
+    assert.match(job, /needs: prepare/u)
+    assert.match(job, /needs\.prepare\.outputs\.eligible == 'false'/u)
+    assert.match(job, /EXPECTED_BASE_SHA: \$\{\{ needs\.prepare\.outputs\.base-sha \}\}/u)
+    assert.match(job, /EXPECTED_HEAD_SHA: \$\{\{ needs\.prepare\.outputs\.head-sha \}\}/u)
+    assert.match(job, /\.base\.sha == \$base/u)
+    assert.match(job, /\.head\.sha == \$head/u)
+    assert.match(job, /--disable-auto --match-head-commit "\$EXPECTED_HEAD_SHA"/u)
+    assert.match(job, /GH_TOKEN: \$\{\{ secrets\.DEPENDABOT_AUTOMERGE_TOKEN \}\}/u)
+
+    const run = job
+      .split('        run: |\n')[1]
+      .split('\n')
+      .map(line => line.replace(/^ {10}/u, ''))
+      .join('\n')
+    const root = mkdtempSync(join(tmpdir(), 'native-dependabot-cleanup-'))
+    try {
+      const pullRequest = {
+        state: 'open',
+        draft: false,
+        number: 402,
+        user: { login: 'dependabot[bot]' },
+        base: { ref: 'main', sha: 'a'.repeat(40) },
+        head: {
+          ref: 'dependabot/swift/crypto',
+          sha,
+          repo: { full_name: 'test/native' },
+        },
+      }
+      writeFileSync(join(root, 'pr.json'), JSON.stringify(pullRequest))
+      const stub = `gh() {
+        case "$1" in
+          api) cat "$RUNNER_TEMP/pr.json" ;;
+          pr) printf '%s\\n' "$@" > "$RUNNER_TEMP/merge-args" ;;
+          *) return 99 ;;
+        esac
+      }
+      `
+      const invokeCleanup = () =>
+        spawnSync('bash', ['-c', stub + run], {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            AUTOMERGE_TOKEN: 'test-token',
+            DEFAULT_BRANCH: 'main',
+            EXPECTED_BASE_SHA: 'a'.repeat(40),
+            EXPECTED_HEAD_SHA: sha,
+            GH_TOKEN: 'test-token',
+            PR_NUMBER: '402',
+            REPOSITORY: 'test/native',
+            RUNNER_TEMP: root,
+          },
+        })
+
+      const current = invokeCleanup()
+      assert.equal(current.status, 0, current.stderr)
+      assert.equal(
+        readFileSync(join(root, 'merge-args'), 'utf8').trim(),
+        [
+          'pr',
+          'merge',
+          '402',
+          '--repo',
+          'test/native',
+          '--disable-auto',
+          '--match-head-commit',
+          sha,
+        ].join('\n'),
+      )
+
+      for (const [label, change] of [
+        [
+          'changed head',
+          pr => {
+            pr.head.sha = 'c'.repeat(40)
+          },
+        ],
+        [
+          'changed base',
+          pr => {
+            pr.base.sha = 'd'.repeat(40)
+          },
+        ],
+        [
+          'retargeted PR',
+          pr => {
+            pr.base.ref = 'release'
+          },
+        ],
+        [
+          'closed PR',
+          pr => {
+            pr.state = 'closed'
+          },
+        ],
+      ]) {
+        const candidate = structuredClone(pullRequest)
+        change(candidate)
+        writeFileSync(join(root, 'pr.json'), JSON.stringify(candidate))
+        writeFileSync(join(root, 'merge-args'), '')
+        const stale = invokeCleanup()
+        assert.notEqual(stale.status, 0, label)
+        assert.equal(readFileSync(join(root, 'merge-args'), 'utf8'), '', label)
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

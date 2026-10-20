@@ -56,9 +56,9 @@ describe('Dependabot repair workflow contracts', () => {
     }
   })
 
-  it('exposes the write token only to final push or pinned auto-merge steps', () => {
+  it('exposes the write token only to final push, cleanup, or pinned auto-merge steps', () => {
     assert.equal(count(dotnet, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 1)
-    assert.equal(count(automerge, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 3)
+    assert.equal(count(automerge, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 4)
     assert.equal(count(dotnet, /name: Push with a single-command write credential/gu), 1)
     assert.equal(count(automerge, /name: Push with a single-command write credential/gu), 1)
   })
