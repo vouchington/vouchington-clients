@@ -3,7 +3,17 @@
 # Sourced by the cookie restart runner so it can reap only its own emulator.
 owned_emulator_stopped() {
   # jobs -p includes both running and SIGSTOPped children; jobs -pr does not.
-  ! jobs -p | grep -Fxq "$1"
+  if ! jobs -p | grep -Fxq "$1"; then
+    return 0
+  fi
+  # Bash can retain a terminated child in its job table until wait reaps it.
+  # A captured zombie is already stopped; a live or unreadable PID is not.
+  if ! kill -0 "$1" 2>/dev/null; then
+    return 0
+  fi
+  local process_state
+  process_state="$(ps -o stat= -p "$1" 2>/dev/null)" || return 1
+  [[ "$process_state" =~ ^[[:space:]]*Z ]]
 }
 
 stop_owned_emulator() {
