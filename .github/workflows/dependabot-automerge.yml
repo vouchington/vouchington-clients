@@ -28,9 +28,11 @@ jobs:
       base-sha: ${{ steps.live.outputs.base-sha }}
       head-sha: ${{ steps.live.outputs.head-sha }}
       repair-kind: ${{ steps.classify.outputs.repair-kind }}
+      eligible: ${{ steps.live.outputs.eligible }}
     steps:
       - name: Capture live Dependabot identity
         id: live
+        timeout-minutes: 2
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
@@ -45,32 +47,54 @@ jobs:
             (.base.sha | test("^[a-f0-9]{40}$")) and
             (.head.sha | test("^[a-f0-9]{40}$"))
           ' "$RUNNER_TEMP/live-pr.json" > /dev/null
+          head_sha="$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$head_sha" > "$RUNNER_TEMP/head-commit.json"
+          jq -e --arg expected "$head_sha" '
+            .sha == $expected and
+            (.commit.verification.verified | type) == "boolean" and
+            (.author == null or ((.author | type) == "object" and (.author.login | type) == "string")) and
+            ((.committer | type) == "object" and (.committer.login | type) == "string")
+          ' "$RUNNER_TEMP/head-commit.json" > /dev/null
+          eligible="$(jq -r '
+            .author.login == "dependabot[bot]" and .committer.login == "web-flow" and
+            .commit.verification.verified
+          ' "$RUNNER_TEMP/head-commit.json")"
           {
             printf 'base-sha=%s\n' "$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
-            printf 'head-sha=%s\n' "$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+            printf 'head-sha=%s\n' "$head_sha"
+            printf 'eligible=%s\n' "$eligible"
           } >> "$GITHUB_OUTPUT"
+          if [ "$eligible" != true ]; then
+            echo 'Head is not a verified Dependabot commit; use the ordinary reviewed PR path.'
+          fi
       - name: Fetch trusted Dependabot metadata
+        if: steps.live.outputs.eligible == 'true'
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ github.token }}
       - name: Check out exact trusted base
+        if: steps.live.outputs.eligible == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ steps.live.outputs.base-sha }}
       - name: Set up trusted Node.js
+        if: steps.live.outputs.eligible == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
       - name: Set up pnpm
+        if: steps.live.outputs.eligible == 'true'
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           version: latest-12
       - name: Install trusted repair dependencies
+        if: steps.live.outputs.eligible == 'true'
         run: pnpm install --frozen-lockfile
       - name: Bind the live PR to its exact commit diff
+        if: steps.live.outputs.eligible == 'true'
         env:
           BASE_SHA: ${{ steps.live.outputs.base-sha }}
           EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
@@ -82,6 +106,7 @@ jobs:
             git fetch --no-tags origin "$EXPECTED_HEAD_SHA"
           git diff --raw --full-index -z --find-renames "$BASE_SHA...$EXPECTED_HEAD_SHA" > "$RUNNER_TEMP/exact-dependabot-diff"
       - name: Classify trusted Swift Android repair
+        if: steps.live.outputs.eligible == 'true'
         id: classify
         env:
           BASE_SHA: ${{ steps.live.outputs.base-sha }}
@@ -98,7 +123,7 @@ jobs:
           node scripts/classify-dependabot-swift-android-repair.mjs \
             "$BASE_SHA" "$EXPECTED_HEAD_SHA" "$GITHUB_OUTPUT"
       - name: Fetch candidate files as inert data
-        if: steps.classify.outputs.repair-kind == 'swift-android'
+        if: steps.live.outputs.eligible == 'true' && steps.classify.outputs.repair-kind == 'swift-android'
         env:
           BASE_SHA: ${{ steps.live.outputs.base-sha }}
           EXPECTED_HEAD_SHA: ${{ steps.live.outputs.head-sha }}
@@ -118,7 +143,7 @@ jobs:
               > "$candidate/swift-clients/apps/android/tooling/materialize-skip-sdk.sh"
           fi
       - name: Verify exact Skip tag revision
-        if: steps.classify.outputs.repair-kind == 'swift-android'
+        if: steps.live.outputs.eligible == 'true' && steps.classify.outputs.repair-kind == 'swift-android'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -128,7 +153,7 @@ jobs:
           revision="$(jq -er '.pins[] | select(.identity == "skip") | .state.revision | select(test("^[a-f0-9]{40}$"))' "$resolved")"
           [[ "$revision" == "$(gh api "repos/skiptools/skip/commits/$version" --jq .sha)" ]]
       - name: Build verified Swift Android repair artifact
-        if: steps.classify.outputs.repair-kind == 'swift-android'
+        if: steps.live.outputs.eligible == 'true' && steps.classify.outputs.repair-kind == 'swift-android'
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
@@ -143,7 +168,7 @@ jobs:
             "$GITHUB_WORKSPACE" "$RUNNER_TEMP/swift-candidate" "$metadata" \
             "$RUNNER_TEMP/exact-dependabot-diff" "$output"
       - name: Upload verified Swift Android repair
-        if: steps.classify.outputs.repair-kind == 'swift-android'
+        if: steps.live.outputs.eligible == 'true' && steps.classify.outputs.repair-kind == 'swift-android'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           if-no-files-found: error
@@ -272,7 +297,7 @@ jobs:
   automerge:
     needs: [prepare, publish-swift-android]
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      always() && needs.prepare.result == 'success' && needs.prepare.outputs.eligible == 'true' &&
       (needs.prepare.outputs.repair-kind == 'none' || needs.publish-swift-android.result == 'success')
     runs-on: ubuntu-slim
     timeout-minutes: 5
