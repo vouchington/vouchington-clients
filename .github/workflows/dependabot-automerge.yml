@@ -334,7 +334,6 @@ jobs:
       - name: Disable auto-merge for the ineligible head
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          EXPECTED_BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
           EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
           GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -343,7 +342,6 @@ jobs:
           set -euo pipefail
           gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/ineligible-pr.json"
           jq -e \
-            --arg base "$EXPECTED_BASE_SHA" \
             --arg default "$DEFAULT_BRANCH" \
             --arg head "$EXPECTED_HEAD_SHA" \
             --arg number "$PR_NUMBER" \
@@ -351,7 +349,7 @@ jobs:
               .state == "open" and .draft == false and
               (.number | tostring) == $number and
               .user.login == "dependabot[bot]" and
-              .base.ref == $default and .base.sha == $base and
+              .base.ref == $default and
               .head.repo.full_name == $repository and
               (.head.ref | startswith("dependabot/")) and .head.sha == $head
             ' "$RUNNER_TEMP/ineligible-pr.json" > /dev/null

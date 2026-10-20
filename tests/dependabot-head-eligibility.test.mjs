@@ -136,9 +136,9 @@ describe('trusted Dependabot head eligibility', () => {
     assert.ok(job)
     assert.match(job, /needs: prepare/u)
     assert.match(job, /needs\.prepare\.outputs\.eligible == 'false'/u)
-    assert.match(job, /EXPECTED_BASE_SHA: \$\{\{ needs\.prepare\.outputs\.base-sha \}\}/u)
     assert.match(job, /EXPECTED_HEAD_SHA: \$\{\{ needs\.prepare\.outputs\.head-sha \}\}/u)
-    assert.match(job, /\.base\.sha == \$base/u)
+    assert.doesNotMatch(job, /EXPECTED_BASE_SHA|\.base\.sha/u)
+    assert.match(job, /\.base\.ref == \$default/u)
     assert.match(job, /\.head\.sha == \$head/u)
     assert.match(job, /--disable-auto --match-head-commit "\$EXPECTED_HEAD_SHA"/u)
     assert.match(job, /GH_TOKEN: \$\{\{ secrets\.DEPENDABOT_AUTOMERGE_TOKEN \}\}/u)
@@ -178,7 +178,6 @@ describe('trusted Dependabot head eligibility', () => {
             ...process.env,
             AUTOMERGE_TOKEN: 'test-token',
             DEFAULT_BRANCH: 'main',
-            EXPECTED_BASE_SHA: 'a'.repeat(40),
             EXPECTED_HEAD_SHA: sha,
             GH_TOKEN: 'test-token',
             PR_NUMBER: '402',
@@ -203,17 +202,21 @@ describe('trusted Dependabot head eligibility', () => {
         ].join('\n'),
       )
 
+      pullRequest.base.sha = 'b'.repeat(40)
+      writeFileSync(join(root, 'pr.json'), JSON.stringify(pullRequest))
+      writeFileSync(join(root, 'merge-args'), '')
+      const afterBaseAdvance = invokeCleanup()
+      assert.equal(afterBaseAdvance.status, 0, afterBaseAdvance.stderr)
+      assert.match(
+        readFileSync(join(root, 'merge-args'), 'utf8'),
+        /--match-head-commit\n[0-9a-f]{40}/u,
+      )
+
       for (const [label, change] of [
         [
           'changed head',
           pr => {
             pr.head.sha = 'c'.repeat(40)
-          },
-        ],
-        [
-          'changed base',
-          pr => {
-            pr.base.sha = 'd'.repeat(40)
           },
         ],
         [
