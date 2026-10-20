@@ -23,8 +23,17 @@ Required dual-OS says that suite also compiles a different stack.
 
 The iOS job first compiles against a generic iOS Simulator destination on `macos-latest`, then
 runs the shared UI launch-smoke target on an available iPhone Simulator with signing disabled.
-It fails when no iPhone Simulator is available or the app does not render its root shell, and is
-required by the native workflow `Tests` fan-in.
+It also exercises the real Videos tab using existing canonical identity and feed responses. The
+DEBUG fixture restores its account through `SessionManager.refresh`; it does not prove sign-in,
+cookie persistence, or CAPTCHA behavior. The test receives its complete fixture checkout explicitly
+through the generated scheme and fails closed when a fixture or the Simulator is unavailable.
+The job is required by the native workflow `Tests` fan-in; skipped cases and test retries are not
+accepted as feed-flow evidence. This is partial coverage of #77, with other flows and platforms
+still outstanding.
+
+Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
+and native test planners do not execute the Node contract assertions that check those selectors,
+result predicates and fixture-root wiring.
 
 ## Required dual-OS
 

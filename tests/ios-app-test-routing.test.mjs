@@ -11,8 +11,8 @@ const jobBlock = (workflow, job) => {
   return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
 }
 
-describe('iOS Simulator launch smoke fan-in', () => {
-  it('runs the unsigned app on Simulator and requires success', () => {
+describe('iOS Simulator launch and feed-flow fan-in', () => {
+  it('runs the unsigned app shell and canonical feed flow and requires both to pass', () => {
     const workflow = readFileSync(
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
@@ -56,8 +56,18 @@ describe('iOS Simulator launch smoke fan-in', () => {
     )
     assert.match(
       iosJob,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1/u,
+      /-only-testing:VouchaLaunchSmokeTests\/FeedFlowTests\/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation/u,
     )
+    assert.match(
+      iosJob,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
+    )
+    assert.match(iosJob, /test VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u)
+    const project = readFileSync(
+      new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
+      'utf8',
+    )
+    assert.match(project, /VOUCHA_FILAMENTS_CONTRACT_ROOT: '\$\(VOUCHA_FILAMENTS_CONTRACT_ROOT\)'/u)
     assert.match(iosJob, /CODE_SIGNING_ALLOWED=NO/u)
     assert.match(
       iosJob,

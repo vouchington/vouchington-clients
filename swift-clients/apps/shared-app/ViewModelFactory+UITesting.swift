@@ -11,6 +11,8 @@
             let client = APIClient(
                 config: config,
                 cookieStorage: cookieStorage,
+                protocolClasses: ProcessInfo.processInfo.arguments.contains(FeedFlowUITestingURLProtocol.launchArgument)
+                    ? [FeedFlowUITestingURLProtocol.self] : [],
                 bootstrapSession: false,
                 metadata: NativeClientMetadata.current()
             )
