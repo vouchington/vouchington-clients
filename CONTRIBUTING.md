@@ -18,11 +18,13 @@ Start with the [README](README.md) for repository layout, the Filaments contract
 [AGENTS.md](AGENTS.md). The Node tooling runs on any pnpm 12 release, which is deliberately
 unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
 
-After a frozen install in a local worktree, setup verifies Git's `core.hooksPath` and the generated
-Husky `pre-push` wrapper. A failed hook install fails setup even if Husky only prints a Git-config
-error. If Git metadata access was denied, run `pnpm run prepare` with normal write access, verify
-the hook, and push the same head again so the real freshness and lint checks run. An intentional
-`HUSKY=0` CI install skips this local hook setup.
+After a frozen install in a local worktree, run `pnpm run prepare` explicitly. A cached install can
+exit successfully without rerunning lifecycle scripts. Preparation verifies Git's `core.hooksPath`
+and the generated Husky `pre-push` wrapper; `./dev/reset-worktree` runs it after installation too.
+A failed hook install fails preparation even if Husky only prints a Git-config error. If Git metadata
+access was denied, rerun `pnpm run prepare` with normal write access, verify the executable wrapper,
+and push the same head again so the real freshness and lint checks run. An intentional `HUSKY=0` CI
+install skips this local hook setup.
 
 ## Native quality
 
