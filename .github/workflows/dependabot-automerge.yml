@@ -49,6 +49,14 @@ jobs:
             (.head.repo.full_name | type) == "string"
           ' "$RUNNER_TEMP/live-pr.json" > /dev/null
           head_sha="$(jq -r .head.sha "$RUNNER_TEMP/live-pr.json")"
+          base_sha="$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
+          {
+            printf 'base-sha=%s\n' "$base_sha"
+            printf 'head-sha=%s\n' "$head_sha"
+            # Cleanup may run after a later commit lookup fails, but only after
+            # this exact live PR identity has passed the checks above.
+            printf 'eligible=false\n'
+          } >> "$GITHUB_OUTPUT"
           gh api "repos/$GITHUB_REPOSITORY/commits/$head_sha" > "$RUNNER_TEMP/head-commit.json"
           jq -e --arg expected "$head_sha" '
             .sha == $expected and
@@ -60,11 +68,7 @@ jobs:
             .author.login == "dependabot[bot]" and .committer.login == "web-flow" and
             .commit.verification.verified
           ) == true' "$RUNNER_TEMP/head-commit.json")"
-          {
-            printf 'base-sha=%s\n' "$(jq -r .base.sha "$RUNNER_TEMP/live-pr.json")"
-            printf 'head-sha=%s\n' "$head_sha"
-            printf 'eligible=%s\n' "$eligible"
-          } >> "$GITHUB_OUTPUT"
+          printf 'eligible=%s\n' "$eligible" >> "$GITHUB_OUTPUT"
           if [ "$eligible" != true ]; then
             echo 'Head is not a verified Dependabot commit; use the ordinary reviewed PR path.'
           fi
@@ -327,7 +331,9 @@ jobs:
 
   cleanup-ineligible-automerge:
     needs: prepare
-    if: needs.prepare.outputs.eligible == 'false'
+    if: >-
+      always() && needs.prepare.result != 'cancelled' &&
+      needs.prepare.outputs.eligible == 'false'
     runs-on: ubuntu-slim
     timeout-minutes: 5
     steps:
@@ -351,7 +357,26 @@ jobs:
               .user.login == "dependabot[bot]" and
               .base.ref == $default and
               .head.repo.full_name == $repository and
-              (.head.ref | startswith("dependabot/")) and .head.sha == $head
+              (.head.ref | startswith("dependabot/")) and
+              (.head.sha | type) == "string" and
+              (.head.sha | test("^[a-f0-9]{40}$")) and .head.sha == $head and
+              ($head | test("^[a-f0-9]{40}$")) and
+              has("auto_merge") and
+              (
+                .auto_merge == null or
+                (
+                  (.auto_merge | type) == "object" and
+                  (.auto_merge | has("enabled_by") and has("merge_method") and has("commit_title") and has("commit_message")) and
+                  (.auto_merge.enabled_by | type) == "object" and
+                  (.auto_merge.enabled_by.login | type) == "string" and
+                  (.auto_merge.merge_method | IN("merge", "squash", "rebase")) and
+                  (.auto_merge.commit_title == null or (.auto_merge.commit_title | type) == "string") and
+                  (.auto_merge.commit_message == null or (.auto_merge.commit_message | type) == "string")
+                )
+              )
             ' "$RUNNER_TEMP/ineligible-pr.json" > /dev/null
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" \
-            --disable-auto --match-head-commit "$EXPECTED_HEAD_SHA"
+          if [ "$(jq -r '.auto_merge == null' "$RUNNER_TEMP/ineligible-pr.json")" = true ]; then
+            echo 'Auto-merge is already disabled for the verified ineligible head.'
+            exit 0
+          fi
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --disable-auto

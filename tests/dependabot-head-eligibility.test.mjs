@@ -20,7 +20,10 @@ const run = liveStep
   .join('\n')
 const sha = 'b'.repeat(40)
 
-function invoke(commit, failCommitFetch = false) {
+function invoke(
+  commit,
+  { failCommitFetch = false, failPullRequestFetch = false, pullRequestChanges = {} } = {},
+) {
   const root = mkdtempSync(join(tmpdir(), 'native-dependabot-head-'))
   try {
     writeFileSync(
@@ -31,13 +34,16 @@ function invoke(commit, failCommitFetch = false) {
         user: { login: 'dependabot[bot]' },
         base: { ref: 'main', sha: 'a'.repeat(40) },
         head: { ref: 'dependabot/swift/crypto', sha, repo: { full_name: 'test/native' } },
+        ...pullRequestChanges,
       }),
     )
     writeFileSync(join(root, 'commit.json'), JSON.stringify(commit))
     writeFileSync(join(root, 'output'), '')
     const stub = `gh() {
       case "$2" in
-        repos/test/native/pulls/402) cat "$RUNNER_TEMP/pr.json" ;;
+        repos/test/native/pulls/402)
+          [ "$FAIL_PR_FETCH" = false ] || return 21
+          cat "$RUNNER_TEMP/pr.json" ;;
         repos/test/native/commits/${sha})
           [ "$FAIL_COMMIT_FETCH" = false ] || return 22
           cat "$RUNNER_TEMP/commit.json" ;;
@@ -55,6 +61,7 @@ function invoke(commit, failCommitFetch = false) {
         DEFAULT_BRANCH: 'main',
         PR_NUMBER: '402',
         FAIL_COMMIT_FETCH: String(failCommitFetch),
+        FAIL_PR_FETCH: String(failPullRequestFetch),
       },
     })
     return { ...result, output: readFileSync(join(root, 'output'), 'utf8') }
@@ -76,7 +83,7 @@ describe('trusted Dependabot head eligibility', () => {
   it('admits a verified bot head to the existing metadata verification', () => {
     const result = invoke(commit())
     assert.equal(result.status, 0, result.stderr)
-    assert.match(result.output, /^eligible=true$/mu)
+    assert.equal(result.output.trim().split('\n').at(-1), 'eligible=true')
     assert.match(result.output, new RegExp(`^head-sha=${sha}$`, 'mu'))
   })
 
@@ -91,7 +98,7 @@ describe('trusted Dependabot head eligibility', () => {
     it(`leaves a ${label} to ordinary reviewed CI`, () => {
       const result = invoke(candidate)
       assert.equal(result.status, 0, result.stderr)
-      assert.match(result.output, /^eligible=false$/mu)
+      assert.equal(result.output.trim().split('\n').at(-1), 'eligible=false')
     })
   }
 
@@ -104,14 +111,32 @@ describe('trusted Dependabot head eligibility', () => {
     it(`fails closed for ${label}`, () => {
       const result = invoke(candidate)
       assert.notEqual(result.status, 0)
-      assert.doesNotMatch(result.output, /^eligible=/mu)
+      assert.equal(result.output.trim().split('\n').at(-1), 'eligible=false')
     })
   }
 
-  it('does not disguise an API failure as ineligibility', () => {
-    const result = invoke(commit(), true)
+  it('exposes conservative cleanup identity before a failed commit lookup without passing prepare', () => {
+    const result = invoke(commit(), { failCommitFetch: true })
     assert.equal(result.status, 22)
-    assert.doesNotMatch(result.output, /^eligible=/mu)
+    assert.deepEqual(result.output.trim().split('\n'), [
+      `base-sha=${'a'.repeat(40)}`,
+      `head-sha=${sha}`,
+      'eligible=false',
+    ])
+  })
+
+  it('does not expose cleanup identity when the initial pull request lookup fails', () => {
+    const result = invoke(commit(), { failPullRequestFetch: true })
+    assert.equal(result.status, 21)
+    assert.equal(result.output, '')
+  })
+
+  it('does not expose cleanup identity before the live pull request passes all identity guards', () => {
+    const result = invoke(commit(), {
+      pullRequestChanges: { base: { ref: 'release', sha: 'a'.repeat(40) } },
+    })
+    assert.notEqual(result.status, 0)
+    assert.equal(result.output, '')
   })
 
   it('gates every privileged preparation step and auto-merge without weakening metadata trust', () => {
@@ -135,12 +160,16 @@ describe('trusted Dependabot head eligibility', () => {
     const job = workflow.split('\n  cleanup-ineligible-automerge:\n')[1]
     assert.ok(job)
     assert.match(job, /needs: prepare/u)
+    assert.match(job, /always\(\) && needs\.prepare\.result != 'cancelled'/u)
     assert.match(job, /needs\.prepare\.outputs\.eligible == 'false'/u)
     assert.match(job, /EXPECTED_HEAD_SHA: \$\{\{ needs\.prepare\.outputs\.head-sha \}\}/u)
     assert.doesNotMatch(job, /EXPECTED_BASE_SHA|\.base\.sha/u)
     assert.match(job, /\.base\.ref == \$default/u)
     assert.match(job, /\.head\.sha == \$head/u)
-    assert.match(job, /--disable-auto --match-head-commit "\$EXPECTED_HEAD_SHA"/u)
+    assert.match(job, /--disable-auto\n/u)
+    assert.doesNotMatch(job, /--match-head-commit/u)
+    assert.match(job, /has\("auto_merge"\)/u)
+    assert.match(job, /\.auto_merge == null/u)
     assert.match(job, /GH_TOKEN: \$\{\{ secrets\.DEPENDABOT_AUTOMERGE_TOKEN \}\}/u)
 
     const run = job
@@ -160,6 +189,12 @@ describe('trusted Dependabot head eligibility', () => {
           ref: 'dependabot/swift/crypto',
           sha,
           repo: { full_name: 'test/native' },
+        },
+        auto_merge: {
+          enabled_by: { login: 'dependabot[bot]' },
+          merge_method: 'squash',
+          commit_title: null,
+          commit_message: null,
         },
       }
       writeFileSync(join(root, 'pr.json'), JSON.stringify(pullRequest))
@@ -190,16 +225,7 @@ describe('trusted Dependabot head eligibility', () => {
       assert.equal(current.status, 0, current.stderr)
       assert.equal(
         readFileSync(join(root, 'merge-args'), 'utf8').trim(),
-        [
-          'pr',
-          'merge',
-          '402',
-          '--repo',
-          'test/native',
-          '--disable-auto',
-          '--match-head-commit',
-          sha,
-        ].join('\n'),
+        ['pr', 'merge', '402', '--repo', 'test/native', '--disable-auto'].join('\n'),
       )
 
       pullRequest.base.sha = 'b'.repeat(40)
@@ -207,10 +233,30 @@ describe('trusted Dependabot head eligibility', () => {
       writeFileSync(join(root, 'merge-args'), '')
       const afterBaseAdvance = invokeCleanup()
       assert.equal(afterBaseAdvance.status, 0, afterBaseAdvance.stderr)
-      assert.match(
-        readFileSync(join(root, 'merge-args'), 'utf8'),
-        /--match-head-commit\n[0-9a-f]{40}/u,
+      assert.equal(
+        readFileSync(join(root, 'merge-args'), 'utf8').trim().split('\n').at(-1),
+        '--disable-auto',
       )
+
+      const alreadyDisabled = structuredClone(pullRequest)
+      alreadyDisabled.auto_merge = null
+      writeFileSync(join(root, 'pr.json'), JSON.stringify(alreadyDisabled))
+      writeFileSync(join(root, 'merge-args'), '')
+      const idempotent = invokeCleanup()
+      assert.equal(idempotent.status, 0, idempotent.stderr)
+      assert.equal(readFileSync(join(root, 'merge-args'), 'utf8'), '')
+
+      for (const malformed of [
+        Object.fromEntries(Object.entries(pullRequest).filter(([key]) => key !== 'auto_merge')),
+        { ...pullRequest, auto_merge: {} },
+        { ...pullRequest, auto_merge: { ...pullRequest.auto_merge, merge_method: 'automatic' } },
+      ]) {
+        writeFileSync(join(root, 'pr.json'), JSON.stringify(malformed))
+        writeFileSync(join(root, 'merge-args'), '')
+        const rejected = invokeCleanup()
+        assert.notEqual(rejected.status, 0)
+        assert.equal(readFileSync(join(root, 'merge-args'), 'utf8'), '')
+      }
 
       for (const [label, change] of [
         [
