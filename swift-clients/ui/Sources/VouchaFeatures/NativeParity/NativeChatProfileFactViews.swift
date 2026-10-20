@@ -32,7 +32,8 @@ struct NativeChatProfileLinksFactView: View {
                         Link(destination: destination) {
                             Text(verbatim: label(for: link, destination: destination))
                         }
-                    } else if let value = link.name ?? link.handle, !value.isEmpty {
+                    } else if let value = [link.name, link.handle, link.url]
+                        .compactMap({ $0 }).first(where: { !$0.isEmpty }) {
                         Text(verbatim: UiMessages.string(.userContent(value), locale: locale))
                     }
                 }

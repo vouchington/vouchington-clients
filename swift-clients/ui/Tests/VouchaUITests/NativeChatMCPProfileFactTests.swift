@@ -94,4 +94,23 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         XCTAssertTrue(inspected.findAll(ViewType.Link.self).isEmpty)
         XCTAssertNoThrow(try inspected.find(text: "Untrusted label"))
     }
+
+    func testURLOnlyLinksShowRejectedAddressAsTextButKeepSafeAddressClickable() throws {
+        let rejected = NativeChatProfileLinkFact(
+            id: "unsafe", linkType: .url, handle: nil, name: nil,
+            url: "http://example.com/profile"
+        )
+        let safe = NativeChatProfileLinkFact(
+            id: "safe", linkType: .url, handle: nil, name: nil,
+            url: "https://example.com/profile"
+        )
+        let inspected = try NativeChatProfileLinksFactView(
+            links: [rejected, safe], locale: Locale(identifier: "en")
+        ).inspect()
+
+        XCTAssertNil(rejected.safeDestination)
+        XCTAssertEqual(inspected.findAll(ViewType.Link.self).count, 1)
+        XCTAssertNoThrow(try inspected.find(text: "http://example.com/profile"))
+        XCTAssertNoThrow(try inspected.find(text: "example.com"))
+    }
 }
