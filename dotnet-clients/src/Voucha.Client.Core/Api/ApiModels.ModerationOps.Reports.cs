@@ -10,6 +10,7 @@ public enum ModerationReportSort { Severity, MostReported, CreatedAtAsc, Created
 public enum ModerationReportResolution { Reviewed, Dismissed }
 
 public sealed record ModerationReportJudgement(
+    [property: JsonPropertyName("id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string Id,
     [property: JsonPropertyName("recommended_action")] string RecommendedAction,
     [property: JsonPropertyName("public_response")] string PublicResponse,
     [property: JsonPropertyName("internal_response")] string InternalResponse,
@@ -52,7 +53,8 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("post_moderation_context")] JsonElement? PostModerationContext,
     [property: JsonPropertyName("cursor_created_at")] DateTimeOffset? CursorCreatedAt = null,
     [property: JsonPropertyName("cursor_report_count")] int? CursorReportCount = null,
-    [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank = null);
+    [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank = null,
+    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false);
 
 public sealed record MemberModerationReport(
     [property: JsonPropertyName("id")] string Id,

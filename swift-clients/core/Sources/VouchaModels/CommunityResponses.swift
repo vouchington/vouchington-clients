@@ -81,13 +81,15 @@ public struct CommunityPendingReportsResponse: Codable, Sendable {
 }
 
 public struct CommunityPendingReport: Codable, Identifiable, Sendable {
+    public let automaticJudgementEnabled: Bool
     public let id: String
     public let caseId: String
     public let entityType: String
     public let entityId: String
     public let targetLabel: String?
     public let targetPath: String?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let reason: String
     public let status: ModerationReportStatus
     public let reportCount: Int

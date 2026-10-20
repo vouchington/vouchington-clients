@@ -76,7 +76,7 @@ public struct ModerationDisputeReadResponse: Codable, Sendable {
 
 private enum ProtectedDisputeField: String, CodingKey {
     case disputantUserId, claimText, recommendedAction
-    case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId
+    case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId, aiDraftRequestedRunId
     case internalNotes, draftedAt, editedAt, editedById, approvedById, resolvedById
     case latestLifecycleChangeId, staffContext
 
@@ -84,7 +84,7 @@ private enum ProtectedDisputeField: String, CodingKey {
     var requiresStaffProjection: Bool {
         switch self {
         case .disputantUserId, .claimText, .recommendedAction,
-             .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt, .aiDraftRunId,
+             .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt, .aiDraftRunId, .aiDraftRequestedRunId,
              .internalNotes, .draftedAt, .editedAt, .editedById, .approvedById, .resolvedById,
              .latestLifecycleChangeId, .staffContext:
             true

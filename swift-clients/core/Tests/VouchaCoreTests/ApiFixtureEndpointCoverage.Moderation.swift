@@ -24,6 +24,10 @@ extension ApiFixtureEndpointCoverageTests {
         "native.moderation.report-judgement.default": Endpoint.rerunModerationReportJudgement(
             reportId: moderationFlatReportId
         ),
+        "native.moderation.report-judgement-run.pending": Endpoint.moderationReportJudgementRun(
+            reportId: moderationFlatReportId,
+            runId: "00000000-0000-7000-8000-000000000303"
+        ),
         "native.moderation.report-resolution.reviewed": Endpoint.resolveModerationReport(
             reportId: moderationFlatReportId,
             status: .reviewed

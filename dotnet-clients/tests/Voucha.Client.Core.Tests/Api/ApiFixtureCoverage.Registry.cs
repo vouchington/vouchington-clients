@@ -87,6 +87,7 @@ internal static partial class ApiFixtureCoverage
     ["native.moderation.reports.clustered.default"] = typeof(StaffClusteredModerationReportsResponse),
     ["native.moderation.reports.clustered.page-2"] = typeof(StaffClusteredModerationReportsResponse),
     ["native.moderation.report-judgement.default"] = typeof(ModerationReportJudgementResponse),
+    ["native.moderation.report-judgement-run.pending"] = typeof(ModerationReportJudgementRunResponse),
     ["native.moderation.report-resolution.reviewed"] = typeof(ModerationReportResolutionResponse),
     ["native.moderation.admin-warning.report"] = typeof(AdminUserWarningResponse),
     ["native.moderation.appeals.default"] = typeof(ModerationAppealListResponse),

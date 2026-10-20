@@ -14,6 +14,9 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest RerunModerationReportJudgement(string reportId) =>
       new(HttpMethod.Post, $"/api/v1/reports/{Path(reportId)}/judgements");
 
+  public static ApiRequest ModerationReportJudgementRun(string reportId, string runId) =>
+      Get($"/api/v1/reports/{Path(reportId)}/judgements/{Path(runId)}");
+
   public static ApiRequest IssueAdminWarning(IssueAdminWarningRequest request)
   {
     ArgumentNullException.ThrowIfNull(request);

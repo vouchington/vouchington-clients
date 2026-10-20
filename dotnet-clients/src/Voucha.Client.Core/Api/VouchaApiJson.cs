@@ -13,6 +13,8 @@ public static class VouchaApiJson
     {
       new JsonStringEnumConverter<RssFeedImportErrorCode>(allowIntegerValues: false),
       new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
+      new ModerationDisputeRunIdentityConverter(),
+      new ModerationAppealRunIdentityConverter(),
     },
   };
 }

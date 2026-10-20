@@ -39,7 +39,8 @@ public sealed record CommunityPendingReport(
     [property: JsonPropertyName("community_ban_evasion")] JsonElement? CommunityBanEvasion = null,
     [property: JsonPropertyName("claim")] CommunityModerationQueueClaim? Claim = null,
     [property: JsonPropertyName("escalated_at")] DateTimeOffset? EscalatedAt = null,
-    [property: JsonPropertyName("escalated_by_id")] string? EscalatedById = null);
+    [property: JsonPropertyName("escalated_by_id")] string? EscalatedById = null,
+    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false);
 
 public sealed record CommunityPendingReportsResponse(
     [property: JsonPropertyName("reports")] IReadOnlyList<CommunityPendingReport> Reports,

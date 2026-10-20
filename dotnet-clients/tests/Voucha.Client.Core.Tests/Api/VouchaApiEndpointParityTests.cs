@@ -199,6 +199,8 @@ public sealed partial class VouchaApiEndpointParityTests
               "case_id": "case-1",
               "status": "pending",
               "recommended_action": "accept",
+              "ai_draft_requested_run_id": "appeal_resolution_00000000-0000-7000-8000-000000000202",
+              "ai_draft_run_id": null,
               "post_removal_kind": "community",
               "resolution_action": "deny",
               "created_at": "2026-03-01T11:55:00Z",

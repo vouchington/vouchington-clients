@@ -19,6 +19,12 @@ extension EndpointManifestCoverage {
                 limit: 3
             )
         },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-judgement-run.pending") {
+            Endpoint.moderationReportJudgementRun(
+                reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e",
+                runId: "00000000-0000-7000-8000-000000000303"
+            )
+        },
         ManifestRegisteredEndpoint(id: "native.moderation.report-judgement.default") {
             Endpoint.rerunModerationReportJudgement(reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e")
         },

@@ -112,7 +112,9 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
   {
     Calls.Add($"rerun:{id}");
     ThrowIfNeeded();
-    return Task.FromResult(new ModerationAppealQueueResponse(QueueAccepted, "staff-1"));
+    var admission = JsonSerializer.Deserialize<ModerationAppealQueueResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.appeals.resolution-drafts.default"), VouchaApiJson.Options)!;
+    return Task.FromResult(admission with { Queued = QueueAccepted, RerunById = "staff-1" });
   }
 
   private void ThrowIfNeeded()

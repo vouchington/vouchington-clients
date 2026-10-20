@@ -53,8 +53,11 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
-        CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (
-            Data(#"{"queued":false,"rerun_by_id":null}"#.utf8), 200
+        var declined = try XCTUnwrap(JSONSerialization.jsonObject(with: Support.queued) as? [String: Any])
+        declined["queued"] = false
+        declined["rerun_by_id"] = NSNull()
+        CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = try (
+            JSONSerialization.data(withJSONObject: declined), 200
         )
         await viewModel.rerunAI(for: appeal)
         XCTAssertNil(viewModel.pendingAIReruns[appeal.id])

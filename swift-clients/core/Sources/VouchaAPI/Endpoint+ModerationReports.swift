@@ -79,6 +79,10 @@ public extension Endpoint {
         Endpoint(.POST, path: "/api/v1/reports/\(pathSegment(reportId))/judgements")
     }
 
+    static func moderationReportJudgementRun(reportId: String, runId: String) -> Endpoint {
+        Endpoint(.GET, path: "/api/v1/reports/\(pathSegment(reportId))/judgements/\(pathSegment(runId))")
+    }
+
     static func issueAdminWarning(
         userId: String,
         reason: String,
