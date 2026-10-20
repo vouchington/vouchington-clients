@@ -1,4 +1,6 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
+using Voucha.Client.Core.Profiles;
 
 namespace Voucha.Client.App.Pages;
 
@@ -53,7 +55,28 @@ public partial class PostDetailPage : ContentPage
 
 public partial class ProfilePage : ContentPage
 {
-  public ProfilePage() => InitializeComponent();
+  private readonly ProfileViewModel viewModel;
+
+  public ProfilePage() : this(null, null) { }
+
+  internal ProfilePage(
+      ProfileViewModel? viewModel,
+      Func<Task<FileResult?>>? pickAvatarFile = null,
+      Func<FileResult, Task<Stream>>? openSelectedFile = null)
+  {
+    InitializeComponent();
+    this.viewModel = viewModel!;
+    this.pickAvatarFile = pickAvatarFile ?? (() => FilePicker.Default.PickAsync(PickOptions.Images));
+    this.openSelectedFile = openSelectedFile ?? (file => file.OpenReadAsync());
+    BindingContext = viewModel;
+  }
+
+  protected override void OnDisappearing()
+  {
+    EndAvatarPreviewSession();
+    base.OnDisappearing();
+  }
+
   public bool IsPublicProfile => true;
   private void OnBlockUserClicked(object? sender, EventArgs args) { }
   private void OnClearUserTagVoteClicked(object? sender, EventArgs args) { }
@@ -73,10 +96,8 @@ public partial class ProfilePage : ContentPage
   private void OnProfileSourceClicked(object? sender, EventArgs args) { }
   private void OnProfileTopicClicked(object? sender, EventArgs args) { }
   private void OnRefreshClicked(object? sender, EventArgs args) { }
-  private void OnRemoveAvatarClicked(object? sender, EventArgs args) { }
   private void OnReportUserClicked(object? sender, EventArgs args) { }
   private void OnSaveBioClicked(object? sender, EventArgs args) { }
-  private void OnUploadAvatarClicked(object? sender, EventArgs args) { }
   private void OnUserAdminClicked(object? sender, EventArgs args) { }
   private void OnUserTagVoteClicked(object? sender, EventArgs args) { }
   private void OnUserTrustVoteClicked(object? sender, EventArgs args) { }
