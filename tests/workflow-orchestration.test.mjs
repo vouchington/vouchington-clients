@@ -64,7 +64,10 @@ describe('event-driven CI orchestration', () => {
       workflow,
       /- name: Classify trusted Swift Android repair[\s\S]*?node scripts\/classify-dependabot-swift-android-repair\.mjs/u,
     )
-    assert.match(workflow, /if: steps\.classify\.outputs\.repair-kind == 'swift-android'/u)
+    assert.match(
+      workflow,
+      /if: steps\.live\.outputs\.eligible == 'true' && steps\.classify\.outputs\.repair-kind == 'swift-android'/u,
+    )
     assert.match(classifier, /validate-dependabot-swift-repair\.mjs/u)
     assert.match(classifier, /repairKind = 'swift-android'/u)
   })
