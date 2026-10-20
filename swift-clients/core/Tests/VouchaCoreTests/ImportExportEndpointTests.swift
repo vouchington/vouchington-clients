@@ -152,6 +152,47 @@ final class ImportExportEndpointTests: XCTestCase {
         ))
     }
 
+    func testCanonicalRssRowsPreserveTypedErrorsAndTopicIdentity() throws {
+        let retrying = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        )
+        XCTAssertEqual(retrying.rows[0].status, .pending)
+        XCTAssertEqual(retrying.rows[0].errorCode, .importFailed)
+        XCTAssertNil(retrying.rows[0].error)
+        XCTAssertTrue(retrying.rows[0].isRetrying)
+        XCTAssertFalse(retrying.rows[1].isRetrying)
+        XCTAssertNil(retrying.rows[1].errorCode)
+        XCTAssertEqual(retrying.import.pendingRows, 2)
+        XCTAssertEqual(retrying.import.failedRows, 0)
+
+        let partial = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.partial")
+        )
+        XCTAssertEqual(partial.rows[0].status, .followed)
+        XCTAssertEqual(partial.rows[0].entityId, "70000000-0000-7000-8000-000000000004")
+        XCTAssertEqual(partial.rows[0].topicSlug, "local-news")
+        XCTAssertNil(partial.rows[0].errorCode)
+        XCTAssertEqual(partial.rows[1].status, .error)
+        XCTAssertFalse(partial.rows[1].isRetrying)
+        XCTAssertEqual(partial.rows[1].errorCode, .importFailed)
+        XCTAssertEqual(partial.import.pendingRows, 0)
+        XCTAssertNotNil(partial.import.completedAt)
+    }
+
+    func testRssErrorCodesPreserveCanonicalWireValues() throws {
+        let values: [(String, RssFeedImportErrorCode)] = [
+            ("INVALID_URL", .invalidURL), ("INVALID_FEED_CONTENT", .invalidFeedContent),
+            ("FEED_FETCH_TIMEOUT", .feedFetchTimeout),
+            ("CONTRIBUTION_LIMIT_EXCEEDED", .contributionLimitExceeded), ("IMPORT_FAILED", .importFailed)
+        ]
+        for (wire, expected) in values {
+            let data = Data("\"\(wire)\"".utf8)
+            XCTAssertEqual(try JSONDecoder().decode(RssFeedImportErrorCode.self, from: data), expected)
+            XCTAssertEqual(try JSONEncoder().encode(expected), data)
+        }
+        XCTAssertThrowsError(try JSONDecoder().decode(RssFeedImportErrorCode.self, from: Data("\"UNKNOWN\"".utf8)))
+    }
+
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {
         try assertFixtureCoversDTO(
             "native.import-export.rss-feeds.submit.default",

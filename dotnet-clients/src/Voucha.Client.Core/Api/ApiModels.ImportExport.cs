@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Voucha.Client.Core.ImportExport;
 
 namespace Voucha.Client.Core.Api;
 
@@ -13,18 +14,34 @@ public enum ImportResultStatus
   Error,
 }
 
+public enum RssFeedImportErrorCode
+{
+  [JsonStringEnumMemberName("INVALID_URL")]
+  InvalidUrl,
+  [JsonStringEnumMemberName("INVALID_FEED_CONTENT")]
+  InvalidFeedContent,
+  [JsonStringEnumMemberName("FEED_FETCH_TIMEOUT")]
+  FeedFetchTimeout,
+  [JsonStringEnumMemberName("CONTRIBUTION_LIMIT_EXCEEDED")]
+  ContributionLimitExceeded,
+  [JsonStringEnumMemberName("IMPORT_FAILED")]
+  ImportFailed,
+}
+
 public sealed record ImportResult(
     string? Id,
     string Input,
     ImportResultStatus Status,
     string? Error,
     [property: JsonPropertyName("entity_id")] string? EntityId,
-    [property: JsonPropertyName("recommendation_post_id")] string? RecommendationPostId)
+    [property: JsonPropertyName("recommendation_post_id")] string? RecommendationPostId,
+    [property: JsonPropertyName("error_code")] RssFeedImportErrorCode? ErrorCode = null,
+    [property: JsonPropertyName("topic_slug")] string? TopicSlug = null)
 {
   [JsonIgnore]
   public string DisplayStatus => Status switch
   {
-    ImportResultStatus.Pending when !string.IsNullOrWhiteSpace(Error) => "Retrying",
+    ImportResultStatus.Pending when this.IsRetrying() => "Retrying",
     ImportResultStatus.Error => "Failed",
     _ => Status.ToString(),
   };

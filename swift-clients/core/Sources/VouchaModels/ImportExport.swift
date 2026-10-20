@@ -51,6 +51,14 @@ public enum ImportResultStatus: String, Codable, Sendable {
     case error
 }
 
+public enum RssFeedImportErrorCode: String, Codable, Sendable {
+    case invalidURL = "INVALID_URL"
+    case invalidFeedContent = "INVALID_FEED_CONTENT"
+    case feedFetchTimeout = "FEED_FETCH_TIMEOUT"
+    case contributionLimitExceeded = "CONTRIBUTION_LIMIT_EXCEEDED"
+    case importFailed = "IMPORT_FAILED"
+}
+
 public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
     public let id: String?
     public let input: String
@@ -58,6 +66,13 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
     public let error: String?
     public let entityId: String?
     public let recommendationPostId: String?
+    public let errorCode: RssFeedImportErrorCode?
+    public let topicSlug: String?
+
+    public var isRetrying: Bool {
+        status == .pending &&
+            (error?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false || errorCode != nil)
+    }
 
     public init(
         id: String? = nil,
@@ -65,7 +80,9 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
         status: ImportResultStatus,
         error: String? = nil,
         entityId: String? = nil,
-        recommendationPostId: String? = nil
+        recommendationPostId: String? = nil,
+        errorCode: RssFeedImportErrorCode? = nil,
+        topicSlug: String? = nil
     ) {
         self.id = id
         self.input = input
@@ -73,6 +90,8 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
         self.error = error
         self.entityId = entityId
         self.recommendationPostId = recommendationPostId
+        self.errorCode = errorCode
+        self.topicSlug = topicSlug
     }
 }
 
