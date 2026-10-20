@@ -72,3 +72,9 @@ captured profile, then rechecks both live pull request snapshots. The supplement
 informational and candidate-controlled; it is not a signed test result or a GitHub check. The
 workflow does not change default required checks. Successful evidence reflects only the selected
 commands and platforms, not the full native matrix or physical-device acceptance.
+
+APK validation uses separate fixed file budgets because Swift Android debug libraries make the app
+larger than ordinary contract artifacts. The app is bounded at 384 MiB, the instrumentation APK at
+32 MiB, and revision/checksum metadata at 128 bytes/1 KiB. The generic 256 MiB per-file and 512 MiB
+aggregate artifact limits remain in effect outside that APK-specific policy; the aggregate limit
+also applies to APK bundles. File allowlists, source identities and checksums remain required.

@@ -74,6 +74,12 @@ validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-
 individual phases for CI. This compiles the app and packages Android test libraries without
 a device; it does not claim device test execution.
 
+The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
+and reaps only its captured emulator child, including a child that ignores termination or is
+stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the
+owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
+replace emulator instrumentation.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do

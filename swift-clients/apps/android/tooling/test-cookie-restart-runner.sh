@@ -155,4 +155,168 @@ voucha.android.test/androidx.test.runner.AndroidJUnitRunner
 ARGS
 cmp "$test_root/expected-adb-arguments.txt" "$VOUCHA_TEST_ADB_ARGUMENTS"
 bash "$runner" verify-instrumentation-output "$test_root/instrumentation.log"
-echo 'Cookie restart host artifact and instrumentation parsers passed synthetic checks'
+
+# This host-only check exercises the runner's real shutdown helper. It does not
+# stand in for a device or emulator test.
+cat > "$test_root/cleanup-case.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+source "$1"
+desired_status="$2"
+RUNNER_TEMP="$3"
+emulator_log="$3/emulator.log"
+printf 'synthetic emulator diagnostic\n' > "$emulator_log"
+python3 - "$3/emulator.pid" "$4" <<'PY' &
+import os
+import signal
+import sys
+import time
+
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+with open(sys.argv[1], "w", encoding="utf-8") as marker:
+    marker.write(str(os.getpid()))
+if sys.argv[2] == "stop":
+    os.kill(os.getpid(), signal.SIGSTOP)
+time.sleep(60)
+PY
+emulator_pid=$!
+for _ in {1..100}; do
+  [[ -f "$3/emulator.pid" ]] && break
+  sleep 0.02
+done
+[[ -f "$3/emulator.pid" ]]
+if [[ "$4" == stop ]]; then
+  stopped=0
+  for _ in {1..100}; do
+    process_state="$(ps -o stat= -p "$emulator_pid" 2>/dev/null || true)"
+    if [[ "$process_state" =~ ^[[:space:]]*T ]]; then
+      stopped=1
+      break
+    fi
+    sleep 0.02
+  done
+  [[ "$stopped" -eq 1 ]] || {
+    echo 'Synthetic emulator never entered the stopped job state' >&2
+    kill -KILL "$emulator_pid" 2>/dev/null || true
+    wait "$emulator_pid" 2>/dev/null || true
+    exit 1
+  }
+fi
+if [[ "$4" == fail ]]; then
+  stop_owned_emulator() {
+    kill -KILL "$1" 2>/dev/null || true
+    wait "$1" 2>/dev/null || true
+    echo 'synthetic cleanup failure' >&2
+    return 1
+  }
+fi
+if [[ "$4" == stale ]]; then
+  jobs() {
+    printf '%s\n' "$emulator_pid"
+  }
+fi
+trap cookie_emulator_cleanup EXIT
+exit "$desired_status"
+SCRIPT
+cat > "$test_root/bin/adb" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$VOUCHA_TEST_ADB_CALLS"
+SCRIPT
+cat > "$test_root/bin/timeout" <<'SCRIPT'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$VOUCHA_TEST_TIMEOUT_CALLS"
+shift 2
+"$@"
+SCRIPT
+chmod +x "$test_root/bin/adb" "$test_root/bin/timeout"
+export VOUCHA_TEST_ADB_CALLS="$test_root/cleanup-adb-calls.log"
+export VOUCHA_TEST_TIMEOUT_CALLS="$test_root/cleanup-timeout-calls.log"
+python3 - "$script_dir/stop-owned-emulator.sh" "$test_root" <<'PY'
+import os
+import pathlib
+import signal
+import subprocess
+import sys
+import time
+
+helper, root = sys.argv[1:]
+unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+zombie_owner = subprocess.Popen(
+    [sys.executable, "-u", "-c", "import os, sys; child = os.fork(); "
+     "os._exit(0) if child == 0 else None; "
+     "print(child, flush=True); sys.stdin.readline(); os.waitpid(child, 0)"],
+    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+)
+try:
+    zombie_pid = int(zombie_owner.stdout.readline())
+    for _ in range(100):
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(zombie_pid)],
+                               capture_output=True, text=True, check=False)
+        if state.returncode == 0 and state.stdout.strip().startswith("Z"):
+            break
+        time.sleep(0.02)
+    else:
+        raise AssertionError("synthetic owned child never entered zombie state")
+
+    predicate = ('source "$1"; target="$2"; '
+                 'jobs() { printf "%s\\n" "$target"; }; '
+                 'owned_emulator_stopped "$target"')
+    def stopped(pid):
+        return subprocess.run(["/bin/bash", "-c", predicate, "predicate", helper, str(pid)],
+                              capture_output=True, text=True, check=False)
+
+    assert stopped(zombie_owner.pid).returncode == 1, "live owner was treated as stopped"
+    assert stopped(zombie_pid).returncode == 0, "unreaped zombie was treated as live"
+    zombie_owner.stdin.write("\n")
+    zombie_owner.stdin.flush()
+    assert zombie_owner.wait(timeout=5) == 0, zombie_owner.stderr.read()
+    assert stopped(zombie_pid).returncode == 0, "reaped child was treated as live"
+
+    for initial_status, expected_status, mode in ((0, 0, "term"), (7, 7, "term"),
+                                                  (0, 0, "stop"), (0, 0, "stale"), (0, 1, "fail"),
+                                                  (7, 7, "fail")):
+        case = pathlib.Path(root, f"cleanup-{initial_status}-{mode}")
+        case.mkdir()
+        command = ["bash", str(pathlib.Path(root, "cleanup-case.sh")), helper,
+                   str(initial_status), str(case), mode]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        try:
+            stdout, stderr = process.communicate(timeout=18)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+            raise AssertionError("cookie restart emulator cleanup exceeded its deadline")
+        assert process.returncode == expected_status, (process.returncode, stdout, stderr)
+        if mode == "fail":
+            assert "synthetic cleanup failure" in stderr, stderr
+        else:
+            assert "ignored graceful shutdown; sending KILL" in stderr, stderr
+        if initial_status == 7:
+            assert "synthetic emulator diagnostic" in stderr, stderr
+            assert (case / "voucha-cookie-emulator-failure-tail.log").read_text() == (
+                "synthetic emulator diagnostic\n"
+            )
+        else:
+            assert not (case / "voucha-cookie-emulator-failure-tail.log").exists()
+        emulator_pid = int((case / "emulator.pid").read_text(encoding="utf-8"))
+        try:
+            os.kill(emulator_pid, 0)
+        except ProcessLookupError:
+            pass
+        else:
+            raise AssertionError("synthetic emulator survived cookie restart cleanup")
+        assert unrelated.poll() is None, "cleanup killed an unrelated process"
+finally:
+    if zombie_owner.poll() is None:
+        zombie_owner.stdin.write("\n")
+        zombie_owner.stdin.flush()
+        zombie_owner.wait(timeout=5)
+    unrelated.terminate()
+    unrelated.wait(timeout=5)
+calls = pathlib.Path(root, "cleanup-adb-calls.log").read_text(encoding="utf-8")
+assert calls.splitlines() == ["emu kill"] * 4, calls
+timeouts = pathlib.Path(root, "cleanup-timeout-calls.log").read_text(encoding="utf-8")
+assert timeouts.splitlines() == ["--kill-after=2s 5s adb emu kill"] * 4, timeouts
+PY
+echo 'Cookie restart host artifact, instrumentation, and cleanup checks passed'
