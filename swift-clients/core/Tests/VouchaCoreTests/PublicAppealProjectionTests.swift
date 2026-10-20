@@ -54,6 +54,16 @@ final class PublicAppealProjectionTests: XCTestCase {
         )
         XCTAssertFalse(created.isDuplicate)
         XCTAssertEqual(created.appeal.status, .pending)
+        let submissionEncoder = JSONEncoder()
+        submissionEncoder.keyEncodingStrategy = .convertToSnakeCase
+        submissionEncoder.dateEncodingStrategy = .iso8601
+        let submissionData = try submissionEncoder.encode(created)
+        let submission = try XCTUnwrap(JSONSerialization.jsonObject(with: submissionData) as? [String: Any])
+        XCTAssertEqual(Set(submission.keys), ["appeal", "isDuplicate"])
+        XCTAssertEqual(submission["isDuplicate"] as? Bool, false)
+        let roundTrip = try makeVouchaDecoder().decode(MemberAppealSubmissionResponse.self, from: submissionData)
+        XCTAssertFalse(roundTrip.isDuplicate)
+        XCTAssertEqual(roundTrip.appeal.id, created.appeal.id)
     }
 
     func testEveryProtectedKeyIncludingNullSelectsStrictStaffDecode() throws {

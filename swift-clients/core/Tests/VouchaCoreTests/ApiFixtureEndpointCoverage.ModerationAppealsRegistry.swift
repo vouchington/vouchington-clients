@@ -6,13 +6,12 @@ let pendingAppealsPageCursor =
 let pendingAppealId = "00000000-0000-7000-8000-000000000102"
 
 let moderationAppealEndpointRegistry: [String: Endpoint] = [
-    "native.moderation.appeals.member.default": .appeals(status: .pending, limit: 25, mine: true),
+    "native.moderation.appeals.member.default": .appeals(status: .pending, limit: 25),
     "native.moderation.appeals.member.page-2": .appeals(
         status: .pending, limit: 25,
-        after: "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiIsInNjb3BlIjoiYXBwZWFsczpwZW5kaW5nOnVzZXItMTppZC1kZXNjIn0",
-        mine: true
+        after: "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiIsInNjb3BlIjoiYXBwZWFsczpwZW5kaW5nOnVzZXItMTppZC1kZXNjIn0"
     ),
-    "native.moderation.appeals.member.resolved": .appeals(status: .resolved, limit: 25, mine: true),
+    "native.moderation.appeals.member.resolved": .appeals(status: .resolved, limit: 25),
     "native.moderation.appeals.detail.member.default": .appeal(id: pendingAppealId),
     "native.moderation.appeals.detail.member.sent": .appeal(id: pendingAppealId),
     "native.moderation.appeals.create.member.default": .submitAppeal(ModerationAppealSubmissionRequest(

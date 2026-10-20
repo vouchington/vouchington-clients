@@ -8,12 +8,12 @@ internal static partial class ApiFixtureCoverage
       this Dictionary<string, ApiRequest> registry)
   {
     registry["native.moderation.appeals.member.default"] =
-        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Pending, mine: true);
+        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Pending);
     registry["native.moderation.appeals.member.page-2"] = VouchaApiEndpoints.Appeals(
         ModerationAppealStatus.Pending,
-        after: ApiFixtureLoader.QueryValue("native.moderation.appeals.member.page-2", "after"), mine: true);
+        after: ApiFixtureLoader.QueryValue("native.moderation.appeals.member.page-2", "after"));
     registry["native.moderation.appeals.member.resolved"] =
-        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Resolved, mine: true);
+        VouchaApiEndpoints.Appeals(ModerationAppealStatus.Resolved);
     registry["native.moderation.appeals.detail.member.default"] =
         VouchaApiEndpoints.Appeal(Id("native.moderation.appeals.detail.member.default"));
     registry["native.moderation.appeals.detail.member.sent"] =

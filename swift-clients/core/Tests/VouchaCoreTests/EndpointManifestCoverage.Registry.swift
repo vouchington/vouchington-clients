@@ -17,6 +17,7 @@ enum EndpointManifestCoverage {
             + bookmarkEndpoints
             + referralEndpoints
             + moderationEndpoints
+            + memberAppealEndpoints
             + moderationParityEndpoints
             + engineeringEndpoints
             + swiftCoreEndpoints
