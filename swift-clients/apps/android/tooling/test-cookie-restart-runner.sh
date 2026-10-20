@@ -272,6 +272,38 @@ try:
     assert zombie_owner.wait(timeout=5) == 0, zombie_owner.stderr.read()
     assert stopped(zombie_pid).returncode == 0, "reaped child was treated as live"
 
+    # A PID may exit after kill -0 succeeds but before ps reads its state.
+    # Reap this exact test-owned child concurrently so ps deterministically sees
+    # a missing process; never treat an unreadable still-live PID as stopped.
+    import threading
+    exiting = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    reaper = threading.Thread(target=exiting.wait)
+    reaper.start()
+    try:
+        race = ('source "$1"; target="$2"; '
+                'jobs() { printf "%s\\n" "$target"; }; '
+                'ps() { kill -TERM "$target"; '
+                'for _ in {1..100}; do kill -0 "$target" 2>/dev/null || break; sleep 0.02; done; '
+                'command ps "$@"; }; owned_emulator_stopped "$target"')
+        result = subprocess.run(["/bin/bash", "-c", race, "exit-race", helper, str(exiting.pid)],
+                                capture_output=True, text=True, timeout=5, check=False)
+        reaper.join(timeout=5)
+        assert exiting.poll() is not None, "exit-race child was not reaped"
+        assert result.returncode == 0, ("exited-between-probes PID was treated as live", result.stderr)
+    finally:
+        if exiting.poll() is None:
+            exiting.kill()
+        reaper.join(timeout=5)
+
+    unreadable = ('source "$1"; target="$2"; '
+                  'jobs() { printf "%s\\n" "$target"; }; '
+                  'ps() { return 1; }; owned_emulator_stopped "$target"')
+    result = subprocess.run(["/bin/bash", "-c", unreadable, "unreadable-live", helper,
+                             str(unrelated.pid)], capture_output=True, text=True,
+                            timeout=5, check=False)
+    assert result.returncode == 1, "unreadable live PID was treated as stopped"
+    assert unrelated.poll() is None, "unreadable-live probe killed an unrelated process"
+
     for initial_status, expected_status, mode in ((0, 0, "term"), (7, 7, "term"),
                                                   (0, 0, "stop"), (0, 0, "stale"), (0, 1, "fail"),
                                                   (7, 7, "fail")):
