@@ -82,6 +82,7 @@ public sealed class ProfilePageLocalAvatarPreviewTests
       Assert.True(unavailable.IsVisible);
       Assert.Equal("Uploaded image preview unavailable", unavailable.Text);
       Assert.Equal(1, fixture.Settings.IdentityUpdates);
+      Assert.Equal(fixture.Upload.ReadyImageId, fixture.Settings.LastIdentityUpdateBody?.ProfileImageId?.Value);
     }
     finally
     {
@@ -164,6 +165,7 @@ public sealed class ProfilePageLocalAvatarPreviewTests
   private sealed class HeldAvatarUploadService(bool holdCreate) : IImageUploadService
   {
     public ImageUploadUrl Url { get; } = new("image-1", "https://upload.test/image-1", "image/png", DateTimeOffset.UtcNow);
+    public string ReadyImageId { get; } = "ready-image-2";
     public TaskCompletionSource<bool> CreateStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource<ImageUploadUrlResponse> ReleaseCreate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource<bool> UploadStateFetched { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -192,7 +194,7 @@ public sealed class ProfilePageLocalAvatarPreviewTests
     public Task<ImageUploadStateResponse> FetchUploadStateAsync(string imageId, CancellationToken cancellationToken = default)
     {
       UploadStateFetched.TrySetResult(true);
-      return Task.FromResult(new ImageUploadStateResponse(new ImageUploadState(imageId, "complete", null, Ready: true, Blocked: false)));
+      return Task.FromResult(new ImageUploadStateResponse(new ImageUploadState(ReadyImageId, "complete", null, Ready: true, Blocked: false)));
     }
   }
 
@@ -200,19 +202,24 @@ public sealed class ProfilePageLocalAvatarPreviewTests
   {
     private static readonly User InitialUser = new("user-1", "alice");
     public int IdentityUpdates { get; private set; }
+    public UpdateMyIdentityBody? LastIdentityUpdateBody { get; private set; }
 
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => targetMethod?.Name switch
     {
       nameof(ISettingsService.FetchMyIdentityAsync) => Task.FromResult(new MyIdentityResponse(InitialUser)),
       nameof(ISettingsService.FetchUserAsync) => Task.FromResult(new UserResponse(InitialUser)),
-      nameof(ISettingsService.UpdateMyIdentityAsync) => UpdateIdentity(),
+      nameof(ISettingsService.UpdateMyIdentityAsync) => UpdateIdentity((UpdateMyIdentityBody)args![0]!),
       _ => throw new InvalidOperationException($"Unexpected settings call: {targetMethod?.Name}"),
     };
 
-    private Task<MyIdentityResponse> UpdateIdentity()
+    private Task<MyIdentityResponse> UpdateIdentity(UpdateMyIdentityBody body)
     {
       IdentityUpdates++;
-      return Task.FromResult(new MyIdentityResponse(InitialUser with { ProfileImageId = "image-1" }));
+      LastIdentityUpdateBody = body;
+      return Task.FromResult(new MyIdentityResponse(InitialUser with
+      {
+        ProfileImageId = body.ProfileImageId?.Value,
+      }));
     }
   }
 
