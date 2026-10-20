@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Storage;
 using Voucha.Client.App;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
@@ -30,10 +31,14 @@ public partial class ProfilePage : ContentPage
       IServiceProvider serviceProvider,
       VouchaApiClient apiClient,
       string? idOrUsername = null,
-      NativeUserProfileScope? initialScope = null)
+      NativeUserProfileScope? initialScope = null,
+      Func<Task<FileResult?>>? pickAvatarFile = null,
+      Func<FileResult, Task<Stream>>? openSelectedFile = null)
   {
     InitializeComponent();
     this.viewModel = viewModel;
+    this.pickAvatarFile = pickAvatarFile ?? (() => FilePicker.Default.PickAsync(PickOptions.Images));
+    this.openSelectedFile = openSelectedFile ?? (file => file.OpenReadAsync());
     this.sessionStore = sessionStore;
     lastStaffViewer = IsStaffViewer;
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
@@ -91,9 +96,7 @@ public partial class ProfilePage : ContentPage
   protected override void OnDisappearing()
   {
     DetachSessionChanged();
-    avatarPreviewGeneration++;
-    avatarPreviewCancellation.CancelCurrent();
-    ClearLocalAvatarPreview();
+    EndAvatarPreviewSession();
     base.OnDisappearing();
   }
 
