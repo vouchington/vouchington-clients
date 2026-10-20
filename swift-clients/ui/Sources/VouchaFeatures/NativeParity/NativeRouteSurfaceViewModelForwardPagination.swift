@@ -65,6 +65,7 @@ extension NativeRouteSurfaceViewModel {
     private var moderationPathSupportsForwardPagination: Bool {
         guard let path = routeMatch?.path else { return true }
         return path == "/appeals"
+            || path == "/my/appeals"
             || path == "/admin/modlog"
             || path.contains("disputes")
             || path.contains("vote-integrity")

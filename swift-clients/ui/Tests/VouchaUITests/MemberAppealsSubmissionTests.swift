@@ -185,7 +185,7 @@ final class MemberAppealsSubmissionTests: NativeRouteSurfaceViewModelTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
         let existing = try decoder.decode(
-            ModerationAppealListResponse.self,
+            MemberAppealListResponse.self,
             from: ModerationAppealsTestSupport.list([
                 ModerationAppealsTestSupport.appeal(id: "appeal-1", status: "resolved"),
                 ModerationAppealsTestSupport.appeal(id: "appeal-2")

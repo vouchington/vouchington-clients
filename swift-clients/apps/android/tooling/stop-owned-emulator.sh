@@ -12,7 +12,12 @@ owned_emulator_stopped() {
     return 0
   fi
   local process_state
-  process_state="$(ps -o stat= -p "$1" 2>/dev/null)" || return 1
+  if ! process_state="$(ps -o stat= -p "$1" 2>/dev/null)"; then
+    # The captured process may have exited between kill -0 and ps. A failed
+    # state read alone is insufficient: an unreadable live PID stays live.
+    ! kill -0 "$1" 2>/dev/null
+    return
+  fi
   [[ "$process_state" =~ ^[[:space:]]*Z ]]
 }
 

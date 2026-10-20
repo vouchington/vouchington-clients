@@ -1,6 +1,24 @@
 import VouchaModels
 
 let moderationAppealLifecycleFixtureCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "native.moderation.appeals.member.default") {
+        try assertFixtureCoversDTO($0, as: MemberAppealListResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.member.page-2") {
+        try assertFixtureCoversDTO($0, as: MemberAppealListResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.member.resolved") {
+        try assertFixtureCoversDTO($0, as: MemberAppealListResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.detail.member.default") {
+        try assertFixtureCoversDTO($0, as: MemberAppealReadResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.detail.member.sent") {
+        try assertFixtureCoversDTO($0, as: MemberAppealReadResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.create.member.default") {
+        try assertFixtureCoversDTO($0, as: MemberAppealSubmissionResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.appeals.page-2") {
         try assertFixtureCoversDTO(
             $0,

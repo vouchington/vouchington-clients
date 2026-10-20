@@ -32,17 +32,17 @@ extension MemberAppealsViewModel {
                 }
                 return
             }
-            let response: ModerationAppealListResponse = try await client.send(
+            let response: MemberAppealListResponse = try await client.send(
                 .appeals(status: .pending, limit: 25, mine: true)
             )
             apply(pending: response)
         case .resolvedAppeals:
-            let response: ModerationAppealListResponse = try await client.send(
+            let response: MemberAppealListResponse = try await client.send(
                 .appeals(status: .resolved, limit: 25, mine: true)
             )
             apply(resolved: response)
         case .dismissedAppeals:
-            let response: ModerationAppealListResponse = try await client.send(
+            let response: MemberAppealListResponse = try await client.send(
                 .appeals(status: .dismissed, limit: 25, mine: true)
             )
             apply(dismissed: response)
