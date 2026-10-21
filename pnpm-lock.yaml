@@ -36,8 +36,8 @@ importers:
         specifier: 1.80.0
         version: 1.80.0
       pr-shepherd:
-        specifier: 0.59.1
-        version: 0.59.1(supports-color@7.2.0)
+        specifier: 1.0.0
+        version: 1.0.0(supports-color@7.2.0)
       vouchington-tooling:
         specifier: 0.48.0
         version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4)
@@ -1826,8 +1826,8 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pr-shepherd@0.59.1:
-    resolution: {integrity: sha512-gNcFdws9U1+fgKc7I3usV9U5agopTTPFGydmvUuqIw674mUNmNbJr6OJzQE5SnxMfL5xsmgNzfz9H5c2QJqgJA==}
+  pr-shepherd@1.0.0:
+    resolution: {integrity: sha512-MOE+s43j7s6BtsfLT0tmeikVEYPyL/sxw0rzbkjaTqe/Ivw5GLTMnw224UUDvq3QNAxuVA3K1+kaSE4iLWlPjA==}
     engines: {node: '>=22.19.0'}
     hasBin: true
 
@@ -4002,7 +4002,7 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pr-shepherd@0.59.1(supports-color@7.2.0):
+  pr-shepherd@1.0.0(supports-color@7.2.0):
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       picomatch: 4.0.7

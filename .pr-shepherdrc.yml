@@ -1,9 +1,12 @@
-# ignoreChecks entries must be the RAW name — either a Checks API check_run `name`
-# (e.g. 'Sourcery review') or a Statuses API commit status `context` — not the composite
-# display name shown in the PR UI.
-# pr-shepherd matches against the raw name; composite-name entries silently never match.
-ignoreChecks:
-  - 'Sourcery review'
+version: 1
+
+checks:
+  # checks.ignore entries must be the RAW name — either a Checks API check_run `name`
+  # (e.g. 'Sourcery review') or a Statuses API commit status `context` — not the composite
+  # display name shown in the PR UI.
+  # pr-shepherd matches against the raw name; composite-name entries silently never match.
+  ignore:
+    - 'Sourcery review'
 
 # pr-shepherd's bundled bot-noise classification rules.
 classify:
