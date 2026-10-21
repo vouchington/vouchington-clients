@@ -104,4 +104,42 @@ public sealed partial class MemberMcpSessionTests
     Assert.True(controls.CanAuthorize);
   }
 
+  [Fact]
+  public async Task RealDeniedCallbackRetainsExistingGrantAndReloadsCatalog()
+  {
+    var factory = new FakeFactory();
+    var store = new FakeStore();
+    await store.SaveAsync(Scope("account-a"), Tokens);
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    var controls = new MemberMcpControlsViewModel(session);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections[0].DenyConsent = true;
+    controls.RequestWriteAccess = true;
+    var error = await Assert.ThrowsAnyAsync<Exception>(() => controls.ConnectAsync(TestContext.Current.CancellationToken));
+    Assert.Contains("denied", error.Message, StringComparison.OrdinalIgnoreCase);
+    await session.WhenSettledAsync();
+    Assert.NotNull(await store.LoadAsync(Scope("account-a")));
+    Assert.NotNull(session.Tools);
+    Assert.True(controls.IsConnected);
+  }
+
+  [Fact]
+  public async Task ConsentCancelsRunningToolBeforeWaitingForItsOperationLock()
+  {
+    var factory = new FakeFactory { HoldToolCall = true };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    var controls = new MemberMcpControlsViewModel(session);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    var call = session.CallToolAsync(snapshot, "read_post", JsonDocument.Parse("{}").RootElement,
+        TestContext.Current.CancellationToken);
+    await factory.Connections[0].ToolEntered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    var consent = controls.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.False(session.IsCurrent(snapshot));
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call)
+        .WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    await consent.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+    Assert.True(controls.IsConnected);
+  }
+
 }

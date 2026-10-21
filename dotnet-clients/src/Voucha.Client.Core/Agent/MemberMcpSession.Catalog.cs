@@ -6,9 +6,6 @@ public sealed partial class MemberMcpSession
 {
   public Task RefreshToolsAsync(CancellationToken cancellationToken = default) => RefreshCatalogAsync(null, cancellationToken);
 
-  public Task AuthorizeAsync(string scope, CancellationToken cancellationToken = default) =>
-      RefreshCatalogAsync(scope, cancellationToken);
-
   private async Task RefreshCatalogAsync(string? scope, CancellationToken cancellationToken)
   {
     using var wait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetimeToken);
@@ -16,7 +13,6 @@ public sealed partial class MemberMcpSession
     try
     {
       IMemberMcpSessionConnection connection;
-      CancellationTokenSource? priorCancellation = null;
       long revision;
       CancellationToken sessionToken;
       lock (gate)
@@ -24,19 +20,8 @@ public sealed partial class MemberMcpSession
         ThrowIfDisposed();
         connection = active ?? throw new InvalidOperationException("MCP is not connected.");
         Tools = null;
-        if (scope is not null)
-        {
-          priorCancellation = activeCancellation;
-          activeCancellation = new CancellationTokenSource();
-          Status = MemberMcpSessionStatus.Connecting;
-        }
         revision = ++generation;
         sessionToken = activeCancellation?.Token ?? throw new InvalidOperationException("MCP is not connected.");
-      }
-      if (priorCancellation is not null)
-      {
-        await priorCancellation.CancelAsync().ConfigureAwait(false);
-        priorCancellation.Dispose();
       }
       Changed?.Invoke(this, EventArgs.Empty);
       using var linked = CancellationTokenSource.CreateLinkedTokenSource(wait.Token, sessionToken);
