@@ -93,7 +93,9 @@ enum SignInUITestingLaunch {
 
         private func acceptedLogin() -> Data? {
             let body = jsonBody()
-            guard body["email_address"] == SignInUITestingLaunch.nonEmptyEnvironmentValue(
+            // verifyEmailOTP encodes a dictionary. convertToSnakeCase does not rewrite
+            // dictionary keys, so the email field stays emailAddress.
+            guard body["emailAddress"] == SignInUITestingLaunch.nonEmptyEnvironmentValue(
                 "VOUCHA_UI_TESTING_SIGN_IN_EMAIL"
             ),
                 body["token"] == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_SIGN_IN_CODE")
