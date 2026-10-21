@@ -33,13 +33,17 @@ only; sign-in and tab coverage stay on #80.
 
 The iOS job first compiles against a generic iOS Simulator destination on `macos-latest`, then
 runs the shared UI launch-smoke target on an available iPhone Simulator with signing disabled.
-It also exercises the real Videos tab using existing canonical identity and feed responses. The
-DEBUG fixture restores its account through `SessionManager.refresh`; it does not prove sign-in,
-cookie persistence, or CAPTCHA behavior. The test receives its complete fixture checkout explicitly
-through the generated scheme and fails closed when a fixture or the Simulator is unavailable.
+It also exercises the real Videos tab using existing canonical identity and feed responses. After
+those iPhone tests pass, the job shuts that simulator down and launches only
+`LaunchSmokeTests/testLaunchRendersRootShell` on an available iPad Simulator. The iPad result
+counts only when exactly one test passed and none were skipped. The generic Simulator compile is
+a build, not that launch. The DEBUG fixture restores its account through `SessionManager.refresh`;
+it does not prove sign-in, cookie persistence, or CAPTCHA behavior. The test receives its complete
+fixture checkout explicitly through the generated scheme and fails closed when a fixture or the
+Simulator is unavailable.
 The job is required by the native workflow `Tests` fan-in; skipped cases and test retries are not
-accepted as feed-flow evidence. This is partial coverage of #77, with other flows and platforms
-still outstanding.
+accepted as feed-flow evidence. This is partial coverage of #77. iPad feed flow, sign-in, and
+Catalyst remain outstanding.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,

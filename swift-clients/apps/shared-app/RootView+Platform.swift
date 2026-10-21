@@ -98,6 +98,14 @@ extension RootView {
                         showSignIn: { showingSignIn = true }
                     )
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
+                    .background(alignment: .topLeading) {
+                        // NavigationSplitView replaces its own accessibility identifier, so the
+                        // iPad root-shell marker has to live on a descendant XCTest can see.
+                        Image(systemName: "circle")
+                            .frame(width: 1, height: 1)
+                            .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
+                            .allowsHitTesting(false)
+                    }
                 } else if let selectedSection,
                           selectedSection.requiresAuth,
                           !viewModelFactory.sessionManager.isSignedIn {
