@@ -109,6 +109,13 @@ struct NativeChatMCPToolBridge {
             default: break
             }
         }
+        if name == "read_my_profile", result.isError != true, let structuredContent = result.structuredContent {
+            switch object["option"] {
+            case .string("bio"): fact = NativeChatMCPFact.makeProfileBio(structuredContent)
+            case .string("links"): fact = NativeChatMCPFact.makeProfileLinks(structuredContent)
+            default: break
+            }
+        }
         return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }
 
