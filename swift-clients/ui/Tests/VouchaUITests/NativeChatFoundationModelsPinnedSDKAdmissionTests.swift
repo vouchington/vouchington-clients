@@ -30,7 +30,7 @@ import XCTest
             }
             let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
             let descriptors = try Self.authorizedDescriptors(root: root)
-            let names = descriptors.map(\.tool.name)
+            let names = descriptors.map(\.name)
             XCTAssertEqual(Set(names).count, names.count)
             XCTAssertGreaterThan(names.count, NativeChatFoundationModelsToolSelection.maximumTools)
             XCTAssertTrue(names.contains("read_my_profile"))
