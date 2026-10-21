@@ -29,6 +29,11 @@ test('reads the pinned Gradle 9.4.1 profile categories and task durations', asyn
       duration: '0.009s',
     },
   )
+  assert.deepEqual(profileRows(html, 2), [{ name: 'All dependencies', duration: '0.127s' }])
+  assert.deepEqual(
+    profileRows(html, 4).map(row => row.name),
+    [':measure', ':app:compileDebugKotlin', ':app:packageDebug'],
+  )
   assert.equal(durationSeconds('1.5m'), 90)
   assert.equal(durationSeconds('1m 23.5s'), 83.5)
   assert.throws(() => profileRows('<html></html>', 4), /tab 4 is missing/u)
@@ -71,6 +76,10 @@ test('reports exact identity, bounded generated sizes, and longest tasks', async
   })
   assert.match(report, /Candidate: `a{40}`; run: `123`; attempt: `2`; Gradle: `9\.4\.1`/u)
   assert.match(report, /\| `:measure` \| 0\.009s \|/u)
+  assert.match(report, /\| All dependencies \| 0\.127s \|/u)
+  assert.match(report, /\| Kotlin and Java compile \| 1\.200s \|/u)
+  assert.match(report, /\| APK assembly \| 0\.100s \|/u)
+  assert.doesNotMatch(report, /\| `:app` \|/u)
   assert.match(report, /\| Generated \| 4 \| 3 \| complete \|/u)
   assert.match(report, /may overlap; they are not critical-path wall time/u)
 })

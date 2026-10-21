@@ -12,7 +12,8 @@ const maxScanMs = 2_000
 export function profileRows(html, tab) {
   const section = html.match(new RegExp(`<div class="tab" id="tab${tab}">([\\s\\S]*?)<\\/div>`))?.[1]
   if (!section) throw new Error(`Gradle profile tab ${tab} is missing`)
-  return [...section.matchAll(/<tr>\s*<td(?: class="[^"]*")?>([^<]*)<\/td>\s*<td class="numeric">([^<]*)<\/td>(?:\s*<td>[^<]*<\/td>)?\s*<\/tr>/gu)]
+  return [...section.matchAll(/<tr>\s*<td(?: class="[^"]*")?>([^<]*)<\/td>\s*<td class="numeric">([^<]*)<\/td>(?:\s*<td>([^<]*)<\/td>)?\s*<\/tr>/gu)]
+    .filter(([, , , result]) => tab !== 4 || result?.trim() !== '(total)')
     .map(([, name, duration]) => ({ name: name.trim(), duration: duration.trim() }))
 }
 
@@ -82,6 +83,8 @@ export function measuredSize(root, { entryLimit = maxEntries, timeLimitMs = maxS
 
 export function renderReport({ html, profilePath, paths, identity }) {
   const summary = profileRows(html, 0)
+  const dependencies = profileRows(html, 2).find(row => row.name === 'All dependencies')
+  if (!dependencies) throw new Error('Gradle profile dependency total is missing')
   const tasks = profileRows(html, 4)
     .filter(row => row.name.startsWith(':') && row.name !== ':')
     .map(row => ({ ...row, seconds: durationSeconds(row.duration) }))
@@ -103,7 +106,7 @@ export function renderReport({ html, profilePath, paths, identity }) {
     '',
     '| Build category | Duration |',
     '| --- | ---: |',
-    ...summary.map(row => `| ${row.name} | ${row.duration} |`),
+    ...[...summary, dependencies].map(row => `| ${row.name} | ${row.duration} |`),
     '',
     '| Longest task | Duration |',
     '| --- | ---: |',
