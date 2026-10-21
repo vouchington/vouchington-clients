@@ -74,7 +74,6 @@ extension RootView {
                 Image(systemName: "circle")
                     .frame(width: 1, height: 1)
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
-                    .accessibilityLabel("Root shell")
                     .allowsHitTesting(false)
             }
         }
