@@ -145,7 +145,10 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
   assert.match(iosAppJob, /xcodebuild -version[\s\S]*?= 26\.6/u)
   assert.match(iosBuildJob, /generate\.sh iOS/u)
   assert.match(iosBuildJob, /xcodebuild -project swift-clients\/apps\/iOS\/Voucha\.xcodeproj/u)
-  assert.match(iosX86Job, /-destination 'generic\/platform=iOS Simulator' -arch x86_64 build/u)
+  assert.match(
+    iosX86Job,
+    /-destination "platform=iOS Simulator,name=\$simulator_name,OS=\$simulator_sdk,arch=x86_64" build/u,
+  )
   assert.match(
     iosBuildJob,
     /-disableAutomaticPackageResolution[\s\S]*?-onlyUsePackageVersionsFromResolvedFile/u,

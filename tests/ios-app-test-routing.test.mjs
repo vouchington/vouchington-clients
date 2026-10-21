@@ -41,7 +41,7 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     assert.match(buildJob, /build-for-testing/u)
     assert.match(buildJob, /-destination "\$destination"/u)
     assert.match(buildJob, /arch=arm64/u)
-    assert.match(x86Job, /-arch x86_64 build/u)
+    assert.match(x86Job, /arch=x86_64" build/u)
     assert.match(iosJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(iosJob, /actions\/download-artifact@[a-f0-9]{40}/u)
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)

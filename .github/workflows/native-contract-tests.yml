@@ -1076,7 +1076,7 @@ jobs:
           fi
           ./swift-clients/tooling/generate.sh iOS
           destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -arch arm64 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           products="$XCODE_DERIVED_DATA/Build/Products"
           shopt -s nullglob
           test_runs=("$products"/*.xctestrun)
@@ -1146,8 +1146,15 @@ jobs:
           SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-x86-package-clones
         run: |
           set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .name][0] // empty')"
+          if [[ -z "$simulator_name" ]]; then
+            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier x86_64 compile"
+            exit 1
+          fi
           ./swift-clients/tooling/generate.sh iOS
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' -arch x86_64 build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=x86_64" build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
 
   build-ios-app:
     name: Swift iOS Simulator launch smoke
@@ -1211,7 +1218,7 @@ jobs:
           printf '%s\n' "$xctestrun" > "$RUNNER_TEMP/ios-launch-xctestrun"
           cd "$artifact"
           printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
-          tar -tzf ios-test-products.tar.gz | awk '$0 !~ /^Products\// { exit 1 }'
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
           mkdir -p "$GITHUB_WORKSPACE/ios-test-derived-data/Build"
           tar -C "$GITHUB_WORKSPACE/ios-test-derived-data/Build" -xzf ios-test-products.tar.gz
           test -f "$xctestrun"
