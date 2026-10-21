@@ -70,7 +70,7 @@
                                     LineBreakMode="WordWrap"
                                     IsVisible="{Binding HasContent}" />
                                 <Label Text="{Binding DisplayError}" Style="{StaticResource Metadata}" TextColor="#991B1B" IsVisible="{Binding HasError}" />
-                                <Label Text="{Binding DisplayFeedPostFacts}" Style="{StaticResource Metadata}" IsVisible="{Binding HasFeedPostFacts}" />
+                                <Label AutomationId="chat-feed-post-facts" Text="{Binding DisplayFeedPostFacts}" Style="{StaticResource Metadata}" IsVisible="{Binding HasFeedPostFacts}" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

@@ -66,14 +66,16 @@ public sealed class ChatConversationPageTests
     var rendered = Assert.IsAssignableFrom<Element>(template.CreateContent());
     rendered.BindingContext = row;
     var labels = VisualTreeElements.Descendants<Label>(rendered).ToArray();
-    Assert.Equal(3, labels.Length);
     var content = labels[1];
     var error = labels[2];
+    var feedFacts = Assert.Single(labels, label => label.AutomationId == "chat-feed-post-facts");
 
     Assert.False(content.IsVisible);
     Assert.Equal(string.Empty, content.Text);
     Assert.True(error.IsVisible);
     Assert.Equal("The response was interrupted. Please try again.", error.Text);
+    Assert.False(feedFacts.IsVisible);
+    Assert.True(string.IsNullOrEmpty(feedFacts.Text));
   }
 
   private sealed class UnusedChatService : IChatService
