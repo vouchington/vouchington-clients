@@ -27,15 +27,22 @@ extension NativeChatMCPFact {
     static func makeProfileBio(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),
               let envelope = try? JSONDecoder.profileFact.decode(ProfileBioEnvelope.self, from: data),
-              envelope.success else { return nil }
+              envelope.success,
+              !envelope.profile.markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return .profileBio(.init(profileId: envelope.profile.id, markdown: envelope.profile.markdown))
     }
 
     static func makeProfileLinks(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),
               let envelope = try? JSONDecoder.profileFact.decode(ProfileLinksEnvelope.self, from: data),
-              envelope.success, !envelope.results.isEmpty else { return nil }
-        return .profileLinks(envelope.results.map { link in
+              envelope.success else { return nil }
+        let links = envelope.results.filter { link in
+            [link.name, link.handle, link.url].contains { value in
+                value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            }
+        }
+        guard !links.isEmpty else { return nil }
+        return .profileLinks(links.map { link in
             .init(id: link.id, linkType: link.linkType, handle: link.handle, name: link.name, url: link.url)
         })
     }

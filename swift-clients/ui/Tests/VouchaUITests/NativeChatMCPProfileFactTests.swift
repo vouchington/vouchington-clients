@@ -34,6 +34,8 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         bio.structured["success"] = true
         bio.structured["profile"] = ["id": "profile-only"]
         XCTAssertNil(try NativeChatMCPFact.makeProfileBio(bio.value))
+        bio.structured["profile"] = ["id": "profile-only", "markdown": "  \n "]
+        XCTAssertNil(try NativeChatMCPFact.makeProfileBio(bio.value))
 
         var links = try NativeChatMCPProfileFixture(option: .links)
         links.structured["success"] = false
@@ -45,6 +47,14 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         XCTAssertNil(try NativeChatMCPFact.makeProfileLinks(links.value))
         links.structured["results"] = []
         XCTAssertNil(try NativeChatMCPFact.makeProfileLinks(links.value))
+        let emptyRow: [String: Any] = ["id": "empty", "link_type": "url"]
+        links.structured["results"] = [emptyRow]
+        XCTAssertNil(try NativeChatMCPFact.makeProfileLinks(links.value))
+        links.structured["results"] = [emptyRow, rows[0].merging(["link_type": "github"]) { _, new in new }]
+        guard case let .profileLinks(visible)? = try NativeChatMCPFact.makeProfileLinks(links.value) else {
+            return XCTFail("Expected nonempty link to remain visible")
+        }
+        XCTAssertEqual(visible.count, 1)
     }
 
     func testBioAndLinksUseExistingLocalizedHeadingsWithoutRawEnvelope() throws {
