@@ -1086,7 +1086,8 @@ jobs:
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          tar -C "$GITHUB_WORKSPACE/ios-test-derived-data/Build" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Products
+          COPYFILE_DISABLE=1 tar -C "$GITHUB_WORKSPACE/ios-test-derived-data/Build" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Products
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" "$RUNNER_TEMP/ios-test-products.tar.gz"
           shasum -a 256 "$RUNNER_TEMP/ios-test-products.tar.gz" | awk '{print $1}' > "$RUNNER_TEMP/ios-test-products.sha256"
           cp "$GITHUB_WORKSPACE/ios-test-manifest.json" "$RUNNER_TEMP/ios-test-manifest.json"
       - name: Upload iOS test products

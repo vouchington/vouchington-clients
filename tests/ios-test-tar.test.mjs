@@ -59,6 +59,8 @@ with tarfile.open(archive, 'w:gz') as tar:
         entry = tarfile.TarInfo('Products/device')
         entry.type = tarfile.CHRTYPE
         tar.addfile(entry)
+    elif kind == 'appledouble':
+        file('._Products')
     else:
         file('Products/../../outside' if kind == 'traversal' else '/tmp/outside')
 `
@@ -77,6 +79,7 @@ test('iOS test archive accepts internal framework links and rejects escaping ent
       ['duplicate', false],
       ['conflicting', false],
       ['device', false],
+      ['appledouble', false],
     ]) {
       const archive = join(root, `${kind}.tar.gz`)
       execFileSync('python3', ['-c', makeArchive, archive, kind])

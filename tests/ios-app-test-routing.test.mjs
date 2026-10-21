@@ -39,11 +39,20 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
     )
     assert.match(buildJob, /build-for-testing/u)
+    assert.match(buildJob, /COPYFILE_DISABLE=1 tar/u)
+    assert.match(
+      buildJob,
+      /python3 "\$GITHUB_WORKSPACE\/scripts\/verify-ios-test-tar\.py" "\$RUNNER_TEMP\/ios-test-products\.tar\.gz"/u,
+    )
     assert.match(buildJob, /-destination "\$destination"/u)
     assert.match(buildJob, /arch=arm64/u)
     assert.match(x86Job, /arch=x86_64" build/u)
     assert.match(iosJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(iosJob, /actions\/download-artifact@[a-f0-9]{40}/u)
+    assert.match(
+      iosJob,
+      /python3 "\$GITHUB_WORKSPACE\/scripts\/verify-ios-test-tar\.py" ios-test-products\.tar\.gz/u,
+    )
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
     assert.match(iosJob, /\.destination' "\$manifest"/u)
     assert.match(iosJob, /test-without-building/u)
