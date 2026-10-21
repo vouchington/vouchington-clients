@@ -8,6 +8,39 @@ namespace Voucha.Client.Core.Tests.Chat;
 public sealed partial class ChatViewModelProviderTests
 {
   [Fact]
+  public async Task FreshHistoryAndNextTurnDoNotInheritTemporaryFeedFact()
+  {
+    ChatConversationViewModel? viewModel = null;
+    var attempts = 0;
+    var service = new FakeChatService
+    {
+      CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
+      {
+        var row = Assert.Single(viewModel!.Messages, message => message.Id == body.AssistantMessageId);
+        Assert.Equal(attempts == 0, row.HasFeedPostFacts);
+        attempts++;
+        return Task.FromResult(new ClientGeneratedChatResponse(
+            NewChatMessage(body.UserMessageId, "user", body.Message, "2026-07-01T10:00:01Z"),
+            NewChatMessage(body.AssistantMessageId, "assistant", body.AssistantContent, "2026-07-01T10:00:02Z"),
+            new ClientGeneratedChatTurn(body.UserMessageId, body.AssistantMessageId)));
+      },
+    };
+    var provider = new TestMcpLocalChatProvider
+    {
+      FeedPostReceipts = [new McpFeedPostReceipt("account-a", "call-a",
+          ["0198ffff-0000-7000-8000-000000000002"])],
+    };
+    viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
+    Assert.True(await viewModel.TrySendAsync("First", TestContext.Current.CancellationToken));
+    Assert.DoesNotContain(viewModel.Messages, row => row.HasFeedPostFacts);
+    provider.FeedPostReceipts = null;
+    Assert.True(await viewModel.TrySendAsync("Second", TestContext.Current.CancellationToken));
+    Assert.DoesNotContain(viewModel.Messages, row => row.HasFeedPostFacts);
+    Assert.Equal(2, provider.Generations);
+    Assert.Equal(2, attempts);
+  }
+
+  [Fact]
   public async Task AccountRoundTripCannotRetryOldFactOrDispatchAgain()
   {
     var attempts = 0;
