@@ -328,7 +328,7 @@ if contains test; then
   run_check "test/test-support" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/test-support" --force-resolved-versions
   run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${XCODE_SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "test/ui" bash "$SWIFT_DIR/tooling/test-ui.sh"
   else
     echo "  test/ui      - (skipped — macOS only)"
     SKIPPED=$((SKIPPED + 1))
