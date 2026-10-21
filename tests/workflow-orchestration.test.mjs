@@ -159,7 +159,7 @@ describe('event-driven CI orchestration', () => {
     assert.match(workflow, / {2}tests:\n\s+name: Tests\n\s+if: \$\{\{ !cancelled\(\) \}\}/u)
     assert.match(
       workflow,
-      /all\(to_entries\[\] \| select\(\.key != "dotnet-windows-image-preview" and \.key != "dotnet-windows-maui"\); \.value\.result == "success"\)/u,
+      /all\(to_entries\[\] \| select\(\.key != "dotnet-windows-image-preview" and \.key != "dotnet-windows-language-model-surface" and \.key != "dotnet-windows-maui"\); \.value\.result == "success"\)/u,
     )
     assert.ok(workflow.includes('((."dotnet-windows-image-preview".result == "success") or'))
     assert.ok(

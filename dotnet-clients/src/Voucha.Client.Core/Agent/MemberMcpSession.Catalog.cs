@@ -4,7 +4,9 @@ namespace Voucha.Client.Core.Agent;
 
 public sealed partial class MemberMcpSession
 {
-  public async Task RefreshToolsAsync(CancellationToken cancellationToken = default)
+  public Task RefreshToolsAsync(CancellationToken cancellationToken = default) => RefreshCatalogAsync(null, cancellationToken);
+
+  private async Task RefreshCatalogAsync(string? scope, CancellationToken cancellationToken, bool recoveringConsent = false)
   {
     using var wait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetimeToken);
     await operation.WaitAsync(wait.Token).ConfigureAwait(false);
@@ -26,7 +28,9 @@ public sealed partial class MemberMcpSession
       JsonElement tools;
       try
       {
-        tools = await connection.ListToolsAsync(linked.Token).ConfigureAwait(false);
+        tools = scope is null
+            ? await connection.ListToolsAsync(linked.Token).ConfigureAwait(false)
+            : await connection.AuthorizeAndListToolsAsync(scope, linked.Token).ConfigureAwait(false);
         _ = new MemberMcpToolBridge(tools);
       }
       catch (McpUnauthorizedException)
@@ -49,12 +53,36 @@ public sealed partial class MemberMcpSession
       }
       catch
       {
+        // Re-list using the current token, rather than restoring capabilities from the old grant.
+        JsonElement? recovered = null;
+        if (scope is not null && !sessionToken.IsCancellationRequested)
+        {
+          try
+          {
+            var current = await connection.ListToolsAsync(sessionToken).ConfigureAwait(false);
+            _ = new MemberMcpToolBridge(current);
+            recovered = current;
+          }
+          catch (Exception error) when (error is McpUnauthorizedException or InvalidDataException)
+          {
+            lock (gate)
+            {
+              if (generation == revision && ReferenceEquals(active, connection))
+                _ = QueueCleanup(accountId);
+            }
+            throw;
+          }
+          catch (Exception error) when (error is not OutOfMemoryException) { }
+        }
         var invalidated = false;
         lock (gate)
         {
           if (generation == revision && ReferenceEquals(active, connection))
           {
+            Tools = recovered;
             generation++;
+            Status = recovered is null && (scope is not null || recoveringConsent)
+                ? MemberMcpSessionStatus.Error : MemberMcpSessionStatus.Connected;
             invalidated = true;
           }
         }
@@ -65,6 +93,7 @@ public sealed partial class MemberMcpSession
       {
         if (generation != revision || !ReferenceEquals(active, connection)) return;
         Tools = tools;
+        Status = MemberMcpSessionStatus.Connected;
         generation++;
       }
       Changed?.Invoke(this, EventArgs.Empty);

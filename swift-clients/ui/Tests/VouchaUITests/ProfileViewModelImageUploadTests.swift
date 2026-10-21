@@ -174,6 +174,40 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
     }
 
+    func testSelectedAvatarThumbnailRendersWhileUploadIsHeldAndClearsAfterCompletion() async throws {
+        let vm = try makeViewModel()
+        let imageId = "selected-avatar"
+        let file = try makeImageFile(name: imageId, extension: "jpg", data: Self.validImageData)
+        let uploadURL = try XCTUnwrap(URL(string: "https://upload.example.test/\(imageId)"))
+        try registerImageUploadFlow(
+            imageId: imageId,
+            uploadURL: uploadURL,
+            contentType: "image/jpeg",
+            stateBody: #"{"upload_state":{"id":"\#(imageId)","upload_status":"complete","upload_error":null,"ready":true,"blocked":false}}"#
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            PrivateUserTestFixture.identityEnvelope(
+                membershipPlan: "free", roles: ["user"], profileImageId: imageId,
+                overrides: ["profile_image_placement": Self.placement(imageId: imageId)]
+            ), 200
+        )
+        CannedFeedURLProtocol.suspendResponse(path: uploadURL.path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: uploadURL.path) }
+        let put = CannedFeedURLProtocol.requestBarrier(path: uploadURL.path, method: "PUT")
+        let upload = Task { await vm.uploadAvatar(from: file) }
+        _ = try await put.wait()
+
+        let thumbnail = try XCTUnwrap(vm.avatarPreviewData)
+        vm.identity = try makeIdentity(profileImageId: nil)
+        let preview = try ProfileView(viewModel: vm).inspect().find(LocalImagePreview.self).actualView()
+        XCTAssertEqual(preview.data, thumbnail)
+        XCTAssertNoThrow(try LocalImagePreview(data: thumbnail).inspect().find(ViewType.Image.self))
+
+        CannedFeedURLProtocol.releaseResponse(path: uploadURL.path)
+        await upload.value
+        XCTAssertNil(vm.avatarPreviewData)
+    }
+
     func testNavigationKeepsAvatarUploadBusyUntilIdentityPatchFinishes() async throws {
         try await assertNavigationKeepsAvatarMutationBusy(removing: false)
     }

@@ -22,6 +22,9 @@ tests:
       windows-image-preview-tests:
         project: dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
         test: true
+      windows-language-model-surface-tests:
+        project: dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj
+        test: true
 
 test_plan:
   swift:
@@ -56,6 +59,7 @@ test_plan:
           - tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
           - tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           - tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
+          - tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj
           - NuGet.config
           - Directory.Build.props
           - Directory.Build.targets

@@ -29,9 +29,9 @@ resolved pins and materializer are one update unit.
 
 `dotnet-clients/Directory.Packages.props` is the authoritative central package-version manifest.
 The root [`global.json`](../../global.json) is authoritative for the SDK and workload set. The
-repository commits eleven NuGet locks, covering the portable solution, rendered app tests, the
-Windows decoder tests, the framework-only Mac Catalyst Core build, both Mac Catalyst runtime
-identifiers, and the Windows MAUI app/Core win-x64 graph.
+repository commits twelve NuGet locks, covering the portable solution, rendered app tests, the
+Windows decoder tests, the Windows language-model surface probe, the framework-only Mac Catalyst
+Core build, both Mac Catalyst runtime identifiers, and the Windows MAUI app/Core win-x64 graph.
 
 For a deliberate NuGet update, use the matrix helper with isolated repository-local NuGet state:
 
@@ -41,11 +41,11 @@ bash dotnet-clients/tooling/restore-locks.sh verify
 ```
 
 The helper requires the exact SDK and workload from `global.json`, resolves only through the
-repository NuGet configuration, and verifies all eleven regular lock files. Do not regenerate a
+repository NuGet configuration, and verifies all twelve regular lock files. Do not regenerate a
 subset of locks or use an ambient SDK, package cache, or workload installation as evidence.
 
 Dependabot may propose literal central NuGet version updates. Its trusted repair path regenerates
-all eleven locks from the validated manifest delta and publishes only those locks with provenance
+all twelve locks from the validated manifest delta and publishes only those locks with provenance
 and hashes. NuGet updates still require manual merge; SDK, workload, and `MauiVersion` changes are
 manual-only.
 

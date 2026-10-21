@@ -101,12 +101,30 @@ public sealed partial class ChatConversationViewModel
     return currentRequest;
   }
 
-  private async Task<bool> ReloadMessagesAsync(string conversationId, int currentRequest, CancellationToken cancellationToken)
+  private async Task<bool> ReloadMessagesAsync(
+      string conversationId, int currentRequest, CancellationToken cancellationToken,
+      PendingLocalTurn? localReceipt = null)
   {
     var response = await chatService.FetchConversationMessagesAsync(conversationId, cancellationToken).ConfigureAwait(true);
     if (currentRequest != Volatile.Read(ref requestId)) return false;
     messages.Clear();
     messages.AddRange(response.Results.Select(MapMessage));
+    if (localReceipt is
+      {
+        FeedPostReceipts.Count: > 0, McpSnapshot: { } snapshot,
+        McpProvider: { } provider
+      } && localReceipt.ConversationId == conversationId &&
+        provider.MatchesAccountEpoch(snapshot))
+    {
+      var index = messages.FindIndex(message => message.Id == localReceipt.Body.AssistantMessageId &&
+          message.IsAssistant);
+      if (index >= 0)
+        messages[index] = messages[index] with
+        {
+          Localization = localization,
+          FeedPostReceipts = localReceipt.FeedPostReceipts,
+        };
+    }
     HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
     nextMessageCursor = response.PageInfo.EndCursor;
     OnPropertyChanged(nameof(CanLoadOlderMessages));
