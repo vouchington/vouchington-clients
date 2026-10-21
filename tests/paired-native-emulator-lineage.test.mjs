@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { mkdtemp, opendir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { it } from 'node:test'
 import { runAndroidSession } from '../scripts/paired-native-android-session.mjs'
 import { validateCleanupEvidence } from '../scripts/paired-native-cleanup-evidence.mjs'
@@ -192,6 +195,34 @@ it('reads command lines only for the owned pid set and bounds the scan', async (
     readFile: async () => Buffer.from('not-a-stat'),
   })
   assert.equal(malformed.reason, 'malformed')
+})
+
+it('keeps an observed scan when the process directory is already closed', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'paired-native-proc-'))
+  await writeFile(join(root, '200'), '')
+  try {
+    const snapshot = await observeOwnedEmulatorLineage({
+      launcherPid: 200,
+      avdName: avd,
+      limits: lineageLimits,
+      now: () => 0,
+      opendir: () => opendir(root),
+      readFile: async path => {
+        if (path.endsWith('/cmdline') && path.split('/')[2] !== '200')
+          throw new Error('unrelated cmdline was read')
+        return path.endsWith('/stat')
+          ? Buffer.from('200 (emulator) S 10 200 200 0 0\n')
+          : Buffer.from(`emulator\0-avd\0${avd}\0`)
+      },
+    })
+    assert.equal(snapshot.state, 'observed')
+    assert.deepEqual(
+      snapshot.processes.map(entry => entry.pid),
+      [200],
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 it('keeps the owned stop budgets and signals only that child', async () => {

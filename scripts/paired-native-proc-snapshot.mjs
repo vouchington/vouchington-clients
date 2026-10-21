@@ -44,6 +44,7 @@ async function readStatTable({ readFile, opendir, now, started, limits, signal }
   let complete = true
   let scanReason = 'bounded'
   let malformed = false
+  let closeError
   try {
     for await (const entry of directory) {
       if (signal.aborted || now() - started > limits.maxDurationMs) {
@@ -82,8 +83,13 @@ async function readStatTable({ readFile, opendir, now, started, limits, signal }
   } catch {
     malformed = true
   } finally {
-    await directory.close?.()
+    try {
+      await directory.close?.()
+    } catch (error) {
+      if (error?.code !== 'ERR_DIR_CLOSED') closeError = error
+    }
   }
+  if (closeError) throw closeError
   return { available: true, complete, scanReason, malformed, records }
 }
 
