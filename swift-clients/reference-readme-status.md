@@ -85,7 +85,9 @@ destination in `build-macos-app` and `build-ios-app` in
 and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitlements, using
 `VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell`,
 accepting only one passed test and no skips. The iOS job launches the unsigned app on an
-available iPhone Simulator and requires its root-shell and canonical video-feed UI tests to pass.
+available iPhone Simulator and requires its root-shell, canonical video-feed, and email OTP
+sign-in UI tests to pass. The sign-in test uses fixture responses and does not complete Turnstile
+or cover another platform.
 CI also
 cross-compiles `core/` for Android in the Linux Docker
 `build-android-core` gate via `./tooling/harness.sh --checks build-android`.

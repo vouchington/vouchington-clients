@@ -11,8 +11,7 @@
             let client = APIClient(
                 config: config,
                 cookieStorage: cookieStorage,
-                protocolClasses: ProcessInfo.processInfo.arguments.contains(FeedFlowUITestingURLProtocol.launchArgument)
-                    ? [FeedFlowUITestingURLProtocol.self] : [],
+                protocolClasses: Self.isolatedUITestingProtocolClasses(),
                 bootstrapSession: false,
                 metadata: NativeClientMetadata.current()
             )
@@ -27,6 +26,17 @@
                 ),
                 restoresSessionOnLaunch: false
             )
+        }
+
+        private static func isolatedUITestingProtocolClasses() -> [AnyClass] {
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains(FeedFlowUITestingURLProtocol.launchArgument) {
+                return [FeedFlowUITestingURLProtocol.self]
+            }
+            if arguments.contains(SignInUITestingURLProtocol.launchArgument) {
+                return [SignInUITestingURLProtocol.self]
+            }
+            return []
         }
     }
 #endif
