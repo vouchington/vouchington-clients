@@ -30,10 +30,13 @@ targets:
       - path: ../shared-app
       - path: Resources
         buildPhase: resources
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: Info.plist
       properties:
         CFBundleDisplayName: Voucha
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
