@@ -78,6 +78,14 @@ a device; it does not claim device test execution. The shared job budget is 60 m
 app-phase Gradle user-home cache miss can finish Skip compilation and debug APK packaging.
 Test-library preparation finishes well inside that budget.
 
+The Android archive and Gradle caches restore by pinned input keys on every run. Only a
+`main` push writes a missing key: the test-library phase saves the shared
+checksummed-download archive after SDK materialization, and the app phase saves its Gradle
+user home after APK upload.
+Pull requests still compile from source on a miss, but do not write large per-PR cache copies
+that compete with the default-branch entries. The archive key follows the checksum-bearing
+materialization script, so an unrelated workflow edit does not invalidate verified downloads.
+
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is
 stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the

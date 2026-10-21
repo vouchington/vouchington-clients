@@ -577,11 +577,6 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Restore checksummed Swift Android archives
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/voucha/swift-android/downloads
-          key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', '.github/workflows/native-contract-tests.yml') }}
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -628,12 +623,11 @@ jobs:
             [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
           done
           rm -rf -- "$cache_root/extracted"
-      - name: Prefetch and materialize Skip Swift Android SDK
-        working-directory: candidate-clients
-        timeout-minutes: 12
-        run: |
-          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: ${{ matrix.phase == 'test-libs' }}
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -650,7 +644,8 @@ jobs:
           --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
         if: matrix.phase == 'app'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: android-gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
@@ -690,6 +685,12 @@ jobs:
           path: ${{ runner.temp }}/android-cookie-apks
           if-no-files-found: error
           retention-days: 1
+      - name: Save Gradle user home from main
+        if: ${{ matrix.phase == 'app' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/voucha/gradle
+          key: ${{ steps.android-gradle-cache.outputs.cache-primary-key }}
   test-swift-android-cookie:
     name: Android cookie restart
     needs: [verify, build-swift-android]

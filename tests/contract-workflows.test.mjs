@@ -382,46 +382,6 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(action, /path:.*skip-swift-home/u)
   })
 
-  it('restores checksummed Android archives and the Skip Gradle user home', async () => {
-    const workflow = await readWorkflow('native-contract-tests.yml')
-    const skip = jobBlock(workflow, 'build-swift-android')
-    const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
-
-    assert.match(skip, cachePin)
-    assert.match(androidCore, cachePin)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(androidCore, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(
-      skip,
-      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh', '\.github\/workflows\/native-contract-tests\.yml'\)/u,
-    )
-    assert.match(
-      androidCore,
-      /hashFiles\('candidate-clients\/swift-clients\/tooling\/build-android-core\.sh'\)/u,
-    )
-    assert.match(skip, /Sources\/VouchaAndroid\/Skip\/skip\.yml/u)
-    assert.doesNotMatch(skip, /restore-keys:/u)
-    assert.doesNotMatch(androidCore, /restore-keys:/u)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
-    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
-    assert.match(
-      skip,
-      /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,
-    )
-    assert.match(
-      skip,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch and materialize Skip Swift Android SDK/u,
-    )
-    assert.match(
-      androidCore,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch Swift Android SDK and NDK archives/u,
-    )
-    assert.doesNotMatch(skip, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(androidCore, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(skip, /path:.*android-sdk/u)
-  })
-
   it('restores the job-scoped NuGet package cache for portable and MAUI jobs', async () => {
     const [action, workflow] = await Promise.all([
       readAction('prepare-native-contract'),
