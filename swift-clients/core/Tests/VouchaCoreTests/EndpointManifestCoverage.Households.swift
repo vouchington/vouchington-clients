@@ -2,6 +2,7 @@ import VouchaAPI
 
 extension EndpointManifestCoverage {
     static let householdEndpoints: [ManifestRegisteredEndpoint] = [
+        ManifestRegisteredEndpoint(id: "native.me.individual") { .currentIndividual },
         ManifestRegisteredEndpoint(id: "native.households.empty") { .households() },
         ManifestRegisteredEndpoint(id: "native.households.single-owned") { .households() },
         ManifestRegisteredEndpoint(id: "native.households.multiple") { .households() },
