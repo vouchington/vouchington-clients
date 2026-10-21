@@ -139,7 +139,7 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         XCTAssertNoThrow(try inspected.find(text: "example.com"))
     }
 
-    func testWhitespaceOnlyHandleUsesSavedURLInsteadOfConstructedProfileURL() {
+    func testWhitespaceOnlyHandleUsesSavedURLAndSurroundingWhitespaceIsTrimmed() {
         let saved = NativeChatProfileLinkFact(
             id: "saved", linkType: .github, handle: " \n ", name: nil,
             url: "https://example.com/saved-profile"
@@ -147,8 +147,13 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         let missing = NativeChatProfileLinkFact(
             id: "missing", linkType: .github, handle: " \n ", name: nil, url: nil
         )
+        let padded = NativeChatProfileLinkFact(
+            id: "padded", linkType: .github, handle: " alice \n ", name: nil,
+            url: "https://example.com/saved-profile"
+        )
 
         XCTAssertEqual(saved.safeDestination?.absoluteString, "https://example.com/saved-profile")
         XCTAssertNil(missing.safeDestination)
+        XCTAssertEqual(padded.safeDestination?.absoluteString, "https://github.com/alice")
     }
 }
