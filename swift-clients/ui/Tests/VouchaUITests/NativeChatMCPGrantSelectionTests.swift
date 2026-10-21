@@ -28,7 +28,9 @@ final class NativeChatMCPGrantSelectionTests: XCTestCase {
         try await session.connect(scope: "mcp.user:read mcp.user:write")
         XCTAssertEqual(scopes, ["mcp.user:read", "mcp.user:read mcp.user:write"])
         XCTAssertFalse(session.isCurrent(snapshot))
-        XCTAssertEqual(session.toolCatalog, snapshot.catalog)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        XCTAssertEqual(try encoder.encode(session.toolCatalog), try encoder.encode(snapshot.catalog))
         XCTAssertTrue(session.requestWriteAccess)
         await session.useAccount("member-b")
         XCTAssertFalse(session.requestWriteAccess)

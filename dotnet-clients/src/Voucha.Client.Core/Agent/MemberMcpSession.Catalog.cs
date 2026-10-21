@@ -78,7 +78,7 @@ public sealed partial class MemberMcpSession
             _ = new MemberMcpToolBridge(current);
             recovered = current;
           }
-          catch (Exception error) when (error is HttpRequestException or IOException or OperationCanceledException or McpUnauthorizedException) { }
+          catch (Exception error) when (error is not OutOfMemoryException) { }
         }
         var invalidated = false;
         lock (gate)

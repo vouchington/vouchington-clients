@@ -89,4 +89,19 @@ public sealed partial class MemberMcpSessionTests
     Assert.False(controls.RequestWriteAccess);
   }
 
+  [Fact]
+  public async Task MalformedRecoveryResponseCannotLeaveConsentBusy()
+  {
+    var factory = new FakeFactory();
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    var controls = new MemberMcpControlsViewModel(session);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections[0].CancelConsent = true;
+    factory.Connections[0].RefreshFailure = new JsonException("Malformed catalog");
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => controls.ConnectAsync(TestContext.Current.CancellationToken));
+    Assert.Null(session.Tools);
+    Assert.False(controls.IsBusy);
+    Assert.True(controls.CanAuthorize);
+  }
+
 }

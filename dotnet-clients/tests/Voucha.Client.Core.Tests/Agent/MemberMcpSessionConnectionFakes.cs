@@ -33,6 +33,7 @@ public sealed partial class MemberMcpSessionTests
       bool failConnect, bool holdToolCall, bool failDisconnect, TaskCompletionSource? releaseCanceledConnect)
       : IMemberMcpSessionConnection
   {
+    public Exception? RefreshFailure { get; set; }
     public bool CancelConsent { get; set; }
     public List<string> ConsentScopes { get; } = [];
     public Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken)
@@ -77,6 +78,7 @@ public sealed partial class MemberMcpSessionTests
       RefreshEntered.TrySetResult();
       if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
       if (UnauthorizedRefresh) throw new McpUnauthorizedException();
+      if (RefreshFailure is not null) throw RefreshFailure;
       if (FailRefresh) throw new IOException("Tool discovery failed");
       return Catalog ?? JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
