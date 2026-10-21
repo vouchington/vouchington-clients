@@ -35,6 +35,8 @@ final class AndroidPendingDeleteLifetimeTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedConversationID, secondID)
         XCTAssertEqual(viewModel.loadedConversationHistoryID, secondID)
         XCTAssertEqual(viewModel.messages.map(\.content), ["Second conversation history"])
+        XCTAssertNil(viewModel.pendingTurns[firstID])
+        XCTAssertNil(store.records[owner]?[firstID])
     }
 
     func testHeldAcknowledgementForOldAccountCannotReplaceNewAccountHistory() async throws {

@@ -34,7 +34,6 @@ extension ViewModel {
         pendingTurnHistoryAcknowledgements[conversationID] = acknowledgements
         try await pendingStore.delete(ownerID: ownerID, turn: pending)
         guard accountGeneration == accountRevision,
-              conversationGeneration == conversationRevision,
               currentPendingTurnOwnerID == ownerID,
               pendingTurns[conversationID] == pending else {
             return currentPageAcknowledgements
