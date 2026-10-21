@@ -27,6 +27,7 @@ public sealed partial class MemberMcpSession : IDisposable
   private IMemberMcpSessionConnection? active;
   private string? accountId;
   private long generation;
+  private long accountEpoch;
   private bool disposed;
 
   public MemberMcpSession(ISessionStore sessionStore, IMemberMcpAccountTokenStore store,
