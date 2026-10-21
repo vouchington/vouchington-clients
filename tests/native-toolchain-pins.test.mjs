@@ -123,6 +123,8 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
   const uiPeripheryJob = jobBlock(workflow, 'periphery-swift-ui')
   const macAppJob = jobBlock(workflow, 'build-macos-app')
   const iosAppJob = jobBlock(workflow, 'build-ios-app')
+  const iosBuildJob = jobBlock(workflow, 'build-ios-tests')
+  const iosX86Job = jobBlock(workflow, 'build-ios-x86')
 
   assert.match(harness, /SWIFT_BIN="\$\(bash "\$SWIFT_DIR\/tooling\/resolve-mise-swift\.sh"\)"/u)
   assert.match(
@@ -137,19 +139,22 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
   assert.match(uiPeripheryJob, /VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN: xcode/u)
   assert.match(macAppJob, /xcodebuild -project/u)
   assert.doesNotMatch(macAppJob, /mise exec -- swift/u)
-  assert.match(iosAppJob, /needs: verify[\s\S]*?runs-on: macos-latest/u)
+  assert.match(iosAppJob, /needs: \[verify, build-ios-tests\][\s\S]*?runs-on: macos-latest/u)
   assert.match(iosAppJob, /prepare-native-contract/u)
   assert.match(iosAppJob, /DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer/u)
   assert.match(iosAppJob, /xcodebuild -version[\s\S]*?= 26\.6/u)
-  assert.match(iosAppJob, /generate\.sh iOS/u)
-  assert.match(iosAppJob, /xcodebuild -project swift-clients\/apps\/iOS\/Voucha\.xcodeproj/u)
-  assert.match(iosAppJob, /-destination 'generic\/platform=iOS Simulator' build/u)
+  assert.match(iosBuildJob, /generate\.sh iOS/u)
+  assert.match(iosBuildJob, /xcodebuild -project swift-clients\/apps\/iOS\/Voucha\.xcodeproj/u)
+  assert.match(iosX86Job, /-destination 'generic\/platform=iOS Simulator' -arch x86_64 build/u)
   assert.match(
-    iosAppJob,
+    iosBuildJob,
     /-disableAutomaticPackageResolution[\s\S]*?-onlyUsePackageVersionsFromResolvedFile/u,
   )
-  assert.match(iosAppJob, /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u)
-  assert.match(iosAppJob, /^    timeout-minutes: 40$/mu)
+  assert.match(
+    iosBuildJob,
+    /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u,
+  )
+  assert.match(iosAppJob, /^    timeout-minutes: 14$/mu)
 })
 
 test('Periphery scans the index store produced by its selected Swift compiler', () => {
