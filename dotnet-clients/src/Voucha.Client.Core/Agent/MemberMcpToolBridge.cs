@@ -1,9 +1,11 @@
 using System.Text;
 using System.Text.Json;
+using Voucha.Client.Core.Chat;
 
 namespace Voucha.Client.Core.Agent;
 
 public sealed record MemberMcpFunctionTool(string Name, string Description, JsonElement Parameters);
+public sealed record MemberMcpValidatedResult(string Envelope, McpFeedPostReceipt? FeedPostFact);
 
 /// <summary>Validates one immutable server catalog before projecting it to a local model.</summary>
 public sealed class MemberMcpToolBridge
@@ -63,13 +65,27 @@ public sealed class MemberMcpToolBridge
       MemberMcpConnectedSnapshot snapshot, Action? onAdmitted,
       CancellationToken cancellationToken = default)
   {
+    var result = await ExecuteValidatedResultAsync(name, rawArguments, session, snapshot,
+        callId: null, onAdmitted, cancellationToken).ConfigureAwait(false);
+    return result.Envelope;
+  }
+
+  public async Task<MemberMcpValidatedResult> ExecuteValidatedResultAsync(
+      string name, string rawArguments, MemberMcpSession session,
+      MemberMcpConnectedSnapshot snapshot, string? callId, Action? onAdmitted = null,
+      CancellationToken cancellationToken = default)
+  {
     ArgumentNullException.ThrowIfNull(session);
     ArgumentNullException.ThrowIfNull(snapshot);
     var arguments = ValidatedArguments(name, rawArguments);
     var result = await session.CallToolAsync(snapshot, name, arguments, onAdmitted, cancellationToken)
         .ConfigureAwait(false);
     if (outputs.TryGetValue(name, out var output)) output.Validate(result, arguments);
-    return SerializeResultEnvelope(result);
+    var envelope = SerializeResultEnvelope(result);
+    var fact = result.IsError != true && result.StructuredContent is { } structured && callId is not null
+        ? McpFeedPostReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, callId)
+        : null;
+    return new MemberMcpValidatedResult(envelope, fact);
   }
 
   internal static string SerializeResultEnvelope(McpToolResult result)

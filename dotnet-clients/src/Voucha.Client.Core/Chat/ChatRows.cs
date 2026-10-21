@@ -37,7 +37,8 @@ public sealed record ChatMessageRow(
     string? Error = null,
     string? CompletionStatus = null,
     UiMessageKey? ErrorMessageKey = null,
-    IUiLocalization? Localization = null) : INotifyPropertyChanged
+    IUiLocalization? Localization = null,
+    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null) : INotifyPropertyChanged
 {
   public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -53,11 +54,22 @@ public sealed record ChatMessageRow(
       ? Localization?.Localize(key)
       : Error;
 
+  public bool HasFeedPostFacts => FeedPostReceipts is { Count: > 0 };
+
+  public string? DisplayFeedPostFacts => FeedPostReceipts is not { Count: > 0 } receipts ? null :
+      string.Join("\n", new[] { Localization?.Localize(UiMessageKey.NativeDotnetResidualPosts) ?? string.Empty }
+          .Concat(receipts.SelectMany(receipt => receipt.PostIds.Count == 0
+              ? [Localization?.Localize(UiMessageKey.NativeDotnetPostsNoPostsYet) ?? string.Empty]
+              : receipt.PostIds.Select(id =>
+                  $"{Localization?.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPostId)}: {id}"))));
+
   internal void NotifyLocalizationChanged()
   {
     if (ErrorMessageKey is not null)
     {
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayError)));
     }
+    if (HasFeedPostFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayFeedPostFacts)));
   }
 }
