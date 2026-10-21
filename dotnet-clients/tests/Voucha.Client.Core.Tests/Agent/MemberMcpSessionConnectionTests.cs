@@ -52,8 +52,28 @@ public sealed class MemberMcpSessionConnectionTests
     Assert.Equal(1, store.PendingClears);
   }
 
+  [Theory]
+  [InlineData("mcp.user:read")]
+  [InlineData("mcp.user:read mcp.user:write")]
+  public async Task ExplicitConsentSendsSelectedScopeToBrowser(string scope)
+  {
+    var store = new FakeStore();
+    var browser = new FakeBrowser(store);
+    await using var connection = new MemberMcpSessionConnection(
+        new Uri("https://example.test"), "account-a",
+        new MemberMcpOAuthMetadata("https://example.test/", new Uri("https://example.test/oauth/authorize"),
+            new Uri("https://example.test/oauth/token"), new Uri("https://example.test/oauth/revoke")), store, browser);
+    await Assert.ThrowsAsync<IOException>(() => connection.AuthorizeAndListToolsAsync(scope,
+        TestContext.Current.CancellationToken));
+    var query = Uri.UnescapeDataString(Assert.IsType<Uri>(browser.AuthorizationUri).Query.Replace("+", " ", StringComparison.Ordinal));
+    Assert.Contains("scope=" + scope, query, StringComparison.Ordinal);
+    Assert.Equal(1, browser.Starts);
+    Assert.Null(store.PendingState);
+  }
+
   private sealed class FakeBrowser(FakeStore store) : IMemberMcpSystemBrowser
   {
+    public Uri? AuthorizationUri { get; private set; }
     public int Starts { get; private set; }
     public bool ReturnNormally { get; set; }
     public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -64,6 +84,7 @@ public sealed class MemberMcpSessionConnectionTests
       Assert.NotNull(store.PendingRedirect);
       Assert.True(store.PendingRedirect.Port > 0);
       Assert.Contains(store.PendingRedirect.Host, new[] { "127.0.0.1", "[::1]", "::1" });
+      AuthorizationUri = authorizationUri;
       Starts++;
       Started.TrySetResult();
       if (ReturnNormally) return Task.CompletedTask;

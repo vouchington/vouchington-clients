@@ -78,14 +78,14 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 14)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 15)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 14)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 15)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })
@@ -106,7 +106,7 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(portable, /matrix\.os/u)
     assert.match(maui, /runs-on: macos-latest/u)
     assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
-    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
+    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
     assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)
@@ -217,7 +217,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      14,
+      15,
     )
   })
 
@@ -320,7 +320,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      14,
+      15,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
