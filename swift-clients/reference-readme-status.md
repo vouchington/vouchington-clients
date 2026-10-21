@@ -22,6 +22,9 @@ for current capability status and tracked gaps.
 
 - macOS 14.4 (Sonoma) or later
 - Xcode 16+
+- SwiftUI package tests use that Xcode's bundled `xcrun swift` through
+  `swift-clients/tooling/test-ui.sh`. The pinned mise Swift toolchain is for Core, Linux, and
+  Android; it does not compile the locked ViewInspector sources against the Xcode 27 SDK.
 - xcodegen 2.42+
 - swiftformat 0.54+
 - swiftlint 0.57+
@@ -137,11 +140,11 @@ swift-clients/
 
 ## Coverage
 
-Run with coverage locally:
+Run with coverage locally from `swift-clients`:
 
 ```sh
 bash tooling/with-build-lock.sh swift test --package-path core --force-resolved-versions --enable-code-coverage
-bash tooling/with-build-lock.sh swift test --package-path ui --force-resolved-versions --enable-code-coverage
+bash tooling/test-ui.sh --enable-code-coverage
 ```
 
 To test SwiftUI Views, use [ViewInspector](https://github.com/nalexn/ViewInspector) (already
