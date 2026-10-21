@@ -96,6 +96,23 @@ base and fetch candidate dependency files as inert API data. They never check ou
 Dependabot head. Fork pull requests run on hosted `pull_request` without repository secrets; do not
 reintroduce self-hosted labels for untrusted code.
 
+The auto-merge workflow first checks the exact live head's API identity and verification status.
+Only a verified Dependabot-authored head committed by GitHub's `web-flow` identity proceeds to the
+existing metadata signature verification.
+Human-authored or unsigned repair commits use the ordinary reviewed PR path; they do not enable
+trusted repair or auto-merge. API failures and malformed or mismatched commit responses still fail
+closed. Retarget cleanup and substantive native validation remain separate from this eligibility
+decision.
+
+After the initial live PR identity is verified, the prepare job records its exact base and head and
+defaults eligibility to false before looking up commit verification. If that later lookup fails,
+the prepare job fails and its downstream repair and auto-merge jobs remain blocked; a separate
+`always()` cleanup may still disable inherited auto-merge after it independently revalidates the
+same open Dependabot PR and head. It skips cleanly when the REST response says `auto_merge: null`,
+and rejects a missing or malformed `auto_merge` value. The cleanup uses
+`DEPENDABOT_AUTOMERGE_TOKEN`; its fresh identity check narrows the race but is not an atomic
+compare-and-disable operation.
+
 Read-only publishers revalidate the live Dependabot identity, base and head SHAs, raw Git change
 types, candidate and artifact allowlists, artifact provenance, hashes, and the head lease. They
 construct repair commits with temporary Git indexes; only the final `git push --force-with-lease`
