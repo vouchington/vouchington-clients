@@ -18,7 +18,7 @@ async function executable(path, contents) {
 
 async function fixture(
   t,
-  { xcode = '27.1', swift = '6.4', swiftInsideXcode = true, darwin = true } = {},
+  { xcode = '27.1', swift = '6.4', swiftInsideXcode = true, darwin = true, bundle = false } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-ui-host-swift-'))
   t.after(() => rm(root, { recursive: true, force: true }))
@@ -49,7 +49,7 @@ async function fixture(
         const child = spawn('/bin/bash', [script], {
           env: {
             ...process.env,
-            DEVELOPER_DIR: developerDir,
+            DEVELOPER_DIR: bundle ? join(root, 'Xcode.app') : developerDir,
             PATH: `${bin}:${process.env.PATH}`,
           },
         })
@@ -70,6 +70,13 @@ async function fixture(
 
 test('accepts the Swift compiler bundled with the selected Xcode', async t => {
   const f = await fixture(t)
+  const result = await f.run()
+  assert.equal(result.code, 0, result.stderr)
+  assert.match(result.stdout, /Xcode 27\.1, Swift 6\.4/u)
+})
+
+test('accepts DEVELOPER_DIR pointing at the Xcode application bundle', async t => {
+  const f = await fixture(t, { bundle: true })
   const result = await f.run()
   assert.equal(result.code, 0, result.stderr)
   assert.match(result.stdout, /Xcode 27\.1, Swift 6\.4/u)

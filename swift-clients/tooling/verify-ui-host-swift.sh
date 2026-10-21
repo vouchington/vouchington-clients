@@ -19,7 +19,7 @@ _DefaultAnnotatedMapContent, MapAnnotation, MapMarker, MapPin,
 SignInWithAppleButton, or VideoPlayer.
 
 Select the Xcode you have for this command. Hosted test-swift-ui still uses Xcode 26.6.
-  export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+  export DEVELOPER_DIR="/Applications/Xcode.app"
   xcodebuild -version
   xcrun swift --version
   bash swift-clients/tooling/test-ui.sh
@@ -40,6 +40,11 @@ fi
 developer_dir="${DEVELOPER_DIR:-}"
 if [[ -z "$developer_dir" ]]; then
   developer_dir="$(xcode-select -p 2>/dev/null || true)"
+fi
+# Apple documents DEVELOPER_DIR as the Xcode.app bundle. xcode-select -p
+# returns Contents/Developer. Accept either before locating xcodebuild.
+if [[ -n "$developer_dir" && -d "$developer_dir/Contents/Developer" && ! -x "$developer_dir/usr/bin/xcodebuild" ]]; then
+  developer_dir="$developer_dir/Contents/Developer"
 fi
 if [[ -z "$developer_dir" || ! -x "$developer_dir/usr/bin/xcodebuild" ]]; then
   echo 'Select an installed Xcode and set DEVELOPER_DIR before SwiftUI package tests.' >&2
