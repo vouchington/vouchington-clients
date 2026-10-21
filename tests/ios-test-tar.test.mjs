@@ -18,51 +18,51 @@ with tarfile.open(archive, 'w:gz') as tar:
         entry = tarfile.TarInfo(name)
         entry.size = 1
         tar.addfile(entry, io.BytesIO(b'x'))
-    directory('Products/')
+    directory('Voucha.xctestproducts/')
     if kind == 'valid':
-        directory('Products/Framework.framework/')
-        directory('Products/Framework.framework/Versions/')
-        directory('Products/Framework.framework/Versions/A/')
-        directory('Products/Framework.framework/Versions/A/Resources/')
-        file('Products/Framework.framework/Versions/A/Framework')
-        entry = tarfile.TarInfo('Products/Framework.framework/Versions/Current')
+        directory('Voucha.xctestproducts/Framework.framework/')
+        directory('Voucha.xctestproducts/Framework.framework/Versions/')
+        directory('Voucha.xctestproducts/Framework.framework/Versions/A/')
+        directory('Voucha.xctestproducts/Framework.framework/Versions/A/Resources/')
+        file('Voucha.xctestproducts/Framework.framework/Versions/A/Framework')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/Framework.framework/Versions/Current')
         entry.type = tarfile.SYMTYPE
         entry.linkname = 'A'
         tar.addfile(entry)
-        entry = tarfile.TarInfo('Products/Framework.framework/Resources')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/Framework.framework/Resources')
         entry.type = tarfile.SYMTYPE
         entry.linkname = 'Versions/Current/Resources'
         tar.addfile(entry)
     elif kind == 'symlink-chain':
-        directory('Products/dir/')
-        directory('Products/dir/deep/')
-        entry = tarfile.TarInfo('Products/dir/deep/go')
+        directory('Voucha.xctestproducts/dir/')
+        directory('Voucha.xctestproducts/dir/deep/')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/deep/go')
         entry.type = tarfile.SYMTYPE
         entry.linkname = '../..'
         tar.addfile(entry)
-        entry = tarfile.TarInfo('Products/dir/deep/up')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/deep/up')
         entry.type = tarfile.SYMTYPE
         entry.linkname = 'go/../../..'
         tar.addfile(entry)
     elif kind == 'duplicate':
-        file('Products/same')
-        file('Products/same')
+        file('Voucha.xctestproducts/same')
+        file('Voucha.xctestproducts/same')
     elif kind == 'conflicting':
-        file('Products/file')
-        file('Products/file/child')
+        file('Voucha.xctestproducts/file')
+        file('Voucha.xctestproducts/file/child')
     elif kind in ('escaping-link', 'absolute-link', 'hardlink-escape'):
-        entry = tarfile.TarInfo('Products/Framework.framework/Current')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/Framework.framework/Current')
         entry.type = tarfile.LNKTYPE if kind == 'hardlink-escape' else tarfile.SYMTYPE
         entry.linkname = '/tmp/outside' if kind == 'absolute-link' else '../../../outside'
         tar.addfile(entry)
     elif kind == 'device':
-        entry = tarfile.TarInfo('Products/device')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/device')
         entry.type = tarfile.CHRTYPE
         tar.addfile(entry)
     elif kind == 'appledouble':
-        file('._Products')
+        file('._Voucha.xctestproducts')
     else:
-        file('Products/../../outside' if kind == 'traversal' else '/tmp/outside')
+        file('Voucha.xctestproducts/../../outside' if kind == 'traversal' else '/tmp/outside')
 `
 
 test('iOS test archive accepts internal framework links and rejects escaping entries', () => {

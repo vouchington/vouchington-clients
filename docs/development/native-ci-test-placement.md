@@ -32,9 +32,10 @@ requires exactly one passed test with nothing skipped. That is launch evidence f
 only; sign-in and tab coverage stay on #80.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
-app slice in parallel on `macos-latest`. The launch job downloads the arm64 test products, checks
-the run, attempt, candidate revision, Xcode, SDK, destination, and test-run path, then runs the
-shared UI launch-smoke target with `test-without-building` on the same model and runtime with
+app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
+`.xctestproducts` bundle. The launch job downloads it, checks the run, attempt, candidate
+revision, Xcode, SDK, destination, and bundled product paths, then runs the shared UI launch-smoke
+target with `-testProductsPath` and `test-without-building` on the same model and runtime with
 signing disabled. The `Tests` fan-in requires both the x86_64 compile and the iPhone launch.
 It also exercises the real Videos tab using existing canonical identity and feed responses. The
 DEBUG fixture restores its account through `SessionManager.refresh`; it does not prove sign-in,

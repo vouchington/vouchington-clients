@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject iOS test-product archives that could write outside Products."""
+"""Reject iOS test-product archives that could write outside Voucha.xctestproducts."""
 
 import posixpath
 import sys
@@ -7,7 +7,7 @@ import tarfile
 
 
 def inside_products(path: str) -> bool:
-    return path == "Products" or path.startswith("Products/")
+    return path == "Voucha.xctestproducts" or path.startswith("Voucha.xctestproducts/")
 
 
 def resolve_link(name: str, entries: dict[str, tarfile.TarInfo]) -> None:
@@ -60,8 +60,8 @@ def validate(archive_path: str) -> None:
                     raise ValueError(f"Archive path descends through a non-directory: {member.name!r}")
             if not member.isdir() and any(path.startswith(f"{name}/") for path in seen):
                 raise ValueError(f"Archive path replaces a directory: {member.name!r}")
-            if name == "Products" and not member.isdir():
-                raise ValueError("Products root must be a directory")
+            if name == "Voucha.xctestproducts" and not member.isdir():
+                raise ValueError("Voucha.xctestproducts root must be a directory")
             if member.issym() or member.islnk():
                 target = member.linkname
                 if not target or target.startswith("/"):

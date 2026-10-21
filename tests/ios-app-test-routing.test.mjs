@@ -39,6 +39,7 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
     )
     assert.match(buildJob, /build-for-testing/u)
+    assert.match(buildJob, /-testProductsPath "\$GITHUB_WORKSPACE\/Voucha\.xctestproducts"/u)
     assert.match(buildJob, /COPYFILE_DISABLE=1 tar/u)
     assert.match(
       buildJob,
@@ -56,6 +57,8 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
     assert.match(iosJob, /\.destination' "\$manifest"/u)
     assert.match(iosJob, /test-without-building/u)
+    assert.match(iosJob, /-testProductsPath "\$bundle"/u)
+    assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
     assert.ok(
       iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
         iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),

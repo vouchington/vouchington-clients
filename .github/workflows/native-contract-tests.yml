@@ -1076,17 +1076,21 @@ jobs:
           fi
           ./swift-clients/tooling/generate.sh iOS
           destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          products="$XCODE_DERIVED_DATA/Build/Products"
-          shopt -s nullglob
-          test_runs=("$products"/*.xctestrun)
-          test "${#test_runs[@]}" -eq 1
-          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg products "$products" --arg xctestrun "${test_runs[0]}" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,products:$products,xctestrun:$xctestrun}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test -f "$bundle/Info.plist"
+          app="$(find "$bundle" -type d -name Voucha.app -print -quit)"
+          runner="$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)"
+          test_bundle="$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)"
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
       - name: Package iOS test products
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          COPYFILE_DISABLE=1 tar -C "$GITHUB_WORKSPACE/ios-test-derived-data/Build" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Products
+          COPYFILE_DISABLE=1 tar -C "$GITHUB_WORKSPACE" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Voucha.xctestproducts
           python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" "$RUNNER_TEMP/ios-test-products.tar.gz"
           shasum -a 256 "$RUNNER_TEMP/ios-test-products.tar.gz" | awk '{print $1}' > "$RUNNER_TEMP/ios-test-products.sha256"
           cp "$GITHUB_WORKSPACE/ios-test-manifest.json" "$RUNNER_TEMP/ios-test-manifest.json"
@@ -1200,10 +1204,18 @@ jobs:
           test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
-          products="$GITHUB_WORKSPACE/ios-test-derived-data/Build/Products"
-          test "$(jq -r '.products' "$manifest")" = "$products"
-          xctestrun="$(jq -r '.xctestrun' "$manifest")"
-          test "${xctestrun%/*}" = "$products"
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            case "$path" in
+              "$bundle"/*) ;;
+              *) echo "::error::Invalid $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+            case "$path" in
+              */../*|*/./*) echo "::error::Non-canonical $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+          done
           destination="$(jq -r '.destination' "$manifest")"
           simulator_name="${destination#*name=}"
           simulator_name="${simulator_name%%,OS=*}"
@@ -1216,17 +1228,22 @@ jobs:
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
           printf '%s\n' "$destination" > "$RUNNER_TEMP/ios-launch-destination"
-          printf '%s\n' "$xctestrun" > "$RUNNER_TEMP/ios-launch-xctestrun"
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/ios-launch-test-products"
           cd "$artifact"
           printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
           python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
-          mkdir -p "$GITHUB_WORKSPACE/ios-test-derived-data/Build"
-          tar -C "$GITHUB_WORKSPACE/ios-test-derived-data/Build" -xzf ios-test-products.tar.gz
-          test -f "$xctestrun"
-          shopt -s nullglob
-          test_runs=("$products"/*.xctestrun)
-          test "${#test_runs[@]}" -eq 1
-          test "${test_runs[0]}" = "$xctestrun"
+          tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
+          test -f "$bundle/Info.plist"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            test -d "$path"
+          done
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
       - name: Start iPhone Simulator for launch smoke
         timeout-minutes: 3
         working-directory: candidate-clients
@@ -1248,9 +1265,9 @@ jobs:
         timeout-minutes: 10
         working-directory: candidate-clients
         run: |
-          xctestrun="$(cat "$RUNNER_TEMP/ios-launch-xctestrun")"
+          bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
-          xcodebuild -xctestrun "$xctestrun" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
