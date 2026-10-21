@@ -147,10 +147,12 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
         'build-macos-app',
         'dotnet-maui',
         'dotnet-windows-image-preview',
+        'dotnet-windows-language-model-surface',
         'dotnet-windows-maui',
       ].map(job => [job, { result: 'success' }]),
     )
     baseNeeds['dotnet-windows-image-preview'] = { result: 'skipped' }
+    baseNeeds['dotnet-windows-language-model-surface'] = { result: 'skipped' }
     baseNeeds['dotnet-windows-maui'] = { result: 'skipped' }
 
     for (const [result, succeeds] of [
@@ -163,7 +165,19 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       try {
         execFileSync(
           'jq',
-          ['-e', '--arg', 'route', 'false', '--arg', 'maui', 'false', expression],
+          [
+            '-e',
+            '--arg',
+            'route',
+            'false',
+            '--arg',
+            'maui',
+            'false',
+            '--arg',
+            'surface',
+            'false',
+            expression,
+          ],
           {
             input: JSON.stringify(needs),
             stdio: ['pipe', 'pipe', 'pipe'],

@@ -33,6 +33,9 @@ public sealed class ChatMemberMcpControlsTests
         ["native.dotnet.chat.mcpConnectionFailed"] = "Connection failed",
         ["native.dotnet.chat.mcpRefresh"] = "Refresh",
         ["native.dotnet.chat.mcpDisconnect"] = "Disconnect",
+        ["native.credentials.writeAction"] = "Write",
+        ["native.credentials.chooseScopes"] = "Choose scopes",
+        ["native.dotnet.csharpTags.viewPlans"] = "View plans",
       },
     };
     var connection = new Connection();
@@ -43,13 +46,22 @@ public sealed class ChatMemberMcpControlsTests
     typeof(ChatMemberMcpControlsView).GetMethod("OnLoaded", BindingFlags.Instance | BindingFlags.NonPublic)!
         .Invoke(view, [view, EventArgs.Empty]);
     var buttons = view.GetVisualTreeDescendants().OfType<Button>().ToArray();
-    Assert.Equal(3, buttons.Length);
     Assert.True(Assert.Single(buttons, button => button.Text == "Connect").IsVisible);
+    Assert.False(Assert.Single(buttons, button => button.Text == "Choose scopes").IsVisible);
+    var write = Assert.Single(view.GetVisualTreeDescendants().OfType<Switch>());
+    Assert.False(write.IsToggled);
+    Assert.False(Assert.Single(buttons, button => button.Text == "View plans").IsVisible);
+    write.IsToggled = true;
+    Assert.True(Assert.Single(buttons, button => button.Text == "View plans").IsVisible);
 
     await session.ConnectAsync(TestContext.Current.CancellationToken);
 
     Assert.False(Assert.Single(buttons, button => button.Text == "Connect").IsVisible);
     Assert.True(Assert.Single(buttons, button => button.Text == "Refresh").IsVisible);
+    Assert.True(Assert.Single(buttons, button => button.Text == "Choose scopes").IsVisible);
+    var controls = Assert.IsType<MemberMcpControlsViewModel>(view.BindingContext);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.Equal("mcp.user:read mcp.user:write", connection.ConsentScope);
     Assert.True(Assert.Single(buttons, button => button.Text == "Disconnect").IsVisible);
     Assert.Equal(1, session.Tools?.GetProperty("tools").GetArrayLength());
     var catalog = Assert.Single(view.GetVisualTreeDescendants().OfType<CollectionView>());
@@ -86,6 +98,9 @@ public sealed class ChatMemberMcpControlsTests
         ["native.dotnet.chat.mcpConnectionFailed"] = "Connection failed",
         ["native.dotnet.chat.mcpRefresh"] = "Refresh",
         ["native.dotnet.chat.mcpDisconnect"] = "Disconnect",
+        ["native.credentials.writeAction"] = "Write",
+        ["native.credentials.chooseScopes"] = "Choose scopes",
+        ["native.dotnet.csharpTags.viewPlans"] = "View plans",
       },
     };
     var connection = new PendingConnection();
@@ -163,6 +178,12 @@ public sealed class ChatMemberMcpControlsTests
   private sealed class Connection : IMemberMcpSessionConnection
   {
     public string ToolName { get; set; } = "read_profile";
+    public string? ConsentScope { get; private set; }
+    public Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken)
+    {
+      ConsentScope = scope;
+      return ListToolsAsync(cancellationToken);
+    }
     public Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken) => ListToolsAsync(cancellationToken);
     public Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken) => Task.FromResult(
         JsonSerializer.SerializeToElement(new

@@ -113,14 +113,31 @@ it('fails the aggregate when a selected Windows build fails or is skipped', () =
     const input = JSON.stringify({
       verify: { result: 'success' },
       'dotnet-windows-image-preview': { result: 'skipped' },
+      'dotnet-windows-language-model-surface': { result: 'skipped' },
       'dotnet-windows-maui': { result },
     })
     let accepted = false
     try {
-      execFileSync('jq', ['-e', '--arg', 'route', 'false', '--arg', 'maui', route, expression], {
-        input,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      })
+      execFileSync(
+        'jq',
+        [
+          '-e',
+          '--arg',
+          'route',
+          'false',
+          '--arg',
+          'maui',
+          route,
+          '--arg',
+          'surface',
+          'false',
+          expression,
+        ],
+        {
+          input,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      )
       accepted = true
     } catch (error) {
       assert.equal(error.status, 1)
