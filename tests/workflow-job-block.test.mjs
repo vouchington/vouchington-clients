@@ -45,6 +45,24 @@ describe('workflow job block', () => {
     assert.equal(block, '  alpha:\n    runs-on: ubuntu-slim')
   })
 
+  it('ignores indented step text that looks like a job key', () => {
+    const block = jobBlock(
+      'jobs:\n  build:\n    steps:\n      - run: |\n          echo\n          verify: nested\n  verify:\n    runs-on: ubuntu-slim\n',
+      'verify',
+    )
+
+    assert.equal(block, '  verify:\n    runs-on: ubuntu-slim\n')
+  })
+
+  it('ignores a job-like key above the jobs section', () => {
+    const block = jobBlock(
+      'env:\n  verify: no\njobs:\n  verify:\n    runs-on: ubuntu-slim\n',
+      'verify',
+    )
+
+    assert.equal(block, '  verify:\n    runs-on: ubuntu-slim\n')
+  })
+
   it('reports a missing job with the caller message', () => {
     assert.throws(() => jobBlock(workflow, 'missing', 'missing workflow job missing'), {
       message: 'missing workflow job missing',
