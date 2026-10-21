@@ -120,4 +120,22 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         XCTAssertNoThrow(try inspected.find(text: "http://example.com/profile"))
         XCTAssertNoThrow(try inspected.find(text: "example.com"))
     }
+
+    func testWhitespaceOnlyNamesDoNotHideLinkDestinations() throws {
+        let rejected = NativeChatProfileLinkFact(
+            id: "unsafe", linkType: .url, handle: nil, name: " \n ",
+            url: "http://example.com/profile"
+        )
+        let safe = NativeChatProfileLinkFact(
+            id: "safe", linkType: .url, handle: nil, name: " \n ",
+            url: "https://example.com/profile"
+        )
+        let inspected = try NativeChatProfileLinksFactView(
+            links: [rejected, safe], locale: Locale(identifier: "en")
+        ).inspect()
+
+        XCTAssertEqual(inspected.findAll(ViewType.Link.self).count, 1)
+        XCTAssertNoThrow(try inspected.find(text: "http://example.com/profile"))
+        XCTAssertNoThrow(try inspected.find(text: "example.com"))
+    }
 }

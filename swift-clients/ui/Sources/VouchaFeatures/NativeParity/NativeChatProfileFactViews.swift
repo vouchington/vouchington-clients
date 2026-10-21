@@ -33,7 +33,7 @@ struct NativeChatProfileLinksFactView: View {
                             Text(verbatim: label(for: link, destination: destination))
                         }
                     } else if let value = [link.name, link.handle, link.url]
-                        .compactMap({ $0 }).first(where: { !$0.isEmpty }) {
+                        .compactMap(displayable).first {
                         Text(verbatim: UiMessages.string(.userContent(value), locale: locale))
                     }
                 }
@@ -44,9 +44,13 @@ struct NativeChatProfileLinksFactView: View {
     }
 
     private func label(for link: NativeChatProfileLinkFact, destination: URL) -> String {
-        let value = link.name.flatMap { $0.isEmpty ? nil : $0 }
-            ?? link.handle.flatMap { $0.isEmpty ? nil : $0 }
+        let value = displayable(link.name)
+            ?? displayable(link.handle)
             ?? destination.host ?? ""
         return UiMessages.string(.userContent(value), locale: locale)
+    }
+
+    private func displayable(_ value: String?) -> String? {
+        value.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 }
