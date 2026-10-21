@@ -15,6 +15,8 @@ public interface IMemberMcpSessionConnectionFactory
 public interface IMemberMcpSessionConnection : IAsyncDisposable
 {
   Task<JsonElement> ConnectAndListToolsAsync(CancellationToken cancellationToken);
+  Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken) =>
+      throw new NotSupportedException("Explicit MCP consent is unavailable.");
   Task<JsonElement> ListToolsAsync(CancellationToken cancellationToken);
   Task<McpToolResult> CallToolAsync(string name, JsonElement arguments, CancellationToken cancellationToken);
   Task DisconnectAsync(CancellationToken cancellationToken);

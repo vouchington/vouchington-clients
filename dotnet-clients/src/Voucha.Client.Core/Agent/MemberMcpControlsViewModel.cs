@@ -7,6 +7,16 @@ namespace Voucha.Client.Core.Agent;
 public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : ObservableObject
 {
   private bool hasError;
+  public bool RequestWriteAccess
+  {
+    get => session.RequestWriteAccess;
+    set
+    {
+      session.RequestWriteAccess = value;
+      OnPropertyChanged();
+    }
+  }
+  public bool CanAuthorize => HasMemberSession && !IsBusy;
 
   public bool HasMemberSession => session.HasMemberSession;
   public bool IsConnected => session.Status == MemberMcpSessionStatus.Connected;
@@ -26,7 +36,9 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
   {
     hasError = false;
     Refresh();
-    await session.ConnectAsync(cancellationToken).ConfigureAwait(true);
+    var scope = RequestWriteAccess ? "mcp.user:read mcp.user:write" : "mcp.user:read";
+    if (IsConnected) await session.AuthorizeAsync(scope, cancellationToken).ConfigureAwait(true);
+    else await session.ConnectAsync(scope, cancellationToken).ConfigureAwait(true);
     Refresh();
   }
 
@@ -73,7 +85,9 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
     OnPropertyChanged(nameof(HasMemberSession));
     OnPropertyChanged(nameof(IsConnected));
     OnPropertyChanged(nameof(IsBusy));
+    OnPropertyChanged(nameof(RequestWriteAccess));
     OnPropertyChanged(nameof(CanConnect));
+    OnPropertyChanged(nameof(CanAuthorize));
     OnPropertyChanged(nameof(CanDisconnect));
     OnPropertyChanged(nameof(HasError));
     OnPropertyChanged(nameof(ToolNames));

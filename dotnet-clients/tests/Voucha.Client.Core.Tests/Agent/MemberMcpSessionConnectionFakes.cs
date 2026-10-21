@@ -33,6 +33,14 @@ public sealed partial class MemberMcpSessionTests
       bool failConnect, bool holdToolCall, bool failDisconnect, TaskCompletionSource? releaseCanceledConnect)
       : IMemberMcpSessionConnection
   {
+    public bool CancelConsent { get; set; }
+    public List<string> ConsentScopes { get; } = [];
+    public Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken)
+    {
+      ConsentScopes.Add(scope);
+      if (CancelConsent) throw new OperationCanceledException("Browser canceled");
+      return ConsentScopes.Count == 1 ? ConnectAndListToolsAsync(cancellationToken) : ListToolsAsync(cancellationToken);
+    }
     public bool FailRefresh { get; set; }
     public bool UnauthorizedRefresh { get; set; }
     public bool RejectToolCall { get; set; }
