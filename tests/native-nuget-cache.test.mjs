@@ -30,7 +30,8 @@ test('Mac Catalyst restores NuGet on every run and saves a completed main-only m
     /if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.maui-nuget-cache\.outputs\.cache-hit != 'true' \}\}/u,
   )
   assert.match(save, /timeout-minutes: 3/u)
-  assert.ok(maui.indexOf('Verify all eleven committed NuGet locks') < maui.indexOf('Save NuGet'))
+  assert.ok(maui.includes('Verify all twelve committed NuGet locks'))
+  assert.ok(maui.indexOf('Verify all twelve committed NuGet locks') < maui.indexOf('Save NuGet'))
   assert.ok(maui.indexOf('Test rendered MAUI pages') < maui.indexOf('Save NuGet'))
   assert.ok(maui.indexOf('Build MAUI Mac Catalyst app') < maui.indexOf('Save NuGet'))
 })
