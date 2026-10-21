@@ -1155,7 +1155,8 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
@@ -1261,6 +1262,18 @@ jobs:
           --configuration Release --framework net10.0-maccatalyst
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore
+      - name: Save NuGet packages from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
 
   dotnet-windows-image-preview:
     name: .NET Windows image preview

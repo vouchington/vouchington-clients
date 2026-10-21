@@ -37,6 +37,12 @@ archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
 
+The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
+`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
+still perform the same locked restore and tests on a cache miss; they do not upload a separate
+multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
+toolchain reuse.
+
 ## pnpm
 
 pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
