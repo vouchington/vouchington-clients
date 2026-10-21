@@ -137,7 +137,7 @@ diagnostics remain `check-failure`. See
 When changing a MAUI dependency, regenerate the framework-only Core Mac Catalyst lock and both app and Core locks for `maccatalyst-arm64` and `maccatalyst-x64`. Use the matrix helper below so every restore receives the correct `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 
 Follow the repository [frozen-install policy](../docs/development/reference-dependency-updates-frozen-install-policy.md#nuget)
-for dependency review and audit evidence. For the complete nine-lock matrix, use
+for dependency review and audit evidence. For the complete twelve-lock matrix, use
 `bash dotnet-clients/tooling/restore-locks.sh update` followed by
 `bash dotnet-clients/tooling/restore-locks.sh verify` with isolated `NUGET_PACKAGES` and
 `NUGET_HTTP_CACHE_PATH`, `NUGET_PLUGINS_CACHE_PATH`, and `NUGET_SCRATCH`, while keeping lock-restore
@@ -150,7 +150,7 @@ Unlike ordinary development, this lock boundary uses a fresh job-scoped SDK root
 exact `sdk.version` declared in the repository-root `global.json`; this prevents `latestPatch` from selecting a newer SDK
 left by an earlier job on a persistent runner.
 
-Windows packaging can be built locally on Windows. CI compiles the actual Windows MAUI app on `windows-latest` for relevant source and toolchain changes, without packaging or signing. Mac Catalyst remains the rendered App test host.
+Windows packaging can be built locally on Windows. CI compiles the actual Windows MAUI app on `windows-latest` for relevant source and toolchain changes, without packaging or signing. The same runner compiles and reads the pinned Windows App SDK 1.8 language-model WinMD when that surface probe changes. That probe does not generate text. Mac Catalyst remains the rendered App test host.
 
 ## Structure
 

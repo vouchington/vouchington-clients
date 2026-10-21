@@ -195,6 +195,7 @@ jobs:
       base-sha: ${{ steps.identity.outputs.base_sha }}
       revision-sha: ${{ steps.identity.outputs.revision_sha }}
       windows-image-preview: ${{ steps.windows-image-preview-route.outputs.windows-image-preview }}
+      windows-language-model-surface: ${{ steps.windows-language-model-surface-route.outputs.windows-language-model-surface }}
       windows-maui: ${{ steps.windows-maui-route.outputs.windows-maui }}
     steps:
       - name: Check out consumer tooling
@@ -303,6 +304,13 @@ jobs:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-maui-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
+      - name: Route Windows language-model surface probe from the exact candidate diff
+        id: windows-language-model-surface-route
+        working-directory: candidate-clients
+        env:
+          BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
+        run: node scripts/windows-language-model-surface-routing.mjs "$BASE_SHA" "$REVISION_SHA"
   dotnet-portable:
     name: .NET portable
     needs: verify
@@ -1132,7 +1140,7 @@ jobs:
         run: >-
           dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
-      - name: Verify all eleven committed NuGet locks
+      - name: Verify all twelve committed NuGet locks
         working-directory: candidate-clients
         run: >-
           bash dotnet-clients/tooling/restore-locks.sh verify
@@ -1332,6 +1340,57 @@ jobs:
           --configuration Release --framework net10.0-windows10.0.26100.0 --no-restore
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+  dotnet-windows-language-model-surface:
+    name: .NET Windows language-model surface
+    needs: verify
+    if: needs.verify.outputs.windows-language-model-surface == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ runner.os }}-nuget-windows-language-model-surface-${{ hashFiles('candidate-clients/dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/packages.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-windows-language-model-surface-
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Restore the locked Windows language-model surface probe
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config -p:MSBuildEnableWorkloadResolver=false
+      - name: Probe the pinned Windows language-model surface
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false --logger "console;verbosity=detailed"
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: ${{ !cancelled() }}
@@ -1372,6 +1431,7 @@ jobs:
       - build-ios-app
       - dotnet-maui
       - dotnet-windows-image-preview
+      - dotnet-windows-language-model-surface
       - dotnet-windows-maui
     runs-on: ubuntu-slim
     timeout-minutes: 5
@@ -1381,13 +1441,16 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
           WINDOWS_IMAGE_PREVIEW_ROUTE: ${{ needs.verify.outputs.windows-image-preview }}
+          WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: ${{ needs.verify.outputs.windows-language-model-surface }}
           WINDOWS_MAUI_ROUTE: ${{ needs.verify.outputs.windows-maui }}
         run: |
           set -euo pipefail
-          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" '
-            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-maui"); .value.result == "success") and
+          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" '
+            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-language-model-surface" and .key != "dotnet-windows-maui"); .value.result == "success") and
             ((."dotnet-windows-image-preview".result == "success") or
              ($route == "false" and ."dotnet-windows-image-preview".result == "skipped")) and
+            ((."dotnet-windows-language-model-surface".result == "success") or
+             ($surface == "false" and ."dotnet-windows-language-model-surface".result == "skipped")) and
             ((."dotnet-windows-maui".result == "success") or
              ($maui == "false" and ."dotnet-windows-maui".result == "skipped"))
           ' <<<"$NEEDS_JSON"

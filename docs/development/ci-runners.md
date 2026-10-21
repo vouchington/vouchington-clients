@@ -8,8 +8,10 @@ the closed allowlist:
 - `ubuntu-latest` is used for Linux work that needs Docker, a tool container, or a full GitHub
   Ubuntu image.
 - `macos-latest` is used for macOS native build, test, and dead-code checks.
-- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests and the actual Windows
-  MAUI app compile check. These exercise Windows-only source and WinUI.
+- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests, the pinned Windows App SDK
+  language-model surface probe, and the actual Windows MAUI app compile check. These exercise
+  Windows-only source and WinUI. The surface probe reads restored package metadata and compiles the
+  projected admission APIs. It does not generate with the language model.
 
 Which native tests belong on each label, and when a second OS is forbidden, is documented in
 [native CI test placement](native-ci-test-placement.md).
@@ -23,7 +25,7 @@ The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the m
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
 required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
 
-Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The two
+Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.
 
 Hosted VMs are single-job and discarded after the run. Jobs check out the revision they execute and
@@ -89,7 +91,7 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's eleven lockfiles, while
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's twelve lockfiles, while
 `dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
 enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
 base and fetch candidate dependency files as inert API data. They never check out or execute the
