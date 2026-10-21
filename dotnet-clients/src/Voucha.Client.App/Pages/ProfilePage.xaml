@@ -159,7 +159,13 @@
                                 <VerticalStackLayout Spacing="2">
                                     <Image HeightRequest="24" WidthRequest="24" HorizontalOptions="Start"
                                            Source="{Binding ImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}"
-                                           SemanticProperties.Description="{Binding Name}" />
+                                           AutomationProperties.IsInAccessibleTree="False">
+                                        <Image.Triggers>
+                                            <DataTrigger TargetType="Image" Binding="{Binding ImagePlacement}" Value="{x:Null}">
+                                                <Setter Property="IsVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Image.Triggers>
+                                    </Image>
                                     <Label Text="{Binding Name}" Style="{StaticResource Body}" />
                                     <Label Text="{Binding Url}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding Handle}" Style="{StaticResource Metadata}" />
