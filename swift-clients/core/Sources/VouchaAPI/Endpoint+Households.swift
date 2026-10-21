@@ -9,6 +9,10 @@ public enum HouseholdAccess: String, Sendable {
 }
 
 public extension Endpoint {
+    static var currentIndividual: Endpoint {
+        Endpoint(.GET, path: "/api/v1/me/individual")
+    }
+
     static func households(
         access: HouseholdAccess = .all,
         after: String? = nil,

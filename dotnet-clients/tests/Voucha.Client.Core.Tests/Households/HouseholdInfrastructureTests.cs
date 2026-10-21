@@ -8,6 +8,22 @@ namespace Voucha.Client.Core.Tests.Households;
 public sealed class HouseholdInfrastructureTests
 {
   [Fact]
+  public async Task CurrentIndividualLookupSendsGetAndDecodesIdentityWithoutOptionalProfileFields()
+  {
+    var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse("native.me.individual"));
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+
+    var response = await client.FetchCurrentIndividualAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal("00000000-0000-7000-8000-000000000301", response.Individual.Id);
+    Assert.Equal(DateTimeOffset.Parse("2026-07-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+        response.Individual.UpdatedAt);
+    Assert.Null(response.Individual.UserId);
+    Assert.Null(response.Individual.Username);
+    Assert.Equal(new RecordedRequest(HttpMethod.Get, "/api/v1/me/individual", null), Assert.Single(handler.Requests));
+  }
+
+  [Fact]
   public void ApiServiceRejectsNullClient()
   {
     Assert.Throws<ArgumentNullException>(() => new ApiHouseholdService(null!));

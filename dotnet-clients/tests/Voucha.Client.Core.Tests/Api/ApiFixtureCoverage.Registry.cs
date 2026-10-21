@@ -262,6 +262,7 @@ internal static partial class ApiFixtureCoverage
     ["native.landing-page-candidates.default"] = typeof(LandingPageCandidatesResponse),
     ["native.landing-page-items-mutation.default"] = typeof(LandingPageDetailResponse),
     ["native.landing-page-mutation.default"] = typeof(LandingPageResponse),
+    ["native.me.individual"] = typeof(CurrentIndividualResponse),
     ["native.households.empty"] = typeof(HouseholdsResponse),
     ["native.households.single-owned"] = typeof(HouseholdsResponse),
     ["native.households.multiple"] = typeof(HouseholdsResponse),
