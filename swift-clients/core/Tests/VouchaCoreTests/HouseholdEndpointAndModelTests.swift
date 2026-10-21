@@ -4,6 +4,18 @@ import VouchaModels
 import XCTest
 
 final class HouseholdEndpointAndModelTests: XCTestCase {
+    func testCurrentIndividualFixtureDecodesIdentityWithoutOptionalProfileFields() throws {
+        let response = try makeVouchaDecoder().decode(
+            CurrentIndividualResponse.self,
+            from: ApiFixtureLoader.data("native.me.individual")
+        )
+        XCTAssertEqual(response.individual.id, "00000000-0000-7000-8000-000000000301")
+        XCTAssertEqual(response.individual.updatedAt, Date(timeIntervalSince1970: 1_782_950_400))
+        XCTAssertNil(response.individual.userId)
+        XCTAssertNil(response.individual.username)
+        assertEndpoint(.currentIndividual, path: "/api/v1/me/individual")
+    }
+
     func testSharedFixturesDecodeHouseholdListVariantsAndNullableMembershipFields() throws {
         let decoder = makeVouchaDecoder()
         let empty = try decoder.decode(HouseholdPage.self, from: ApiFixtureLoader.data("native.households.empty"))
