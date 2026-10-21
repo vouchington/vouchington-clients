@@ -18,6 +18,15 @@ struct EmailOTPEmailStep: View {
             Spacer()
         }
         .padding(Spacing.lg)
+        #if os(iOS)
+            .safeAreaInset(edge: .bottom, spacing: Spacing.md) {
+                // The email keyboard covers a centered button. Keep Send Code in the
+                // keyboard safe area so the control can be tapped while the field is focused.
+                sendCodeButton
+                    .padding(.horizontal, Spacing.xl)
+                    .padding(.bottom, Spacing.sm)
+            }
+        #endif
     }
 
     private var header: some View {
@@ -70,20 +79,26 @@ struct EmailOTPEmailStep: View {
             .buttonStyle(.bordered)
             .controlSize(.large)
 
-            Button {
-                Task { await viewModel.requestCode() }
-            } label: {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else {
-                    Text(UiMessages.string(.nativeAuthSendCode, locale: locale))
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!viewModel.canRequestCode)
+            #if !os(iOS)
+                sendCodeButton
+            #endif
         }
         .padding(.horizontal, Spacing.xl)
+    }
+
+    private var sendCodeButton: some View {
+        Button {
+            Task { await viewModel.requestCode() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView()
+            } else {
+                Text(UiMessages.string(.nativeAuthSendCode, locale: locale))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .disabled(!viewModel.canRequestCode)
     }
 }

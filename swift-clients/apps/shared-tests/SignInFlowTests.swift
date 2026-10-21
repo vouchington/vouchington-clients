@@ -6,6 +6,11 @@
         private let code = "424242"
         private let turnstileToken = "ui-testing-turnstile-token"
 
+        override func setUp() {
+            super.setUp()
+            continueAfterFailure = false
+        }
+
         func testEmailOTPSignInReplacesTheSignedOutControl() throws {
             let fixtures = try loadFixtures()
             let app = XCUIApplication()
@@ -30,8 +35,7 @@
 
             let emailField = app.textFields["Email address"]
             XCTAssertTrue(emailField.waitForExistence(timeout: 20))
-            emailField.tap()
-            emailField.typeText(email)
+            type(email, into: emailField)
             let sendCode = app.buttons["Send Code"]
             let enabled = NSPredicate(format: "isEnabled == true")
             let becameEnabled = expectation(for: enabled, evaluatedWith: sendCode)
@@ -41,12 +45,22 @@
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
             let codeField = app.textFields["6-digit code"]
             XCTAssertTrue(codeField.waitForExistence(timeout: 20))
-            codeField.tap()
-            codeField.typeText(code)
+            type(code, into: codeField)
             app.buttons["Verify Code"].tap()
 
             XCTAssertTrue(signIn.waitForNonExistence(timeout: 20))
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
+        }
+
+        private func type(_ text: String, into field: XCUIElement) {
+            field.tap()
+            field.typeText(text)
+            guard let value = field.value as? String, value != text else { return }
+            guard value.hasPrefix(text) else {
+                XCTFail("Typed \(value), expected \(text)")
+                return
+            }
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count - text.count))
         }
 
         private func loadFixtures() throws -> (identity: String, providers: String) {
