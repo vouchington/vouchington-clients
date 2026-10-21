@@ -23,6 +23,42 @@ public sealed class ProfilePageLocalAvatarPreviewTests
   private const string TinyPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
   [Fact]
+  public async Task DecodedSelectionIsRenderedFromLocalBytesWhileUploadIsHeld()
+  {
+    var selectedBytes = Convert.FromBase64String(TinyPng);
+    var fixture = await CreatePageAsync(selectedBytes, holdUpload: true);
+    fixture.Page.readSelectedAvatarPreview = async (stream, cancellation) =>
+    {
+      using var buffer = new MemoryStream();
+      await stream.CopyToAsync(buffer, cancellation);
+      return new LocalImageSelection(buffer.ToArray(), selectedBytes);
+    };
+    try
+    {
+      var upload = InvokeTask(fixture.Page, "UploadAvatarSelectionAsync");
+      await fixture.Upload.CreateStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+      var image = fixture.Page.FindByName<Image>("AvatarLocalPreviewImage");
+      Assert.True(image.IsVisible);
+      var source = Assert.IsType<StreamImageSource>(image.Source);
+      await using var rendered = await source.Stream(TestContext.Current.CancellationToken);
+      using var buffer = new MemoryStream();
+      await rendered.CopyToAsync(buffer, TestContext.Current.CancellationToken);
+      Assert.Equal(selectedBytes, buffer.ToArray());
+      Assert.False(fixture.Page.FindByName<Label>("AvatarPreviewUnavailableLabel").IsVisible);
+
+      fixture.Upload.ReleaseCreate.TrySetResult(new ImageUploadUrlResponse(fixture.Upload.Url));
+      await upload.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+      Assert.Null(image.Source);
+      Assert.False(image.IsVisible);
+    }
+    finally
+    {
+      fixture.Upload.ReleaseCreate.TrySetResult(new ImageUploadUrlResponse(fixture.Upload.Url));
+      fixture.Dispose();
+    }
+  }
+
+  [Fact]
   public async Task SelectedAvatarBytesAreUploadedAndDisappearingFencesLateCompletion()
   {
     var selectedBytes = Convert.FromBase64String(TinyPng);
@@ -81,6 +117,7 @@ public sealed class ProfilePageLocalAvatarPreviewTests
       Assert.False(preview.IsVisible);
       Assert.True(unavailable.IsVisible);
       Assert.Equal("Uploaded image preview unavailable", unavailable.Text);
+      Assert.Equal(unavailable.Text, SemanticProperties.GetDescription(unavailable));
       Assert.Equal(1, fixture.Settings.IdentityUpdates);
       Assert.Equal(fixture.Upload.ReadyImageId, fixture.Settings.LastIdentityUpdateBody?.ProfileImageId?.Value);
     }

@@ -39,6 +39,7 @@
                     <Label Text="{Binding AccountTypeLabel}" Style="{StaticResource Metadata}" />
                     <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
                     <Label x:Name="AvatarPreviewUnavailableLabel" Text="{DynamicResource images.uploadPreviewUnavailable}"
+                           SemanticProperties.Description="{DynamicResource images.uploadPreviewUnavailable}"
                            IsVisible="False" Style="{StaticResource Metadata}" />
                     <HorizontalStackLayout Spacing="8">
                         <Button Text="{DynamicResource native.dotnet.common.refresh}" Clicked="OnRefreshClicked" />
@@ -145,7 +146,7 @@
 
             <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverviewScope}">
                 <Label Text="{DynamicResource native.dotnet.settings.links}" Style="{StaticResource Headline}" />
-                <CollectionView ItemsSource="{Binding ProfileLinks}" SelectionMode="None">
+                <CollectionView x:Name="ProfileLinksCollection" ItemsSource="{Binding ProfileLinks}" SelectionMode="None">
                     <CollectionView.EmptyView>
                         <Label Text="{DynamicResource native.dotnet.profile.noLinks}" Style="{StaticResource Metadata}" />
                     </CollectionView.EmptyView>
@@ -156,6 +157,9 @@
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
                                 <VerticalStackLayout Spacing="2">
+                                    <Image HeightRequest="24" WidthRequest="24" HorizontalOptions="Start"
+                                           Source="{Binding ImagePlacement, Converter={StaticResource ProfilePlacementImageSource96}}"
+                                           SemanticProperties.Description="{Binding Name}" />
                                     <Label Text="{Binding Name}" Style="{StaticResource Body}" />
                                     <Label Text="{Binding Url}" Style="{StaticResource Metadata}" LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding Handle}" Style="{StaticResource Metadata}" />
