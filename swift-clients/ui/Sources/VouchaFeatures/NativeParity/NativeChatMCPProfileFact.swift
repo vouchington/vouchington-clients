@@ -34,7 +34,7 @@ extension NativeChatMCPFact {
     static func makeProfileLinks(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),
               let envelope = try? JSONDecoder.profileFact.decode(ProfileLinksEnvelope.self, from: data),
-              envelope.success else { return nil }
+              envelope.success, !envelope.results.isEmpty else { return nil }
         return .profileLinks(envelope.results.map { link in
             .init(id: link.id, linkType: link.linkType, handle: link.handle, name: link.name, url: link.url)
         })

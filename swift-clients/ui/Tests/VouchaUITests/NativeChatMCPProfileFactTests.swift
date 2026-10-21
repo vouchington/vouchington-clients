@@ -44,10 +44,7 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         links.structured["results"] = rows
         XCTAssertNil(try NativeChatMCPFact.makeProfileLinks(links.value))
         links.structured["results"] = []
-        guard case let .profileLinks(empty)? = try NativeChatMCPFact.makeProfileLinks(links.value) else {
-            return XCTFail("A successful empty links result remains a distinct fact")
-        }
-        XCTAssertTrue(empty.isEmpty)
+        XCTAssertNil(try NativeChatMCPFact.makeProfileLinks(links.value))
     }
 
     func testBioAndLinksUseExistingLocalizedHeadingsWithoutRawEnvelope() throws {
