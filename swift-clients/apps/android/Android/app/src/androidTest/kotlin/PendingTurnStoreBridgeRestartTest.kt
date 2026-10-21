@@ -60,6 +60,9 @@ class PendingTurnStoreBridgeRestartTest {
 
     @Test fun readTargetedDeletionAfterRestart() {
         assertEmpty(ownerA)
+        // A directory sync failure can arrive after the file was removed; retry remains safe.
+        PendingTurnStoreBridge.delete(ownerA, conversationA, bodyA)
+        assertEmpty(ownerA)
         assertRecord(ownerB, conversationB, bodyB)
     }
 

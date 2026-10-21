@@ -87,6 +87,10 @@ object PendingTurnStoreBridge {
         requireNoDiscardInProgress(ownerID)
         val dir = directory()
         val file = File(dir, filename(ownerID, conversationID))
+        if (Files.notExists(file.toPath())) {
+            syncDirectory(dir)
+            return
+        }
         if (read(file, ownerID) != Entry(ownerID, conversationID, body)) {
             throw IllegalStateException("Pending turn changed before deletion")
         }
