@@ -15,7 +15,10 @@ struct NativeChatProfileLinkFact: Equatable, Identifiable {
     let url: String?
 
     var safeDestination: URL? {
-        guard let destination = linkType.resolvedURL(handle: handle, fallbackURL: url),
+        let nonblankHandle = handle.flatMap { value in
+            value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value
+        }
+        guard let destination = linkType.resolvedURL(handle: nonblankHandle, fallbackURL: url),
               destination.scheme?.lowercased() == "https",
               let host = destination.host, !host.isEmpty,
               destination.user == nil, destination.password == nil else { return nil }

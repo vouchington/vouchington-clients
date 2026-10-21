@@ -138,4 +138,17 @@ final class NativeChatMCPProfileFactTests: XCTestCase {
         XCTAssertNoThrow(try inspected.find(text: "http://example.com/profile"))
         XCTAssertNoThrow(try inspected.find(text: "example.com"))
     }
+
+    func testWhitespaceOnlyHandleUsesSavedURLInsteadOfConstructedProfileURL() {
+        let saved = NativeChatProfileLinkFact(
+            id: "saved", linkType: .github, handle: " \n ", name: nil,
+            url: "https://example.com/saved-profile"
+        )
+        let missing = NativeChatProfileLinkFact(
+            id: "missing", linkType: .github, handle: " \n ", name: nil, url: nil
+        )
+
+        XCTAssertEqual(saved.safeDestination?.absoluteString, "https://example.com/saved-profile")
+        XCTAssertNil(missing.safeDestination)
+    }
 }
