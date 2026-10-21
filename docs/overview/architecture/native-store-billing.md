@@ -195,6 +195,8 @@ Used from the Android app module:
 - `Purchase.getPurchaseToken()`, `getPurchaseState()`, `isAcknowledged()`, and
   `getPendingPurchaseUpdate()`
 - `BillingFlowParams.setObfuscatedAccountId`
+- `BillingFlowParams.setSubscriptionUpdateParams`
+- `SubscriptionUpdateParams.setOldPurchaseToken`
 - `BillingFlowParams.ProductDetailsParams.setOfferToken`
 - `BillingFlowParams.ProductDetailsParams.setSubscriptionProductReplacementParams`
 - `SubscriptionProductReplacementParams.setOldProductId` and `setReplacementMode`
@@ -215,11 +217,16 @@ effective plan stays as `memberships/me` reports it. When Play moves the purchas
 
 `linkedPurchaseToken` is a field on the Play Developer subscriptions resource. The client does not
 read it and does not send it. The client submits `Purchase.getPurchaseToken()` for the new purchase.
-Filaments follows the replacement chain. For a replacement flow, Library 9 uses
-`SubscriptionProductReplacementParams` with `setOldProductId` set to the Play product id of the
-subscription being replaced. That product id comes from `queryPurchasesAsync`. The deprecated
-`SubscriptionUpdateParams` integer constants are not used. `ReplacementMode` on the product-details
-type is `WITH_TIME_PRORATION` 1, `CHARGE_PRORATED_PRICE` 2, `WITHOUT_PRORATION` 3,
+Filaments follows the replacement chain. For a replacement launch, Library 9 uses both levels.
+`SubscriptionProductReplacementParams.setOldProductId` is the Play product id from
+`queryPurchasesAsync`, and `setReplacementMode` is the item-level mode. The purchase being replaced
+is identified by `BillingFlowParams.setSubscriptionUpdateParams` with
+`SubscriptionUpdateParams.setOldPurchaseToken` set to that same purchase's `getPurchaseToken()`.
+The client keeps that token only for the launch. It is not a verification field.
+`SubscriptionUpdateParams.setSubscriptionReplacementMode` is not called. Once any product sets
+`setSubscriptionProductReplacementParams`, that older mode setter has no effect, and its integer
+constants differ from `SubscriptionProductReplacementParams.ReplacementMode`. Those product-level
+values are `WITH_TIME_PRORATION` 1, `CHARGE_PRORATED_PRICE` 2, `WITHOUT_PRORATION` 3,
 `CHARGE_FULL_PRICE` 4, `DEFERRED` 5, and `KEEP_EXISTING` 6. Which mode to send is an open decision
 below. Without a mode, a purchase that would replace an owned subscription does not call
 `launchBillingFlow`.
@@ -299,11 +306,11 @@ one Store ID.
 Same-provider changes follow the store. Cross-provider purchase attempts stop at `409` and do not
 open a second store.
 
-| Store     | Upgrade and downgrade                                                                                      | Cancel                                                                   |
-| --------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Apple     | Purchase the new product id. Apple applies subscription-group timing.                                      | iOS and iPadOS: `showManageSubscriptions(in:)`. macOS: open decision.    |
-| Play      | `SubscriptionProductReplacementParams` when a replacement mode is supplied. The new token is the evidence. | Play subscriptions deep link.                                            |
-| Microsoft | No in-place change. A new intent purchases another SKU when the server returns `201`.                      | Open decision. The client does not call the publisher billing-state API. |
+| Store     | Upgrade and downgrade                                                                                         | Cancel                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Apple     | Purchase the new product id. Apple applies subscription-group timing.                                         | iOS and iPadOS: `showManageSubscriptions(in:)`. macOS: open decision.    |
+| Play      | Product replacement params plus `setOldPurchaseToken` when a mode is supplied. The new token is the evidence. | Play subscriptions deep link.                                            |
+| Microsoft | No in-place change. A new intent purchases another SKU when the server returns `201`.                         | Open decision. The client does not call the publisher billing-state API. |
 
 A pending switch on `memberships/me` (`pending.switches[]` with `eligible_at`) stays visible until
 that source becomes effective. The client does not promote `is_effective: false` to the current plan.
@@ -495,7 +502,8 @@ has no replacement mode. Library 9 expresses the choice on `SubscriptionProductR
 its constants differ from the deprecated `SubscriptionUpdateParams` values.
 
 - Option A: Filaments adds an explicit mode to the Play launch payload. The client sets
-  `setReplacementMode` only from that field and `setOldProductId` from the owned Play product.
+  `setReplacementMode` only from that field, `setOldProductId` from the owned Play product, and
+  `setOldPurchaseToken` from that purchase's token returned by `queryPurchasesAsync`.
 - Option B: the client ranks Plus and Pro itself and chooses `WITH_TIME_PRORATION` or `DEFERRED`.
 - Option C: v1 Play purchases never replace an owned subscription.
 
