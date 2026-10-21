@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, lstatSync, opendirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -27,33 +27,57 @@ export function durationSeconds(value) {
 export function profileFiles(root, sourceRoot = packageRoot) {
   const roots = [join(sourceRoot, 'Android/build/reports/profile'), join(root, 'reports/profile')]
   if (existsSync(root)) {
-    roots.push(...readdirSync(root, { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .slice(0, 100)
-      .map(entry => join(root, entry.name, 'reports/profile')))
+    for (const entry of boundedEntries(root, 100)) {
+      if (entry.isDirectory()) roots.push(join(root, entry.name, 'reports/profile'))
+    }
   }
   return roots.flatMap(path => existsSync(path)
-    ? readdirSync(path, { withFileTypes: true })
+    ? boundedEntries(path, 100)
       .filter(entry => entry.isFile() && /^profile-.*\.html$/u.test(entry.name))
       .map(entry => join(path, entry.name))
     : [])
 }
 
-export function measuredSize(root) {
+function boundedEntries(path, limit) {
+  const entries = []
+  const directory = opendirSync(path)
+  try {
+    let entry
+    while (entries.length < limit && (entry = directory.readSync()) !== null) entries.push(entry)
+  } finally {
+    directory.closeSync()
+  }
+  return entries
+}
+
+export function measuredSize(root, { entryLimit = maxEntries, timeLimitMs = maxScanMs } = {}) {
   if (!root || !existsSync(root)) return { bytes: 0, entries: 0, complete: true, present: false }
   const started = Date.now()
   const pending = [root]
   let bytes = 0
   let entries = 0
-  while (pending.length && entries < maxEntries && Date.now() - started < maxScanMs) {
+  let truncated = false
+  while (pending.length && entries < entryLimit && Date.now() - started < timeLimitMs) {
     const path = pending.pop()
     const stat = lstatSync(path)
     entries += 1
     if (stat.isDirectory()) {
-      for (const entry of readdirSync(path)) pending.push(join(path, entry))
+      const directory = opendirSync(path)
+      try {
+        let entry
+        while ((entry = directory.readSync()) !== null) {
+          if (entries + pending.length >= entryLimit || Date.now() - started >= timeLimitMs) {
+            truncated = true
+            break
+          }
+          pending.push(join(path, entry.name))
+        }
+      } finally {
+        directory.closeSync()
+      }
     } else if (stat.isFile()) bytes += stat.size
   }
-  return { bytes, entries, complete: pending.length === 0, present: true }
+  return { bytes, entries, complete: !truncated && pending.length === 0, present: true }
 }
 
 export function renderReport({ html, profilePath, paths, identity }) {

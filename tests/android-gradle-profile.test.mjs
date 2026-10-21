@@ -54,6 +54,15 @@ test('reports exact identity, bounded generated sizes, and longest tasks', async
     present: false,
   })
   assert.equal(measuredSize(join(root, 'generated')).bytes, 4)
+  const wide = join(root, 'wide')
+  await mkdir(wide)
+  await Promise.all(
+    Array.from({ length: 40 }, (_, index) => writeFile(join(wide, `file-${index}`), 'x')),
+  )
+  const bounded = measuredSize(wide, { entryLimit: 10, timeLimitMs: 2_000 })
+  assert.equal(bounded.complete, false)
+  assert.ok(bounded.entries <= 10)
+  assert.ok(bounded.bytes <= 9)
   const report = renderReport({
     html: await readFile(fixture, 'utf8'),
     profilePath: 'profile-pinned.html',
