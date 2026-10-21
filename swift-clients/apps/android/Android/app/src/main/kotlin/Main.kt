@@ -37,6 +37,7 @@ open class AndroidAppMain: Application {
 
     override fun onCreate() {
         super.onCreate()
+        pendingTurnContext = applicationContext
         logger.info("starting app")
         cookieSnapshotContext = applicationContext
         ProcessInfo.launch(applicationContext)
@@ -45,6 +46,8 @@ open class AndroidAppMain: Application {
 
     companion object {
         lateinit var cookieSnapshotContext: android.content.Context
+            private set
+        lateinit var pendingTurnContext: android.content.Context
             private set
     }
 }

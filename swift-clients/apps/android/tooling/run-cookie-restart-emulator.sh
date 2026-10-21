@@ -148,26 +148,34 @@ adb shell pm path "$app_id" | grep -q '^package:'
 adb shell pm list instrumentation | grep -Fq "$test_id/androidx.test.runner.AndroidJUnitRunner (target=$app_id)"
 
 run_method() {
-  local method="$1"
+  local test_case="$1"
   local output
   if ! output="$(bash "$script_dir/invoke-cookie-instrumentation.sh" "$test_id" \
-    "CookieSnapshotBridgeRestartTest#$method" | tr -d '\r')"; then
+    "$test_case" | tr -d '\r')"; then
     printf '%s\n' "$output" >&2
-    echo "Android instrumentation did not complete: $method" >&2
+    echo "Android instrumentation did not complete: $test_case" >&2
     return 1
   fi
   if ! verify_instrumentation_output "$output"; then
     printf '%s\n' "$output" >&2
-    echo "Android cookie restart phase failed: $method" >&2
+    echo "Android encrypted storage restart phase failed: $test_case" >&2
     return 1
   fi
-  printf 'Android cookie restart phase passed: %s\n' "$method"
+  printf 'Android encrypted storage restart phase passed: %s\n' "$test_case"
 }
 
-run_method seedCheckedEntries
+run_method CookieSnapshotBridgeRestartTest#seedCheckedEntries
 adb shell am force-stop "$app_id"
-run_method readEntriesAfterRestart
+run_method CookieSnapshotBridgeRestartTest#readEntriesAfterRestart
 adb shell am force-stop "$app_id"
-run_method removeOnlyCookieWithCheckedCommit
+run_method CookieSnapshotBridgeRestartTest#removeOnlyCookieWithCheckedCommit
 adb shell am force-stop "$app_id"
-run_method readRemovalAfterRestart
+run_method CookieSnapshotBridgeRestartTest#readRemovalAfterRestart
+adb shell am force-stop "$app_id"
+run_method PendingTurnStoreBridgeRestartTest#seedCheckedOwnerRecords
+adb shell am force-stop "$app_id"
+run_method PendingTurnStoreBridgeRestartTest#readExactRecordsAfterRestart
+adb shell am force-stop "$app_id"
+run_method PendingTurnStoreBridgeRestartTest#deleteOnlyMatchingOwnerRecord
+adb shell am force-stop "$app_id"
+run_method PendingTurnStoreBridgeRestartTest#readTargetedDeletionAfterRestart

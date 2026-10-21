@@ -14,7 +14,8 @@ extension ViewModel {
     }
 
     var chatErrorMessageKey: UiMessageKey? {
-        guard errorMessage != nil || transcriptLoadFailed else { return nil }
+        guard errorMessage != nil || transcriptLoadFailed || pendingStoreLoadFailed else { return nil }
+        if pendingStoreLoadFailed { return .nativeSwiftAndroidSavedResponsesUnreadable }
         if pendingTurnForSelectedConversation != nil { return .nativeSwiftChatUnableToPersistOnDeviceResponse }
         if chatErrorKind == .generation { return .nativeSwiftAndroidGenerationFailed }
         if conversationCreationFailed { return .nativeSwiftChatUnableToCreateConversation }
@@ -47,13 +48,27 @@ extension ViewModel {
         return pendingTurns[selectedConversationID]
     }
 
+    var replaceableTranscriptMessageIDs: Set<String> {
+        let pending = pendingTurnForSelectedConversation
+        let protectedIDs = [pending?.userMessageID, pending?.assistantMessageID].compactMap { $0 }
+        return Set(messages.map(\.id)).subtracting(protectedIDs)
+    }
+
+    var unlistedPendingTurns: [AndroidPendingChatTurn] {
+        let listedIDs = Set(conversations.map(\.id))
+        return pendingTurns.values.filter { !listedIDs.contains($0.conversationID) }
+            .sorted { $0.conversationID < $1.conversationID }
+    }
+
     var failedGenerationForSelectedConversation: AndroidFailedGeneration? {
         guard let selectedConversationID else { return nil }
         return failedGenerations[selectedConversationID]
     }
 
     var canSendTranscriptMessage: Bool {
-        isSelectedProviderAvailable && !isGenerating && !isCreatingConversation &&
+        !pendingStoreLoadFailed && !pendingStoreIsLoading && !accountExitIsInProgress &&
+            isSelectedProviderAvailable &&
+            !isGenerating && !isCreatingConversation &&
             !isLoadingMessages && !isLoadingConversations && pendingTurnForSelectedConversation == nil &&
             failedGenerationForSelectedConversation == nil &&
             (selectedConversationID == nil || loadedConversationHistoryID == selectedConversationID)

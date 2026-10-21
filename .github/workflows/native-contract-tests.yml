@@ -736,7 +736,7 @@ jobs:
           [[ -c /dev/kvm ]]
           sudo chmod 0666 /dev/kvm
           [[ -r /dev/kvm && -w /dev/kvm ]]
-      - name: Prove checked cookie removal survives an Android process restart
+      - name: Prove checked encrypted storage survives Android process restarts
         timeout-minutes: 12
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}

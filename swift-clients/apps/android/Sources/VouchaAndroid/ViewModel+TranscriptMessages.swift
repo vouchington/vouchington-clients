@@ -6,8 +6,8 @@ extension ViewModel {
         in serverMessages: [ChatMessage],
         conversationID: String,
         reset: Bool
-    ) -> Set<String> {
-        guard let pending = pendingTurns[conversationID] else { return [] }
+    ) async throws -> Set<String> {
+        guard !accountExitIsInProgress, let pending = pendingTurns[conversationID] else { return [] }
         var acknowledgements = reset ? [] : pendingTurnHistoryAcknowledgements[conversationID, default: []]
         var currentPageAcknowledgements = Set<String>()
         for message in serverMessages where message.conversationId == conversationID {
@@ -23,6 +23,19 @@ extension ViewModel {
               acknowledgements.contains(pending.assistantMessageID)
         else {
             pendingTurnHistoryAcknowledgements[conversationID] = acknowledgements
+            return currentPageAcknowledgements
+        }
+        guard let ownerID = currentPendingTurnOwnerID else { return currentPageAcknowledgements }
+        let accountRevision = accountGeneration
+        let conversationRevision = conversationGeneration
+        guard currentPendingTurnOwnerID == ownerID, pendingTurns[conversationID] == pending,
+              accountGeneration == accountRevision, conversationGeneration == conversationRevision
+        else { return currentPageAcknowledgements }
+        pendingTurnHistoryAcknowledgements[conversationID] = acknowledgements
+        try await pendingStore.delete(ownerID: ownerID, turn: pending)
+        guard accountGeneration == accountRevision,
+              currentPendingTurnOwnerID == ownerID,
+              pendingTurns[conversationID] == pending else {
             return currentPageAcknowledgements
         }
         pendingTurns.removeValue(forKey: conversationID)

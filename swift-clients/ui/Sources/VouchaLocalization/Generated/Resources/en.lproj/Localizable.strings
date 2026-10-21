@@ -353,6 +353,8 @@
 "native.swift.android.chatProvider" = "Chat provider";
 "native.swift.android.checkModelStatus" = "Check model status";
 "native.swift.android.configuredEndpoint" = "Configured endpoint";
+"native.swift.android.deleteSavedResponses" = "Delete saved responses";
+"native.swift.android.deleteSavedResponsesConfirmation" = "Delete all saved on-device responses for this account from this device? Any responses not already saved to your conversation history will be lost. This cannot be undone.";
 "native.swift.android.downloadModel" = "Download on-device model";
 "native.swift.android.downloadingModel" = "Downloading the on-device model.";
 "native.swift.android.emptyResponse" = "The on-device model returned an empty response.";
@@ -369,6 +371,7 @@
 "native.swift.android.openAiCompatibleEndpoint" = "OpenAI-compatible endpoint";
 "native.swift.android.providerAICore" = "Android AICore";
 "native.swift.android.saveEndpoint" = "Save endpoint";
+"native.swift.android.savedResponsesUnreadable" = "Unable to read saved on-device responses.";
 "native.swift.android.send" = "Send";
 "native.swift.android.settings" = "Settings";
 "native.swift.android.statusChecking" = "Checking model status.";

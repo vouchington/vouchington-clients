@@ -8,6 +8,7 @@ public struct Endpoint: Sendable {
     public let queryItems: [URLQueryItem]
     public let headers: [String: String]
     public let body: (any Encodable & Sendable)?
+    let preEncodedJSONBody: Data?
     public let bodyKeyEncodingStrategy: EndpointBodyKeyEncodingStrategy
     private static let pathSegmentAllowedCharacters: CharacterSet = {
         var characters = CharacterSet.urlPathAllowed
@@ -28,6 +29,24 @@ public struct Endpoint: Sendable {
         self.queryItems = queryItems
         self.headers = headers
         self.body = body
+        preEncodedJSONBody = nil
+        self.bodyKeyEncodingStrategy = bodyKeyEncodingStrategy
+    }
+
+    init(
+        _ method: HTTPMethod,
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        headers: [String: String] = [:],
+        preEncodedJSONBody: Data,
+        bodyKeyEncodingStrategy: EndpointBodyKeyEncodingStrategy = .convertToSnakeCase
+    ) {
+        self.path = path
+        self.method = method
+        self.queryItems = queryItems
+        self.headers = headers
+        body = nil
+        self.preEncodedJSONBody = preEncodedJSONBody
         self.bodyKeyEncodingStrategy = bodyKeyEncodingStrategy
     }
 
@@ -41,7 +60,17 @@ public struct Endpoint: Sendable {
     /// Returns a copy of this endpoint with `additionalHeaders` merged in, overriding any
     /// existing header of the same name.
     public func withHeaders(_ additionalHeaders: [String: String]) -> Endpoint {
-        Endpoint(
+        if let preEncodedJSONBody {
+            return Endpoint(
+                method,
+                path: path,
+                queryItems: queryItems,
+                headers: headers.merging(additionalHeaders) { _, new in new },
+                preEncodedJSONBody: preEncodedJSONBody,
+                bodyKeyEncodingStrategy: bodyKeyEncodingStrategy
+            )
+        }
+        return Endpoint(
             method,
             path: path,
             queryItems: queryItems,

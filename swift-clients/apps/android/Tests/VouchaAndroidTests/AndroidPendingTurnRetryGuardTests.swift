@@ -26,6 +26,9 @@ final class AndroidPendingTurnRetryGuardTests: XCTestCase {
         let viewModel = AndroidTranscriptTestFactory.makeViewModel(runtime: FakeAICoreRuntime(state: .available))
         viewModel.apiClient = fixture.client
         viewModel.currentAccountUserID = "fixture-user"
+        viewModel.currentPendingTurnOwnerID = AndroidTranscriptTestFactory.pendingOwnerKey(
+            "fixture-user", client: fixture.client
+        )
         viewModel.selectedConversationID = conversationID
         viewModel.pendingTurns[conversationID] = pending
 

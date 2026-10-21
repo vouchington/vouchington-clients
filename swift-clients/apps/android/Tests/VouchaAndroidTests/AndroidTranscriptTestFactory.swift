@@ -19,10 +19,14 @@ enum AndroidTranscriptTestFactory {
     static let generatedAssistantMessageID = "0198ffff-0001-7000-8000-000000000002"
 
     @MainActor
-    static func makeViewModel(runtime: any AndroidAICoreRunning) -> ViewModel {
+    static func makeViewModel(
+        runtime: any AndroidAICoreRunning,
+        pendingStore: any AndroidPendingTurnStoring = AndroidPendingTurnStore()
+    ) -> ViewModel {
         ViewModel(
             runtime: runtime,
             secretStore: MemorySecrets(),
+            pendingStore: pendingStore,
             settingsStore: LocalLLMSettingsStore(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
                 secretStore: InMemoryLocalLLMSecretStore()
@@ -30,8 +34,8 @@ enum AndroidTranscriptTestFactory {
         )
     }
 
-    static func makeClient() throws -> AndroidTranscriptTestClient {
-        let host = "\(UUID().uuidString.lowercased()).transcript.test"
+    static func makeClient(host existingHost: String? = nil) throws -> AndroidTranscriptTestClient {
+        let host = existingHost ?? "\(UUID().uuidString.lowercased()).transcript.test"
         let recorder = AndroidTranscriptRecorder()
         AndroidTranscriptURLProtocol.install(recorder, host: host)
         let configuration = URLSessionConfiguration.ephemeral
@@ -52,6 +56,13 @@ enum AndroidTranscriptTestFactory {
             sessionConfiguration: configuration
         )
         return AndroidTranscriptTestClient(host: host, recorder: recorder, client: client)
+    }
+
+    static func pendingOwnerKey(_ userID: String, client: APIClient) -> String {
+        guard let key = AndroidPendingTurnOwnerNamespace.key(userID: userID, baseURL: client.baseURL) else {
+            preconditionFailure("Test API base URL must have a pending-turn namespace")
+        }
+        return key
     }
 
     static func enqueueEmptyConversationCreation(on recorder: AndroidTranscriptRecorder) {

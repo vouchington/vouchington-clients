@@ -68,7 +68,9 @@ extension ViewModel {
     }
 
     private var canRetryFailedGeneration: Bool {
-        isSelectedProviderAvailable && !isGenerating && !isCreatingConversation &&
+        !pendingStoreIsLoading && !pendingStoreLoadFailed && !accountExitIsInProgress &&
+            isSelectedProviderAvailable &&
+            !isGenerating && !isCreatingConversation &&
             !isLoadingMessages && !isLoadingConversations && pendingTurnForSelectedConversation == nil &&
             (selectedConversationID == nil || loadedConversationHistoryID == selectedConversationID)
     }

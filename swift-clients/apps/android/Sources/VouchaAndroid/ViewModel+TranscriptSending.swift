@@ -103,6 +103,8 @@ extension ViewModel {
               !isGenerating,
               !isLoadingMessages,
               !isLoadingConversations,
+              !pendingStoreIsLoading,
+              !accountExitIsInProgress,
               !isCreatingConversation
         else { return }
         let accountRevision = accountGeneration
@@ -140,12 +142,16 @@ extension ViewModel {
         accountRevision: UUID,
         userID: String
     ) async throws {
+        guard let ownerID = AndroidPendingTurnOwnerNamespace.key(userID: userID, baseURL: client.baseURL),
+              currentPendingTurnOwnerID == ownerID
+        else { throw AndroidPendingTurnStoreError.invalidBridgeResponse }
+        try await pendingStore.save(ownerID: ownerID, turn: pending)
+        forgetLockedPendingTurn(pending, ownerID: ownerID)
+        guard accountGeneration == accountRevision, currentAccountUserID == userID,
+              currentPendingTurnOwnerID == ownerID, pendingTurns[pending.conversationID] == pending else { return }
         let response: ClientGeneratedChatResponse = try await client.send(.clientGeneratedChat(
             conversationId: pending.conversationID,
-            message: pending.userText,
-            messageIds: (user: pending.userMessageID, assistant: pending.assistantMessageID),
-            assistantContent: pending.assistantText,
-            model: (provider: pending.modelProvider, name: pending.modelName)
+            serializedBody: pending.requestBody
         ))
         guard accountGeneration == accountRevision, currentAccountUserID == userID else { return }
         guard response.turn.userMessageId == pending.userMessageID,
@@ -160,6 +166,9 @@ extension ViewModel {
             throw AndroidTranscriptSendError.responseMismatch
         }
         guard pendingTurns[pending.conversationID] == pending else { return }
+        try await pendingStore.delete(ownerID: ownerID, turn: pending)
+        guard accountGeneration == accountRevision, currentAccountUserID == userID,
+              currentPendingTurnOwnerID == ownerID, pendingTurns[pending.conversationID] == pending else { return }
         pendingTurns.removeValue(forKey: pending.conversationID)
         pendingTurnErrors.removeValue(forKey: pending.conversationID)
         pendingTurnHistoryAcknowledgements.removeValue(forKey: pending.conversationID)
@@ -180,12 +189,6 @@ extension ViewModel {
         case .endpoint:
             ("openai_compatible", endpointProfile?.selectedModel)
         }
-    }
-
-    func finishSendOperation(_ operationID: UUID, accountRevision: UUID) {
-        guard accountGeneration == accountRevision, activeSendOperationID == operationID else { return }
-        activeSendOperationID = nil
-        isGenerating = false
     }
 }
 
