@@ -133,7 +133,9 @@ rules:
     scope: repository
     include: [swift-clients/**/*.swift]
     options:
-      allow: [swift-clients/core/Sources/VouchaCore/Logging.swift]
+      allow:
+        - swift-clients/core/Sources/VouchaCore/Logging.swift
+        - swift-clients/ui/Tests/VouchaUITests/NativeChatFoundationModelsPinnedSDKAdmissionTests.swift
   - name: Swift ViewModels are main-actor isolated
     rule: swift-viewmodel-main-actor
     scope: repository
