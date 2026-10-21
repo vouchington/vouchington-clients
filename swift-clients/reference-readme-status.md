@@ -45,7 +45,8 @@ cd swift-clients
 ./tooling/generate.sh iOS     # generate the iPhone/iPad project
 open apps/macOS/Voucha.xcodeproj
 open apps/iOS/Voucha.xcodeproj
-swift test --package-path apps/android
+# Host SwiftPM source tests need Xcode 26.6 and Swift 6.3.3. See apps/android/README.md#checks.
+# The Swift 6.4 SDK / Gradle path is separate from those host source tests:
 cd apps/android && skip android build --android-api-level 28
 ```
 

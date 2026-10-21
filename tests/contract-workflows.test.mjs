@@ -192,7 +192,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
     assert.match(
       workflow,
-      /verify-android-host-swift\.sh[\s\S]*?mise exec swift@6\.3\.3 -- swift test/u,
+      /run-android-host-swift-tests\.sh\s+--package-path swift-clients\/apps\/android\s+--filter VouchaAndroidTests/u,
     )
     assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
@@ -294,6 +294,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /jq -er '\.sdk\.version' global\.json/u)
     assert.match(action, /mise install "\$MISE_TOOL"/u)
     assert.doesNotMatch(validation, /actions\/setup-dotnet@/u)
+    // no-mistakes-disable-next-line test-no-dependency-pins -- setup-dotnet input this repository must not select
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
     assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
     assert.doesNotMatch(validation, /mise_dir:/u)
