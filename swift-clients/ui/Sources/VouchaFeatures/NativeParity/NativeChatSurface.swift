@@ -9,17 +9,20 @@ struct NativeChatSurface: View {
     private var viewModel: NativeChatViewModel
     @State
     var mcpPresentationWindow = NativeChatMCPWindowReference()
+    let onNavigate: (String) -> Void
     let currentUserId: String?
     let mcpSession: NativeChatMCPAgentSession?
 
     init(
         client: APIClient?, routeMatch: NativeRouteMatch?,
-        currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil
+        currentUserId: String? = nil, mcpSession: NativeChatMCPAgentSession? = nil,
+        onNavigate: @escaping (String) -> Void = { _ in }
     ) {
         _viewModel = State(initialValue: NativeChatViewModel(
             client: client, routeMatch: routeMatch, mcpSession: mcpSession,
             currentMemberId: currentUserId
         ))
+        self.onNavigate = onNavigate
         self.currentUserId = currentUserId
         self.mcpSession = mcpSession
     }

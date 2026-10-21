@@ -425,7 +425,7 @@ final class NativeChatMCPNetworkServiceTests: XCTestCase {
     }
 }
 
-private actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAccountClearing {
+actor HeldClearMCPTokenStore: MemberMCPOAuthTokenStore, MemberMCPOAuthAccountClearing {
     private let holdClear: Bool
     private var values: [MemberMCPOAuthTokenScope: MemberMCPOAuthTokens] = [:]
     private var started: [String: CheckedContinuation<Void, Never>] = [:]
