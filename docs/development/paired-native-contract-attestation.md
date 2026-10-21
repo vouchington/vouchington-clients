@@ -68,7 +68,12 @@ no dependency cache.
 Each native execution job uploads an untrusted, short-lived artifact. A separate trusted finalizer
 binds each artifact's ID and digest to the current workflow run and the upload action outputs,
 validates the fixed APK file set, source SHA, emulator properties, and every phase required by the
-captured profile, then rechecks both live pull request snapshots. The supplemental artifact is
+captured profile, then rechecks both live pull request snapshots. The runtime artifact also carries
+cleanup evidence for the run-owned `paired-native-<run id>` AVD: a bounded allowlisted snapshot of
+the captured launcher and its descendants at launch and shutdown. Missing, ambiguous, truncated,
+malformed, or bounded observations are recorded as `unknown`. The finalizer rejects cleanup evidence
+that does not match that same run, attempt, profile, candidate merge SHA, and runtime artifact ID
+and digest. The supplemental artifact is
 informational and candidate-controlled; it is not a signed test result or a GitHub check. The
 workflow does not change default required checks. Successful evidence reflects only the selected
 commands and platforms, not the full native matrix or physical-device acceptance.

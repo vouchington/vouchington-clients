@@ -3,16 +3,14 @@ import { once } from 'node:events'
 import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
 import { createInstrumentationResult } from './paired-native-test-runtime-result.mjs'
 import { parseInstrumentationOutput } from './paired-native-test-evidence.mjs'
-
-async function waitForBoot(runCommand, sleep) {
-  runCommand('adb', ['wait-for-device'], { timeout: 120000 })
-  for (let attempt = 0; attempt < 90; attempt += 1) {
-    if (runCommand('adb', ['shell', 'getprop', 'sys.boot_completed'], { timeout: 10000 }) === '1')
-      return
-    await sleep(2000)
-  }
-  throw new Error('API 35 emulator did not finish booting')
-}
+import {
+  assertOwnedAvd,
+  captureLineage,
+  sessionCleanup,
+  stopOwnedLauncher,
+  waitForEmulatorBoot,
+} from './paired-native-emulator-lineage.mjs'
+import { observeOwnedEmulatorLineage } from './paired-native-proc-snapshot.mjs'
 
 export async function runAndroidSession({
   emulatorPath,
@@ -34,6 +32,7 @@ export async function runAndroidSession({
   saveFile,
   makeDirectory,
   sleep,
+  observeLineage = observeOwnedEmulatorLineage,
 }) {
   await makeDirectory(dirname(resultPath), { recursive: true })
   await makeDirectory(dirname(logPath), { recursive: true })
@@ -42,6 +41,12 @@ export async function runAndroidSession({
     if (!Number.isInteger(emulatorLog.fd)) await once(emulatorLog, 'open')
   } catch (error) {
     emulatorLog.destroy?.()
+    throw error
+  }
+  try {
+    assertOwnedAvd(runId, avdName)
+  } catch (error) {
+    emulatorLog.end()
     throw error
   }
   const child = launch(
@@ -72,21 +77,27 @@ export async function runAndroidSession({
   child.once('error', error => {
     spawnError = error
   })
+  const launchLineage = await captureLineage(observeLineage, { launcherPid: child.pid, avdName })
+  let phases
+  let api
+  let fingerprint
+  let abis
+  let nativeBridge
   let executionError
   try {
-    await waitForBoot(runCommand, sleep)
+    await waitForEmulatorBoot(runCommand, sleep)
     if (spawnError || child.exitCode !== null)
       throw new Error(`emulator exited before tests: ${spawnError?.message ?? child.exitCode}`)
-    const api = Number(
+    api = Number(
       runCommand('adb', ['shell', 'getprop', 'ro.build.version.sdk'], { timeout: 10000 }),
     )
-    const fingerprint = runCommand('adb', ['shell', 'getprop', 'ro.build.fingerprint'], {
+    fingerprint = runCommand('adb', ['shell', 'getprop', 'ro.build.fingerprint'], {
       timeout: 10000,
     })
-    const abis = runCommand('adb', ['shell', 'getprop', 'ro.product.cpu.abilist'], {
+    abis = runCommand('adb', ['shell', 'getprop', 'ro.product.cpu.abilist'], {
       timeout: 10000,
     }).split(',')
-    const nativeBridge = runCommand('adb', ['shell', 'getprop', 'ro.dalvik.vm.native.bridge'], {
+    nativeBridge = runCommand('adb', ['shell', 'getprop', 'ro.dalvik.vm.native.bridge'], {
       timeout: 10000,
     })
     if (
@@ -109,7 +120,7 @@ export async function runAndroidSession({
       !instruments.includes(`${testId}/androidx.test.runner.AndroidJUnitRunner (target=${appId})`)
     )
       throw new Error('instrumentation runner package does not target the reviewed application')
-    const phases = []
+    phases = []
     for (const method of androidPhasesForProfile(nativeTestProfile)) {
       const [className, methodName] = method.split('#')
       const output = runCommand(
@@ -130,54 +141,55 @@ export async function runAndroidSession({
       phases.push(parseInstrumentationOutput(output, method))
       runCommand('adb', ['shell', 'am', 'force-stop', appId], { timeout: 15000 })
     }
-    const result = createInstrumentationResult({
-      runId,
-      nativeTestProfile,
-      clientsMergeSha,
-      apkSha256,
-      emulator: {
-        version: emulatorVersion.replace(/^Android emulator version /u, ''),
-        api,
-        abis,
-        nativeBridge,
-        buildFingerprint: fingerprint,
-      },
-      phases,
-    })
-    await saveFile(resultPath, `${JSON.stringify(result, null, 2)}\n`, { flag: 'wx' })
   } catch (error) {
     executionError = error
   }
+  const ownedBeforeStop = await captureLineage(observeLineage, {
+    launcherPid: child.pid,
+    avdName,
+  })
   try {
     runSync('adb', ['emu', 'kill'], { encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024 })
   } catch {
     /* fall back to the owned process handle */
   }
-  const exited = async milliseconds => {
-    if (child.exitCode !== null || child.signalCode != null) return true
-    return Promise.race([
-      new Promise(resolve => child.once('exit', () => resolve(true))),
-      sleep(milliseconds).then(() => false),
-    ])
-  }
-  let cleanupError
-  if (!(await exited(1000))) {
-    try {
-      child.kill('SIGTERM')
-    } catch {
-      /* try SIGKILL below */
+  const cleanupError = await stopOwnedLauncher(child, sleep)
+  const shutdownLineage = await captureLineage(observeLineage, {
+    launcherPid: child.pid,
+    avdName,
+    priorOwnedPids:
+      ownedBeforeStop.state === 'observed' ? ownedBeforeStop.processes.map(entry => entry.pid) : [],
+    claimAbsent: ownedBeforeStop.state === 'observed',
+  })
+  try {
+    if (!executionError && !cleanupError) {
+      const result = createInstrumentationResult({
+        runId,
+        nativeTestProfile,
+        clientsMergeSha,
+        apkSha256,
+        emulator: {
+          version: emulatorVersion.replace(/^Android emulator version /u, ''),
+          api,
+          abis,
+          nativeBridge,
+          buildFingerprint: fingerprint,
+        },
+        phases,
+        cleanup: sessionCleanup({
+          runId,
+          nativeTestProfile,
+          clientsMergeSha,
+          avdName,
+          launch: launchLineage,
+          shutdown: shutdownLineage,
+        }),
+      })
+      await saveFile(resultPath, `${JSON.stringify(result, null, 2)}\n`, { flag: 'wx' })
     }
-    if (!(await exited(5000))) {
-      try {
-        child.kill('SIGKILL')
-      } catch {
-        /* report if the owned process remains alive */
-      }
-      if (!(await exited(5000)))
-        cleanupError = new Error('owned emulator process did not exit after SIGKILL')
-    }
+  } finally {
+    emulatorLog.end()
   }
-  emulatorLog.end()
   if (executionError) {
     if (cleanupError) executionError.message += `; ${cleanupError.message}`
     throw executionError
