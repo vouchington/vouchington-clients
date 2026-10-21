@@ -919,7 +919,7 @@ jobs:
     name: Swift macOS app smoke
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
       XCODEGEN_VERSION: 2.45.4
@@ -949,6 +949,22 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Verify hosted macOS GUI session
+        run: |
+          if [[ "$(uname -s)" != Darwin ]]; then
+            echo "::error::macOS root-shell launch smoke requires a macOS GUI runner"
+            exit 1
+          fi
+          if ! pgrep -qx WindowServer; then
+            echo "::error::WindowServer is not running; refusing to skip the macOS root-shell launch smoke"
+            exit 1
+          fi
+          console_uid="$(stat -f %u /dev/console)"
+          current_uid="$(id -u)"
+          if [[ -z "$console_uid" || "$console_uid" != "$current_uid" ]]; then
+            echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
+            exit 1
+          fi
       - name: Build macOS app shell
         working-directory: candidate-clients
         env:
@@ -958,6 +974,45 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Launch macOS root shell
+        timeout-minutes: 15
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          destinations="$(xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -showdestinations -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" 2>&1)"
+          if ! printf '%s\n' "$destinations" | grep -q 'platform:macOS'; then
+            echo "::error::Selected Xcode has no macOS test destination for the root-shell launch smoke"
+            printf '%s\n' "$destinations"
+            exit 1
+          fi
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+      - name: Collect failed macOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          diagnostics="$RUNNER_TEMP/macos-launch-diagnostics"
+          mkdir -p "$diagnostics"
+          log show --last 5m --style compact --predicate 'process == "Voucha"' > "$diagnostics/launch.log" 2>&1 || true
+          reports_dir="$HOME/Library/Logs/DiagnosticReports"
+          if [ -d "$reports_dir" ]; then
+            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
+          fi
+      - name: Upload failed macOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: macos-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/macos-launch-smoke.xcresult
+            ${{ runner.temp }}/macos-launch-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
   build-ios-app:
     name: Swift iOS Simulator launch smoke
     needs: verify
