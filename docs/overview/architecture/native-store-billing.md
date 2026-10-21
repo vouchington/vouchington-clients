@@ -49,10 +49,13 @@ Windows app is the MAUI Windows target. Its `ApplicationId` is `ai.voucha.dotnet
 the Microsoft Store application id in the catalog.
 
 Play Billing Library 9.1.0 (18 June 2026) requires Android API 23 or newer and is documented against
-compile SDK 35. minSdk 28 satisfies the library floor. The Android billing dependency is
-`com.android.billingclient:billing-ktx:9.1.0`, added only in the Android app module. #89 stops if the
-Skip compile SDK is below 35 instead of choosing an older billing library. The app does not call the
-Billing Choice or external-payment APIs added in 9.1.0.
+compile SDK 35. minSdk 28 satisfies the library floor. That compile SDK is the library floor. Google
+Play's target API policy, updated 16 October 2026, requires new apps and app updates to target
+Android 16 (API 36) from 31 August 2026. A granted extension runs only to 1 November 2026. This app
+sets `targetSdk` from the Skip compile SDK. #89 stops if that SDK is below 35, and it does not submit
+a Play build while the compile and target SDK are below 36 unless a granted extension is in force.
+The Android billing dependency is `com.android.billingclient:billing-ktx:9.1.0`, added only in the
+Android app module. The app does not call the Billing Choice or external-payment APIs added in 9.1.0.
 
 ## Shared contract session
 
@@ -202,7 +205,10 @@ Used from the Android app module:
 - `SubscriptionProductReplacementParams.setOldProductId` and `setReplacementMode`
 
 `enablePendingPurchases` uses the parameterized API because Library 9 removed the no-argument method.
-Membership queries still request `ProductType.SUBS` only. `setObfuscatedAccountId` receives
+`enableOneTimeProducts()` is required to build those params. `enablePrepaidPlans()` is not called.
+Google documents subscription pending transactions, including `PendingPurchaseUpdate`, for prepaid
+plans only, and the published plans fixture has no prepaid base plan. Membership queries still
+request `ProductType.SUBS` only. `setObfuscatedAccountId` receives
 `launch.obfuscated_account_id` unchanged. The server sends the hex SHA-256 of the user id, which is
 64 characters. The client does not hash it again.
 
@@ -210,10 +216,10 @@ The client does not call `BillingClient.acknowledgePurchase`. Filaments acknowle
 purchased subscription once. `Purchase.isAcknowledged() == false` with state `PURCHASED` is the
 finishing state on screen. Entitlement still comes from `memberships/me`.
 
-Pending purchases stay non-entitling. State `PENDING`, including a `PendingPurchaseUpdate` on the
-current subscription, is submitted so the server can return `purchase_pending`, and the current
-effective plan stays as `memberships/me` reports it. When Play moves the purchase to `PURCHASED`,
-`PurchasesUpdatedListener` runs and the client submits the new token.
+An auto-renewing purchase is not treated as pending-capable. If Play still returns `PENDING` or
+`PendingPurchaseUpdate`, the client submits that token and does not change the plan. When Play moves
+the purchase to `PURCHASED`, `PurchasesUpdatedListener` runs and the client submits the new token.
+Entitlement still comes from `memberships/me`.
 
 `linkedPurchaseToken` is a field on the Play Developer subscriptions resource. The client does not
 read it and does not send it. The client submits `Purchase.getPurchaseToken()` for the new purchase.
@@ -317,16 +323,16 @@ that source becomes effective. The client does not promote `is_effective: false`
 
 ## Pending, interrupted, and offline recovery
 
-| Situation                                           | Client behavior                                                                                                                                            |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Store approval pending (Ask to Buy, Play `PENDING`) | Show pending. Submit Play tokens. Submit Apple evidence only after a transaction exists.                                                                   |
-| Store UI cancelled                                  | Clear the in-flight sheet. Keep the last `memberships/me`.                                                                                                 |
-| Network or store outage before payment              | Keep the purchase-intent idempotency key and retry the launch.                                                                                             |
-| Evidence not accepted                               | Keep the secure outbox and retry the same verification idempotency key.                                                                                    |
-| App relaunch or new device                          | Walk unfinished Apple transactions, current entitlements, Play purchases, and the Microsoft collection. Submit missing evidence. Refresh `memberships/me`. |
-| Backend delay                                       | Show the verification `pending` state and honor `next_processing_at`.                                                                                      |
-| Refund, revocation, or renewal                      | Submit the new observation. Render the next `memberships/me` source status.                                                                                |
-| Expired Microsoft keys                              | Mint a new pair and submit a new verification.                                                                                                             |
+| Situation                                                      | Client behavior                                                                                                                                            |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Store approval pending (Ask to Buy, unexpected Play `PENDING`) | Show pending. Submit an unexpected Play token. Submit Apple evidence only after a transaction exists.                                                      |
+| Store UI cancelled                                             | Clear the in-flight sheet. Keep the last `memberships/me`.                                                                                                 |
+| Network or store outage before payment                         | Keep the purchase-intent idempotency key and retry the launch.                                                                                             |
+| Evidence not accepted                                          | Keep the secure outbox and retry the same verification idempotency key.                                                                                    |
+| App relaunch or new device                                     | Walk unfinished Apple transactions, current entitlements, Play purchases, and the Microsoft collection. Submit missing evidence. Refresh `memberships/me`. |
+| Backend delay                                                  | Show the verification `pending` state and honor `next_processing_at`.                                                                                      |
+| Refund, revocation, or renewal                                 | Submit the new observation. Render the next `memberships/me` source status.                                                                                |
+| Expired Microsoft keys                                         | Mint a new pair and submit a new verification.                                                                                                             |
 
 The last successful `memberships/me` may stay on screen during an outage, labeled as the last
 confirmed server snapshot. It is not a newly granted plan.
@@ -348,7 +354,7 @@ refund, and the two verification outcomes together.
 | Free                                         | `native.memberships.me.default.json`: `membership`, `management`, and `sources` empty                                                 |
 | Catalog and store price                      | `native.memberships.plans.default.json` plus the store price API                                                                      |
 | Purchase in flight                           | Local, after `201` and before the store result                                                                                        |
-| Store pending                                | Apple `.pending`, or Play `PurchaseState.PENDING`                                                                                     |
+| Store pending                                | Apple `.pending`, or an unexpected Play `PurchaseState.PENDING`                                                                       |
 | Verification pending                         | `verification-status.pending` and the `202` verification body, `status: pending`                                                      |
 | Verified, waiting for projection             | `verification-status.verified`, `reason_code: verified`, then refresh `memberships/me`                                                |
 | Conflict                                     | `verification-status.conflict`, `reason_code: competing_direct_source`; purchase-intent `409`                                         |
@@ -399,15 +405,15 @@ Unit tests use fixtures and store doubles. Integration tests run the shared sess
 HTTP stack and the adapter boundary. Provider-sandbox runs are separate and are not implied by a
 green unit run.
 
-| Case                  | Unit                                                                                  | Integration                                                    | Provider sandbox                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Purchase              | Launch payload mapping, `201` decoding, evidence outbox                               | Intent, store double success, `202`, then `memberships/me`     | StoreKit purchase, Play license-tester purchase, Microsoft Store sandbox purchase |
-| Restore               | Unfinished Apple transactions, Play `queryPurchasesAsync`, Microsoft collection       | Restore control resubmits only missing evidence                | Sandbox restore on a second install                                               |
-| Replacement           | No Play replacement call without a mode; Apple purchases the new product id           | `409` does not open a sheet; `201` does                        | Apple subscription-group change and a Play replacement once a mode exists         |
-| Pending               | Apple `.pending` submits nothing; Play `PENDING` submits and does not become the plan | Poll stays on `purchase_pending`                               | Ask to Buy and a Play pending payment method                                      |
-| Recovery              | Outbox survives relaunch; Microsoft refresh after `invalid_evidence`                  | Backoff and `next_processing_at`                               | Airplane mode, then the same purchase completing                                  |
-| Refund and revocation | `sources[].status` `revoked` and `pending.financial_operations`                       | Lifecycle fixture renders refund and revocation together       | Store refund and family-sharing revoke                                            |
-| Renewal               | A new transaction id gets a new idempotency key                                       | `should_auto_renew` and `renewal` render from `memberships/me` | Sandbox renewal for each store                                                    |
+| Case                  | Unit                                                                                                                               | Integration                                                    | Provider sandbox                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Purchase              | Launch payload mapping, `201` decoding, evidence outbox                                                                            | Intent, store double success, `202`, then `memberships/me`     | StoreKit purchase, Play license-tester purchase, Microsoft Store sandbox purchase |
+| Restore               | Unfinished Apple transactions, Play `queryPurchasesAsync`, Microsoft collection                                                    | Restore control resubmits only missing evidence                | Sandbox restore on a second install                                               |
+| Replacement           | No Play replacement call without a mode; a launched replacement includes `setOldPurchaseToken`; Apple purchases the new product id | `409` does not open a sheet; `201` does                        | Apple subscription-group change and a Play replacement once a mode exists         |
+| Pending               | Apple `.pending` submits nothing; an unexpected Play `PENDING` submits and does not become the plan                                | Poll stays on `purchase_pending`                               | Ask to Buy. Prepaid Play plans are out of scope                                   |
+| Recovery              | Outbox survives relaunch; Microsoft refresh after `invalid_evidence`                                                               | Backoff and `next_processing_at`                               | Airplane mode, then the same purchase completing                                  |
+| Refund and revocation | `sources[].status` `revoked` and `pending.financial_operations`                                                                    | Lifecycle fixture renders refund and revocation together       | Store refund and family-sharing revoke                                            |
+| Renewal               | A new transaction id gets a new idempotency key                                                                                    | `should_auto_renew` and `renewal` render from `memberships/me` | Sandbox renewal for each store                                                    |
 
 StoreKit Testing in Xcode, Play test tracks, and the Microsoft Store sandbox are the sandbox tools.
 This decision records no sandbox run.
@@ -427,9 +433,10 @@ gate the tasks that name them. Tasks 1 and 2 are not gated.
    submission, and `showManageSubscriptions(in:)`. Gated on open decision 1.
 4. **Apple adapter, macOS.** Same StoreKit purchase and restore behavior. Gated on open decisions 1
    and 3. Management UI is gated on open decision 4.
-5. **Play adapter.** Billing Library 9.1.0 in the Android app: products, purchase, pending,
-   acknowledgement visibility, query-based restore, and the subscriptions deep link. Replacement
-   launch is gated on open decisions 2 and 5.
+5. **Play adapter.** Billing Library 9.1.0 in the Android app: products, purchase, unexpected
+   pending without `enablePrepaidPlans()`, acknowledgement visibility, query-based restore, and the
+   subscriptions deep link. The Play submission uses target API 36 unless a granted extension is in
+   force. Replacement launch is gated on open decisions 2 and 5.
 6. **Microsoft adapter.** Windows target only: service tickets, both Store ID keys, purchase,
    collection restore, and credential refresh. Gated on open decisions 2 and 6. The management
    control is gated on open decision 4.
@@ -535,7 +542,9 @@ not guess a SKU match that the fixture does not define.
 - [Play Billing integration](https://developer.android.com/google/play/billing/integrate) and
   [Library 9.1.0](https://developer.android.com/google/play/billing/release-notes)
 - [Play subscriptions](https://developer.android.com/google/play/billing/subscriptions), including
-  pending purchases, `linkedPurchaseToken`, and the subscriptions deep link
+  prepaid pending purchases, `linkedPurchaseToken`, and the subscriptions deep link
+- [Play target API level requirement](https://developer.android.com/google/play/requirements/target-sdk)
+- [`PendingPurchasesParams.Builder`](https://developer.android.com/reference/com/android/billingclient/api/PendingPurchasesParams.Builder)
 - [`SubscriptionProductReplacementParams`](https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProductDetailsParams.SubscriptionProductReplacementParams)
 - [`StoreContext`](https://learn.microsoft.com/en-us/uwp/api/windows.services.store.storecontext)
 - [`GetCustomerCollectionsIdAsync`](https://learn.microsoft.com/en-us/uwp/api/windows.services.store.storecontext.getcustomercollectionsidasync)
