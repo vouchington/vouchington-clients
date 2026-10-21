@@ -68,6 +68,15 @@ extension RootView {
                     }
                 )
             }
+            .background(alignment: .topLeading) {
+                // NavigationSplitView replaces its own accessibility identifier, so the
+                // root-shell marker has to live on a descendant macOS XCTest can see.
+                Image(systemName: "circle")
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
+                    .accessibilityLabel("Root shell")
+                    .allowsHitTesting(false)
+            }
         }
     #endif
 
