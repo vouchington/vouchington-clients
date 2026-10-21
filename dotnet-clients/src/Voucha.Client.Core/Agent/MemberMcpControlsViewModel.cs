@@ -37,7 +37,7 @@ public sealed class MemberMcpControlsViewModel(MemberMcpSession session) : Obser
     hasError = false;
     Refresh();
     var scope = RequestWriteAccess ? "mcp.user:read mcp.user:write" : "mcp.user:read";
-    if (IsConnected) await session.AuthorizeAsync(scope, cancellationToken).ConfigureAwait(true);
+    if (session.HasActiveConnection) await session.AuthorizeAsync(scope, cancellationToken).ConfigureAwait(true);
     else await session.ConnectAsync(scope, cancellationToken).ConfigureAwait(true);
     Refresh();
   }

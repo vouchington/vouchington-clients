@@ -6,7 +6,7 @@ public sealed partial class MemberMcpSession
 {
   public Task RefreshToolsAsync(CancellationToken cancellationToken = default) => RefreshCatalogAsync(null, cancellationToken);
 
-  private async Task RefreshCatalogAsync(string? scope, CancellationToken cancellationToken)
+  private async Task RefreshCatalogAsync(string? scope, CancellationToken cancellationToken, bool recoveringConsent = false)
   {
     using var wait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetimeToken);
     await operation.WaitAsync(wait.Token).ConfigureAwait(false);
@@ -63,6 +63,15 @@ public sealed partial class MemberMcpSession
             _ = new MemberMcpToolBridge(current);
             recovered = current;
           }
+          catch (Exception error) when (error is McpUnauthorizedException or InvalidDataException)
+          {
+            lock (gate)
+            {
+              if (generation == revision && ReferenceEquals(active, connection))
+                _ = QueueCleanup(accountId);
+            }
+            throw;
+          }
           catch (Exception error) when (error is not OutOfMemoryException) { }
         }
         var invalidated = false;
@@ -72,7 +81,8 @@ public sealed partial class MemberMcpSession
           {
             Tools = recovered;
             generation++;
-            Status = MemberMcpSessionStatus.Connected;
+            Status = recovered is null && (scope is not null || recoveringConsent)
+                ? MemberMcpSessionStatus.Error : MemberMcpSessionStatus.Connected;
             invalidated = true;
           }
         }

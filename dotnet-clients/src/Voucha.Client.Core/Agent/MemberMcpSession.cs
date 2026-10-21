@@ -47,6 +47,14 @@ public sealed partial class MemberMcpSession : IDisposable
 
   public event EventHandler? Changed;
   public MemberMcpSessionStatus Status { get; private set; }
+  internal bool HasActiveConnection
+  {
+    get
+    {
+      lock (gate) return !disposed && active is not null && Status != MemberMcpSessionStatus.Disconnected &&
+          sessionStore.Current.Identity?.Id == accountId;
+    }
+  }
   public bool RequestWriteAccess { get; set; }
   public JsonElement? Tools { get; private set; }
   public bool HasMemberSession => sessionStore.Current.Identity is not null;

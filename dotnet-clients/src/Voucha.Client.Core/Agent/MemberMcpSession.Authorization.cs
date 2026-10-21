@@ -35,7 +35,7 @@ public sealed partial class MemberMcpSession
       if (recover && !authorizationToken.IsCancellationRequested)
       {
         // If cancellation happened before semaphore admission, recover through the current grant.
-        try { await RefreshCatalogAsync(null, authorizationToken).ConfigureAwait(false); }
+        try { await RefreshCatalogAsync(null, authorizationToken, recoveringConsent: true).ConfigureAwait(false); }
         catch (Exception error) when (error is not OutOfMemoryException) { }
       }
       throw;
@@ -48,7 +48,7 @@ public sealed partial class MemberMcpSession
         if (generation == admissionRevision && ReferenceEquals(active, connection) &&
             Status == MemberMcpSessionStatus.Connecting)
         {
-          Status = MemberMcpSessionStatus.Connected;
+          Status = Tools is null ? MemberMcpSessionStatus.Error : MemberMcpSessionStatus.Connected;
           settled = true;
         }
       }

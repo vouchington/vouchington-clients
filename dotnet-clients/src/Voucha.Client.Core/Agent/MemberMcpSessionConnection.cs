@@ -58,8 +58,15 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
       var redirected = await callback.ReceiveAsync(
           request.State, request.IssuerIdentifier, cancellationToken).ConfigureAwait(false);
       var code = request.CodeFromCallback(redirected);
-      await tokens.RedeemAsync(code, request.Verifier, request.RedirectUri, cancellationToken)
-          .ConfigureAwait(false);
+      try
+      {
+        await tokens.RedeemAsync(code, request.Verifier, request.RedirectUri, cancellationToken)
+            .ConfigureAwait(false);
+      }
+      catch (McpUnauthorizedException error)
+      {
+        throw new McpAuthorizationDeniedException("OAuth authorization code was rejected.", error);
+      }
     }
     finally { await store.ClearPendingAsync(accountId).ConfigureAwait(false); }
     return await ListToolsAsync(cancellationToken).ConfigureAwait(false);

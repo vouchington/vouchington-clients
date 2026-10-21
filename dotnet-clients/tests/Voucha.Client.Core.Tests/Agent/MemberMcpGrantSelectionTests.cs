@@ -52,6 +52,10 @@ public sealed partial class MemberMcpSessionTests
     Assert.True(controls.RequestWriteAccess);
     Assert.False(session.IsCurrent(previous));
     Assert.True(controls.CanAuthorize);
+    Assert.False(controls.IsConnected);
+    factory.Connections[0].FailRefresh = false;
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    Assert.True(controls.IsConnected);
   }
   [Fact]
   public async Task CanceledConsentReloadsTheStillValidGrantWithoutRestoringOldSnapshots()
@@ -140,6 +144,28 @@ public sealed partial class MemberMcpSessionTests
         .WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     await consent.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     Assert.True(controls.IsConnected);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task InvalidActiveGrantOrCatalogDuringRecoveryRequiresCleanup(bool malformedCatalog)
+  {
+    var factory = new FakeFactory();
+    var store = new FakeStore();
+    await store.SaveAsync(Scope("account-a"), Tokens);
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), store, factory);
+    var controls = new MemberMcpControlsViewModel(session);
+    await controls.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections[0].CancelConsent = true;
+    factory.Connections[0].UnauthorizedRefresh = !malformedCatalog;
+    if (malformedCatalog) factory.Connections[0].RefreshFailure = new InvalidDataException("Invalid active catalog");
+    await Assert.ThrowsAnyAsync<Exception>(() => controls.ConnectAsync(TestContext.Current.CancellationToken));
+    await session.WhenSettledAsync();
+    Assert.Null(await store.LoadAsync(Scope("account-a")));
+    Assert.Null(session.Tools);
+    Assert.False(controls.IsConnected);
+    Assert.Equal(MemberMcpSessionStatus.Disconnected, session.Status);
   }
 
 }
