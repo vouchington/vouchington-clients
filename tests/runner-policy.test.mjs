@@ -45,7 +45,15 @@ describe('GitHub-hosted runner policy', () => {
     for (const [name, workflow] of await readWorkflows()) {
       assert.doesNotMatch(workflow, /\bself-hosted\b/u, `${name} selects a self-hosted runner`)
       const labels = [...workflow.matchAll(/^\s+runs-on:\s*(.+)$/gmu)].map(match => match[1].trim())
-      assert.ok(labels.length > 0, `${name} must declare runs-on`)
+      // A router delegates runner selection to its repository-local worker.
+      // That worker is included in this same scan and must satisfy the allowlist.
+      if (labels.length === 0) {
+        assert.match(
+          workflow,
+          /^    uses: \.\/\.github\/workflows\/[\w-]+\.yml$/mu,
+          `${name} must declare runs-on or call a local workflow`,
+        )
+      }
       for (const label of labels) {
         if (label === 'ubuntu-24.04') {
           if (name === 'paired-native-contract-attestation.yml') {

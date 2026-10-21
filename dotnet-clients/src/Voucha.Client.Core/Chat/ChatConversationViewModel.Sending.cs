@@ -109,7 +109,7 @@ public sealed partial class ChatConversationViewModel
       userMessageInserted = true;
       OnPropertyChanged(nameof(Messages));
 
-      assistantMessageInserted = await SendLocalTurnAsync(
+      var localResult = await SendLocalTurnAsync(
           trimmed,
           conversationId,
           localUserMessageId,
@@ -120,12 +120,14 @@ public sealed partial class ChatConversationViewModel
           retry,
           currentRequest,
           cancellationToken).ConfigureAwait(true);
+      assistantMessageInserted = localResult.Inserted;
       localChatPersisted = true;
 
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       if (ConversationId is { Length: > 0 })
       {
-        await ReloadMessagesAsync(ConversationId, currentRequest, cancellationToken).ConfigureAwait(true);
+        await ReloadMessagesAsync(ConversationId, currentRequest, cancellationToken,
+            localResult.Pending).ConfigureAwait(true);
       }
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       State = LoadState.Loaded;

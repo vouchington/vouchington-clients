@@ -35,6 +35,22 @@ Run `pnpm test` when changing native workflow routing or selected app tests. The
 and native test planners do not execute the Node contract assertions that check those selectors,
 result predicates and fixture-root wiring.
 
+Dependabot metadata edits use `dependabot-edited.yml`, with one conditional call to the existing
+auto-merge worker. Ordinary human PR title/body edits produce one skipped router check; trusted
+Dependabot PR edits retain metadata verification and non-default-base cleanup. The gate uses the
+PR author rather than the editing actor so maintainer retargets still run. Lifecycle/head events
+remain on `dependabot-automerge.yml`. Only the worker owns concurrency, with the original shared
+group across both entrypoints. The caller passes the existing auto-merge secret explicitly and
+grants read access for the worker's same-run repair artifact download.
+
+This bounds metadata noise; it does not eliminate workflow/check records. GitHub supports event,
+base-branch and path filters, while [job conditions still create skipped checks][job-conditions].
+Zero records for ordinary human edits would require an authenticated external webhook or GitHub
+App to filter before dispatch. Routing tests verify the source wiring; actual skipped-caller check
+counts require a hosted observation after the base-owned workflow reaches `main`.
+
+[job-conditions]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions
+
 ## Required dual-OS
 
 Swift core portable tests run on Linux **and** macOS. That is not duplicate work:

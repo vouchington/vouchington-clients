@@ -25,6 +25,7 @@ public sealed partial class MemberMcpSession
       if (next == accountId) return;
       var prior = accountId;
       accountId = next;
+      accountEpoch++;
       _ = QueueCleanup(prior);
     }
   }
