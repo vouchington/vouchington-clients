@@ -9,8 +9,9 @@ and 2-digit limits. This counter is specific to the macOS workflow; rerunning an
 does not imply a globally increasing build number. The CI artifact is
 named `macos-unsigned-ci-*` and the image is `Voucha-UNSIGNED-CI.dmg`.
 
-This artifact is build evidence only. It has no Developer ID signature or notarization ticket,
-and the workflow deliberately fails if the exported app verifies as signed. Do not publish it
+This artifact is build evidence only. It has no Developer ID signature or notarization ticket.
+Xcode may leave an ad hoc linker signature on the executable even when code signing is disabled;
+the workflow accepts only that no-team signature or no signature at all. Do not publish it
 as a direct download or submit it to the Mac App Store. A release path still needs separate
 Developer ID signing, notarization, stapling, Gatekeeper validation, and Mac App Store signing
 and submission with the corresponding accounts and app records.

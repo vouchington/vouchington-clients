@@ -65,9 +65,11 @@ jobs:
           test -d "$RUNNER_TEMP/unsigned-export/Voucha.app"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/unsigned-export/Voucha.app/Contents/Info.plist")" = ai.voucha.macos
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/unsigned-export/Voucha.app/Contents/Info.plist")" = "$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT.0"
-          if codesign --display --verbose=2 "$RUNNER_TEMP/unsigned-export/Voucha.app" 2>/dev/null; then
-            echo '::error::Export unexpectedly contains a code signature'
-            exit 1
+          if signature_info=$(codesign --display --verbose=2 "$RUNNER_TEMP/unsigned-export/Voucha.app" 2>&1); then
+            printf '%s\n' "$signature_info" | grep -Fqx 'Signature=adhoc'
+            printf '%s\n' "$signature_info" | grep -Fqx 'TeamIdentifier=not set'
+          else
+            printf '%s\n' "$signature_info" | grep -Fq 'code object is not signed at all'
           fi
       - name: Assemble and verify unsigned DMG
         timeout-minutes: 3
