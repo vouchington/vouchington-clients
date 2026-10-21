@@ -79,14 +79,33 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           RELEASE_BUILD: ${{ steps.version.outputs.build }}
         run: |
+          diagnostics="$RUNNER_TEMP/ios-archive-diagnostics.txt"
+          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
+          printf 'Expected archive app: %s\nExpected version: %s\nExpected build: %s\n' "$app" "$RELEASE_VERSION" "$RELEASE_BUILD" > "$diagnostics"
           ./swift-clients/tooling/generate.sh iOS
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
-          test -d "$app"
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Info.plist")" = "$RELEASE_VERSION"
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")" = "$RELEASE_BUILD"
+          if [[ ! -d "$app" ]]; then
+            echo "::error::Archive succeeded but $app is absent"
+            find "$RUNNER_TEMP/Voucha.xcarchive/Products" -maxdepth 3 -type d -print | tee -a "$diagnostics"
+            exit 1
+          fi
+          actual_version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Info.plist")"
+          actual_build="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")"
+          printf 'Observed version: %s\nObserved build: %s\n' "$actual_version" "$actual_build" | tee -a "$diagnostics"
+          if [[ "$actual_version" != "$RELEASE_VERSION" || "$actual_build" != "$RELEASE_BUILD" ]]; then
+            echo '::error::Archived app version does not match the release rule'
+            exit 1
+          fi
           mkdir -p "$RUNNER_TEMP/ios-unsigned-export"
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/ios-unsigned-export/Voucha-unsigned-app.zip"
+      - name: Retain bounded archive failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ios-archive-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ios-archive-diagnostics.txt
+          if-no-files-found: warn
+          retention-days: 7
       - name: Retain unsigned inspection artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
