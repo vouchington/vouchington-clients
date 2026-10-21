@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const githubRoot = join(repositoryRoot, '.github')
@@ -26,14 +27,6 @@ async function readGithubYamlFiles(directory = githubRoot) {
     }),
   )
   return files.flat()
-}
-
-function jobBlock(workflow, job) {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
 }
 
 function assertRunner(workflow, job, runner) {

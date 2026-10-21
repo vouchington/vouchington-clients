@@ -1,15 +1,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
-const jobBlock = (workflow, name) => {
-  const start = workflow.indexOf(`  ${name}:`)
-  if (start < 0) throw new Error(`Missing workflow job ${name}`)
-  const tail = workflow.slice(start)
-  const next = tail.search(/\n  [A-Za-z0-9_-]+:/u)
-  return next < 0 ? tail : tail.slice(0, next)
-}
+const jobBlock = (workflow, name) => readJobBlock(workflow, name, `Missing workflow job ${name}`)
 
 test('mise, global.json, and MAUI CI select the Xcode-compatible .NET 10 SDK set', () => {
   const mise = read('.mise.toml')
