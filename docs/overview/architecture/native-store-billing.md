@@ -131,7 +131,8 @@ Play offer selection uses the launch payload, not a client promotion. Find the
 non-null, also match that offer id. When `offer_id` is null, use the offer whose offer id is null.
 Pass that offer token to `ProductDetailsParams.setOfferToken`. If nothing matches, do not launch
 billing and do not substitute another offer. An empty offer token is an error in Play Billing
-Library 9.
+Library 9. The sample plans and Play launch fixtures do not describe the same product. That mismatch is
+open decision 7. The two fixtures are not a verified paired Play flow.
 
 ## Apple StoreKit 2
 
@@ -439,7 +440,9 @@ gate the tasks that name them. Tasks 1 and 2 are not gated.
 5. **Play adapter.** Billing Library 9.1.0 in the Android app: products, purchase, unexpected
    pending without `enablePrepaidPlans()`, acknowledgement visibility, query-based restore, and the
    subscriptions deep link. The Play submission uses target API 36 unless a granted extension is in
-   force. Replacement launch is gated on open decisions 2 and 5.
+   force. Fixture-backed catalog-to-launch selection is gated on open decision 7. Until it is resolved,
+   the adapter fails closed and tests do not treat the two Play fixtures as a paired flow. Replacement
+   launch is gated on open decisions 2, 5, and 7.
 6. **Microsoft adapter.** Windows target only: service tickets, both Store ID keys, purchase,
    collection restore, and credential refresh. Gated on open decisions 2 and 6. The management
    control is gated on open decision 4.
@@ -533,6 +536,33 @@ submission.
 
 Recommendation: option A, unless Filaments states that `sku_id` is itself a Store ID. The client does
 not guess a SKU match that the fixture does not define.
+
+### 7. Play catalog row and launch payload mismatch
+
+The published Play samples do not form one flow. In `native.memberships.plans.default.json`, canonical
+Plus (`00000000-0000-7000-8000-000000000701`) has only the `apple_app_store` row and a Stripe row. The
+only `google_play` row belongs to canonical Pro (`00000000-0000-7000-8000-000000000702`): application
+id `ai.voucha.android`, product id `voucha.pro.monthly`, base plan `monthly`. In
+`native.memberships.purchase-intent.google.default.json`, canonical product `...0701` returns a Play
+launch with product id `voucha.plus.monthly` and base plan `monthly`. No Play catalog row exists for
+`...0701`, so nothing in the catalog matches that launch SKU.
+
+Until this is resolved the pair is unverified. The client does not select a different SKU, map the Pro
+row to the Plus intent, or infer a row from the plan name. A Play launch whose canonical product has no
+matching `google_play` row for `ai.voucha.android`, or whose `product_id` and `base_plan_id` differ from
+that row, does not open billing. The product is shown as unavailable.
+
+- Option A: Filaments corrects the plans fixture so canonical `...0701` has a Play row with
+  `voucha.plus.monthly` and base plan `monthly`, matching the launch fixture.
+- Option B: Filaments corrects the launch fixture so it returns the Play row's `voucha.pro.monthly`
+  for the canonical product that owns it.
+- Option C: Filaments states that the launch payload may legitimately differ from the catalog row, and
+  defines which one wins.
+
+Recommendation: option A or B, chosen by Filaments, so the two fixtures pair on canonical product id,
+store product id, and base plan id. The client then checks that the launch matches the selected row
+before it queries Play and fails closed on any difference. The fixture-backed Play adapter test in task
+5 waits for this.
 
 ## Sources
 
