@@ -19,6 +19,12 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 | .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
+The Swift UI CI build and test shards both use `macos-latest` with the selected Xcode. The build
+shard compiles the complete coverage-enabled test product and transfers only its test bundle,
+resource bundles, and SwiftPM test metadata. The test shard verifies the run, candidate, toolchain,
+architecture, package lock, and archive before `swift test --skip-build` executes the same suite
+and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
+
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 

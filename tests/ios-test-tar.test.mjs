@@ -119,3 +119,58 @@ module.validate(sys.argv[2])
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('shared validator confines a selected SwiftPM product to .build', () => {
+  const root = mkdtempSync(join(tmpdir(), 'swift-ui-test-tar-'))
+  const probe = String.raw`
+import io, importlib.util, sys, tarfile
+verifier, archive, kind = sys.argv[1:]
+with tarfile.open(archive, 'w:gz') as tar:
+    for name, type_, target in [
+        ('.build/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/Tests.xctest/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/Tests.xctest/test', tarfile.REGTYPE, ''),
+        ('.build/debug', tarfile.SYMTYPE, 'arm64-apple-macosx/debug'),
+    ]:
+        entry = tarfile.TarInfo(name)
+        entry.type = type_
+        entry.linkname = target
+        if type_ == tarfile.REGTYPE:
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+        else:
+            tar.addfile(entry)
+    if kind != 'valid':
+        entry = tarfile.TarInfo('.build/' + ('extra' if kind == 'extra' else 'escape'))
+        entry.type = tarfile.REGTYPE if kind == 'extra' else tarfile.SYMTYPE
+        entry.linkname = '' if kind == 'extra' else '../../outside'
+        if kind == 'extra':
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+        else:
+            tar.addfile(entry)
+spec = importlib.util.spec_from_file_location('validator', verifier)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.validate(archive, root='.build', allowed_paths=(
+    '.build/debug', '.build/arm64-apple-macosx/debug/Tests.xctest',
+))
+`
+  try {
+    for (const [kind, accepted] of [
+      ['valid', true],
+      ['extra', false],
+      ['escape', false],
+    ]) {
+      const archive = join(root, `${kind}.tar.gz`)
+      const result = spawnSync('python3', ['-c', probe, verifier, archive, kind], {
+        encoding: 'utf8',
+      })
+      assert.equal(result.status === 0, accepted, `${kind}: ${result.stderr}`)
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

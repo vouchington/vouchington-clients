@@ -97,7 +97,6 @@ describe('native contract workflow boundary', () => {
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
-
     assert.match(portable, /^    name: \.NET portable$/mu)
     assert.match(portable, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(portable, /matrix:/u)
@@ -161,6 +160,7 @@ describe('native contract workflow boundary', () => {
       'test-swift-core:',
       'test-swift-android:',
       'test-swift-ui:',
+      'build-swift-ui-tests:',
       'swift-patch-coverage:',
       'build-android-core:',
       'build-macos-app:',

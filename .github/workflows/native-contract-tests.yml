@@ -784,7 +784,7 @@ jobs:
     name: Swift UI build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 18
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read
@@ -808,7 +808,7 @@ jobs:
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Build complete UI test bundle with coverage
-        timeout-minutes: 12
+        timeout-minutes: 8
         working-directory: candidate-clients
         run: >-
           xcrun swift build --package-path swift-clients/ui --build-tests
@@ -837,7 +837,7 @@ jobs:
     name: Swift UI tests and coverage
     needs: [verify, build-swift-ui-tests]
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -877,7 +877,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP"
           touch "$RUNNER_TEMP/swift-ui-test-start-marker"
       - name: Test UI package with coverage
-        timeout-minutes: 10
+        timeout-minutes: 8
         working-directory: candidate-clients
         run: >-
           xcrun swift test --package-path swift-clients/ui
@@ -911,7 +911,7 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
       - name: Export deterministic UI LCOV
-        timeout-minutes: 5
+        timeout-minutes: 3
         working-directory: candidate-clients
         run: bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
       - name: Upload UI LCOV

@@ -6,9 +6,9 @@ import hashlib
 import json
 import os
 import platform
-import posixpath
 import subprocess
 import tarfile
+import importlib.util
 from pathlib import Path
 
 
@@ -70,64 +70,15 @@ def selected(package: Path) -> list[str]:
     return paths
 
 
-def resolve_link(name: str, entries: dict[str, tarfile.TarInfo]) -> None:
-    link = entries[name]
-    pending = link.linkname.split("/")
-    stack = name.split("/")[:-1] if link.issym() else []
-    hops = 0
-    while pending:
-        part = pending.pop(0)
-        if part in ("", "."):
-            continue
-        if part == "..":
-            if len(stack) <= 1:
-                raise ValueError(f"Escaping Swift UI artifact link: {name}")
-            stack.pop()
-            continue
-        stack.append(part)
-        target = entries.get("/".join(stack))
-        if target is not None and (target.issym() or target.islnk()):
-            hops += 1
-            if hops > len(entries):
-                raise ValueError(f"Cyclic Swift UI artifact link: {name}")
-            if target.islnk():
-                stack = []
-            else:
-                stack.pop()
-            pending = target.linkname.split("/") + pending
-    if not "/".join(stack).startswith(".build/"):
-        raise ValueError(f"Escaping Swift UI artifact link: {name}")
-
-
 def validate(archive: Path, paths: list[str]) -> None:
-    roots = tuple(paths)
-    seen: dict[str, tarfile.TarInfo] = {}
-    with tarfile.open(archive, "r:gz") as stream:
-        for member in stream:
-            name = member.name.rstrip("/")
-            parts = name.split("/")
-            if (not name.startswith(".build/") or any(part in ("", ".", "..") for part in parts)
-                    or posixpath.normpath(name) != name
-                    or not any(name == root or name.startswith(f"{root}/") for root in roots)):
-                raise ValueError(f"Unsafe Swift UI artifact path: {member.name}")
-            if name in seen:
-                raise ValueError(f"Duplicate Swift UI artifact path: {name}")
-            if any((ancestor := seen.get("/".join(parts[:index]))) is not None and not ancestor.isdir()
-                   for index in range(1, len(parts))):
-                raise ValueError(f"Swift UI artifact path descends through a link or file: {name}")
-            if not member.isdir() and any(path.startswith(f"{name}/") for path in seen):
-                raise ValueError(f"Swift UI artifact path replaces a directory: {name}")
-            if member.issym() or member.islnk():
-                if not member.linkname or member.linkname.startswith("/"):
-                    raise ValueError(f"Unsafe Swift UI artifact link: {name}")
-            elif not (member.isfile() or member.isdir()):
-                raise ValueError(f"Unsupported Swift UI artifact entry: {name}")
-            seen[name] = member
-    if any(root not in seen for root in roots):
-        raise ValueError("Swift UI artifact is missing a selected product")
-    for name, member in seen.items():
-        if member.issym() or member.islnk():
-            resolve_link(name, seen)
+    spec = importlib.util.spec_from_file_location(
+        "native_test_tar", Path(__file__).with_name("verify-ios-test-tar.py")
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Native test archive validator is unavailable")
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    validator.validate(str(archive), root=".build", allowed_paths=tuple(paths))
 
 
 def main() -> None:
