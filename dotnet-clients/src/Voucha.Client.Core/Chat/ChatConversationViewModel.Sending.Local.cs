@@ -5,7 +5,7 @@ namespace Voucha.Client.Core.Chat;
 
 public sealed partial class ChatConversationViewModel
 {
-  private async Task<bool> SendLocalTurnAsync(
+  private async Task<(bool Inserted, PendingLocalTurn? Pending)> SendLocalTurnAsync(
       string trimmed,
       string conversationId,
       string localUserMessageId,
@@ -35,7 +35,7 @@ public sealed partial class ChatConversationViewModel
         ? await GenerateWithSnapshotAsync(provider, mcpProvider, trimmed, history, mcpSnapshot,
             generationToken).ConfigureAwait(true)
         : null;
-    if (currentRequest != Volatile.Read(ref requestId)) return false;
+    if (currentRequest != Volatile.Read(ref requestId)) return (false, null);
     EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var body = retry?.Body ?? new CreateClientGeneratedChatBody(
@@ -76,7 +76,7 @@ public sealed partial class ChatConversationViewModel
       throw;
     }
 
-    return true;
+    return (true, pending);
   }
 
   private static Task<LocalChatGenerationResult> GenerateWithSnapshotAsync(

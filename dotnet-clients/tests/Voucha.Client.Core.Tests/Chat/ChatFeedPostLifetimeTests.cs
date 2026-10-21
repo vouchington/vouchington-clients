@@ -12,6 +12,7 @@ public sealed partial class ChatViewModelProviderTests
   {
     ChatConversationViewModel? viewModel = null;
     var attempts = 0;
+    CreateClientGeneratedChatBody? persisted = null;
     var service = new FakeChatService
     {
       CreateClientGeneratedChatAsyncOverride = (_, body, _) =>
@@ -19,10 +20,19 @@ public sealed partial class ChatViewModelProviderTests
         var row = Assert.Single(viewModel!.Messages, message => message.Id == body.AssistantMessageId);
         Assert.Equal(attempts == 0, row.HasFeedPostFacts);
         attempts++;
+        persisted = body;
         return Task.FromResult(new ClientGeneratedChatResponse(
             NewChatMessage(body.UserMessageId, "user", body.Message, "2026-07-01T10:00:01Z"),
             NewChatMessage(body.AssistantMessageId, "assistant", body.AssistantContent, "2026-07-01T10:00:02Z"),
             new ClientGeneratedChatTurn(body.UserMessageId, body.AssistantMessageId)));
+      },
+      FetchConversationMessagesAsyncOverride = (_, _) =>
+      {
+        var body = persisted!;
+        return Task.FromResult(new ChatMessagesResponse(
+            [NewChatMessage(body.UserMessageId, "user", body.Message, "2026-07-01T10:00:01Z"),
+             NewChatMessage(body.AssistantMessageId, "assistant", body.AssistantContent, "2026-07-01T10:00:02Z")],
+            new PageInfo(null, false, null)));
       },
     };
     var provider = new TestMcpLocalChatProvider
@@ -32,6 +42,10 @@ public sealed partial class ChatViewModelProviderTests
     };
     viewModel = new ChatConversationViewModel(service, new TestChatProviderResolver(provider.Status), provider);
     Assert.True(await viewModel.TrySendAsync("First", TestContext.Current.CancellationToken));
+    Assert.Contains(viewModel.Messages, row => row.HasFeedPostFacts);
+    var conversationId = viewModel.ConversationId;
+    viewModel.Reset();
+    await viewModel.LoadAsync(conversationId, cancellationToken: TestContext.Current.CancellationToken);
     Assert.DoesNotContain(viewModel.Messages, row => row.HasFeedPostFacts);
     provider.FeedPostReceipts = null;
     Assert.True(await viewModel.TrySendAsync("Second", TestContext.Current.CancellationToken));
