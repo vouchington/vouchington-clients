@@ -72,7 +72,9 @@ they do not share a SwiftPM build directory. The stable `Swift Android Skip` che
 both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
 validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
 individual phases for CI. This compiles the app and packages Android test libraries without
-a device; it does not claim device test execution.
+a device; it does not claim device test execution. The shared job budget is 60 minutes so an
+app-phase Gradle user-home cache miss can finish Skip compilation and debug APK packaging.
+Test-library preparation finishes well inside that budget.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is

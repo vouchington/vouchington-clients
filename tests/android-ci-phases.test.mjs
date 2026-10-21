@@ -143,6 +143,7 @@ test('stable Android fan-in rejects failed, cancelled or skipped phase and verif
     .split('  test-swift-android-cookie:\n')[0]
   assert.match(matrixJob, /fail-fast: false/u)
   assert.match(matrixJob, /phase: \[app, test-libs\]/u)
+  assert.match(matrixJob, /runs-on: macos-latest\n    timeout-minutes: 60\n/u)
   const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(gate, /needs: \[verify, build-swift-android, test-swift-android-cookie\]/u)
