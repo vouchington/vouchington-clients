@@ -1,0 +1,96 @@
+name: iOS unsigned release archive
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/release-ios-testflight.yml
+      - swift-clients/apps/iOS/Info.plist
+      - swift-clients/apps/iOS/project.yml
+      - scripts/ios-release-version.mjs
+      - tests/ios-release-version.test.mjs
+  push:
+    tags:
+      - ios-v*
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing ios-vMAJOR.MINOR.PATCH tag at the selected ref
+        required: true
+        type: string
+
+concurrency:
+  group: ios-unsigned-archive-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  archive:
+    name: iOS unsigned archive and inspection export
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      XCODEGEN_VERSION: 2.45.4
+      XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Resolve release version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            release_tag=ios-v0.0.0
+          elif [[ "$EVENT_NAME" == push ]]; then
+            release_tag="$REF_NAME"
+          else
+            release_tag="$INPUT_TAG"
+          fi
+          node scripts/ios-release-version.mjs "$release_tag" "$RUN_NUMBER" "$RUN_ATTEMPT" > "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" != pull_request ]]; then
+            tag_commit="$(git rev-list -n 1 "refs/tags/$release_tag")"
+            test "$tag_commit" = "$(git rev-parse HEAD)"
+          fi
+      - name: Install pinned XcodeGen
+        timeout-minutes: 5
+        run: |
+          xcodegen_root="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 2 --retry-max-time 120 --retry-all-errors --silent --show-error "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" --output "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" -d "$xcodegen_root"
+          xcodegen_bin="$xcodegen_root/xcodegen/bin/xcodegen"
+          test -x "$xcodegen_bin"
+          test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
+          dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Archive unsigned iOS app
+        timeout-minutes: 23
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_BUILD: ${{ steps.version.outputs.build }}
+        run: |
+          ./swift-clients/tooling/generate.sh iOS
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
+          test -d "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Info.plist")" = "$RELEASE_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")" = "$RELEASE_BUILD"
+          mkdir -p "$RUNNER_TEMP/ios-unsigned-export"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/ios-unsigned-export/Voucha-unsigned-app.zip"
+      - name: Retain unsigned inspection artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ios-unsigned-app-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ios-unsigned-export/Voucha-unsigned-app.zip
+          if-no-files-found: error
+          retention-days: 7
