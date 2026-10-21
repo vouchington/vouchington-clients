@@ -58,9 +58,17 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
     macJob,
     /-destination 'platform=macOS' build[\s\S]*CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u,
   )
+  assert.match(launch, /rm -rf "\$XCODE_DERIVED_DATA\/Build\/Products\/Debug\/Voucha\.app"/u)
   assert.match(
     launch,
-    /CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=/u,
+    /CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="\$PWD\/swift-clients\/apps\/macOS\/VouchaLaunchSmoke\.entitlements"/u,
   )
   assert.doesNotMatch(launch, /DEVELOPMENT_TEAM=[A-Za-z0-9]/u)
+  const entitlements = readFileSync(
+    new URL('../swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements', import.meta.url),
+    'utf8',
+  )
+  assert.match(entitlements, /com\.apple\.security\.app-sandbox/u)
+  assert.match(entitlements, /com\.apple\.security\.network\.client/u)
+  assert.doesNotMatch(entitlements, /associated-domains|applesignin|keychain-access-groups/u)
 })

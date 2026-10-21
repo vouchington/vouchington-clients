@@ -79,7 +79,7 @@ empty and CAPTCHA-gated operations fail closed. No site key or credential is che
 CI builds the macOS app shell and compiles the generated iOS app for a generic iOS Simulator
 destination in `build-macos-app` and `build-ios-app` in
 `.github/workflows/native-contract-tests.yml`. The macOS job then requires a hosted GUI session
-and launches the ad-hoc signed app, with no Team ID, using
+and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitlements, using
 `VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell`,
 accepting only one passed test and no skips. The iOS job launches the unsigned app on an
 available iPhone Simulator and requires its root-shell and canonical video-feed UI tests to pass.

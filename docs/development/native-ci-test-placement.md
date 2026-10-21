@@ -22,8 +22,10 @@ Linux rows are the cheapest job that can run that work. They do not make a secon
 Required dual-OS says that suite also compiles a different stack.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
-root-shell XCUITest. The build stays unsigned. The launch signs ad hoc, with no Team ID, because
-a sandboxed macOS bundle needs a signature before XCUITest can start it. A preflight refuses to
+root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
+ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and outgoing network
+only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
+entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
 requires exactly one passed test with nothing skipped. That is launch evidence for the root shell
 only; sign-in and tab coverage stay on #80.
