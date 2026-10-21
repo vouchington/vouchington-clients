@@ -61,7 +61,8 @@ public sealed record ChatMessageRow(
           .Concat(receipts.SelectMany(receipt => receipt.PostIds.Count == 0
               ? [Localization?.Localize(UiMessageKey.NativeDotnetPostsNoPostsYet) ?? string.Empty]
               : receipt.PostIds.Select(id =>
-                  $"{Localization?.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPostId)}: {id}"))));
+                  $"{Localization?.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPostId)}: " +
+                  (Localization ?? UiLocalization.English).Resolve(UiText.ProtocolValue(id))))));
 
   internal void NotifyLocalizationChanged()
   {
