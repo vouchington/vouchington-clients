@@ -15,4 +15,5 @@ public interface ILocalChatProvider
 public sealed record LocalChatGenerationResult(
     string AssistantContent,
     string ModelProvider,
-    string? ModelName);
+    string? ModelName,
+    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null);

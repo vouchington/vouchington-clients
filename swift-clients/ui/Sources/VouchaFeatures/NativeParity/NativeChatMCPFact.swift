@@ -7,6 +7,7 @@ enum NativeChatMCPFact: Equatable {
     case generalPreferences(GeneralPreferences)
     case profileBio(NativeChatProfileBioFact)
     case profileLinks([NativeChatProfileLinkFact])
+    case feedPostIds([String])
 
     static func makeGeneralPreferences(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),

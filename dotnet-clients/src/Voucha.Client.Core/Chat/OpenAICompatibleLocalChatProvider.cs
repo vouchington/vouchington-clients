@@ -81,6 +81,9 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
 
   public bool MatchesAccount(string accountId) => mcpSession?.MatchesAccount(accountId) == true;
 
+  public bool MatchesAccountEpoch(MemberMcpConnectedSnapshot snapshot) =>
+      mcpSession?.MatchesAccountEpoch(snapshot) == true;
+
   public async Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
       string message, IReadOnlyList<LocalLLMResponseInput> history,
       MemberMcpConnectedSnapshot? snapshot, CancellationToken cancellationToken)
