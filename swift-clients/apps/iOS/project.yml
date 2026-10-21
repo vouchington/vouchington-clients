@@ -33,6 +33,17 @@ targets:
     info:
       path: Info.plist
       properties:
+        CFBundleDisplayName: Voucha
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
