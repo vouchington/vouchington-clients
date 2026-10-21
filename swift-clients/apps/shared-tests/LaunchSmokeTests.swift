@@ -23,9 +23,8 @@ final class LaunchSmokeTests: XCTestCase {
         let app = makeApplication()
         app.launch()
 
-        XCTAssertTrue(
-            app.otherElements[Self.rootShellAccessibilityIdentifier].waitForExistence(timeout: 20)
-        )
+        let rootShell = app.descendants(matching: .any)[Self.rootShellAccessibilityIdentifier]
+        XCTAssertTrue(rootShell.waitForExistence(timeout: 20))
     }
 
     #if os(macOS)

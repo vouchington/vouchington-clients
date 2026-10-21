@@ -11,7 +11,7 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity                            | `ubuntu-latest`  | Same test code, no meaningful Linux-vs-macOS branches                              |
 | Portable Swift core + `test-support`                                                                 | `ubuntu-latest`  | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
 | Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `macos-latest`   | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
-| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, Skip host tools                                                    |
+| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, a logged-in macOS GUI session, and Skip host tools                 |
 | Android encrypted cookie restart instrumentation                                                     | `ubuntu-latest`  | Runs the candidate Android APKs on one API 35 Google APIs emulator with KVM        |
 | iOS Simulator app launch smoke                                                                       | `macos-latest`   | Generated Xcode project, iOS Simulator SDK, and actual app launch                  |
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
@@ -20,6 +20,15 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
+
+The macOS app smoke job builds the generated macOS app, then launches it with the existing
+root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
+ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and outgoing network
+only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
+entitlements because they make an ad-hoc signature invalid. A preflight refuses to
+continue when WindowServer is down or the runner user does not own the GUI console, and the job
+requires exactly one passed test with nothing skipped. That is launch evidence for the root shell
+only; sign-in and tab coverage stay on #80.
 
 The iOS job first compiles against a generic iOS Simulator destination on `macos-latest`, then
 runs the shared UI launch-smoke target on an available iPhone Simulator with signing disabled.
