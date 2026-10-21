@@ -164,6 +164,38 @@ test('rejects metadata identity changes and malformed manifests', async t => {
   await assert.rejects(verifyContractArtifact(expected(identity)), /invalid artifact path/)
 })
 
+test('binds the artifact to the expected producer run ID and attempt', async t => {
+  const identity = await fixture(t)
+  await createContractArtifact(identity)
+
+  await assert.rejects(
+    verifyContractArtifact({ ...expected(identity), expectedProducerRunId: '12346' }),
+    /producer run ID mismatch/,
+  )
+  await assert.rejects(
+    verifyContractArtifact({ ...expected(identity), expectedProducerRunAttempt: '3' }),
+    /producer run attempt mismatch/,
+  )
+})
+
+test('rejects manifests missing producer run ID or attempt', async t => {
+  for (const missingField of ['runId', 'runAttempt']) {
+    await t.test(missingField, async t => {
+      const identity = await fixture(t)
+      await createContractArtifact(identity)
+      const manifestPath = join(identity.outputRoot, 'manifest.json')
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+      delete manifest.producer[missingField]
+      await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`)
+
+      await assert.rejects(
+        verifyContractArtifact(expected(identity)),
+        /invalid manifest producer metadata/,
+      )
+    })
+  }
+})
+
 test('rejects symlinked Filaments sources before copying', async t => {
   const identity = await fixture(t)
   await symlink(
