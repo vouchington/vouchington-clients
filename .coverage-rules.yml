@@ -21,5 +21,9 @@ rules:
   # Integration suites require external services and are validated by pass/fail behavior, not unit coverage.
   - paths: "swift-clients/**/Tests/VouchaIntegrationTests/**"
     patch_coverage_min: 0
+  # Descriptor counts run only when SystemLanguageModel.default is available. Hosted Xcode 26.6
+  # prints the unavailability reason and skips; the local measurement stays on the pull request.
+  - paths: "swift-clients/ui/Tests/VouchaUITests/NativeChatFoundationModelsPinnedSDKAdmissionTests.swift"
+    patch_coverage_min: 0
   - paths: "swift-clients/**"
     patch_coverage_min: 90

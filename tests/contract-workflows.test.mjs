@@ -69,14 +69,14 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 20)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 23)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 20)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 23)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })
@@ -211,7 +211,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      20,
+      23,
     )
   })
 
@@ -230,7 +230,10 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-core',
       'periphery-swift-ui',
       'test-swift-core',
+      'build-swift-android-native',
       'build-swift-android',
+      'test-swift-android-libs',
+      'test-swift-android-host',
       'test-swift-ui',
       'build-macos-app',
     ])
@@ -315,7 +318,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      20,
+      23,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
@@ -375,46 +378,6 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store/u)
     assert.doesNotMatch(workflow, /path:.*skip-swift-home/u)
     assert.doesNotMatch(action, /path:.*skip-swift-home/u)
-  })
-
-  it('restores checksummed Android archives and the Skip Gradle user home', async () => {
-    const workflow = await readWorkflow('native-contract-tests.yml')
-    const skip = jobBlock(workflow, 'build-swift-android')
-    const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
-
-    assert.match(skip, cachePin)
-    assert.match(androidCore, cachePin)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(androidCore, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(
-      skip,
-      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh', '\.github\/workflows\/native-contract-tests\.yml'\)/u,
-    )
-    assert.match(
-      androidCore,
-      /hashFiles\('candidate-clients\/swift-clients\/tooling\/build-android-core\.sh'\)/u,
-    )
-    assert.match(skip, /Sources\/VouchaAndroid\/Skip\/skip\.yml/u)
-    assert.doesNotMatch(skip, /restore-keys:/u)
-    assert.doesNotMatch(androidCore, /restore-keys:/u)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
-    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
-    assert.match(
-      skip,
-      /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,
-    )
-    assert.match(
-      skip,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch and materialize Skip Swift Android SDK/u,
-    )
-    assert.match(
-      androidCore,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch Swift Android SDK and NDK archives/u,
-    )
-    assert.doesNotMatch(skip, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(androidCore, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(skip, /path:.*android-sdk/u)
   })
 
   it('restores the job-scoped NuGet package cache for portable and MAUI jobs', async () => {

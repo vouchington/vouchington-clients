@@ -19,7 +19,7 @@ const gradleSettingsPath = join(
 test('builds only the Android app and instrumentation Gradle task closures', async () => {
   const prePush = await readFile(prePushPath, 'utf8')
   const qualifiedAssemble = prePush.indexOf(
-    './gradlew --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+    'gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)',
   )
   const unqualifiedAssemble = prePush.indexOf('./gradlew assembleDebug')
   const nativeTestBuild = prePush.indexOf('skip android build \\')
@@ -27,8 +27,9 @@ test('builds only the Android app and instrumentation Gradle task closures', asy
   const skipAndroidTest = prePush.indexOf('skip android test \\')
 
   assert.ok(qualifiedAssemble >= 0, 'pre-push must qualify the Android app task')
+  assert.match(prePush, /\.\/gradlew --profile "\$\{gradle_tasks\[@\]\}"/u)
   assert.equal(unqualifiedAssemble, -1, 'pre-push must not assemble every Gradle subproject')
-  assert.match(prePush, /Android Gradle debug app and instrumentation APKs completed in/)
+  assert.match(prePush, /Android Gradle \$\{gradle_tasks\[\*\]\} completed in/)
   assert.match(prePush, /GITHUB_STEP_SUMMARY/)
   assert.match(prePush, /Warning: unable to write GitHub step summary/)
   assert.ok(nativeTestBuild > qualifiedAssemble)
@@ -45,7 +46,9 @@ test('uses the materialized Swift SDK NDK for the Gradle and Skip test builds', 
   const ndkSelection = prePush.indexOf(
     'ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"',
   )
-  const gradleBuild = prePush.indexOf('./gradlew --profile :app:assembleDebug')
+  const gradleBuild = prePush.indexOf(
+    'gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)',
+  )
   const skipTest = prePush.indexOf('skip android test \\')
 
   assert.ok(ndkVerification >= 0)

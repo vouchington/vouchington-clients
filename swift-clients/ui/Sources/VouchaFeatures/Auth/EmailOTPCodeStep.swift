@@ -16,6 +16,19 @@ struct EmailOTPCodeStep: View {
             Spacer()
         }
         .padding(Spacing.lg)
+        #if os(iOS)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    // The number pad covers the centered Verify Code button.
+                    Button {
+                        Task { await viewModel.verifyCode() }
+                    } label: {
+                        Text(UiMessages.string(.nativeAuthVerifyCode, locale: locale))
+                    }
+                    .disabled(viewModel.code.isEmpty || viewModel.isLoading)
+                }
+            }
+        #endif
     }
 
     private var header: some View {
