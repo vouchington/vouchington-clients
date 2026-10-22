@@ -44,6 +44,22 @@ with tarfile.open(archive, 'w:gz') as tar:
         entry.type = tarfile.SYMTYPE
         entry.linkname = 'go/../../..'
         tar.addfile(entry)
+    elif kind == 'case-alias-link-chain':
+        directory('Voucha.xctestproducts/dir/')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/s1')
+        entry.type = tarfile.SYMTYPE
+        entry.linkname = '..'
+        tar.addfile(entry)
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/S1/s2')
+        entry.type = tarfile.SYMTYPE
+        entry.linkname = '../..'
+        tar.addfile(entry)
+    elif kind == 'case-collision':
+        file('Voucha.xctestproducts/SomeFile')
+        file('Voucha.xctestproducts/somefile')
+    elif kind == 'unicode-collision':
+        file('Voucha.xctestproducts/caf\u00e9')
+        file('Voucha.xctestproducts/cafe\u0301')
     elif kind == 'duplicate':
         file('Voucha.xctestproducts/same')
         file('Voucha.xctestproducts/same')
@@ -76,6 +92,9 @@ test('iOS test archive accepts internal framework links and rejects escaping ent
       ['absolute-link', false],
       ['hardlink-escape', false],
       ['symlink-chain', false],
+      ['case-alias-link-chain', false],
+      ['case-collision', false],
+      ['unicode-collision', false],
       ['duplicate', false],
       ['conflicting', false],
       ['device', false],
@@ -142,7 +161,25 @@ with tarfile.open(archive, 'w:gz') as tar:
             tar.addfile(entry, io.BytesIO(b'x'))
         else:
             tar.addfile(entry)
-    if kind != 'valid':
+    if kind == 'case-alias-link-chain':
+        product = '.build/arm64-apple-macosx/debug/Tests.xctest'
+        directory = tarfile.TarInfo(product + '/dir/')
+        directory.type = tarfile.DIRTYPE
+        tar.addfile(directory)
+        for name, target in [('/dir/s1', '../../../..'), ('/dir/S1/s2', '..')]:
+            entry = tarfile.TarInfo(product + name)
+            entry.type = tarfile.SYMTYPE
+            entry.linkname = target
+            tar.addfile(entry)
+    elif kind == 'case-collision' or kind == 'unicode-collision':
+        product = '.build/arm64-apple-macosx/debug/Tests.xctest'
+        names = ('SomeFile', 'somefile') if kind == 'case-collision' else ('caf\u00e9', 'cafe\u0301')
+        for name in names:
+            entry = tarfile.TarInfo(product + '/' + name)
+            entry.type = tarfile.REGTYPE
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+    elif kind != 'valid':
         entry = tarfile.TarInfo('.build/' + ('extra' if kind == 'extra' else 'escape'))
         entry.type = tarfile.REGTYPE if kind == 'extra' else tarfile.SYMTYPE
         entry.linkname = '' if kind == 'extra' else '../../outside'
@@ -163,6 +200,9 @@ module.validate(archive, root='.build', allowed_paths=(
       ['valid', true],
       ['extra', false],
       ['escape', false],
+      ['case-alias-link-chain', false],
+      ['case-collision', false],
+      ['unicode-collision', false],
     ]) {
       const archive = join(root, `${kind}.tar.gz`)
       const result = spawnSync('python3', ['-c', probe, verifier, archive, kind], {

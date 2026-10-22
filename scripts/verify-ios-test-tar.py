@@ -5,6 +5,7 @@ import posixpath
 import os
 import sys
 import tarfile
+import unicodedata
 from typing import Optional
 
 
@@ -13,12 +14,17 @@ MAX_UNCOMPRESSED_BYTES = 4 * 1024 * 1024 * 1024
 MAX_MEMBERS = 10000
 
 
+def path_key(path: str) -> str:
+    """Compare archive paths as a case- and normalization-insensitive macOS volume does."""
+    return unicodedata.normalize("NFD", unicodedata.normalize("NFD", path).casefold())
+
+
 def inside_root(path: str, root: str) -> bool:
     return path == root or path.startswith(f"{root}/")
 
 
 def resolve_link(name: str, entries: dict[str, tarfile.TarInfo], root: str) -> None:
-    link = entries[name]
+    link = entries[path_key(name)]
     pending = link.linkname.split("/")
     stack = name.split("/")[:-1] if link.issym() else []
     hops = 0
@@ -33,7 +39,7 @@ def resolve_link(name: str, entries: dict[str, tarfile.TarInfo], root: str) -> N
             continue
         stack.append(part)
         path = "/".join(stack)
-        target = entries.get(path)
+        target = entries.get(path_key(path))
         if target is not None and (target.issym() or target.islnk()):
             hops += 1
             if hops > len(entries):
@@ -77,13 +83,14 @@ def validate(archive_path: str, root: str = "Voucha.xctestproducts", allowed_pat
                 ))
             ):
                 raise ValueError(f"Unsafe archive path: {member.name!r}")
-            if name in seen:
+            key = path_key(name)
+            if key in seen:
                 raise ValueError(f"Duplicate archive path: {member.name!r}")
             for index in range(1, len(parts)):
-                ancestor = seen.get("/".join(parts[:index]))
+                ancestor = seen.get(path_key("/".join(parts[:index])))
                 if ancestor is not None and not ancestor.isdir():
                     raise ValueError(f"Archive path descends through a non-directory: {member.name!r}")
-            if not member.isdir() and any(path.startswith(f"{name}/") for path in seen):
+            if not member.isdir() and any(path.startswith(f"{key}/") for path in seen):
                 raise ValueError(f"Archive path replaces a directory: {member.name!r}")
             if name == root and not member.isdir():
                 raise ValueError(f"{root} root must be a directory")
@@ -93,12 +100,12 @@ def validate(archive_path: str, root: str = "Voucha.xctestproducts", allowed_pat
                     raise ValueError(f"Unsafe archive link: {member.name!r} -> {target!r}")
             elif not (member.isfile() or member.isdir()):
                 raise ValueError(f"Unsupported archive entry: {member.name!r}")
-            seen[name] = member
-    if allowed_paths is not None and any(path not in seen for path in allowed_paths):
+            seen[key] = member
+    if allowed_paths is not None and any(path_key(path) not in seen for path in allowed_paths):
         raise ValueError("Archive is missing a selected product")
-    for name, member in seen.items():
+    for member in seen.values():
         if member.issym() or member.islnk():
-            resolve_link(name, seen, root)
+            resolve_link(member.name.rstrip("/"), seen, root)
 
 
 if __name__ == "__main__":
