@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import {
   chmodSync, createReadStream, createWriteStream, existsSync, lstatSync, mkdirSync,
-  readFileSync, renameSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync,
+  readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync,
 } from 'node:fs'
 import { dirname, join, sep } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { fileURLToPath } from 'node:url'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
 import { assertDebugLink, checkedSkipstoneLink, resolveSkipstoneLink } from './android-state-links.mjs'
@@ -15,6 +17,31 @@ export { inventoryState } from './android-state-inventory.mjs'
 
 const archiveName = 'android-state.gz'
 const manifestName = 'android-state.json'
+const maxTimestampNs = 9_223_372_036_854_775_807n
+function restoreExactFileTimes(staging, entries, deadline) {
+  const lines = []
+  let inputBytes = 0
+  for (const entry of entries) {
+    const line = `${JSON.stringify(entry)}\n`
+    inputBytes += Buffer.byteLength(line)
+    if (inputBytes > 16 * 1024 * 1024 || Date.now() > deadline) {
+      throw new Error('Android state timestamp metadata exceeded byte or time cap')
+    }
+    lines.push(line)
+  }
+  const remaining = deadline - Date.now()
+  if (remaining <= 0) throw new Error('Android state timestamp restoration timed out')
+  const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-ns.py', import.meta.url))], {
+    cwd: staging,
+    input: lines.join(''),
+    encoding: 'utf8',
+    timeout: remaining,
+    maxBuffer: 8192,
+  })
+  if (result.error || result.status !== 0) {
+    throw new Error(`Android state exact timestamps could not be restored: ${result.error?.message ?? result.stderr.trim()}`)
+  }
+}
 
 export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
   assertIdentity(identity)
@@ -52,7 +79,7 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
     clearTimeout(timer)
   }
   const manifest = {
-    format: 1,
+    format: 2,
     identity,
     sha256: digest.digest('hex'),
     entries: inventory.entries.length,
@@ -76,7 +103,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   const manifestPath = join(artifactRoot, manifestName)
   if (statSync(manifestPath).size > 8192) throw new Error('Android state manifest exceeds 8 KiB')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  if (manifest.format !== 1 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
+  if (manifest.format !== 2 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
       !Number.isSafeInteger(manifest.entries) || manifest.entries > limits.entries ||
       !Number.isSafeInteger(manifest.unpackedBytes) || manifest.unpackedBytes > limits.unpackedBytes ||
       !Number.isSafeInteger(manifest.compressedBytes) || manifest.compressedBytes > limits.compressedBytes ||
@@ -95,6 +122,8 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   mkdirSync(join(staging, 'Android'), { mode: 0o700 })
   const reader = new ByteReader(createReadStream(archive).pipe(createGunzip()), deadline, limits.unpackedBytes + 2 * 8192 * limits.entries)
   const observed = { entries: 0, unpackedBytes: 0 }
+  const fileTimes = []
+  const directoryModes = []
   const deferredLinks = []
   try {
     if (!(await reader.read(magic.length)).equals(magic)) throw new Error('Android state magic mismatch')
@@ -116,6 +145,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       }
       if (member.type === 'directory' && member.size === 0) {
         mkdirSync(target, { mode: 0o700 })
+        directoryModes.push({ target, mode: member.mode })
       } else if (member.type === 'symlink' && member.size === 0) {
         if (member.path !== '.build/debug') {
           deferredLinks.push({ target, link: member.target, path: member.path, generated: true })
@@ -124,7 +154,8 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
           deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
-          Number.isFinite(member.mtimeMs) && member.mtimeMs >= 0) {
+          typeof member.mtimeNs === 'string' && /^[0-9]{1,19}$/u.test(member.mtimeNs) &&
+          BigInt(member.mtimeNs) <= maxTimestampNs) {
         observed.unpackedBytes += member.size
         if (observed.unpackedBytes > limits.unpackedBytes) throw new Error('Android state file-byte cap exceeded')
         const file = createWriteStream(target, { flags: 'wx', mode: 0o600 })
@@ -141,7 +172,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
           }
           await new Promise((resolveFinish, reject) => file.end(error => error ? reject(error) : resolveFinish()))
           chmodSync(target, member.mode)
-          utimesSync(target, member.mtimeMs / 1000, member.mtimeMs / 1000)
+          fileTimes.push({ path: member.path, mtimeNs: member.mtimeNs })
         } catch (error) {
           file.destroy()
           throw error
@@ -154,6 +185,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     if (observed.entries !== manifest.entries || observed.unpackedBytes !== manifest.unpackedBytes) {
       throw new Error('Android state unpacked inventory mismatch')
     }
+    restoreExactFileTimes(staging, fileTimes, deadline)
     for (const { target, link, path, generated } of deferredLinks) {
       if (generated) {
         checkedSkipstoneLink(path, link, packageRoot, checkoutRoot)
@@ -165,6 +197,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     for (const { path, link, generated } of deferredLinks) {
       if (generated) resolveSkipstoneLink(path, link, packageRoot, checkoutRoot, staging, deadline)
     }
+    for (const { target, mode } of directoryModes.reverse()) chmodSync(target, mode)
     for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
       const stat = lstatSync(directory)
       if (stat.isSymbolicLink() || !stat.isDirectory()) {

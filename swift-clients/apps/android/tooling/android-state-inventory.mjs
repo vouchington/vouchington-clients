@@ -118,6 +118,11 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
         directory.closeSync()
       }
     } else if (stat.isFile()) {
+      const exactStat = lstatSync(item.source, { bigint: true })
+      if (!exactStat.isFile() || exactStat.size !== BigInt(stat.size) ||
+          exactStat.mode !== BigInt(stat.mode)) {
+        throw new Error(`Android state changed during inventory: ${item.path}`)
+      }
       unpackedBytes += stat.size
       if (unpackedBytes > limits.unpackedBytes) {
         throw new Error('Android state inventory exceeded its unpacked-byte cap')
@@ -128,7 +133,7 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
         size: stat.size,
         source: item.source,
         mode: stat.mode & 0o777,
-        mtimeMs: stat.mtimeMs,
+        mtimeNs: exactStat.mtimeNs.toString(),
       })
     } else {
       throw new Error(`Android state contains a non-file member: ${item.path}`)

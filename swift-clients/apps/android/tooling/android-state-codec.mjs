@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { createReadStream } from 'node:fs'
+import { createReadStream, lstatSync } from 'node:fs'
 
 export const magic = Buffer.from('VACS1')
 
@@ -21,7 +21,7 @@ export async function* archiveChunks(entries, identity, deadline) {
       type: entry.type,
       size: entry.size ?? 0,
       mode: entry.mode,
-      mtimeMs: entry.mtimeMs ?? null,
+      mtimeNs: entry.mtimeNs ?? null,
       target: entry.target ?? null,
     })
     if (entry.type === 'file') {
@@ -34,6 +34,11 @@ export async function* archiveChunks(entries, identity, deadline) {
         yield chunk
       }
       if (actual !== entry.size) throw new Error(`Android state changed: ${entry.path}`)
+      const after = lstatSync(entry.source, { bigint: true })
+      if (!after.isFile() || after.size !== BigInt(entry.size) ||
+          after.mtimeNs.toString() !== entry.mtimeNs) {
+        throw new Error(`Android state changed during compression: ${entry.path}`)
+      }
     }
   }
   yield Buffer.alloc(4)

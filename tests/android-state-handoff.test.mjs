@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   chmod,
   mkdir,
@@ -14,6 +16,8 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { gunzipSync, gzipSync } from 'node:zlib'
 import {
   inventoryState,
   packState,
@@ -48,7 +52,26 @@ async function fixture(t) {
 
 test('packs and restores exact candidate state with bounded contents', async t => {
   const state = await fixture(t)
+  const nativePath = join(state.packageRoot, '.build/plugins/outputs/native.o')
+  const directoryPath = join(state.packageRoot, '.build/plugins/outputs')
+  const preciseTime = '1792634209267950316'
+  const timestamp = spawnSync(
+    'python3',
+    [
+      '-I',
+      '-c',
+      'import os,sys; t=int(sys.argv[2]); os.utime(sys.argv[1], ns=(t,t))',
+      nativePath,
+      preciseTime,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(timestamp.status, 0, timestamp.stderr)
+  const nativeTime = (await stat(nativePath, { bigint: true })).mtimeNs
+  assert.equal(nativeTime.toString(), preciseTime)
+  const directoryMode = (await stat(directoryPath)).mode & 0o777
   const packed = await packState({ ...state, identity, limits })
+  assert.equal(packed.format, 2)
   assert.equal(packed.unpackedBytes, 21)
   assert.ok(packed.compressedBytes > 0 && packed.compressedBytes <= limits.compressedBytes)
   await rm(join(state.packageRoot, '.build'), { recursive: true })
@@ -60,10 +83,9 @@ test('packs and restores exact candidate state with bounded contents', async t =
     await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
     'native',
   )
-  assert.equal(
-    (await stat(join(state.packageRoot, '.build/plugins/outputs/native.o'))).mode & 0o777,
-    0o755,
-  )
+  assert.equal((await stat(nativePath)).mode & 0o777, 0o755)
+  assert.equal((await stat(nativePath, { bigint: true })).mtimeNs, nativeTime)
+  assert.equal((await stat(directoryPath)).mode & 0o777, directoryMode)
   assert.equal(
     await readFile(join(state.packageRoot, 'Android/.gradle/task-state'), 'utf8'),
     'task-state',
@@ -344,6 +366,70 @@ test('rejects mismatched attempt, changed archive, external links and over-budge
   )
   await writeFile(join(state.artifactRoot, 'android-state.gz'), 'forged')
   await assert.rejects(restoreState({ ...state, identity, limits }), /archive size mismatch/u)
+})
+
+test('rejects a forged out-of-range nanosecond timestamp before replacing state', async t => {
+  const state = await fixture(t)
+  await packState({ ...state, identity, limits })
+  const archivePath = join(state.artifactRoot, 'android-state.gz')
+  const manifestPath = join(state.artifactRoot, 'android-state.json')
+  const bytes = gunzipSync(await readFile(archivePath))
+  let offset = 5
+  let replaced = false
+  const chunks = [bytes.subarray(0, offset)]
+  while (offset < bytes.length) {
+    const length = bytes.readUInt32BE(offset)
+    if (length === 0) {
+      chunks.push(bytes.subarray(offset))
+      break
+    }
+    const member = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
+    const next = offset + 4 + length + (member.type === 'file' ? member.size : 0)
+    if (!replaced && member.type === 'file') {
+      member.mtimeNs = '9999999999999999999'
+      const header = Buffer.from(JSON.stringify(member))
+      const headerLength = Buffer.alloc(4)
+      headerLength.writeUInt32BE(header.length)
+      chunks.push(headerLength, header, bytes.subarray(offset + 4 + length, next))
+      replaced = true
+    } else {
+      chunks.push(bytes.subarray(offset, next))
+    }
+    offset = next
+  }
+  assert.equal(replaced, true)
+  const forged = gzipSync(Buffer.concat(chunks))
+  await writeFile(archivePath, forged)
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  manifest.compressedBytes = forged.length
+  manifest.sha256 = createHash('sha256').update(forged).digest('hex')
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`)
+  await assert.rejects(restoreState({ ...state, identity, limits }), /member type invalid/u)
+  assert.equal(
+    await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
+    'native',
+  )
+})
+
+test('exact timestamp helper rejects a symlinked parent', async t => {
+  const state = await fixture(t)
+  const outside = join(state.root, 'outside')
+  const file = join(outside, 'target')
+  await mkdir(outside)
+  await writeFile(file, 'outside')
+  await symlink(outside, join(state.root, 'alias'))
+  const before = (await stat(file, { bigint: true })).mtimeNs
+  const helper = fileURLToPath(
+    new URL('../swift-clients/apps/android/tooling/android-state-ns.py', import.meta.url),
+  )
+  const result = spawnSync('python3', ['-I', helper], {
+    cwd: state.root,
+    input: `${JSON.stringify({ path: 'alias/target', mtimeNs: '1792634209267950316' })}\n`,
+    encoding: 'utf8',
+  })
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /not a real directory/u)
+  assert.equal((await stat(file, { bigint: true })).mtimeNs, before)
 })
 
 test('rejects a symlinked destination parent before replacing any generated state', async t => {
