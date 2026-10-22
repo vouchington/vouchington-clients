@@ -64,18 +64,15 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.match(iosJob, /-testProductsPath "\$bundle"/u)
     assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
     assert.match(iosJob, /test ! -L "\$bundle"/u)
-    assert.ok(
-      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
-        iosJob.indexOf('uses: ./.github/actions/prepare-native-contract'),
-    )
-    assert.ok(
-      iosJob.indexOf('uses: ./.github/actions/prepare-native-contract') <
-        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
-    )
-    assert.ok(
-      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
-        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
-    )
+    const startupIndex = iosJob.indexOf('- name: Start iPhone Simulator for launch smoke')
+    const prepareIndex = iosJob.indexOf('uses: ./.github/actions/prepare-native-contract')
+    const waitIndex = iosJob.indexOf('- name: Wait for iPhone Simulator readiness')
+    assert.ok(startupIndex >= 0)
+    assert.ok(prepareIndex >= 0)
+    assert.ok(waitIndex >= 0)
+    assert.ok(startupIndex < prepareIndex)
+    assert.ok(prepareIndex < waitIndex)
+    assert.ok(startupIndex < waitIndex)
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
