@@ -68,23 +68,32 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ## Android validation
 
-Swift Android APK assembly and native test-library preparation run in parallel on separate
-macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
-they do not share a SwiftPM build directory. The stable `Swift Android Skip` check requires
-both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
-validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
-individual phases for CI. This compiles the app and packages Android test libraries without
-a device; it does not claim device test execution. The shared job budget is 60 minutes so an
-app-phase Gradle user-home cache miss can finish Skip compilation and debug APK packaging.
-Test-library preparation finishes well inside that budget.
+Swift Android native compilation and APK assembly run as an exact-run producer and consumer on
+separate macOS VMs. Host Swift package tests and native test-library preparation run in parallel
+with the producer. The producer packages only bounded generated build state, tied to the verified
+candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
+identity before rehydration, then executes the original app and instrumentation APK task closure.
+The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
+document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
+Android SDK, and NDK toolchains are materialized independently in each job and never included in
+the artifact. The stable `Swift Android Skip` check requires producer, consumer, host tests,
+test libraries, and the cookie runtime proof to succeed; `Tests` still requires that result.
+Local Android validation continues to default to both original phases. Producer and consumer
+job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
+budgets are safety bounds, not evidence that the under-ten-minute target has been met.
 
 The Android archive and Gradle caches restore by pinned input keys on every run. Only a
 `main` push writes a missing key: the test-library phase saves the shared
-checksummed-download archive after SDK materialization, and the app phase saves its Gradle
+checksummed-download archive after SDK materialization, and the app consumer saves its Gradle
 user home after APK upload.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
+
+The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
+sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle
+configuration on hosted runners. Only generated build outputs cross the exact-run artifact;
+stable package/download caches and job-scoped extracted toolchains keep their existing rules.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is

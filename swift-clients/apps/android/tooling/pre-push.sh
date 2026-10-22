@@ -4,13 +4,13 @@ set -euo pipefail
 phase=all
 if [[ "$#" -gt 0 ]]; then
   if [[ "$#" -ne 2 || "$1" != --phase ]]; then
-    echo "Usage: $0 [--phase app|test-libs|all]" >&2
+    echo "Usage: $0 [--phase app|test-libs|all|app-native-producer|app-consumer]" >&2
     exit 64
   fi
   phase="$2"
 fi
 case "$phase" in
-  app | test-libs | all) ;;
+  app | test-libs | all | app-native-producer | app-consumer) ;;
   *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
 esac
 
@@ -20,7 +20,12 @@ ANDROID_PROJECT_DIR="$ANDROID_PACKAGE_DIR/Android"
 TEST_LIBRARIES_DIR="$ANDROID_PACKAGE_DIR/.build/pre-push-test-libs"
 SKIPSTONE_OUTPUTS_DIR="$ANDROID_PACKAGE_DIR/.build/plugins/outputs"
 
-if [[ -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
+if [[ "$phase" == app-consumer && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+  echo 'Android consumer requires a verified exact-run generated-state handoff.' >&2
+  exit 1
+fi
+
+if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
   while IFS= read -r -d '' source_hash; do
     rm -f -- "$source_hash"
   done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
@@ -164,14 +169,25 @@ fi
 
 if [[ "$phase" != test-libs ]]; then
   gradle_started_at=$SECONDS
+  gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
+  if [[ "$phase" == app-native-producer ]]; then
+    gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
+  fi
   (
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
-    ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+    if [[ "$phase" == app-consumer ]]; then
+      consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
+      ./gradlew "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
+      echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
+      grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$consumer_log" || true
+    else
+      ./gradlew "${gradle_tasks[@]}"
+    fi
   )
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
-  echo "Android Gradle debug app and instrumentation APKs completed in ${gradle_elapsed_seconds}s"
+  echo "Android Gradle ${gradle_tasks[*]} completed in ${gradle_elapsed_seconds}s"
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     {
       printf '### Android Gradle timing\n\n'
@@ -179,12 +195,12 @@ if [[ "$phase" != test-libs ]]; then
       printf '| --- | ---: |\n'
       # The backticked task name is intentionally literal Markdown.
       # shellcheck disable=SC2016
-      printf '| `:app:assembleDebug :app:assembleDebugAndroidTest` | %ss |\n' "$gradle_elapsed_seconds"
+      printf '| `%s` | %ss |\n' "${gradle_tasks[*]}" "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
   fi
 fi
 
-if [[ "$phase" != app ]]; then
+if [[ "$phase" == test-libs || "$phase" == all ]]; then
   # Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
   # https://github.com/skiptools/skipstone/issues/244
   # Build the actual Android test runner first, then verify its compatibility link.
