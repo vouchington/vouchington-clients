@@ -44,6 +44,32 @@ test(
       join(packageRoot, 'Sources/CodecProbe/main.swift'),
       'print((0..<1000).reduce(0, +))\n',
     )
+    for (const args of [
+      ['init', '-q', checkoutRoot],
+      [
+        '-C',
+        checkoutRoot,
+        'add',
+        'swift-clients/apps/android/Package.swift',
+        'swift-clients/apps/android/Sources/CodecProbe/main.swift',
+      ],
+      [
+        '-C',
+        checkoutRoot,
+        '-c',
+        'user.name=Android State Test',
+        '-c',
+        'user.email=android-state@example.invalid',
+        'commit',
+        '-qm',
+        'same-path probe',
+      ],
+    ]) {
+      const git = spawnSync('git', args, { encoding: 'utf8' })
+      assert.equal(git.status, 0, git.stderr)
+    }
+    const head = spawnSync('git', ['-C', checkoutRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8' })
+    assert.equal(head.status, 0, head.stderr)
     const build = () => {
       const result = spawnSync(
         'swift',
@@ -81,7 +107,7 @@ test(
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
     }
-    const identity = { revision: 'a'.repeat(40), run: '1', attempt: '1', gradle: '9.4.1' }
+    const identity = { revision: head.stdout.trim(), run: '1', attempt: '1', gradle: '9.4.1' }
     await packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity })
     rmSync(scratch, { recursive: true })
     rmSync(join(packageRoot, 'Android/.gradle'), { recursive: true })

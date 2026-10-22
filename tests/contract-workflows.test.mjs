@@ -69,14 +69,14 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 23)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 24)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 23)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 24)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })
@@ -150,7 +150,7 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-ui:',
       'test-swift-core-linux:',
       'test-swift-core:',
-      'test-swift-android:',
+      'test-swift-android-cookie:',
       'test-swift-ui:',
       'build-swift-ui-tests:',
       'swift-patch-coverage:',
@@ -210,7 +210,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      23,
+      24,
     )
   })
 
@@ -317,7 +317,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      23,
+      24,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
