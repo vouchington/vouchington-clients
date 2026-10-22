@@ -2,11 +2,15 @@ import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const githubRoot = join(repositoryRoot, '.github')
 const workflowRoot = join(githubRoot, 'workflows')
 const allowedLabels = new Set(['ubuntu-slim', 'ubuntu-latest', 'macos-latest', 'windows-latest'])
+// The Android emulator is the one versioned hosted image this policy allows.
+// no-mistakes-disable-next-line test-no-dependency-pins
+const androidEmulatorRunner = 'ubuntu-24.04'
 
 async function readWorkflows() {
   const names = (await readdir(workflowRoot)).filter(name => name.endsWith('.yml')).sort()
@@ -28,14 +32,6 @@ async function readGithubYamlFiles(directory = githubRoot) {
   return files.flat()
 }
 
-function jobBlock(workflow, job) {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
-
 function assertRunner(workflow, job, runner) {
   assert.match(jobBlock(workflow, job), new RegExp(`runs-on: ${runner}`, 'u'))
 }
@@ -45,9 +41,17 @@ describe('GitHub-hosted runner policy', () => {
     for (const [name, workflow] of await readWorkflows()) {
       assert.doesNotMatch(workflow, /\bself-hosted\b/u, `${name} selects a self-hosted runner`)
       const labels = [...workflow.matchAll(/^\s+runs-on:\s*(.+)$/gmu)].map(match => match[1].trim())
-      assert.ok(labels.length > 0, `${name} must declare runs-on`)
+      // A router delegates runner selection to its repository-local worker.
+      // That worker is included in this same scan and must satisfy the allowlist.
+      if (labels.length === 0) {
+        assert.match(
+          workflow,
+          /^    uses: \.\/\.github\/workflows\/[\w-]+\.yml$/mu,
+          `${name} must declare runs-on or call a local workflow`,
+        )
+      }
       for (const label of labels) {
-        if (label === 'ubuntu-24.04') {
+        if (label === androidEmulatorRunner) {
           if (name === 'paired-native-contract-attestation.yml') {
             const emulator = jobBlock(workflow, 'native-android-emulator')
             assert.match(emulator, /runs-on: ubuntu-24\.04/u)
@@ -59,7 +63,7 @@ describe('GitHub-hosted runner policy', () => {
             assert.equal(
               name,
               'native-contract-tests.yml',
-              'ubuntu-24.04 is reserved for the native Android jobs',
+              `${androidEmulatorRunner} is reserved for the native Android jobs`,
             )
           }
         } else {
@@ -67,15 +71,21 @@ describe('GitHub-hosted runner policy', () => {
         }
       }
       if (name === 'paired-native-contract-attestation.yml')
-        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
+        assert.equal(labels.filter(label => label === androidEmulatorRunner).length, 1)
       if (name === 'native-contract-tests.yml') {
         // The Android emulator needs one pinned public Linux image; no other job may use it.
-        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
-        assertRunner(workflow, 'test-swift-android-cookie', 'ubuntu-24.04')
-        assert.equal(labels.filter(label => label === 'windows-latest').length, 2)
+        assert.equal(labels.filter(label => label === androidEmulatorRunner).length, 1)
+        assertRunner(workflow, 'test-swift-android-cookie', androidEmulatorRunner)
+        assert.equal(labels.filter(label => label === 'windows-latest').length, 3)
         const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
         assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)
         assert.match(windowsJob, /timeout-minutes: 15/u)
+        const surfaceJob = jobBlock(workflow, 'dotnet-windows-language-model-surface')
+        assert.match(
+          surfaceJob,
+          /if: needs\.verify\.outputs\.windows-language-model-surface == 'true'/u,
+        )
+        assert.match(surfaceJob, /timeout-minutes: 30/u)
         const mauiJob = jobBlock(workflow, 'dotnet-windows-maui')
         assert.match(mauiJob, /if: needs\.verify\.outputs\.windows-maui == 'true'/u)
         assert.match(mauiJob, /timeout-minutes: 30/u)
@@ -103,6 +113,11 @@ describe('GitHub-hosted runner policy', () => {
     assertRunner(
       workflows['native-contract-tests.yml'],
       'dotnet-windows-image-preview',
+      'windows-latest',
+    )
+    assertRunner(
+      workflows['native-contract-tests.yml'],
+      'dotnet-windows-language-model-surface',
       'windows-latest',
     )
     assertRunner(workflows['native-contract-tests.yml'], 'test-swift-core', 'macos-latest')

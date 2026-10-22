@@ -23,7 +23,7 @@ caller as `{{PR_SHEPHERD_VERSION}}`. Before inspecting or mutating the PR, requi
 `pr-shepherd --version` output to match that exact value. Never install or execute a PR-controlled
 copy. Run one
 `pr-shepherd {{PR_NUMBER}} --interval 60s --until-terminal --quiet-status` process and follow its
-printed `## Instructions` exactly. Use a 4.5-minute timeout only for a bounded wait. `FIX_CODE` means
+printed `## Instructions` exactly. Use a 4.5-minute timeout only for a bounded wait. `TRIAGE` means
 make and validate the required changes on `{{PR_HEAD_REF}}`. `CANCEL` and `ESCALATE` mean stop and
 report. Never overwrite concurrent work.
 

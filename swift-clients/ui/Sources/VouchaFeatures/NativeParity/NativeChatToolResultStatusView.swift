@@ -24,6 +24,8 @@ struct NativeChatToolResultStatusView: View {
                         NativeChatProfileBioFactView(bio: bio, locale: locale)
                     case let .profileLinks(links):
                         NativeChatProfileLinksFactView(links: links, locale: locale)
+                    case let .feedPostIds(postIds):
+                        NativeChatFeedPostFactView(postIds: postIds, locale: locale)
                     case nil:
                         EmptyView()
                     }

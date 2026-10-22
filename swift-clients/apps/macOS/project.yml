@@ -33,10 +33,14 @@ targets:
       - path: ../shared-app
       - path: Resources
         buildPhase: resources
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: Info.plist
       properties:
         CFBundleVersion: '$(CURRENT_PROJECT_VERSION)'
+        CFBundleDisplayName: Voucha
+        ITSAppUsesNonExemptEncryption: false
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'

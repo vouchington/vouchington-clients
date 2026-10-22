@@ -98,15 +98,19 @@ extension NativeUserProfileSurface {
         HStack(spacing: Spacing.sm) {
             ForEach(profile.profileLinks) { link in
                 if let url = resolvedProfileLinkURL(link) {
-                    Link(
-                        UiMessages
-                            .string(
+                    Link(destination: url) {
+                        HStack(spacing: Spacing.xs) {
+                            if let imageURL = AppConfig.shared.imageURL(for: link.imagePlacement, width: 48),
+                               let placementURL = URL(string: imageURL) {
+                                ProfileLinkPlacementImage(url: placementURL)
+                            }
+                            Text(UiMessages.string(
                                 (link.name ?? link.handle ?? url.host)
                                     .map(UiVerbatimText.userContent) ?? .message(.nativeSwiftRouteSurfaceLink),
                                 locale: nativeUiLocale
-                            ),
-                        destination: url
-                    )
+                            ))
+                        }
+                    }
                 }
             }
         }
@@ -144,5 +148,20 @@ extension NativeUserProfileSurface {
                 }
             }
         }
+    }
+}
+
+struct ProfileLinkPlacementImage: View {
+    let url: URL
+
+    var body: some View {
+        AsyncImage(url: url) { image in
+            image.resizable().scaledToFit()
+        } placeholder: {
+            Image(systemName: "link")
+        }
+        .frame(width: 24, height: 24)
+        .accessibilityHidden(true)
+        .accessibilityIdentifier("public-profile-link-image")
     }
 }

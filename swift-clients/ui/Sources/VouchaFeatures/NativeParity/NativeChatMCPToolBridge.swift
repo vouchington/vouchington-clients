@@ -116,6 +116,10 @@ struct NativeChatMCPToolBridge {
             default: break
             }
         }
+        if name == "read_feed", case .string("posts") = object["option"],
+           result.isError != true, let structuredContent = result.structuredContent {
+            fact = NativeChatMCPFact.makeFeedPostIds(structuredContent)
+        }
         return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }
 

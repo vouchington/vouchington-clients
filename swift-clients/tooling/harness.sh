@@ -6,6 +6,7 @@
 #   ./swift-clients/tooling/harness.sh              # run all checks
 #   ./swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests,ast-grep,build,periphery,generate,test
 #   ./swift-clients/tooling/harness.sh --checks build-android
+#   ./swift-clients/tooling/harness.sh --checks test-android-host
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,7 +34,7 @@ fi
 SWIFTLINT_CACHE_PATH="${SWIFTLINT_CACHE_PATH:-${TMPDIR:-/tmp}/voucha-swiftlint-cache}"
 # ── parse --checks flag ───────────────────────────────────────────────────────
 ALL_CHECKS=(fmt lint lint-tests ast-grep build periphery generate test)
-AVAILABLE_CHECKS=("${ALL_CHECKS[@]}" build-android)
+AVAILABLE_CHECKS=("${ALL_CHECKS[@]}" build-android test-android-host)
 CHECKS=("${ALL_CHECKS[@]}")
 
 is_known_check() {
@@ -323,12 +324,26 @@ if contains generate; then
   fi
 fi
 
+# ── test-android-host: supported Xcode 26.6 / Swift 6.3.3 source tests ───────
+if contains test-android-host; then
+  if [[ "$IS_DARWIN" == "true" ]]; then
+    run_check "test/android" run_in_directory "$ROOT_DIR" \
+      bash "$SWIFT_DIR/tooling/with-build-lock.sh" \
+      bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh \
+      --package-path swift-clients/apps/android \
+      --filter VouchaAndroidTests
+  else
+    echo "  test/android - (skipped — macOS only)"
+    SKIPPED=$((SKIPPED + 1))
+  fi
+fi
+
 # ── test: swift test ─────────────────────────────────────────────────────────
 if contains test; then
   run_check "test/test-support" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/test-support" --force-resolved-versions
   run_check "test/core" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/core" --force-resolved-versions
   if [[ "$IS_DARWIN" == "true" ]]; then
-    run_check "test/ui" bash "$SWIFT_DIR/tooling/with-build-lock.sh" "${XCODE_SWIFT_COMMAND[@]}" test --package-path "$SWIFT_DIR/ui" --force-resolved-versions
+    run_check "test/ui" bash "$SWIFT_DIR/tooling/test-ui.sh"
   else
     echo "  test/ui      - (skipped — macOS only)"
     SKIPPED=$((SKIPPED + 1))

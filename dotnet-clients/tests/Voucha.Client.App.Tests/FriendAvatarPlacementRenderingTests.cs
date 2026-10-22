@@ -95,6 +95,35 @@ public sealed class FriendAvatarPlacementRenderingTests
     Assert.Equal("F", label.Text);
   }
 
+  [Fact]
+  public void ProfileLinkImageUsesPlacementAndKeepsNameWhenWithheld()
+  {
+    InstallPageResources();
+    var page = new ProfilePage();
+    var collection = page.FindByName<CollectionView>("ProfileLinksCollection");
+    var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
+    var placement = new TopicImagePlacement("image-202", "placement-302", 1);
+    var link = new ProfileLink("link-1", "user-1", "url", 0, null,
+        "https://example.test", null, "Website", "legacy-image",
+        DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, placement);
+    card.BindingContext = link;
+
+    var image = Assert.Single(Descendants<Image>(card));
+    Assert.Equal(new Uri("https://images.test/images/placements/placement-302/1/image-202?w=96"),
+        Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.True(image.IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    Assert.True(string.IsNullOrEmpty(SemanticProperties.GetDescription(image)));
+
+    card.BindingContext = link with { ImagePlacement = null };
+    Assert.Null(image.Source);
+    Assert.False(image.IsVisible);
+
+    card.BindingContext = link;
+    Assert.True(image.IsVisible);
+    Assert.Single(Descendants<Label>(card), label => label.Text == "Website");
+  }
+
   private static readonly TopicImagePlacement Placement =
       new("00000000-0000-7000-8000-000000000201", "00000000-0000-7000-8000-000000000301", 2);
 

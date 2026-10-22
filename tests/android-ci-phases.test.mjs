@@ -55,6 +55,9 @@ fi
         join(root, 'Android/gradlew'),
         `#!/bin/sh
 printf 'gradle %s\\n' "$*" >> "$PHASE_TRACE"
+if [ "\${NATIVE_REUSED:-0}" = 1 ]; then
+  printf '%s\\n' '> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug UP-TO-DATE'
+fi
 exit "\${FAIL_APP:-0}"
 `,
       )
@@ -78,7 +81,25 @@ test('APK phase needs no Android test runner and never packages test libraries',
     await f.gradle()
     const result = f.run(['--phase', 'app'])
     assert.equal(result.status, 0, result.stderr)
-    assert.deepEqual(await f.lines(), ['gradle :app:assembleDebug :app:assembleDebugAndroidTest'])
+    assert.deepEqual(await f.lines(), [
+      'gradle --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+    ])
+  } finally {
+    await f.clean()
+  }
+})
+
+test('a missing profile summary cannot change the Gradle build result', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const summary = join(f.root, 'summary.md')
+    const success = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary })
+    assert.equal(success.status, 0, success.stderr)
+    assert.match(success.stderr, /unable to summarize Android Gradle profile/u)
+    assert.match(await readFile(summary, 'utf8'), /Android Gradle timing/u)
+    const failure = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary, FAIL_APP: '42' })
+    assert.equal(failure.status, 42)
   } finally {
     await f.clean()
   }
@@ -93,6 +114,26 @@ test('test-library phase succeeds in a fresh workspace with no Gradle project ou
     assert.equal(lines.length, 2)
     assert.match(lines[0], /^android build .* --arch aarch64 --build-tests$/u)
     assert.match(lines[1], /^android test .* --build-test-libs /u)
+  } finally {
+    await f.clean()
+  }
+})
+
+test('native producer uses its pinned task and consumer requires verified state', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    assert.equal(f.run(['--phase', 'app-native-producer']).status, 0)
+    assert.deepEqual(await f.lines(), [
+      'gradle --profile :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug',
+    ])
+    assert.equal(f.run(['--phase', 'app-consumer']).status, 1)
+    const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
+    assert.equal(f.run(['--phase', 'app-consumer'], verified).status, 0)
+    const reused = f.run(['--phase', 'app-consumer'], { ...verified, NATIVE_REUSED: '1' })
+    assert.equal(reused.status, 0)
+    assert.match(reused.stdout, /buildAndroidSwiftPackageDebug UP-TO-DATE/u)
+    assert.equal(f.run(['--phase', 'app-consumer'], { ...verified, FAIL_APP: '13' }).status, 13)
   } finally {
     await f.clean()
   }
@@ -133,39 +174,47 @@ test('invalid phase options fail before touching build state or launching comman
   }
 })
 
-test('stable Android fan-in rejects failed, cancelled or skipped phase and verify results', async () => {
+test('stable Android fan-in rejects every failed, cancelled or skipped phase', async () => {
   const workflow = await readFile(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
   )
-  const matrixJob = workflow
-    .split('  build-swift-android:\n')[1]
-    .split('  test-swift-android-cookie:\n')[0]
-  assert.match(matrixJob, /fail-fast: false/u)
-  assert.match(matrixJob, /phase: \[app, test-libs\]/u)
+  for (const job of [
+    'build-swift-android-native',
+    'build-swift-android',
+    'test-swift-android-libs',
+    'test-swift-android-host',
+  ]) {
+    const block = workflow.split(`  ${job}:\n`)[1].split(/^  [a-z][^\n]*:\n/mu)[0]
+    assert.match(block, /runs-on: macos-latest\n    timeout-minutes: (?:20|30)\n/u)
+  }
   const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
-  assert.match(gate, /needs: \[verify, build-swift-android, test-swift-android-cookie\]/u)
+  assert.match(
+    gate,
+    /needs:\n      \[\n        verify,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n        test-swift-android-cookie,\n      \]/u,
+  )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
   assert.ok(run)
   const script = run[1].replace(/^ {10}/gmu, '')
-  for (const verify of ['success', 'failure', 'cancelled', 'skipped']) {
-    for (const phases of ['success', 'failure', 'cancelled', 'skipped']) {
-      for (const cookie of ['success', 'failure', 'cancelled', 'skipped']) {
-        const result = spawnSync('bash', ['-e', '-c', script], {
-          env: {
-            ...process.env,
-            VERIFY_RESULT: verify,
-            ANDROID_PHASES_RESULT: phases,
-            ANDROID_COOKIE_RESULT: cookie,
-          },
-        })
-        assert.equal(
-          result.status === 0,
-          verify === 'success' && phases === 'success' && cookie === 'success',
-        )
-      }
+  const names = [
+    'VERIFY_RESULT',
+    'ANDROID_NATIVE_RESULT',
+    'ANDROID_APP_RESULT',
+    'ANDROID_LIBS_RESULT',
+    'ANDROID_HOST_RESULT',
+    'ANDROID_COOKIE_RESULT',
+  ]
+  for (const name of names) {
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const env = Object.fromEntries(names.map(key => [key, key === name ? outcome : 'success']))
+      const result = spawnSync('bash', ['-e', '-c', script], { env: { ...process.env, ...env } })
+      assert.notEqual(result.status, 0, `${name}=${outcome} was accepted`)
     }
   }
+  const result = spawnSync('bash', ['-e', '-c', script], {
+    env: { ...process.env, ...Object.fromEntries(names.map(name => [name, 'success'])) },
+  })
+  assert.equal(result.status, 0)
 })
