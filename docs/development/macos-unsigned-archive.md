@@ -4,7 +4,11 @@
 It generates the macOS project, archives a Release app with code signing disabled, exports
 the archive with Xcode's `mac-application` Copy App method, and assembles and verifies a DMG.
 The build number is `<GitHub run number>.<attempt>.0` in `CFBundleVersion`, checked in the
-archive and export. The workflow fails if the first two components exceed Apple's 4-digit
+archive and export. The archive passes `ARCHS=arm64` and `EXCLUDED_ARCHS=x86_64`, and both
+the archived and exported executables must report only `arm64` from `lipo -archs`. A measured
+universal archive spent the extra time compiling the x86_64 slice and put the full job over
+ten minutes; the arm64 slice keeps the same export, version, signature, DMG, verification,
+checksum, and upload checks. The workflow fails if the first two components exceed Apple's 4-digit
 and 2-digit limits. This counter is specific to the macOS workflow; rerunning an older run
 does not imply a globally increasing build number. The CI artifact is
 named `macos-unsigned-ci-*` and the image is `Voucha-UNSIGNED-CI.dmg`.

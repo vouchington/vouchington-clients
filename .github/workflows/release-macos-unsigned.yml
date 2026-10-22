@@ -55,16 +55,20 @@ jobs:
             echo '::error::GitHub run number or attempt exceeds CFBundleVersion segment limits'
             exit 1
           fi
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive CURRENT_PROJECT_VERSION="$BUILD_NUMBER" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          test -d "$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app/Contents/Info.plist")" = "$BUILD_NUMBER"
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
+          test -d "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
+          test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
       - name: Export unsigned Copy App
         timeout-minutes: 3
         run: |
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -exportPath "$RUNNER_TEMP/unsigned-export" -exportOptionsPlist swift-clients/apps/macOS/UnsignedExportOptions.plist
-          test -d "$RUNNER_TEMP/unsigned-export/Voucha.app"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/unsigned-export/Voucha.app/Contents/Info.plist")" = ai.voucha.macos
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/unsigned-export/Voucha.app/Contents/Info.plist")" = "$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT.0"
+          app="$RUNNER_TEMP/unsigned-export/Voucha.app"
+          test -d "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = ai.voucha.macos
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT.0"
+          test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
           if signature_info=$(codesign --display --verbose=2 "$RUNNER_TEMP/unsigned-export/Voucha.app" 2>&1); then
             printf '%s\n' "$signature_info" | grep -Fqx 'Signature=adhoc'
             printf '%s\n' "$signature_info" | grep -Fqx 'TeamIdentifier=not set'
