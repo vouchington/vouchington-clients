@@ -47,7 +47,9 @@ passed, non-skipped tests: the root shell, the real Videos tab, and one email OT
 typed email, code, and verification token, then `SessionManager.refresh` reads the canonical
 identity fixture. That token stands in for the Turnstile widget the simulator cannot complete.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
-Simulator. The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
+Simulator. Its job budget is 15 minutes so checkout, Simulator readiness, a launch that uses
+the 7-minute step limit, and post-job cleanup can finish. The other iOS shards stay at nine
+minutes. The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
 These launches do not prove cookie persistence, a live CAPTCHA, or sign-in on another platform.
 Both jobs receive the complete fixture checkout explicitly through the generated scheme and fail
 closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
