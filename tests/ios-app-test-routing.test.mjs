@@ -80,9 +80,9 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.ok(unpackIndex >= 0)
     assert.ok(startupIndex >= 0)
     assert.ok(waitIndex >= 0)
-    assert.ok(prepareIndex < unpackIndex)
-    assert.ok(unpackIndex < startupIndex)
-    assert.ok(startupIndex < waitIndex)
+    assert.ok(startupIndex < prepareIndex)
+    assert.ok(prepareIndex < waitIndex)
+    assert.ok(waitIndex < unpackIndex)
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
@@ -91,18 +91,27 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(iosJob, /- name: Launch iOS app on Simulator\n\s+timeout-minutes: 7/u)
     assert.match(ipadJob, /- name: Launch iPad root shell on Simulator\n\s+timeout-minutes: 9/u)
+    const spawnGate = readFileSync(
+      new URL('../scripts/ios-launch-spawn-gate.py', import.meta.url),
+      'utf8',
+    )
+    assert.match(spawnGate, /BUDGET_SECONDS = 150/u)
+    assert.match(spawnGate, /xcrun", "simctl", "install"/u)
+    assert.match(spawnGate, /xcrun", "simctl", "launch"/u)
+    assert.match(spawnGate, /xcrun", "simctl", "terminate"/u)
+    assert.match(spawnGate, /Installed app did not start a process/u)
+    assert.match(spawnGate, /Spawn gate exceeded 150s; continuing to xcodebuild/u)
     for (const [job, launchName] of [
       [iosJob, '- name: Launch iOS app on Simulator'],
       [ipadJob, '- name: Launch iPad root shell on Simulator'],
     ]) {
       const launch = job.slice(job.indexOf(launchName))
-      const installAt = launch.indexOf('xcrun simctl install "$simulator_id" "$app"')
-      const spawnAt = launch.indexOf('xcrun simctl launch "$simulator_id" "$bundle_id"')
-      const stopAt = launch.indexOf('xcrun simctl terminate "$simulator_id" "$bundle_id"')
+      const gateAt = launch.indexOf(
+        'python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"',
+      )
       const testAt = launch.indexOf('xcodebuild -testProductsPath "$bundle"')
-      assert.ok(installAt >= 0 && spawnAt > installAt && stopAt > spawnAt && testAt > stopAt)
+      assert.ok(gateAt >= 0 && testAt > gateAt)
       assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
-      assert.match(launch, /Installed app did not start a process/u)
     }
     for (const job of [buildJob, x86Job, iosJob]) {
       assert.match(job, /\n    timeout-minutes: 9\n/u)
