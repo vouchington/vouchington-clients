@@ -1131,8 +1131,8 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-  dotnet-maui:
-    name: .NET MAUI Mac Catalyst
+  dotnet-maui-compile:
+    name: .NET MAUI managed compile and rendered pages
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 30
@@ -1155,7 +1155,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
@@ -1252,6 +1252,145 @@ jobs:
             -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
           dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
             -p:Configuration=Release -p:TargetFramework=net10.0 --locked-mode
+      - name: Compile managed Mac Catalyst app
+        working-directory: candidate-clients
+        env:
+          ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: >-
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
+          --configuration Release --framework net10.0-maccatalyst
+          "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
+          --no-restore -t:Compile -clp:PerformanceSummary
+      - name: Pack exact managed compile state
+        working-directory: candidate-clients
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          bash dotnet-clients/tooling/catalyst-compile-state.sh pack \
+            "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT/app-${{ steps.rid.outputs.runtime_identifier }}" \
+            "$RUNNER_TEMP/catalyst-compile-state" "$CANDIDATE_REVISION" \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "${{ steps.rid.outputs.runtime_identifier }}" "$(dotnet --version)" \
+            "$(dotnet workload --version)" "$(xcodebuild -version | head -n 1)"
+          du -h "$RUNNER_TEMP/catalyst-compile-state/compile-state.tar.gz"
+      - name: Upload exact managed compile state
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-compile-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.rid.outputs.runtime_identifier }}
+          path: ${{ runner.temp }}/catalyst-compile-state
+          if-no-files-found: error
+          retention-days: 1
+  dotnet-maui:
+    name: .NET MAUI Mac Catalyst
+    needs: [verify, dotnet-maui-compile]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      UseArtifactsOutput: 'true'
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Configure isolated MAUI paths
+        shell: bash
+        run: |
+          {
+            echo "ArtifactsPath=$RUNNER_TEMP/voucha-dotnet-lock-artifacts/app-tests"
+            echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
+            echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
+          } >>"$GITHUB_ENV"
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Verify all twelve committed NuGet locks
+        working-directory: candidate-clients
+        run: >-
+          bash dotnet-clients/tooling/restore-locks.sh verify
+      - name: Select compatible Xcode
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Detect host Mac Catalyst RID
+        id: rid
+        shell: bash
+        run: |
+          case "$(uname -m)" in
+            arm64) rid=maccatalyst-arm64 ;;
+            x86_64) rid=maccatalyst-x64 ;;
+            *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Restore the shared MAUI project-reference graph
+        working-directory: candidate-clients
+        env:
+          ArtifactsPath: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: |
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            -p:Configuration=Release -p:TargetFramework=net10.0-maccatalyst \
+            -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
+            -p:Configuration=Release -p:TargetFramework=net10.0 --locked-mode
+      - name: Download exact managed compile state
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: catalyst-compile-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.rid.outputs.runtime_identifier }}
+          path: ${{ runner.temp }}/catalyst-compile-state
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Verify and restore exact managed compile state
+        working-directory: candidate-clients
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          bash dotnet-clients/tooling/catalyst-compile-state.sh unpack \
+            "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT/app-${{ steps.rid.outputs.runtime_identifier }}" \
+            "$RUNNER_TEMP/catalyst-compile-state" "$CANDIDATE_REVISION" \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "${{ steps.rid.outputs.runtime_identifier }}" "$(dotnet --version)" \
+            "$(dotnet workload --version)" "$(xcodebuild -version | head -n 1)"
       - name: Build MAUI Mac Catalyst app
         working-directory: candidate-clients
         env:
@@ -1485,6 +1624,7 @@ jobs:
       - build-android-core
       - build-macos-app
       - build-ios-app
+      - dotnet-maui-compile
       - dotnet-maui
       - dotnet-windows-image-preview
       - dotnet-windows-language-model-surface

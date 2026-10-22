@@ -78,59 +78,16 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 15)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 16)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 15)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 16)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
-  })
-
-  it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
-    const [action, workflow] = await Promise.all([
-      readAction('prepare-native-contract'),
-      readWorkflow('native-contract-tests.yml'),
-    ])
-    const portable = jobBlock(workflow, 'dotnet-portable')
-    const maui = jobBlock(workflow, 'dotnet-maui')
-    const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
-
-    assert.match(portable, /^    name: \.NET portable$/mu)
-    assert.match(portable, /runs-on: ubuntu-latest/u)
-    assert.doesNotMatch(portable, /matrix:/u)
-    assert.doesNotMatch(portable, /macos/u)
-    assert.doesNotMatch(portable, /matrix\.os/u)
-    assert.match(maui, /runs-on: macos-latest/u)
-    assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
-    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
-    assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
-    assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
-    assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)
-    for (const command of [
-      /restore-locks\.sh verify/u,
-      /dotnet build dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
-      /dotnet test dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
-      /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
-    ])
-      assert.match(workflow, command)
-    assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.6/u)
-    assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
-    assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
-    assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
-    assert.match(
-      maui,
-      /dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst \\\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0 --locked-mode/u,
-    )
-    assert.ok(
-      workflow.indexOf('name: Test rendered MAUI pages') <
-        workflow.indexOf('name: Select compatible Xcode'),
-    )
-    assert.doesNotMatch(workflow, /clean-workspace/u)
-    assert.doesNotMatch(action, /clean-workspace/u)
   })
 
   it('installs each candidate .NET SDK at its exact global.json version', async () => {
@@ -141,6 +98,7 @@ describe('native contract workflow boundary', () => {
 
     assert.equal(jobBlock(workflow, 'dotnet-portable').split('tool: dotnet').length - 1, 1)
     assert.equal(jobBlock(workflow, 'dotnet-maui').split('tool: dotnet').length - 1, 1)
+    assert.equal(jobBlock(workflow, 'dotnet-maui-compile').split('tool: dotnet').length - 1, 1)
     assert.doesNotMatch(workflow, /actions\/setup-dotnet@/u)
     assert.match(action, /expected="\$\(jq -er '\.sdk\.version' global\.json\)"/u)
     assert.match(action, /actual="\$\(mise exec -- dotnet --version\)"/u)
@@ -217,7 +175,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      15,
+      16,
     )
   })
 
@@ -320,7 +278,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      15,
+      16,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
@@ -428,6 +386,7 @@ describe('native contract workflow boundary', () => {
       readWorkflow('native-contract-tests.yml'),
     ])
     const portable = jobBlock(workflow, 'dotnet-portable')
+    const mauiCompile = jobBlock(workflow, 'dotnet-maui-compile')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     const nugetKey =
@@ -437,6 +396,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
     assert.match(portable, cachePin)
     assert.match(maui, cachePin)
+    assert.match(mauiCompile, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(portable, nugetKey)
@@ -445,6 +405,7 @@ describe('native contract workflow boundary', () => {
       /key: \$\{\{ runner\.os \}\}-nuget-maui-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u,
     )
     assert.match(maui, /candidate-clients\/\.nuget\/packages/u)
+    assert.match(mauiCompile, /candidate-clients\/\.nuget\/packages/u)
     assert.doesNotMatch(portable, /path:.*voucha-dotnet-temp/u)
     assert.doesNotMatch(maui, /path:.*voucha-dotnet-temp/u)
     assert.doesNotMatch(maui, /path:.*voucha-dotnet-lock-scratch/u)

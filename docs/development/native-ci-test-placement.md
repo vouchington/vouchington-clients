@@ -22,6 +22,14 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
+The Mac Catalyst path has two required macOS jobs. The first verifies all twelve NuGet locks,
+runs the rendered-page tests, and compiles the managed App and Core projects with the pinned
+Mac Catalyst RID. It transfers only the resulting `obj`/`bin` state with a checksum and exact
+candidate, run, attempt, RID, SDK, workload, and Xcode identity. The second independently restores
+the locked graph and pinned tools, verifies that identity, and runs the unchanged full Release
+app build, including trimming, AOT, native linking, and bundle creation. The aggregate Tests gate
+requires both jobs to succeed. Host timing must establish whether this split helps cold runs.
+
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
 ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and outgoing network

@@ -25,7 +25,7 @@ describe('MAUI App test diagnostics', () => {
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
     )
-    const maui = jobBlock(workflow, 'dotnet-maui')
+    const maui = jobBlock(workflow, 'dotnet-maui-compile')
     const test = stepBlock(maui, 'Test rendered MAUI pages')
     const upload = stepBlock(maui, 'Upload failed MAUI test diagnostics')
 
