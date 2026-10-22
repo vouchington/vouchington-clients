@@ -652,7 +652,7 @@ jobs:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           set -euo pipefail
-          node candidate-clients/swift-clients/apps/android/tooling/android-state-handoff.mjs \
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             pack candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
       - name: Upload exact-run generated Android state
         timeout-minutes: 5
@@ -754,7 +754,7 @@ jobs:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           set -euo pipefail
-          node candidate-clients/swift-clients/apps/android/tooling/android-state-handoff.mjs \
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
       - name: Restore Gradle user home

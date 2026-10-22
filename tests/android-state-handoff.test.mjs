@@ -77,3 +77,22 @@ test('rejects mismatched attempt, changed archive, external links and over-budge
   await writeFile(join(state.artifactRoot, 'android-state.gz'), 'forged')
   await assert.rejects(restoreState({ ...state, identity, limits }), /archive size mismatch/u)
 })
+
+test('rejects a symlinked destination parent before replacing any generated state', async t => {
+  const state = await fixture(t)
+  await packState({ ...state, identity, limits })
+  const outside = join(state.packageRoot, '..', 'outside')
+  await mkdir(join(outside, '.gradle'), { recursive: true })
+  await writeFile(join(outside, '.gradle/sentinel'), 'outside')
+  await rm(join(state.packageRoot, 'Android'), { recursive: true })
+  await symlink(outside, join(state.packageRoot, 'Android'))
+  await assert.rejects(
+    restoreState({ ...state, identity, limits }),
+    /destination parent is unsafe/u,
+  )
+  assert.equal(await readFile(join(outside, '.gradle/sentinel'), 'utf8'), 'outside')
+  assert.equal(
+    await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
+    'native',
+  )
+})

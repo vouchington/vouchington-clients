@@ -1,16 +1,14 @@
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
 import {
   chmodSync, createReadStream, createWriteStream, existsSync, lstatSync, mkdirSync,
   readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join, resolve, sep } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { fileURLToPath } from 'node:url'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
-import { assertCandidate, assertIdentity, assertMemberPath, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { assertIdentity, assertMemberPath, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -69,6 +67,15 @@ function checkedDestination(root, path) {
   const target = join(root, path)
   if (!target.startsWith(`${root}${sep}`)) throw new Error(`Android state path escaped root: ${path}`)
   return target
+}
+
+function existingStat(path) {
+  try {
+    return lstatSync(path)
+  } catch (error) {
+    if (error.code === 'ENOENT') return null
+    throw error
+  }
 }
 
 export async function restoreState({ packageRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
@@ -146,15 +153,24 @@ export async function restoreState({ packageRoot, cacheRoot, artifactRoot, ident
     if (observed.entries !== manifest.entries || observed.unpackedBytes !== manifest.unpackedBytes) {
       throw new Error('Android state unpacked inventory mismatch')
     }
-    for (const { path, source } of selectedRoots(packageRoot, cacheRoot)) {
+    for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
+      const stat = lstatSync(directory)
+      if (stat.isSymbolicLink() || !stat.isDirectory()) {
+        throw new Error(`Android state destination parent is unsafe: ${directory}`)
+      }
+    }
+    const destinations = selectedRoots(packageRoot, cacheRoot)
+    for (const { path, source } of destinations) {
       const staged = checkedDestination(staging, path)
       if (!lstatSync(staged).isDirectory()) throw new Error(`Android state root missing: ${path}`)
-      if (existsSync(source)) {
-        if (lstatSync(source).isSymbolicLink() || !lstatSync(source).isDirectory()) {
-          throw new Error(`Android state destination is unsafe: ${path}`)
-        }
-        rmSync(source, { recursive: true })
+      const stat = existingStat(source)
+      if (stat && (stat.isSymbolicLink() || !stat.isDirectory())) {
+        throw new Error(`Android state destination is unsafe: ${path}`)
       }
+    }
+    for (const { path, source } of destinations) {
+      const staged = checkedDestination(staging, path)
+      if (existsSync(source)) rmSync(source, { recursive: true })
       mkdirSync(dirname(source), { recursive: true })
       renameSync(staged, source)
     }
@@ -162,39 +178,4 @@ export async function restoreState({ packageRoot, cacheRoot, artifactRoot, ident
   } finally {
     rmSync(staging, { recursive: true, force: true })
   }
-}
-
-function cliIdentity(packageRoot) {
-  const gradle = readFileSync(join(packageRoot, 'Android/gradle/wrapper/gradle-wrapper.properties'), 'utf8')
-    .match(/gradle-(\d+\.\d+\.\d+)-bin\.zip/u)?.[1]
-  return {
-    revision: process.env.CANDIDATE_REVISION ?? '',
-    run: process.env.GITHUB_RUN_ID ?? '',
-    attempt: process.env.GITHUB_RUN_ATTEMPT ?? '',
-    gradle: gradle ?? '',
-  }
-}
-
-async function main() {
-  const [command, packageRootArgument, artifactRootArgument] = process.argv.slice(2)
-  if (!['pack', 'restore'].includes(command) || !packageRootArgument || !artifactRootArgument) {
-    throw new Error('Usage: android-state-handoff.mjs pack|restore <package-root> <artifact-root>')
-  }
-  const packageRoot = resolve(packageRootArgument)
-  const artifactRoot = resolve(artifactRootArgument)
-  const cacheRoot = process.env.ANDROID_STATE_BUILD_CACHE_DIR ||
-    join(execFileSync('getconf', ['DARWIN_USER_TEMP_DIR'], { encoding: 'utf8' }).trim(), 'gradle-build-cache')
-  const identity = cliIdentity(packageRoot)
-  assertCandidate(packageRoot, identity)
-  const result = command === 'pack'
-    ? await packState({ packageRoot, cacheRoot, artifactRoot, identity })
-    : await restoreState({ packageRoot, cacheRoot, artifactRoot, identity })
-  process.stdout.write(`${command} Android exact state ${JSON.stringify(result)}\n`)
-}
-
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch(error => {
-    process.stderr.write(`${basename(import.meta.filename)}: ${error.message}\n`)
-    process.exitCode = 1
-  })
 }
