@@ -1026,7 +1026,7 @@ jobs:
     name: Swift iOS Simulator build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 9
     permissions:
       actions: read
       contents: read
@@ -1060,7 +1060,7 @@ jobs:
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Build selected iPhone test products
-        timeout-minutes: 16
+        timeout-minutes: 7
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ github.workspace }}/ios-test-derived-data
@@ -1076,6 +1076,8 @@ jobs:
           fi
           ./swift-clients/tooling/generate.sh iOS
           destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          test ! -e "$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test ! -L "$GITHUB_WORKSPACE/Voucha.xctestproducts"
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
           test -f "$bundle/Info.plist"
@@ -1110,7 +1112,7 @@ jobs:
     name: Swift iOS Simulator x86_64 build
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 9
     permissions:
       actions: read
       contents: read
@@ -1144,7 +1146,7 @@ jobs:
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Compile x86_64 iOS Simulator app
-        timeout-minutes: 16
+        timeout-minutes: 7
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-x86-derived-data
@@ -1165,7 +1167,7 @@ jobs:
     name: Swift iOS Simulator launch smoke
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 14
+    timeout-minutes: 9
     permissions:
       actions: read
       contents: read
@@ -1206,6 +1208,8 @@ jobs:
           test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
           bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
           test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          test ! -e "$bundle"
+          test ! -L "$bundle"
           for product in app runner testBundle; do
             path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
             case "$path" in
@@ -1256,13 +1260,13 @@ jobs:
             *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
       - name: Wait for iPhone Simulator readiness
-        timeout-minutes: 12
+        timeout-minutes: 4
         working-directory: candidate-clients
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iOS app on Simulator
-        timeout-minutes: 10
+        timeout-minutes: 7
         working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
