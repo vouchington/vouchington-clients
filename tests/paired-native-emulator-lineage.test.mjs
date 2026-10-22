@@ -20,8 +20,17 @@ import { cleanupBinding, cleanupFixture } from './paired-native-cleanup-fixture.
 const avd = ownedAvdName('55')
 const launcherCommand = `emulator -avd ${avd}`
 
-function record(pid, ppid, pgid, identity) {
-  return { pid, ppid, pgid, identity }
+function record(pid, ppid, pgid, identity, startTime = pid) {
+  return { pid, ppid, pgid, startTime, identity }
+}
+
+function statText(pid, ppid, pgid, startTime, comm = 'emulator') {
+  const fields = Array.from({ length: 20 }, () => '0')
+  fields[0] = 'S'
+  fields[1] = String(ppid)
+  fields[2] = String(pgid)
+  fields[19] = String(startTime)
+  return `${pid} (${comm}) ${fields.join(' ')}\n`
 }
 
 function select(records, options = {}) {
@@ -78,7 +87,13 @@ it('reports a missing launcher as unknown instead of an empty observation', () =
   )
   const missing = select(unrelated)
   assert.deepEqual(missing, { state: 'unknown', launcherPid: 200, reason: 'missing' })
-  const absent = select(unrelated, { claimAbsent: true, priorOwnedPids: [200, 201] })
+  const absent = select(unrelated, {
+    claimAbsent: true,
+    priorIdentities: [
+      { pid: 200, startTime: 200 },
+      { pid: 201, startTime: 201 },
+    ],
+  })
   assert.deepEqual(absent, { state: 'observed', launcherPid: 200, processes: [] })
 })
 
@@ -97,7 +112,7 @@ it('reports ambiguous, truncated, malformed, and reused-pid ancestry as unknown'
   assert.equal(select([record(200, 10, 200, { reason: 'truncated' })]).reason, 'truncated')
   assert.equal(select([record(200, -1, 200, { command: launcherCommand })]).reason, 'malformed')
   const reused = select([record(50, 1, 50, { reason: 'ambiguous' })], {
-    priorOwnedPids: [50],
+    priorIdentities: [{ pid: 50, startTime: 50 }],
     claimAbsent: true,
   })
   assert.equal(reused.reason, 'ambiguous')
@@ -114,16 +129,19 @@ it('keeps a completed allowlisted command and rejects a cut AVD token', () => {
     commandIdentity(Buffer.from('/usr/bin/adb\0start-server\0'), avd, 64).reason,
     'ambiguous',
   )
-  assert.equal(parseProcStat('200 (qemu-system-x86_64) S 10 200 200 0 0\n').ppid, 10)
-  assert.equal(parseProcStat('200 (qemu-system-x86_64) S 10 200 200 0 0\n').pgid, 200)
+  const parsed = parseProcStat(statText(200, 10, 200, 77, 'qemu-system-x86_64'))
+  assert.equal(parsed.ppid, 10)
+  assert.equal(parsed.pgid, 200)
+  assert.equal(parsed.startTime, 77)
+  assert.equal(parseProcStat('200 (qemu-system-x86_64) S 10 200 200 0 0\n'), null)
   assert.equal(parseProcStat('not a stat'), null)
 })
 
 it('reads command lines only for the owned pid set and bounds the scan', async () => {
   const stats = {
-    50: '50 (adb) S 1 50 50 0 0\n',
-    200: '200 (emulator) S 10 200 200 0 0\n',
-    201: '201 (qemu-system-x86_64) S 200 200 200 0 0\n',
+    50: statText(50, 1, 50, 50, 'adb'),
+    200: statText(200, 10, 200, 200),
+    201: statText(201, 200, 200, 201, 'qemu-system-x86_64'),
   }
   const commands = {
     200: Buffer.from(`emulator\0-avd\0${avd}\0`),
@@ -170,7 +188,7 @@ it('reads command lines only for the owned pid set and bounds the scan', async (
     readFile: async path => {
       clock += 600
       const pid = path.split('/')[2]
-      return Buffer.from(`${pid} (emulator) S 10 ${pid} ${pid} 0 0\n`)
+      return Buffer.from(statText(pid, 10, pid, 10))
     },
   })
   assert.deepEqual(timed, { state: 'unknown', launcherPid: 200, reason: 'bounded' })
@@ -211,7 +229,7 @@ it('keeps an observed scan when the process directory is already closed', async 
         if (path.endsWith('/cmdline') && path.split('/')[2] !== '200')
           throw new Error('unrelated cmdline was read')
         return path.endsWith('/stat')
-          ? Buffer.from('200 (emulator) S 10 200 200 0 0\n')
+          ? Buffer.from(statText(200, 10, 200, 200))
           : Buffer.from(`emulator\0-avd\0${avd}\0`)
       },
     })

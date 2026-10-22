@@ -157,8 +157,7 @@ export async function runAndroidSession({
   const shutdownLineage = await captureLineage(observeLineage, {
     launcherPid: child.pid,
     avdName,
-    priorOwnedPids:
-      ownedBeforeStop.state === 'observed' ? ownedBeforeStop.processes.map(entry => entry.pid) : [],
+    priorIdentities: ownedBeforeStop.identities ?? [],
     claimAbsent: ownedBeforeStop.state === 'observed',
   })
   try {

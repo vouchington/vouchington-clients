@@ -1,27 +1,26 @@
-import { opendir as openProcDirectory, readFile as readProcFile } from 'node:fs/promises'
+import { opendir as openProcDirectory } from 'node:fs/promises'
 import { commandIdentity, lineageLimits, parseProcStat } from './paired-native-emulator-lineage.mjs'
 import { classifyOwnership, selectOwnedLineage } from './paired-native-ownership.mjs'
+import { readBoundedFile, runBounded } from './paired-native-proc-read.mjs'
 
 function unknown(launcherPid, reason) {
   return { state: 'unknown', launcherPid, reason }
 }
 
-function scanDeadline(milliseconds) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), milliseconds)
-  timer.unref?.()
-  return {
-    signal: controller.signal,
-    cancel() {
-      clearTimeout(timer)
-    },
-  }
+async function readProcBounded(path, options = {}) {
+  const length = Number.isSafeInteger(options.length) ? options.length : 1024
+  return readBoundedFile(path, length, options.signal)
 }
 
 async function readCapped(readFile, path, maxBytes, signal) {
-  const bytes = await readFile(path, { signal })
+  if (signal?.aborted) {
+    const error = new Error('lineage read aborted')
+    error.name = 'AbortError'
+    throw error
+  }
+  const bytes = await readFile(path, { signal, length: maxBytes })
   const buffer = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes)
-  return buffer.subarray(0, maxBytes)
+  return buffer.length > maxBytes ? buffer.subarray(0, maxBytes) : buffer
 }
 
 function disappeared(error) {
@@ -80,8 +79,9 @@ async function readStatTable({ readFile, opendir, now, started, limits, signal }
         break
       }
     }
-  } catch {
-    malformed = true
+  } catch (error) {
+    if (timedOut(error)) complete = false
+    else malformed = true
   } finally {
     try {
       await directory.close?.()
@@ -96,12 +96,12 @@ async function readStatTable({ readFile, opendir, now, started, limits, signal }
 export async function observeOwnedEmulatorLineage({
   launcherPid,
   avdName,
-  priorOwnedPids,
+  priorIdentities,
   claimAbsent = false,
   limits = lineageLimits,
   now = Date.now,
   opendir = openProcDirectory,
-  readFile = readProcFile,
+  readFile = readProcBounded,
   records,
   scanComplete,
   scanReason,
@@ -113,20 +113,19 @@ export async function observeOwnedEmulatorLineage({
       records,
       scanComplete,
       scanReason,
-      priorOwnedPids,
+      priorIdentities,
       claimAbsent,
       limits,
     })
   const started = now()
-  const deadline = scanDeadline(limits.maxDurationMs)
-  try {
+  const outcome = await runBounded(async signal => {
     const table = await readStatTable({
       readFile,
       opendir,
       now,
       started,
       limits,
-      signal: deadline.signal,
+      signal,
     })
     if (!table.available) return unknown(launcherPid, 'missing')
     if (table.malformed) return unknown(launcherPid, 'malformed')
@@ -135,7 +134,7 @@ export async function observeOwnedEmulatorLineage({
       records: table.records,
       scanComplete: table.complete,
       scanReason: table.scanReason,
-      priorOwnedPids,
+      priorIdentities,
       claimAbsent,
       limits,
     })
@@ -148,14 +147,14 @@ export async function observeOwnedEmulatorLineage({
         withIdentity.push(record)
         continue
       }
-      if (deadline.signal.aborted || now() - started > limits.maxDurationMs)
+      if (signal.aborted || now() - started > limits.maxDurationMs)
         return unknown(launcherPid, 'bounded')
       try {
         const command = await readCapped(
           readFile,
           `/proc/${record.pid}/cmdline`,
           limits.maxCommandBytes + 1,
-          deadline.signal,
+          signal,
         )
         withIdentity.push({
           ...record,
@@ -171,11 +170,11 @@ export async function observeOwnedEmulatorLineage({
       avdName,
       records: withIdentity,
       scanComplete: true,
-      priorOwnedPids,
+      priorIdentities,
       claimAbsent,
       limits,
     })
-  } finally {
-    deadline.cancel()
-  }
+  }, limits.maxDurationMs)
+  if (outcome.timedOut) return unknown(launcherPid, 'bounded')
+  return outcome.value
 }

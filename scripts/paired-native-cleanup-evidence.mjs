@@ -1,3 +1,5 @@
+import { lineageReachesLauncher } from './paired-native-ownership.mjs'
+
 const fail = message => {
   throw new Error(`Paired native test evidence rejected: ${message}`)
 }
@@ -53,6 +55,16 @@ function validateLineageSnapshot(snapshot, avdName, label) {
     if (entry.pid === snapshot.launcherPid && entry.command !== `emulator -avd ${avdName}`)
       fail(`${label} launcher identity is ambiguous`)
   }
+  if (
+    label === 'launch lineage' &&
+    !snapshot.processes.some(entry => entry.pid === snapshot.launcherPid)
+  )
+    fail('launch lineage does not include the captured launcher')
+  if (
+    snapshot.processes.length > 0 &&
+    !lineageReachesLauncher(snapshot.processes, snapshot.launcherPid)
+  )
+    fail(`${label} ancestry is disconnected`)
 }
 
 export function validateCleanupShape(cleanup, expected) {

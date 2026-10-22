@@ -5,8 +5,28 @@ function validStat(record) {
     Number.isSafeInteger(record.ppid) &&
     record.ppid >= 0 &&
     Number.isSafeInteger(record.pgid) &&
-    record.pgid >= 0
+    record.pgid >= 0 &&
+    Number.isSafeInteger(record.startTime) &&
+    record.startTime >= 0
   )
+}
+
+export function lineageReachesLauncher(processes, launcherPid) {
+  const byPid = new Map(processes.map(entry => [entry.pid, entry]))
+  for (const entry of processes) {
+    const seen = new Set()
+    let current = entry.pid
+    while (current !== launcherPid) {
+      if (seen.has(current)) return false
+      seen.add(current)
+      const row = byPid.get(current)
+      if (!row) return false
+      if (row.ppid === launcherPid) break
+      if (!byPid.has(row.ppid)) return false
+      current = row.ppid
+    }
+  }
+  return true
 }
 
 function parentCycle(pid, byPid, limit) {
@@ -38,7 +58,7 @@ export function classifyOwnership({
   records,
   scanComplete = true,
   scanReason = 'bounded',
-  priorOwnedPids = [],
+  priorIdentities = [],
   claimAbsent = false,
   limits,
 }) {
@@ -46,8 +66,8 @@ export function classifyOwnership({
   if (!Number.isSafeInteger(limits?.maxProcesses) || limits.maxProcesses < 1)
     return { reason: 'malformed' }
   if (!scanComplete) return { reason: scanReason }
-  if (!Array.isArray(records) || !Array.isArray(priorOwnedPids)) return { reason: 'malformed' }
-  if (records.length > limits.maxScanned || priorOwnedPids.length > limits.maxProcesses)
+  if (!Array.isArray(records) || !Array.isArray(priorIdentities)) return { reason: 'malformed' }
+  if (records.length > limits.maxScanned || priorIdentities.length > limits.maxProcesses)
     return { reason: 'bounded' }
   const byPid = new Map()
   for (const record of records) {
@@ -55,8 +75,13 @@ export function classifyOwnership({
     if (byPid.has(record.pid)) return { reason: 'ambiguous' }
     byPid.set(record.pid, record)
   }
-  for (const pid of priorOwnedPids)
-    if (!Number.isSafeInteger(pid) || pid <= 0) return { reason: 'malformed' }
+  for (const identity of priorIdentities) {
+    if (!Number.isSafeInteger(identity?.pid) || identity.pid <= 0) return { reason: 'malformed' }
+    if (!Number.isSafeInteger(identity.startTime) || identity.startTime < 0)
+      return { reason: 'malformed' }
+    const current = byPid.get(identity.pid)
+    if (current && current.startTime !== identity.startTime) return { reason: 'ambiguous' }
+  }
   const children = new Map()
   for (const record of byPid.values()) {
     const list = children.get(record.ppid)
@@ -65,7 +90,8 @@ export function classifyOwnership({
   }
   const seeds = new Set()
   if (byPid.has(launcherPid)) seeds.add(launcherPid)
-  for (const pid of priorOwnedPids) if (byPid.has(pid)) seeds.add(pid)
+  for (const identity of priorIdentities)
+    if (byPid.get(identity.pid)?.startTime === identity.startTime) seeds.add(identity.pid)
   for (const record of byPid.values()) if (record.ppid === launcherPid) seeds.add(record.pid)
   for (const pid of seeds)
     if (parentCycle(pid, byPid, limits.maxProcesses)) return { reason: 'ambiguous' }
@@ -91,7 +117,7 @@ export function selectOwnedLineage({
   records,
   scanComplete,
   scanReason,
-  priorOwnedPids,
+  priorIdentities,
   claimAbsent,
   limits,
 }) {
@@ -100,7 +126,7 @@ export function selectOwnedLineage({
     records,
     scanComplete,
     scanReason,
-    priorOwnedPids,
+    priorIdentities,
     claimAbsent,
     limits,
   })
@@ -127,8 +153,18 @@ export function selectOwnedLineage({
       return { state: 'unknown', launcherPid, reason: 'ambiguous' }
     processes.push({ pid, ppid: record.ppid, pgid: record.pgid, command })
   }
+  if (!processes.some(entry => entry.pid === launcherPid) && !claimAbsent)
+    return { state: 'unknown', launcherPid, reason: 'missing' }
+  if (processes.length > 0 && !lineageReachesLauncher(processes, launcherPid))
+    return { state: 'unknown', launcherPid, reason: 'ambiguous' }
   const snapshot = { state: 'observed', launcherPid, processes }
   if (Buffer.byteLength(JSON.stringify(snapshot)) > limits.maxSerializedBytes)
     return { state: 'unknown', launcherPid, reason: 'bounded' }
-  return snapshot
+  return {
+    ...snapshot,
+    identities: processes.map(entry => ({
+      pid: entry.pid,
+      startTime: byPid.get(entry.pid).startTime,
+    })),
+  }
 }

@@ -45,12 +45,20 @@ export function parseProcStat(text) {
     .slice(close + 1)
     .trim()
     .split(/\s+/u)
-  if (fields.length < 3) return null
+  if (fields.length < 20) return null
   const ppid = Number(fields[1])
   const pgid = Number(fields[2])
-  if (!Number.isSafeInteger(ppid) || ppid < 0 || !Number.isSafeInteger(pgid) || pgid < 0)
+  const startTime = Number(fields[19])
+  if (
+    !Number.isSafeInteger(ppid) ||
+    ppid < 0 ||
+    !Number.isSafeInteger(pgid) ||
+    pgid < 0 ||
+    !Number.isSafeInteger(startTime) ||
+    startTime < 0
+  )
     return null
-  return { pid: Number(pidText), ppid, pgid }
+  return { pid: Number(pidText), ppid, pgid, startTime }
 }
 
 export function commandIdentity(bytes, avdName, maxCommandBytes) {
@@ -81,6 +89,15 @@ export function commandIdentity(bytes, avdName, maxCommandBytes) {
   return { command: `${program} -avd ${avdName}` }
 }
 
+function publicLineage(snapshot) {
+  if (snapshot?.state !== 'observed') return snapshot
+  return {
+    state: 'observed',
+    launcherPid: snapshot.launcherPid,
+    processes: snapshot.processes,
+  }
+}
+
 export function sessionCleanup({
   runId,
   nativeTestProfile,
@@ -96,24 +113,39 @@ export function sessionCleanup({
     nativeTestProfile,
     clientsMergeSha,
     avdName,
-    launch,
-    shutdown,
+    launch: publicLineage(launch),
+    shutdown: publicLineage(shutdown),
   }
 }
 
 export async function captureLineage(observe, options) {
+  const limit = Number.isSafeInteger(options.limits?.maxDurationMs)
+    ? options.limits.maxDurationMs
+    : lineageLimits.maxDurationMs
+  let timer
+  const timeout = new Promise(resolve => {
+    timer = setTimeout(() => {
+      resolve({ state: 'unknown', launcherPid: options.launcherPid, reason: 'bounded' })
+    }, limit)
+    timer.unref?.()
+  })
+  const scan = Promise.resolve()
+    .then(() => observe(options))
+    .then(snapshot => {
+      if (
+        snapshot &&
+        (snapshot.state === 'observed' || snapshot.state === 'unknown') &&
+        snapshot.launcherPid === options.launcherPid
+      )
+        return snapshot
+      return { state: 'unknown', launcherPid: options.launcherPid, reason: 'missing' }
+    })
+    .catch(() => ({ state: 'unknown', launcherPid: options.launcherPid, reason: 'missing' }))
   try {
-    const snapshot = await observe(options)
-    if (
-      snapshot &&
-      (snapshot.state === 'observed' || snapshot.state === 'unknown') &&
-      snapshot.launcherPid === options.launcherPid
-    )
-      return snapshot
-  } catch {
-    /* an observation failure is unknown, not an empty tree */
+    return await Promise.race([scan, timeout])
+  } finally {
+    clearTimeout(timer)
   }
-  return { state: 'unknown', launcherPid: options.launcherPid, reason: 'missing' }
 }
 
 export async function stopOwnedLauncher(child, sleep) {
