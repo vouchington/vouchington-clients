@@ -72,9 +72,10 @@ The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
 argument, the canonical `swift.my.identity.default` fixture, and
 `native.my.email-preferences.default`. The session opens the production app shell, routes to
-`/my/notification-settings`, toggles the engagement switch, and requires the news-digest picker to
-be enabled. It counts only when both checks pass and nothing was skipped. The other six notification
-controls, route focus, and the one-announcement proof remain open. The Debug fixture transport is
+`/my/notification-settings`, requires the moderation switch to be enabled and on, toggles the
+engagement switch, and requires the news-digest picker to be enabled. It counts only when all three
+checks pass and nothing was skipped. The other five notification controls, route focus, and the
+one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
 compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
 those are not this session.
 

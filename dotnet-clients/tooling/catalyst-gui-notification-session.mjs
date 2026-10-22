@@ -1,9 +1,16 @@
 const engagementId = 'notification-engagement'
+const moderationId = 'notification-moderation'
 const newsDigestId = 'notification-news-digest'
 const headingId = 'notification-preferences-heading'
 
 export async function assertNotificationControls(request, sessionId) {
   await findElement(request, sessionId, headingId, 75_000)
+  const moderation = await findElement(request, sessionId, moderationId, 10_000)
+  await waitUntil(request, sessionId, moderation, 'enabled', isEnabled, 10_000)
+  const moderationValue = switchState(await attribute(request, sessionId, moderation, 'value'))
+  if (moderationValue !== true) {
+    throw new Error(`moderation switch was ${String(moderationValue)}, expected on`)
+  }
   const engagement = await findElement(request, sessionId, engagementId, 15_000)
   await waitUntil(request, sessionId, engagement, 'enabled', isEnabled, 15_000)
   const before = switchState(await attribute(request, sessionId, engagement, 'value'))
