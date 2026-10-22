@@ -7,6 +7,7 @@ on:
       - swift-clients/apps/iOS/Info.plist
       - swift-clients/apps/iOS/project.yml
       - scripts/ios-release-version.mjs
+      - scripts/ios-unsigned-ipa.mjs
       - tests/ios-release-version.test.mjs
   push:
     tags:
@@ -98,6 +99,27 @@ jobs:
           fi
           mkdir -p "$RUNNER_TEMP/ios-unsigned-export"
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/ios-unsigned-export/Voucha-unsigned-app.zip"
+      - name: Package unsigned inspection IPA
+        timeout-minutes: 3
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_BUILD: ${{ steps.version.outputs.build }}
+        run: |
+          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
+          payload="$RUNNER_TEMP/ios-ipa-stage/Payload"
+          mkdir -p "$payload"
+          ditto "$app" "$payload/Voucha.app"
+          test ! -e "$payload/Voucha.app/embedded.mobileprovision"
+          test "$(lipo -archs "$payload/Voucha.app/Voucha")" = arm64
+          plutil -convert xml1 "$payload/Voucha.app/Info.plist"
+          if signature_info=$(codesign --display --verbose=2 "$payload/Voucha.app" 2>&1); then
+            printf '%s\n' "$signature_info" | grep -Fqx 'Signature=adhoc'
+            printf '%s\n' "$signature_info" | grep -Fqx 'TeamIdentifier=not set'
+          else
+            printf '%s\n' "$signature_info" | grep -Fq 'code object is not signed at all'
+          fi
+          ditto -c -k --keepParent --norsrc "$payload" "$RUNNER_TEMP/ios-unsigned-export/Voucha-unsigned.ipa"
+          node scripts/ios-unsigned-ipa.mjs "$RUNNER_TEMP/ios-unsigned-export/Voucha-unsigned.ipa" "$RELEASE_VERSION" "$RELEASE_BUILD" ai.voucha.ios
       - name: Retain bounded archive failure diagnostics
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
@@ -110,6 +132,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           name: ios-unsigned-app-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/ios-unsigned-export/Voucha-unsigned-app.zip
+          path: ${{ runner.temp }}/ios-unsigned-export/
           if-no-files-found: error
           retention-days: 7

@@ -31,7 +31,7 @@ public sealed partial class CommentThreadViewModel
           response.Results,
           response.PageInfo.EndCursor,
           response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) return;
-      ancestorsResponse = MergeAncestorEnvelope(
+      ancestorsResponse = MergeThreadPage(
           ancestorsResponse ?? response,
           response,
           ancestorPages.Items);
@@ -63,24 +63,6 @@ public sealed partial class CommentThreadViewModel
         : response with { Results = ancestorPages.Items };
     NotifyAncestorPagination();
   }
-
-  private static PostThreadResponse MergeAncestorEnvelope(
-      PostThreadResponse previous,
-      PostThreadResponse next,
-      IReadOnlyList<EntityReference> results) =>
-      next with
-      {
-        Results = results,
-        Posts = Merge(previous.Posts, next.Posts),
-        Users = MergeNullable(previous.Users, next.Users),
-        Communities = MergeNullable(previous.Communities, next.Communities),
-        PostsMetrics = MergeNullable(previous.PostsMetrics, next.PostsMetrics),
-        PostElections = MergeNullable(previous.PostElections, next.PostElections),
-        ElectionVotes = MergeNullable(previous.ElectionVotes, next.ElectionVotes),
-        MarkdownToHtml = MergeNullable(previous.MarkdownToHtml, next.MarkdownToHtml),
-        Bookmarks = MergeNullable(previous.Bookmarks, next.Bookmarks),
-        PostLinkEmbeds = MergeNullable(previous.PostLinkEmbeds, next.PostLinkEmbeds),
-      };
 
   private void NotifyAncestorPagination()
   {

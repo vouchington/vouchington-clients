@@ -29,7 +29,7 @@ public sealed partial class CommentThreadViewModel
           response.Results,
           response.PageInfo.EndCursor,
           response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) return;
-      descendantsResponse = MergeDescendantsEnvelope(
+      descendantsResponse = MergeThreadPage(
           descendantsResponse ?? response,
           response,
           descendantPages.Items);
@@ -62,7 +62,7 @@ public sealed partial class CommentThreadViewModel
     NotifyDescendantPagination();
   }
 
-  private static PostThreadResponse MergeDescendantsEnvelope(
+  private static PostThreadResponse MergeThreadPage(
       PostThreadResponse previous,
       PostThreadResponse next,
       IReadOnlyList<EntityReference> results) =>

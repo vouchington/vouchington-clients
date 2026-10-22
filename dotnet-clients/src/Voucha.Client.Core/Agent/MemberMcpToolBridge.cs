@@ -5,7 +5,8 @@ using Voucha.Client.Core.Chat;
 namespace Voucha.Client.Core.Agent;
 
 public sealed record MemberMcpFunctionTool(string Name, string Description, JsonElement Parameters);
-public sealed record MemberMcpValidatedResult(string Envelope, McpFeedPostReceipt? FeedPostFact);
+public sealed record MemberMcpValidatedResult(
+    string Envelope, McpFeedPostReceipt? FeedPostFact, McpFeedRssItemReceipt? RssItemFact = null);
 
 /// <summary>Validates one immutable server catalog before projecting it to a local model.</summary>
 public sealed class MemberMcpToolBridge
@@ -82,10 +83,14 @@ public sealed class MemberMcpToolBridge
         .ConfigureAwait(false);
     if (outputs.TryGetValue(name, out var output)) output.Validate(result, arguments);
     var envelope = SerializeResultEnvelope(result);
-    var fact = result.IsError != true && result.StructuredContent is { } structured && callId is not null
-        ? McpFeedPostReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, callId)
-        : null;
-    return new MemberMcpValidatedResult(envelope, fact);
+    McpFeedPostReceipt? postFact = null;
+    McpFeedRssItemReceipt? rssFact = null;
+    if (result.IsError != true && result.StructuredContent is { } structured && callId is { Length: > 0 } id)
+    {
+      postFact = McpFeedPostReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
+      rssFact = McpFeedRssItemReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
+    }
+    return new MemberMcpValidatedResult(envelope, postFact, rssFact);
   }
 
   internal static string SerializeResultEnvelope(McpToolResult result)
