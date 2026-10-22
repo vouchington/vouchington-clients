@@ -8,7 +8,7 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
-import { assertDebugLink, assertIdentity, assertMemberPath, assertPackageLayout, checkedMirroredLink, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { assertDebugLink, assertIdentity, assertMemberPath, assertPackageLayout, checkedSkipstoneLink, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -125,11 +125,11 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       if (member.type === 'directory' && member.size === 0) {
         mkdirSync(target, { mode: 0o700 })
       } else if (member.type === 'symlink' && member.size === 0) {
-        if (member.path.includes('/src/main/swift/')) {
-          deferredLinks.push({ target, link: member.target, path: member.path, mirrored: true })
+        if (member.path !== '.build/debug') {
+          deferredLinks.push({ target, link: member.target, path: member.path, generated: true })
         } else {
           assertDebugLink(member.path, member.target)
-          deferredLinks.push({ target, link: member.target, path: member.path, mirrored: false })
+          deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
           Number.isFinite(member.mtimeMs) && member.mtimeMs >= 0) {
@@ -162,9 +162,9 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     if (observed.entries !== manifest.entries || observed.unpackedBytes !== manifest.unpackedBytes) {
       throw new Error('Android state unpacked inventory mismatch')
     }
-    for (const { target, link, path, mirrored } of deferredLinks) {
-      if (mirrored) {
-        checkedMirroredLink(path, link, packageRoot, checkoutRoot, staging)
+    for (const { target, link, path, generated } of deferredLinks) {
+      if (generated) {
+        checkedSkipstoneLink(path, link, packageRoot, checkoutRoot, staging)
       } else if (!lstatSync(join(dirname(target), link)).isDirectory()) {
         throw new Error(`Android state debug symlink target is missing: ${target}`)
       }

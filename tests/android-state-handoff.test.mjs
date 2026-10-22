@@ -138,6 +138,47 @@ test('rebases Skipstone absolute source and package links onto the exact consume
   assert.equal((await stat(join(links, 'Packages/core'))).isDirectory(), true)
 })
 
+test('preserves Skipstone module, Kotlin, resource, buildSrc and AndroidTest links', async t => {
+  const state = await fixture(t)
+  const generated = '.build/plugins/outputs/skip-keychain/SkipKeychain/destination/skipstone'
+  const generatedRoot = join(state.packageRoot, generated)
+  const moduleRoot = join(generatedRoot, 'SkipKeychain')
+  const otherModule = join(
+    state.packageRoot,
+    '.build/plugins/outputs/skip-lib/SkipLib/destination/skipstone/SkipLib',
+  )
+  const source = join(state.checkoutRoot, 'swift-clients/core')
+  await mkdir(join(moduleRoot, 'src/main/kotlin'), { recursive: true })
+  await mkdir(join(moduleRoot, 'src/main/assets/en.lproj'), { recursive: true })
+  await mkdir(join(moduleRoot, 'src/main/res'), { recursive: true })
+  await mkdir(join(moduleRoot, 'src/test'), { recursive: true })
+  await mkdir(otherModule, { recursive: true })
+  await mkdir(join(source, 'Skip/buildSrc'), { recursive: true })
+  await mkdir(join(source, 'Resources'), { recursive: true })
+  await writeFile(join(source, 'Skip/Api.kt'), 'api')
+  await writeFile(join(source, 'Resources/logo.dat'), 'logo')
+  await symlink(relative(generatedRoot, otherModule), join(generatedRoot, 'SkipLib'))
+  await symlink(join(source, 'Skip/buildSrc'), join(generatedRoot, 'buildSrc'))
+  await symlink(join(source, 'Skip'), join(moduleRoot, 'ext'))
+  await symlink(join(source, 'Skip/Api.kt'), join(moduleRoot, 'src/main/kotlin/Api.kt'))
+  await symlink(join(source, 'Resources/logo.dat'), join(moduleRoot, 'src/main/assets/logo.dat'))
+  await symlink(join(source, 'Resources/logo.dat'), join(moduleRoot, 'src/main/res/logo.dat'))
+  await symlink('en.lproj', join(moduleRoot, 'src/main/assets/base.lproj'))
+  await symlink('test', join(moduleRoot, 'src/androidTest'))
+  const biggerLimits = { ...limits, entries: 200, unpackedBytes: 4096, compressedBytes: 4096 }
+  await packState({ ...state, identity, limits: biggerLimits })
+  await rm(join(state.packageRoot, '.build'), { recursive: true })
+  await restoreState({ ...state, identity, limits: biggerLimits })
+  assert.equal((await stat(join(generatedRoot, 'SkipLib'))).isDirectory(), true)
+  assert.equal((await stat(join(generatedRoot, 'buildSrc'))).isDirectory(), true)
+  assert.equal((await stat(join(moduleRoot, 'ext'))).isDirectory(), true)
+  assert.equal(await readFile(join(moduleRoot, 'src/main/kotlin/Api.kt'), 'utf8'), 'api')
+  assert.equal(await readFile(join(moduleRoot, 'src/main/assets/logo.dat'), 'utf8'), 'logo')
+  assert.equal(await readFile(join(moduleRoot, 'src/main/res/logo.dat'), 'utf8'), 'logo')
+  assert.equal((await stat(join(moduleRoot, 'src/main/assets/base.lproj'))).isDirectory(), true)
+  assert.equal((await stat(join(moduleRoot, 'src/androidTest'))).isDirectory(), true)
+})
+
 test('rejects a Skipstone mirror link outside the candidate checkout', async t => {
   const state = await fixture(t)
   const links = join(
@@ -146,6 +187,20 @@ test('rejects a Skipstone mirror link outside the candidate checkout', async t =
   )
   await mkdir(links, { recursive: true })
   await symlink('/etc', join(links, 'Sources'))
+  assert.throws(
+    () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
+    /mirror target escaped candidate checkout/u,
+  )
+})
+
+test('rejects an external Skipstone module link', async t => {
+  const state = await fixture(t)
+  const generatedRoot = join(
+    state.packageRoot,
+    '.build/plugins/outputs/skip-keychain/SkipKeychain/destination/skipstone',
+  )
+  await mkdir(generatedRoot, { recursive: true })
+  await symlink('/etc', join(generatedRoot, 'SkipLib'))
   assert.throws(
     () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
     /mirror target escaped candidate checkout/u,

@@ -54,21 +54,21 @@ export function assertMemberPath(path) {
 }
 
 export function assertDebugLink(path, target) {
-  const nestedSwiftScratch = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+\/build\/swift\/debug$/u.test(path)
-  if ((path !== '.build/debug' && !nestedSwiftScratch) || typeof target !== 'string' ||
+  if (path !== '.build/debug' || typeof target !== 'string' ||
       !/^[A-Za-z0-9._-]+\/debug$/u.test(target) || target.split('/').includes('..')) {
     throw new Error(`Unsafe Android state symlink: ${path}`)
   }
 }
 
-const mirroredSwiftPath = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+\/src\/main\/swift\/(?:Packages\/)?[^/]+$/u
+const skipstoneOutputPath = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+(?:\/[^/]+)*$/u
 
-// Skipstone 1.9.13 creates shallow absolute source and Packages links here.
-// Store their checkout-relative relationship, never the producer runner path.
-export function checkedMirroredLink(path, target, packageRoot, checkoutRoot, stagedRoot = null) {
+// Skipstone 1.9.13 creates absolute source/resource links and relative module,
+// resource-alias and test links within its generated output. Preserve their
+// checkout-relative relationship, never the producer runner's absolute path.
+export function checkedSkipstoneLink(path, target, packageRoot, checkoutRoot, stagedRoot = null) {
   const targetParts = typeof target === 'string' ? target.split(sep) : []
   const firstDescendant = targetParts.findIndex(part => part !== '..')
-  if (!mirroredSwiftPath.test(path) || typeof target !== 'string' || target.length > 4096 ||
+  if (!skipstoneOutputPath.test(path) || typeof target !== 'string' || target.length > 4096 ||
       !target || isAbsolute(target) || target.includes('\\') || target.includes('\0') ||
       firstDescendant < 0 || targetParts.some((part, index) =>
         part === '' || part === '.' || (part === '..' && index >= firstDescendant))) {
@@ -128,10 +128,10 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
       const target = readlinkSync(item.source)
       if (isAbsolute(target)) {
         const portable = relative(dirname(item.source), target)
-        checkedMirroredLink(item.path, portable, packageRoot, checkoutRoot)
+        checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
         entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
-      } else if (mirroredSwiftPath.test(item.path)) {
-        checkedMirroredLink(item.path, target, packageRoot, checkoutRoot)
+      } else if (skipstoneOutputPath.test(item.path)) {
+        checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
         entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
       } else {
         assertDebugLink(item.path, target)
