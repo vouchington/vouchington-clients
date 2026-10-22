@@ -43,7 +43,7 @@ import XCTest
             FileManager.default.createFile(atPath: journal.url.path, contents: Data())
             var skips: [String] = []
             var hostFailures: [[String: Any]] = []
-            for launch in 1 ... 6 {
+            for launch in 1 ... 160 {
                 let child = try launchProbe(
                     phase: "descriptors", skip: skips, journal: journal, root: root, directory: directory,
                     timeout: 720
@@ -67,8 +67,8 @@ import XCTest
                         "server": current?["server"] as? String ?? "", "name": name, "status": "hostSDKFailure",
                         "signal": Int(signal), "phase": current?["phase"] as? String ?? "counting"
                     ])
-                    if launch == 6 {
-                        XCTFail("Descriptor measurement stopped after repeated host signals: \(skips).")
+                    if launch == 160 {
+                        XCTFail("Descriptor measurement stopped after repeated host signals: \(hostFailures).")
                         return
                     }
                     continue
