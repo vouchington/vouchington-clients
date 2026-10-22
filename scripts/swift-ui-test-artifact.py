@@ -81,6 +81,12 @@ def validate(archive: Path, paths: list[str]) -> None:
     validator.validate(str(archive), root=".build", allowed_paths=tuple(paths))
 
 
+def require_empty_build_root(package: Path) -> None:
+    build_root = package / ".build"
+    if build_root.exists() or build_root.is_symlink():
+        raise ValueError("Swift UI test product extraction requires an absent .build root")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("create", "verify"))
@@ -112,6 +118,7 @@ def main() -> None:
         if not isinstance(paths, list) or not paths or any(not isinstance(path, str) for path in paths):
             raise ValueError("Invalid Swift UI artifact product list")
         validate(args.archive, paths)
+        require_empty_build_root(package)
         with tarfile.open(args.archive, "r:gz") as stream:
             stream.extractall(package)
         if selected(package) != paths:

@@ -174,3 +174,35 @@ module.validate(archive, root='.build', allowed_paths=(
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('Swift UI extraction rejects existing directories and symlinks at .build', () => {
+  const script = String.raw`
+import importlib.util, pathlib, sys, tempfile
+spec = importlib.util.spec_from_file_location('ui_artifact', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+with tempfile.TemporaryDirectory() as root:
+    package = pathlib.Path(root)
+    module.require_empty_build_root(package)
+    (package / '.build').mkdir()
+    try:
+        module.require_empty_build_root(package)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('existing directory accepted')
+    (package / '.build').rmdir()
+    (package / '.build').symlink_to(package / 'missing')
+    try:
+        module.require_empty_build_root(package)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('dangling symlink accepted')
+`
+  execFileSync('python3', [
+    '-c',
+    script,
+    new URL('../scripts/swift-ui-test-artifact.py', import.meta.url).pathname,
+  ])
+})
