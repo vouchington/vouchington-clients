@@ -1778,7 +1778,7 @@ jobs:
     name: Swift iPad Simulator root-shell launch
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     permissions:
       actions: read
       contents: read
@@ -1798,11 +1798,41 @@ jobs:
           skip-candidate-install: true
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Start iPad Simulator for root-shell launch
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
+            exit 1
+          fi
+          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          if [[ "$ipad_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
+          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
+          printf '%s\n' "platform=iOS Simulator,id=$simulator_id" > "$RUNNER_TEMP/ipad-launch-destination"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
       - name: Download iOS test products
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
           name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
+      - name: Wait for iPad Simulator readiness
+        timeout-minutes: 4
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
@@ -1837,19 +1867,18 @@ jobs:
           simulator_name="${simulator_name%%,OS=*}"
           test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
           runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
-            exit 1
-          fi
-          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          ipad_name="$(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
           if [[ "$ipad_name" != iPad\ * ]]; then
             echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
             exit 1
           fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
-          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
-          printf '%s\n' "platform=iOS Simulator,name=$ipad_name,OS=$simulator_sdk,arch=arm64" > "$RUNNER_TEMP/ipad-launch-destination"
+          selected="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg udid "$simulator_id" '[.devices[$runtime][]? | select(.isAvailable and .udid == $udid and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ "$selected" != "$simulator_id" ]]; then
+            echo "::error::Pre-booted iPad is not available for $runtime_identifier root-shell launch" >&2
+            exit 1
+          fi
+          test "$(cat "$RUNNER_TEMP/ipad-launch-destination")" = "platform=iOS Simulator,id=$simulator_id"
           printf '%s\n' "$bundle" > "$RUNNER_TEMP/ipad-launch-test-products"
           cd "$artifact"
           printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
@@ -1866,25 +1895,8 @@ jobs:
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
-      - name: Start iPad Simulator for root-shell launch
-        timeout-minutes: 3
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
-          case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
-            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
-          esac
-      - name: Wait for iPad Simulator readiness
-        timeout-minutes: 4
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iPad root shell on Simulator
-        timeout-minutes: 7
+        timeout-minutes: 9
         working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"

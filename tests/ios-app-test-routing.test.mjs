@@ -89,16 +89,30 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     )
     assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
-    for (const job of [buildJob, x86Job, iosJob, ipadJob]) {
+    assert.match(iosJob, /- name: Launch iOS app on Simulator\n\s+timeout-minutes: 7/u)
+    assert.match(ipadJob, /- name: Launch iPad root shell on Simulator\n\s+timeout-minutes: 9/u)
+    for (const job of [buildJob, x86Job, iosJob]) {
       assert.match(job, /\n    timeout-minutes: 9\n/u)
     }
+    assert.match(ipadJob, /\n    timeout-minutes: 12\n/u)
+    const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')
+    const ipadBoot = ipadJob.indexOf('- name: Start iPad Simulator for root-shell launch')
+    const ipadDownload = ipadJob.indexOf('- name: Download iOS test products')
+    const ipadWait = ipadJob.indexOf('- name: Wait for iPad Simulator readiness')
+    const ipadUnpack = ipadJob.indexOf('- name: Verify and unpack iOS test products')
+    const ipadLaunch = ipadJob.indexOf('- name: Launch iPad root shell on Simulator')
+    assert.ok(ipadPrepare >= 0 && ipadBoot > ipadPrepare)
+    assert.ok(ipadDownload > ipadBoot && ipadWait > ipadDownload)
+    assert.ok(ipadUnpack > ipadWait && ipadLaunch > ipadUnpack)
+    assert.equal(ipadJob.split('- name: Start iPad Simulator for root-shell launch').length - 1, 1)
+    assert.equal(ipadJob.split('- name: Wait for iPad Simulator readiness').length - 1, 1)
     assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(ipadJob, /actions\/download-artifact@[a-f0-9]{40}/u)
     assert.match(ipadJob, /verify-ios-test-tar\.py/u)
     assert.match(ipadJob, /test-without-building/u)
     assert.match(ipadJob, /-testProductsPath "\$bundle"/u)
     assert.match(ipadJob, /ipad-launch-smoke\.xcresult/u)
-    assert.match(ipadJob, /platform=iOS Simulator,name=\$ipad_name,OS=\$simulator_sdk,arch=arm64/u)
+    assert.match(ipadJob, /platform=iOS Simulator,id=\$simulator_id/u)
     assert.match(ipadJob, /test ! -L "\$bundle"/u)
     assert.match(
       ipadJob,
