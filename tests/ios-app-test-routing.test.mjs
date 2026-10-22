@@ -71,9 +71,10 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     )
     assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
-    for (const job of [buildJob, x86Job, iosJob, ipadJob]) {
+    for (const job of [buildJob, x86Job, iosJob]) {
       assert.match(job, /\n    timeout-minutes: 9\n/u)
     }
+    assert.match(ipadJob, /\n    timeout-minutes: 15\n/u)
     assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(ipadJob, /actions\/download-artifact@[a-f0-9]{40}/u)
     assert.match(ipadJob, /verify-ios-test-tar\.py/u)

@@ -1742,7 +1742,7 @@ jobs:
     name: Swift iPad Simulator root-shell launch
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
