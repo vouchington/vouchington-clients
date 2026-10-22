@@ -31,6 +31,13 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
   assert.doesNotMatch(portable, /matrix\.os/u)
   assert.match(maui, /runs-on: macos-latest/u)
   assert.match(mauiCompile, /runs-on: macos-latest/u)
+  assert.equal(workflow.split('name: Materialize verified SDK archive metadata').length - 1, 2)
+  for (const catalystJob of [mauiCompile, maui]) {
+    assert.match(
+      catalystJob,
+      /name: Set up mise-managed \.NET SDK[\s\S]*name: Materialize verified SDK archive metadata\n\s+timeout-minutes: 7\n\s+working-directory: candidate-clients\n\s+run: \|\n\s+node dotnet-clients\/tooling\/materialize-sdk-version-metadata\.mjs "\$DOTNET_ROOT"\n\s+test "\$\(dotnet --version\)" = "\$\(jq -r '\.sdk\.version' global\.json\)"[\s\S]*name: Detect pinned MAUI workload/u,
+    )
+  }
   assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
   assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
   assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)

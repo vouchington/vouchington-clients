@@ -2107,6 +2107,12 @@ jobs:
         with:
           client-root: candidate-clients
           tool: dotnet
+      - name: Materialize verified SDK archive metadata
+        timeout-minutes: 7
+        working-directory: candidate-clients
+        run: |
+          node dotnet-clients/tooling/materialize-sdk-version-metadata.mjs "$DOTNET_ROOT"
+          test "$(dotnet --version)" = "$(jq -r '.sdk.version' global.json)"
       - name: Detect pinned MAUI workload
         id: workload
         working-directory: candidate-clients
@@ -2259,6 +2265,12 @@ jobs:
         with:
           client-root: candidate-clients
           tool: dotnet
+      - name: Materialize verified SDK archive metadata
+        timeout-minutes: 7
+        working-directory: candidate-clients
+        run: |
+          node dotnet-clients/tooling/materialize-sdk-version-metadata.mjs "$DOTNET_ROOT"
+          test "$(dotnet --version)" = "$(jq -r '.sdk.version' global.json)"
       - name: Detect pinned MAUI workload
         id: workload
         working-directory: candidate-clients

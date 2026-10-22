@@ -45,8 +45,11 @@ candidate, run, attempt, RID, SDK, workload, and Xcode identity. The second inde
 the locked graph and pinned tools, verifies every source byte against its own candidate checkout
 before restoring the producer's real modification times, then runs the unchanged full Release
 app build, which recreates App `bin` and includes trimming, AOT, native linking, and bundle
-creation. The aggregate Tests gate
-requires both jobs to succeed. Host timing must establish whether this split helps cold runs.
+creation. Each job first installs its own pinned .NET SDK, then verifies the SDK version tree
+against the checksum-pinned official archive and materializes that archive's original file
+metadata before workload detection. No SDK files are transferred between jobs. The aggregate
+Tests gate requires both jobs to succeed. Host timing must establish whether this split helps
+cold runs.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
