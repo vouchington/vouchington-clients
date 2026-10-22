@@ -33,7 +33,10 @@ extension SettingsViewModel {
             joined(
                 localized(membershipStatusLabel(source.status)),
                 localized(membershipPlanText(source.plan)),
-                localized(UiVerbatimText.protocolValue(source.status))
+                localized(UiVerbatimText.protocolValue(source.status)),
+                localized(UiVerbatimText.protocolValue(source.effectiveAt)),
+                localized(UiVerbatimText.protocolValue(source.accessEndsAt)),
+                source.renewal.map { localized(UiVerbatimText.protocolValue($0.effectiveAt)) } ?? ""
             )
         }
     }

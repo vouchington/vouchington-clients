@@ -74,7 +74,7 @@ public protocol MembershipIdempotencyKeys: Sendable {
 
 public protocol MembershipPurchaseClock: Sendable {
     var now: Date { get }
-    func sleep(seconds: TimeInterval) async
+    func sleep(seconds: TimeInterval) async throws
 }
 
 public final class MembershipPurchaseSignals: @unchecked Sendable {

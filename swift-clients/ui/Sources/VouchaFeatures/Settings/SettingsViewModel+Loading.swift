@@ -102,6 +102,9 @@ public extension SettingsViewModel {
     }
 
     private func handleMainSettingsLoadError(_ error: Error) {
+        if membershipOverview != nil, !(error is CancellationError) {
+            noteMembershipOverviewStale()
+        }
         if let apiError = error as? VouchaError, case .unauthorized = apiError {
             invalidateApiKeyRotationOwner()
         }

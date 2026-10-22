@@ -51,15 +51,14 @@ public enum NativeMembershipCatalog {
         }
     }
 
-    public static func refusal(
-        for intent: NativeMembershipPurchaseIntent,
-        products: [MembershipCatalogProduct],
+    public static func admissionRefusal(
+        provider: String,
+        productId: String,
         store: NativeMembershipStore,
+        products: [MembershipCatalogProduct],
         overview: NativeMembershipOverview
     ) -> MembershipPurchaseRefusal? {
-        let provider = intent.provider
-        let launch = intent.launch
-        if provider == "stripe" || membershipLaunchString(launch, "kind") == "stripe_checkout" {
+        if provider == "stripe" {
             return .stripeCheckout
         }
         if !surfaceAccepts(provider, store: store) {
@@ -68,14 +67,37 @@ public enum NativeMembershipCatalog {
         if overview.blocksStoreReplacement {
             return .replacementUnavailable
         }
-        let matched = rows(in: products, for: store).filter { $0.canonicalProductId == intent.productId }
-        guard matched.count == 1, let row = matched.first else {
+        let matched = rows(in: products, for: store).filter { $0.canonicalProductId == productId }
+        guard matched.count == 1 else {
             return .noStoreRow
         }
-        if store == .googlePlay, !playLaunchMatches(row, launch) {
+        return nil
+    }
+
+    public static func refusal(
+        for intent: NativeMembershipPurchaseIntent,
+        products: [MembershipCatalogProduct],
+        store: NativeMembershipStore,
+        overview: NativeMembershipOverview
+    ) -> MembershipPurchaseRefusal? {
+        if let refusal = admissionRefusal(
+            provider: intent.provider,
+            productId: intent.productId,
+            store: store,
+            products: products,
+            overview: overview
+        ) {
+            return refusal
+        }
+        let launch = intent.launch
+        if membershipLaunchString(launch, "kind") == "stripe_checkout" {
+            return .stripeCheckout
+        }
+        let row = rows(in: products, for: store).first { $0.canonicalProductId == intent.productId }
+        if store == .googlePlay, let row, !playLaunchMatches(row, launch) {
             return .playLaunchMismatch
         }
-        if store == .appleIOS, membershipLaunchString(launch, "product_id") != row.storeProductId {
+        if store == .appleIOS, let row, membershipLaunchString(launch, "product_id") != row.storeProductId {
             return .noStoreRow
         }
         return nil

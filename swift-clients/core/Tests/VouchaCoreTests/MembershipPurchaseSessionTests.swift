@@ -239,7 +239,7 @@ private final class ManualClock: MembershipPurchaseClock, @unchecked Sendable {
         self.now = now
     }
 
-    func sleep(seconds: TimeInterval) async {
+    func sleep(seconds: TimeInterval) async throws {
         sleeps.append(seconds)
         now = now.addingTimeInterval(seconds)
     }

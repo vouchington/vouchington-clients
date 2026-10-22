@@ -31,10 +31,17 @@ public struct MembershipPurchaseSession: Sendable {
         products: [MembershipCatalogProduct],
         overview: NativeMembershipOverview
     ) async throws -> MembershipPurchaseOutcome {
+        if let refusal = NativeMembershipCatalog.admissionRefusal(
+            provider: provider,
+            productId: productId,
+            store: surface,
+            products: products,
+            overview: overview
+        ) {
+            return outcome(key: "", refusal: refusal)
+        }
         let key = keys.next()
-        let intent = try await transport.createIntent(
-            NativeMembershipIntentBody(idempotencyKey: key, productId: productId, provider: provider)
-        )
+        let intent = try await createIntent(key: key, productId: productId, provider: provider)
         switch intent {
         case let .conflict(conflict):
             return outcome(
@@ -70,7 +77,6 @@ public struct MembershipPurchaseSession: Sendable {
         ) {
             return outcome(key: key, refusal: refusal)
         }
-        // The launch, including app_account_token, is forwarded unchanged.
         let purchased = try await store.purchase(launch: intent.launch)
         let body = NativeMembershipVerificationSubmission(
             evidence: purchased.evidence,
@@ -116,29 +122,60 @@ public struct MembershipPurchaseSession: Sendable {
     private func poll(id: String) async throws -> NativeMembershipVerification {
         var attempt = 0
         while attempt < 8 {
+            try Task.checkCancellation()
             let status = try await transport.verification(id: id).verification
-            let current = try await transport.membership()
             if MembershipVerificationPolling.isTerminal(status: status.status, reasonCode: status.reasonCode) {
+                try await refreshMembership()
                 return status
+            }
+            let current = try await transport.membership()
+            attempt += 1
+            if attempt == 8 {
+                break
             }
             let next = current.pending.verifications.first { $0.id == id }?.nextProcessingAt
             let seconds = signals.consumeRefresh()
                 ? 0
                 : MembershipVerificationPolling.delaySeconds(
-                    attempt: attempt,
+                    attempt: attempt - 1,
                     nextProcessingAt: next,
                     now: clock.now
                 )
             if seconds > 0 {
-                await clock.sleep(seconds: seconds)
+                try await clock.sleep(seconds: seconds)
+                try Task.checkCancellation()
             }
-            attempt += 1
         }
         throw MembershipPurchaseError.verificationDidNotFinish
     }
 }
 
 extension MembershipPurchaseSession {
+    private func createIntent(
+        key: String,
+        productId: String,
+        provider: String
+    ) async throws -> MembershipIntentSubmission {
+        let body = NativeMembershipIntentBody(idempotencyKey: key, productId: productId, provider: provider)
+        do {
+            return try await transport.createIntent(body)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return try await transport.createIntent(body)
+        }
+    }
+
+    private func refreshMembership() async throws {
+        do {
+            _ = try await transport.membership()
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return
+        }
+    }
+
     private func outcome(
         key: String,
         refusal: MembershipPurchaseRefusal? = nil,

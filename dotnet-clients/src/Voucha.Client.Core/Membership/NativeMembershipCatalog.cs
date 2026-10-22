@@ -54,18 +54,18 @@ public static class NativeMembershipCatalog
         .ToArray();
   }
 
-  public static MembershipPurchaseRefusal? Refusal(
-      NativeMembershipPurchaseIntent intent,
-      IReadOnlyList<MembershipCatalogProduct> products,
+  public static MembershipPurchaseRefusal? Admission(
+      string provider,
+      string productId,
       NativeMembershipStore store,
+      IReadOnlyList<MembershipCatalogProduct> products,
       NativeMembershipOverview overview)
   {
-    ArgumentNullException.ThrowIfNull(intent);
+    ArgumentNullException.ThrowIfNull(provider);
+    ArgumentNullException.ThrowIfNull(productId);
     ArgumentNullException.ThrowIfNull(products);
     ArgumentNullException.ThrowIfNull(overview);
-    var provider = intent.Provider;
-    var launch = intent.Launch;
-    if (provider == "stripe" || LaunchString(launch, "kind") == "stripe_checkout")
+    if (provider == "stripe")
     {
       return MembershipPurchaseRefusal.StripeCheckout;
     }
@@ -80,13 +80,30 @@ public static class NativeMembershipCatalog
       return MembershipPurchaseRefusal.ReplacementUnavailable;
     }
 
-    var matched = Rows(products, store).Where(row => row.CanonicalProductId == intent.ProductId).ToArray();
-    if (matched.Length != 1)
+    var matched = Rows(products, store).Where(row => row.CanonicalProductId == productId).ToArray();
+    return matched.Length == 1 ? null : MembershipPurchaseRefusal.NoStoreRow;
+  }
+
+  public static MembershipPurchaseRefusal? Refusal(
+      NativeMembershipPurchaseIntent intent,
+      IReadOnlyList<MembershipCatalogProduct> products,
+      NativeMembershipStore store,
+      NativeMembershipOverview overview)
+  {
+    ArgumentNullException.ThrowIfNull(intent);
+    var admitted = Admission(intent.Provider, intent.ProductId, store, products, overview);
+    if (admitted is not null)
     {
-      return MembershipPurchaseRefusal.NoStoreRow;
+      return admitted;
     }
 
-    var row = matched[0];
+    var launch = intent.Launch;
+    if (LaunchString(launch, "kind") == "stripe_checkout")
+    {
+      return MembershipPurchaseRefusal.StripeCheckout;
+    }
+
+    var row = Rows(products, store).Single(item => item.CanonicalProductId == intent.ProductId);
     if (store == NativeMembershipStore.GooglePlay && !PlayLaunchMatches(row, launch))
     {
       return MembershipPurchaseRefusal.PlayLaunchMismatch;

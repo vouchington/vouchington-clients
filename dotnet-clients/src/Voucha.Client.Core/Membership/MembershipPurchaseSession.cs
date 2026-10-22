@@ -3,7 +3,7 @@ using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.NativeBilling;
 
-public sealed class MembershipPurchaseSession
+public sealed partial class MembershipPurchaseSession
 {
   private readonly IMembershipPurchaseTransport transport;
   private readonly IMembershipStoreAdapter store;
@@ -41,8 +41,14 @@ public sealed class MembershipPurchaseSession
       NativeMembershipOverview overview,
       CancellationToken cancellationToken)
   {
+    var admitted = NativeMembershipCatalog.Admission(provider, productId, surface, products, overview);
+    if (admitted is not null)
+    {
+      return Outcome("", admitted);
+    }
+
     var key = keys.NextKey();
-    var intent = await transport.CreateIntentAsync(
+    var intent = await CreateIntentAsync(
         new NativeMembershipIntentBody(key, productId, provider),
         cancellationToken).ConfigureAwait(false);
     if (intent.Kind == MembershipIntentKind.Conflict)
@@ -88,65 +94,6 @@ public sealed class MembershipPurchaseSession
         status: verification.Status,
         reason: verification.ReasonCode,
         replayed: submitted.Replayed);
-  }
-
-  [System.Diagnostics.CodeAnalysis.SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "One verification retry covers any non-cancellation transport failure.")]
-  private async Task<MembershipVerificationSubmissionResult> SubmitAsync(
-      NativeMembershipVerificationSubmission body,
-      CancellationToken cancellationToken)
-  {
-    try
-    {
-      return await transport.SubmitVerificationAsync(body, cancellationToken).ConfigureAwait(false);
-    }
-    catch (OperationCanceledException)
-    {
-      throw;
-    }
-    catch (Exception)
-    {
-      return await transport.SubmitVerificationAsync(body, cancellationToken).ConfigureAwait(false);
-    }
-  }
-
-  private async Task<NativeMembershipVerification> ResolveAsync(
-      MembershipVerificationSubmissionResult submitted,
-      CancellationToken cancellationToken)
-  {
-    var initial = submitted.Verification.Verification;
-    if (MembershipVerificationPolling.IsTerminal(initial.Status, initial.ReasonCode))
-    {
-      return initial;
-    }
-
-    return await PollAsync(initial.Id, cancellationToken).ConfigureAwait(false);
-  }
-
-  private async Task<NativeMembershipVerification> PollAsync(string id, CancellationToken cancellationToken)
-  {
-    for (var attempt = 0; attempt < 8; attempt += 1)
-    {
-      var status = (await transport.VerificationAsync(id, cancellationToken).ConfigureAwait(false)).Verification;
-      var current = await transport.MembershipAsync(cancellationToken).ConfigureAwait(false);
-      if (MembershipVerificationPolling.IsTerminal(status.Status, status.ReasonCode))
-      {
-        return status;
-      }
-
-      var next = current.Pending.Verifications.FirstOrDefault(item => item.Id == id)?.NextProcessingAt;
-      var delay = signals.ConsumeRefresh()
-          ? TimeSpan.Zero
-          : MembershipVerificationPolling.Delay(attempt, next, clock.Now);
-      if (delay > TimeSpan.Zero)
-      {
-        await clock.SleepAsync(delay, cancellationToken).ConfigureAwait(false);
-      }
-    }
-
-    throw new InvalidOperationException(MembershipPurchaseError.VerificationDidNotFinish.ToString());
   }
 
   private static MembershipPurchaseOutcome Outcome(

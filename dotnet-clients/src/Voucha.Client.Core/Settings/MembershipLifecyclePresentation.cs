@@ -65,7 +65,10 @@ public static class MembershipLifecyclePresentation
         "source-" + source.Id,
         StatusLabel(source.Status),
         PlanText(source.Plan),
-        UiText.ProtocolValue(source.Status),
+        UiText.ProtocolValue(string.Join(
+            ' ',
+            new[] { source.Status, source.EffectiveAt, source.AccessEndsAt, source.Renewal?.EffectiveAt }
+                .Where(part => !string.IsNullOrEmpty(part)))),
         localization)));
     lines.AddRange(overview.Pending.Switches.Select(item => Line(
         "switch-" + item.SourceId,

@@ -55,8 +55,10 @@ public sealed partial class SettingsViewModel
       {
         MembershipOverview = null;
         MembershipLifecycleLines = [];
+        var membership = await settingsService.FetchMembershipAsync(cancellationToken).ConfigureAwait(true);
+        if (!IsCurrentSettingsLoad(generation)) return;
         var plans = plansResponse.Plans;
-        Membership = (await settingsService.FetchMembershipAsync(cancellationToken).ConfigureAwait(true))?.Membership;
+        Membership = membership?.Membership;
         UpdateMembershipSummary();
         MembershipPlanOptions = BuildMembershipPlanOptions(plans, Membership, plansResponse.BenefitCatalog);
       }
@@ -67,7 +69,14 @@ public sealed partial class SettingsViewModel
     }
     catch (Exception ex)
     {
-      if (IsCurrentSettingsLoad(generation)) ErrorMessage = ex.Message;
+      if (IsCurrentSettingsLoad(generation))
+      {
+        ErrorMessage = ex.Message;
+        if (ex is not OperationCanceledException)
+        {
+          NoteMembershipOverviewStale();
+        }
+      }
     }
     finally
     {
