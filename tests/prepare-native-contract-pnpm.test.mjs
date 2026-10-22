@@ -63,13 +63,20 @@ test('shared pnpm stores restore always and save only a trusted main miss', asyn
     const save = step(store.source, store.save)
     const installAt = store.source.indexOf('pnpm install --frozen-lockfile')
     const saveAt = store.source.indexOf(`name: ${store.save}`)
-    const expectedIf = `\${{ ${mainMiss.replaceAll('STEP', store.stepId)} }}`
+    const expectedIf =
+      store.stepId === 'pnpm-store'
+        ? `\${{ inputs.skip-candidate-install != 'true' && ${mainMiss.replaceAll('STEP', store.stepId)} }}`
+        : `\${{ ${mainMiss.replaceAll('STEP', store.stepId)} }}`
 
     assert.match(
       restore,
       new RegExp(`id: ${store.stepId}\\n\\s+uses: actions/cache/restore@${cachePin}`, 'u'),
     )
-    assert.doesNotMatch(restore, /\n\s+if:/u)
+    if (store.stepId === 'pnpm-store') {
+      assert.match(restore, /if: \$\{\{ inputs\.skip-candidate-install != 'true' \}\}/u)
+    } else {
+      assert.doesNotMatch(restore, /\n\s+if:/u)
+    }
     assert.match(restore, new RegExp(`path: \\$\\{\\{ runner\\.temp \\}\\}/pnpm-store`, 'u'))
     assert.match(
       restore,
@@ -83,13 +90,7 @@ test('shared pnpm stores restore always and save only a trusted main miss', asyn
       ),
     )
     assert.ok(installAt > store.source.indexOf(`name: ${store.restore}`) && installAt < saveAt)
-    assert.match(
-      save,
-      new RegExp(
-        `if: \\$\\{\\{ ${mainMiss.replaceAll('STEP', store.stepId).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')} \\}\\}`,
-        'u',
-      ),
-    )
+    assert.match(save, new RegExp(`if: ${expectedIf.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}`, 'u'))
     assert.equal(save.includes(expectedIf), true)
     assert.match(save, /continue-on-error: true/u)
     assert.match(save, new RegExp(`uses: actions/cache/save@${cachePin}`, 'u'))
