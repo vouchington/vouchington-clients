@@ -1627,6 +1627,30 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+      - name: Start iPhone Simulator for launch smoke
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
@@ -1684,30 +1708,6 @@ jobs:
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
-      - name: Start iPhone Simulator for launch smoke
-        timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
-          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
-          destination="$(jq -r '.destination' "$manifest")"
-          simulator_name="${destination#*name=}"
-          simulator_name="${simulator_name%%,OS=*}"
-          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
-          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
-            exit 1
-          fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
-          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
-          case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
-            *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
-          esac
       - name: Wait for iPhone Simulator readiness
         timeout-minutes: 4
         working-directory: candidate-clients
@@ -1720,7 +1720,7 @@ jobs:
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -collect-test-diagnostics on-failure -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 3 and .passedTests == 3 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
