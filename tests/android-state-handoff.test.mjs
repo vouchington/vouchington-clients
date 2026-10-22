@@ -1,19 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readlink,
-  rename,
-  rm,
-  stat,
-  symlink,
-  writeFile,
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readFile, readlink, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -23,31 +11,14 @@ import {
   packState,
   restoreState,
 } from '../swift-clients/apps/android/tooling/android-state-handoff.mjs'
+import { androidStateFixture as fixture } from './android-state-handoff-fixture.mjs'
 
-const identity = { revision: 'a'.repeat(40), run: '123', attempt: '2', gradle: '9.4.1' }
 const limits = {
   entries: 100,
   unpackedBytes: 1024,
   compressedBytes: 1024,
   scanMs: 5_000,
   transferMs: 5_000,
-}
-
-async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'android-state-handoff-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const packageRoot = join(root, 'checkout/swift-clients/apps/android')
-  const checkoutRoot = join(root, 'checkout')
-  const cacheRoot = join(root, 'cache')
-  const artifactRoot = join(root, 'artifact')
-  await mkdir(join(packageRoot, '.build/plugins/outputs'), { recursive: true })
-  await mkdir(join(packageRoot, 'Android/.gradle'), { recursive: true })
-  await mkdir(cacheRoot)
-  await writeFile(join(packageRoot, '.build/plugins/outputs/native.o'), 'native')
-  await chmod(join(packageRoot, '.build/plugins/outputs/native.o'), 0o755)
-  await writeFile(join(packageRoot, 'Android/.gradle/task-state'), 'task-state')
-  await writeFile(join(cacheRoot, 'cache-entry'), 'cache')
-  return { root, packageRoot, checkoutRoot, cacheRoot, artifactRoot }
 }
 
 test('packs and restores exact candidate state with bounded contents', async t => {
@@ -70,14 +41,14 @@ test('packs and restores exact candidate state with bounded contents', async t =
   const nativeTime = (await stat(nativePath, { bigint: true })).mtimeNs
   assert.equal(nativeTime.toString(), preciseTime)
   const directoryMode = (await stat(directoryPath)).mode & 0o777
-  const packed = await packState({ ...state, identity, limits })
-  assert.equal(packed.format, 2)
-  assert.equal(packed.unpackedBytes, 21)
+  const packed = await packState({ ...state, limits })
+  assert.equal(packed.format, 3)
+  assert.ok(packed.unpackedBytes > 21)
   assert.ok(packed.compressedBytes > 0 && packed.compressedBytes <= limits.compressedBytes)
   await rm(join(state.packageRoot, '.build'), { recursive: true })
   await rm(join(state.packageRoot, 'Android/.gradle'), { recursive: true })
   await rm(state.cacheRoot, { recursive: true })
-  const restored = await restoreState({ ...state, identity, limits })
+  const restored = await restoreState({ ...state, limits })
   assert.equal(restored.sha256, packed.sha256)
   assert.equal(
     await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
@@ -97,9 +68,9 @@ test('restores only the internal SwiftPM debug directory alias', async t => {
   const state = await fixture(t)
   await mkdir(join(state.packageRoot, '.build/arm64-apple-macosx/debug'), { recursive: true })
   await symlink('arm64-apple-macosx/debug', join(state.packageRoot, '.build/debug'))
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   await rm(join(state.packageRoot, '.build'), { recursive: true })
-  await restoreState({ ...state, identity, limits })
+  await restoreState({ ...state, limits })
   assert.equal(await readlink(join(state.packageRoot, '.build/debug')), 'arm64-apple-macosx/debug')
 })
 
@@ -111,9 +82,9 @@ test('restores a generated Skip native SwiftPM scratch debug alias', async t => 
   )
   await mkdir(join(scratch, 'aarch64-unknown-linux-android/debug'), { recursive: true })
   await symlink('aarch64-unknown-linux-android/debug', join(scratch, 'debug'))
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   await rm(join(state.packageRoot, '.build'), { recursive: true })
-  await restoreState({ ...state, identity, limits })
+  await restoreState({ ...state, limits })
   assert.equal(await readlink(join(scratch, 'debug')), 'aarch64-unknown-linux-android/debug')
 })
 
@@ -136,7 +107,7 @@ test('rebases Skipstone absolute source and package links onto the exact consume
     join(producer.checkoutRoot, 'swift-clients/core'),
     join(producerLinks, 'Packages/core'),
   )
-  await packState({ ...producer, identity, limits: { ...limits, entries: 150 } })
+  await packState({ ...producer, limits: { ...limits, entries: 150 } })
   await mkdir(join(consumer.checkoutRoot, 'swift-clients/core/Sources'), { recursive: true })
   await rm(join(consumer.packageRoot, '.build'), { recursive: true })
   await rm(join(consumer.packageRoot, 'Android/.gradle'), { recursive: true })
@@ -144,7 +115,7 @@ test('rebases Skipstone absolute source and package links onto the exact consume
   await restoreState({
     ...consumer,
     artifactRoot: producer.artifactRoot,
-    identity,
+    identity: producer.identity,
     limits: { ...limits, entries: 150 },
   })
   const links = join(consumer.packageRoot, swiftFolder)
@@ -207,9 +178,9 @@ test('preserves Skipstone module, Kotlin, resource, buildSrc and AndroidTest lin
   await symlink('en.lproj', join(moduleRoot, 'src/main/assets/base.lproj'))
   await symlink('test', join(moduleRoot, 'src/androidTest'))
   const biggerLimits = { ...limits, entries: 200, unpackedBytes: 4096, compressedBytes: 4096 }
-  await packState({ ...state, identity, limits: biggerLimits })
+  await packState({ ...state, limits: biggerLimits })
   await rm(join(state.packageRoot, '.build'), { recursive: true })
-  await restoreState({ ...state, identity, limits: biggerLimits })
+  await restoreState({ ...state, limits: biggerLimits })
   assert.equal((await stat(join(generatedRoot, 'SkipLib'))).isDirectory(), true)
   assert.equal((await stat(join(generatedRoot, 'buildSrc'))).isDirectory(), true)
   assert.equal((await stat(join(moduleRoot, 'ext'))).isDirectory(), true)
@@ -359,19 +330,19 @@ test('rejects mismatched attempt, changed archive, external links and over-budge
     /symlink/u,
   )
   await rm(linked)
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   await assert.rejects(
-    restoreState({ ...state, identity: { ...identity, attempt: '3' }, limits }),
+    restoreState({ ...state, identity: { ...state.identity, attempt: '3' }, limits }),
     /identity or limits mismatch/u,
   )
   await writeFile(join(state.artifactRoot, 'android-state.gz'), 'forged')
-  await assert.rejects(restoreState({ ...state, identity, limits }), /archive size mismatch/u)
+  await assert.rejects(restoreState({ ...state, limits }), /archive size mismatch/u)
 })
 
 for (const invalidTime of ['9999999999999999999', '0123456789012345678']) {
   test(`rejects forged nanosecond timestamp ${invalidTime} before replacing state`, async t => {
     const state = await fixture(t)
-    await packState({ ...state, identity, limits })
+    await packState({ ...state, limits })
     const archivePath = join(state.artifactRoot, 'android-state.gz')
     const manifestPath = join(state.artifactRoot, 'android-state.json')
     const bytes = gunzipSync(await readFile(archivePath))
@@ -385,7 +356,11 @@ for (const invalidTime of ['9999999999999999999', '0123456789012345678']) {
         break
       }
       const member = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
-      const next = offset + 4 + length + (member.type === 'file' ? member.size : 0)
+      const next =
+        offset +
+        4 +
+        length +
+        (member.type === 'file' || member.type === 'source-metadata' ? member.size : 0)
       if (!replaced && member.type === 'file') {
         member.mtimeNs = invalidTime
         const header = Buffer.from(JSON.stringify(member))
@@ -405,7 +380,7 @@ for (const invalidTime of ['9999999999999999999', '0123456789012345678']) {
     manifest.compressedBytes = forged.length
     manifest.sha256 = createHash('sha256').update(forged).digest('hex')
     await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`)
-    await assert.rejects(restoreState({ ...state, identity, limits }), /member type invalid/u)
+    await assert.rejects(restoreState({ ...state, limits }), /member type invalid/u)
     assert.equal(
       await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
       'native',
@@ -436,16 +411,13 @@ test('exact timestamp helper rejects a symlinked parent', async t => {
 
 test('rejects a symlinked destination parent before replacing any generated state', async t => {
   const state = await fixture(t)
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   const outside = join(state.packageRoot, '..', 'outside')
   await mkdir(join(outside, '.gradle'), { recursive: true })
   await writeFile(join(outside, '.gradle/sentinel'), 'outside')
   await rm(join(state.packageRoot, 'Android'), { recursive: true })
   await symlink(outside, join(state.packageRoot, 'Android'))
-  await assert.rejects(
-    restoreState({ ...state, identity, limits }),
-    /destination parent is unsafe/u,
-  )
+  await assert.rejects(restoreState({ ...state, limits }), /destination parent is unsafe/u)
   assert.equal(await readFile(join(outside, '.gradle/sentinel'), 'utf8'), 'outside')
   assert.equal(
     await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
@@ -455,13 +427,13 @@ test('rejects a symlinked destination parent before replacing any generated stat
 
 test('rejects a symlinked package ancestor outside the checkout', async t => {
   const state = await fixture(t)
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   const external = join(state.root, 'outside')
   await mkdir(external)
   const swiftClients = join(state.root, 'checkout/swift-clients')
   await rename(swiftClients, join(external, 'swift-clients'))
   await symlink(join(external, 'swift-clients'), swiftClients)
-  await assert.rejects(restoreState({ ...state, identity, limits }), /package ancestor is unsafe/u)
+  await assert.rejects(restoreState({ ...state, limits }), /package ancestor is unsafe/u)
   assert.equal(
     await readFile(
       join(external, 'swift-clients/apps/android/.build/plugins/outputs/native.o'),
@@ -473,11 +445,11 @@ test('rejects a symlinked package ancestor outside the checkout', async t => {
 
 test('rejects a relocated package even when its layout looks valid', async t => {
   const state = await fixture(t)
-  await packState({ ...state, identity, limits })
+  await packState({ ...state, limits })
   const relocated = join(state.root, 'relocated/swift-clients/apps/android')
   await mkdir(relocated, { recursive: true })
   await assert.rejects(
-    restoreState({ ...state, packageRoot: relocated, identity, limits }),
+    restoreState({ ...state, packageRoot: relocated, limits }),
     /Unexpected Android package layout/u,
   )
 })

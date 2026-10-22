@@ -16,4 +16,6 @@ public sealed record LocalChatGenerationResult(
     string AssistantContent,
     string ModelProvider,
     string? ModelName,
-    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null);
+    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null,
+    IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts = null,
+    IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts = null);

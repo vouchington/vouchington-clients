@@ -4,13 +4,13 @@ set -euo pipefail
 phase=all
 if [[ "$#" -gt 0 ]]; then
   if [[ "$#" -ne 2 || "$1" != --phase ]]; then
-    echo "Usage: $0 [--phase app|test-libs|all|app-native-producer|app-consumer]" >&2
+    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-consumer]" >&2
     exit 64
   fi
   phase="$2"
 fi
 case "$phase" in
-  app | test-libs | all | app-native-producer | app-consumer) ;;
+  app | test-libs | all | app-native-dependency | app-native-producer | app-consumer) ;;
   *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
 esac
 
@@ -26,9 +26,11 @@ if [[ "$phase" == app-consumer && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; 
 fi
 
 if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
-  while IFS= read -r -d '' source_hash; do
-    rm -f -- "$source_hash"
-  done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
+  if [[ "$phase" != app-native-producer || "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+    while IFS= read -r -d '' source_hash; do
+      rm -f -- "$source_hash"
+    done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
+  fi
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then
@@ -155,7 +157,7 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
-if [[ "$phase" != test-libs ]]; then
+if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
@@ -195,6 +197,44 @@ if [[ "$phase" != test-libs ]]; then
       printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
     fi
   fi
+fi
+
+if [[ "$phase" == app-native-dependency ]]; then
+  # Match settings.gradle.kts's prebuild invocation directly. Skip 1.9.13 runs
+  # the host SwiftPM build that materializes the same native Gradle package.
+  plugin_ref="$(mktemp "${RUNNER_TEMP:?}/skip-plugin-path.XXXXXX")"
+  trap 'rm -f -- "$plugin_ref"' EXIT
+  skip plugin --prebuild --package-path "$ANDROID_PACKAGE_DIR" --plugin-ref "$plugin_ref"
+  if [[ "$(cat "$plugin_ref")" != "$ANDROID_PACKAGE_DIR/.build/Android/skip-gradle" ]]; then
+    echo "Skip prebuild returned an unexpected Gradle plugin path" >&2
+    exit 1
+  fi
+  generated_module="$ANDROID_PACKAGE_DIR/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid"
+  generated_package="$generated_module/src/main/swift"
+  generated_scratch="$generated_module/build/swift"
+  if [[ ! -f "$generated_package/Package.swift" ]]; then
+    echo "Skip prebuild did not create the native Gradle package: $generated_package" >&2
+    exit 1
+  fi
+  # Match :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug except for the
+  # SwiftPM selection. The original Gradle task still runs in the next phase.
+  skip android build \
+    -d "$generated_module/build/jni-libs" \
+    --package-path "$generated_package" \
+    --configuration debug \
+    --target SkipSwiftUI \
+    --scratch-path "$generated_scratch" \
+    --arch automatic \
+    -Xcc -fPIC \
+    -Xswiftc -DSKIP_BRIDGE \
+    -Xswiftc -DTARGET_OS_ANDROID \
+    -Xswiftc -Xfrontend \
+    -Xswiftc -no-clang-module-breadcrumbs \
+    -Xswiftc -module-cache-path \
+    -Xswiftc "$generated_scratch/module-cache/VouchaAndroid"
+  # The state handoff includes this Gradle-owned directory. No Gradle task has
+  # run in this stage; the original native Gradle task runs after restore.
+  mkdir -p -- "$ANDROID_PROJECT_DIR/.gradle"
 fi
 
 if [[ "$phase" == test-libs || "$phase" == all ]]; then

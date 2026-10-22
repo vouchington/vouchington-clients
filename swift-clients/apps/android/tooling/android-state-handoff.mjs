@@ -9,9 +9,10 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 import { createGunzip, createGzip } from 'node:zlib'
-import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
+import { archiveChunks, ByteReader, magic, sha256File, sourceMetadataPath } from './android-state-codec.mjs'
 import { assertDebugLink, checkedSkipstoneLink, resolveSkipstoneLink } from './android-state-links.mjs'
 import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, existingStat, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { inventoryTrackedSourceMetadata, restoreTrackedSourceTimes, sourceMetadataLimits } from './android-state-source-metadata.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -47,6 +48,13 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
   assertIdentity(identity)
   mkdirSync(artifactRoot, { recursive: true })
   const inventory = inventoryState(packageRoot, cacheRoot, checkoutRoot, limits)
+  const sourceMetadata = await inventoryTrackedSourceMetadata({ checkoutRoot, identity })
+  const sourceMetadataBytes = Buffer.from(JSON.stringify(sourceMetadata))
+  if (sourceMetadataBytes.length > sourceMetadataLimits.metadataBytes ||
+      inventory.entries.length + 1 > limits.entries ||
+      inventory.unpackedBytes + sourceMetadataBytes.length > limits.unpackedBytes) {
+    throw new Error('Android source metadata exceeded archive bounds')
+  }
   const archive = join(artifactRoot, archiveName)
   const started = Date.now()
   const deadline = started + limits.transferMs
@@ -56,7 +64,7 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
   const timer = setTimeout(() => controller.abort(), limits.transferMs)
   try {
     await pipeline(
-      Readable.from(archiveChunks(inventory.entries, identity, deadline)),
+      Readable.from(archiveChunks(inventory.entries, identity, deadline, sourceMetadataBytes)),
       createGzip({ level: 1 }),
       new Transform({
         transform(chunk, _encoding, callback) {
@@ -79,12 +87,13 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
     clearTimeout(timer)
   }
   const manifest = {
-    format: 2,
+    format: 3,
     identity,
     sha256: digest.digest('hex'),
-    entries: inventory.entries.length,
-    unpackedBytes: inventory.unpackedBytes,
+    entries: inventory.entries.length + 1,
+    unpackedBytes: inventory.unpackedBytes + sourceMetadataBytes.length,
     compressedBytes,
+    sourceMetadataBytes: sourceMetadataBytes.length,
   }
   writeFileSync(join(artifactRoot, manifestName), `${JSON.stringify(manifest)}\n`, { flag: 'wx', mode: 0o600 })
   return { ...manifest, scanMs: inventory.scanMs, packMs: Date.now() - started }
@@ -103,10 +112,12 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   const manifestPath = join(artifactRoot, manifestName)
   if (statSync(manifestPath).size > 8192) throw new Error('Android state manifest exceeds 8 KiB')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  if (manifest.format !== 2 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
+  if (manifest.format !== 3 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
       !Number.isSafeInteger(manifest.entries) || manifest.entries > limits.entries ||
       !Number.isSafeInteger(manifest.unpackedBytes) || manifest.unpackedBytes > limits.unpackedBytes ||
       !Number.isSafeInteger(manifest.compressedBytes) || manifest.compressedBytes > limits.compressedBytes ||
+      !Number.isSafeInteger(manifest.sourceMetadataBytes) || manifest.sourceMetadataBytes <= 0 ||
+      manifest.sourceMetadataBytes > sourceMetadataLimits.metadataBytes ||
       !/^[0-9a-f]{64}$/u.test(manifest.sha256)) {
     throw new Error('Android state manifest identity or limits mismatch')
   }
@@ -125,6 +136,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   const fileTimes = []
   const directoryModes = []
   const deferredLinks = []
+  let sourceMetadata = null
   try {
     if (!(await reader.read(magic.length)).equals(magic)) throw new Error('Android state magic mismatch')
     const archiveIdentity = await reader.header()
@@ -137,6 +149,23 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
         throw new Error('Android state member count or order invalid')
       }
       previous = member.path
+      if (member.path === sourceMetadataPath) {
+        if (sourceMetadata !== null || member.type !== 'source-metadata' ||
+            member.size !== manifest.sourceMetadataBytes) {
+          throw new Error('Android source metadata member invalid')
+        }
+        const chunks = []
+        let remaining = member.size
+        while (remaining) {
+          const chunk = await reader.read(Math.min(remaining, 64 * 1024))
+          chunks.push(chunk)
+          remaining -= chunk.length
+        }
+        sourceMetadata = JSON.parse(Buffer.concat(chunks, member.size).toString('utf8'))
+        observed.unpackedBytes += member.size
+        continue
+      }
+      if (sourceMetadata !== null) throw new Error('Android state member follows source metadata')
       const target = checkedDestination(staging, member.path)
       const parent = dirname(target)
       if (!lstatSync(parent).isDirectory()) throw new Error(`Android state parent is not a directory: ${member.path}`)
@@ -182,7 +211,8 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       }
     }
     await reader.end()
-    if (observed.entries !== manifest.entries || observed.unpackedBytes !== manifest.unpackedBytes) {
+    if (sourceMetadata === null || observed.entries !== manifest.entries ||
+        observed.unpackedBytes !== manifest.unpackedBytes) {
       throw new Error('Android state unpacked inventory mismatch')
     }
     restoreExactFileTimes(staging, fileTimes, deadline)
@@ -213,6 +243,8 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
         throw new Error(`Android state destination is unsafe: ${path}`)
       }
     }
+    // A failed source identity or byte check leaves every tracked source timestamp untouched.
+    await restoreTrackedSourceTimes({ checkoutRoot, identity, metadata: sourceMetadata })
     for (const { path, source } of destinations) {
       const staged = checkedDestination(staging, path)
       if (existsSync(source)) rmSync(source, { recursive: true })

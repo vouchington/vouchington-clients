@@ -111,7 +111,8 @@ jobs:
           printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
           printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
       - name: Restore Vouchington pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: vouchington-pnpm-store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/pnpm-store
           key: ${{ runner.os }}-pnpm-vouchington-${{ hashFiles('filaments/pnpm-lock.yaml') }}
@@ -122,6 +123,13 @@ jobs:
         env:
           pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
         run: pnpm install --frozen-lockfile
+      - name: Save Vouchington pnpm store from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.vouchington-pnpm-store.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/pnpm-store
+          key: ${{ steps.vouchington-pnpm-store.outputs.cache-primary-key }}
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
@@ -556,8 +564,8 @@ jobs:
           mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
-  build-swift-android-native:
-    name: Swift Android native producer
+  build-swift-android-dependency:
+    name: Swift Android native dependency
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 30
@@ -575,6 +583,7 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -626,6 +635,129 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: false
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Build the selected Android validation phase
+        working-directory: candidate-clients
+        env:
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+          ANDROID_BUILD_PHASE: app-native-dependency
+        run: |
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+      - name: Pack bounded exact-run generated Android state
+        timeout-minutes: 4
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
+            pack candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
+      - name: Upload exact-run generated Android state
+        timeout-minutes: 5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-native-dependency-state-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-state
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+  build-swift-android-native:
+    name: Swift Android native producer
+    needs: [verify, build-swift-android-dependency]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+      - name: Resolve Java for Android SDK setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if java -version >/dev/null 2>&1; then
+            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
+          elif command -v brew >/dev/null 2>&1; then
+            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
+          else
+            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
+          fi
+          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
+          "$java_home/bin/java" -version
+          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
+          echo "$java_home/bin" >> "$GITHUB_PATH"
+      - name: Select job-scoped Android SDK location
+        shell: bash
+        run: |
+          android_sdk="$RUNNER_TEMP/android-sdk"
+          rm -rf -- "$android_sdk"
+          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
+      - name: Select Xcode 26.6 for Android host SwiftPM tests
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+      - name: Remove obsolete Swift Android executable cache
+        run: |
+          cache_root="$HOME/.cache/voucha/swift-android"
+          for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
+            [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
+          done
+          rm -rf -- "$cache_root/extracted"
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: false
+      - name: Download exact-run native dependency state
+        timeout-minutes: 5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: android-native-dependency-state-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-dependency-state
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Restore verified native dependency state
+        timeout-minutes: 4
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          python3 --version
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
+            restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-dependency-state"
+          echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -709,6 +841,7 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -760,12 +893,6 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: false
-      - name: Resolve Android Swift package with shared artifact cache
-        working-directory: candidate-clients
-        run: |
-          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
-          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
-          ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Download exact-run generated Android state
         timeout-minutes: 5
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
@@ -785,6 +912,12 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Restore Gradle user home
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1043,14 +1176,38 @@ jobs:
           --package-path swift-clients/apps/android
           --filter VouchaAndroidTests
   test-swift-android-cookie:
-    name: Android cookie restart
-    needs: [verify, build-swift-android]
+    name: Swift Android Skip
+    needs:
+      [
+        verify,
+        build-swift-android-dependency,
+        build-swift-android-native,
+        build-swift-android,
+        test-swift-android-libs,
+        test-swift-android-host,
+      ]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       actions: read
       contents: read
     steps:
+      - name: Require every Android validation phase
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          ANDROID_DEPENDENCY_RESULT: ${{ needs.build-swift-android-dependency.result }}
+          ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
+          ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
+          ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
+          ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
+        run: |
+          test "$VERIFY_RESULT" = success
+          test "$ANDROID_DEPENDENCY_RESULT" = success
+          test "$ANDROID_NATIVE_RESULT" = success
+          test "$ANDROID_APP_RESULT" = success
+          test "$ANDROID_LIBS_RESULT" = success
+          test "$ANDROID_HOST_RESULT" = success
       - name: Check out exact candidate runtime script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1115,37 +1272,6 @@ jobs:
             ${{ runner.temp }}/voucha-cookie-emulator-failure-tail.log
           if-no-files-found: ignore
           retention-days: 1
-  test-swift-android:
-    name: Swift Android Skip
-    needs:
-      [
-        verify,
-        build-swift-android-native,
-        build-swift-android,
-        test-swift-android-libs,
-        test-swift-android-host,
-        test-swift-android-cookie,
-      ]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Require every Android validation phase
-        env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
-          ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
-          ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
-          ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
-          ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
-          ANDROID_COOKIE_RESULT: ${{ needs.test-swift-android-cookie.result }}
-        run: |
-          test "$VERIFY_RESULT" = success
-          test "$ANDROID_NATIVE_RESULT" = success
-          test "$ANDROID_APP_RESULT" = success
-          test "$ANDROID_LIBS_RESULT" = success
-          test "$ANDROID_HOST_RESULT" = success
-          test "$ANDROID_COOKIE_RESULT" = success
   build-swift-ui-tests:
     name: Swift UI build for testing
     needs: verify
@@ -1418,7 +1544,7 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Launch macOS root shell
+      - name: Launch macOS root shell, sidebar feeds, and email sign-in
         timeout-minutes: 15
         working-directory: candidate-clients
         env:
@@ -1432,8 +1558,8 @@ jobs:
             exit 1
           fi
           rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements"
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1600,10 +1726,23 @@ jobs:
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=x86_64" build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
 
   build-ios-app:
-    name: Swift iOS Simulator launch smoke
+    name: Swift iOS Simulator launch smoke (${{ matrix.shard }})
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
     timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: root-shell
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
+            expected_count: 1
+          - shard: feed
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation'
+            expected_count: 1
+          - shard: sign-in
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+            expected_count: 1
     permissions:
       actions: read
       contents: read
@@ -1613,13 +1752,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/prepare-native-contract
-        with:
-          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
-          expected-contract-repository: vouchington/vouchington
-          github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
-          producer-run-id: ${{ github.run_id }}
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
       - name: Download iOS test products
@@ -1627,6 +1759,14 @@ jobs:
         with:
           name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
@@ -1686,9 +1826,22 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
       - name: Start iPhone Simulator for launch smoke
         timeout-minutes: 3
-        working-directory: candidate-clients
         run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
             Shutdown) xcrun simctl boot "$simulator_id" ;;
@@ -1707,8 +1860,9 @@ jobs:
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 3 and .passedTests == 3 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
+          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1731,7 +1885,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
-          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: |
             ${{ runner.temp }}/ios-launch-smoke.xcresult
             ${{ runner.temp }}/ios-launch-diagnostics
@@ -1742,7 +1896,7 @@ jobs:
     name: Swift iPad Simulator root-shell launch
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     permissions:
       actions: read
       contents: read
@@ -1759,13 +1913,44 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Start iPad Simulator for root-shell launch
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
+            exit 1
+          fi
+          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          if [[ "$ipad_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
+          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
+          printf '%s\n' "platform=iOS Simulator,id=$simulator_id" > "$RUNNER_TEMP/ipad-launch-destination"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
       - name: Download iOS test products
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
           name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
+      - name: Wait for iPad Simulator readiness
+        timeout-minutes: 4
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
@@ -1800,19 +1985,18 @@ jobs:
           simulator_name="${simulator_name%%,OS=*}"
           test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
           runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
-            exit 1
-          fi
-          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          ipad_name="$(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
           if [[ "$ipad_name" != iPad\ * ]]; then
             echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
             exit 1
           fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
-          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
-          printf '%s\n' "platform=iOS Simulator,name=$ipad_name,OS=$simulator_sdk,arch=arm64" > "$RUNNER_TEMP/ipad-launch-destination"
+          selected="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg udid "$simulator_id" '[.devices[$runtime][]? | select(.isAvailable and .udid == $udid and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ "$selected" != "$simulator_id" ]]; then
+            echo "::error::Pre-booted iPad is not available for $runtime_identifier root-shell launch" >&2
+            exit 1
+          fi
+          test "$(cat "$RUNNER_TEMP/ipad-launch-destination")" = "platform=iOS Simulator,id=$simulator_id"
           printf '%s\n' "$bundle" > "$RUNNER_TEMP/ipad-launch-test-products"
           cd "$artifact"
           printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
@@ -1829,31 +2013,15 @@ jobs:
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
-      - name: Start iPad Simulator for root-shell launch
-        timeout-minutes: 3
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
-          case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
-            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
-          esac
-      - name: Wait for iPad Simulator readiness
-        timeout-minutes: 4
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iPad root shell on Simulator
-        timeout-minutes: 7
+        timeout-minutes: 9
         working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
           if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
             {
               echo "### iPad root-shell launch"
@@ -2179,6 +2347,183 @@ jobs:
             ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
           key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
 
+  dotnet-catalyst-gui:
+    name: Mac Catalyst GUI preflight
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Restore Appium Mac2
+        id: catalyst-appium-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Select compatible Xcode
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Detect host Mac Catalyst RID
+        id: rid
+        shell: bash
+        run: |
+          case "$(uname -m)" in
+            arm64) rid=maccatalyst-arm64 ;;
+            x86_64) rid=maccatalyst-x64 ;;
+            *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Install Appium Mac2
+        timeout-minutes: 2
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          prefix="$CATALYST_APPIUM_PREFIX"
+          mkdir -p "$prefix/home"
+          if [[ ! -x "$prefix/node_modules/.bin/appium" ]]; then
+            npm init -y --prefix "$prefix" >/dev/null
+            npm install --prefix "$prefix" appium@3.8.0
+          fi
+          if [[ ! -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac" ]]; then
+            APPIUM_HOME="$prefix/home" "$prefix/node_modules/.bin/appium" driver install --source npm appium-mac2-driver@4.5.0
+          fi
+          test -x "$prefix/node_modules/.bin/appium"
+          test -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac"
+      - name: Restore the Debug Mac Catalyst graph
+        timeout-minutes: 2
+        working-directory: candidate-clients
+        run: |
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0-maccatalyst \
+            -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0 --locked-mode
+      - name: Build the Debug app and the Mac2 host
+        timeout-minutes: 6
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --prebuild-host &
+          host_pid=$!
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            --configuration Debug --framework net10.0-maccatalyst \
+            "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}" \
+            -p:CodesignEntitlements= \
+            --no-restore &
+          app_pid=$!
+          host_status=0
+          app_status=0
+          wait "$host_pid" || host_status=$?
+          wait "$app_pid" || app_status=$?
+          if [[ "$host_status" -ne 0 || "$app_status" -ne 0 ]]; then
+            echo "::error::Debug app status $app_status; Mac2 host status $host_status"
+            exit 1
+          fi
+      - name: Open the Mac2 notification settings session
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+          CATALYST_GUI_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+        run: |
+          set -euo pipefail
+          if ! pgrep -qx WindowServer; then
+            echo "::error::WindowServer is not running; refusing to skip the Mac Catalyst GUI preflight"
+            exit 1
+          fi
+          console_uid="$(stat -f %u /dev/console)"
+          current_uid="$(id -u)"
+          if [[ -z "$console_uid" || "$console_uid" != "$current_uid" ]]; then
+            echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
+            exit 1
+          fi
+          diagnostics="${{ runner.temp }}/catalyst-gui-diagnostics"
+          mkdir -p "$diagnostics"
+          find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name '*.app' >"$diagnostics/apps.txt" || true
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
+          if [[ -z "$app" || ! -d "$app" ]]; then
+            echo "::error::Debug Mac Catalyst app was not built"
+            exit 1
+          fi
+          test "$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' | wc -l | tr -d ' ')" -eq 1
+          staged="$PWD/$app/Contents/Resources/preflight-contract"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
+          export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
+          export CATALYST_GUI_RESULT="$diagnostics/result.json"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
+          jq -e '.total == 2 and .passed == 2 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+      - name: Save Appium Mac2 from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
+      - name: Upload failed Catalyst GUI diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-gui-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
+
   dotnet-windows-image-preview:
     name: .NET Windows image preview
     needs: verify
@@ -2396,7 +2741,7 @@ jobs:
       - periphery-swift-ui
       - test-swift-core-linux
       - test-swift-core
-      - test-swift-android
+      - test-swift-android-cookie
       - test-swift-ui
       - build-swift-ui-tests
       - swift-patch-coverage
@@ -2407,6 +2752,7 @@ jobs:
       - build-ios-x86
       - dotnet-maui-compile
       - dotnet-maui
+      - dotnet-catalyst-gui
       - dotnet-windows-image-preview
       - dotnet-windows-language-model-surface
       - dotnet-windows-maui

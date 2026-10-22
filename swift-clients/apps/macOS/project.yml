@@ -8,6 +8,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: '5.9'
+    CURRENT_PROJECT_VERSION: '1'
     MACOSX_DEPLOYMENT_TARGET: '14.4'
     CODE_SIGN_STYLE: Automatic
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
@@ -37,6 +38,7 @@ targets:
     info:
       path: Info.plist
       properties:
+        CFBundleVersion: '$(CURRENT_PROJECT_VERSION)'
         CFBundleDisplayName: Voucha
         ITSAppUsesNonExemptEncryption: false
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
@@ -108,6 +110,7 @@ targets:
         - VouchaLaunchSmokeTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_FILAMENTS_CONTRACT_ROOT: '$(VOUCHA_FILAMENTS_CONTRACT_ROOT)'
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing

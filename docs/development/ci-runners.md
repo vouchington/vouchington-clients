@@ -23,7 +23,8 @@ compatibility; the current Android NDK compiler is x86_64-only. `macos-latest` a
 
 The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the macOS SDK with
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
-required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
+required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green. The Mac Catalyst GUI preflight is a
+separate required job with a 10-minute limit. It does not add steps to the MAUI smoke job.
 
 Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.
@@ -35,7 +36,9 @@ must not run persistent-workspace cleanup, restore a trusted base only to wipe t
 Jobs may restore hash-keyed GitHub Actions caches for package stores and checksum-verified download
 archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
-are not cached.
+are not cached. Shared pnpm stores restore on every run. A missing primary key is saved only after
+the frozen install on a `push` to `refs/heads/main`. Pull requests restore and install, and they
+do not save. Another job may reserve that key first; the lost save does not fail the run.
 
 The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
 `main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
@@ -79,11 +82,14 @@ separate macOS VMs. Host Swift package tests and native test-library preparation
 with the producer. The producer packages only bounded generated build state, tied to the verified
 candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
 identity before rehydration, then executes the original app and instrumentation APK task closure.
+These three serial jobs still verify the exact native contract but omit candidate pnpm installation;
+their candidate tooling uses Node builtins, shell, Swift, and Gradle without installed JS packages.
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
 document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
 Android SDK, and NDK toolchains are materialized independently in each job and never included in
-the artifact. The stable `Swift Android Skip` check requires producer, consumer, host tests,
-test libraries, and the cookie runtime proof to succeed; `Tests` still requires that result.
+the artifact. The existing cookie runtime job also reports the stable `Swift Android Skip` check:
+it first requires the dependency and native producers, consumer, host tests, and test libraries to
+succeed, then runs the full cookie restart proof. `Tests` requires that job's result directly.
 Local Android validation continues to default to both original phases. Producer and consumer
 job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
 budgets are safety bounds, not evidence that the under-ten-minute target has been met.

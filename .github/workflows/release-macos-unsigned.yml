@@ -1,0 +1,91 @@
+name: macOS unsigned archive and DMG
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/release-macos-unsigned.yml
+      - swift-clients/apps/macOS/**
+      - swift-clients/apps/shared-app/**
+      - swift-clients/core/**
+      - swift-clients/ui/**
+      - swift-clients/tooling/generate.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-unsigned-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  archive-and-assemble:
+    name: Archive, export, and assemble unsigned macOS DMG
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      XCODEGEN_VERSION: 2.45.4
+      XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Install pinned XcodeGen
+        timeout-minutes: 3
+        run: |
+          xcodegen_root="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 2 --retry-max-time 120 --retry-all-errors --silent --show-error "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" --output "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" -d "$xcodegen_root"
+          xcodegen_bin="$xcodegen_root/xcodegen/bin/xcodegen"
+          test -x "$xcodegen_bin"
+          test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
+          dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Generate macOS project
+        run: ./swift-clients/tooling/generate.sh macOS
+      - name: Archive without signing
+        timeout-minutes: 24
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}.0
+        run: |
+          if (( GITHUB_RUN_NUMBER < 1 || GITHUB_RUN_NUMBER > 9999 || GITHUB_RUN_ATTEMPT < 1 || GITHUB_RUN_ATTEMPT > 99 )); then
+            echo '::error::GitHub run number or attempt exceeds CFBundleVersion segment limits'
+            exit 1
+          fi
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
+          test -d "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
+          test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
+      - name: Export unsigned Copy App
+        timeout-minutes: 3
+        run: |
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -exportPath "$RUNNER_TEMP/unsigned-export" -exportOptionsPlist swift-clients/apps/macOS/UnsignedExportOptions.plist
+          app="$RUNNER_TEMP/unsigned-export/Voucha.app"
+          test -d "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = ai.voucha.macos
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT.0"
+          test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
+          if signature_info=$(codesign --display --verbose=2 "$RUNNER_TEMP/unsigned-export/Voucha.app" 2>&1); then
+            printf '%s\n' "$signature_info" | grep -Fqx 'Signature=adhoc'
+            printf '%s\n' "$signature_info" | grep -Fqx 'TeamIdentifier=not set'
+          else
+            printf '%s\n' "$signature_info" | grep -Fq 'code object is not signed at all'
+          fi
+      - name: Assemble and verify unsigned DMG
+        timeout-minutes: 3
+        run: |
+          mkdir -p "$RUNNER_TEMP/unsigned-artifacts"
+          hdiutil create -volname 'Voucha UNSIGNED CI' -srcfolder "$RUNNER_TEMP/unsigned-export/Voucha.app" -ov -format UDZO "$RUNNER_TEMP/unsigned-artifacts/Voucha-UNSIGNED-CI.dmg"
+          hdiutil verify "$RUNNER_TEMP/unsigned-artifacts/Voucha-UNSIGNED-CI.dmg"
+          shasum -a 256 "$RUNNER_TEMP/unsigned-artifacts/Voucha-UNSIGNED-CI.dmg" > "$RUNNER_TEMP/unsigned-artifacts/SHA256SUMS"
+      - name: Upload unsigned CI evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: macos-unsigned-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/unsigned-artifacts/
+          if-no-files-found: error
+          retention-days: 7

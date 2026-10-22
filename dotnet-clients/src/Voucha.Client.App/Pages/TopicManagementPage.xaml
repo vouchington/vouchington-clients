@@ -24,6 +24,7 @@
                        SemanticProperties.Description="{DynamicResource native.dotnet.topicManagement.logoImageId}" />
             </Grid>
             <Label x:Name="LogoPreviewUnavailableLabel" Text="{DynamicResource images.uploadPreviewUnavailable}"
+                   SemanticProperties.Description="{DynamicResource images.uploadPreviewUnavailable}"
                    IsVisible="False" Style="{StaticResource Metadata}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <Entry x:Name="HeroImageEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.heroImageId}"

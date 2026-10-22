@@ -51,16 +51,28 @@
                 guard components.queryItems?.isEmpty != false else { return nil }
                 key = "VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"
             case "/api/v1/feeds/rss_feed_items/any":
-                guard components.queryItems?.count == 2,
-                      components.queryItems?.contains(URLQueryItem(name: "limit", value: "20")) == true,
-                      components.queryItems?.contains(URLQueryItem(name: "media_type", value: "video")) == true
-                else { return nil }
-                key = "VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64"
+                guard let responseKey = feedResponseEnvironmentKey(components) else { return nil }
+                key = responseKey
             default:
                 return nil
             }
             guard let encoded = ProcessInfo.processInfo.environment[key] else { return nil }
             return Data(base64Encoded: encoded)
+        }
+
+        private func feedResponseEnvironmentKey(_ components: URLComponents) -> String? {
+            guard components.queryItems?.count == 2,
+                  components.queryItems?.contains(URLQueryItem(name: "limit", value: "20")) == true,
+                  let mediaType = components.queryItems?.first(where: { $0.name == "media_type" })?.value
+            else { return nil }
+            switch mediaType {
+            case "video":
+                return "VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64"
+            case "audio":
+                return "VOUCHA_UI_TESTING_PODCAST_FEED_RESPONSE_BASE64"
+            default:
+                return nil
+            }
         }
 
         override func stopLoading() {

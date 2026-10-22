@@ -36,7 +36,7 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   {
     var configured = configurationStore.Load().Profiles.Select(Create).Select(provider => provider.Status).ToArray();
 #if WINDOWS
-    return [new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status, .. configured];
+    return [new WindowsSystemLanguageModelProvider(windowsRuntime, localization, mcpSession).Status, .. configured];
 #else
     return [UnavailableStatus(), .. configured];
 #endif
@@ -57,7 +57,7 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   private ChatProviderStatus PlatformDefaultStatus()
   {
 #if WINDOWS
-    return new WindowsSystemLanguageModelProvider(windowsRuntime, localization).Status;
+    return new WindowsSystemLanguageModelProvider(windowsRuntime, localization, mcpSession).Status;
 #else
     return UnavailableStatus();
 #endif
@@ -70,7 +70,7 @@ public sealed class ChatProviderResolver : IChatProviderResolver, ILocalChatProv
   public ILocalChatProvider? GetLocalProvider(string providerId)
   {
 #if WINDOWS
-    if (providerId == LocalChatProviderIds.WindowsSystemLanguageModel) return new WindowsSystemLanguageModelProvider(windowsRuntime, localization);
+    if (providerId == LocalChatProviderIds.WindowsSystemLanguageModel) return new WindowsSystemLanguageModelProvider(windowsRuntime, localization, mcpSession);
 #endif
     return configurationStore.Load().Profiles.SingleOrDefault(profile => LocalChatProviderIds.RefersTo(providerId, profile.Id)) is { } profile ? Create(profile) : null;
   }
