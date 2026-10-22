@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 import { inspectGradleBuildCache } from '../swift-clients/apps/android/tooling/check-gradle-build-cache.mjs'
+import { selectGradleTaskCache } from '../swift-clients/apps/android/tooling/select-gradle-task-cache.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const pathHelper = join(
@@ -24,6 +25,88 @@ const cacheCheck = join(
   repositoryRoot,
   'swift-clients/apps/android/tooling/check-gradle-build-cache.mjs',
 )
+
+const revisionA = 'a'.repeat(40)
+const revisionB = 'b'.repeat(40)
+const revisionC = 'c'.repeat(40)
+const baseCacheEvent = {
+  RUNNER_OS: 'macOS',
+  RUNNER_ARCH: 'ARM64',
+  TASK_CACHE_CONFIG_HASH: 'f'.repeat(64),
+  CANDIDATE_REVISION: revisionB,
+  PREVIOUS_MAIN_REVISION: revisionA,
+  GITHUB_EVENT_NAME: 'push',
+  GITHUB_REF: 'refs/heads/main',
+}
+
+test('revision-chain keys seed each successful main source revision without prefix lookup', () => {
+  const path = '/Users/runner/.cache/voucha/gradle-build-cache'
+  const main = selectGradleTaskCache(baseCacheEvent, path)
+  assert.match(main.cacheKey, new RegExp(`-${revisionB}$`, 'u'))
+  assert.equal(main.previousKey, main.cacheKey.replace(revisionB, revisionA))
+  assert.notEqual(
+    selectGradleTaskCache({ ...baseCacheEvent, CANDIDATE_REVISION: revisionC }, path).cacheKey,
+    main.cacheKey,
+    'a new main source revision must receive a new immutable save key',
+  )
+  const pr = selectGradleTaskCache(
+    {
+      ...baseCacheEvent,
+      GITHUB_EVENT_NAME: 'pull_request',
+      GITHUB_REF: 'refs/pull/123/merge',
+      PR_BASE_REVISION: revisionA,
+      CANDIDATE_REVISION: revisionC,
+    },
+    path,
+  )
+  assert.equal(pr.cacheKey, main.previousKey)
+  assert.equal(pr.previousKey, undefined, 'a pull request must not restore a predecessor or save')
+  assert.notEqual(
+    selectGradleTaskCache({ ...baseCacheEvent, RUNNER_ARCH: 'X64' }, path).cacheKey,
+    main.cacheKey,
+  )
+  assert.notEqual(
+    selectGradleTaskCache({ ...baseCacheEvent, TASK_CACHE_CONFIG_HASH: 'e'.repeat(64) }, path)
+      .cacheKey,
+    main.cacheKey,
+  )
+  assert.notEqual(selectGradleTaskCache(baseCacheEvent, `${path}-other`).cacheKey, main.cacheKey)
+})
+
+test('task-cache key selection fails closed for malformed events and zero predecessor', () => {
+  const path = '/Users/runner/.cache/voucha/gradle-build-cache'
+  assert.equal(
+    selectGradleTaskCache({ ...baseCacheEvent, PREVIOUS_MAIN_REVISION: '0'.repeat(40) }, path)
+      .previousKey,
+    undefined,
+    'a new main branch has no predecessor cache to restore',
+  )
+  assert.throws(
+    () => selectGradleTaskCache({ ...baseCacheEvent, PREVIOUS_MAIN_REVISION: '' }, path),
+    /previous revision/u,
+  )
+  assert.throws(
+    () =>
+      selectGradleTaskCache({ ...baseCacheEvent, GITHUB_EVENT_NAME: 'workflow_dispatch' }, path),
+    /only accepts/u,
+  )
+  assert.throws(
+    () => selectGradleTaskCache({ ...baseCacheEvent, GITHUB_REF: 'refs/heads/other' }, path),
+    /only accepts/u,
+  )
+  assert.throws(
+    () =>
+      selectGradleTaskCache(
+        { ...baseCacheEvent, GITHUB_EVENT_NAME: 'pull_request', PR_BASE_REVISION: '' },
+        path,
+      ),
+    /exact base/u,
+  )
+  assert.throws(
+    () => selectGradleTaskCache(baseCacheEvent, '/tmp/cache\ninvalid'),
+    /single absolute/u,
+  )
+})
 
 test('workflow and build select the same real Darwin task-output cache path', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'android-gradle-cache-path-'))

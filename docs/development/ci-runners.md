@@ -100,7 +100,11 @@ checks remain required on hits.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
-The task-output key follows pinned Swift, Skip, and Gradle configuration. Its first
+The task-output key partitions runner OS, architecture, canonical cache path, pinned Swift/Skip/
+Gradle configuration, and candidate revision. A pull request reads only its exact base revision's
+cache. A `main` push first tries its own revision (for reruns), then its exact predecessor; after
+a successful APK upload, it writes a bounded snapshot for the new revision if that key was absent.
+There are no prefix restore keys. A missing or failed predecessor gives a cold build. The first
 default-branch entry can only be written by a successful `main` push, so an open pull request
 cannot establish warm-hit timing for this new key.
 
