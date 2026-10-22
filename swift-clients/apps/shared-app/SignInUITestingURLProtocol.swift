@@ -35,9 +35,25 @@ enum SignInUITestingLaunch {
         }
 
         override func startLoading() {
+            let outcome = loadOutcome()
+            // Login completion refreshes identity on this session. Delivering the body
+            // synchronously deadlocks that follow-up inside URLSession's protocol queue.
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.deliver(outcome)
+            }
+        }
+
+        private enum LoadOutcome {
+            case empty
+            case failure(URLError)
+            case success(HTTPURLResponse, Data)
+        }
+
+        private func loadOutcome() -> LoadOutcome {
             deliveryLock.lock()
-            defer { deliveryLock.unlock() }
-            guard !stopped else { return }
+            let alreadyStopped = stopped
+            deliveryLock.unlock()
+            guard !alreadyStopped else { return .empty }
             guard let url = request.url,
                   let data = responseData(for: url),
                   let response = HTTPURLResponse(
@@ -46,15 +62,31 @@ enum SignInUITestingLaunch {
                       httpVersion: "HTTP/1.1",
                       headerFields: ["Content-Type": "application/json"]
                   )
-            else {
-                client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL))
+            else { return .failure(URLError(.unsupportedURL)) }
+            return .success(response, data)
+        }
+
+        private func deliver(_ outcome: LoadOutcome) {
+            switch outcome {
+            case .empty:
                 return
+            case let .failure(error):
+                deliverIfNotStopped { client?.urlProtocol(self, didFailWithError: error) }
+            case let .success(response, data):
+                deliverIfNotStopped {
+                    client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                }
+                deliverIfNotStopped { client?.urlProtocol(self, didLoad: data) }
+                deliverIfNotStopped { client?.urlProtocolDidFinishLoading(self) }
             }
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            guard !stopped else { return }
-            client?.urlProtocol(self, didLoad: data)
-            guard !stopped else { return }
-            client?.urlProtocolDidFinishLoading(self)
+        }
+
+        private func deliverIfNotStopped(_ callback: () -> Void) {
+            deliveryLock.lock()
+            let alreadyStopped = stopped
+            deliveryLock.unlock()
+            guard !alreadyStopped else { return }
+            callback()
         }
 
         override func stopLoading() {

@@ -46,8 +46,9 @@
 
             let signedOutControlGone = signIn.waitForNonExistence(timeout: 20)
             if !signedOutControlGone {
-                let visible = app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label).joined(separator: " | ")
-                XCTFail("Sign In remained. Visible text: \(visible)")
+                let labels = app.staticTexts.allElementsBoundByIndex.map(\.label)
+                let visible = labels.prefix(24).joined(separator: " | ")
+                XCTFail("Sign In remained (\(labels.count) texts). Visible text: \(visible)")
             }
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
         }
