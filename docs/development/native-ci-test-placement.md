@@ -57,9 +57,9 @@ iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst r
 
 The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
-argument and the canonical `swift.my.identity.default` fixture. The session counts only when that
-root shell is found and nothing was skipped. It does not exercise the eight notification controls,
-route focus, or the announcement. The existing MAUI job still builds Release and runs linked page
+argument and the canonical `swift.my.identity.default` fixture. The session counts only when the Debug preflight page's `root-shell` control is found and
+nothing was skipped. That page is not the production app shell. It does not exercise the eight
+notification controls, route focus, or the announcement. The existing MAUI job still builds Release and runs linked page
 tests; those are not this session.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command

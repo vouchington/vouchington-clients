@@ -1603,7 +1603,7 @@ jobs:
     name: Swift iOS Simulator launch smoke
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 12
+    timeout-minutes: 9
     permissions:
       actions: read
       contents: read
@@ -2069,7 +2069,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-maui-
       - name: Restore Appium Mac2
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: catalyst-appium-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/catalyst-appium
           key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
@@ -2194,6 +2195,13 @@ jobs:
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
           jq -e '.total == 1 and .passed == 1 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+      - name: Save Appium Mac2 from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
       - name: Upload failed Catalyst GUI diagnostics
         if: ${{ failure() }}
         timeout-minutes: 1
