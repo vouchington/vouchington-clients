@@ -1,33 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { pairedRepositories, validateDispatch } from '../scripts/paired-contract-attestation.mjs'
+import { pairedRepositories } from '../scripts/paired-contract-attestation.mjs'
 import { normalizeMaintainerPermission } from '../scripts/paired-contract-github.mjs'
-
-function dispatch(overrides = {}) {
-  const inputs = {
-    producerPullRequest: '3292',
-    expectedProducerHeadSha: '1'.repeat(40),
-    clientsPullRequest: '376',
-    expectedClientsHeadSha: '2'.repeat(40),
-    nativeTestProfile: 'cookie-snapshot',
-    reviewedBothSnapshots: true,
-    ...overrides.inputs,
-  }
-  const { inputs: ignoredInputs, ...fields } = overrides
-  void ignoredInputs
-  return validateDispatch({
-    eventName: 'workflow_dispatch',
-    repository: pairedRepositories.clients,
-    ref: 'refs/heads/main',
-    workflowRef: `${pairedRepositories.clients}/.github/workflows/paired-native-contract-attestation.yml@refs/heads/main`,
-    runAttempt: 1,
-    actor: 'maintainer',
-    triggeringActor: 'maintainer',
-    clientsPermission: 'maintain',
-    inputs,
-    ...fields,
-  })
-}
+import { dispatch } from './paired-contract-attestation-fixtures.mjs'
 
 describe('paired contract operator attestation inputs', () => {
   it('accepts only an explicit, first-run main dispatch by a live maintainer', () => {

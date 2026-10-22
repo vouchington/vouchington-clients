@@ -1,19 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const readWorkflow = name =>
   readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8')
 const readAction = name =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), 'utf8')
-
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
 
 const preparedCandidateInputs = [
   'candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}',
@@ -192,7 +185,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
     assert.match(
       workflow,
-      /verify-android-host-swift\.sh[\s\S]*?mise exec swift@6\.3\.3 -- swift test/u,
+      /run-android-host-swift-tests\.sh\s+--package-path swift-clients\/apps\/android\s+--filter VouchaAndroidTests/u,
     )
     assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
@@ -294,6 +287,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /jq -er '\.sdk\.version' global\.json/u)
     assert.match(action, /mise install "\$MISE_TOOL"/u)
     assert.doesNotMatch(validation, /actions\/setup-dotnet@/u)
+    // no-mistakes-disable-next-line test-no-dependency-pins -- setup-dotnet input this repository must not select
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
     assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
     assert.doesNotMatch(validation, /mise_dir:/u)
@@ -436,7 +430,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /VOUCHA_DOTNET_CACHE_ROOT=\$RUNNER_TEMP\/voucha-dotnet-cache/u)
     assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
     assert.match(portable, cachePin)
-    assert.match(maui, cachePin)
+    assert.match(maui, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(portable, nugetKey)

@@ -57,6 +57,7 @@ and Swift DTO parity are exercised; those jobs compile different stacks. See
 `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
 Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
 The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
+`test-android-host` is opt-in and runs only the Android package's host SwiftPM source tests.
 
 Each package's `Package.resolved` is its canonical SwiftPM lock; the generated app projects consume
 the UI lock. Build, test, and dead-code checks require pinned versions. To update dependencies
@@ -84,11 +85,35 @@ Semantic planning compares `Package.swift` and `Package.resolved`, then follows 
 from core through UI and the Android package. Inspect `reasons`, `warnings`, and the `direct`,
 `dependencies`, and `sample` groups independently: a missing baseline or unsupported dependency
 form uses the selected environment's conservative policy and is never evidence that there are no
-causal tests. The command can select `VouchaAndroidTests`; run its emitted command, or reproduce it
-directly with `bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/apps/android
---filter VouchaAndroidTests --force-resolved-versions`. The planner also prints `swift test` for
-`swift-clients/ui`. Run that package through `bash swift-clients/tooling/test-ui.sh` and pass the
-same `--filter`; the mise `swift` shim is not a supported UI compiler.
+causal tests. For `swift-clients/apps/android`, the planner replaces `swift test` with
+`bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh` and still appends
+`--package-path` and `--filter`. The full target is:
+
+```sh
+bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter VouchaAndroidTests
+```
+
+Run that command on the supported host. Locally, the host-lock harness runs the same argv:
+
+```sh
+bash swift-clients/tooling/harness.sh --checks test-android-host
+```
+
+which executes:
+
+```sh
+bash swift-clients/tooling/with-build-lock.sh \
+  bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh \
+  --package-path swift-clients/apps/android \
+  --filter VouchaAndroidTests
+```
+
+The entrypoint checks for Xcode 26.6 and Swift 6.3.3, installs that mise toolchain, and exits
+before SwiftPM when the pair is absent. Hosted Android CI runs the emitted command directly.
+Swift 6.4 remains the separate Android SDK and Gradle toolchain. The planner also prints
+`swift test` for `swift-clients/ui`. Run that package through
+`bash swift-clients/tooling/test-ui.sh` and pass the same `--filter`; the mise `swift` shim is
+not a supported UI compiler.
 
 This is a local/pre-push planning aid only. GitHub's native Swift workflow intentionally remains
 full-suite: it runs core, UI, and Android test/build coverage rather than consuming a narrowed
