@@ -33,9 +33,6 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
     isSynchronizing = true;
     try
     {
-#if MACCATALYST
-      UIKit.UIView.AnimationsEnabled = false;
-#endif
       EngagementSwitch.IsToggled = model.EngagementEmailsEnabled;
       ModerationSwitch.IsToggled = model.ModerationEmailsEnabled;
       NewsPicker.SelectedItem = Option(model.DigestOptions, model.NewsDigestFrequency);
