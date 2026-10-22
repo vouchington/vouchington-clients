@@ -36,8 +36,9 @@ enum SignInUITestingLaunch {
 
         override func startLoading() {
             let outcome = loadOutcome()
-            // Login completion refreshes identity on this session. Delivering the body
-            // synchronously deadlocks that follow-up inside URLSession's protocol queue.
+            // Login completion refreshes identity on this session. Leave startLoading
+            // before delivery so that follow-up is not stuck on URLSession's protocol queue.
+            // The callback itself stays under deliveryLock so cancellation cannot pass it.
             DispatchQueue.global(qos: .userInitiated).async {
                 self.deliver(outcome)
             }
@@ -83,9 +84,8 @@ enum SignInUITestingLaunch {
 
         private func deliverIfNotStopped(_ callback: () -> Void) {
             deliveryLock.lock()
-            let alreadyStopped = stopped
-            deliveryLock.unlock()
-            guard !alreadyStopped else { return }
+            defer { deliveryLock.unlock() }
+            guard !stopped else { return }
             callback()
         }
 
