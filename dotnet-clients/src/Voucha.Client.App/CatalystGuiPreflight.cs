@@ -2,7 +2,9 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
+using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Navigation;
 
 namespace Voucha.Client.App;
 
@@ -71,18 +73,14 @@ internal static class CatalystGuiPreflight
       {
         try
         {
-          var location = await NavigateAsync(shell).ConfigureAwait(false);
-          Log($"location {location}");
-          if (IsSettingsLocation(location))
+          var location = await NavigateAsync(services, shell).ConfigureAwait(false);
+          Log(location);
+          if (location.Contains("focused", StringComparison.Ordinal) && IsSettingsLocation(location))
           {
             await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
             var confirmed = await LocationAsync(shell).ConfigureAwait(false);
             Log($"confirmed {confirmed}");
-            if (IsSettingsLocation(confirmed))
-            {
-              ArmReassert(shell);
-              return;
-            }
+            if (IsSettingsLocation(confirmed)) return;
           }
         }
         catch (Exception exception)
@@ -97,36 +95,24 @@ internal static class CatalystGuiPreflight
     Log("navigation gave up");
   }
 
-  private static void ArmReassert(AppShell shell)
-  {
-    var until = DateTime.UtcNow.AddSeconds(10);
-    EventHandler<ShellNavigatedEventArgs>? handler = null;
-    handler = (_, _) =>
-    {
-      if (DateTime.UtcNow > until)
-      {
-        shell.Navigated -= handler;
-        return;
-      }
-
-      var location = shell.CurrentState?.Location.ToString() ?? "";
-      if (IsSettingsLocation(location)) return;
-      shell.Navigated -= handler;
-      Log($"left settings for {location}");
-      _ = NavigateAsync(shell);
-    };
-    shell.Navigated += handler;
-  }
-
-  private static Task<string> NavigateAsync(AppShell shell) =>
+  private static Task<string> NavigateAsync(IServiceProvider services, AppShell shell) =>
       MainThread.InvokeOnMainThreadAsync(async () =>
       {
         await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
         var location = shell.CurrentState?.Location.ToString() ?? "";
-        if (IsSettingsLocation(location)) return location;
-        SelectSettings(shell);
-        await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
-        return shell.CurrentState?.Location.ToString() ?? "";
+        if (!IsSettingsLocation(location))
+        {
+          SelectSettings(shell);
+          await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
+          location = shell.CurrentState?.Location.ToString() ?? "";
+        }
+
+        if (shell.CurrentPage is not SettingsPage settings) return location;
+        var viewer = services.GetRequiredService<INavigationViewerProvider>().CurrentViewer;
+        var match = NativeDeepLinkResolver.Resolve(NotificationSettingsPath, viewer).Match;
+        if (match is null) return location + " unmatched";
+        await settings.ApplyRouteMatchAsync(match).ConfigureAwait(true);
+        return location + " focused";
       });
 
   private static Task<string> LocationAsync(AppShell shell) =>
