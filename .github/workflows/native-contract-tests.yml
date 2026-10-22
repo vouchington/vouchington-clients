@@ -1022,11 +1022,11 @@ jobs:
             ${{ runner.temp }}/macos-launch-diagnostics
           retention-days: 1
           if-no-files-found: warn
-  build-ios-app:
-    name: Swift iOS Simulator launch smoke
+  build-ios-tests:
+    name: Swift iOS Simulator build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 55
+    timeout-minutes: 9
     permissions:
       actions: read
       contents: read
@@ -1059,105 +1059,220 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Build selected iPhone test products
+        timeout-minutes: 7
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ github.workspace }}/ios-test-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .name][0] // empty')"
+          if [[ -z "$simulator_name" ]]; then
+            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          ./swift-clients/tooling/generate.sh iOS
+          destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          test ! -e "$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test ! -L "$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test -f "$bundle/Info.plist"
+          app="$(find "$bundle" -type d -name Voucha.app -print -quit)"
+          runner="$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)"
+          test_bundle="$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)"
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
+      - name: Package iOS test products
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          COPYFILE_DISABLE=1 tar -C "$GITHUB_WORKSPACE" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Voucha.xctestproducts
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" "$RUNNER_TEMP/ios-test-products.tar.gz"
+          shasum -a 256 "$RUNNER_TEMP/ios-test-products.tar.gz" | awk '{print $1}' > "$RUNNER_TEMP/ios-test-products.sha256"
+          cp "$GITHUB_WORKSPACE/ios-test-manifest.json" "$RUNNER_TEMP/ios-test-manifest.json"
+      - name: Upload iOS test products
+        timeout-minutes: 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ios-test-products.tar.gz
+            ${{ runner.temp }}/ios-test-products.sha256
+            ${{ runner.temp }}/ios-test-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build-ios-x86:
+    name: Swift iOS Simulator x86_64 build
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 9
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      XCODEGEN_VERSION: 2.45.4
+      XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Install pinned XcodeGen
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        run: |
+          xcodegen_root="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 2 --retry-max-time 120 --retry-all-errors --silent --show-error "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" --output "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" -d "$xcodegen_root"
+          xcodegen_bin="$xcodegen_root/xcodegen/bin/xcodegen"
+          test -x "$xcodegen_bin"
+          test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
+          dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Compile x86_64 iOS Simulator app
+        timeout-minutes: 7
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-x86-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-x86-package-clones
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .name][0] // empty')"
+          if [[ -z "$simulator_name" ]]; then
+            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier x86_64 compile"
+            exit 1
+          fi
+          ./swift-clients/tooling/generate.sh iOS
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=x86_64" build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+  build-ios-app:
+    name: Swift iOS Simulator launch smoke
+    needs: [verify, build-ios-tests]
+    runs-on: macos-latest
+    timeout-minutes: 9
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Download iOS test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ios-test-artifact
+      - name: Verify and unpack iOS test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ios-test-artifact"
+          manifest="$artifact/ios-test-manifest.json"
+          test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
+          test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
+          test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
+          test "$(jq -r '.revision' "$manifest")" = "$(git -C candidate-clients rev-parse HEAD)"
+          test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          test ! -e "$bundle"
+          test ! -L "$bundle"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            case "$path" in
+              "$bundle"/*) ;;
+              *) echo "::error::Invalid $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+            case "$path" in
+              */../*|*/./*) echo "::error::Non-canonical $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+          done
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          printf '%s\n' "$destination" > "$RUNNER_TEMP/ios-launch-destination"
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/ios-launch-test-products"
+          cd "$artifact"
+          printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
+          tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
+          test -f "$bundle/Info.plist"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            test -d "$path"
+          done
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
       - name: Start iPhone Simulator for launch smoke
         timeout-minutes: 3
         working-directory: candidate-clients
         run: |
-          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier launch smoke"
-            exit 1
-          fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
             Shutdown) xcrun simctl boot "$simulator_id" ;;
             Booted) ;;
             *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
-      - name: Build iOS app for Simulator
-        timeout-minutes: 20
-        working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
-        run: |
-          ./swift-clients/tooling/generate.sh iOS
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
       - name: Wait for iPhone Simulator readiness
-        timeout-minutes: 12
+        timeout-minutes: 4
         working-directory: candidate-clients
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iOS app on Simulator
-        timeout-minutes: 10
+        timeout-minutes: 7
         working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
         run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
+          destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
-      - name: Shut down iPhone Simulator after launch smoke
-        timeout-minutes: 2
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          xcrun simctl shutdown "$simulator_id"
-      - name: Start iPad Simulator for root-shell launch
-        timeout-minutes: 3
-        working-directory: candidate-clients
-        run: |
-          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
-            exit 1
-          fi
-          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
-          if [[ "$simulator_name" != iPad\ * ]]; then
-            echo "::error::Selected simulator is not an iPad: $simulator_name"
-            exit 1
-          fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
-          printf '%s\n' "$simulator_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
-          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
-          case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
-            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
-          esac
-          echo "iPad root-shell simulator: $simulator_name ($simulator_id)"
-      - name: Wait for iPad Simulator readiness
-        timeout-minutes: 12
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
-      - name: Launch iPad root shell on Simulator
-        timeout-minutes: 10
-        working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          simulator_name="$(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
-          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-            {
-              echo "### iPad root-shell launch"
-              echo
-              echo "Simulator: $simulator_name"
-              echo
-              echo "Accepted one passed test and zero skipped tests."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1169,10 +1284,6 @@ jobs:
           if [ -f "$RUNNER_TEMP/ios-launch-simulator-id" ]; then
             simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
             xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
-          fi
-          if [ -f "$RUNNER_TEMP/ipad-launch-simulator-id" ]; then
-            simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/ipad-launch.log" 2>&1 || true
           fi
           reports_dir="$HOME/Library/Logs/DiagnosticReports"
           if [ -d "$reports_dir" ]; then
@@ -1187,8 +1298,161 @@ jobs:
           name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/ios-launch-smoke.xcresult
-            ${{ runner.temp }}/ipad-launch-smoke.xcresult
             ${{ runner.temp }}/ios-launch-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
+
+  build-ios-ipad:
+    name: Swift iPad Simulator root-shell launch
+    needs: [verify, build-ios-tests]
+    runs-on: macos-latest
+    timeout-minutes: 9
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Download iOS test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ios-test-artifact
+      - name: Verify and unpack iOS test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ios-test-artifact"
+          manifest="$artifact/ios-test-manifest.json"
+          test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
+          test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
+          test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
+          test "$(jq -r '.revision' "$manifest")" = "$(git -C candidate-clients rev-parse HEAD)"
+          test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          test ! -e "$bundle"
+          test ! -L "$bundle"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            case "$path" in
+              "$bundle"/*) ;;
+              *) echo "::error::Invalid $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+            case "$path" in
+              */../*|*/./*) echo "::error::Non-canonical $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+          done
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
+            exit 1
+          fi
+          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          if [[ "$ipad_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
+          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
+          printf '%s\n' "platform=iOS Simulator,name=$ipad_name,OS=$simulator_sdk,arch=arm64" > "$RUNNER_TEMP/ipad-launch-destination"
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/ipad-launch-test-products"
+          cd "$artifact"
+          printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
+          tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
+          test -f "$bundle/Info.plist"
+          for product in app runner testBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            test -d "$path"
+          done
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
+      - name: Start iPad Simulator for root-shell launch
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
+      - name: Wait for iPad Simulator readiness
+        timeout-minutes: 4
+        working-directory: candidate-clients
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
+      - name: Launch iPad root shell on Simulator
+        timeout-minutes: 7
+        working-directory: candidate-clients
+        run: |
+          bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
+          destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            {
+              echo "### iPad root-shell launch"
+              echo
+              echo "Simulator: $(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
+              echo
+              echo "Accepted one passed test and zero skipped tests."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Collect failed iPad launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          diagnostics="$RUNNER_TEMP/ipad-launch-diagnostics"
+          mkdir -p "$diagnostics"
+          xcrun simctl list devices available -j > "$diagnostics/simulators.json" || true
+          if [ -f "$RUNNER_TEMP/ipad-launch-simulator-id" ]; then
+            simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
+          fi
+          reports_dir="$HOME/Library/Logs/DiagnosticReports"
+          if [ -d "$reports_dir" ]; then
+            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
+          fi
+      - name: Upload failed iPad launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ipad-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ipad-launch-smoke.xcresult
+            ${{ runner.temp }}/ipad-launch-diagnostics
           retention-days: 1
           if-no-files-found: warn
 
@@ -1559,6 +1823,8 @@ jobs:
       - build-android-core
       - build-macos-app
       - build-ios-app
+      - build-ios-ipad
+      - build-ios-x86
       - dotnet-maui
       - dotnet-windows-image-preview
       - dotnet-windows-language-model-surface
