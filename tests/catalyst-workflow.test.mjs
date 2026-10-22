@@ -48,7 +48,10 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
   assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
   assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
   assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
-  assert.match(mauiCompile, /name: Compile managed Mac Catalyst app[\s\S]*--no-restore -t:Compile/u)
+  assert.match(
+    mauiCompile,
+    /name: Build managed Mac Catalyst CoreBuild closure[\s\S]*--no-restore -t:CoreBuild/u,
+  )
   assert.match(mauiCompile, /name: Upload exact managed compile state/u)
   assert.match(mauiCompile, /source-state\.tar\.gz/u)
   assert.match(mauiCompile, /name: Pack exact managed compile state\n\s+timeout-minutes: 2/u)

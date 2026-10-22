@@ -23,13 +23,15 @@ Linux rows are the cheapest job that can run that work. They do not make a secon
 Required dual-OS says that suite also compiles a different stack.
 
 The Mac Catalyst path has two required macOS jobs. The first verifies all twelve NuGet locks,
-runs the rendered-page tests, and compiles the managed App and Core projects with the pinned
-Mac Catalyst RID. It transfers the resulting `obj`/`bin` state and a bounded snapshot of the
+runs the rendered-page tests, and runs the public `CoreBuild` managed preparation and compile
+closure for the App and Core projects with the pinned Mac Catalyst RID. It transfers App/Core
+`obj` state, Core `bin` state, and a bounded snapshot of the
 actual tracked .NET source/configuration file modification times, both checksummed against the exact
 candidate, run, attempt, RID, SDK, workload, and Xcode identity. The second independently restores
 the locked graph and pinned tools, verifies every source byte against its own candidate checkout
 before restoring the producer's real modification times, then runs the unchanged full Release
-app build, including trimming, AOT, native linking, and bundle creation. The aggregate Tests gate
+app build, which recreates App `bin` and includes trimming, AOT, native linking, and bundle
+creation. The aggregate Tests gate
 requires both jobs to succeed. Host timing must establish whether this split helps cold runs.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing

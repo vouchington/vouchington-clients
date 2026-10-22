@@ -46,6 +46,9 @@ with tarfile.open(archive, 'r:gz') as tar:
                 or (len(parts) == 1 and not member.isdir())
                 or (member.isfile() and raw.endswith('/'))):
             raise SystemExit('managed archive path is not canonical under obj/bin')
+        if len(parts) > 1 and ((parts[0] == 'obj' and parts[1] not in ('Voucha.Client.App', 'Voucha.Client.Core'))
+                               or (parts[0] == 'bin' and parts[1] != 'Voucha.Client.Core')):
+            raise SystemExit('managed archive contains output outside App/Core compile state')
         key = name.casefold()
         if key in seen:
             raise SystemExit('duplicate managed archive path')
@@ -76,7 +79,7 @@ case "$mode" in
     [[ -d "$artifacts_root/bin/Voucha.Client.Core" ]] || exit 1
     [[ -z "$(find "$artifacts_root/obj" "$artifacts_root/bin" -type l -print -quit)" ]] || exit 1
     mkdir -p "$state_dir"
-    COPYFILE_DISABLE=1 tar -C "$artifacts_root" -czf "$archive" obj bin
+    COPYFILE_DISABLE=1 tar -C "$artifacts_root" -czf "$archive" obj bin/Voucha.Client.Core
     verify_build_archive
     python3 "$candidate_root/dotnet-clients/tooling/catalyst-source-snapshot.py" pack \
       "$candidate_root" "$source_archive" "$revision"

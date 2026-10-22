@@ -44,10 +44,12 @@ it('rehydrates only matching exact-run managed outputs and byte-identical source
   try {
     const app = join(artifacts, 'obj', 'Voucha.Client.App')
     const core = join(artifacts, 'obj', 'Voucha.Client.Core')
+    const appBin = join(artifacts, 'bin', 'Voucha.Client.App')
     const coreBin = join(artifacts, 'bin', 'Voucha.Client.Core')
     await Promise.all([
       mkdir(join(app, 'release_net10.0-maccatalyst_maccatalyst-arm64'), { recursive: true }),
       mkdir(core, { recursive: true }),
+      mkdir(appBin, { recursive: true }),
       mkdir(coreBin, { recursive: true }),
       mkdir(join(candidate, 'dotnet-clients', 'tooling'), { recursive: true }),
     ])
@@ -59,6 +61,7 @@ it('rehydrates only matching exact-run managed outputs and byte-identical source
         'app',
       ),
       writeFile(join(coreBin, 'Voucha.Client.Core.dll'), 'core'),
+      writeFile(join(appBin, 'not-managed-compile-state.txt'), 'copied by CoreBuild'),
       writeFile(join(candidate, '.editorconfig'), 'root = true\n'),
       writeFile(join(candidate, 'global.json'), '{}'),
       writeFile(join(candidate, 'dotnet-clients', 'input.cs'), 'source'),
@@ -87,6 +90,9 @@ it('rehydrates only matching exact-run managed outputs and byte-identical source
     )
     const revision = run('git', ['rev-parse', 'HEAD'], candidate).stdout.trim()
     assert.equal(invoke('pack', artifacts, state, candidate, revision).status, 0)
+    const packedPaths = run('tar', ['-tzf', join(state, 'compile-state.tar.gz')], temp).stdout
+    assert.match(packedPaths, /bin\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.dll/u)
+    assert.doesNotMatch(packedPaths, /bin\/Voucha\.Client\.App/u)
     assert.equal(run('git', ['clone', '-q', candidate, consumer], temp).status, 0)
     const producerInput = join(candidate, 'dotnet-clients', 'input.cs')
     const consumerInput = join(consumer, 'dotnet-clients', 'input.cs')
@@ -185,8 +191,9 @@ import io, sys, tarfile
 source, destination, kind = sys.argv[1:]
 with tarfile.open(source, 'r:gz') as archive:
     entries = [(member, archive.extractfile(member).read() if member.isfile() else None) for member in archive]
-if kind in ('dot', 'double', 'parent'):
-    name = {'dot': 'obj/./alias', 'double': 'obj//alias', 'parent': 'obj/../alias'}[kind]
+if kind in ('dot', 'double', 'parent', 'out-of-scope'):
+    name = {'dot': 'obj/./alias', 'double': 'obj//alias', 'parent': 'obj/../alias',
+            'out-of-scope': 'bin/Voucha.Client.App/rogue'}[kind]
     entries.append((tarfile.TarInfo(name), b'alias'))
 else:
     parent = (tarfile.TarInfo('obj/collision'), b'parent')
@@ -198,7 +205,7 @@ with tarfile.open(destination, 'w:gz', format=tarfile.PAX_FORMAT) as archive:
             member.size = len(data)
         archive.addfile(member, io.BytesIO(data) if data is not None else None)
 `
-    for (const kind of ['dot', 'double', 'parent', 'file-first', 'child-first']) {
+    for (const kind of ['dot', 'double', 'parent', 'out-of-scope', 'file-first', 'child-first']) {
       const altered = join(temp, `${kind}-build.tar.gz`)
       await writeFile(buildArchive, originalArchive)
       assert.equal(
@@ -211,7 +218,10 @@ with tarfile.open(destination, 'w:gz', format=tarfile.PAX_FORMAT) as archive:
       await writeFile(buildManifest, originalManifest.replace(/^sha256=.*$/mu, `sha256=${sha}`))
       const rejected = invoke('unpack', join(temp, `${kind}-restore`), state, consumer, revision)
       assert.notEqual(rejected.status, 0, `${kind}: ${rejected.stderr}`)
-      assert.match(rejected.stderr, /managed archive (path is not canonical|file is an ancestor)/u)
+      assert.match(
+        rejected.stderr,
+        /managed archive (path is not canonical|file is an ancestor|contains output outside)/u,
+      )
       assert.equal(await readFile(consumerInput, 'utf8'), 'source')
     }
     await writeFile(buildArchive, originalArchive)
