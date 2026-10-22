@@ -70,26 +70,7 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   export GRADLE_USER_HOME
 
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    if ! gradle_cache_parent="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null)" ||
-      [[ -z "$gradle_cache_parent" ]]; then
-      echo "getconf DARWIN_USER_TEMP_DIR failed or returned an empty path" >&2
-      exit 1
-    fi
-    if ! gradle_cache_parent="$(CDPATH='' cd -- "$gradle_cache_parent" && pwd -P)"; then
-      echo "DARWIN_USER_TEMP_DIR must identify a readable directory" >&2
-      exit 1
-    fi
-    GRADLE_BUILD_CACHE_DIR="$gradle_cache_parent/gradle-build-cache"
-    if [[ -L "$GRADLE_BUILD_CACHE_DIR" ]]; then
-      echo "GRADLE_BUILD_CACHE_DIR must not be a symlink: $GRADLE_BUILD_CACHE_DIR" >&2
-      exit 1
-    fi
-    (umask 077 && mkdir -p -- "$GRADLE_BUILD_CACHE_DIR")
-    if [[ -L "$GRADLE_BUILD_CACHE_DIR" || ! -d "$GRADLE_BUILD_CACHE_DIR" ]]; then
-      echo "GRADLE_BUILD_CACHE_DIR must be a real directory: $GRADLE_BUILD_CACHE_DIR" >&2
-      exit 1
-    fi
-    chmod 0700 "$GRADLE_BUILD_CACHE_DIR"
+    GRADLE_BUILD_CACHE_DIR="$(bash "$SCRIPT_DIR/gradle-build-cache-dir.sh")"
     export GRADLE_BUILD_CACHE_DIR
   fi
 
@@ -176,16 +157,18 @@ fi
 
 if [[ "$phase" != test-libs ]]; then
   gradle_started_at=$SECONDS
+  consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
   if [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
+  elif [[ "$phase" == app-consumer ]]; then
+    consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
   fi
   (
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
     if [[ "$phase" == app-consumer ]]; then
-      consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
       ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
       echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
       grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$consumer_log" || true
@@ -204,7 +187,11 @@ if [[ "$phase" != test-libs ]]; then
       # shellcheck disable=SC2016
       printf '| `%s` | %ss |\n' "${gradle_tasks[*]}" "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
-    if ! node "$SCRIPT_DIR/report-gradle-profile.mjs" | tee -a "$GITHUB_STEP_SUMMARY"; then
+    current_profile=""
+    if [[ -n "$consumer_log" ]]; then
+      current_profile="$(sed -n 's@^See the profiling report at: file://@@p' "$consumer_log" | tail -n 1)"
+    fi
+    if ! ANDROID_GRADLE_PROFILE_PATH="$current_profile" node "$SCRIPT_DIR/report-gradle-profile.mjs" | tee -a "$GITHUB_STEP_SUMMARY"; then
       printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
     fi
   fi

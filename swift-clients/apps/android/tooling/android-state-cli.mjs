@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync, realpathSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { packState, restoreState } from './android-state-handoff.mjs'
 import { assertCandidate } from './android-state-inventory.mjs'
 
@@ -15,6 +16,14 @@ function cliIdentity(packageRoot) {
   }
 }
 
+export function selectedBuildCacheRoot() {
+  return execFileSync(
+    'bash',
+    [join(import.meta.dirname, 'gradle-build-cache-dir.sh')],
+    { encoding: 'utf8' },
+  ).trim()
+}
+
 async function main() {
   const [command, packageRootArgument, artifactRootArgument] = process.argv.slice(2)
   if (!['pack', 'restore'].includes(command) || !packageRootArgument || !artifactRootArgument) {
@@ -25,8 +34,7 @@ async function main() {
   if (!workspaceRoot) throw new Error('GITHUB_WORKSPACE is required for exact-run Android state')
   const checkoutRoot = join(resolve(workspaceRoot), 'candidate-clients')
   const artifactRoot = resolve(artifactRootArgument)
-  const cacheRoot = process.env.ANDROID_STATE_BUILD_CACHE_DIR ||
-    join(realpathSync(execFileSync('getconf', ['DARWIN_USER_TEMP_DIR'], { encoding: 'utf8' }).trim()), 'gradle-build-cache')
+  const cacheRoot = selectedBuildCacheRoot()
   const identity = cliIdentity(packageRoot)
   assertCandidate(checkoutRoot, identity)
   const result = command === 'pack'
@@ -35,7 +43,9 @@ async function main() {
   process.stdout.write(`${command} Android exact state ${JSON.stringify(result)}\n`)
 }
 
-main().catch(error => {
-  process.stderr.write(`android-state-cli.mjs: ${error.message}\n`)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(error => {
+    process.stderr.write(`android-state-cli.mjs: ${error.message}\n`)
+    process.exitCode = 1
+  })
+}

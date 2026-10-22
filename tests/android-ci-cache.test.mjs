@@ -49,6 +49,48 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Save Gradle user home from main'),
   )
+  for (const job of [producer, app, libs]) {
+    assert.match(job, /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u)
+    assert.match(
+      job,
+      /bash candidate-clients\/swift-clients\/apps\/android\/tooling\/gradle-build-cache-dir\.sh/u,
+    )
+    assert.match(job, /select-gradle-task-cache\.mjs/u)
+    assert.match(
+      job,
+      /name: Restore Gradle task-output cache\n\s+id: android-task-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
+    )
+    assert.match(
+      job,
+      /TASK_CACHE_CONFIG_HASH: \$\{\{ hashFiles\('candidate-clients\/\.mise\.toml'/u,
+    )
+    assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.cache-key \}\}/u)
+    assert.match(
+      job,
+      /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
+    )
+    assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.previous-key \}\}/u)
+    assert.doesNotMatch(job, /restore-keys:/u)
+  }
+  assert.ok(
+    app.indexOf('Restore verified exact-run generated Android state') <
+      app.indexOf('Restore Gradle task-output cache'),
+  )
+  assert.match(
+    app,
+    /name: Bound Gradle task-output cache save\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
+  )
+  assert.match(
+    app,
+    /name: Save Gradle task-output cache from successful main APK build\n\s+if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' \}\}\n\s+uses: actions\/cache\/save@[0-9a-f]{40}/u,
+  )
+  assert.match(app, /key: \$\{\{ steps\.android-task-cache\.outputs\.cache-primary-key \}\}/u)
+  assert.ok(
+    app.indexOf('Upload candidate Android APKs for runtime proof') <
+      app.indexOf('Bound Gradle task-output cache save'),
+  )
+  for (const job of [producer, libs, host])
+    assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
   assert.match(coreJob, /uses: actions\/cache@[0-9a-f]{40}/u)
   assert.match(coreJob, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
   assert.match(

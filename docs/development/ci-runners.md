@@ -91,16 +91,31 @@ The dedicated host job runs the planner-selected source tests with
 `run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
 VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
 path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producer
-and consumer record pinned `--profile` summaries; reported task and category durations may
-overlap and are not a critical-path sum.
+and consumer record pinned `--profile` summaries. The consumer selects the profile named by its
+own Gradle invocation because the verified state also contains the producer's prior profile.
+Reported task and category durations may overlap and are not a critical-path sum.
 
-The Android archive and Gradle caches restore by pinned input keys on every run. Only a
-`main` push writes a missing key: the test-library phase saves the shared
-checksummed-download archive after SDK materialization, and the app consumer saves its Gradle
-user home after APK upload.
+The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
+task-output build cache is separate from its user home: local builds use the canonical Darwin
+temporary directory, while GitHub Actions uses a private stable runner-home path because cache
+archives retain absolute paths across hosts. The producer, consumer, and test-library phases
+restore the task-output cache and use the same
+checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+the test-library phase saves the shared checksummed-download archive after SDK materialization,
+and the app consumer saves its Gradle user home and bounded task-output cache after APK upload. The
+task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
+30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
+checks remain required on hits.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
+The task-output key partitions runner OS, architecture, canonical cache path, pinned Swift/Skip/
+Gradle configuration, and candidate revision. A pull request reads only its exact base revision's
+cache. A `main` push first tries its own revision (for reruns), then its exact predecessor; after
+a successful APK upload, it writes a bounded snapshot for the new revision if that key was absent.
+There are no prefix restore keys. A missing or failed predecessor gives a cold build. The first
+default-branch entry can only be written by a successful `main` push, so an open pull request
+cannot establish warm-hit timing for this new key.
 
 The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
 sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle
