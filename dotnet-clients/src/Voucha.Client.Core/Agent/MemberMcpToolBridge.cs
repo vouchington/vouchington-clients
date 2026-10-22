@@ -6,7 +6,10 @@ namespace Voucha.Client.Core.Agent;
 
 public sealed record MemberMcpFunctionTool(string Name, string Description, JsonElement Parameters);
 public sealed record MemberMcpValidatedResult(
-    string Envelope, McpFeedPostReceipt? FeedPostFact, McpFeedRssItemReceipt? RssItemFact = null);
+    string Envelope,
+    McpFeedPostReceipt? FeedPostFact,
+    McpFeedRssItemReceipt? RssItemFact = null,
+    McpFeedReferralLinkReceipt? ReferralLinkFact = null);
 
 /// <summary>Validates one immutable server catalog before projecting it to a local model.</summary>
 public sealed class MemberMcpToolBridge
@@ -85,12 +88,15 @@ public sealed class MemberMcpToolBridge
     var envelope = SerializeResultEnvelope(result);
     McpFeedPostReceipt? postFact = null;
     McpFeedRssItemReceipt? rssFact = null;
+    McpFeedReferralLinkReceipt? referralFact = null;
     if (result.IsError != true && result.StructuredContent is { } structured && callId is { Length: > 0 } id)
     {
       postFact = McpFeedPostReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
       rssFact = McpFeedRssItemReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
+      referralFact = McpFeedReferralLinkReceipt.FromValidatedResult(
+          name, arguments, structured, snapshot.AccountId, id);
     }
-    return new MemberMcpValidatedResult(envelope, postFact, rssFact);
+    return new MemberMcpValidatedResult(envelope, postFact, rssFact, referralFact);
   }
 
   internal static string SerializeResultEnvelope(McpToolResult result)

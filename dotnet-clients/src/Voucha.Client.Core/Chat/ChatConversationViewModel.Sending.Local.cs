@@ -49,8 +49,10 @@ public sealed partial class ChatConversationViewModel
         generation?.FeedPostReceipts, mcpSnapshot);
     var rssItemReceipts = retry?.RssItemReceipts ?? CurrentRssItemReceipts(
         generation?.RssItemReceipts, mcpSnapshot);
+    var referralLinkReceipts = retry?.ReferralLinkReceipts ?? CurrentReferralLinkReceipts(
+        generation?.ReferralLinkReceipts, mcpSnapshot);
     var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot,
-        mcpSnapshot is null ? null : mcpProvider, feedPostReceipts, rssItemReceipts);
+        mcpSnapshot is null ? null : mcpProvider, feedPostReceipts, rssItemReceipts, referralLinkReceipts);
     pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(
@@ -60,7 +62,8 @@ public sealed partial class ChatConversationViewModel
         DateTimeOffset.UtcNow,
         Localization: localization,
         FeedPostReceipts: feedPostReceipts,
-        RssItemReceipts: rssItemReceipts));
+        RssItemReceipts: rssItemReceipts,
+        ReferralLinkReceipts: referralLinkReceipts));
     OnPropertyChanged(nameof(Messages));
 
     try
@@ -118,6 +121,19 @@ public sealed partial class ChatConversationViewModel
         receipt.ItemIds.Any(id => !Guid.TryParse(id, out _)))) return null;
     return receipts.Select(receipt => new McpFeedRssItemReceipt(
         receipt.AccountId, receipt.CallId, receipt.ItemIds.ToArray())).ToArray();
+  }
+
+  private static McpFeedReferralLinkReceipt[]? CurrentReferralLinkReceipts(
+      IReadOnlyList<McpFeedReferralLinkReceipt>? receipts, MemberMcpConnectedSnapshot? snapshot)
+  {
+    if (snapshot is null || receipts is not { Count: > 0 } || receipts.Count > 32) return null;
+    var calls = new HashSet<string>(StringComparer.Ordinal);
+    if (receipts.Any(receipt => receipt.AccountId != snapshot.AccountId ||
+        string.IsNullOrEmpty(receipt.CallId) || !calls.Add(receipt.CallId) || receipt.Links.Count > 100 ||
+        receipt.Links.Any(link => string.IsNullOrWhiteSpace(link.ProgramName) ||
+            !McpFeedReferralLinkReceipt.SafeUri(link.Url)))) return null;
+    return receipts.Select(receipt => new McpFeedReferralLinkReceipt(
+        receipt.AccountId, receipt.CallId, receipt.Links.ToArray())).ToArray();
   }
 
   private void ResetStreamingState() => IsStreaming = true;

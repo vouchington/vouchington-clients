@@ -9,6 +9,7 @@ extension NativeChatMCPFact {
         case ("read_my_profile", .string("links")): makeProfileLinks(content)
         case ("read_feed", .string("posts")): makeFeedPostIds(content)
         case ("read_feed", .string("rss_items")): makeFeedRssItemIds(content)
+        case ("read_feed", .string("referral_links")): makeFeedReferralLinks(content)
         default: nil
         }
     }
