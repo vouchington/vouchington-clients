@@ -143,12 +143,24 @@ public extension SettingsViewModel {
 
     func purchaseMembership(priceId _: String) async {
         membershipCheckoutURL = nil
-        statusMessage = .message(.nativeSwiftMembershipNativeBillingUnavailable)
+        statusMessage = .message(checkoutNotice(createdSession: false))
     }
 
     func openMembershipPortal() async {
         membershipPortalURL = nil
-        statusMessage = .message(.nativeSwiftMembershipNativeBillingUnavailable)
+        statusMessage = .message(portalNotice(createdSession: false))
+    }
+
+    private func checkoutNotice(createdSession: Bool) -> UiMessageKey {
+        createdSession
+            ? .nativeSwiftSettingsCheckoutSessionCreated
+            : .nativeSwiftMembershipNativeBillingUnavailable
+    }
+
+    private func portalNotice(createdSession: Bool) -> UiMessageKey {
+        createdSession
+            ? .nativeSwiftSettingsBillingPortalCreated
+            : .nativeSwiftMembershipNativeBillingUnavailable
     }
 
     func cancelMembership() async {

@@ -97,7 +97,7 @@ public extension SettingsViewModel {
         let isCurrent = currentMembershipPlanId == plan
         let priceSummaryText = plan == "free"
             ? localized(.nativeSwiftMembershipFree)
-            : localized(.nativeSwiftMembershipPriceUnavailable)
+            : paidPriceSummary(showsStoreSchedule: false)
         return MembershipPlanPresentation(
             id: plan,
             title: membershipPlanTitle(plan),
@@ -105,12 +105,36 @@ public extension SettingsViewModel {
                 ? currentMembershipStateText ?? localized(.nativeSwiftMembershipCurrentPlanPeriod)
                 : nil,
             priceSummaryText: priceSummaryText,
-            priceOptions: [],
+            priceOptions: storePriceOptions(for: plan, showsStoreSchedule: false),
             featureBullets: membershipFeatures(for: plan),
             purchaseButtonTitle: purchaseTitle(for: plan, isCurrent: isCurrent),
             purchaseButtonHint: purchaseHint(for: plan),
             isCurrent: isCurrent
         )
+    }
+
+    private func paidPriceSummary(showsStoreSchedule: Bool) -> String {
+        guard showsStoreSchedule else {
+            return localized(.nativeSwiftMembershipPriceUnavailable)
+        }
+        return localized(
+            .nativeSwiftMembershipStartingAt,
+            parameters: ["price": localized(.nativeSwiftMembershipPrice)]
+        )
+    }
+
+    private func storePriceOptions(
+        for plan: String,
+        showsStoreSchedule: Bool
+    ) -> [MembershipPlanPresentation.PriceOption] {
+        guard showsStoreSchedule, plan != "free" else { return [] }
+        return membershipPlans[plan, default: []].map { sku in
+            MembershipPlanPresentation.PriceOption(
+                id: sku.id,
+                priceText: localized(.nativeSwiftMembershipPriceUnavailable),
+                intervalText: normalizedMembershipInterval(sku.interval)
+            )
+        }
     }
 
     private func purchaseTitle(for plan: String, isCurrent: Bool) -> String {

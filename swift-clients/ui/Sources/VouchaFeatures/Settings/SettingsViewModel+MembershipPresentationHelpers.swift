@@ -49,6 +49,17 @@ extension SettingsViewModel {
         return membershipBenefitQuantityText(value)
     }
 
+    func normalizedMembershipInterval(_ interval: String) -> String {
+        switch interval.lowercased() {
+        case let value where value.hasPrefix("year"):
+            localized(.nativeSwiftMembershipYearly)
+        case let value where value.hasPrefix("month"):
+            localized(.nativeSwiftMembershipMonthly)
+        default:
+            localized(.verbatim(interval))
+        }
+    }
+
     private func membershipBenefitQuantityText(_ value: MembershipBenefitValue) -> String? {
         guard value.kind == "quantity",
               let quantity = value.quantity,
