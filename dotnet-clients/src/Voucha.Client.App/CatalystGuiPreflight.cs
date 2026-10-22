@@ -43,6 +43,7 @@ internal static class CatalystGuiPreflight
 
   internal static Window CreateProductionWindow(IServiceProvider services)
   {
+    DisablePreflightAnimations();
     var shell = services.GetRequiredService<AppShell>();
     var window = new Window(shell);
     EventHandler markReady = (_, _) =>
@@ -55,6 +56,13 @@ internal static class CatalystGuiPreflight
     shell.Loaded += markReady;
     ScheduleOpen(services, shell);
     return window;
+  }
+
+  private static void DisablePreflightAnimations()
+  {
+#if MACCATALYST
+    UIKit.UIView.AnimationsEnabled = false;
+#endif
   }
 
   private static void ScheduleOpen(IServiceProvider services, AppShell shell)

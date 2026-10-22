@@ -65,6 +65,17 @@ public sealed partial class NotificationPreferencesViewTests
     await model.LoadAsync(TestContext.Current.CancellationToken);
     view.SynchronizeControls();
     Assert.Equal(0, emitted);
+
+    var engagement = Find<Switch>(view, "notification-engagement");
+    engagement.IsToggled = !model.EngagementEmailsEnabled;
+    engagement.IsToggled = model.EngagementEmailsEnabled;
+    var news = Find<Picker>(view, "notification-news-digest");
+    var selectedNews = news.SelectedItem;
+    news.SelectedIndex = -1;
+    news.SelectedItem = selectedNews;
+    Find<TimePicker>(view, "notification-time").Time =
+        TimeSpan.Parse(model.ModerationEmailTimeOfDay, CultureInfo.InvariantCulture);
+    Assert.Equal(1, emitted);
   }
 
   [Fact]

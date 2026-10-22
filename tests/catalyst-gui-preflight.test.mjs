@@ -70,7 +70,6 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /-p:CodesignEntitlements=/u)
     assert.match(job, /catalyst-gui-preflight\.mjs --session/u)
     assert.match(sessionScript, /--ui-testing-launch-smoke/u)
-    assert.match(sessionScript, /appium:waitForIdleTimeout': 1000/u)
     assert.match(job, /pgrep -qx WindowServer/u)
     assert.match(job, /refusing to skip the Mac Catalyst GUI preflight/u)
     assert.match(

@@ -192,7 +192,6 @@ async function session() {
           },
           'appium:showServerLogs': true,
           'appium:serverStartupTimeout': 100000,
-          'appium:waitForIdleTimeout': 1000,
         },
       },
     })
