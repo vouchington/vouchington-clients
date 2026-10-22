@@ -7,8 +7,9 @@
 - **macOS**: Active native client with authenticated member, content, messaging, settings, media,
   and role-gated staff surfaces
 - **iOS/iPadOS**: Generated app shell sharing the macOS SwiftUI capability sources; CI compiles the
-  app for a generic iOS Simulator destination and runs the shared root-shell launch smoke on an
-  available iPhone Simulator. This does not exercise an iPad or a signed device build.
+  app for a generic iOS Simulator destination, runs the shared root-shell and canonical video-feed
+  launch smoke on an available iPhone Simulator, then runs only the root-shell launch smoke on an
+  available iPad Simulator. This does not exercise a signed device build.
 - **Android**: A [Skip Fuse 1.9+ shell](apps/android/README.md) cross-compiles with the Swift Android SDK,
   uses ML Kit Prompt API for explicit-download on-device generation, and stores endpoint secrets
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
@@ -87,8 +88,8 @@ and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitle
 accepting only one passed test and no skips. The iOS job launches the unsigned app on an
 available iPhone Simulator and requires its root-shell, canonical video-feed, and email OTP
 sign-in UI tests to pass. The sign-in test uses fixture responses and does not complete Turnstile
-or cover another platform.
-CI also
+or cover another platform. It then launches only the root-shell UI test on an available iPad
+Simulator and accepts that result only when exactly one test passed and none were skipped. CI also
 cross-compiles `core/` for Android in the Linux Docker
 `build-android-core` gate via `./tooling/harness.sh --checks build-android`.
 

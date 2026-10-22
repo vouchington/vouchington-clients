@@ -436,7 +436,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /VOUCHA_DOTNET_CACHE_ROOT=\$RUNNER_TEMP\/voucha-dotnet-cache/u)
     assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
     assert.match(portable, cachePin)
-    assert.match(maui, cachePin)
+    assert.match(maui, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(portable, nugetKey)

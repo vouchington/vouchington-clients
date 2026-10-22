@@ -1026,7 +1026,7 @@ jobs:
     name: Swift iOS Simulator launch smoke
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     permissions:
       actions: read
       contents: read
@@ -1102,6 +1102,62 @@ jobs:
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 3 and .passedTests == 3 and .failedTests == 0 and .skippedTests == 0'
+      - name: Shut down iPhone Simulator after launch smoke
+        timeout-minutes: 2
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+          xcrun simctl shutdown "$simulator_id"
+      - name: Start iPad Simulator for root-shell launch
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
+            exit 1
+          fi
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          if [[ "$simulator_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $simulator_name"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
+          printf '%s\n' "$simulator_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
+          echo "iPad root-shell simulator: $simulator_name ($simulator_id)"
+      - name: Wait for iPad Simulator readiness
+        timeout-minutes: 12
+        working-directory: candidate-clients
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
+      - name: Launch iPad root shell on Simulator
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          simulator_name="$(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            {
+              echo "### iPad root-shell launch"
+              echo
+              echo "Simulator: $simulator_name"
+              echo
+              echo "Accepted one passed test and zero skipped tests."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1113,6 +1169,10 @@ jobs:
           if [ -f "$RUNNER_TEMP/ios-launch-simulator-id" ]; then
             simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
             xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
+          fi
+          if [ -f "$RUNNER_TEMP/ipad-launch-simulator-id" ]; then
+            simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/ipad-launch.log" 2>&1 || true
           fi
           reports_dir="$HOME/Library/Logs/DiagnosticReports"
           if [ -d "$reports_dir" ]; then
@@ -1127,6 +1187,7 @@ jobs:
           name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/ios-launch-smoke.xcresult
+            ${{ runner.temp }}/ipad-launch-smoke.xcresult
             ${{ runner.temp }}/ios-launch-diagnostics
           retention-days: 1
           if-no-files-found: warn
@@ -1155,7 +1216,8 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
@@ -1261,6 +1323,18 @@ jobs:
           --configuration Release --framework net10.0-maccatalyst
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore
+      - name: Save NuGet packages from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
 
   dotnet-windows-image-preview:
     name: .NET Windows image preview

@@ -49,7 +49,36 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
     )
     assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 12/u)
-    assert.match(iosJob, /\n\s+timeout-minutes: 40\n/u)
+    assert.match(iosJob, /\n\s+timeout-minutes: 55\n/u)
+    assert.ok(
+      iosJob.indexOf('- name: Launch iOS app on Simulator') <
+        iosJob.indexOf('- name: Shut down iPhone Simulator after launch smoke'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Shut down iPhone Simulator after launch smoke') <
+        iosJob.indexOf('- name: Start iPad Simulator for root-shell launch'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Start iPad Simulator for root-shell launch') <
+        iosJob.indexOf('- name: Wait for iPad Simulator readiness'),
+    )
+    assert.ok(
+      iosJob.indexOf('- name: Wait for iPad Simulator readiness') <
+        iosJob.indexOf('- name: Launch iPad root shell on Simulator'),
+    )
+    assert.match(iosJob, /xcrun simctl shutdown "\$simulator_id"/u)
+    const ipadLaunch = iosJob.slice(iosJob.indexOf('- name: Launch iPad root shell on Simulator'))
+    const ipadStep = ipadLaunch.slice(0, ipadLaunch.indexOf('\n      - name:'))
+    assert.match(
+      ipadStep,
+      /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
+    )
+    assert.doesNotMatch(ipadStep, /FeedFlowTests/u)
+    assert.match(ipadStep, /ipad-launch-smoke\.xcresult/u)
+    assert.match(
+      ipadStep,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+    )
     assert.match(
       iosJob,
       /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
@@ -78,10 +107,18 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
       /if: \$\{\{ failure\(\) \}\}[\s\S]*?xcrun simctl spawn "\$simulator_id" log show/u,
     )
     assert.match(iosJob, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?ios-launch-smoke\.xcresult/u)
-    const selector = iosJob.match(
-      /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" '([^']+)'\)"/u,
-    )?.[1]
+    const selectors = [
+      ...iosJob.matchAll(
+        /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" '([^']+)'\)"/gu,
+      ),
+    ].map(match => match[1])
+    assert.equal(selectors.length, 2)
+    const selector = selectors[0]
+    const ipadSelector = selectors[1]
+    assert.match(selector, /startswith\("iPhone "\)/u)
+    assert.match(ipadSelector, /startswith\("iPad "\)/u)
     assert.ok(selector)
+    assert.ok(ipadSelector)
     const devices = {
       devices: {
         'com.apple.CoreSimulator.SimRuntime.iOS-26-2': [
@@ -120,6 +157,43 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
             devices: {
               'com.apple.CoreSimulator.SimRuntime.iOS-26-4': [
                 { name: 'iPhone 17 Pro', udid: 'older-iphone', isAvailable: true },
+              ],
+            },
+          }),
+          encoding: 'utf8',
+        },
+      ).trim(),
+      '',
+    )
+    assert.equal(
+      execFileSync(
+        'jq',
+        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', ipadSelector],
+        {
+          input: JSON.stringify({
+            devices: {
+              'com.apple.CoreSimulator.SimRuntime.iOS-26-5': [
+                { name: 'iPhone 17', udid: 'iphone', isAvailable: true },
+                { name: 'iPad', udid: 'bare-ipad', isAvailable: true },
+                { name: 'iPad Pro 13-inch', udid: 'ipad-pro', isAvailable: true },
+                { name: 'iPad Air', udid: 'unavailable-ipad', isAvailable: false },
+              ],
+            },
+          }),
+          encoding: 'utf8',
+        },
+      ).trim(),
+      'ipad-pro',
+    )
+    assert.equal(
+      execFileSync(
+        'jq',
+        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', ipadSelector],
+        {
+          input: JSON.stringify({
+            devices: {
+              'com.apple.CoreSimulator.SimRuntime.iOS-26-5': [
+                { name: 'iPhone 17', udid: 'iphone', isAvailable: true },
               ],
             },
           }),

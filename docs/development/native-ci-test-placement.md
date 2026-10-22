@@ -38,11 +38,14 @@ email OTP sign-in: Sign In, Continue with Email, Send Code, and Verify Code. The
 accepts only the typed email, code, and verification token, then `SessionManager.refresh` reads the
 canonical identity fixture. That token stands in for the Turnstile widget the simulator cannot
 complete. The job does not prove cookie persistence, a live CAPTCHA, or sign-in on another
-platform. The test receives its complete fixture checkout explicitly through the generated scheme
-and fails closed when a fixture or the Simulator is unavailable. The job is required by the native
-workflow `Tests` fan-in; skipped cases and test retries are not accepted as feed-flow or sign-in
-evidence. This is partial coverage of #77. The video-feed lane does not close the parent, and
-other flows and platforms stay outstanding.
+platform. After those iPhone tests pass, the job shuts that simulator down and launches only
+`LaunchSmokeTests/testLaunchRendersRootShell` on an available iPad Simulator. The iPad result
+counts only when exactly one test passed and none were skipped. The generic Simulator compile is
+a build, not that launch. The test receives its complete fixture checkout explicitly through the
+generated scheme and fails closed when a fixture or the Simulator is unavailable. The job is
+required by the native workflow `Tests` fan-in; skipped cases and test retries are not accepted
+as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
+iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,
