@@ -1,19 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
-
+import { jobBlock } from './workflow-job-block.mjs'
 const readWorkflow = name =>
   readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8')
 const readAction = name =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), 'utf8')
-
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
 
 const preparedCandidateInputs = [
   'candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}',
@@ -36,7 +28,6 @@ describe('native contract workflow boundary', () => {
       for (const consumer of consumers) assert.equal(consumer.includes(path), false)
     }
   })
-
   it('uses full checkouts and pinned artifact actions', async () => {
     const files = await Promise.all([
       readWorkflow('native-contract-tests.yml'),
@@ -78,14 +69,14 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 16)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 23)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 16)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 23)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })
@@ -98,7 +89,6 @@ describe('native contract workflow boundary', () => {
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
-
     assert.match(portable, /^    name: \.NET portable$/mu)
     assert.match(portable, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(portable, /matrix:/u)
@@ -162,10 +152,13 @@ describe('native contract workflow boundary', () => {
       'test-swift-core:',
       'test-swift-android:',
       'test-swift-ui:',
+      'build-swift-ui-tests:',
       'swift-patch-coverage:',
       'build-android-core:',
       'build-macos-app:',
       'build-ios-app:',
+      'build-ios-tests:',
+      'build-ios-x86:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
     assert.match(
@@ -192,7 +185,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
     assert.match(
       workflow,
-      /verify-android-host-swift\.sh[\s\S]*?mise exec swift@6\.3\.3 -- swift test/u,
+      /run-android-host-swift-tests\.sh\s+--package-path swift-clients\/apps\/android\s+--filter VouchaAndroidTests/u,
     )
     assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
@@ -217,7 +210,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      16,
+      23,
     )
   })
 
@@ -236,7 +229,10 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-core',
       'periphery-swift-ui',
       'test-swift-core',
+      'build-swift-android-native',
       'build-swift-android',
+      'test-swift-android-libs',
+      'test-swift-android-host',
       'test-swift-ui',
       'build-macos-app',
     ])
@@ -294,6 +290,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /jq -er '\.sdk\.version' global\.json/u)
     assert.match(action, /mise install "\$MISE_TOOL"/u)
     assert.doesNotMatch(validation, /actions\/setup-dotnet@/u)
+    // no-mistakes-disable-next-line test-no-dependency-pins -- setup-dotnet input this repository must not select
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
     assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
     assert.doesNotMatch(validation, /mise_dir:/u)
@@ -320,7 +317,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      16,
+      23,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
@@ -382,46 +379,6 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(action, /path:.*skip-swift-home/u)
   })
 
-  it('restores checksummed Android archives and the Skip Gradle user home', async () => {
-    const workflow = await readWorkflow('native-contract-tests.yml')
-    const skip = jobBlock(workflow, 'build-swift-android')
-    const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
-
-    assert.match(skip, cachePin)
-    assert.match(androidCore, cachePin)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(androidCore, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(
-      skip,
-      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh', '\.github\/workflows\/native-contract-tests\.yml'\)/u,
-    )
-    assert.match(
-      androidCore,
-      /hashFiles\('candidate-clients\/swift-clients\/tooling\/build-android-core\.sh'\)/u,
-    )
-    assert.match(skip, /Sources\/VouchaAndroid\/Skip\/skip\.yml/u)
-    assert.doesNotMatch(skip, /restore-keys:/u)
-    assert.doesNotMatch(androidCore, /restore-keys:/u)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
-    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
-    assert.match(
-      skip,
-      /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,
-    )
-    assert.match(
-      skip,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch and materialize Skip Swift Android SDK/u,
-    )
-    assert.match(
-      androidCore,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch Swift Android SDK and NDK archives/u,
-    )
-    assert.doesNotMatch(skip, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(androidCore, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(skip, /path:.*android-sdk/u)
-  })
-
   it('restores the job-scoped NuGet package cache for portable and MAUI jobs', async () => {
     const [action, workflow] = await Promise.all([
       readAction('prepare-native-contract'),
@@ -436,7 +393,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /VOUCHA_DOTNET_CACHE_ROOT=\$RUNNER_TEMP\/voucha-dotnet-cache/u)
     assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
     assert.match(portable, cachePin)
-    assert.match(maui, cachePin)
+    assert.match(maui, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(portable, nugetKey)

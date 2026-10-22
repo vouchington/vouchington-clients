@@ -20,6 +20,12 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 | .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
+The Swift UI CI build and test shards both use `macos-latest` with the selected Xcode. The build
+shard compiles the complete coverage-enabled test product and transfers only its test bundle,
+resource bundles, and SwiftPM test metadata. The test shard verifies the run, candidate, toolchain,
+architecture, package lock, and archive before `swift test --skip-build` executes the same suite
+and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
+
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
@@ -32,15 +38,20 @@ continue when WindowServer is down or the runner user does not own the GUI conso
 requires exactly one passed test with nothing skipped. That is launch evidence for the root shell
 only; sign-in and tab coverage stay on #80.
 
-The iOS job first compiles against a generic iOS Simulator destination on `macos-latest`, then
-runs the shared UI launch-smoke target on an available iPhone Simulator with signing disabled.
-It also exercises the real Videos tab using existing canonical identity and feed responses. The
-DEBUG fixture restores its account through `SessionManager.refresh`; it does not prove sign-in,
-cookie persistence, or CAPTCHA behavior. The test receives its complete fixture checkout explicitly
-through the generated scheme and fails closed when a fixture or the Simulator is unavailable.
-The job is required by the native workflow `Tests` fan-in; skipped cases and test retries are not
-accepted as feed-flow evidence. This is partial coverage of #77, with other flows and platforms
-still outstanding.
+The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
+app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
+`.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
+run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
+`test-without-building`; neither launch job recompiles. The iPhone job requires exactly two passed,
+non-skipped root-shell and real Videos-tab tests. The iPad job requires exactly one passed,
+non-skipped root-shell test on an available iPad Simulator. The native `Tests` fan-in requires
+both device-family launches and the x86_64 compile. The DEBUG fixture restores its account
+through `SessionManager.refresh`; it does not prove sign-in, cookie persistence, or CAPTCHA
+behavior. Both jobs receive the complete fixture checkout explicitly through the generated scheme
+and fail closed when a fixture or Simulator is unavailable.
+Both launch jobs are required by the native workflow `Tests` fan-in; skipped cases and test retries are not
+accepted as feed-flow evidence. This is partial coverage of #77. iPad feed flow, sign-in, and
+Catalyst remain outstanding.
 
 The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`

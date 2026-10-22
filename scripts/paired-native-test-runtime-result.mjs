@@ -1,4 +1,5 @@
 import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
+import { validateCleanupShape } from './paired-native-cleanup-evidence.mjs'
 
 const fail = message => {
   throw new Error(`Paired native test evidence rejected: ${message}`)
@@ -25,6 +26,7 @@ export function validateInstrumentationResult(result, expected) {
       'apkSha256',
       'emulator',
       'phases',
+      'cleanup',
     ],
     'runtime result',
   )
@@ -67,6 +69,7 @@ export function validateInstrumentationResult(result, expected) {
     if (phase.method !== expectedPhases[index] || phase.exitCode !== 0 || phase.tests !== 1)
       fail(`runtime phase ${index} did not report exactly one passing test`)
   }
+  validateCleanupShape(result.cleanup, { ...expected, runAttempt: 1 })
   return true
 }
 
@@ -77,6 +80,7 @@ export function createInstrumentationResult({
   apkSha256,
   emulator,
   phases,
+  cleanup,
 }) {
   const result = {
     schema: 1,
@@ -87,6 +91,7 @@ export function createInstrumentationResult({
     apkSha256,
     emulator,
     phases,
+    cleanup,
   }
   validateInstrumentationResult(result, { runId, nativeTestProfile, clientsMergeSha, apkSha256 })
   return result

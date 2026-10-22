@@ -312,27 +312,26 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
 
     func testAIRerunCancellationStopsPollingAndPreservesExistingRow() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
-        let viewModel = try staffViewModel(rerunPollDelay: {
-            try await Task.sleep(for: .seconds(30))
-        })
+        let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1/resolution-drafts"] = (
             Support.queued, 202
         )
-        CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1"] = (
+        let pollPath = "/api/v1/appeals/appeal-1"
+        CannedFeedURLProtocol.handlers[pollPath] = (
             Support.envelope(Support.appeal()), 200
         )
+        let firstPollCaptured = expectation(description: "First AI rerun poll captured")
+        CannedFeedURLProtocol.suspendResponse(path: pollPath) { firstPollCaptured.fulfill() }
         let rerun = Task { await viewModel.rerunAI(for: appeal) }
-        for _ in 0 ..< 100
-            where CannedFeedURLProtocol.capturedPathCount("/api/v1/appeals/appeal-1") == 0 {
-            await Task.yield()
-        }
+        await fulfillment(of: [firstPollCaptured], timeout: 5)
 
         rerun.cancel()
+        CannedFeedURLProtocol.releaseResponse(path: pollPath)
         await rerun.value
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/appeals/appeal-1"), 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pollPath), 1)
         XCTAssertEqual(viewModel.appeals.first?.aiPublicResponse, "AI draft")
         XCTAssertFalse(viewModel.isMutating)
     }

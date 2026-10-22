@@ -52,10 +52,10 @@
     "dependency-cruiser": "18.2.0",
     "husky": "9.1.7",
     "knip": "6.32.3",
-    "no-mistakes": "0.53.2",
+    "no-mistakes": "0.94.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.80.0",
-    "pr-shepherd": "0.59.1",
+    "pr-shepherd": "1.0.0",
     "vouchington-tooling": "0.48.0"
   },
   "engines": {
