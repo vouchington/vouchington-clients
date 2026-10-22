@@ -26,9 +26,11 @@ if [[ "$phase" == app-consumer && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; 
 fi
 
 if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
-  while IFS= read -r -d '' source_hash; do
-    rm -f -- "$source_hash"
-  done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
+  if [[ "$phase" != app-native-producer || "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+    while IFS= read -r -d '' source_hash; do
+      rm -f -- "$source_hash"
+    done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
+  fi
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then

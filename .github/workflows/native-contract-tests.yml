@@ -755,6 +755,7 @@ jobs:
           python3 --version
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-dependency-state"
+          echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -1172,14 +1173,38 @@ jobs:
           --package-path swift-clients/apps/android
           --filter VouchaAndroidTests
   test-swift-android-cookie:
-    name: Android cookie restart
-    needs: [verify, build-swift-android]
+    name: Swift Android Skip
+    needs:
+      [
+        verify,
+        build-swift-android-dependency,
+        build-swift-android-native,
+        build-swift-android,
+        test-swift-android-libs,
+        test-swift-android-host,
+      ]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       actions: read
       contents: read
     steps:
+      - name: Require every Android validation phase
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          ANDROID_DEPENDENCY_RESULT: ${{ needs.build-swift-android-dependency.result }}
+          ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
+          ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
+          ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
+          ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
+        run: |
+          test "$VERIFY_RESULT" = success
+          test "$ANDROID_DEPENDENCY_RESULT" = success
+          test "$ANDROID_NATIVE_RESULT" = success
+          test "$ANDROID_APP_RESULT" = success
+          test "$ANDROID_LIBS_RESULT" = success
+          test "$ANDROID_HOST_RESULT" = success
       - name: Check out exact candidate runtime script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1244,40 +1269,6 @@ jobs:
             ${{ runner.temp }}/voucha-cookie-emulator-failure-tail.log
           if-no-files-found: ignore
           retention-days: 1
-  test-swift-android:
-    name: Swift Android Skip
-    needs:
-      [
-        verify,
-        build-swift-android-dependency,
-        build-swift-android-native,
-        build-swift-android,
-        test-swift-android-libs,
-        test-swift-android-host,
-        test-swift-android-cookie,
-      ]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Require every Android validation phase
-        env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
-          ANDROID_DEPENDENCY_RESULT: ${{ needs.build-swift-android-dependency.result }}
-          ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
-          ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
-          ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
-          ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
-          ANDROID_COOKIE_RESULT: ${{ needs.test-swift-android-cookie.result }}
-        run: |
-          test "$VERIFY_RESULT" = success
-          test "$ANDROID_DEPENDENCY_RESULT" = success
-          test "$ANDROID_NATIVE_RESULT" = success
-          test "$ANDROID_APP_RESULT" = success
-          test "$ANDROID_LIBS_RESULT" = success
-          test "$ANDROID_HOST_RESULT" = success
-          test "$ANDROID_COOKIE_RESULT" = success
   build-swift-ui-tests:
     name: Swift UI build for testing
     needs: verify
@@ -2604,7 +2595,7 @@ jobs:
       - periphery-swift-ui
       - test-swift-core-linux
       - test-swift-core
-      - test-swift-android
+      - test-swift-android-cookie
       - test-swift-ui
       - build-swift-ui-tests
       - swift-patch-coverage

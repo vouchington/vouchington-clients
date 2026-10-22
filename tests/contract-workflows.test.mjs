@@ -150,7 +150,7 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-ui:',
       'test-swift-core-linux:',
       'test-swift-core:',
-      'test-swift-android:',
+      'test-swift-android-cookie:',
       'test-swift-ui:',
       'build-swift-ui-tests:',
       'swift-patch-coverage:',

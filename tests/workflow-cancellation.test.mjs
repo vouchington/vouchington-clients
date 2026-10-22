@@ -55,7 +55,7 @@ const assertCancellationGate = block => {
 
 describe('cancellation-aware native reporting', () => {
   for (const [name, workflow] of [
-    ['test-swift-android', native],
+    ['test-swift-android-cookie', native],
     ['native-dto-fixture-parity', native],
     ['tests', native],
     ['validate', validate],

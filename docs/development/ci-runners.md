@@ -85,8 +85,9 @@ identity before rehydration, then executes the original app and instrumentation 
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
 document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
 Android SDK, and NDK toolchains are materialized independently in each job and never included in
-the artifact. The stable `Swift Android Skip` check requires producer, consumer, host tests,
-test libraries, and the cookie runtime proof to succeed; `Tests` still requires that result.
+the artifact. The existing cookie runtime job also reports the stable `Swift Android Skip` check:
+it first requires the dependency and native producers, consumer, host tests, and test libraries to
+succeed, then runs the full cookie restart proof. `Tests` requires that job's result directly.
 Local Android validation continues to default to both original phases. Producer and consumer
 job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
 budgets are safety bounds, not evidence that the under-ten-minute target has been met.
