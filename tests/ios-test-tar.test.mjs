@@ -138,3 +138,111 @@ module.validate(sys.argv[2])
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('shared validator confines a selected SwiftPM product to .build', () => {
+  const root = mkdtempSync(join(tmpdir(), 'swift-ui-test-tar-'))
+  const probe = String.raw`
+import io, importlib.util, sys, tarfile
+verifier, archive, kind = sys.argv[1:]
+with tarfile.open(archive, 'w:gz') as tar:
+    for name, type_, target in [
+        ('.build/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/Tests.xctest/', tarfile.DIRTYPE, ''),
+        ('.build/arm64-apple-macosx/debug/Tests.xctest/test', tarfile.REGTYPE, ''),
+        ('.build/debug', tarfile.SYMTYPE, 'arm64-apple-macosx/debug'),
+    ]:
+        entry = tarfile.TarInfo(name)
+        entry.type = type_
+        entry.linkname = target
+        if type_ == tarfile.REGTYPE:
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+        else:
+            tar.addfile(entry)
+    if kind == 'case-alias-link-chain':
+        product = '.build/arm64-apple-macosx/debug/Tests.xctest'
+        directory = tarfile.TarInfo(product + '/dir/')
+        directory.type = tarfile.DIRTYPE
+        tar.addfile(directory)
+        for name, target in [('/dir/s1', '../../../..'), ('/dir/S1/s2', '..')]:
+            entry = tarfile.TarInfo(product + name)
+            entry.type = tarfile.SYMTYPE
+            entry.linkname = target
+            tar.addfile(entry)
+    elif kind == 'case-collision' or kind == 'unicode-collision':
+        product = '.build/arm64-apple-macosx/debug/Tests.xctest'
+        names = ('SomeFile', 'somefile') if kind == 'case-collision' else ('caf\u00e9', 'cafe\u0301')
+        for name in names:
+            entry = tarfile.TarInfo(product + '/' + name)
+            entry.type = tarfile.REGTYPE
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+    elif kind != 'valid':
+        entry = tarfile.TarInfo('.build/' + ('extra' if kind == 'extra' else 'escape'))
+        entry.type = tarfile.REGTYPE if kind == 'extra' else tarfile.SYMTYPE
+        entry.linkname = '' if kind == 'extra' else '../../outside'
+        if kind == 'extra':
+            entry.size = 1
+            tar.addfile(entry, io.BytesIO(b'x'))
+        else:
+            tar.addfile(entry)
+spec = importlib.util.spec_from_file_location('validator', verifier)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.validate(archive, root='.build', allowed_paths=(
+    '.build/debug', '.build/arm64-apple-macosx/debug/Tests.xctest',
+))
+`
+  try {
+    for (const [kind, accepted] of [
+      ['valid', true],
+      ['extra', false],
+      ['escape', false],
+      ['case-alias-link-chain', false],
+      ['case-collision', false],
+      ['unicode-collision', false],
+    ]) {
+      const archive = join(root, `${kind}.tar.gz`)
+      const result = spawnSync('python3', ['-c', probe, verifier, archive, kind], {
+        encoding: 'utf8',
+      })
+      assert.equal(result.status === 0, accepted, `${kind}: ${result.stderr}`)
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('Swift UI extraction rejects existing directories and symlinks at .build', () => {
+  const script = String.raw`
+import importlib.util, pathlib, sys, tempfile
+spec = importlib.util.spec_from_file_location('ui_artifact', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+with tempfile.TemporaryDirectory() as root:
+    package = pathlib.Path(root)
+    module.require_empty_build_root(package)
+    (package / '.build').mkdir()
+    try:
+        module.require_empty_build_root(package)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('existing directory accepted')
+    (package / '.build').rmdir()
+    (package / '.build').symlink_to(package / 'missing')
+    try:
+        module.require_empty_build_root(package)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('dangling symlink accepted')
+`
+  execFileSync('python3', [
+    '-c',
+    script,
+    new URL('../scripts/swift-ui-test-artifact.py', import.meta.url).pathname,
+  ])
+})

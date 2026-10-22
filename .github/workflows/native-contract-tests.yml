@@ -780,11 +780,14 @@ jobs:
           test "$VERIFY_RESULT" = success
           test "$ANDROID_PHASES_RESULT" = success
           test "$ANDROID_COOKIE_RESULT" = success
-  test-swift-ui:
-    name: Swift UI tests and coverage
+  build-swift-ui-tests:
+    name: Swift UI build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 22
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -804,15 +807,81 @@ jobs:
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Build complete UI test bundle with coverage
+        timeout-minutes: 8
+        working-directory: candidate-clients
+        run: >-
+          xcrun swift build --package-path swift-clients/ui --build-tests
+          --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+      - name: Package exact UI test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: >-
+          python3 scripts/swift-ui-test-artifact.py create
+          "$GITHUB_WORKSPACE/candidate-clients/swift-clients/ui"
+          "$RUNNER_TEMP/swift-ui-test-products.tar.gz"
+          "$RUNNER_TEMP/swift-ui-test-products.json"
+          --expected-revision "$EXPECTED_REVISION"
+      - name: Upload UI test products
+        timeout-minutes: 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: swift-ui-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/swift-ui-test-products.tar.gz
+            ${{ runner.temp }}/swift-ui-test-products.json
+          if-no-files-found: error
+          retention-days: 1
+  test-swift-ui:
+    name: Swift UI tests and coverage
+    needs: [verify, build-swift-ui-tests]
+    runs-on: macos-latest
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Select Xcode 26.6 Apple SDK and Swift compiler
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Download exact UI test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: swift-ui-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swift-ui-test-artifact
+      - name: Verify and restore UI test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: >-
+          python3 scripts/swift-ui-test-artifact.py verify
+          "$GITHUB_WORKSPACE/candidate-clients/swift-clients/ui"
+          "$RUNNER_TEMP/swift-ui-test-artifact/swift-ui-test-products.tar.gz"
+          "$RUNNER_TEMP/swift-ui-test-artifact/swift-ui-test-products.json"
+          --expected-revision "$EXPECTED_REVISION"
       - name: Record swift test start marker
         run: |
           mkdir -p "$RUNNER_TEMP"
           touch "$RUNNER_TEMP/swift-ui-test-start-marker"
       - name: Test UI package with coverage
+        timeout-minutes: 8
         working-directory: candidate-clients
         run: >-
           xcrun swift test --package-path swift-clients/ui
-          --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+          --skip-build --force-resolved-versions --disable-dependency-cache --enable-code-coverage
       - name: Collect xctest crash reports
         if: ${{ failure() }}
         timeout-minutes: 3
@@ -842,6 +911,7 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
       - name: Export deterministic UI LCOV
+        timeout-minutes: 3
         working-directory: candidate-clients
         run: bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
       - name: Upload UI LCOV
@@ -1819,6 +1889,7 @@ jobs:
       - test-swift-core
       - test-swift-android
       - test-swift-ui
+      - build-swift-ui-tests
       - swift-patch-coverage
       - build-android-core
       - build-macos-app
