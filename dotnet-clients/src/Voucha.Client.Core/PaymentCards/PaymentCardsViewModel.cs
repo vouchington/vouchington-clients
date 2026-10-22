@@ -1,11 +1,11 @@
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.PaymentCards;
 
-public sealed partial class PaymentCardsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class PaymentCardsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly IPaymentCardsService service;
   private readonly IUiLocalization localization;
@@ -38,13 +38,12 @@ public sealed partial class PaymentCardsViewModel : INotifyPropertyChanged, IDis
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public IReadOnlyList<PaymentCard> Cards => cards;
   public IReadOnlyList<PaymentCardRow> Rows => rows;
   public IReadOnlyList<PaymentCardTopic> TopicResults
   {
     get => topicResults;
-    private set { if (Set(ref topicResults, value)) RebuildTopicRows(); }
+    private set { if (SetProperty(ref topicResults, value)) RebuildTopicRows(); }
   }
   public IReadOnlyList<PaymentCardTopicOption> TopicRows => topicRows;
   public PaymentCardDraft? Draft
@@ -67,10 +66,10 @@ public sealed partial class PaymentCardsViewModel : INotifyPropertyChanged, IDis
   public UiText? ErrorText => errorText;
   public string? LocalizedErrorMessage => errorText is { } value ? localization.Resolve(value) : null;
   public bool HasError => errorText is not null;
-  public bool HasContinuationError { get => hasContinuationError; private set => Set(ref hasContinuationError, value); }
-  public bool IsLoading { get => isLoading; private set { if (Set(ref isLoading, value)) OnPropertyChanged(nameof(ShowsEmptyState)); } }
-  public bool IsLoadingMore { get => isLoadingMore; private set => Set(ref isLoadingMore, value); }
-  public bool IsMutating { get => isMutating; private set => Set(ref isMutating, value); }
+  public bool HasContinuationError { get => hasContinuationError; private set => SetProperty(ref hasContinuationError, value); }
+  public bool IsLoading { get => isLoading; private set { if (SetProperty(ref isLoading, value)) OnPropertyChanged(nameof(ShowsEmptyState)); } }
+  public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
+  public bool IsMutating { get => isMutating; private set => SetProperty(ref isMutating, value); }
 
   public IReadOnlyList<PaymentCardOption> ParentCandidates => Draft is null ? [] : ParentCandidatesFor(Draft);
 
@@ -128,12 +127,6 @@ public sealed partial class PaymentCardsViewModel : INotifyPropertyChanged, IDis
     OnPropertyChanged(nameof(TopicRows));
   }
 
-  private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-  {
-    if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-    field = value; OnPropertyChanged(name); return true;
-  }
-
   private void NotifyDraftState()
   {
     OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(ParentCandidates));
@@ -177,7 +170,4 @@ public sealed partial class PaymentCardsViewModel : INotifyPropertyChanged, IDis
     if (eventArgs.PropertyName is nameof(PaymentCardDraft.AuthorizedUserOfId) or nameof(PaymentCardDraft.IsAuthorizedUser))
       OnPropertyChanged(nameof(ParentCandidates));
   }
-
-  private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

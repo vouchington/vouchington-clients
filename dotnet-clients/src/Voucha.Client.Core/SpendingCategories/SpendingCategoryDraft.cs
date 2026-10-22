@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.SpendingCategories;
 
-public sealed class SpendingCategoryDraft : INotifyPropertyChanged
+public sealed class SpendingCategoryDraft : ObservableObject
 {
   private string amount;
   private string frequency;
@@ -29,12 +28,11 @@ public sealed class SpendingCategoryDraft : INotifyPropertyChanged
     note = original?.Note ?? string.Empty;
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public SpendingCategory? Original { get; }
-  public string Amount { get => amount; set { amountEdited = true; Set(ref amount, value ?? string.Empty); } }
-  public string Currency { get => currency; set => Set(ref currency, value ?? string.Empty); }
-  public string Frequency { get => frequency; set => Set(ref frequency, value ?? string.Empty); }
-  public string Note { get => note; set => Set(ref note, value ?? string.Empty); }
+  public string Amount { get => amount; set { amountEdited = true; SetProperty(ref amount, value ?? string.Empty); } }
+  public string Currency { get => currency; set => SetProperty(ref currency, value ?? string.Empty); }
+  public string Frequency { get => frequency; set => SetProperty(ref frequency, value ?? string.Empty); }
+  public string Note { get => note; set => SetProperty(ref note, value ?? string.Empty); }
   public IReadOnlyList<string> SupportedCurrencies => supportedCurrencies;
 
   internal void ApplyCulture(CultureInfo value)
@@ -44,7 +42,7 @@ public sealed class SpendingCategoryDraft : INotifyPropertyChanged
     culture = value;
     var formatted = Original?.Amount.ToKnownCurrencyMajorUnits()
         ?.ToString("0.############################", culture) ?? string.Empty;
-    Set(ref amount, formatted, nameof(Amount));
+    SetProperty(ref amount, formatted, nameof(Amount));
   }
 
   public bool TryBuildCreate(string topicId, out CreateSpendingCategoryBody? body)
@@ -88,6 +86,4 @@ public sealed class SpendingCategoryDraft : INotifyPropertyChanged
   }
   private bool ValidFrequency() => Frequency is "monthly" or "annually";
   private static string? EmptyToNull(string value) => value.Length == 0 ? null : value;
-  private void Set(ref string field, string value, [CallerMemberName] string? name = null)
-  { if (field == value) return; field = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)); }
 }

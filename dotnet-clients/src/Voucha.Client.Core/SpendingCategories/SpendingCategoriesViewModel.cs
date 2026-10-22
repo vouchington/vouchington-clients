@@ -1,12 +1,11 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.SpendingCategories;
 
-public sealed partial class SpendingCategoriesViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class SpendingCategoriesViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly ISpendingCategoriesService service;
   private readonly IUiLocalization localization;
@@ -44,9 +43,8 @@ public sealed partial class SpendingCategoriesViewModel : INotifyPropertyChanged
     localeSubscription = controller?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public SpendingCategoryDraft CreateDraft { get; private set; }
-  public SpendingCategoryDraft? EditDraft { get => editDraft; private set => Set(ref editDraft, value); }
+  public SpendingCategoryDraft? EditDraft { get => editDraft; private set => SetProperty(ref editDraft, value); }
   public IReadOnlyList<SpendingCategory> Categories => values;
   public IReadOnlyList<SpendingCategoryRow> Rows => rows;
   public IReadOnlyList<SpendingCategoryOptionRow> SearchRows => searchRows;
@@ -55,7 +53,7 @@ public sealed partial class SpendingCategoriesViewModel : INotifyPropertyChanged
     get => searchQuery;
     set
     {
-      if (!Set(ref searchQuery, value ?? string.Empty)) return;
+      if (!SetProperty(ref searchQuery, value ?? string.Empty)) return;
       unchecked { searchGeneration++; }
       SetSearchResults([]);
       SetSearchError(null);
@@ -66,10 +64,10 @@ public sealed partial class SpendingCategoriesViewModel : INotifyPropertyChanged
   public bool HasError => errorText is not null;
   public string? LocalizedSearchErrorMessage => searchErrorText is { } value ? localization.Resolve(value) : null;
   public bool HasSearchError => searchErrorText is not null;
-  public bool HasContinuationError { get => hasContinuationError; private set => Set(ref hasContinuationError, value); }
-  public bool IsLoading { get => loading; private set => Set(ref loading, value); }
-  public bool IsLoadingMore { get => loadingMore; private set => Set(ref loadingMore, value); }
-  public bool IsCreating { get => creating; private set => Set(ref creating, value); }
+  public bool HasContinuationError { get => hasContinuationError; private set => SetProperty(ref hasContinuationError, value); }
+  public bool IsLoading { get => loading; private set => SetProperty(ref loading, value); }
+  public bool IsLoadingMore { get => loadingMore; private set => SetProperty(ref loadingMore, value); }
+  public bool IsCreating { get => creating; private set => SetProperty(ref creating, value); }
   public bool HasNextPage => pageInfo.HasNextPage;
   public bool HasEditDraft => EditDraft is not null;
   public bool IsMutating(string id) => mutating.Contains(id);
@@ -118,22 +116,20 @@ public sealed partial class SpendingCategoriesViewModel : INotifyPropertyChanged
   private void RebuildRows()
   {
     rows = values.Select(value => new SpendingCategoryRow(value, localization)).ToArray();
-    Notify(nameof(Categories)); Notify(nameof(Rows)); Notify(nameof(HasNextPage));
+    OnPropertyChanged(nameof(Categories)); OnPropertyChanged(nameof(Rows)); OnPropertyChanged(nameof(HasNextPage));
   }
   private void RebuildSearchRows()
   {
     searchRows = searchResults.Select(value => new SpendingCategoryOptionRow(value, localization)).ToArray();
-    Notify(nameof(SearchRows));
+    OnPropertyChanged(nameof(SearchRows));
   }
   private void SetSearchResults(IEnumerable<SpendingCategoryOption> next)
   {
     searchResults = next.ToArray();
     RebuildSearchRows();
   }
-  private void SetError(UiText? next) { errorText = next; Notify(nameof(ErrorText)); Notify(nameof(Error)); Notify(nameof(HasError)); }
-  private void SetSearchError(UiText? next) { searchErrorText = next; Notify(nameof(LocalizedSearchErrorMessage)); Notify(nameof(HasSearchError)); }
+  private void SetError(UiText? next) { errorText = next; OnPropertyChanged(nameof(ErrorText)); OnPropertyChanged(nameof(Error)); OnPropertyChanged(nameof(HasError)); }
+  private void SetSearchError(UiText? next) { searchErrorText = next; OnPropertyChanged(nameof(LocalizedSearchErrorMessage)); OnPropertyChanged(nameof(HasSearchError)); }
   private void Fail(Exception error) => SetError(string.IsNullOrEmpty(error.Message) ? UiText.Localized(UiMessageKey.NativeCommonRetry) : UiText.Verbatim(error.Message));
   private void FailSearch(Exception error) => SetSearchError(string.IsNullOrEmpty(error.Message) ? UiText.Localized(UiMessageKey.NativeCommonRetry) : UiText.Verbatim(error.Message));
-  private void Notify(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-  private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null) { if (EqualityComparer<T>.Default.Equals(field, value)) return false; field = value; Notify(name!); return true; }
 }

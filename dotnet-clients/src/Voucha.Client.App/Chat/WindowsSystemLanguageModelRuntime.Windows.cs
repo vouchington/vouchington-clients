@@ -6,7 +6,7 @@ using Voucha.Client.Core.Chat;
 
 namespace Voucha.Client.App.Chat;
 
-public sealed class WindowsSystemLanguageModelRuntime : IWindowsSystemLanguageModelRuntime
+public sealed class WindowsSystemLanguageModelRuntime : IWindowsSystemLanguageModelRuntime, IWindowsBuiltInToolRuntime
 {
   private const string FeatureId = "com.microsoft.windows.ai.languagemodel";
   private static readonly Lazy<bool> featureUnlocked = new(CheckFeatureUnlocked);
@@ -59,6 +59,43 @@ public sealed class WindowsSystemLanguageModelRuntime : IWindowsSystemLanguageMo
       var response = await model.GenerateResponseAsync(prompt).AsTask(cancellationToken);
       cancellationToken.ThrowIfCancellationRequested();
       return response.Status.ToString() == "Complete" ? response.Text : null;
+    }
+    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+    catch (Exception ex) { throw NativeFailure(ex); }
+  }
+
+  public async Task<WindowsBuiltInPromptObservation> ObservePromptAsync(
+      string prompt, CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(prompt);
+    cancellationToken.ThrowIfCancellationRequested();
+    var model = await GetLanguageModelAsync(cancellationToken).ConfigureAwait(false);
+    try
+    {
+      await languageModelGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+      try { return new(model.GetUsablePromptLength(prompt), false, null); }
+      finally { languageModelGate.Release(); }
+    }
+    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+    catch (Exception ex) { throw NativeFailure(ex); }
+  }
+
+  public async Task<WindowsBuiltInModelTurn> GenerateBuiltInAsync(
+      string prompt, CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(prompt);
+    cancellationToken.ThrowIfCancellationRequested();
+    var model = await GetLanguageModelAsync(cancellationToken).ConfigureAwait(false);
+    try
+    {
+      await languageModelGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+      try
+      {
+        var response = await model.GenerateResponseAsync(prompt).AsTask(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new(response.Status.ToString(), response.Text);
+      }
+      finally { languageModelGate.Release(); }
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
     catch (Exception ex) { throw NativeFailure(ex); }

@@ -1,11 +1,10 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.RewardsProgramStatuses;
 
-public sealed partial class RewardsProgramStatusesViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class RewardsProgramStatusesViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly IRewardsProgramStatusesService service;
   private readonly IUiLocalization localization;
@@ -41,11 +40,10 @@ public sealed partial class RewardsProgramStatusesViewModel : INotifyPropertyCha
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public IReadOnlyList<RewardsProgramStatus> Statuses => statuses;
   public IReadOnlyList<RewardsProgramStatusRow> Rows => rows;
   public IReadOnlyList<RewardsProgramStatusOptionRow> SearchRows => searchRows;
-  public RewardsProgramStatusDraft? EditDraft { get => editDraft; private set => Set(ref editDraft, value); }
+  public RewardsProgramStatusDraft? EditDraft { get => editDraft; private set => SetProperty(ref editDraft, value); }
   public UiText? ErrorText => errorText;
   public UiText? SearchErrorText => searchErrorText;
   public string? LocalizedErrorMessage => errorText is { } text ? localization.Resolve(text) : null;
@@ -56,13 +54,13 @@ public sealed partial class RewardsProgramStatusesViewModel : INotifyPropertyCha
   public bool ShowsEmptyState => hasLoaded && !HasStatuses && !HasError;
   public bool HasNextPage => pageInfo.HasNextPage;
   public bool HasEditDraft => EditDraft is not null;
-  public bool HasContinuationError { get => hasContinuationError; private set => Set(ref hasContinuationError, value); }
-  public bool IsLoading { get => isLoading; private set => Set(ref isLoading, value); }
-  public bool IsLoadingMore { get => isLoadingMore; private set => Set(ref isLoadingMore, value); }
+  public bool HasContinuationError { get => hasContinuationError; private set => SetProperty(ref hasContinuationError, value); }
+  public bool IsLoading { get => isLoading; private set => SetProperty(ref isLoading, value); }
+  public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
   public bool IsCreating
   {
     get => isCreating;
-    private set { if (Set(ref isCreating, value)) OnPropertyChanged(nameof(CanCreate)); }
+    private set { if (SetProperty(ref isCreating, value)) OnPropertyChanged(nameof(CanCreate)); }
   }
   public bool CanCreate => !IsCreating;
   public bool IsMutating(string id) => mutatingIds.Contains(id);
@@ -72,7 +70,7 @@ public sealed partial class RewardsProgramStatusesViewModel : INotifyPropertyCha
     get => searchQuery;
     set
     {
-      if (!Set(ref searchQuery, value ?? string.Empty)) return;
+      if (!SetProperty(ref searchQuery, value ?? string.Empty)) return;
       unchecked { searchGeneration++; }
       SetSearchRows([]);
       SetSearchError(null);
@@ -144,13 +142,4 @@ public sealed partial class RewardsProgramStatusesViewModel : INotifyPropertyCha
       ? UiText.Localized(UiMessageKey.NativeCommonRetry) : UiText.Verbatim(error.Message));
   private void FailSearch(Exception error) => SetSearchError(string.IsNullOrEmpty(error.Message)
       ? UiText.Localized(UiMessageKey.NativeCommonRetry) : UiText.Verbatim(error.Message));
-  private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-  {
-    if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-    field = value;
-    OnPropertyChanged(name);
-    return true;
-  }
-  private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
