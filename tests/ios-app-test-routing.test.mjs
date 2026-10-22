@@ -59,7 +59,10 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.match(iosJob, /\.destination' "\$manifest"/u)
     assert.match(iosJob, /-collect-test-diagnostics never/u)
     assert.equal(iosJob.split('-collect-test-diagnostics never').length - 1, 1)
-    assert.doesNotMatch(ipadJob, /-collect-test-diagnostics/u)
+    assert.match(ipadJob, /-collect-test-diagnostics never/u)
+    assert.equal(ipadJob.split('-collect-test-diagnostics never').length - 1, 1)
+    assert.match(iosJob, /fail-fast: false/u)
+    assert.equal(iosJob.split('expected_count: 1').length - 1, 3)
     assert.match(iosJob, /test-without-building/u)
     assert.match(iosJob, /-testProductsPath "\$bundle"/u)
     assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
@@ -111,7 +114,7 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     )
     assert.match(
       iosJob,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 3 and \.passedTests == 3 and \.failedTests == 0 and \.skippedTests == 0/u,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
     )
     assert.match(
       iosJob,
