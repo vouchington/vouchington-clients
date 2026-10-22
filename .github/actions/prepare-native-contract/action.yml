@@ -18,6 +18,10 @@ inputs:
   producer-run-id:
     description: Producer workflow run ID
     required: true
+  skip-candidate-install:
+    description: Skip the candidate pnpm install when the job does not run candidate tooling
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -77,6 +81,7 @@ runs:
         path: candidate-clients
         persist-credentials: false
     - name: Restore candidate pnpm store
+      if: ${{ inputs.skip-candidate-install != 'true' }}
       id: pnpm-store
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
@@ -85,13 +90,14 @@ runs:
         restore-keys: |
           ${{ runner.os }}-pnpm-clients-
     - name: Install candidate tooling
+      if: ${{ inputs.skip-candidate-install != 'true' }}
       shell: bash
       working-directory: candidate-clients
       env:
         pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
       run: pnpm install --frozen-lockfile
     - name: Save candidate pnpm store from main
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.pnpm-store.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.skip-candidate-install != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.pnpm-store.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
