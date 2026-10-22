@@ -137,7 +137,10 @@ public sealed partial class MemberMcpSessionTests
     Assert.Contains(postId, retained.Envelope, StringComparison.Ordinal);
     Assert.Equal(postId, Assert.Single(retained.FeedPostReceipt!.PostIds));
     Assert.Null(retained.RssItemReceipt);
-    Assert.Empty(viewModel.Messages);
+    var facts = Assert.Single(viewModel.Messages);
+    Assert.False(facts.HasContent);
+    Assert.DoesNotContain(retained.Envelope, facts.Content, StringComparison.Ordinal);
+    Assert.Contains(postId, facts.DisplayFeedPostFacts, StringComparison.Ordinal);
     Assert.Null(service.LastClientGeneratedChatBody);
     Assert.Single(runtime.Generated);
     Assert.Equal(1, factory.Connections.Single().ToolCalls);
@@ -148,6 +151,11 @@ public sealed partial class MemberMcpSessionTests
     Assert.Equal(1, factory.Connections.Single().ToolCalls);
     Assert.Equal(retained.Envelope, viewModel.RetainedWindowsToolResult!.Envelope);
     Assert.Equal(postId, Assert.Single(viewModel.RetainedWindowsToolResult.FeedPostReceipt!.PostIds));
+    Assert.Contains(postId, Assert.Single(viewModel.Messages).DisplayFeedPostFacts, StringComparison.Ordinal);
+
+    viewModel.NotifyDraftEdited("a different request");
+    Assert.Null(viewModel.RetainedWindowsToolResult);
+    Assert.Empty(viewModel.Messages);
   }
 
   [Fact]
@@ -178,6 +186,10 @@ public sealed partial class MemberMcpSessionTests
     Assert.NotNull(retained);
     Assert.Empty(retained.FeedPostReceipt!.PostIds);
     Assert.Contains("\"results\":[]", retained.Envelope, StringComparison.Ordinal);
+    var facts = Assert.Single(viewModel.Messages);
+    Assert.False(facts.HasContent);
+    Assert.True(facts.HasFeedPostFacts);
+    Assert.DoesNotContain(retained.Envelope, facts.Content, StringComparison.Ordinal);
     Assert.Equal(1, factory.Connections.Single().ToolCalls);
   }
 

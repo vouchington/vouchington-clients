@@ -8,6 +8,7 @@ namespace Voucha.Client.Core.Chat;
 public sealed partial class ChatConversationViewModel
 {
   private RetainedWindowsBuiltInToolResult? retainedWindowsToolResult;
+  private string? retainedFactsMessageId;
 
   public RetainedWindowsBuiltInToolResult? RetainedWindowsToolResult => retainedWindowsToolResult;
 
@@ -38,7 +39,22 @@ public sealed partial class ChatConversationViewModel
   {
     if (retainedWindowsToolResult == retained) return;
     retainedWindowsToolResult = retained;
+    ReplaceRetainedFactsRow(retained);
     OnPropertyChanged(nameof(RetainedWindowsToolResult));
+  }
+
+  private void ReplaceRetainedFactsRow(RetainedWindowsBuiltInToolResult? retained)
+  {
+    if (retainedFactsMessageId is { } previous) RemoveLocalMessage(previous);
+    retainedFactsMessageId = null;
+    if (retained is null || retained.FeedPostReceipt is null && retained.RssItemReceipt is null) return;
+    var id = Guid.CreateVersion7().ToString();
+    retainedFactsMessageId = id;
+    messages.Add(new ChatMessageRow(
+        id, "assistant", "", DateTimeOffset.UtcNow, Localization: localization,
+        FeedPostReceipts: retained.FeedPostReceipt is { } post ? [post] : null,
+        RssItemReceipts: retained.RssItemReceipt is { } rss ? [rss] : null));
+    OnPropertyChanged(nameof(Messages));
   }
 
   private static RetainedWindowsBuiltInToolResult? AcceptedRetainedResult(
