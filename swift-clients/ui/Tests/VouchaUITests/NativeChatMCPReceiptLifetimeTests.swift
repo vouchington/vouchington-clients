@@ -3,6 +3,7 @@ import VouchaAPI
 import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
+import VouchaTestSupport
 import XCTest
 
 @MainActor
@@ -257,6 +258,48 @@ final class NativeChatMCPReceiptLifetimeTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.mcpReceiptLedger?.temporaryUserMessageId)
         XCTAssertNil(viewModel.pendingLocalTurn)
         XCTAssertEqual(viewModel.messages.filter { $0.role == .user }.count, 1)
+    }
+
+    func testRssItemFactSurvivesPersistenceOnlyRetryWithoutRegeneration() async throws {
+        CannedFeedURLProtocol.handlers[persistencePath] = (NativeChatTestFixtures.errorData, 400)
+        let fact = try XCTUnwrap(NativeChatMCPFact.makeFeedRssItemIds(rssDelivery()))
+        let provider = ReceiptTurnProvider { turn in
+            XCTAssertTrue(turn.publish(.init(
+                id: UUID(), callId: "rss-call", owner: turn.owner, toolName: "read_feed",
+                envelope: #"{"content":[],"structuredContent":{"success":true},"isError":false}"#,
+                kind: .response, fact: fact
+            )))
+            return .answer(.init(
+                content: "Original model answer",
+                modelProvider: "apple_foundation",
+                modelName: "fixture",
+                admittedMCPCall: true
+            ))
+        }
+        let viewModel = try await viewModel(provider)
+        viewModel.draftMessage = "Read the RSS delivery once"
+        await viewModel.sendDraftMessage()
+        let receipt = try XCTUnwrap(viewModel.mcpReceiptLedger?.receipts.first)
+        XCTAssertEqual(receipt.fact, fact)
+        XCTAssertEqual(receipt.callId, "rss-call")
+        XCTAssertEqual(persistedRequests, 1)
+
+        CannedFeedURLProtocol.handlers[persistencePath] = (NativeChatTitleProviderTests.clientGeneratedChatData, 200)
+        await viewModel.sendDraftMessage()
+        let calls = await provider.calls
+        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(persistedRequests, 2)
+        XCTAssertEqual(viewModel.mcpReceiptLedger?.receipts.first, receipt)
+    }
+
+    private func rssDelivery() throws -> DecodedJSONValue {
+        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp-results.json"])
+        let data = try Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/mcp-results.json"))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let cases = try XCTUnwrap(object["cases"] as? [[String: Any]])
+        let row = try XCTUnwrap(cases.first { $0["id"] as? String == "native.mcp.read-feed.rss-items" })
+        let structured = try XCTUnwrap(row["structuredContent"])
+        return try DecodedJSONValue(exactJSONData: JSONSerialization.data(withJSONObject: structured))
     }
 
     private var persistedRequests: Int {
