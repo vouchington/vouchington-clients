@@ -6,7 +6,7 @@ import VouchaModels
 import VouchaTestSupport
 import XCTest
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && os(macOS)
     import FoundationModels
 
     @available(macOS 26.4, iOS 26.4, *)
