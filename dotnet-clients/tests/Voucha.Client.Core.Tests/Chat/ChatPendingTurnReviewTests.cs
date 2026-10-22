@@ -441,10 +441,10 @@ public sealed partial class ChatViewModelProviderTests
     private bool catalogHidden;
 
     public TestMcpLocalChatProvider() => snapshot = MakeSnapshot("account-a", 1);
-
     public int Generations { get; private set; }
     public IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts { get; set; }
     public IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts { get; set; }
+    public IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts { get; set; }
     public Exception? Failure { get; set; }
     public Action? AfterGeneration { get; set; }
     public ChatProviderStatus Status { get; set; } = new(
@@ -489,7 +489,7 @@ public sealed partial class ChatViewModelProviderTests
       AfterGeneration?.Invoke();
       return Task.FromResult(new LocalChatGenerationResult(
           $"Reply from {generationSnapshot?.AccountId}", Status.ModelProvider!, Status.ModelName,
-          FeedPostReceipts, RssItemReceipts));
+          FeedPostReceipts, RssItemReceipts, ReferralLinkReceipts));
     }
 
     private MemberMcpConnectedSnapshot MakeSnapshot(string accountId, long revision) =>
