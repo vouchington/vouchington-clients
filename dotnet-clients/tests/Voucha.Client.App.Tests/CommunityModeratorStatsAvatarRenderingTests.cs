@@ -22,16 +22,7 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
-    var responses = new Dictionary<string, string>
-    {
-      ["/api/v1/communities/test-community"] = Fixture("web.communities.show.default"),
-      ["/api/v1/communities/test-community/members"] = Fixture("web.communities.members.default"),
-      ["/api/v1/communities/test-community/posts"] = Fixture("web.communities.posts.default"),
-      ["/api/v1/communities/test-community/list-items/counts"] = Fixture("web.communities.list-items.counts.default"),
-      ["/api/v1/communities/test-community/moderator-stats"] = ModeratorStatsFixtureWithMemberPlacement(),
-      ["/api/v1/communities/test-community/moderation-queue"] = Fixture("web.communities.moderation-queue.default"),
-      ["/api/v1/communities/test-community/reports/pending"] = Fixture("native.community.pending-reports.paginated"),
-    };
+    var responses = ModeratorResponses(ModeratorStatsFixtureWithMemberPlacement());
     var apiClient = new VouchaApiClient(new HttpClient(new RouteResponseHandler(responses))
     {
       BaseAddress = new Uri("https://api.test"),
@@ -75,6 +66,97 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
     Assert.Null(image.Source);
     Assert.Equal(new GridLength(0), template.ColumnDefinitions[0].Width);
     Assert.Equal(0d, template.ColumnSpacing);
+  }
+
+  [Fact]
+  public async Task ModeratorStatsHidePlacementForMissingWithheldDeletedAndAnonymousUsers()
+  {
+    const string legacyImageId = "00000000-0000-7000-8000-000000000201";
+    await AssertHiddenModeratorStat(MutateStats(_ => { }), "testuser");
+
+    var withheld = MutateStats(user => user["profile_image_id"] = legacyImageId);
+    Assert.Equal(legacyImageId, JsonNode.Parse(withheld)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    Assert.Null(JsonNode.Parse(withheld)!["users"]!["user-1"]!["profile_image_placement"]);
+    await AssertHiddenModeratorStat(withheld, "testuser");
+
+    await AssertHiddenModeratorStat(MutateStats(_ => { }, removeUser: true), "user-1");
+
+    var anonymous = MutateStats(user =>
+    {
+      user["name"] = null;
+      user["username"] = null;
+      user["profile_image_id"] = legacyImageId;
+    });
+    Assert.Equal(legacyImageId, JsonNode.Parse(anonymous)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    await AssertHiddenModeratorStat(anonymous, "user-1");
+  }
+
+  private static async Task AssertHiddenModeratorStat(string statsJson, string title)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var responses = ModeratorResponses(statsJson);
+    var apiClient = new VouchaApiClient(new HttpClient(new RouteResponseHandler(responses))
+    {
+      BaseAddress = new Uri("https://api.test"),
+    });
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(apiClient));
+    var page = new CommunityModerationPage(
+        model,
+        new AnonymousSessionStore(),
+        new ServiceCollection().BuildServiceProvider(),
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")));
+    await model.LoadSurfaceAsync(
+        "test-community",
+        CommunityDetailSurfaceSection.Moderation,
+        TestContext.Current.CancellationToken);
+
+    var stat = Assert.Single(model.Moderation, row => row.Id == "user-1");
+    Assert.Equal(title, stat.Title);
+    Assert.Equal("3", stat.Detail);
+    Assert.Null(stat.ProfileImagePlacement);
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .GetValue(page));
+    var template = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
+    template.BindingContext = stat;
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Border>(template), border => border.AutomationId == "community-moderator-avatar");
+    var image = Assert.Single(VisualTreeElements.Descendants<Image>(avatar), candidate => candidate.AutomationId == "community-moderator-avatar-image");
+
+    Assert.False(avatar.IsVisible);
+    Assert.Null(image.Source);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    Assert.Equal(new GridLength(0), template.ColumnDefinitions[0].Width);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(template), label => label.Text == title);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(template), label => label.Text == "3");
+  }
+
+  private static Dictionary<string, string> ModeratorResponses(string statsJson) => new()
+  {
+    ["/api/v1/communities/test-community"] = Fixture("web.communities.show.default"),
+    ["/api/v1/communities/test-community/members"] = Fixture("web.communities.members.default"),
+    ["/api/v1/communities/test-community/posts"] = Fixture("web.communities.posts.default"),
+    ["/api/v1/communities/test-community/list-items/counts"] = Fixture("web.communities.list-items.counts.default"),
+    ["/api/v1/communities/test-community/moderator-stats"] = statsJson,
+    ["/api/v1/communities/test-community/moderation-queue"] = Fixture("web.communities.moderation-queue.default"),
+    ["/api/v1/communities/test-community/reports/pending"] = Fixture("native.community.pending-reports.paginated"),
+  };
+
+  private static string MutateStats(Action<JsonObject> mutate, bool removeUser = false)
+  {
+    var stats = JsonNode.Parse(Fixture("web.communities.moderator-stats.default"))!.AsObject();
+    var users = stats["users"]!.AsObject();
+    if (removeUser)
+    {
+      users.Remove("user-1");
+    }
+    else
+    {
+      mutate(users["user-1"]!.AsObject());
+    }
+
+    return stats.ToJsonString();
   }
 
   private static string Fixture(string id)
