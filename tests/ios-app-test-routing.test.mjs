@@ -57,10 +57,21 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     )
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
     assert.match(iosJob, /\.destination' "\$manifest"/u)
+    assert.match(iosJob, /-collect-test-diagnostics on-failure/u)
+    assert.equal(iosJob.split('-collect-test-diagnostics on-failure').length - 1, 1)
+    assert.doesNotMatch(ipadJob, /-collect-test-diagnostics/u)
     assert.match(iosJob, /test-without-building/u)
     assert.match(iosJob, /-testProductsPath "\$bundle"/u)
     assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
     assert.match(iosJob, /test ! -L "\$bundle"/u)
+    assert.ok(
+      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
+        iosJob.indexOf('uses: ./.github/actions/prepare-native-contract'),
+    )
+    assert.ok(
+      iosJob.indexOf('uses: ./.github/actions/prepare-native-contract') <
+        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
+    )
     assert.ok(
       iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
         iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
