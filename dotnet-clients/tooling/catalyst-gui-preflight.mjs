@@ -2,39 +2,74 @@ import { spawn } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { assertNotificationControls } from './catalyst-gui-notification-session.mjs'
 
-const sharedIdentityFixtureId = 'swift.my.identity.default'
 const launchArgument = '--ui-testing-launch-smoke'
-const rootShellId = 'root-shell'
 const bundleId = 'ai.voucha.dotnet'
 const appiumPort = 4723
+const requiredFixtures = [
+  {
+    id: 'swift.my.identity.default',
+    method: 'GET',
+    path: '/api/v1/my/identity',
+  },
+  {
+    id: 'native.my.email-preferences.default',
+    method: 'GET',
+    path: '/api/v1/my/email-preferences',
+  },
+]
 
 export function sharedIdentityFixture(root) {
+  return requiredFixture(root, requiredFixtures[0])
+}
+
+function requiredFixture(root, expected) {
   if (!root || !root.startsWith('/') || root.includes('$(') || root.includes('..'))
     throw new Error('VOUCHA_FILAMENTS_CONTRACT_ROOT must be an absolute fixture checkout')
   const fixtureRoot = join(root, 'api-fixtures', 'v1')
   const manifest = JSON.parse(readFileSync(join(fixtureRoot, 'manifest.json'), 'utf8'))
-  const fixture = manifest.fixtures?.find(item => item.id === sharedIdentityFixtureId)
-  if (!fixture) throw new Error(`missing shared identity fixture ${sharedIdentityFixtureId}`)
-  if (fixture.method !== 'GET' || fixture.path !== '/api/v1/my/identity' || fixture.status !== 200)
-    throw new Error(`shared identity fixture ${sharedIdentityFixtureId} is not the canonical GET`)
+  const fixture = manifest.fixtures?.find(item => item.id === expected.id)
+  if (!fixture) throw new Error(`missing shared fixture ${expected.id}`)
+  if (fixture.method !== expected.method || fixture.path !== expected.path || fixture.status !== 200)
+    throw new Error(`shared fixture ${expected.id} is not the canonical GET`)
   const bodyFile = fixture.bodyFile
   if (typeof bodyFile !== 'string' || !bodyFile.startsWith('responses/') || bodyFile.includes('..'))
-    throw new Error('shared identity fixture body is not a responses file')
+    throw new Error(`shared fixture ${expected.id} body is not a responses file`)
   const bodyPath = join(fixtureRoot, bodyFile)
   if (!existsSync(bodyPath)) throw new Error(`missing fixture body ${bodyFile}`)
   return bodyPath
 }
 
+function requireGuiFixtures(root) {
+  const bodyPaths = requiredFixtures.map(expected => requiredFixture(root, expected))
+  const preferencesIndex = requiredFixtures.findIndex(
+    expected => expected.id === 'native.my.email-preferences.default',
+  )
+  const preferences = JSON.parse(readFileSync(bodyPaths[preferencesIndex], 'utf8'))
+  if (
+    !preferences?.email_preferences ||
+    typeof preferences.email_preferences !== 'object' ||
+    Array.isArray(preferences.email_preferences)
+  ) {
+    throw new Error('email-preferences fixture body must contain an email_preferences object')
+  }
+  return bodyPaths
+}
+
 function stageFixture(destination) {
   if (!destination?.startsWith('/')) throw new Error('--stage-fixture requires an absolute directory')
-  const bodyPath = sharedIdentityFixture(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
-  const sourceRoot = join(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT, 'api-fixtures', 'v1')
-  const relativeBody = bodyPath.slice(sourceRoot.length + 1)
-  const targetBody = join(destination, 'api-fixtures', 'v1', relativeBody)
-  mkdirSync(dirname(targetBody), { recursive: true })
+  const root = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  const bodyPaths = requireGuiFixtures(root)
+  const sourceRoot = join(root, 'api-fixtures', 'v1')
+  mkdirSync(join(destination, 'api-fixtures', 'v1'), { recursive: true })
   copyFileSync(join(sourceRoot, 'manifest.json'), join(destination, 'api-fixtures', 'v1', 'manifest.json'))
-  copyFileSync(bodyPath, targetBody)
+  for (const bodyPath of bodyPaths) {
+    const relativeBody = bodyPath.slice(sourceRoot.length + 1)
+    const targetBody = join(destination, 'api-fixtures', 'v1', relativeBody)
+    mkdirSync(dirname(targetBody), { recursive: true })
+    copyFileSync(bodyPath, targetBody)
+  }
 }
 
 function appiumPrefix() {
@@ -117,36 +152,23 @@ async function waitForReady() {
   throw new Error('Appium did not become ready')
 }
 
-function elementId(payload) {
-  const value = payload.value
-  if (!value || typeof value !== 'object') return undefined
-  return value.ELEMENT ?? value['element-6066-11e4-a52e-4f735466cecf']
-}
-
-async function findRootShell(sessionId) {
-  const deadline = Date.now() + 20_000
-  let lastError
-  while (Date.now() < deadline) {
-    try {
-      const found = await request('POST', `/session/${sessionId}/element`, {
-        using: 'accessibility id',
-        value: rootShellId,
-      })
-      const id = elementId(found)
-      if (id) return id
-    } catch (error) {
-      lastError = error
-    }
-    await delay(500)
+async function writePageSource(request, sessionId) {
+  const resultPath = process.env.CATALYST_GUI_RESULT
+  if (!resultPath) return
+  try {
+    const source = await request('GET', `/session/${sessionId}/source`)
+    const text = typeof source.value === 'string' ? source.value : JSON.stringify(source)
+    writeFileSync(join(dirname(resultPath), 'source.xml'), text.slice(0, 200_000))
+  } catch {
+    // The assertion error is the session result.
   }
-  throw new Error(`root-shell was not exposed to the Mac2 session: ${lastError ?? 'missing element'}`)
 }
 
 async function session() {
   const appPath = process.env.CATALYST_APP_PATH
   if (!appPath || !existsSync(appPath))
     throw new Error('CATALYST_APP_PATH must be the Debug Mac Catalyst app')
-  sharedIdentityFixture(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  requireGuiFixtures(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
   const prefix = appiumPrefix()
   const server = spawn(
     join(prefix, 'node_modules', '.bin', 'appium'),
@@ -166,6 +188,7 @@ async function session() {
           'appium:arguments': [launchArgument],
           'appium:environment': {
             VOUCHA_FILAMENTS_CONTRACT_ROOT: process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT,
+            CATALYST_GUI_RESULT: process.env.CATALYST_GUI_RESULT,
           },
           'appium:showServerLogs': true,
           'appium:serverStartupTimeout': 100000,
@@ -174,10 +197,15 @@ async function session() {
     })
     sessionId = created.value?.sessionId ?? created.sessionId
     if (!sessionId) throw new Error('Mac2 did not return a session id')
-    await findRootShell(sessionId)
+    try {
+      await assertNotificationControls(request, sessionId)
+    } catch (error) {
+      await writePageSource(request, sessionId)
+      throw error
+    }
     const resultPath = process.env.CATALYST_GUI_RESULT
     if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
-    writeFileSync(resultPath, JSON.stringify({ total: 1, passed: 1, failed: 0, skipped: 0 }))
+    writeFileSync(resultPath, JSON.stringify({ total: 2, passed: 2, failed: 0, skipped: 0 }))
   } finally {
     if (sessionId) {
       await request('DELETE', `/session/${sessionId}`).catch(() => undefined)
@@ -188,7 +216,7 @@ async function session() {
 
 const mode = process.argv[2]
 try {
-  if (mode === '--check-fixture') sharedIdentityFixture(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  if (mode === '--check-fixture') requireGuiFixtures(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
   else if (mode === '--stage-fixture') stageFixture(process.argv[3])
   else if (mode === '--prebuild-host') await prebuildHost()
   else if (mode === '--session') await session()
