@@ -51,7 +51,7 @@ import XCTest
             for launch in 1 ... 160 {
                 let child = try launchProbe(
                     phase: "descriptors", skip: skips, journal: journal, root: root, directory: directory,
-                    timeout: 720
+                    timeout: 120
                 )
                 if child.timedOut {
                     XCTFail("Descriptor probe timed out. Production caps stay unchanged. \(child.tail)")
@@ -82,7 +82,7 @@ import XCTest
                 break
             }
             let admissionChild = try launchProbe(
-                phase: "admission", skip: [], journal: journal, root: root, directory: directory, timeout: 240
+                phase: "admission", skip: [], journal: journal, root: root, directory: directory, timeout: 90
             )
             var records = try journal.latestByName()
             for failure in hostFailures {
@@ -133,13 +133,12 @@ import XCTest
                 }
             }
             XCTAssertTrue(blocked.isEmpty, "Unexpected descriptor results: \(blocked)")
-            let pinned = xcode == "26.6"
+            let pinned = xcode == "26.6" || xcode?.hasPrefix("26.6.") == true
             if pinned {
                 let signaled = records.filter { $0.value["status"] as? String == "hostSDKFailure" }
                 XCTAssertTrue(
-                    signaled.isEmpty,
-                    "Pinned Xcode 26.6 must count every projected descriptor. A signal is a host SDK failure. " +
-                        "Production caps stay unchanged. \(signaled)"
+                    signaled.isEmpty && records.contains { $0.value["status"] as? String == "measured" },
+                    "Pinned \(xcode ?? "26.6") must measure descriptors with no host signal. Caps stay unchanged."
                 )
             }
             try assertAdmission(admission, child: admissionChild, pinned: pinned)
