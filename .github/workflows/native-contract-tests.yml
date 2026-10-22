@@ -1742,6 +1742,14 @@ jobs:
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          xcrun simctl install "$simulator_id" "$app"
           xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
@@ -1901,6 +1909,14 @@ jobs:
         run: |
           bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          xcrun simctl install "$simulator_id" "$app"
           xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true

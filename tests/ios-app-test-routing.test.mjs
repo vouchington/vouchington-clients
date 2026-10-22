@@ -91,6 +91,16 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(iosJob, /- name: Launch iOS app on Simulator\n\s+timeout-minutes: 7/u)
     assert.match(ipadJob, /- name: Launch iPad root shell on Simulator\n\s+timeout-minutes: 9/u)
+    for (const [job, launchName] of [
+      [iosJob, '- name: Launch iOS app on Simulator'],
+      [ipadJob, '- name: Launch iPad root shell on Simulator'],
+    ]) {
+      const launch = job.slice(job.indexOf(launchName))
+      const installAt = launch.indexOf('xcrun simctl install "$simulator_id" "$app"')
+      const testAt = launch.indexOf('xcodebuild -testProductsPath "$bundle"')
+      assert.ok(installAt >= 0 && testAt > installAt)
+      assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
+    }
     for (const job of [buildJob, x86Job, iosJob]) {
       assert.match(job, /\n    timeout-minutes: 9\n/u)
     }
