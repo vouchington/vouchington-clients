@@ -33,12 +33,14 @@ public final class EmailOTPViewModel {
         signInService: SignInService,
         uiLocale: UiLocale = UiLocaleResolver.resolve(savedUiLocale: nil),
         initialEmail: String? = nil,
-        initialCode: String? = nil
+        initialCode: String? = nil,
+        initialTurnstileToken: String? = nil
     ) {
         self.signInService = signInService
         self.uiLocale = uiLocale.rawValue
         email = initialEmail ?? ""
         code = initialCode ?? ""
+        turnstileToken = initialTurnstileToken
         if !email.isEmpty, !code.isEmpty {
             step = .enterCode
         }
