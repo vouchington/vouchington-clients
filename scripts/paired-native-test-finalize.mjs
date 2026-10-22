@@ -3,6 +3,7 @@ import { lstat, readFile, writeFile } from 'node:fs/promises'
 import { assertPairSnapshotUnchanged } from './paired-contract-policy.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
 import { bindArtifact, listRegularFiles, verifyApkBundle } from './paired-native-test-evidence.mjs'
+import { validateCleanupEvidence } from './paired-native-cleanup-evidence.mjs'
 import { validateInstrumentationResult } from './paired-native-test-runtime-result.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
 import { assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
@@ -78,10 +79,12 @@ export async function finalizeNativeTestsCommand() {
   )
     fail('artifact names or IDs are duplicated')
   const artifacts = await readArtifactList()
+  let runtimeUpload
   for (const expected of expectedArtifacts) {
     const found = artifacts.filter(item => item.name === expected.name)
     if (found.length !== 1) fail(`expected exactly one artifact named ${expected.name}`)
     bindArtifact({ artifact: found[0], expected, runId, runAttempt })
+    if (expected.name === process.env.RUNTIME_ARTIFACT_NAME) runtimeUpload = found[0]
   }
   const evidenceRoot = required(process.env.PAIRED_EVIDENCE_ROOT, 'evidence root')
   const contractManifest = await readJsonFile(
@@ -126,6 +129,20 @@ export async function finalizeNativeTestsCommand() {
     nativeTestProfile,
     clientsMergeSha: contractManifest.clients.merge.sha,
     apkSha256: apkHashes['app-debug.apk'],
+  })
+  const runtimeExpected = expectedArtifacts.find(
+    item => item.name === process.env.RUNTIME_ARTIFACT_NAME,
+  )
+  const runtimeDigest = /^sha256:([0-9a-f]{64})$/u.exec(runtimeUpload?.digest ?? '')
+  validateCleanupEvidence(result.cleanup, {
+    runId,
+    runAttempt,
+    nativeTestProfile,
+    clientsMergeSha: contractManifest.clients.merge.sha,
+    runtimeArtifactId: runtimeExpected?.id,
+    runtimeArtifactDigest: runtimeExpected?.digest,
+    boundRuntimeArtifactId: runtimeUpload?.id,
+    boundRuntimeArtifactDigest: runtimeDigest?.[1],
   })
   if (result.runAttempt !== runAttempt)
     fail('runtime evidence attempt differs from the workflow attempt')

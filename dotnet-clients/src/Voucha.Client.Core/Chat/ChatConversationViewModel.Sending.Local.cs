@@ -5,7 +5,7 @@ namespace Voucha.Client.Core.Chat;
 
 public sealed partial class ChatConversationViewModel
 {
-  private async Task<bool> SendLocalTurnAsync(
+  private async Task<(bool Inserted, PendingLocalTurn? Pending)> SendLocalTurnAsync(
       string trimmed,
       string conversationId,
       string localUserMessageId,
@@ -22,7 +22,7 @@ public sealed partial class ChatConversationViewModel
     var mcpProvider = provider as IMcpLocalChatProvider;
     var mcpSnapshot = retry?.McpSnapshot ?? mcpProvider?.ConnectedMcpSnapshot();
     if (retry?.McpSnapshot is { } savedSnapshot &&
-        mcpProvider?.MatchesAccount(savedSnapshot.AccountId) != true)
+        mcpProvider?.MatchesAccountEpoch(savedSnapshot) != true)
       throw new OperationCanceledException("MCP account is unavailable for persistence retry.");
     using var accountTokenSource = retry is not null || mcpSnapshot is null ? null :
         CancellationTokenSource.CreateLinkedTokenSource(streamingTokenSource.Token,
@@ -35,7 +35,7 @@ public sealed partial class ChatConversationViewModel
         ? await GenerateWithSnapshotAsync(provider, mcpProvider, trimmed, history, mcpSnapshot,
             generationToken).ConfigureAwait(true)
         : null;
-    if (currentRequest != Volatile.Read(ref requestId)) return false;
+    if (currentRequest != Volatile.Read(ref requestId)) return (false, null);
     EnsureCurrentMcpAccount(mcpProvider, mcpSnapshot);
 
     var body = retry?.Body ?? new CreateClientGeneratedChatBody(
@@ -45,15 +45,19 @@ public sealed partial class ChatConversationViewModel
         localUserMessageId,
         localAssistantMessageId,
         generation.ModelName);
+    var feedPostReceipts = retry?.FeedPostReceipts ?? CurrentFeedPostReceipts(
+        generation?.FeedPostReceipts, mcpSnapshot);
     var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot,
-        mcpSnapshot is null ? null : mcpProvider);
+        mcpSnapshot is null ? null : mcpProvider, feedPostReceipts);
     pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(
         localAssistantMessageId,
         "assistant",
         body.AssistantContent,
-        DateTimeOffset.UtcNow));
+        DateTimeOffset.UtcNow,
+        Localization: localization,
+        FeedPostReceipts: feedPostReceipts));
     OnPropertyChanged(nameof(Messages));
 
     try
@@ -72,7 +76,7 @@ public sealed partial class ChatConversationViewModel
       throw;
     }
 
-    return true;
+    return (true, pending);
   }
 
   private static Task<LocalChatGenerationResult> GenerateWithSnapshotAsync(
@@ -85,8 +89,20 @@ public sealed partial class ChatConversationViewModel
   private static void EnsureCurrentMcpAccount(
       IMcpLocalChatProvider? provider, MemberMcpConnectedSnapshot? snapshot)
   {
-    if (snapshot is not null && provider?.MatchesAccount(snapshot.AccountId) != true)
+    if (snapshot is not null && provider?.MatchesAccountEpoch(snapshot) != true)
       throw new OperationCanceledException("MCP account changed.");
+  }
+
+  private static McpFeedPostReceipt[]? CurrentFeedPostReceipts(
+      IReadOnlyList<McpFeedPostReceipt>? receipts, MemberMcpConnectedSnapshot? snapshot)
+  {
+    if (snapshot is null || receipts is not { Count: > 0 } || receipts.Count > 32) return null;
+    var calls = new HashSet<string>(StringComparer.Ordinal);
+    if (receipts.Any(receipt => receipt.AccountId != snapshot.AccountId ||
+        string.IsNullOrEmpty(receipt.CallId) || !calls.Add(receipt.CallId) || receipt.PostIds.Count > 100 ||
+        receipt.PostIds.Any(id => !Guid.TryParse(id, out _)))) return null;
+    return receipts.Select(receipt => new McpFeedPostReceipt(
+        receipt.AccountId, receipt.CallId, receipt.PostIds.ToArray())).ToArray();
   }
 
   private void ResetStreamingState() => IsStreaming = true;

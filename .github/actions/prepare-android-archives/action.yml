@@ -1,0 +1,31 @@
+name: Prepare checksummed Swift Android archives
+description: Restore verified downloads, materialize the pinned SDK, and save one main-branch cache
+
+inputs:
+  save-cache:
+    description: Save a cache miss from the designated main-branch phase
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Restore checksummed Swift Android archives
+      id: archives
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/voucha/swift-android/downloads
+        key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh') }}
+    - name: Materialize pinned Skip Swift Android SDK
+      shell: bash
+      working-directory: candidate-clients
+      run: |
+        set -euo pipefail
+        export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
+        mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+    - name: Save checksummed archives from main
+      if: ${{ inputs.save-cache == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.archives.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/voucha/swift-android/downloads
+        key: ${{ steps.archives.outputs.cache-primary-key }}

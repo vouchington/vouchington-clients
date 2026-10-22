@@ -1,17 +1,10 @@
 import {
-  pairedRepositories,
   capturePairSnapshot,
+  fail,
+  pairedRepositories,
+  requiredString,
   validateDispatch,
 } from './paired-contract-policy.mjs'
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
-
-function requiredString(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
-  return value.trim()
-}
 
 async function githubRequest(path, { authenticated = false } = {}) {
   const apiURL = requiredString(

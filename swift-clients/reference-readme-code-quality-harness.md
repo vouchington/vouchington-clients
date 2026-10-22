@@ -42,8 +42,12 @@ locally and in CI; imports of external modules that Periphery cannot index have 
 analyzer. Both commands first build with SwiftPM's explicit `.build/periphery-index` path and then
 pass its `out/Products/Debug/index/store` to Periphery. The macOS UI package uses Xcode's bundled
 Swift compiler because the target needs Apple SwiftUI overlays absent from mise's standalone
-toolchain; CI selects Xcode 26.6, while mise remains the pinned Swift 6.4 compiler for Core,
-Linux, and Android.
+toolchain. Local `test/ui` runs `bash swift-clients/tooling/test-ui.sh`, which accepts only
+`xcrun swift` inside the selected Xcode. The pinned mise Swift 6.4.0 toolchain cannot compile the
+locked ViewInspector 0.10.5 sources against the Xcode 27 SDK: `MapUserTrackingMode` and other
+SwiftUI overlay types, including `VideoPlayer`, are not in scope. Xcode 27.1's bundled Apple Swift 6.4 is a supported local compiler.
+CI still selects Xcode 26.6 for `test-swift-ui` and runs `xcrun swift test`. mise remains the
+pinned Swift 6.4 compiler for Core, Linux, and Android.
 
 CI runs pinned SwiftFormat and SwiftLint containers on Linux, while the macOS runner image owns
 Periphery installation and native compiler checks. Linux owns portable core and `test-support`
@@ -53,6 +57,7 @@ and Swift DTO parity are exercised; those jobs compile different stacks. See
 `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
 Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
 The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
+`test-android-host` is opt-in and runs only the Android package's host SwiftPM source tests.
 
 Each package's `Package.resolved` is its canonical SwiftPM lock; the generated app projects consume
 the UI lock. Build, test, and dead-code checks require pinned versions. To update dependencies
@@ -80,15 +85,42 @@ Semantic planning compares `Package.swift` and `Package.resolved`, then follows 
 from core through UI and the Android package. Inspect `reasons`, `warnings`, and the `direct`,
 `dependencies`, and `sample` groups independently: a missing baseline or unsupported dependency
 form uses the selected environment's conservative policy and is never evidence that there are no
-causal tests. The command can select `VouchaAndroidTests`; run its emitted command, or reproduce it
-directly with `bash swift-clients/tooling/with-build-lock.sh swift test --package-path swift-clients/apps/android
---filter VouchaAndroidTests --force-resolved-versions`.
+causal tests. For `swift-clients/apps/android`, the planner replaces `swift test` with
+`bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh` and still appends
+`--package-path` and `--filter`. The full target is:
+
+```sh
+bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter VouchaAndroidTests
+```
+
+Run that command on the supported host. Locally, the host-lock harness runs the same argv:
+
+```sh
+bash swift-clients/tooling/harness.sh --checks test-android-host
+```
+
+which executes:
+
+```sh
+bash swift-clients/tooling/with-build-lock.sh \
+  bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh \
+  --package-path swift-clients/apps/android \
+  --filter VouchaAndroidTests
+```
+
+The entrypoint checks for Xcode 26.6 and Swift 6.3.3, installs that mise toolchain, and exits
+before SwiftPM when the pair is absent. Hosted Android CI runs the emitted command directly.
+Swift 6.4 remains the separate Android SDK and Gradle toolchain. The planner also prints
+`swift test` for `swift-clients/ui`. Run that package through
+`bash swift-clients/tooling/test-ui.sh` and pass the same `--filter`; the mise `swift` shim is
+not a supported UI compiler.
 
 This is a local/pre-push planning aid only. GitHub's native Swift workflow intentionally remains
 full-suite: it runs core, UI, and Android test/build coverage rather than consuming a narrowed
 planner result. The Core and UI LCOV reports are checked with `pnpm run coverage:swift`; its
-`.coverage-rules.yml` keeps app shells, package manifests, and opt-in integration tests exempt
-while requiring 90% patch coverage for all other Swift sources.
+`.coverage-rules.yml` keeps app shells, package manifests, opt-in integration tests, and the
+Apple Intelligence descriptor measurement exempt while requiring 90% patch coverage for all other
+Swift sources.
 
 `build/ui`, `periphery`, and `test/ui` are macOS-only until the UI package is Linux-portable.
 `build/core`, `test/core`, and `test/test-support` run on Linux. `build-android` is Linux-only and
@@ -118,7 +150,7 @@ the exact `expensive-build` wrapper marker and matching exit status; every other
   uploads failure-only `~/Library/Logs/DiagnosticReports/*.ips`/`*.crash` reports — see
   [native harness failure classification](../docs/development/host-locks.md#native-harness-timeout-classification)
   before treating the failure as transient. To force a deterministic repro of a suspected use-after-free, run
-  under AddressSanitizer: `swift test --package-path ui --sanitize=address`.
+  under AddressSanitizer: `bash swift-clients/tooling/test-ui.sh --sanitize=address`.
 
 ## Development
 

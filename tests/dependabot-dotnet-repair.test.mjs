@@ -179,7 +179,7 @@ describe('trusted Dependabot .NET repair validation', () => {
     }
   })
 
-  it('validates the exact eleven-lock provenance shape and trusted context', () => {
+  it('validates the exact twelve-lock provenance shape and trusted context', () => {
     const locks = validateDotnetRepairProvenance(
       provenance(),
       repository,
@@ -199,7 +199,7 @@ describe('trusted Dependabot .NET repair validation', () => {
       [provenance({ headSha: 'c'.repeat(40) }), /head SHA/u],
       [provenance({ manifestSha256: 'F'.repeat(64) }), /manifest hash/u],
       [provenance({ extra: true }), /unexpected fields/u],
-      [provenance({ locks: provenance().locks.slice(0, -1) }), /exactly eleven/u],
+      [provenance({ locks: provenance().locks.slice(0, -1) }), /exactly twelve/u],
       [
         provenance({
           locks: [
@@ -239,7 +239,7 @@ describe('trusted Dependabot .NET repair validation', () => {
     ]) {
       assert.throws(
         () => validateDotnetRepairPublishedPaths(invalidPaths),
-        /only the eleven|unique|NUL-delimited/u,
+        /only the twelve|unique|NUL-delimited/u,
       )
     }
   })

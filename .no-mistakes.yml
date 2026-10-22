@@ -5,6 +5,11 @@ tests:
       - swift-clients/test-support
       - swift-clients/ui
       - swift-clients/apps/android
+    # Literal argv. The planner appends --package-path and --filter.
+    baseCommands:
+      swift-clients/apps/android:
+        - bash
+        - swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
   dotnet:
     solutions:
       - dotnet-clients/Voucha.DotNet.sln
@@ -21,6 +26,9 @@ tests:
         test: true
       windows-image-preview-tests:
         project: dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
+        test: true
+      windows-language-model-surface-tests:
+        project: dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj
         test: true
 
 test_plan:
@@ -56,6 +64,7 @@ test_plan:
           - tests/Voucha.Client.Core.Tests/Voucha.Client.Core.Tests.csproj
           - tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           - tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
+          - tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj
           - NuGet.config
           - Directory.Build.props
           - Directory.Build.targets
@@ -101,6 +110,14 @@ rules:
           reason: First-party native patch-coverage utility.
         - name: no-mistakes
           reason: First-party structural analysis and native test-planning tool.
+        - name: no-mistakes-darwin-arm64
+          reason: Platform binary published with the first-party no-mistakes release.
+        - name: no-mistakes-linux-arm64-gnu
+          reason: Platform binary published with the first-party no-mistakes release.
+        - name: no-mistakes-linux-x64-gnu
+          reason: Platform binary published with the first-party no-mistakes release.
+        - name: no-mistakes-win32-x64-msvc
+          reason: Platform binary published with the first-party no-mistakes release.
         - name: pr-shepherd
           reason: First-party pull-request management tool.
         - name: vouchington-tooling
@@ -133,7 +150,9 @@ rules:
     scope: repository
     include: [swift-clients/**/*.swift]
     options:
-      allow: [swift-clients/core/Sources/VouchaCore/Logging.swift]
+      allow:
+        - swift-clients/core/Sources/VouchaCore/Logging.swift
+        - swift-clients/ui/Tests/VouchaUITests/NativeChatFoundationModelsPinnedSDKAdmissionTests.swift
   - name: Swift ViewModels are main-actor isolated
     rule: swift-viewmodel-main-actor
     scope: repository

@@ -23,6 +23,9 @@ let package = Package(
             name: "VouchaCore",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto")
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
             ]
         ),
         .target(name: "VouchaModels", dependencies: ["VouchaCore"]),
@@ -32,6 +35,9 @@ let package = Package(
                 "VouchaModels",
                 "VouchaCore",
                 .product(name: "Crypto", package: "swift-crypto")
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
             ]
         ),
         .target(

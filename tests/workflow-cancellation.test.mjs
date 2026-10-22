@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const native = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -11,13 +12,6 @@ const validate = await readFile(
   new URL('../.github/workflows/validate.yml', import.meta.url),
   'utf8',
 )
-const jobBlock = (workflow, name) => {
-  const start = workflow.indexOf(`\n  ${name}:\n`)
-  assert.notEqual(start, -1)
-  const block = workflow.slice(start + 1)
-  const next = block.search(/\n {2}[\w-]+:/u)
-  return next === -1 ? block : block.slice(0, next)
-}
 const command = block => {
   const script = block.match(/        run: \|\n([\s\S]+)/u)?.[1]
   assert.ok(script, 'aggregate must retain its executable result checks')
@@ -120,10 +114,11 @@ describe('cancellation-aware native reporting', () => {
     const keys = [...dependencies.matchAll(/^      - ([\w-]+)$/gmu)].map(m => m[1])
     assert.ok(keys.length > 0)
     const needs = Object.fromEntries(keys.map(key => [key, { result: 'success' }]))
-    const invoke = (results, preview = 'true', maui = 'true') =>
+    const invoke = (results, preview = 'true', maui = 'true', surface = 'true') =>
       execute(script, {
         NEEDS_JSON: JSON.stringify(results),
         WINDOWS_IMAGE_PREVIEW_ROUTE: preview,
+        WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: surface,
         WINDOWS_MAUI_ROUTE: maui,
       })
     assert.equal(invoke(needs), 0)
@@ -135,10 +130,12 @@ describe('cancellation-aware native reporting', () => {
     const optional = {
       ...needs,
       'dotnet-windows-image-preview': { result: 'skipped' },
+      'dotnet-windows-language-model-surface': { result: 'skipped' },
       'dotnet-windows-maui': { result: 'skipped' },
     }
-    assert.equal(invoke(optional, 'false', 'false'), 0)
-    assert.notEqual(invoke(optional, 'true', 'false'), 0)
-    assert.notEqual(invoke(optional, 'false', 'true'), 0)
+    assert.equal(invoke(optional, 'false', 'false', 'false'), 0)
+    assert.notEqual(invoke(optional, 'true', 'false', 'false'), 0)
+    assert.notEqual(invoke(optional, 'false', 'true', 'false'), 0)
+    assert.notEqual(invoke(optional, 'false', 'false', 'true'), 0)
   })
 })
