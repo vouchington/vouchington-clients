@@ -86,11 +86,12 @@ destination in `build-macos-app` and `build-ios-app` in
 `.github/workflows/native-contract-tests.yml`. The macOS job then requires a hosted GUI session
 and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitlements, using
 `VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell`,
-accepting only one passed test and no skips. The iOS job launches the unsigned app on an
-available iPhone Simulator and requires its root-shell, canonical video-feed, and email OTP
-sign-in UI tests to pass. The sign-in test uses fixture responses and does not complete Turnstile
-or cover another platform. It then launches only the root-shell UI test on an available iPad
-Simulator and accepts that result only when exactly one test passed and none were skipped. CI also
+accepting only one passed test and no skips. The iOS arm64 test bundle is built once and reused.
+`build-ios-app` launches it on an available iPhone Simulator and requires its root-shell,
+canonical video-feed, and email OTP sign-in UI tests to pass. The sign-in test uses fixture
+responses and does not complete Turnstile or cover another platform. `build-ios-ipad` launches
+only the root-shell UI test on an available iPad Simulator and accepts that result only when
+exactly one test passed and none were skipped. CI also
 cross-compiles `core/` for Android in the Linux Docker
 `build-android-core` gate via `./tooling/harness.sh --checks build-android`.
 
