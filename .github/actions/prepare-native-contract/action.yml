@@ -77,7 +77,8 @@ runs:
         path: candidate-clients
         persist-credentials: false
     - name: Restore candidate pnpm store
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: pnpm-store
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/pnpm-store
         key: ${{ runner.os }}-pnpm-clients-${{ hashFiles('candidate-clients/pnpm-lock.yaml') }}
@@ -89,3 +90,10 @@ runs:
       env:
         pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
       run: pnpm install --frozen-lockfile
+    - name: Save candidate pnpm store from main
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.pnpm-store.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/pnpm-store
+        key: ${{ steps.pnpm-store.outputs.cache-primary-key }}
