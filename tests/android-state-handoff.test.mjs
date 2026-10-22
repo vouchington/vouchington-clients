@@ -12,7 +12,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import test from 'node:test'
 import {
   inventoryState,
@@ -149,6 +149,26 @@ test('rejects a Skipstone mirror link outside the candidate checkout', async t =
   assert.throws(
     () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
     /mirror target escaped candidate checkout/u,
+  )
+})
+
+test('rejects a mirrored target that traverses a symlink before dot-dot', async t => {
+  const state = await fixture(t)
+  const links = join(
+    state.packageRoot,
+    '.build/plugins/outputs/skip-keychain/SkipKeychain/destination/skipstone/SkipKeychain/src/main/swift',
+  )
+  const source = join(state.checkoutRoot, 'swift-clients/core')
+  const outside = join(state.root, 'outside/deep')
+  await mkdir(links, { recursive: true })
+  await mkdir(source, { recursive: true })
+  await mkdir(outside, { recursive: true })
+  await mkdir(join(source, 'bar'))
+  await symlink(outside, join(source, 'jump'))
+  await symlink(`${relative(links, source)}/jump/../bar`, join(links, 'Sources'))
+  assert.throws(
+    () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
+    /Unsafe Android state symlink/u,
   )
 })
 

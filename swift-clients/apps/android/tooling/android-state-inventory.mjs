@@ -66,8 +66,12 @@ const mirroredSwiftPath = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination
 // Skipstone 1.9.13 creates shallow absolute source and Packages links here.
 // Store their checkout-relative relationship, never the producer runner path.
 export function checkedMirroredLink(path, target, packageRoot, checkoutRoot, stagedRoot = null) {
+  const targetParts = typeof target === 'string' ? target.split(sep) : []
+  const firstDescendant = targetParts.findIndex(part => part !== '..')
   if (!mirroredSwiftPath.test(path) || typeof target !== 'string' || target.length > 4096 ||
-      !target || isAbsolute(target) || target.includes('\\') || target.includes('\0')) {
+      !target || isAbsolute(target) || target.includes('\\') || target.includes('\0') ||
+      firstDescendant < 0 || targetParts.some((part, index) =>
+        part === '' || part === '.' || (part === '..' && index >= firstDescendant))) {
     throw new Error(`Unsafe Android state symlink: ${path}`)
   }
   const finalLink = join(packageRoot, path)
