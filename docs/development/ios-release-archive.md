@@ -13,9 +13,22 @@ An older run rerun after a newer run can have a lower build number; do not use
 that rerun as a later App Store upload. The workflow checks the final archived
 app's version keys.
 
-The hosted job builds an unsigned iOS device archive using Xcode 26.6 and
-retains a zipped `Voucha.app` for inspection for seven days. It is not a signed
-IPA, installable distribution build, or TestFlight upload. Producing those
-requires the Apple team, signing assets, provisioning, and App Store Connect
-access tracked by [#72](https://github.com/vouchington/vouchington-clients/issues/72)
-and [#70](https://github.com/vouchington/vouchington-clients/issues/70).
+The hosted job builds an unsigned iOS device archive using Xcode 26.6. It then
+packages that app as an inspection IPA: a zip whose only top-level directory is
+`Payload/Voucha.app`. The packaged app must be `arm64`, must not contain a
+provisioning profile, and must carry the same version, build, and
+`ai.voucha.ios` bundle identifier. The staged copy's `Info.plist` is converted
+to XML before it is zipped so the checker can read those keys; the archived
+app zip is left unchanged. The workflow accepts only an ad hoc no-team
+signature or no signature at all. It retains both the zipped app and
+`Voucha-unsigned.ipa` for seven days.
+
+This IPA is layout evidence, not an App Store export. `xcodebuild -help` lists
+the iOS export methods `app-store-connect`, `release-testing`, `enterprise`,
+`debugging`, and `validation`; each re-signs the archive. The unsigned macOS
+method `mac-application` does not apply to an iOS archive, so this job does not
+call `-exportArchive`. It also does not call `altool` or an upload API. A
+signed IPA and a TestFlight upload still need the Apple team, signing assets,
+and App Store Connect access tracked by
+[#72](https://github.com/vouchington/vouchington-clients/issues/72) and
+[#70](https://github.com/vouchington/vouchington-clients/issues/70).

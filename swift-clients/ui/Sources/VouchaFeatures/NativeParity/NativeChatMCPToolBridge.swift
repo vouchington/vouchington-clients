@@ -101,24 +101,8 @@ struct NativeChatMCPToolBridge {
               let text = String(data: output, encoding: .utf8) else {
             throw Failure.resultTooLarge
         }
-        var fact: NativeChatMCPFact?
-        if name == "read_my_preferences", result.isError != true, let structuredContent = result.structuredContent {
-            switch object["option"] {
-            case .string("email"): fact = NativeChatMCPFact.makeEmailPreferences(structuredContent)
-            case .string("general"): fact = NativeChatMCPFact.makeGeneralPreferences(structuredContent)
-            default: break
-            }
-        }
-        if name == "read_my_profile", result.isError != true, let structuredContent = result.structuredContent {
-            switch object["option"] {
-            case .string("bio"): fact = NativeChatMCPFact.makeProfileBio(structuredContent)
-            case .string("links"): fact = NativeChatMCPFact.makeProfileLinks(structuredContent)
-            default: break
-            }
-        }
-        if name == "read_feed", case .string("posts") = object["option"],
-           result.isError != true, let structuredContent = result.structuredContent {
-            fact = NativeChatMCPFact.makeFeedPostIds(structuredContent)
+        let fact = result.isError == true ? nil : result.structuredContent.flatMap { content in
+            NativeChatMCPFact.make(tool: name, option: object["option"], content: content)
         }
         return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }

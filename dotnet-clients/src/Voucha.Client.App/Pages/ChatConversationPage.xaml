@@ -71,6 +71,7 @@
                                     IsVisible="{Binding HasContent}" />
                                 <Label Text="{Binding DisplayError}" Style="{StaticResource Metadata}" TextColor="#991B1B" IsVisible="{Binding HasError}" />
                                 <Label AutomationId="chat-feed-post-facts" Text="{Binding DisplayFeedPostFacts}" Style="{StaticResource Metadata}" IsVisible="{Binding HasFeedPostFacts}" />
+                                <Label AutomationId="chat-feed-rss-item-facts" Text="{Binding DisplayRssItemFacts}" Style="{StaticResource Metadata}" IsVisible="{Binding HasRssItemFacts}" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

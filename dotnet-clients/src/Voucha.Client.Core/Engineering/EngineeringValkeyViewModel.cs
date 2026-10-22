@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Support;
 
@@ -49,28 +47,16 @@ public sealed partial class EngineeringValkeyViewModel : ObservableObject
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-  public async Task LoadAsync(CancellationToken cancellationToken = default)
-  {
-    if (IsLoading) return;
-    IsLoading = true;
-    ErrorMessage = null;
-    try
-    {
-      CacheGroups = (await service.FetchCacheGroupsAsync(cancellationToken).ConfigureAwait(true)).Groups;
-    }
-    catch (OperationCanceledException)
-    {
-      ErrorMessage = null;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      IsLoading = false;
-    }
-  }
+  public Task LoadAsync(CancellationToken cancellationToken = default) =>
+      EngineeringRequest.RunAsync(
+          () => IsLoading,
+          () => IsLoading = true,
+          message => ErrorMessage = message,
+          () => IsLoading = false,
+          async () =>
+          {
+            CacheGroups = (await service.FetchCacheGroupsAsync(cancellationToken).ConfigureAwait(true)).Groups;
+          });
 
   public Task RebuildBloomFilterAsync(string filter, CancellationToken cancellationToken = default) =>
       RunAndReloadAsync(() => service.RebuildBloomFilterAsync(filter, cancellationToken), cancellationToken);
@@ -84,52 +70,31 @@ public sealed partial class EngineeringValkeyViewModel : ObservableObject
   public Task FlushValkeyAsync(string concern, bool force = false, CancellationToken cancellationToken = default) =>
       RunFlushAsync(concern, () => service.FlushValkeyAsync(concern, force, cancellationToken), cancellationToken);
 
-  private async Task RunFlushAsync(string concern, Func<Task> action, CancellationToken cancellationToken)
-  {
-    if (IsLoading) return;
-    IsLoading = true;
-    FlushingConcern = concern;
-    ErrorMessage = null;
-    try
-    {
-      await action().ConfigureAwait(true);
-    }
-    catch (OperationCanceledException)
-    {
-      ErrorMessage = null;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      IsLoading = false;
-      FlushingConcern = null;
-    }
-  }
+  private Task RunFlushAsync(string concern, Func<Task> action, CancellationToken cancellationToken) =>
+      EngineeringRequest.RunAsync(
+          () => IsLoading,
+          () =>
+          {
+            IsLoading = true;
+            FlushingConcern = concern;
+          },
+          message => ErrorMessage = message,
+          () =>
+          {
+            IsLoading = false;
+            FlushingConcern = null;
+          },
+          action);
 
-  private async Task RunAndReloadAsync(Func<Task> action, CancellationToken cancellationToken)
-  {
-    if (IsLoading) return;
-    IsLoading = true;
-    ErrorMessage = null;
-    try
-    {
-      await action().ConfigureAwait(true);
-      CacheGroups = (await service.FetchCacheGroupsAsync(cancellationToken).ConfigureAwait(true)).Groups;
-    }
-    catch (OperationCanceledException)
-    {
-      ErrorMessage = null;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      IsLoading = false;
-    }
-  }
+  private Task RunAndReloadAsync(Func<Task> action, CancellationToken cancellationToken) =>
+      EngineeringRequest.RunAsync(
+          () => IsLoading,
+          () => IsLoading = true,
+          message => ErrorMessage = message,
+          () => IsLoading = false,
+          async () =>
+          {
+            await action().ConfigureAwait(true);
+            CacheGroups = (await service.FetchCacheGroupsAsync(cancellationToken).ConfigureAwait(true)).Groups;
+          });
 }

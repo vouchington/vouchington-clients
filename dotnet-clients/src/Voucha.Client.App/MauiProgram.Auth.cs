@@ -56,17 +56,24 @@ public static partial class MauiProgram
       };
     });
     services.AddSingleton(_ => NativeClientMetadata.Current());
-    services.AddSingleton(sp => new HttpClient(
-        new ClientMetadataHandler(
-            sp.GetRequiredService<ClientMetadata>(),
-            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
-            sp.GetRequiredService<SessionCookieJar>(),
-            new SessionCookiePersistenceHandler(
-                sp.GetRequiredService<SessionCookieJar>(),
-                sp.GetRequiredService<SocketsHttpHandler>())),
-        disposeHandler: true)
+    services.AddSingleton(sp =>
     {
-      BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+      HttpMessageHandler transport = sp.GetRequiredService<SocketsHttpHandler>();
+#if DEBUG
+      transport = CatalystGuiFixtureHandler.Wrap(transport);
+#endif
+      return new HttpClient(
+          new ClientMetadataHandler(
+              sp.GetRequiredService<ClientMetadata>(),
+              sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+              sp.GetRequiredService<SessionCookieJar>(),
+              new SessionCookiePersistenceHandler(
+                  sp.GetRequiredService<SessionCookieJar>(),
+                  transport)),
+          disposeHandler: true)
+      {
+        BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+      };
     });
     services.AddSingleton<VouchaApiClient>();
     services.AddSingleton<CookieSessionStore>();
