@@ -133,6 +133,8 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
   const uiPeripheryJob = jobBlock(workflow, 'periphery-swift-ui')
   const macAppJob = jobBlock(workflow, 'build-macos-app')
   const iosAppJob = jobBlock(workflow, 'build-ios-app')
+  const iosBuildJob = jobBlock(workflow, 'build-ios-tests')
+  const iosX86Job = jobBlock(workflow, 'build-ios-x86')
 
   assert.match(harness, /SWIFT_BIN="\$\(bash "\$SWIFT_DIR\/tooling\/resolve-mise-swift\.sh"\)"/u)
   assert.match(
@@ -147,19 +149,25 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
   assert.match(uiPeripheryJob, /VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN: xcode/u)
   assert.match(macAppJob, /xcodebuild -project/u)
   assert.doesNotMatch(macAppJob, /mise exec -- swift/u)
-  assert.match(iosAppJob, /needs: verify[\s\S]*?runs-on: macos-latest/u)
+  assert.match(iosAppJob, /needs: \[verify, build-ios-tests\][\s\S]*?runs-on: macos-latest/u)
   assert.match(iosAppJob, /prepare-native-contract/u)
   assert.match(iosAppJob, /DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer/u)
   assert.match(iosAppJob, /xcodebuild -version[\s\S]*?= 26\.6/u)
-  assert.match(iosAppJob, /generate\.sh iOS/u)
-  assert.match(iosAppJob, /xcodebuild -project swift-clients\/apps\/iOS\/Voucha\.xcodeproj/u)
-  assert.match(iosAppJob, /-destination 'generic\/platform=iOS Simulator' build/u)
+  assert.match(iosBuildJob, /generate\.sh iOS/u)
+  assert.match(iosBuildJob, /xcodebuild -project swift-clients\/apps\/iOS\/Voucha\.xcodeproj/u)
   assert.match(
-    iosAppJob,
+    iosX86Job,
+    /-destination "platform=iOS Simulator,name=\$simulator_name,OS=\$simulator_sdk,arch=x86_64" build/u,
+  )
+  assert.match(
+    iosBuildJob,
     /-disableAutomaticPackageResolution[\s\S]*?-onlyUsePackageVersionsFromResolvedFile/u,
   )
-  assert.match(iosAppJob, /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u)
-  assert.match(iosAppJob, /^    timeout-minutes: 55$/mu)
+  assert.match(
+    iosBuildJob,
+    /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u,
+  )
+  assert.match(iosAppJob, /^    timeout-minutes: 9$/mu)
 })
 
 test('Periphery scans the index store produced by its selected Swift compiler', () => {
@@ -231,4 +239,22 @@ test('native mise setup selects only its requested SDK and Swift runtime librari
   assert.match(gitleaksJob, /mise --no-config where aqua:gitleaks\/gitleaks/u)
   assert.match(gitleaksJob, /"\$gitleaks_dir\/gitleaks" git/u)
   assert.doesNotMatch(gitleaksJob, /mise exec/u)
+})
+
+test('pnpm bootstrap skips only npm advisory requests without changing package gates', () => {
+  for (const [path, expected] of [
+    ['.github/actions/prepare-native-contract/action.yml', 1],
+    ['.github/workflows/validate.yml', 2],
+    ['.github/workflows/native-contract-tests.yml', 1],
+  ]) {
+    const contents = read(path)
+    const scoped = [
+      ...contents.matchAll(
+        /uses: pnpm\/action-setup@[a-f0-9]{40}[^\n]*\n\s+env:\n\s+NPM_CONFIG_AUDIT: 'false'\n\s+with:\n\s+version: latest-12/gu,
+      ),
+    ]
+    assert.equal(scoped.length, expected, `${path} scopes every pnpm bootstrap`)
+    assert.equal(contents.split('NPM_CONFIG_AUDIT:').length - 1, expected)
+  }
+  assert.match(read('.github/workflows/validate.yml'), /pnpm install --frozen-lockfile/u)
 })

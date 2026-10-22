@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
 import { jobBlock } from './workflow-job-block.mjs'
-
 const readWorkflow = name =>
   readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8')
 const readAction = name =>
@@ -29,7 +28,6 @@ describe('native contract workflow boundary', () => {
       for (const consumer of consumers) assert.equal(consumer.includes(path), false)
     }
   })
-
   it('uses full checkouts and pinned artifact actions', async () => {
     const files = await Promise.all([
       readWorkflow('native-contract-tests.yml'),
@@ -71,16 +69,66 @@ describe('native contract workflow boundary', () => {
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 16)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 20)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 16)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 20)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
+  })
+
+  it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+    const portable = jobBlock(workflow, 'dotnet-portable')
+    const mauiCompile = jobBlock(workflow, 'dotnet-maui-compile')
+    const maui = jobBlock(workflow, 'dotnet-maui')
+    const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
+    assert.match(portable, /^    name: \.NET portable$/mu)
+    assert.match(portable, /runs-on: ubuntu-latest/u)
+    assert.doesNotMatch(portable, /matrix:/u)
+    assert.doesNotMatch(portable, /macos/u)
+    assert.doesNotMatch(portable, /matrix\.os/u)
+    assert.match(mauiCompile, /runs-on: macos-latest/u)
+    assert.match(maui, /runs-on: macos-latest/u)
+    assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
+    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
+    assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
+    assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
+    assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)
+    for (const command of [
+      /restore-locks\.sh verify/u,
+      /dotnet build dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
+      /dotnet test dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
+      /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
+    ])
+      assert.match(workflow, command)
+    assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.6/u)
+    assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
+    assert.match(mauiCompile, /name: Build managed Mac Catalyst CoreBuild closure/u)
+    assert.match(mauiCompile, /name: Verify all twelve committed NuGet locks/u)
+    assert.match(maui, /needs: \[verify, dotnet-maui-compile\]/u)
+    assert.doesNotMatch(maui, /name: Test rendered MAUI pages/u)
+    assert.match(maui, /name: Verify all twelve committed NuGet locks/u)
+    assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
+    assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
+    assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
+    assert.match(
+      maui,
+      /dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst \\\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0 --locked-mode/u,
+    )
+    assert.ok(
+      workflow.indexOf('name: Test rendered MAUI pages') <
+        workflow.indexOf('name: Select compatible Xcode'),
+    )
+    assert.doesNotMatch(workflow, /clean-workspace/u)
+    assert.doesNotMatch(action, /clean-workspace/u)
   })
 
   it('installs each candidate .NET SDK at its exact global.json version', async () => {
@@ -113,10 +161,13 @@ describe('native contract workflow boundary', () => {
       'test-swift-core:',
       'test-swift-android:',
       'test-swift-ui:',
+      'build-swift-ui-tests:',
       'swift-patch-coverage:',
       'build-android-core:',
       'build-macos-app:',
       'build-ios-app:',
+      'build-ios-tests:',
+      'build-ios-x86:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
     assert.match(
@@ -168,7 +219,7 @@ describe('native contract workflow boundary', () => {
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      16,
+      20,
     )
   })
 
@@ -272,7 +323,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      16,
+      20,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
