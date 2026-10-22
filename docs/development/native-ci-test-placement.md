@@ -42,9 +42,10 @@ The iOS build jobs compile the arm64 test bundle for an available iPhone Simulat
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
-`test-without-building`; neither launch job recompiles. The iPhone job boots its simulator
-before candidate setup so that readiness overlaps that setup, and it collects verbose xcodebuild
-diagnostics only when a test fails. The result summary is still required. The iPhone job requires
+`test-without-building`; neither launch job recompiles. The iPhone job finishes candidate
+setup and unpacks the test products before booting its simulator, so the Node.js download is not
+competing with CoreSimulator, and it collects verbose xcodebuild diagnostics only when a test
+fails. The result summary is still required. The iPhone job requires
 exactly three passed, non-skipped tests: the root shell, the real Videos tab, and one email OTP
 sign-in
 (Sign In, Continue with Email, Send Code, and Verify Code). The sign-in fixture accepts only the
