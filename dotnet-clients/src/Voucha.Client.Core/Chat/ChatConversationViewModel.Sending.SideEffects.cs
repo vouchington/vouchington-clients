@@ -66,7 +66,7 @@ public sealed partial class ChatConversationViewModel
   private static McpFeedPostReceipt? OwnedPost(McpFeedPostReceipt? receipt, string accountId, string callId)
   {
     if (receipt is null) return null;
-    if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.PostIds.Count is 0 or > 100 ||
+    if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.PostIds.Count > 100 ||
         receipt.PostIds.Any(id => !Guid.TryParse(id, out _))) return null;
     return new(receipt.AccountId, receipt.CallId, receipt.PostIds.ToArray());
   }
@@ -74,7 +74,7 @@ public sealed partial class ChatConversationViewModel
   private static McpFeedRssItemReceipt? OwnedRss(McpFeedRssItemReceipt? receipt, string accountId, string callId)
   {
     if (receipt is null) return null;
-    if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.ItemIds.Count is 0 or > 100 ||
+    if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.ItemIds.Count > 100 ||
         receipt.ItemIds.Any(id => !Guid.TryParse(id, out _))) return null;
     return new(receipt.AccountId, receipt.CallId, receipt.ItemIds.ToArray());
   }

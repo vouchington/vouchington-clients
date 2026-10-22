@@ -151,6 +151,37 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task EmptyFeedReceiptSurvivesAnOverBudgetContinuation()
+  {
+    using var catalog = JsonDocument.Parse("""
+        {"tools":[{"name":"read_feed","description":"Read","inputSchema":{"type":"object"}}]}
+        """);
+    using var structured = JsonDocument.Parse("""{"success":true,"results":[]}""");
+    using var content = JsonDocument.Parse("""[{"type":"text","text":"none"}]""");
+    var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections.Single().ToolResult = new McpToolResult(
+        content.RootElement.Clone(), structured.RootElement.Clone(), false);
+    var runtime = new RecordingBuiltInRuntime
+    {
+      BuiltInText = """{"call":{"id":"call-1","name":"read_feed","arguments":{"option":"posts"}}}""",
+      UsablePromptIndex = prompt => prompt.Contains("result:", StringComparison.Ordinal) ? 0 : (ulong)prompt.Length,
+    };
+    var provider = new WindowsSystemLanguageModelProvider(runtime, mcpSession: session);
+    var viewModel = new ChatConversationViewModel(
+        new FakeChatService(), new StatusOnlyResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Show the feed", TestContext.Current.CancellationToken));
+
+    var retained = viewModel.RetainedWindowsToolResult;
+    Assert.NotNull(retained);
+    Assert.Empty(retained.FeedPostReceipt!.PostIds);
+    Assert.Contains("\"results\":[]", retained.Envelope, StringComparison.Ordinal);
+    Assert.Equal(1, factory.Connections.Single().ToolCalls);
+  }
+
+  [Fact]
   public async Task RetainedWindowsToolResultStaysWithTheDispatchAccount()
   {
     using var catalog = JsonDocument.Parse("""{"tools":[]}""");
