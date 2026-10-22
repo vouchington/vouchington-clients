@@ -176,6 +176,7 @@ async function session() {
           'appium:arguments': [launchArgument],
           'appium:environment': {
             VOUCHA_FILAMENTS_CONTRACT_ROOT: process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT,
+            CATALYST_GUI_RESULT: process.env.CATALYST_GUI_RESULT,
           },
           'appium:showServerLogs': true,
           'appium:serverStartupTimeout': 100000,

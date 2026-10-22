@@ -64,39 +64,108 @@ internal static class CatalystGuiPreflight
   private static async Task OpenNotificationSettingsWithRetriesAsync(IServiceProvider services, AppShell shell)
   {
     var store = services.GetRequiredService<ISessionStore>();
-    var giveUp = DateTime.UtcNow.AddSeconds(25);
+    var giveUp = DateTime.UtcNow.AddSeconds(40);
     while (DateTime.UtcNow < giveUp)
     {
       if (Volatile.Read(ref windowReady) == 1 && store.Current.IsAuthenticated)
       {
         try
         {
-          await NavigateAsync(shell).ConfigureAwait(false);
-          await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-          await NavigateAsync(shell).ConfigureAwait(false);
-          return;
+          var location = await NavigateAsync(shell).ConfigureAwait(false);
+          Log($"location {location}");
+          if (IsSettingsLocation(location))
+          {
+            await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+            var confirmed = await LocationAsync(shell).ConfigureAwait(false);
+            Log($"confirmed {confirmed}");
+            if (IsSettingsLocation(confirmed))
+            {
+              ArmReassert(shell);
+              return;
+            }
+          }
         }
         catch (Exception exception)
         {
-          Console.Error.WriteLine($"catalyst-gui navigation: {exception.GetType().Name}: {exception.Message}");
+          Log($"navigation {exception.GetType().Name}: {exception.Message}");
         }
       }
 
       await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
     }
 
-    try
+    Log("navigation gave up");
+  }
+
+  private static void ArmReassert(AppShell shell)
+  {
+    var until = DateTime.UtcNow.AddSeconds(10);
+    EventHandler<ShellNavigatedEventArgs>? handler = null;
+    handler = (_, _) =>
     {
-      await NavigateAsync(shell).ConfigureAwait(false);
-    }
-    catch (Exception exception)
+      if (DateTime.UtcNow > until)
+      {
+        shell.Navigated -= handler;
+        return;
+      }
+
+      var location = shell.CurrentState?.Location.ToString() ?? "";
+      if (IsSettingsLocation(location)) return;
+      shell.Navigated -= handler;
+      Log($"left settings for {location}");
+      _ = NavigateAsync(shell);
+    };
+    shell.Navigated += handler;
+  }
+
+  private static Task<string> NavigateAsync(AppShell shell) =>
+      MainThread.InvokeOnMainThreadAsync(async () =>
+      {
+        await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
+        var location = shell.CurrentState?.Location.ToString() ?? "";
+        if (IsSettingsLocation(location)) return location;
+        SelectSettings(shell);
+        await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
+        return shell.CurrentState?.Location.ToString() ?? "";
+      });
+
+  private static Task<string> LocationAsync(AppShell shell) =>
+      MainThread.InvokeOnMainThreadAsync(() => shell.CurrentState?.Location.ToString() ?? "");
+
+  private static void SelectSettings(AppShell shell)
+  {
+    foreach (var item in shell.Items)
     {
-      Console.Error.WriteLine($"catalyst-gui navigation: {exception.GetType().Name}: {exception.Message}");
+      foreach (var section in item.Items)
+      {
+        foreach (var content in section.Items)
+        {
+          if (content.Route != "settings") continue;
+          shell.CurrentItem = item;
+          return;
+        }
+      }
     }
   }
 
-  private static Task NavigateAsync(AppShell shell) =>
-      MainThread.InvokeOnMainThreadAsync(() => shell.OpenNativePathAsync(NotificationSettingsPath));
+  private static bool IsSettingsLocation(string location) =>
+      location.Contains("settings", StringComparison.OrdinalIgnoreCase);
+
+  private static void Log(string message)
+  {
+    Console.Error.WriteLine($"catalyst-gui {message}");
+    var result = Environment.GetEnvironmentVariable("CATALYST_GUI_RESULT");
+    if (string.IsNullOrEmpty(result)) return;
+    try
+    {
+      var directory = Path.GetDirectoryName(result);
+      if (string.IsNullOrEmpty(directory)) return;
+      File.AppendAllText(Path.Combine(directory, "nav.log"), message + Environment.NewLine);
+    }
+    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+    {
+    }
+  }
 
   private static bool TryReadFixtureBody(
       JsonElement fixtures, string fixtureRoot, string id, string path, out string body)
