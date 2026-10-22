@@ -140,6 +140,18 @@ async function waitForReady() {
   throw new Error('Appium did not become ready')
 }
 
+async function writePageSource(request, sessionId) {
+  const resultPath = process.env.CATALYST_GUI_RESULT
+  if (!resultPath) return
+  try {
+    const source = await request('GET', `/session/${sessionId}/source`)
+    const text = typeof source.value === 'string' ? source.value : JSON.stringify(source)
+    writeFileSync(join(dirname(resultPath), 'source.xml'), text.slice(0, 200_000))
+  } catch {
+    // The assertion error is the session result.
+  }
+}
+
 async function session() {
   const appPath = process.env.CATALYST_APP_PATH
   if (!appPath || !existsSync(appPath))
@@ -172,7 +184,12 @@ async function session() {
     })
     sessionId = created.value?.sessionId ?? created.sessionId
     if (!sessionId) throw new Error('Mac2 did not return a session id')
-    await assertNotificationControls(request, sessionId)
+    try {
+      await assertNotificationControls(request, sessionId)
+    } catch (error) {
+      await writePageSource(request, sessionId)
+      throw error
+    }
     const resultPath = process.env.CATALYST_GUI_RESULT
     if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
     writeFileSync(resultPath, JSON.stringify({ total: 2, passed: 2, failed: 0, skipped: 0 }))

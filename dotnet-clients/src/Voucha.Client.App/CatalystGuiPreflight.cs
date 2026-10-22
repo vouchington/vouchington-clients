@@ -36,45 +36,67 @@ internal static class CatalystGuiPreflight
     }
   }
 
+  private static int openStarted;
+  private static int windowReady;
+
   internal static Window CreateProductionWindow(IServiceProvider services)
   {
     var shell = services.GetRequiredService<AppShell>();
     var window = new Window(shell);
-    var opened = 0;
-    void OpenOnce(object? sender, EventArgs eventArgs)
+    EventHandler markReady = (_, _) =>
     {
-      if (Interlocked.Exchange(ref opened, 1) != 0) return;
-      _ = OpenNotificationSettingsWhenAuthenticatedAsync(services, shell);
-    }
-
-    window.Activated += OpenOnce;
+      Interlocked.Exchange(ref windowReady, 1);
+      ScheduleOpen(services, shell);
+    };
+    window.Created += markReady;
+    window.Activated += markReady;
+    shell.Loaded += markReady;
+    ScheduleOpen(services, shell);
     return window;
   }
 
-  private static async Task OpenNotificationSettingsWhenAuthenticatedAsync(IServiceProvider services, AppShell shell)
+  private static void ScheduleOpen(IServiceProvider services, AppShell shell)
+  {
+    if (Interlocked.Exchange(ref openStarted, 1) != 0) return;
+    _ = OpenNotificationSettingsWithRetriesAsync(services, shell);
+  }
+
+  private static async Task OpenNotificationSettingsWithRetriesAsync(IServiceProvider services, AppShell shell)
   {
     var store = services.GetRequiredService<ISessionStore>();
-    var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    void OnChanged(object? sender, SessionChangedEventArgs args)
+    var giveUp = DateTime.UtcNow.AddSeconds(25);
+    while (DateTime.UtcNow < giveUp)
     {
-      if (args.Snapshot.IsAuthenticated) ready.TrySetResult();
+      if (Volatile.Read(ref windowReady) == 1 && store.Current.IsAuthenticated)
+      {
+        try
+        {
+          await NavigateAsync(shell).ConfigureAwait(false);
+          await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+          await NavigateAsync(shell).ConfigureAwait(false);
+          return;
+        }
+        catch (Exception exception)
+        {
+          Console.Error.WriteLine($"catalyst-gui navigation: {exception.GetType().Name}: {exception.Message}");
+        }
+      }
+
+      await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
     }
 
-    store.SessionChanged += OnChanged;
-    if (store.Current.IsAuthenticated) ready.TrySetResult();
-    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-    using var registration = timeout.Token.Register(() => ready.TrySetResult());
     try
     {
-      await ready.Task.ConfigureAwait(false);
+      await NavigateAsync(shell).ConfigureAwait(false);
     }
-    finally
+    catch (Exception exception)
     {
-      store.SessionChanged -= OnChanged;
+      Console.Error.WriteLine($"catalyst-gui navigation: {exception.GetType().Name}: {exception.Message}");
     }
-
-    await MainThread.InvokeOnMainThreadAsync(() => shell.OpenNativePathAsync(NotificationSettingsPath)).ConfigureAwait(false);
   }
+
+  private static Task NavigateAsync(AppShell shell) =>
+      MainThread.InvokeOnMainThreadAsync(() => shell.OpenNativePathAsync(NotificationSettingsPath));
 
   private static bool TryReadFixtureBody(
       JsonElement fixtures, string fixtureRoot, string id, string path, out string body)

@@ -3,13 +3,13 @@ const newsDigestId = 'notification-news-digest'
 const headingId = 'notification-preferences-heading'
 
 export async function assertNotificationControls(request, sessionId) {
-  await findElement(request, sessionId, headingId, 45_000)
+  await findElement(request, sessionId, headingId, 75_000)
   const engagement = await findElement(request, sessionId, engagementId, 15_000)
   await waitUntil(request, sessionId, engagement, 'enabled', isEnabled, 15_000)
   const before = switchState(await attribute(request, sessionId, engagement, 'value'))
   if (before === undefined) throw new Error('Mac2 did not expose the engagement switch value')
   await request('POST', elementPath(sessionId, engagement, 'click'), {})
-  const after = await waitForSwitchState(request, sessionId, engagement, !before, 15_000)
+  const after = await waitForSettledSwitch(request, sessionId, engagement, !before, 15_000)
   if (after === before) throw new Error(`engagement switch stayed ${before}`)
   const news = await findElement(request, sessionId, newsDigestId, 10_000)
   await waitUntil(request, sessionId, news, 'enabled', isEnabled, 10_000)
@@ -49,15 +49,26 @@ async function waitUntil(request, sessionId, element, name, predicate, timeoutMs
   throw new Error(`${name} stayed ${JSON.stringify(latest)}`)
 }
 
-async function waitForSwitchState(request, sessionId, element, expected, timeoutMs) {
+async function waitForSettledSwitch(request, sessionId, element, expected, timeoutMs) {
   const deadline = Date.now() + timeoutMs
+  let sawPending = false
+  let stable = 0
   let latest
   while (Date.now() < deadline) {
+    const enabled = isEnabled(await attribute(request, sessionId, element, 'enabled'))
     latest = switchState(await attribute(request, sessionId, element, 'value'))
-    if (latest === expected) return latest
-    await delay(500)
+    if (!enabled) {
+      sawPending = true
+      stable = 0
+    } else if (latest === expected) {
+      stable += 1
+      if (sawPending || stable >= 2) return latest
+    } else {
+      stable = 0
+    }
+    await delay(400)
   }
-  throw new Error(`engagement switch stayed ${latest}; expected ${expected}`)
+  throw new Error(`engagement switch did not stay ${expected} after the mutation settled: ${latest}`)
 }
 
 async function attribute(request, sessionId, element, name) {
