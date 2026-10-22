@@ -16,6 +16,10 @@ final class NativeTopicImageFieldUploadState {
     var previewImageId: String?
     var generation = 0
     var uploadTask: Task<Void, Never>?
+
+    var showsLocalPreview: Bool {
+        isUploading || localPreviewData != nil || previewImageId != nil
+    }
 }
 
 struct NativeTopicImageField: View {
@@ -61,7 +65,7 @@ struct NativeTopicImageField: View {
             Text(UiMessages.string(title, locale: nativeUiLocale))
                 .font(Typography.subheadline)
             HStack(alignment: .center, spacing: Spacing.sm) {
-                if uploadState.isUploading || uploadState.localPreviewData != nil {
+                if uploadState.showsLocalPreview {
                     LocalImagePreview(
                         data: uploadState.localPreviewData,
                         uploadComplete: uploadState.previewImageId != nil
