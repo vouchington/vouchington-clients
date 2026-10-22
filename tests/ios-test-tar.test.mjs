@@ -90,3 +90,32 @@ test('iOS test archive accepts internal framework links and rejects escaping ent
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('iOS test archive enforces compressed, expanded, and member limits before extraction', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ios-test-tar-limits-'))
+  try {
+    const archive = join(root, 'valid.tar.gz')
+    execFileSync('python3', ['-c', makeArchive, archive, 'valid'])
+    const script = String.raw`
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('archive_verifier', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+setattr(module, sys.argv[3], int(sys.argv[4]))
+module.validate(sys.argv[2])
+`
+    for (const [limit, expected] of [
+      ['MAX_COMPRESSED_BYTES', 'compressed size limit'],
+      ['MAX_UNCOMPRESSED_BYTES', 'uncompressed size limit'],
+      ['MAX_MEMBERS', 'member limit'],
+    ]) {
+      const result = spawnSync('python3', ['-c', script, verifier, archive, limit, '0'], {
+        encoding: 'utf8',
+      })
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, new RegExp(expected, 'u'))
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

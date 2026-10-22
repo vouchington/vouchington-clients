@@ -2,8 +2,14 @@
 """Reject iOS test-product archives that could write outside Voucha.xctestproducts."""
 
 import posixpath
+import os
 import sys
 import tarfile
+
+
+MAX_COMPRESSED_BYTES = 1024 * 1024 * 1024
+MAX_UNCOMPRESSED_BYTES = 4 * 1024 * 1024 * 1024
+MAX_MEMBERS = 10000
 
 
 def inside_products(path: str) -> bool:
@@ -41,9 +47,19 @@ def resolve_link(name: str, entries: dict[str, tarfile.TarInfo]) -> None:
 
 
 def validate(archive_path: str) -> None:
+    if os.path.getsize(archive_path) > MAX_COMPRESSED_BYTES:
+        raise ValueError("Archive exceeds compressed size limit")
     seen: dict[str, tarfile.TarInfo] = {}
+    uncompressed_bytes = 0
     with tarfile.open(archive_path, "r:gz") as archive:
         for member in archive:
+            if len(seen) >= MAX_MEMBERS:
+                raise ValueError("Archive exceeds member limit")
+            if member.size < 0:
+                raise ValueError("Archive member has negative size")
+            uncompressed_bytes += member.size
+            if uncompressed_bytes > MAX_UNCOMPRESSED_BYTES:
+                raise ValueError("Archive exceeds uncompressed size limit")
             name = member.name.rstrip("/")
             parts = name.split("/")
             if (
