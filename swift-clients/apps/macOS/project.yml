@@ -110,6 +110,7 @@ targets:
         - VouchaLaunchSmokeTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_FILAMENTS_CONTRACT_ROOT: '$(VOUCHA_FILAMENTS_CONTRACT_ROOT)'
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing
