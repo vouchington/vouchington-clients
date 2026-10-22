@@ -46,6 +46,9 @@ passed, non-skipped tests: the root shell, the real Videos tab, and one email OT
 (Sign In, Continue with Email, Send Code, and Verify Code). The sign-in fixture accepts only the
 typed email, code, and verification token, then `SessionManager.refresh` reads the canonical
 identity fixture. That token stands in for the Turnstile widget the simulator cannot complete.
+The iPhone job budget is 15 minutes so checkout, Simulator readiness, a launch that uses
+the 7-minute step limit, and post-job cleanup can finish. The arm64 build, x86_64 compile,
+and iPad launch stay at nine minutes.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
 Simulator. The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
 These launches do not prove cookie persistence, a live CAPTCHA, or sign-in on another platform.

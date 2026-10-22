@@ -167,7 +167,7 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
     iosBuildJob,
     /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u,
   )
-  assert.match(iosAppJob, /^    timeout-minutes: 9$/mu)
+  assert.match(iosAppJob, /^    timeout-minutes: 15$/mu)
 })
 
 test('Periphery scans the index store produced by its selected Swift compiler', () => {
