@@ -24,6 +24,11 @@ import XCTest
     final class NativeChatFoundationModelsPinnedSDKAdmissionTests: XCTestCase {
         func testPinnedSDKMeasuresAuthorizedDescriptorsAndContextAdmission() async throws {
             executionTimeAllowance = 1_000
+            let availability = String(describing: SystemLanguageModel.default.availability)
+            guard SystemLanguageModel.default.isAvailable else {
+                print("MCP_ADMISSION_MEASUREMENT {\"modelAvailability\":\"\(availability)\"}")
+                throw XCTSkip("SystemLanguageModel.default.availability = \(availability)")
+            }
             if ProcessInfo.processInfo.environment["VOUCHA_MCP_ADMISSION_PROBE"] == "1" {
                 try await runIsolatedProbe()
                 return
@@ -97,6 +102,7 @@ import XCTest
                 "producerGitRevision": Self.command("/usr/bin/git", ["-C", root.path, "rev-parse", "HEAD"]) ?? "",
                 "producerManifestRevision": Self.producerManifestSHA(root: root) ?? "",
                 "catalogSHA256": digest,
+                "modelAvailability": availability,
                 "minimumAnswerHeadroom": NativeChatModelContextAdmission.minimumAnswerHeadroom,
                 "descriptors": records.values
                     .sorted { String(describing: $0["name"]) < String(describing: $1["name"]) },
@@ -456,9 +462,6 @@ import XCTest
     private struct ProbeJournal {
         let url: URL
         func append(_ fields: [String: Any]) throws {
-            if !FileManager.default.fileExists(atPath: url.path) {
-                FileManager.default.createFile(atPath: url.path, contents: Data())
-            }
             let data = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
             let handle = try FileHandle(forWritingTo: url)
             defer { try? handle.close() }
@@ -469,8 +472,7 @@ import XCTest
         }
 
         func lines() throws -> [[String: Any]] {
-            guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-            return try String(contentsOf: url, encoding: .utf8).split(separator: "\n").compactMap { line in
+            try String(contentsOf: url, encoding: .utf8).split(separator: "\n").compactMap { line in
                 (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any]
             }
         }
