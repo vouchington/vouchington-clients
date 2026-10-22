@@ -950,31 +950,6 @@ jobs:
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
-      - name: Select Gradle task-output cache path
-        id: android-task-cache-path
-        shell: bash
-        env:
-          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
-          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
-          PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
-          TASK_CACHE_CONFIG_HASH: ${{ hashFiles('candidate-clients/.mise.toml', 'candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle.properties', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh', 'candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
-        run: |
-          set -euo pipefail
-          cache_dir="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
-          node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
-            "$cache_dir" "$GITHUB_OUTPUT"
-      - name: Restore Gradle task-output cache
-        id: android-task-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.android-task-cache-path.outputs.path }}
-          key: ${{ steps.android-task-cache-path.outputs.cache-key }}
-      - name: Restore prior main Gradle task-output cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.android-task-cache-path.outputs.path }}
-          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:

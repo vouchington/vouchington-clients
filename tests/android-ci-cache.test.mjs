@@ -49,7 +49,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Save Gradle user home from main'),
   )
-  for (const job of [producer, app, libs]) {
+  for (const job of [producer, app]) {
     assert.match(job, /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u)
     assert.match(
       job,
@@ -89,6 +89,10 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Bound Gradle task-output cache save'),
   )
+  for (const job of [libs, host]) {
+    assert.doesNotMatch(job, /Select Gradle task-output cache path/u)
+    assert.doesNotMatch(job, /Restore Gradle task-output cache/u)
+  }
   for (const job of [producer, libs, host])
     assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
   assert.match(coreJob, /uses: actions\/cache@[0-9a-f]{40}/u)
