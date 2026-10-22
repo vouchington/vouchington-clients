@@ -211,6 +211,29 @@ public sealed class WindowsBuiltInToolLoopTests
     Assert.Equal(1, changed.Executions);
   }
 
+  [Fact]
+  public async Task ExecutionFailureIsRetryableUntilDispatchIsAdmitted()
+  {
+    const string call = """{"call":{"id":"call-1","name":"read_post","arguments":{"id":"post"}}}""";
+    var waiting = new Harness
+    {
+      First = call,
+      ExecutionError = new OperationCanceledException("waiting"),
+    };
+    await Assert.ThrowsAsync<OperationCanceledException>(() => waiting.Run());
+    Assert.Equal(1, waiting.Executions);
+
+    var admitted = new Harness
+    {
+      First = call,
+      ExecutionError = new InvalidOperationException("dispatched"),
+      AdmitBeforeError = true,
+    };
+    var error = await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => admitted.Run());
+    Assert.IsType<InvalidOperationException>(error.InnerException);
+    Assert.Equal(1, admitted.Executions);
+  }
+
   private sealed class Harness
   {
     public int Generations { get; private set; }
@@ -226,6 +249,8 @@ public sealed class WindowsBuiltInToolLoopTests
     public int CurrentUntilExecution { get; init; } = int.MaxValue;
     public Exception? ContinuationObserveError { get; init; }
     public Exception? ContinuationGenerateError { get; init; }
+    public Exception? ExecutionError { get; init; }
+    public bool AdmitBeforeError { get; init; }
 
     public Task<WindowsBuiltInTurn> Run() => WindowsBuiltInToolLoop.RunAsync(
         "user: hello",
@@ -241,9 +266,15 @@ public sealed class WindowsBuiltInToolLoopTests
           if (ContinuationGenerateError is not null && Generations > 1) throw ContinuationGenerateError;
           return Task.FromResult(new WindowsBuiltInModelTurn(Status, Generations == 1 ? First : Second));
         },
-        (_, _) =>
+        (_, admit, _) =>
         {
           Executions++;
+          if (ExecutionError is not null)
+          {
+            if (AdmitBeforeError) admit();
+            throw ExecutionError;
+          }
+          admit();
           return Task.FromResult(new WindowsBuiltInToolOutput(Envelope, Receipt));
         },
         (_, _) => Task.CompletedTask,

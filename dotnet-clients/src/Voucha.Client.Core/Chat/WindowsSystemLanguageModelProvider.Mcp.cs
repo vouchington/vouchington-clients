@@ -31,10 +31,10 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
     var prompt = WindowsBuiltInPrompt.Compose(history, message, bridge.Tools);
     var turn = await WindowsBuiltInToolLoop.RunAsync(
         prompt, builtIn.ObservePromptAsync, builtIn.GenerateBuiltInAsync,
-        async (call, token) =>
+        async (call, admit, token) =>
         {
           var result = await bridge.ExecuteValidatedResultAsync(
-              call.Name, call.ArgumentsJson, mcpSession, snapshot, call.Id, null, token).ConfigureAwait(false);
+              call.Name, call.ArgumentsJson, mcpSession, snapshot, call.Id, admit, token).ConfigureAwait(false);
           return new WindowsBuiltInToolOutput(result.Envelope, result.FeedPostFact, result.RssItemFact);
         },
         (call, _) =>

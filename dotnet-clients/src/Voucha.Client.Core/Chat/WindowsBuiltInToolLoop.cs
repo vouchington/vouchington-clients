@@ -51,7 +51,7 @@ public static class WindowsBuiltInToolLoop
       string prompt,
       Func<string, CancellationToken, Task<WindowsBuiltInPromptObservation>> observe,
       Func<string, CancellationToken, Task<WindowsBuiltInModelTurn>> generate,
-      Func<WindowsBuiltInToolCall, CancellationToken, Task<WindowsBuiltInToolOutput>> execute,
+      Func<WindowsBuiltInToolCall, Action, CancellationToken, Task<WindowsBuiltInToolOutput>> execute,
       Func<WindowsBuiltInToolCall, CancellationToken, Task> validate,
       Func<bool> isCurrent,
       ISet<string>? usedCallIds,
@@ -79,8 +79,9 @@ public static class WindowsBuiltInToolLoop
     cancellationToken.ThrowIfCancellationRequested();
     if (!seen.Add(call.Id)) throw new InvalidDataException("Windows built-in call id was already used.");
     WindowsBuiltInToolOutput output;
-    try { output = await execute(call, cancellationToken).ConfigureAwait(false); }
-    catch (Exception error) when (error is not PossibleMcpToolSideEffectException)
+    var admitted = false;
+    try { output = await execute(call, () => admitted = true, cancellationToken).ConfigureAwait(false); }
+    catch (Exception error) when (admitted && error is not PossibleMcpToolSideEffectException)
     {
       throw new PossibleMcpToolSideEffectException(error);
     }
