@@ -62,6 +62,31 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task CanonicalReferralDeliveryProducesItsOwnFactAfterBridgeValidation()
+  {
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.referral-links");
+    var factory = new FakeFactory { Catalog = ProducerCatalog() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].ToolResult = new McpToolResult(
+        JsonSerializer.SerializeToElement(new[] { new { type = "text", text = "external result" } }),
+        row.GetProperty("structuredContent"), false);
+    var bridge = new MemberMcpToolBridge(snapshot.Catalog);
+    var validated = await bridge.ExecuteValidatedResultAsync("read_feed",
+        row.GetProperty("arguments").GetRawText(), session, snapshot, "call-1",
+        cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Null(validated.FeedPostFact);
+    Assert.Null(validated.RssItemFact);
+    Assert.Equal("account-a", validated.ReferralLinkFact?.AccountId);
+    Assert.Equal("call-1", validated.ReferralLinkFact?.CallId);
+    Assert.Empty(validated.ReferralLinkFact!.Links);
+    Assert.Equal(1, factory.Connections[0].ToolCalls);
+  }
+
+  [Fact]
   public async Task InvalidMutationOutputStopsModelLoopWithoutRedispatch()
   {
     var catalog = ProducerCatalog();

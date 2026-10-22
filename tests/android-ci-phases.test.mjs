@@ -24,6 +24,17 @@ async function fixture() {
     `#!/bin/bash
 set -eu
 printf '%s\\n' "$*" >> "$PHASE_TRACE"
+if [[ "$1" == plugin ]]; then
+  if [[ "\${FAIL_PLUGIN:-0}" != 0 ]]; then exit "$FAIL_PLUGIN"; fi
+  while [[ "$1" != --plugin-ref ]]; do shift; done
+  plugin_ref="$2"
+  plugin_path="$PHASE_PACKAGE/.build/Android/skip-gradle"
+  generated="$PHASE_PACKAGE/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid/src/main/swift"
+  mkdir -p "$plugin_path" "$generated"
+  printf '%s' "$plugin_path" > "$plugin_ref"
+  printf '// generated fixture\\n' > "$generated/Package.swift"
+  exit 0
+fi
 if [[ "$2" == build ]]; then
   if [[ "\${FAIL_BUILD:-0}" != 0 ]]; then exit "$FAIL_BUILD"; fi
   products="$PHASE_PACKAGE/.build/out/Products/Debug-android-aarch64"
@@ -139,6 +150,82 @@ test('native producer uses its pinned task and consumer requires verified state'
   }
 })
 
+test('native producer retains Skip source hashes only after verified state restore', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const hashes = join(
+      f.root,
+      '.build/plugins/outputs/skip-fuse-ui/SkipSwiftUI/destination/skipstone',
+    )
+    const marker = join(hashes, '.SkipSwiftUI.sourcehash')
+    await mkdir(hashes, { recursive: true })
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(f.run(['--phase', 'app-native-producer']).status, 0)
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(
+      f.run(['--phase', 'app-native-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: 'bogus' }).status,
+      0,
+    )
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(
+      f.run(['--phase', 'app-native-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
+      0,
+    )
+    assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')
+
+    assert.equal(f.run(['--phase', 'app'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status, 0)
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+  } finally {
+    await f.clean()
+  }
+})
+
+test('native producer opts in to restored Skip markers only after exact-run verification', async () => {
+  const workflow = await readFile(
+    new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
+    'utf8',
+  )
+  const native = workflow
+    .split('  build-swift-android-native:\n')[1]
+    .split('  build-swift-android:\n')[0]
+  const restore = native.indexOf(
+    'restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-dependency-state"',
+  )
+  const verified = native.indexOf('echo \'VOUCHA_ANDROID_STATE_VERIFIED=1\' >> "$GITHUB_ENV"')
+  const build = native.indexOf('ANDROID_BUILD_PHASE: app-native-producer')
+  assert.ok(restore >= 0 && verified > restore && build > verified)
+  assert.match(native, /name: Download exact-run native dependency state/u)
+})
+
+test('native dependency phase uses the pinned prebuild to generate the Gradle package', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const result = f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root })
+    assert.equal(result.status, 0, result.stderr)
+    const lines = await f.lines()
+    assert.equal(lines.length, 2)
+    assert.match(lines[0], /^plugin --prebuild --package-path .* --plugin-ref /u)
+    assert.match(
+      lines[1],
+      /android build .* --package-path .*\/src\/main\/swift --configuration debug --target SkipSwiftUI --scratch-path .*\/build\/swift --arch automatic /u,
+    )
+    assert.doesNotMatch(lines.join('\n'), /gradle /u)
+    assert.equal(
+      f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root, FAIL_PLUGIN: '37' })
+        .status,
+      37,
+    )
+  } finally {
+    await f.clean()
+  }
+})
+
 test('local default retains both phases and every failed phase fails validation', async () => {
   const f = await fixture()
   try {
@@ -180,6 +267,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     'utf8',
   )
   for (const job of [
+    'build-swift-android-dependency',
     'build-swift-android-native',
     'build-swift-android',
     'test-swift-android-libs',
@@ -188,11 +276,13 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     const block = workflow.split(`  ${job}:\n`)[1].split(/^  [a-z][^\n]*:\n/mu)[0]
     assert.match(block, /runs-on: macos-latest\n    timeout-minutes: (?:20|30)\n/u)
   }
-  const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
+  const gate = workflow
+    .split('  test-swift-android-cookie:\n')[1]
+    .split('  build-swift-ui-tests:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(
     gate,
-    /needs:\n      \[\n        verify,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n        test-swift-android-cookie,\n      \]/u,
+    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
   )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
@@ -200,11 +290,11 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   const script = run[1].replace(/^ {10}/gmu, '')
   const names = [
     'VERIFY_RESULT',
+    'ANDROID_DEPENDENCY_RESULT',
     'ANDROID_NATIVE_RESULT',
     'ANDROID_APP_RESULT',
     'ANDROID_LIBS_RESULT',
     'ANDROID_HOST_RESULT',
-    'ANDROID_COOKIE_RESULT',
   ]
   for (const name of names) {
     for (const outcome of ['failure', 'cancelled', 'skipped']) {
@@ -217,4 +307,13 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     env: { ...process.env, ...Object.fromEntries(names.map(name => [name, 'success'])) },
   })
   assert.equal(result.status, 0)
+  assert.ok(
+    gate.indexOf('Require every Android validation phase') <
+      gate.indexOf('Download exact candidate Android APKs'),
+  )
+  assert.match(gate, /Reject invalid Android artifact and instrumentation results/u)
+  assert.match(gate, /Prove checked encrypted storage survives Android process restarts/u)
+  const tests = workflow.split('  tests:\n')[1]
+  assert.match(tests, /^      - test-swift-android-cookie$/mu)
+  assert.doesNotMatch(workflow, /^  test-swift-android:\n/mu)
 })

@@ -74,6 +74,7 @@ public sealed partial class ChatConversationViewModel
   {
     pendingLocalTurn = null;
     blockedToolRetryText = null;
+    SetRetainedWindowsToolResult(null);
     _ = Interlocked.Increment(ref requestId);
     var cts = Interlocked.Exchange(ref streamingCts, null);
     if (cts is not null) { cts.Cancel(); cts.Dispose(); }
@@ -112,7 +113,9 @@ public sealed partial class ChatConversationViewModel
     if (localReceipt is { McpSnapshot: { } snapshot, McpProvider: { } provider } &&
         localReceipt.ConversationId == conversationId &&
         provider.MatchesAccountEpoch(snapshot) &&
-        (localReceipt.FeedPostReceipts is { Count: > 0 } || localReceipt.RssItemReceipts is { Count: > 0 }))
+        (localReceipt.FeedPostReceipts is { Count: > 0 } ||
+         localReceipt.RssItemReceipts is { Count: > 0 } ||
+         localReceipt.ReferralLinkReceipts is { Count: > 0 }))
     {
       var index = messages.FindIndex(message => message.Id == localReceipt.Body.AssistantMessageId &&
           message.IsAssistant);
@@ -122,6 +125,7 @@ public sealed partial class ChatConversationViewModel
           Localization = localization,
           FeedPostReceipts = localReceipt.FeedPostReceipts,
           RssItemReceipts = localReceipt.RssItemReceipts,
+          ReferralLinkReceipts = localReceipt.ReferralLinkReceipts,
         };
     }
     HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;

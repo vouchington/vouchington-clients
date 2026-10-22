@@ -279,7 +279,7 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
         'periphery-swift-ui',
         'test-swift-core-linux',
         'test-swift-core',
-        'test-swift-android',
+        'test-swift-android-cookie',
         'test-swift-ui',
         'swift-patch-coverage',
         'build-android-core',

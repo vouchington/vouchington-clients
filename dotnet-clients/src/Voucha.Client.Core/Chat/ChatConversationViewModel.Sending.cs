@@ -34,7 +34,7 @@ public sealed partial class ChatConversationViewModel
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
     if (RejectConflictingCompletedMcpTurn(trimmed)) return false;
     if (blockedToolRetryText == trimmed) return false;
-    blockedToolRetryText = null;
+    ReleaseBlockedRetry(trimmed);
     var selectedProvider = ProviderForPendingMcpRetry(trimmed);
     ILocalChatProvider selectedLocalProvider;
     try
@@ -133,10 +133,10 @@ public sealed partial class ChatConversationViewModel
       State = LoadState.Loaded;
       return true;
     }
-    catch (PossibleMcpToolSideEffectException)
+    catch (Exception error) when (error is PossibleMcpToolSideEffectException or WindowsBuiltInResultRetainedException)
     {
-      HandlePossibleToolSideEffect(currentRequest, localAssistantMessageId,
-          assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
+      HandleKnownToolOutcome(error, currentRequest, conversationId, selectedLocalProvider,
+          localAssistantMessageId, assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
       return false;
     }
     catch (OperationCanceledException)
