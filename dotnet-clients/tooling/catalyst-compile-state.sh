@@ -23,7 +23,7 @@ manifest="$state_dir/compile-state.manifest"
 
 verify_build_archive() {
   python3 - "$archive" <<'PY'
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import sys
 import tarfile
 
@@ -34,15 +34,28 @@ with tarfile.open(archive, 'r:gz') as tar:
     members = tar.getmembers()
     if not 0 < len(members) <= 200 or sum(member.size for member in members) > 64 * 1024 * 1024:
         raise SystemExit('managed archive exceeds member or unpacked-size bound')
-    names = [member.name.rstrip('/') for member in members]
-    if len({name.casefold() for name in names}) != len(names):
-        raise SystemExit('duplicate managed archive path')
-    for member, name in zip(members, names, strict=True):
-        parts = PurePosixPath(name).parts
-        if not parts or parts[0] not in ('obj', 'bin') or name.startswith('/') or '..' in parts:
-            raise SystemExit('managed archive path escapes obj/bin')
+    seen = {}
+    for member in members:
         if not (member.isfile() or member.isdir()):
             raise SystemExit('managed archive contains special or linked member')
+        raw = member.name
+        name = raw[:-1] if member.isdir() and raw.endswith('/') else raw
+        parts = name.split('/')
+        if (not name or any(part in ('', '.', '..') for part in parts)
+                or parts[0] not in ('obj', 'bin')
+                or (len(parts) == 1 and not member.isdir())
+                or (member.isfile() and raw.endswith('/'))):
+            raise SystemExit('managed archive path is not canonical under obj/bin')
+        key = name.casefold()
+        if key in seen:
+            raise SystemExit('duplicate managed archive path')
+        if any('/'.join(parts[:index]).casefold() in seen and
+               seen['/'.join(parts[:index]).casefold()] == 'file'
+               for index in range(1, len(parts))):
+            raise SystemExit('managed archive file is an ancestor of another member')
+        if member.isfile() and any(other.startswith(key + '/') for other in seen):
+            raise SystemExit('managed archive file is an ancestor of another member')
+        seen[key] = 'file' if member.isfile() else 'directory'
 PY
 }
 

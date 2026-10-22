@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { copyFile, mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -174,6 +175,47 @@ with tarfile.open(destination, 'w:gz', format=tarfile.PAX_FORMAT) as archive:
       ).status,
       0,
     )
+
+    const buildArchive = join(state, 'compile-state.tar.gz')
+    const buildManifest = join(state, 'compile-state.manifest')
+    const originalArchive = await readFile(buildArchive)
+    const originalManifest = await readFile(buildManifest, 'utf8')
+    const alterBuildArchive = `
+import io, sys, tarfile
+source, destination, kind = sys.argv[1:]
+with tarfile.open(source, 'r:gz') as archive:
+    entries = [(member, archive.extractfile(member).read() if member.isfile() else None) for member in archive]
+if kind in ('dot', 'double', 'parent'):
+    name = {'dot': 'obj/./alias', 'double': 'obj//alias', 'parent': 'obj/../alias'}[kind]
+    entries.append((tarfile.TarInfo(name), b'alias'))
+else:
+    parent = (tarfile.TarInfo('obj/collision'), b'parent')
+    child = (tarfile.TarInfo('obj/collision/child'), b'child')
+    entries.extend((parent, child) if kind == 'file-first' else (child, parent))
+with tarfile.open(destination, 'w:gz', format=tarfile.PAX_FORMAT) as archive:
+    for member, data in entries:
+        if data is not None:
+            member.size = len(data)
+        archive.addfile(member, io.BytesIO(data) if data is not None else None)
+`
+    for (const kind of ['dot', 'double', 'parent', 'file-first', 'child-first']) {
+      const altered = join(temp, `${kind}-build.tar.gz`)
+      await writeFile(buildArchive, originalArchive)
+      assert.equal(
+        run('python3', ['-c', alterBuildArchive, buildArchive, altered, kind], temp).status,
+        0,
+      )
+      const bytes = await readFile(altered)
+      await writeFile(buildArchive, bytes)
+      const sha = createHash('sha256').update(bytes).digest('hex')
+      await writeFile(buildManifest, originalManifest.replace(/^sha256=.*$/mu, `sha256=${sha}`))
+      const rejected = invoke('unpack', join(temp, `${kind}-restore`), state, consumer, revision)
+      assert.notEqual(rejected.status, 0, `${kind}: ${rejected.stderr}`)
+      assert.match(rejected.stderr, /managed archive (path is not canonical|file is an ancestor)/u)
+      assert.equal(await readFile(consumerInput, 'utf8'), 'source')
+    }
+    await writeFile(buildArchive, originalArchive)
+    await writeFile(buildManifest, originalManifest)
 
     await writeFile(consumerInput, 'different')
     assert.notEqual(
