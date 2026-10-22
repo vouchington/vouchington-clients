@@ -244,12 +244,31 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
         'build-ios-app': { result: 'success' },
         'build-ios-x86': { result },
       }
-      assert.throws(() =>
-        execFileSync(
-          'jq',
-          ['-e', '--arg', 'route', 'false', '--arg', 'maui', 'false', expression],
-          { input: JSON.stringify(needs) },
-        ),
+      assert.throws(
+        () =>
+          execFileSync(
+            'jq',
+            [
+              '-e',
+              '--arg',
+              'route',
+              'false',
+              '--arg',
+              'maui',
+              'false',
+              '--arg',
+              'surface',
+              'false',
+              expression,
+            ],
+            { input: JSON.stringify(needs), stdio: ['pipe', 'pipe', 'pipe'] },
+          ),
+        error => {
+          assert.equal(error.status, 1)
+          assert.equal(error.stderr.toString(), '')
+          assert.equal(error.stdout.toString().trim(), 'false')
+          return true
+        },
       )
     }
   })
