@@ -22,8 +22,11 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     )
     const testsJob = jobBlock(workflow, 'tests')
     const iosJob = jobBlock(workflow, 'build-ios-app')
-    assert.match(iosJob, /xcrun --sdk iphonesimulator --show-sdk-version/u)
-    assert.match(iosJob, /runtime_identifier="com\.apple\.CoreSimulator\.SimRuntime\.iOS-/u)
+    const ipadJob = jobBlock(workflow, 'build-ios-ipad')
+    const buildJob = jobBlock(workflow, 'build-ios-tests')
+    const x86Job = jobBlock(workflow, 'build-ios-x86')
+    assert.match(buildJob, /xcrun --sdk iphonesimulator --show-sdk-version/u)
+    assert.match(buildJob, /runtime_identifier="com\.apple\.CoreSimulator\.SimRuntime\.iOS-/u)
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
     assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
@@ -31,49 +34,59 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       iosJob,
       /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
     )
+    assert.match(buildJob, /build-for-testing/u)
+    assert.match(
+      buildJob,
+      /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
+    )
+    assert.match(buildJob, /-testProductsPath "\$GITHUB_WORKSPACE\/Voucha\.xctestproducts"/u)
+    assert.match(buildJob, /test ! -L "\$GITHUB_WORKSPACE\/Voucha\.xctestproducts"/u)
+    assert.match(buildJob, /COPYFILE_DISABLE=1 tar/u)
+    assert.match(
+      buildJob,
+      /python3 "\$GITHUB_WORKSPACE\/scripts\/verify-ios-test-tar\.py" "\$RUNNER_TEMP\/ios-test-products\.tar\.gz"/u,
+    )
+    assert.match(buildJob, /-destination "\$destination"/u)
+    assert.match(buildJob, /arch=arm64/u)
+    assert.match(x86Job, /arch=x86_64" build/u)
+    assert.match(iosJob, /needs: \[verify, build-ios-tests\]/u)
+    assert.match(iosJob, /actions\/download-artifact@[a-f0-9]{40}/u)
+    assert.match(
+      iosJob,
+      /python3 "\$GITHUB_WORKSPACE\/scripts\/verify-ios-test-tar\.py" ios-test-products\.tar\.gz/u,
+    )
+    assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
+    assert.match(iosJob, /\.destination' "\$manifest"/u)
+    assert.match(iosJob, /test-without-building/u)
+    assert.match(iosJob, /-testProductsPath "\$bundle"/u)
+    assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
+    assert.match(iosJob, /test ! -L "\$bundle"/u)
     assert.ok(
       iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
-        iosJob.indexOf('- name: Build iOS app for Simulator'),
-    )
-    assert.ok(
-      iosJob.indexOf('- name: Build iOS app for Simulator') <
         iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
     )
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
     )
-    assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 12/u)
-    assert.match(iosJob, /\n\s+timeout-minutes: 55\n/u)
-    assert.ok(
-      iosJob.indexOf('- name: Launch iOS app on Simulator') <
-        iosJob.indexOf('- name: Shut down iPhone Simulator after launch smoke'),
-    )
-    assert.ok(
-      iosJob.indexOf('- name: Shut down iPhone Simulator after launch smoke') <
-        iosJob.indexOf('- name: Start iPad Simulator for root-shell launch'),
-    )
-    assert.ok(
-      iosJob.indexOf('- name: Start iPad Simulator for root-shell launch') <
-        iosJob.indexOf('- name: Wait for iPad Simulator readiness'),
-    )
-    assert.ok(
-      iosJob.indexOf('- name: Wait for iPad Simulator readiness') <
-        iosJob.indexOf('- name: Launch iPad root shell on Simulator'),
-    )
-    assert.match(iosJob, /xcrun simctl shutdown "\$simulator_id"/u)
-    const ipadLaunch = iosJob.slice(iosJob.indexOf('- name: Launch iPad root shell on Simulator'))
-    const ipadStep = ipadLaunch.slice(0, ipadLaunch.indexOf('\n      - name:'))
+    assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
+    assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
+    for (const job of [buildJob, x86Job, iosJob, ipadJob]) {
+      assert.match(job, /\n    timeout-minutes: 9\n/u)
+    }
+    assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)
+    assert.match(ipadJob, /actions\/download-artifact@[a-f0-9]{40}/u)
+    assert.match(ipadJob, /verify-ios-test-tar\.py/u)
+    assert.match(ipadJob, /test-without-building/u)
+    assert.match(ipadJob, /-testProductsPath "\$bundle"/u)
+    assert.match(ipadJob, /ipad-launch-smoke\.xcresult/u)
+    assert.match(ipadJob, /platform=iOS Simulator,name=\$ipad_name,OS=\$simulator_sdk,arch=arm64/u)
+    assert.match(ipadJob, /test ! -L "\$bundle"/u)
     assert.match(
-      ipadStep,
-      /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
+      ipadJob,
+      /\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
     )
-    assert.doesNotMatch(ipadStep, /FeedFlowTests/u)
-    assert.match(ipadStep, /ipad-launch-smoke\.xcresult/u)
-    assert.match(
-      ipadStep,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
-    )
+    assert.doesNotMatch(ipadJob, /-only-testing:VouchaLaunchSmokeTests\/FeedFlowTests/u)
     assert.match(
       iosJob,
       /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
@@ -86,27 +99,28 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       iosJob,
       /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
     )
-    assert.match(iosJob, /test VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u)
+    assert.match(
+      iosJob,
+      /test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u,
+    )
     const project = readFileSync(
       new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
       'utf8',
     )
     assert.match(project, /VOUCHA_FILAMENTS_CONTRACT_ROOT: '\$\(VOUCHA_FILAMENTS_CONTRACT_ROOT\)'/u)
-    assert.match(iosJob, /CODE_SIGNING_ALLOWED=NO/u)
+    assert.match(buildJob, /CODE_SIGNING_ALLOWED=NO/u)
     assert.match(
       iosJob,
       /if: \$\{\{ failure\(\) \}\}[\s\S]*?xcrun simctl spawn "\$simulator_id" log show/u,
     )
     assert.match(iosJob, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?ios-launch-smoke\.xcresult/u)
-    const selectors = [
-      ...iosJob.matchAll(
-        /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" '([^']+)'\)"/gu,
-      ),
-    ].map(match => match[1])
-    assert.equal(selectors.length, 2)
-    const selector = selectors[0]
-    const ipadSelector = selectors[1]
-    assert.match(selector, /startswith\("iPhone "\)/u)
+    const selector = iosJob.match(
+      /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" --arg name "\$simulator_name" '([^']+)'\)"/u,
+    )?.[1]
+    const ipadSelector = ipadJob.match(
+      /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" '([^']+)'\)"/u,
+    )?.[1]
+    assert.match(selector, /\.name == \$name/u)
     assert.match(ipadSelector, /startswith\("iPad "\)/u)
     assert.ok(selector)
     assert.ok(ipadSelector)
@@ -131,7 +145,16 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     assert.equal(
       execFileSync(
         'jq',
-        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', selector],
+        [
+          '-r',
+          '--arg',
+          'runtime',
+          'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+          '--arg',
+          'name',
+          'iPhone 17',
+          selector,
+        ],
         {
           input: JSON.stringify(devices),
           encoding: 'utf8',
@@ -142,7 +165,16 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     assert.equal(
       execFileSync(
         'jq',
-        ['-r', '--arg', 'runtime', 'com.apple.CoreSimulator.SimRuntime.iOS-26-5', selector],
+        [
+          '-r',
+          '--arg',
+          'runtime',
+          'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+          '--arg',
+          'name',
+          'iPhone 17',
+          selector,
+        ],
         {
           input: JSON.stringify({
             devices: {
@@ -195,6 +227,8 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     )
     const needs = testsJob.match(/\n    needs:\n((?:      - [^\n]+\n)+)/u)?.[1] ?? ''
     assert.match(needs, /^      - build-ios-app$/mu)
+    assert.match(needs, /^      - build-ios-ipad$/mu)
+    assert.match(needs, /^      - build-ios-x86$/mu)
 
     const expression = workflow
       .slice(workflow.lastIndexOf('jq -e --arg route'))
@@ -229,7 +263,12 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
       ['failure', false],
       ['skipped', false],
     ]) {
-      const needs = { ...baseNeeds, 'build-ios-app': { result } }
+      const needs = {
+        ...baseNeeds,
+        'build-ios-app': { result },
+        'build-ios-ipad': { result: 'success' },
+        'build-ios-x86': { result: 'success' },
+      }
       let accepted = false
       try {
         execFileSync(
@@ -257,6 +296,74 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
         assert.equal(error.status, 1)
       }
       assert.equal(accepted, succeeds, `build-ios-app result: ${result}`)
+    }
+    for (const result of ['failure', 'skipped']) {
+      const needs = {
+        ...baseNeeds,
+        'build-ios-app': { result: 'success' },
+        'build-ios-ipad': { result },
+        'build-ios-x86': { result: 'success' },
+      }
+      assert.throws(
+        () =>
+          execFileSync(
+            'jq',
+            [
+              '-e',
+              '--arg',
+              'route',
+              'false',
+              '--arg',
+              'maui',
+              'false',
+              '--arg',
+              'surface',
+              'false',
+              expression,
+            ],
+            { input: JSON.stringify(needs), stdio: ['pipe', 'pipe', 'pipe'] },
+          ),
+        error => {
+          assert.equal(error.status, 1)
+          assert.equal(error.stderr.toString(), '')
+          assert.equal(error.stdout.toString().trim(), 'false')
+          return true
+        },
+      )
+    }
+    for (const result of ['failure', 'skipped']) {
+      const needs = {
+        ...baseNeeds,
+        'build-ios-app': { result: 'success' },
+        'build-ios-ipad': { result: 'success' },
+        'build-ios-x86': { result },
+      }
+      assert.throws(
+        () =>
+          execFileSync(
+            'jq',
+            [
+              '-e',
+              '--arg',
+              'route',
+              'false',
+              '--arg',
+              'maui',
+              'false',
+              '--arg',
+              'surface',
+              'false',
+              expression,
+            ],
+            { input: JSON.stringify(needs), stdio: ['pipe', 'pipe', 'pipe'] },
+          ),
+        error => {
+          assert.equal(error.status, 1)
+          assert.equal(error.stderr.toString(), '')
+          assert.equal(error.stdout.toString().trim(), 'false')
+          return true
+        },
+      )
     }
   })
 })
