@@ -43,4 +43,25 @@ public sealed partial class SettingsViewModelTests
         StringComparison.Ordinal);
     Assert.Equal("Current plan: Free", viewModel.MembershipSummary);
   }
+
+  [Fact]
+  public async Task PurchasePendingReasonStaysPendingWhenStatusIsRejected()
+  {
+    var service = new FakeSettingsService
+    {
+      MembershipOverviewResponse = JsonSerializer.Deserialize<NativeMembershipOverview>(
+          """
+          {"management":null,"membership":null,"pending":{"financial_operations":[],"grants":0,"switches":[],"verifications":[{"id":"v1","next_processing_at":null,"provider":"apple_app_store","reason_code":"purchase_pending","status":"rejected"}]},"sources":[]}
+          """,
+          VouchaApiJson.Options),
+    };
+    var viewModel = new SettingsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var lines = string.Join('\n', viewModel.MembershipLifecycleLines.Select(line => line.Text));
+    Assert.Contains("Native billing pending", lines, StringComparison.Ordinal);
+    Assert.Contains("purchase_pending", lines, StringComparison.Ordinal);
+    Assert.Contains("rejected", lines, StringComparison.Ordinal);
+  }
 }

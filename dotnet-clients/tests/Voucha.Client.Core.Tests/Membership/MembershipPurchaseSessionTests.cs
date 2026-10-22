@@ -161,6 +161,42 @@ public sealed class MembershipPurchaseSessionTests
     Assert.Equal(nameof(MembershipPurchaseError.VerificationDidNotFinish), error.Message);
   }
 
+  [Fact]
+  public async Task ReplayRefreshesMembershipAndPendingPollingSurvivesAFailedHint()
+  {
+    var replay = Harness.Created("native.memberships.purchase-intent.apple.default");
+    replay.Transport.Submissions.Enqueue(Replayed("native.memberships.verification-status.verified.default"));
+    var replayed = await replay.PurchaseAsync(replay.Empty, TestContext.Current.CancellationToken);
+    Assert.True(replayed.Replayed);
+    Assert.Equal(1, replay.Transport.MembershipCalls);
+
+    var pending = Verification("native.memberships.verification-status.pending.default");
+    var verified = Verification("native.memberships.verification-status.verified.default");
+    var interrupted = Harness.Created("native.memberships.purchase-intent.apple.default");
+    interrupted.Transport.Submissions.Enqueue(new MembershipVerificationSubmissionResult(
+        MembershipVerificationKind.Created,
+        pending));
+    interrupted.Transport.Statuses.Enqueue(pending);
+    interrupted.Transport.Statuses.Enqueue(verified);
+    interrupted.Transport.MembershipError = new InvalidOperationException("offline");
+    var outcome = await interrupted.PurchaseAsync(interrupted.Empty, TestContext.Current.CancellationToken);
+    Assert.Equal("verified", outcome.VerificationStatus);
+    Assert.Equal([TimeSpan.FromSeconds(1)], interrupted.Clock.Sleeps);
+  }
+
+  [Fact]
+  public async Task CancelledPurchaseKeepsPaidEvidence()
+  {
+    var harness = Harness.Created("native.memberships.purchase-intent.apple.default");
+    harness.Transport.Submissions.Enqueue(Created("native.memberships.verification-status.verified.default"));
+    using var cancellation = new CancellationTokenSource();
+    harness.Store.AfterPurchase = cancellation.Cancel;
+    harness.Transport.SubmitError = new OperationCanceledException();
+    await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        harness.PurchaseAsync(harness.Empty, cancellation.Token));
+    Assert.True(await harness.Outbox.ContainsAsync("idem-1", CancellationToken.None));
+  }
+
   private static MembershipVerificationSubmissionResult Created(string name) =>
       new(MembershipVerificationKind.Created, Verification(name));
 

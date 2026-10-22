@@ -94,7 +94,9 @@ public static class MembershipLifecyclePresentation
         localization)));
     lines.AddRange(overview.Pending.Verifications.Select(verification => Line(
         "verification-" + verification.Id,
-        verification.Status == "pending" ? Pending() : Unavailable(),
+        verification.ReasonCode == "purchase_pending" || verification.Status == "pending"
+            ? Pending()
+            : Unavailable(),
         UiText.ProtocolValue(verification.Status),
         verification.ReasonCode is { } reason ? UiText.ProtocolValue(reason) : null,
         localization)));

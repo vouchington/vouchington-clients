@@ -105,6 +105,25 @@ final class MembershipPurchaseSessionTests: XCTestCase {
         _ = try await foreground.purchase(overview: foreground.empty)
         XCTAssertTrue(foreground.clock.sleeps.isEmpty)
     }
+
+    func testReplayRefreshesMembershipAndPendingPollingSurvivesAFailedHint() async throws {
+        let replay = try Harness(intent: .created(purchase("native.memberships.purchase-intent.apple.default")))
+        replay.transport
+            .submissions = try [.replayed(verification("native.memberships.verification-status.verified.default"))]
+        let replayed = try await replay.purchase(overview: replay.empty)
+        XCTAssertTrue(replayed.replayed)
+        XCTAssertEqual(replay.transport.membershipCalls, 1)
+
+        let pending = try verification("native.memberships.verification-status.pending.default")
+        let verified = try verification("native.memberships.verification-status.verified.default")
+        let interrupted = try Harness(intent: .created(purchase("native.memberships.purchase-intent.apple.default")))
+        interrupted.transport.submissions = [.created(pending)]
+        interrupted.transport.statuses = [pending, verified]
+        interrupted.transport.membershipError = URLError(.networkConnectionLost)
+        let outcome = try await interrupted.purchase(overview: interrupted.empty)
+        XCTAssertEqual(outcome.verificationStatus, "verified")
+        XCTAssertEqual(interrupted.clock.sleeps, [1])
+    }
 }
 
 private final class Harness {
@@ -154,7 +173,9 @@ private final class ScriptedTransport: MembershipPurchaseTransport, @unchecked S
     var statuses: [NativeMembershipVerificationResponse] = []
     var overviews: [NativeMembershipOverview] = []
     var submitError: Error?
+    var membershipError: Error?
     var onVerification: () -> Void = {}
+    private(set) var membershipCalls = 0
     private(set) var verificationBodies: [NativeMembershipVerificationSubmission] = []
     private var submitCount = 0
 
@@ -199,7 +220,11 @@ private final class ScriptedTransport: MembershipPurchaseTransport, @unchecked S
     }
 
     func membership() async throws -> NativeMembershipOverview {
-        overviews.isEmpty ? try decodeOverview("native.memberships.me.default") : overviews[0]
+        membershipCalls += 1
+        if let membershipError {
+            throw membershipError
+        }
+        return overviews.isEmpty ? try decodeOverview("native.memberships.me.default") : overviews[0]
     }
 }
 

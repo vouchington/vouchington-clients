@@ -55,6 +55,7 @@ public sealed partial class MembershipPurchaseSession
     var initial = submitted.Verification.Verification;
     if (MembershipVerificationPolling.IsTerminal(initial.Status, initial.ReasonCode))
     {
+      await RefreshMembershipAsync(cancellationToken).ConfigureAwait(false);
       return initial;
     }
 
@@ -73,13 +74,13 @@ public sealed partial class MembershipPurchaseSession
         return status;
       }
 
-      var current = await transport.MembershipAsync(cancellationToken).ConfigureAwait(false);
+      var hint = await MembershipHintAsync(cancellationToken).ConfigureAwait(false);
       if (attempt == 7)
       {
         break;
       }
 
-      var pending = current.Pending.Verifications.FirstOrDefault(item => item.Id == id);
+      var pending = hint?.Pending.Verifications.FirstOrDefault(item => item.Id == id);
       var delay = signals.ConsumeRefresh()
           ? TimeSpan.Zero
           : MembershipVerificationPolling.Delay(attempt, pending?.NextProcessingAt, clock.Now);
@@ -93,15 +94,20 @@ public sealed partial class MembershipPurchaseSession
     throw new InvalidOperationException(MembershipPurchaseError.VerificationDidNotFinish.ToString());
   }
 
+  private async Task RefreshMembershipAsync(CancellationToken cancellationToken)
+  {
+    _ = await MembershipHintAsync(cancellationToken).ConfigureAwait(false);
+  }
+
   [System.Diagnostics.CodeAnalysis.SuppressMessage(
       "Design",
       "CA1031:Do not catch general exception types",
-      Justification = "A failed membership refresh keeps an already terminal verification.")]
-  private async Task RefreshMembershipAsync(CancellationToken cancellationToken)
+      Justification = "A failed membership read keeps a terminal verification and continues pending polling.")]
+  private async Task<NativeMembershipOverview?> MembershipHintAsync(CancellationToken cancellationToken)
   {
     try
     {
-      _ = await transport.MembershipAsync(cancellationToken).ConfigureAwait(false);
+      return await transport.MembershipAsync(cancellationToken).ConfigureAwait(false);
     }
     catch (OperationCanceledException)
     {
@@ -109,7 +115,7 @@ public sealed partial class MembershipPurchaseSession
     }
     catch (Exception)
     {
-      return;
+      return null;
     }
   }
 }

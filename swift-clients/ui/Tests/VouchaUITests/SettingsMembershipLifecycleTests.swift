@@ -38,6 +38,24 @@ final class SettingsMembershipLifecycleTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertEqual(viewModel.membershipSummaryText, "Current plan: Free · No active membership")
     }
 
+    func testPurchasePendingReasonStaysPendingWhenStatusIsRejected() async throws {
+        seedSettingsResponses()
+        let body = """
+        {"management":null,"membership":null,"pending":{"financial_operations":[],"grants":0,"switches":[],
+        "verifications":[{"id":"v1","next_processing_at":null,"provider":"apple_app_store",
+        "reason_code":"purchase_pending","status":"rejected"}]},"sources":[]}
+        """
+        CannedFeedURLProtocol.handlers["/api/v1/memberships/me"] = (Data(body.utf8), 200)
+        let viewModel = try SettingsViewModel(client: makeClient())
+
+        await viewModel.load()
+
+        let lines = viewModel.membershipLifecycleLineTexts.joined(separator: "\n")
+        XCTAssertTrue(lines.contains("Native billing pending"))
+        XCTAssertTrue(lines.contains("purchase_pending"))
+        XCTAssertTrue(lines.contains("rejected"))
+    }
+
     private func fixture(_ name: String) throws -> Data {
         let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
         let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/responses/\(name).json", root: root)

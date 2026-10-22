@@ -1,12 +1,12 @@
 import Foundation
 
 public struct MembershipPurchaseSession: Sendable {
-    private let transport: any MembershipPurchaseTransport
+    let transport: any MembershipPurchaseTransport
     private let store: any MembershipStoreAdapter
     private let outbox: any MembershipEvidenceOutbox
     private let keys: any MembershipIdempotencyKeys
-    private let clock: any MembershipPurchaseClock
-    private let signals: MembershipPurchaseSignals
+    let clock: any MembershipPurchaseClock
+    let signals: MembershipPurchaseSignals
 
     public init(
         transport: any MembershipPurchaseTransport,
@@ -114,39 +114,10 @@ public struct MembershipPurchaseSession: Sendable {
     ) async throws -> NativeMembershipVerification {
         let initial = submitted.verification
         if MembershipVerificationPolling.isTerminal(status: initial.status, reasonCode: initial.reasonCode) {
+            try await refreshMembership()
             return initial
         }
         return try await poll(id: initial.id)
-    }
-
-    private func poll(id: String) async throws -> NativeMembershipVerification {
-        var attempt = 0
-        while attempt < 8 {
-            try Task.checkCancellation()
-            let status = try await transport.verification(id: id).verification
-            if MembershipVerificationPolling.isTerminal(status: status.status, reasonCode: status.reasonCode) {
-                try await refreshMembership()
-                return status
-            }
-            let current = try await transport.membership()
-            attempt += 1
-            if attempt == 8 {
-                break
-            }
-            let next = current.pending.verifications.first { $0.id == id }?.nextProcessingAt
-            let seconds = signals.consumeRefresh()
-                ? 0
-                : MembershipVerificationPolling.delaySeconds(
-                    attempt: attempt - 1,
-                    nextProcessingAt: next,
-                    now: clock.now
-                )
-            if seconds > 0 {
-                try await clock.sleep(seconds: seconds)
-                try Task.checkCancellation()
-            }
-        }
-        throw MembershipPurchaseError.verificationDidNotFinish
     }
 }
 
@@ -166,7 +137,7 @@ extension MembershipPurchaseSession {
         }
     }
 
-    private func refreshMembership() async throws {
+    func refreshMembership() async throws {
         do {
             _ = try await transport.membership()
         } catch is CancellationError {

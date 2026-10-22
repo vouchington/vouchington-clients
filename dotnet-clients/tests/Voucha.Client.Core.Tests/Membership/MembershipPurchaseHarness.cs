@@ -72,6 +72,10 @@ internal sealed class ScriptedTransport : IMembershipPurchaseTransport
 
   internal Exception? SubmitError { get; set; }
 
+  internal Exception? MembershipError { get; set; }
+
+  internal int MembershipCalls { get; private set; }
+
   internal Action? OnVerification { get; set; }
 
   private int submitCount;
@@ -118,10 +122,18 @@ internal sealed class ScriptedTransport : IMembershipPurchaseTransport
     return Task.FromResult(Statuses.Dequeue());
   }
 
-  public Task<NativeMembershipOverview> MembershipAsync(CancellationToken cancellationToken) =>
-      Task.FromResult(Overviews.Count == 0
-          ? MembershipFixture.Decode<NativeMembershipOverview>("native.memberships.me.default")
-          : Overviews.Peek());
+  public Task<NativeMembershipOverview> MembershipAsync(CancellationToken cancellationToken)
+  {
+    MembershipCalls += 1;
+    if (MembershipError is not null)
+    {
+      throw MembershipError;
+    }
+
+    return Task.FromResult(Overviews.Count == 0
+        ? MembershipFixture.Decode<NativeMembershipOverview>("native.memberships.me.default")
+        : Overviews.Peek());
+  }
 }
 
 internal sealed class RecordingStore : IMembershipStoreAdapter
@@ -131,9 +143,12 @@ internal sealed class RecordingStore : IMembershipStoreAdapter
 
   internal List<JsonElement> Launches { get; } = [];
 
+  internal Action? AfterPurchase { get; set; }
+
   public Task<MembershipStorePurchase> PurchaseAsync(JsonElement launch, CancellationToken cancellationToken)
   {
     Launches.Add(launch);
+    AfterPurchase?.Invoke();
     return Task.FromResult(new MembershipStorePurchase($"transaction-{Launches.Count}", Evidence));
   }
 }

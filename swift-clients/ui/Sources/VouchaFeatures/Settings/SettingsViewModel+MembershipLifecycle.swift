@@ -76,7 +76,8 @@ extension SettingsViewModel {
 
     private func verificationLines(_ overview: NativeMembershipOverview) -> [String] {
         overview.pending.verifications.map { verification in
-            let statusKey: UiMessageKey = verification.status == "pending"
+            let pendingReason = verification.reasonCode == "purchase_pending"
+            let statusKey: UiMessageKey = pendingReason || verification.status == "pending"
                 ? .nativeSwiftMembershipNativeBillingPending
                 : .nativeSwiftMembershipNativeBillingUnavailable
             let reason = verification.reasonCode.map { localized(UiVerbatimText.protocolValue($0)) } ?? ""

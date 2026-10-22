@@ -83,7 +83,7 @@ public sealed partial class MembershipPurchaseSession
         key,
         intent.Provider,
         intent.Id);
-    await outbox.SaveAsync(key, purchased.Evidence, cancellationToken).ConfigureAwait(false);
+    await outbox.SaveAsync(key, purchased.Evidence, CancellationToken.None).ConfigureAwait(false);
     var submitted = await SubmitAsync(body, cancellationToken).ConfigureAwait(false);
     await outbox.RemoveAsync(key, cancellationToken).ConfigureAwait(false);
     var verification = await ResolveAsync(submitted, cancellationToken).ConfigureAwait(false);
