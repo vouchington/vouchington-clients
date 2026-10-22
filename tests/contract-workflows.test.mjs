@@ -367,7 +367,9 @@ describe('native contract workflow boundary', () => {
     ])
     const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     assert.match(workflow, cachePin)
-    assert.match(action, cachePin)
+    assert.match(action, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
+    assert.match(action, /actions\/cache\/save@[a-f0-9]{40}(?=\s|$)/u)
+    assert.doesNotMatch(action, /uses: actions\/cache@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(
       jobBlock(workflow, 'produce'),
       /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('filaments\/pnpm-lock\.yaml'\) \}\}/u,

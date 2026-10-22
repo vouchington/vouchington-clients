@@ -23,7 +23,8 @@ compatibility; the current Android NDK compiler is x86_64-only. `macos-latest` a
 
 The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the macOS SDK with
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
-required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
+required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green. The Mac Catalyst GUI preflight is a
+separate required job with a 10-minute limit. It does not add steps to the MAUI smoke job.
 
 Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.
@@ -35,7 +36,9 @@ must not run persistent-workspace cleanup, restore a trusted base only to wipe t
 Jobs may restore hash-keyed GitHub Actions caches for package stores and checksum-verified download
 archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
-are not cached.
+are not cached. Shared pnpm stores restore on every run. A missing primary key is saved only after
+the frozen install on a `push` to `refs/heads/main`. Pull requests restore and install, and they
+do not save. Another job may reserve that key first; the lost save does not fail the run.
 
 The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
 `main` push after the locked restores, rendered page tests, and app build succeed. Pull requests

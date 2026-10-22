@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
@@ -80,28 +78,13 @@ public sealed partial class EngineeringPostgreSqlViewModel :
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-  public async Task LoadAsync(CancellationToken cancellationToken = default)
-  {
-    if (IsLoading) return;
-    IsLoading = true;
-    ErrorMessage = null;
-    try
-    {
-      await ReloadAsync(cancellationToken).ConfigureAwait(true);
-    }
-    catch (OperationCanceledException)
-    {
-      ErrorMessage = null;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      IsLoading = false;
-    }
-  }
+  public Task LoadAsync(CancellationToken cancellationToken = default) =>
+      EngineeringRequest.RunAsync(
+          () => IsLoading,
+          () => IsLoading = true,
+          message => ErrorMessage = message,
+          () => IsLoading = false,
+          () => ReloadAsync(cancellationToken));
 
   public Task RunMigrationsAsync(CancellationToken cancellationToken = default) =>
       RunJobAsync("runMigrations", cancellationToken);
@@ -145,7 +128,7 @@ public sealed partial class EngineeringPostgreSqlViewModel :
         ArticleSyncStatus = status;
       }
     }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
+    catch (Exception ex) when (EngineeringRequest.IsSurfaced(ex))
     {
       ErrorMessage = ex.Message;
     }
@@ -154,31 +137,25 @@ public sealed partial class EngineeringPostgreSqlViewModel :
   private Task RunJobAsync(string type, CancellationToken cancellationToken) =>
       RunAndRefreshAsync(() => service.EnqueuePsqlJobAsync(type, cancellationToken), cancellationToken);
 
-  private async Task RunAndRefreshAsync(Func<Task> action, CancellationToken cancellationToken)
-  {
-    if (IsLoading || isMutating) return;
-    isMutating = true;
-    IsLoading = true;
-    ErrorMessage = null;
-    try
-    {
-      await action().ConfigureAwait(true);
-      await ReloadAsync(cancellationToken).ConfigureAwait(true);
-    }
-    catch (OperationCanceledException)
-    {
-      ErrorMessage = null;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException or JsonException or IOException)
-    {
-      ErrorMessage = ex.Message;
-    }
-    finally
-    {
-      isMutating = false;
-      IsLoading = false;
-    }
-  }
+  private Task RunAndRefreshAsync(Func<Task> action, CancellationToken cancellationToken) =>
+      EngineeringRequest.RunAsync(
+          () => IsLoading || isMutating,
+          () =>
+          {
+            isMutating = true;
+            IsLoading = true;
+          },
+          message => ErrorMessage = message,
+          () =>
+          {
+            isMutating = false;
+            IsLoading = false;
+          },
+          async () =>
+          {
+            await action().ConfigureAwait(true);
+            await ReloadAsync(cancellationToken).ConfigureAwait(true);
+          });
 
   private async Task ReloadAsync(CancellationToken cancellationToken)
   {

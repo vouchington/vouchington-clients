@@ -15,7 +15,8 @@ public sealed partial class ChatConversationViewModel
       CreateClientGeneratedChatBody Body,
       MemberMcpConnectedSnapshot? McpSnapshot,
       IMcpLocalChatProvider? McpProvider,
-      IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts);
+      IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts,
+      IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts);
 
   private ChatProviderStatus ProviderForPendingMcpRetry(string text) =>
       pendingLocalTurn is { McpSnapshot: not null } pending &&

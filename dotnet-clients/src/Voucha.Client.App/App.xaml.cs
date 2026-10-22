@@ -38,6 +38,14 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
+#if DEBUG
+        if (CatalystGuiPreflight.IsActive())
+        {
+            var preflight = CatalystGuiPreflight.CreateProductionWindow(serviceProvider);
+            preflight.Activated += OnWindowActivated;
+            return preflight;
+        }
+#endif
         var window = new Window(serviceProvider.GetRequiredService<AppShell>());
         window.Activated += OnWindowActivated;
         return window;
