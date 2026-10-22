@@ -16,7 +16,7 @@ public sealed partial class SettingsViewModel
       var apiKeysTask = settingsService.FetchApiKeysAsync(cancellationToken);
       var sessionsTask = settingsService.FetchAuthSessionsAsync(cancellationToken);
       var membershipPlansTask = settingsService.FetchMembershipPlansAsync(cancellationToken);
-      var membershipTask = settingsService.FetchMembershipAsync(cancellationToken);
+      var membershipOverviewTask = settingsService.FetchMembershipOverviewAsync(cancellationToken);
       var pushSubscriptionsTask = settingsService.FetchPushSubscriptionsAsync(cancellationToken);
       var dataRequestTask = settingsService.FetchUserDataRequestAsync(userIdOrSlug, cancellationToken);
 
@@ -26,7 +26,7 @@ public sealed partial class SettingsViewModel
           apiKeysTask,
           sessionsTask,
           membershipPlansTask,
-          membershipTask,
+          membershipOverviewTask,
           pushSubscriptionsTask,
           dataRequestTask).ConfigureAwait(true);
       if (!IsCurrentSettingsLoad(generation)) return;
@@ -46,10 +46,20 @@ public sealed partial class SettingsViewModel
       ReplaceSessionPage(sessionsResponse);
 
       var plansResponse = await membershipPlansTask.ConfigureAwait(true);
-      var plans = plansResponse.Plans;
-      Membership = (await membershipTask.ConfigureAwait(true))?.Membership;
-      UpdateMembershipSummary();
-      MembershipPlanOptions = BuildMembershipPlanOptions(plans, Membership, plansResponse.BenefitCatalog);
+      var overview = await membershipOverviewTask.ConfigureAwait(true);
+      if (overview is not null)
+      {
+        ApplyNativeMembershipOverview(overview, plansResponse.BenefitCatalog);
+      }
+      else
+      {
+        MembershipOverview = null;
+        MembershipLifecycleLines = [];
+        var plans = plansResponse.Plans;
+        Membership = (await settingsService.FetchMembershipAsync(cancellationToken).ConfigureAwait(true))?.Membership;
+        UpdateMembershipSummary();
+        MembershipPlanOptions = BuildMembershipPlanOptions(plans, Membership, plansResponse.BenefitCatalog);
+      }
 
       ReplacePushSubscriptionPage(await pushSubscriptionsTask.ConfigureAwait(true));
 

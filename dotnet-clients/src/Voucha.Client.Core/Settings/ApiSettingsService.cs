@@ -148,6 +148,19 @@ public sealed partial class ApiSettingsService : ISettingsService, INotification
     }
   }
 
+  public async Task<NativeMembershipOverview?> FetchMembershipOverviewAsync(
+      CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      return await client.FetchMembershipOverviewAsync(cancellationToken).ConfigureAwait(false);
+    }
+    catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+    {
+      return null;
+    }
+  }
+
   public Task<MembershipPlansResponse> FetchMembershipPlansAsync(CancellationToken cancellationToken = default) =>
       client.FetchMembershipPlansAsync(cancellationToken);
 

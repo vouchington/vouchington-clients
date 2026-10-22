@@ -50,10 +50,7 @@ public struct MembershipPlanPresentation: Identifiable, Equatable, Sendable {
 
 public extension SettingsViewModel {
     var currentMembershipPlanId: String {
-        guard let membership, [.active, .pastDue].contains(membership.status) else {
-            return "free"
-        }
-        return membership.plan
+        membership?.plan ?? "free"
     }
 
     var membershipSummaryText: String {
@@ -77,93 +74,43 @@ public extension SettingsViewModel {
             return currentMembershipPlanId == "free" ? nil : localized(.nativeSwiftMembershipNoActiveMembership)
         }
         switch membership.status {
-        case .active:
+        case "active":
             return localized(
-                membership.cancelAtPeriodEnd
+                membership.cancelAtPeriodEnd == true
                     ? .nativeSwiftMembershipActiveCancelsAtPeriodEnd
                     : .nativeSwiftMembershipActive
             )
-        case .cancelled:
+        case "cancelled":
             return localized(.nativeSwiftMembershipCancelled)
-        case .expired:
+        case "expired":
             return localized(.nativeSwiftMembershipExpired)
-        case .pastDue:
+        case "past_due":
             return localized(.nativeSwiftMembershipPastDue)
-        case .paused:
+        case "paused":
             return localized(.nativeSwiftMembershipPaused)
+        default:
+            return localized(.nativeSwiftMembershipNativeBillingUnavailable)
         }
     }
 
     private func presentation(for plan: String) -> MembershipPlanPresentation {
         let isCurrent = currentMembershipPlanId == plan
-        let title = membershipPlanTitle(plan)
-        let sortedSkus = membershipPlans[plan, default: []].sorted { lhs, rhs in
-            let lRank = membershipIntervalRank(lhs.interval)
-            let rRank = membershipIntervalRank(rhs.interval)
-            if lRank != rRank {
-                return lRank < rRank
-            }
-            return lhs.price.amount < rhs.price.amount
-        }
-        let options = sortedSkus.map { summary in
-            MembershipPlanPresentation.PriceOption(
-                id: "\(summary.plan)-\(summary.interval)-\(summary.price.currency)-\(summary.price.amount)",
-                priceText: formattedPrice(summary.price),
-                intervalText: normalizedMembershipInterval(summary.interval)
-            )
-        }
-
-        let priceSummaryText = priceSummary(plan: plan, options: options)
-
-        let featureBullets = membershipFeatures(for: plan)
-        let purchaseButtonTitle = purchaseTitle(for: plan, isCurrent: isCurrent)
-        let purchaseButtonHint = purchaseHint(for: plan)
-        let currentStateText = isCurrent
-            ? currentMembershipStateText ?? localized(.nativeSwiftMembershipCurrentPlanPeriod)
-            : nil
-
+        let priceSummaryText = plan == "free"
+            ? localized(.nativeSwiftMembershipFree)
+            : localized(.nativeSwiftMembershipPriceUnavailable)
         return MembershipPlanPresentation(
             id: plan,
-            title: title,
-            currentStateText: currentStateText,
+            title: membershipPlanTitle(plan),
+            currentStateText: isCurrent
+                ? currentMembershipStateText ?? localized(.nativeSwiftMembershipCurrentPlanPeriod)
+                : nil,
             priceSummaryText: priceSummaryText,
-            priceOptions: options,
-            featureBullets: featureBullets,
-            purchaseButtonTitle: purchaseButtonTitle,
-            purchaseButtonHint: purchaseButtonHint,
+            priceOptions: [],
+            featureBullets: membershipFeatures(for: plan),
+            purchaseButtonTitle: purchaseTitle(for: plan, isCurrent: isCurrent),
+            purchaseButtonHint: purchaseHint(for: plan),
             isCurrent: isCurrent
         )
-    }
-
-    private func priceSummary(plan: String, options: [MembershipPlanPresentation.PriceOption]) -> String {
-        if options.isEmpty {
-            if plan == "free" {
-                localized(.nativeSwiftMembershipFree)
-            } else {
-                localized(.nativeSwiftMembershipPriceUnavailable)
-            }
-        } else if let first = options.first, options.count == 1 {
-            localized(
-                .nativeSwiftMembershipPerPrice,
-                parameters: ["price": first.priceText, "interval": summaryIntervalText(for: first.intervalText)]
-            )
-        } else {
-            localized(
-                .nativeSwiftMembershipStartingAt,
-                parameters: ["price": options.first?.priceText ?? localized(.nativeSwiftMembershipPrice)]
-            )
-        }
-    }
-
-    private func formattedPrice(_ price: Money) -> String {
-        guard price.amount > 0 else { return localized(.nativeSwiftMembershipFree) }
-        guard let amount = price.knownCurrencyMajorUnitDecimal else {
-            return localized(.nativeSwiftMembershipPriceUnavailable)
-        }
-        if let uiLocaleController {
-            return uiLocaleController.currency(amount, code: price.currency.uppercased())
-        }
-        return UiMessages.currency(amount, code: price.currency.uppercased(), locale: .english)
     }
 
     private func purchaseTitle(for plan: String, isCurrent: Bool) -> String {

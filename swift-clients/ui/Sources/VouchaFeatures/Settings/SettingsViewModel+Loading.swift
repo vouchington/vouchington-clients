@@ -61,7 +61,7 @@ public extension SettingsViewModel {
             async let pushSubscriptionsResponse: SettingsListResponse<WebPushSubscription> = client
                 .send(.myPushSubscriptions())
             async let sessionsResponse: Page<AuthSession> = client.send(.authSessions())
-            async let membershipResponse: MembershipResponse? = loadOptional(.membershipMe)
+            async let membershipResponse: NativeMembershipOverview? = loadOptional(.membershipMe)
             async let plansResponse: MembershipPlansResponse? = loadOptional(.membershipPlans)
             async let dataRequestResponse: UserDataRequest? = loadDataRequest(userIdOrSlug: userIdOrSlug)
 
@@ -82,7 +82,9 @@ public extension SettingsViewModel {
             replaceApiKeyPage(loadedApiKeys)
             replacePushSubscriptionPage(loadedPushSubscriptions)
             replaceSessionPage(loadedSessions)
+            membershipOverview = loadedMembership
             membership = loadedMembership?.membership
+            membershipSnapshotIsStale = false
             membershipPlans = loadedPlans?.plans ?? [:]
             membershipBenefitCatalog = loadedPlans?.benefitCatalog
             dataRequest = loadedDataRequest
@@ -128,8 +130,10 @@ public extension SettingsViewModel {
     }
 
     internal func reloadMembership() async throws {
-        let response: MembershipResponse? = try await loadOptional(.membershipMe)
+        let response: NativeMembershipOverview? = try await loadOptional(.membershipMe)
+        membershipOverview = response
         membership = response?.membership
+        membershipSnapshotIsStale = false
     }
 
     private func loadOptional<T: Decodable & Sendable>(_ endpoint: Endpoint) async throws -> T? {

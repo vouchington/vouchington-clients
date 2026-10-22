@@ -22,6 +22,7 @@ public sealed partial class SettingsViewModelTests
     public DeleteUserResponse DeleteUserResponse { get; set; } = new(false);
 
     public MembershipResponse? MembershipResponse { get; set; } = new MembershipResponse(CreateMembership());
+    public NativeMembershipOverview? MembershipOverviewResponse { get; set; }
     public Exception? UserFailure { get; set; }
     public Task<UserResponse>? UserTask { get; set; }
     public TaskCompletionSource? UserFetchStarted { get; set; }
@@ -261,6 +262,9 @@ public sealed partial class SettingsViewModelTests
 
     public Task<MembershipResponse?> FetchMembershipAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(MembershipResponse);
+
+    public Task<NativeMembershipOverview?> FetchMembershipOverviewAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(MembershipOverviewResponse);
 
     public Task<MembershipPlansResponse> FetchMembershipPlansAsync(
         CancellationToken cancellationToken = default) =>

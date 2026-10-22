@@ -141,30 +141,14 @@ public extension SettingsViewModel {
         }
     }
 
-    func purchaseMembership(priceId: String) async {
-        guard let client else { return }
-        await mutate {
-            let response: MembershipCheckoutSessionResponse = try await client.send(
-                .membershipCheckout(
-                    priceId: priceId,
-                    successUrl: "/my/membership?checkout=success",
-                    cancelUrl: "/my/membership?checkout=cancel"
-                )
-            )
-            membershipCheckoutURL = response.checkoutSession.url
-            statusMessage = .message(.nativeSwiftSettingsCheckoutSessionCreated)
-        }
+    func purchaseMembership(priceId _: String) async {
+        membershipCheckoutURL = nil
+        statusMessage = .message(.nativeSwiftMembershipNativeBillingUnavailable)
     }
 
     func openMembershipPortal() async {
-        guard let client else { return }
-        await mutate {
-            let response: MembershipPortalSessionResponse = try await client.send(
-                .membershipPortal(returnUrl: "/my/membership")
-            )
-            membershipPortalURL = response.portalSession.url
-            statusMessage = .message(.nativeSwiftSettingsBillingPortalCreated)
-        }
+        membershipPortalURL = nil
+        statusMessage = .message(.nativeSwiftMembershipNativeBillingUnavailable)
     }
 
     func cancelMembership() async {

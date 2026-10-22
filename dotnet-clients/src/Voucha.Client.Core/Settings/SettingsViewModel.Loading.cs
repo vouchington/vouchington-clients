@@ -110,6 +110,19 @@ public sealed partial class SettingsViewModel
 
   private void UpdateMembershipSummary()
   {
+    if (MembershipOverview is { } overview)
+    {
+      MembershipSummary = overview.Membership is null
+          ? localization.Format(
+              UiMessageKey.NativeDotnetSettingsCurrentPlan,
+              ("plan", DisplayPlanName("free")))
+          : localization.Format(
+              UiMessageKey.NativeDotnetSettingsCurrentPlanWithStatus,
+              ("plan", DisplayPlanName(overview.VisiblePlan)),
+              ("status", DisplayMembershipStatus(overview.Membership.Status)));
+      return;
+    }
+
     MembershipSummary = Membership is null
         ? localization.Format(
             UiMessageKey.NativeDotnetSettingsCurrentPlan,

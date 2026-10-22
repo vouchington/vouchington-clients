@@ -306,6 +306,13 @@
             <VerticalStackLayout x:Name="MembershipSection" Spacing="12">
                 <Label Text="{DynamicResource native.swift.membership.membership}" Style="{StaticResource Headline}" />
                 <Label Text="{Binding MembershipSummary}" Style="{StaticResource Metadata}" />
+                <CollectionView ItemsSource="{Binding MembershipLifecycleLines}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="settings:MembershipLifecycleLineViewModel">
+                            <Label Text="{Binding Text}" Style="{StaticResource Metadata}" LineBreakMode="WordWrap" />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
                 <CollectionView ItemsSource="{Binding MembershipPlanOptions}" SelectionMode="None">
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="settings:MembershipPlanOptionViewModel">
