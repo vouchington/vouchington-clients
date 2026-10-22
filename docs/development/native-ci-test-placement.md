@@ -11,15 +11,25 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | Portable .NET (`Voucha.DotNet.sln`), Core patch coverage, .NET DTO parity                            | `ubuntu-latest`  | Same test code, no meaningful Linux-vs-macOS branches                              |
 | Portable Swift core + `test-support`                                                                 | `ubuntu-latest`  | FoundationNetworking, Glibc sockets, Linux cookie storage, `swift-crypto`          |
 | Swift core full suite (including portable tests), Darwin/Security slice, core LCOV, Swift DTO parity | `macos-latest`   | Full core suite exercises Darwin `URLSession`, Security/Keychain, `xcrun llvm-cov` |
-| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, Skip host tools                                                    |
+| Swift UI, Periphery, Android Skip, macOS app smoke                                                   | `macos-latest`   | SwiftUI, Xcode, a logged-in macOS GUI session, and Skip host tools                 |
 | Android encrypted cookie restart instrumentation                                                     | `ubuntu-latest`  | Runs the candidate Android APKs on one API 35 Google APIs emulator with KVM        |
 | iOS Simulator app launch smoke                                                                       | `macos-latest`   | Generated Xcode project, iOS Simulator SDK, and actual app launch                  |
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
 | .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
+| .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
+
+The macOS app smoke job builds the generated macOS app, then launches it with the existing
+root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
+ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and outgoing network
+only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
+entitlements because they make an ad-hoc signature invalid. A preflight refuses to
+continue when WindowServer is down or the runner user does not own the GUI console, and the job
+requires exactly one passed test with nothing skipped. That is launch evidence for the root shell
+only; sign-in and tab coverage stay on #80.
 
 The iOS job first compiles against a generic iOS Simulator destination on `macos-latest`, then
 runs the shared UI launch-smoke target on an available iPhone Simulator with signing disabled.
@@ -34,6 +44,22 @@ still outstanding.
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,
 result predicates and fixture-root wiring.
+
+Dependabot metadata edits use `dependabot-edited.yml`, with one conditional call to the existing
+auto-merge worker. Ordinary human PR title/body edits produce one skipped router check; trusted
+Dependabot PR edits retain metadata verification and non-default-base cleanup. The gate uses the
+PR author rather than the editing actor so maintainer retargets still run. Lifecycle/head events
+remain on `dependabot-automerge.yml`. Only the worker owns concurrency, with the original shared
+group across both entrypoints. The caller passes the existing auto-merge secret explicitly and
+grants read access for the worker's same-run repair artifact download.
+
+This bounds metadata noise; it does not eliminate workflow/check records. GitHub supports event,
+base-branch and path filters, while [job conditions still create skipped checks][job-conditions].
+Zero records for ordinary human edits would require an authenticated external webhook or GitHub
+App to filter before dispatch. Routing tests verify the source wiring; actual skipped-caller check
+counts require a hosted observation after the base-owned workflow reaches `main`.
+
+[job-conditions]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions
 
 ## Required dual-OS
 
@@ -62,6 +88,14 @@ The isolated mise SDK does not install workloads, while the repository's `global
 workload manifest version. This workload-free project passes `MSBuildEnableWorkloadResolver=false`
 only to its locked restore and test commands so MSBuild does not fail while probing absent
 workload manifests; the Windows target and WinRT decoder tests still compile and run.
+
+The Windows language-model surface probe is a separate changed-file-routed test project. It
+restores the same `Microsoft.WindowsAppSDK` 1.8.260710003 pin as the app, compiles projection
+bindings for `GetUsablePromptLength`, `CreateContext`, `GenerateResponseAsync`, and
+`LanguageModelOptions`, and reads the restored `Microsoft.WindowsAppSDK.AI` 1.8.79 WinMD. The
+hosted job records prompt-length admission and the absence of an answer-token reservation member.
+It does not call the model, implement the member MCP loop, or stand in for supported-device
+generation. It uses the same workload-resolver opt-out as the decoder test.
 
 Do not add `strategy.matrix.os` (or a second job that runs the same `dotnet test` / `swift test`
 filter) unless the new OS compiles different source or links a different networking stack.

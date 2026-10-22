@@ -15,29 +15,21 @@ public sealed partial class MemberMcpTokenManager(
   private readonly MemberMcpOAuthTokenScope scope = tokenClient.ScopeFor(accountId);
   private Task<MemberMcpOAuthTokens>? refreshTask;
   private Task<MemberMcpOAuthTokens>? redeemTask;
+  private long redemptionRevision;
   private Task? clearTask;
   private MemberMcpOAuthTokens? latestRefreshedTokens;
   private bool signedOut;
   private bool clearing;
 
-  public async Task<string> AccessTokenAsync(CancellationToken cancellationToken = default)
-  {
-    lock (gate) { if (signedOut || clearing) throw new McpUnauthorizedException(); }
-    var tokens = await store.LoadAsync(scope).ConfigureAwait(false)
-        ?? throw new McpUnauthorizedException();
-    lock (gate) { if (signedOut || clearing) throw new McpUnauthorizedException(); }
-    if (tokens.AcquiredAt.AddSeconds(tokens.ExpiresIn - 30) <= DateTimeOffset.UtcNow)
-      return await RefreshAsync(cancellationToken).ConfigureAwait(false);
-    return tokens.AccessToken;
-  }
-
   public async Task<string> RedeemAsync(
       string code, string verifier, Uri redirectUri, CancellationToken cancellationToken = default)
   {
+    cancellationToken.ThrowIfCancellationRequested();
     Task<MemberMcpOAuthTokens> pending;
     lock (gate)
     {
       if (signedOut || clearing || redeemTask is not null) throw new McpUnauthorizedException();
+      redemptionRevision++;
       redeemTask = RedeemCoreAsync(code, verifier, redirectUri);
       pending = redeemTask;
       ObserveCompletion(pending, refresh: false);

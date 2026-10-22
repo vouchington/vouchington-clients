@@ -2,6 +2,7 @@
 
 extension ApiFixtureEndpointCoverageTests {
     static let householdFixtureEndpoints: [String: Endpoint] = [
+        "native.me.individual": .currentIndividual,
         "native.households.empty": .households(),
         "native.households.single-owned": .households(),
         "native.households.multiple": .households(),

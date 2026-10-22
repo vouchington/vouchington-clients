@@ -3,7 +3,8 @@ using System.Text.Json;
 namespace Voucha.Client.Core.Agent;
 
 public sealed record MemberMcpConnectedSnapshot(
-    string AccountId, long Revision, JsonElement Catalog, CancellationToken AccountCancellation);
+    string AccountId, long Revision, JsonElement Catalog, CancellationToken AccountCancellation,
+    long AccountEpoch = 0);
 
 public sealed partial class MemberMcpSession
 {
@@ -14,7 +15,8 @@ public sealed partial class MemberMcpSession
       if (disposed || Status != MemberMcpSessionStatus.Connected ||
           active is null || accountId is null || Tools is not { } catalog ||
           sessionStore.Current.Identity?.Id != accountId) return null;
-      return new MemberMcpConnectedSnapshot(accountId, generation, catalog.Clone(), activeCancellation!.Token);
+      return new MemberMcpConnectedSnapshot(accountId, generation, catalog.Clone(), activeCancellation!.Token,
+          accountEpoch);
     }
   }
 
@@ -31,9 +33,18 @@ public sealed partial class MemberMcpSession
       return !disposed && sessionStore.Current.Identity?.Id == candidateAccountId;
   }
 
+  public bool MatchesAccountEpoch(MemberMcpConnectedSnapshot snapshot)
+  {
+    ArgumentNullException.ThrowIfNull(snapshot);
+    lock (gate)
+      return !disposed && accountId == snapshot.AccountId && accountEpoch == snapshot.AccountEpoch &&
+          sessionStore.Current.Identity?.Id == snapshot.AccountId;
+  }
+
   private bool IsCurrentLocked(MemberMcpConnectedSnapshot snapshot) =>
       !disposed && Status == MemberMcpSessionStatus.Connected && active is not null &&
-      accountId == snapshot.AccountId && generation == snapshot.Revision &&
+      accountId == snapshot.AccountId && accountEpoch == snapshot.AccountEpoch &&
+      generation == snapshot.Revision &&
       sessionStore.Current.Identity?.Id == snapshot.AccountId;
 
   public Task<McpToolResult> CallToolAsync(

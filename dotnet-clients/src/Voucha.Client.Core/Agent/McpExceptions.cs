@@ -35,3 +35,10 @@ public sealed class McpRpcException : Exception
 
   public int Code { get; }
 }
+
+public sealed class McpAuthorizationDeniedException : Exception
+{
+  public McpAuthorizationDeniedException() : base("MCP authorization was denied.") { }
+  public McpAuthorizationDeniedException(string message) : base(message) { }
+  public McpAuthorizationDeniedException(string message, Exception innerException) : base(message, innerException) { }
+}

@@ -343,6 +343,7 @@ internal static partial class ApiFixtureCoverage
         ["native.landing-page-mutation.default"] = VouchaApiEndpoints.UpdateMyLandingPage(
             "landing-page-1",
             new UpdateLandingPageBody(Title: "Updated Links", Slug: "updated-links")),
+        ["native.me.individual"] = VouchaApiEndpoints.CurrentIndividual(),
         ["native.households.empty"] = VouchaApiEndpoints.Households(),
         ["native.households.single-owned"] = VouchaApiEndpoints.Households(),
         ["native.households.multiple"] = VouchaApiEndpoints.Households(),
