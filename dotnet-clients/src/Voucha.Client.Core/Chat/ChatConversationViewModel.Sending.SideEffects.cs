@@ -45,9 +45,12 @@ public sealed partial class ChatConversationViewModel
       string? conversationId, string requestText, ILocalChatProvider provider,
       WindowsBuiltInResultRetainedException retained)
   {
-    if (conversationId is not { Length: > 0 } || provider is not IMcpLocalChatProvider mcp) return null;
+    if (conversationId is not { Length: > 0 } || provider is not IMcpLocalChatProvider mcp ||
+        retained.AccountId.Length == 0) return null;
     var snapshot = mcp.ConnectedMcpSnapshot();
-    if (snapshot is null || !mcp.IsCurrent(snapshot) || !mcp.MatchesAccountEpoch(snapshot) ||
+    if (snapshot is null || snapshot.AccountId != retained.AccountId ||
+        snapshot.AccountEpoch != retained.AccountEpoch ||
+        !mcp.IsCurrent(snapshot) || !mcp.MatchesAccountEpoch(snapshot) ||
         retained.CallId.Length is 0 or > 128 ||
         Encoding.UTF8.GetByteCount(retained.Envelope) is 0 or > MemberMcpToolBridge.MaximumEnvelopeBytes)
       return null;
@@ -56,7 +59,8 @@ public sealed partial class ChatConversationViewModel
     if (retained.Receipt is not null && post is null ||
         retained.RssItemReceipt is not null && rss is null)
       return null;
-    return new(conversationId, requestText, snapshot.AccountId, retained.CallId, retained.Envelope, post, rss);
+    return new(conversationId, requestText, retained.AccountId, retained.AccountEpoch, retained.CallId,
+        retained.Envelope, post, rss);
   }
 
   private static McpFeedPostReceipt? OwnedPost(McpFeedPostReceipt? receipt, string accountId, string callId)

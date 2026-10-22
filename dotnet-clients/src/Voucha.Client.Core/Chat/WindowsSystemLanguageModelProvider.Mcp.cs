@@ -48,7 +48,8 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
     return turn.Kind switch
     {
       WindowsBuiltInTurnKind.Retained => throw new WindowsBuiltInResultRetainedException(
-          turn.Envelope!, turn.Receipt, turn.RssItemReceipt, turn.CallId),
+          turn.Envelope!, turn.Receipt, turn.RssItemReceipt, turn.CallId,
+          snapshot.AccountId, snapshot.AccountEpoch),
       WindowsBuiltInTurnKind.Stopped => throw new InvalidOperationException(
           "Windows built-in generation stopped with status " + turn.Status + "."),
       _ => throw new InvalidOperationException("Windows built-in prompt does not fit the model context."),

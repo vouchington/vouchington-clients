@@ -113,6 +113,7 @@ public sealed partial class MemberMcpSessionTests
     var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
     using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
     await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var dispatch = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
     factory.Connections.Single().ToolResult = new McpToolResult(
         content.RootElement.Clone(), structured.RootElement.Clone(), false);
     var runtime = new RecordingBuiltInRuntime
@@ -131,6 +132,7 @@ public sealed partial class MemberMcpSessionTests
     Assert.Equal("conversation-1", retained.ConversationId);
     Assert.Equal("Show the feed", retained.RequestText);
     Assert.Equal("account-a", retained.AccountId);
+    Assert.Equal(dispatch.AccountEpoch, retained.AccountEpoch);
     Assert.Equal("call-1", retained.CallId);
     Assert.Contains(postId, retained.Envelope, StringComparison.Ordinal);
     Assert.Equal(postId, Assert.Single(retained.FeedPostReceipt!.PostIds));
@@ -146,6 +148,55 @@ public sealed partial class MemberMcpSessionTests
     Assert.Equal(1, factory.Connections.Single().ToolCalls);
     Assert.Equal(retained.Envelope, viewModel.RetainedWindowsToolResult!.Envelope);
     Assert.Equal(postId, Assert.Single(viewModel.RetainedWindowsToolResult.FeedPostReceipt!.PostIds));
+  }
+
+  [Fact]
+  public async Task RetainedWindowsToolResultStaysWithTheDispatchAccount()
+  {
+    using var catalog = JsonDocument.Parse("""{"tools":[]}""");
+    var element = catalog.RootElement.Clone();
+    var dispatch = new MemberMcpConnectedSnapshot("account-a", 1, element, CancellationToken.None, 4);
+    var switched = new MemberMcpConnectedSnapshot("account-b", 2, element, CancellationToken.None, 5);
+    var provider = new AccountSwitchingRetainedProvider(dispatch, switched);
+    var viewModel = new ChatConversationViewModel(
+        new FakeChatService(), new StatusOnlyResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Show the feed", TestContext.Current.CancellationToken));
+
+    Assert.Null(viewModel.RetainedWindowsToolResult);
+    Assert.True(viewModel.PossibleToolSideEffect);
+  }
+
+  private sealed class AccountSwitchingRetainedProvider(
+      MemberMcpConnectedSnapshot dispatch, MemberMcpConnectedSnapshot switched) : IMcpLocalChatProvider
+  {
+    private int snapshots;
+
+    public string Id => LocalChatProviderIds.WindowsSystemLanguageModel;
+
+    public ChatProviderStatus Status { get; } = new(
+        ChatProviderKind.Local, "Windows local", true, "Ready.", LocalChatProviderIds.WindowsSystemLanguageModel);
+
+    public MemberMcpConnectedSnapshot? ConnectedMcpSnapshot() => snapshots++ == 0 ? dispatch : switched;
+
+    public bool IsCurrent(MemberMcpConnectedSnapshot snapshot) =>
+        snapshot.AccountId == switched.AccountId && snapshot.AccountEpoch == switched.AccountEpoch ||
+        snapshots == 1 && snapshot.AccountId == dispatch.AccountId && snapshot.AccountEpoch == dispatch.AccountEpoch;
+
+    public bool MatchesAccount(string accountId) => accountId == switched.AccountId || snapshots == 1 && accountId == dispatch.AccountId;
+
+    public bool MatchesAccountEpoch(MemberMcpConnectedSnapshot snapshot) => IsCurrent(snapshot);
+
+    public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
+        string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default) =>
+        throw new InvalidOperationException("The snapshot overload is required.");
+
+    public Task<LocalChatGenerationResult> GenerateAssistantContentAsync(
+        string message, IReadOnlyList<LocalLLMResponseInput> history, MemberMcpConnectedSnapshot? snapshot,
+        CancellationToken cancellationToken = default) =>
+        throw new WindowsBuiltInResultRetainedException(
+            """{"structuredContent":null,"content":[],"isError":false}""", null, null, "call-1",
+            dispatch.AccountId, dispatch.AccountEpoch);
   }
 
   private sealed class StatusOnlyResolver(ChatProviderStatus status) : IChatProviderResolver

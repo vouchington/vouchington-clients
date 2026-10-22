@@ -26,6 +26,7 @@ public sealed record RetainedWindowsBuiltInToolResult(
     string ConversationId,
     string RequestText,
     string AccountId,
+    long AccountEpoch,
     string CallId,
     string Envelope,
     McpFeedPostReceipt? FeedPostReceipt,
@@ -44,18 +45,22 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
 
   public WindowsBuiltInResultRetainedException(
       string envelope, McpFeedPostReceipt? receipt, McpFeedRssItemReceipt? rssItemReceipt = null,
-      string? callId = null) : base(DefaultMessage)
+      string? callId = null, string? accountId = null, long accountEpoch = 0) : base(DefaultMessage)
   {
     Envelope = envelope ?? throw new ArgumentNullException(nameof(envelope));
     Receipt = receipt;
     RssItemReceipt = rssItemReceipt;
     CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? "";
+    AccountId = accountId ?? "";
+    AccountEpoch = accountEpoch;
   }
 
   public string Envelope { get; }
   public McpFeedPostReceipt? Receipt { get; }
   public McpFeedRssItemReceipt? RssItemReceipt { get; }
   public string CallId { get; } = "";
+  public string AccountId { get; } = "";
+  public long AccountEpoch { get; }
 }
 
 public static class WindowsBuiltInToolLoop
