@@ -151,6 +151,32 @@ public sealed class CommunityPlacementRenderingTests
   }
 
   [Fact]
+  public async Task MemberRosterHidesPlacementForMissingWithheldDeletedAndAnonymousUsers()
+  {
+    const string legacyImageId = "00000000-0000-7000-8000-000000000201";
+    await AssertMemberFallback(MutateMember(user =>
+    {
+      user["profile_image_id"] = null;
+      user.Remove("profile_image_placement");
+    }), "Test User");
+
+    var withheld = MutateMember(user => user.Remove("profile_image_placement"));
+    Assert.Equal(legacyImageId, JsonNode.Parse(withheld)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    await AssertMemberFallback(withheld, "Test User");
+
+    await AssertMemberFallback(MutateMember(_ => { }, removeUser: true), "user-1");
+
+    var anonymous = MutateMember(user =>
+    {
+      user.Remove("name");
+      user.Remove("username");
+      user.Remove("profile_image_placement");
+    });
+    Assert.Equal(legacyImageId, JsonNode.Parse(anonymous)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    await AssertMemberFallback(anonymous, "user-1");
+  }
+
+  [Fact]
   public void NonMemberRowsDoNotConstructMemberAvatarControls()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -165,6 +191,63 @@ public sealed class CommunityPlacementRenderingTests
 
     Assert.DoesNotContain(VisualTreeElements.Descendants<Image>(row), image => image.AutomationId == "community-member-avatar-image");
     Assert.DoesNotContain(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+  }
+
+  private static async Task AssertMemberFallback(string membersJson, string title)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var responses = new Dictionary<string, string>
+    {
+      ["/api/v1/communities/test-community"] = Fixture("web.communities.show.default"),
+      ["/api/v1/communities/test-community/members"] = membersJson,
+      ["/api/v1/communities/test-community/posts"] = Fixture("web.communities.posts.default"),
+      ["/api/v1/communities/test-community/list-items/counts"] = Fixture("web.communities.list-items.counts.default"),
+    };
+    var apiClient = new VouchaApiClient(new HttpClient(new RouteResponseHandler(responses))
+    {
+      BaseAddress = new Uri("https://api.test"),
+    });
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(apiClient));
+    var page = new CommunityMembersPage(model, new AnonymousSessionStore(), Config());
+    await model.LoadSurfaceAsync("test-community", CommunityDetailSurfaceSection.Members,
+        TestContext.Current.CancellationToken);
+
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(page));
+    var member = Assert.IsType<CommunitySummaryRow>(Assert.Single((IEnumerable<object>)collection.ItemsSource!));
+    var row = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
+    row.BindingContext = member;
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+    var avatarImage = Assert.Single(VisualTreeElements.Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
+
+    Assert.Equal(title, member.Title);
+    Assert.Equal("Owner", member.Subtitle);
+    Assert.Null(avatarImage.Source);
+    Assert.False(avatar.IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatarImage));
+    Assert.Equal(new GridLength(0), row.ColumnDefinitions[0].Width);
+    var name = Assert.Single(VisualTreeElements.Descendants<Label>(row), label => label.Text == title);
+    Assert.Equal(title, name.Text);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(row), label => label.Text == "Owner");
+  }
+
+  private static string MutateMember(Action<JsonObject> mutate, bool removeUser = false)
+  {
+    var root = JsonNode.Parse(Fixture("web.communities.members.default"))!.AsObject();
+    var users = root["users"]!.AsObject();
+    if (removeUser)
+    {
+      users.Remove("user-1");
+    }
+    else
+    {
+      mutate(users["user-1"]!.AsObject());
+    }
+
+    return root.ToJsonString();
   }
 
   private static AppConfig Config() => new(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
