@@ -42,10 +42,11 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly three passed tests with nothing skipped: the root shell, one sidebar
+requires exactly four passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
-shared `--ui-testing-feed-flow` fixture, and one email OTP sign-in that removes the signed-out
-control. #80 stays open for the news, podcasts, and posts tabs.
+shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
+News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, and one
+email OTP sign-in that removes the signed-out control. #80 stays open for the news and posts tabs.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
