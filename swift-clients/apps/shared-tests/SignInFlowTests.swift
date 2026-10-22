@@ -49,11 +49,14 @@
         }
 
         private func tapHittableButton(_ label: String, in app: XCUIApplication) {
-            let button = app.buttons.matching(
-                NSPredicate(format: "label == %@ AND isHittable == true AND isEnabled == true", label)
-            ).firstMatch
-            XCTAssertTrue(button.waitForExistence(timeout: 10))
-            button.tap()
+            let matches = app.buttons.matching(NSPredicate(format: "label == %@", label))
+            let ready = NSPredicate { _, _ in
+                matches.allElementsBoundByIndex.contains { $0.isHittable && $0.isEnabled }
+            }
+            wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: 10)
+            let button = matches.allElementsBoundByIndex.first { $0.isHittable && $0.isEnabled }
+            XCTAssertNotNil(button)
+            button?.tap()
         }
 
         private func type(_ text: String, into field: XCUIElement) {
