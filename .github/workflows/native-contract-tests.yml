@@ -1374,6 +1374,7 @@ jobs:
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
             --configuration Debug --framework net10.0-maccatalyst \
             "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}" \
+            -p:CodesignEntitlements= \
             --no-restore &
           app_pid=$!
           host_status=0
@@ -1389,7 +1390,7 @@ jobs:
         working-directory: candidate-clients
         env:
           CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
-          CATALYST_GUI_RESULT: ${{ runner.temp }}/catalyst-gui-preflight.json
+          CATALYST_GUI_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
         run: |
           set -euo pipefail
           if ! pgrep -qx WindowServer; then
@@ -1402,12 +1403,20 @@ jobs:
             echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
             exit 1
           fi
-          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.Client.App.app' -print -quit)"
+          diagnostics="${{ runner.temp }}/catalyst-gui-diagnostics"
+          mkdir -p "$diagnostics"
+          find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name '*.app' >"$diagnostics/apps.txt" || true
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
           if [[ -z "$app" || ! -d "$app" ]]; then
             echo "::error::Debug Mac Catalyst app was not built"
             exit 1
           fi
+          staged="$PWD/$app/Contents/Resources/preflight-contract"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
           export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
+          export CATALYST_GUI_RESULT="$diagnostics/result.json"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
           jq -e '.total == 1 and .passed == 1 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
       - name: Upload failed Catalyst GUI diagnostics
@@ -1417,7 +1426,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           name: catalyst-gui-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/catalyst-gui-preflight.json
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics
           retention-days: 1
           if-no-files-found: warn
 

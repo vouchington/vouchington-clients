@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -41,6 +41,9 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /runs-on: macos-latest/u)
     assert.match(job, /timeout-minutes: 10/u)
     assert.match(job, /--configuration Debug --framework net10\.0-maccatalyst/u)
+    assert.match(job, /name 'Voucha\.app'/u)
+    assert.match(job, /catalyst-gui-preflight\.mjs --stage-fixture/u)
+    assert.match(job, /-p:CodesignEntitlements=/u)
     assert.match(job, /catalyst-gui-preflight\.mjs --session/u)
     assert.match(sessionScript, /--ui-testing-launch-smoke/u)
     assert.match(job, /pgrep -qx WindowServer/u)
@@ -83,6 +86,14 @@ describe('Mac Catalyst GUI preflight', () => {
     execFileSync(process.execPath, [script, '--check-fixture'], {
       env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
     })
+    const staged = join(root, 'staged')
+    execFileSync(process.execPath, [script, '--stage-fixture', staged], {
+      env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
+    })
+    assert.equal(
+      existsSync(join(staged, 'api-fixtures', 'v1', 'responses', 'swift.my.identity.default.json')),
+      true,
+    )
     assert.throws(() =>
       execFileSync(process.execPath, [script, '--check-fixture'], {
         env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: '/tmp/missing-fixture' },

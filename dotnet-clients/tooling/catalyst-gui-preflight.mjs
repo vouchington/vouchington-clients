@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
 const sharedIdentityFixtureId = 'swift.my.identity.default'
@@ -24,6 +24,17 @@ export function sharedIdentityFixture(root) {
   const bodyPath = join(fixtureRoot, bodyFile)
   if (!existsSync(bodyPath)) throw new Error(`missing fixture body ${bodyFile}`)
   return bodyPath
+}
+
+function stageFixture(destination) {
+  if (!destination?.startsWith('/')) throw new Error('--stage-fixture requires an absolute directory')
+  const bodyPath = sharedIdentityFixture(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  const sourceRoot = join(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT, 'api-fixtures', 'v1')
+  const relativeBody = bodyPath.slice(sourceRoot.length + 1)
+  const targetBody = join(destination, 'api-fixtures', 'v1', relativeBody)
+  mkdirSync(dirname(targetBody), { recursive: true })
+  copyFileSync(join(sourceRoot, 'manifest.json'), join(destination, 'api-fixtures', 'v1', 'manifest.json'))
+  copyFileSync(bodyPath, targetBody)
 }
 
 function appiumPrefix() {
@@ -178,9 +189,10 @@ async function session() {
 const mode = process.argv[2]
 try {
   if (mode === '--check-fixture') sharedIdentityFixture(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  else if (mode === '--stage-fixture') stageFixture(process.argv[3])
   else if (mode === '--prebuild-host') await prebuildHost()
   else if (mode === '--session') await session()
-  else throw new Error('pass --check-fixture, --prebuild-host, or --session')
+  else throw new Error('pass --check-fixture, --stage-fixture, --prebuild-host, or --session')
 } catch (error) {
   console.error(error instanceof Error ? error.message : error)
   process.exitCode = 1
