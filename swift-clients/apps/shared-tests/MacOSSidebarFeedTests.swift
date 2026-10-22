@@ -9,22 +9,32 @@
             let title: String
         }
 
+        override func setUp() {
+            super.setUp()
+            continueAfterFailure = false
+        }
+
         func testVideoFeedSurvivesSidebarNavigation() throws {
             let fixture = try loadFixtures()
             let app = XCUIApplication()
             app.launchArguments = [
-                "--ui-testing-feed-flow", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+                "--ui-testing-feed-flow",
+                "-AppleLanguages", "(en)",
+                "-AppleLocale", "en_US",
+                "-ApplePersistenceIgnoreState", "YES"
             ]
             app.launchEnvironment["VOUCHA_API_BASE_URL"] = "https://ui-testing.voucha.invalid"
+            app.launchEnvironment["VOUCHA_DISABLE_APP_ATTEST"] = "1"
             app.launchEnvironment["VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64"] = fixture.feed
                 .base64EncodedString()
             app.launchEnvironment["VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"] = fixture.identity
                 .base64EncodedString()
             app.launch()
+            app.activate()
 
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
             clickSidebar("Videos", in: app)
-            let title = app.staticTexts[fixture.title].firstMatch
+            let title = visibleText(fixture.title, in: app)
             XCTAssertTrue(title.waitForExistence(timeout: 20))
 
             clickSidebar("News", in: app)
@@ -34,18 +44,21 @@
         }
 
         private func clickSidebar(_ label: String, in app: XCUIApplication) {
-            let candidates = [
-                app.outlines.staticTexts[label],
-                app.tables.staticTexts[label],
-                app.buttons[label]
-            ]
-            let ready = NSPredicate { _, _ in
-                candidates.contains { $0.exists && $0.isHittable }
+            let row = app.outlines.staticTexts.matching(displayedText(label)).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 20), "Missing sidebar row \(label)")
+            if row.isHittable {
+                row.click()
+            } else {
+                row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
             }
-            wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: 20)
-            let row = candidates.first { $0.exists && $0.isHittable }
-            XCTAssertNotNil(row, "Missing sidebar row \(label)")
-            row?.click()
+        }
+
+        private func visibleText(_ value: String, in app: XCUIApplication) -> XCUIElement {
+            app.staticTexts.matching(displayedText(value)).firstMatch
+        }
+
+        private func displayedText(_ value: String) -> NSPredicate {
+            NSPredicate(format: "value == %@ OR label == %@", value, value)
         }
 
         private func loadFixtures() throws -> Fixtures {
