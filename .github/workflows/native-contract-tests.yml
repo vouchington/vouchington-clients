@@ -78,6 +78,8 @@ jobs:
           node-version-file: .nvmrc
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          NPM_CONFIG_AUDIT: 'false'
         with:
           version: latest-12
       - name: Check out candidate clients as data
@@ -1320,7 +1322,7 @@ jobs:
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
-          --no-restore
+          --no-restore -clp:PerformanceSummary
       - name: Save NuGet packages from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.maui-nuget-cache.outputs.cache-hit != 'true' }}
         timeout-minutes: 3
