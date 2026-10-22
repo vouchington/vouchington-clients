@@ -4,6 +4,7 @@ import { join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const sdkVersion = '10.0.401'
+export const refPackVersion = '10.0.12'
 export const sdkArchiveUrl =
   'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-osx-arm64.tar.gz'
 export const sdkArchiveSha512 =

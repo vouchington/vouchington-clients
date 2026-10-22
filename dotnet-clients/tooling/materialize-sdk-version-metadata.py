@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replace a fresh SDK version tree with byte-identical verified archive contents."""
+"""Restore genuine metadata to byte-identical SDK and reference-pack trees."""
 
 import hashlib
 import os
@@ -11,7 +11,8 @@ import tempfile
 import time
 
 VERSION = "10.0.401"
-PREFIX = f"sdk/{VERSION}"
+REF_PACK_VERSION = "10.0.12"
+ROOT_PREFIXES = (f"sdk/{VERSION}", f"packs/Microsoft.NETCore.App.Ref/{REF_PACK_VERSION}")
 MAX_ARCHIVE_BYTES = 300_000_000
 MAX_EXPANDED_BYTES = 1_600_000_000
 MAX_SELECTED_BYTES = 800_000_000
@@ -62,7 +63,7 @@ def validate_archive(source, expected_sha512, deadline):
 
 
 def validate_members(tar, deadline):
-    members = []
+    members = {prefix: [] for prefix in ROOT_PREFIXES}
     seen = set()
     seen_root = False
     member_count = 0
@@ -89,24 +90,27 @@ def validate_members(tar, deadline):
         expanded += member.size
         if expanded > MAX_EXPANDED_BYTES:
             fail("archive expanded-byte cap exceeded")
-        if path == PREFIX or path.startswith(PREFIX + "/"):
-            if path == PREFIX and not member.isdir():
-                fail("SDK version archive root is not a directory")
-            selected_count += 1
-            selected_bytes += member.size
-            if selected_count > MAX_SELECTED or selected_bytes > MAX_SELECTED_BYTES:
-                fail("SDK version subtree exceeds bounds")
-            members.append((path, member))
-    if PREFIX not in seen or selected_count < 2:
-        fail("SDK version subtree missing")
+        for prefix in ROOT_PREFIXES:
+            if path == prefix or path.startswith(prefix + "/"):
+                if path == prefix and not member.isdir():
+                    fail(f"archive root is not a directory: {prefix}")
+                selected_count += 1
+                selected_bytes += member.size
+                if selected_count > MAX_SELECTED or selected_bytes > MAX_SELECTED_BYTES:
+                    fail("selected SDK and reference-pack trees exceed bounds")
+                members[prefix].append((path, member))
+                break
+    for prefix in ROOT_PREFIXES:
+        if prefix not in seen or len(members[prefix]) < 2:
+            fail(f"archive subtree missing: {prefix}")
     return members
 
 
-def extract_selected(tar, members, stage, deadline):
+def extract_selected(tar, members, prefix, stage, deadline):
     directories = []
     for path, member in members:
         checked_time(deadline)
-        relative = path.removeprefix(PREFIX).lstrip("/")
+        relative = path.removeprefix(prefix).lstrip("/")
         target = stage if not relative else os.path.join(stage, *relative.split("/"))
         if member.isdir():
             os.mkdir(target, 0o700)
@@ -167,6 +171,33 @@ def tree_entries(root, deadline):
     return result
 
 
+class RollbackFailed(Exception):
+    """The original trees remain in the private staging directory."""
+
+
+def replace_verified_roots(roots, deadline):
+    changed = []
+    try:
+        for _, target, stage, backup in roots:
+            checked_time(deadline)
+            os.rename(target, backup)
+            changed.append([target, stage, backup, False])
+            os.rename(stage, target)
+            changed[-1][3] = True
+    except Exception as original:
+        rollback_errors = []
+        for target, stage, backup, installed in reversed(changed):
+            try:
+                if installed:
+                    os.rename(target, stage)
+                os.rename(backup, target)
+            except Exception as error:
+                rollback_errors.append(error)
+        if rollback_errors:
+            raise RollbackFailed("SDK/reference-pack swap rollback failed; private backups retained") from original
+        raise
+
+
 def main():
     if len(sys.argv) != 4:
         fail("expected installed root, archive, and release SHA-512")
@@ -175,40 +206,48 @@ def main():
         fail("invalid release SHA-512")
     deadline = time.monotonic() + DEADLINE_SECONDS
     root = os.path.realpath(root_arg)
-    sdk_parent = os.path.join(root, "sdk")
-    target = os.path.join(sdk_parent, VERSION)
-    if (not os.path.isdir(root) or not os.path.isdir(sdk_parent) or
-            os.path.islink(sdk_parent) or os.path.islink(target) or not os.path.isdir(target)):
-        fail("installed SDK version path is unsafe or missing")
+    if not os.path.isdir(root):
+        fail("installed .NET root is unsafe or missing")
+    targets = []
+    for prefix in ROOT_PREFIXES:
+        current = root
+        for component in prefix.split("/"):
+            current = os.path.join(current, component)
+            if os.path.islink(current) or not os.path.isdir(current):
+                fail(f"installed SDK/reference-pack path is unsafe or missing: {prefix}")
+        targets.append(current)
+    if any(os.stat(target).st_dev != os.stat(root).st_dev for target in targets):
+        fail("installed SDK/reference-pack roots must share the staging filesystem")
     archive_fd = os.open(archive, os.O_RDONLY | os.O_NOFOLLOW)
     with os.fdopen(archive_fd, "rb") as source:
         validate_archive(source, expected_sha512, deadline)
         tar = tarfile.open(fileobj=source, mode="r:gz")
 
         members = validate_members(tar, deadline)
-        temp = tempfile.mkdtemp(prefix=".verified-sdk-", dir=sdk_parent)
-        stage = os.path.join(temp, "new-sdk")
-        backup = os.path.join(temp, "old-sdk")
-        swapped = False
+        temp = tempfile.mkdtemp(prefix=".verified-sdk-", dir=root)
+        roots = [(prefix, target, os.path.join(temp, f"new-{index}"),
+                  os.path.join(temp, f"old-{index}"))
+                 for index, (prefix, target) in enumerate(zip(ROOT_PREFIXES, targets))]
+        rollback_safe = True
         try:
-            extract_selected(tar, members, stage, deadline)
-            staged = tree_entries(stage, deadline)
-            installed = tree_entries(target, deadline)
-            if staged != installed:
-                fail("installed SDK files/types/bytes differ from official archive")
-            checked_time(deadline)
-            os.rename(target, backup)
-            try:
-                os.rename(stage, target)
-                swapped = True
-            except Exception:
-                os.rename(backup, target)
-                raise
-            print(f"verified .NET SDK {VERSION}: {len(staged)} members, official archive metadata preserved")
+            for prefix, _, stage, _ in roots:
+                extract_selected(tar, members[prefix], prefix, stage, deadline)
+            counts = []
+            for prefix, target, stage, _ in roots:
+                staged = tree_entries(stage, deadline)
+                installed = tree_entries(target, deadline)
+                if staged != installed:
+                    fail(f"installed files/types/bytes differ from official archive: {prefix}")
+                counts.append(len(staged))
+            replace_verified_roots(roots, deadline)
+            print(f"verified .NET SDK {VERSION} and reference pack {REF_PACK_VERSION}: "
+                  f"{sum(counts)} members, official archive metadata preserved")
+        except RollbackFailed:
+            rollback_safe = False
+            raise
         finally:
-            if not swapped and not os.path.exists(target) and os.path.exists(backup):
-                os.rename(backup, target)
-            shutil.rmtree(temp)
+            if rollback_safe:
+                shutil.rmtree(temp)
 
 
 if __name__ == "__main__":
