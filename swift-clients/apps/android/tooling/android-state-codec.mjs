@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { createReadStream, lstatSync } from 'node:fs'
 
-export const magic = Buffer.from('VACS1')
+export const magic = Buffer.from('VACS2')
+export const sourceMetadataPath = 'source-input-metadata'
 
 function encodedHeader(value) {
   const bytes = Buffer.from(JSON.stringify(value))
@@ -11,7 +12,7 @@ function encodedHeader(value) {
   return [length, bytes]
 }
 
-export async function* archiveChunks(entries, identity, deadline) {
+export async function* archiveChunks(entries, identity, deadline, sourceMetadataBytes) {
   yield magic
   yield* encodedHeader(identity)
   for (const entry of entries) {
@@ -41,6 +42,9 @@ export async function* archiveChunks(entries, identity, deadline) {
       }
     }
   }
+  if (Date.now() > deadline) throw new Error('Android source metadata compression timed out')
+  yield* encodedHeader({ path: sourceMetadataPath, type: 'source-metadata', size: sourceMetadataBytes.length })
+  yield sourceMetadataBytes
   yield Buffer.alloc(4)
 }
 
