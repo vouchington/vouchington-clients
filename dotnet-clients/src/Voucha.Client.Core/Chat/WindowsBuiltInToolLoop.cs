@@ -5,7 +5,8 @@ namespace Voucha.Client.Core.Chat;
 public enum WindowsBuiltInTurnKind { Declined, Stopped, Answer, Retained }
 
 public sealed record WindowsBuiltInToolOutput(
-    string Envelope, McpFeedPostReceipt? Receipt, McpFeedRssItemReceipt? RssItemReceipt = null);
+    string Envelope, McpFeedPostReceipt? Receipt, McpFeedRssItemReceipt? RssItemReceipt = null,
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null);
 
 public sealed record WindowsBuiltInTurn(
     WindowsBuiltInTurnKind Kind,
@@ -14,7 +15,8 @@ public sealed record WindowsBuiltInTurn(
     McpFeedPostReceipt? Receipt,
     string? Status,
     McpFeedRssItemReceipt? RssItemReceipt = null,
-    string? CallId = null)
+    string? CallId = null,
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null)
 {
   public WindowsBuiltInTurn ForPersistenceRetry() =>
       Kind is WindowsBuiltInTurnKind.Answer or WindowsBuiltInTurnKind.Retained
@@ -30,7 +32,8 @@ public sealed record RetainedWindowsBuiltInToolResult(
     string CallId,
     string Envelope,
     McpFeedPostReceipt? FeedPostReceipt,
-    McpFeedRssItemReceipt? RssItemReceipt);
+    McpFeedRssItemReceipt? RssItemReceipt,
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null);
 
 public sealed class WindowsBuiltInResultRetainedException : InvalidOperationException
 {
@@ -45,12 +48,14 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
 
   public WindowsBuiltInResultRetainedException(
       string envelope, McpFeedPostReceipt? receipt, McpFeedRssItemReceipt? rssItemReceipt = null,
-      string? callId = null, string? accountId = null, long accountEpoch = 0) : base(DefaultMessage)
+      string? callId = null, string? accountId = null, long accountEpoch = 0,
+      McpFeedReferralLinkReceipt? referralLinkReceipt = null) : base(DefaultMessage)
   {
     Envelope = envelope ?? throw new ArgumentNullException(nameof(envelope));
     Receipt = receipt;
     RssItemReceipt = rssItemReceipt;
-    CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? "";
+    ReferralLinkReceipt = referralLinkReceipt;
+    CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? referralLinkReceipt?.CallId ?? "";
     AccountId = accountId ?? "";
     AccountEpoch = accountEpoch;
   }
@@ -58,6 +63,7 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
   public string Envelope { get; }
   public McpFeedPostReceipt? Receipt { get; }
   public McpFeedRssItemReceipt? RssItemReceipt { get; }
+  public McpFeedReferralLinkReceipt? ReferralLinkReceipt { get; }
   public string CallId { get; } = "";
   public string AccountId { get; } = "";
   public long AccountEpoch { get; }
@@ -113,7 +119,7 @@ public static class WindowsBuiltInToolLoop
     {
       if (!WindowsBuiltInPrompt.Fits(continuation, await observe(continuation, cancellationToken).ConfigureAwait(false)))
         return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete",
-            output.RssItemReceipt, call.Id);
+            output.RssItemReceipt, call.Id, output.ReferralLinkReceipt);
       second = await generate(continuation, cancellationToken).ConfigureAwait(false);
       if (!isCurrent()) throw new PossibleMcpToolSideEffectException();
     }
@@ -123,7 +129,7 @@ public static class WindowsBuiltInToolLoop
     }
     if (!string.Equals(second.Status, "Complete", StringComparison.Ordinal))
       return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, second.Status,
-          output.RssItemReceipt, call.Id);
+          output.RssItemReceipt, call.Id, output.ReferralLinkReceipt);
     WindowsBuiltInParsedCommand continued;
     try { continued = WindowsBuiltInCommandParser.Parse(second.Text ?? ""); }
     catch (Exception error) when (error is not PossibleMcpToolSideEffectException)
@@ -133,7 +139,7 @@ public static class WindowsBuiltInToolLoop
     if (continued.ToolCall is not null || string.IsNullOrWhiteSpace(continued.Answer))
       throw new PossibleMcpToolSideEffectException();
     return new(WindowsBuiltInTurnKind.Answer, continued.Answer, output.Envelope, output.Receipt, "Complete",
-        output.RssItemReceipt);
+        output.RssItemReceipt, null, output.ReferralLinkReceipt);
   }
 
   private static void RequireCurrent(Func<bool> isCurrent)
