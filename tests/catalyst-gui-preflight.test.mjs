@@ -45,7 +45,10 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /name 'Voucha\.app' \| wc -l \| tr -d ' '\)" -eq 1/u)
     assert.match(job, /Restore NuGet packages\n\s+uses: actions\/cache\/restore@/u)
     assert.doesNotMatch(job, /Save NuGet packages/u)
-    assert.match(job, /Restore Appium Mac2\n\s+id: catalyst-appium-cache\n\s+uses: actions\/cache\/restore@/u)
+    assert.match(
+      job,
+      /Restore Appium Mac2\n\s+id: catalyst-appium-cache\n\s+uses: actions\/cache\/restore@/u,
+    )
     assert.doesNotMatch(job, /uses: actions\/cache@/u)
     assert.match(
       job,
