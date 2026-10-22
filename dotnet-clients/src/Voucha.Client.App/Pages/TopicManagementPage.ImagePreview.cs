@@ -8,6 +8,9 @@ namespace Voucha.Client.App.Pages;
 
 public partial class TopicManagementPage
 {
+  internal Func<Stream, CancellationToken, Task<LocalImageSelection>> readSelectedLogoPreview =
+      LocalImagePreview.ReadSelectedBytesAsync;
+
   private const int UploadPollAttempts = 30;
   private static readonly TimeSpan UploadPollInterval = TimeSpan.FromSeconds(2);
 
@@ -81,7 +84,9 @@ public partial class TopicManagementPage
     else heroLocalImageId = null;
     try
     {
-      var preview = await LocalImagePreview.ReadSelectedBytesAsync(selectedBytes, cancellationToken).ConfigureAwait(true);
+      var preview = isLogo
+          ? await readSelectedLogoPreview(selectedBytes, cancellationToken).ConfigureAwait(true)
+          : await LocalImagePreview.ReadSelectedBytesAsync(selectedBytes, cancellationToken).ConfigureAwait(true);
       if (!IsCurrent()) return;
       localPreview.Source = preview.PreviewBytes is { } selectedThumbnail
           ? LocalImagePreview.SourceFromBytes(selectedThumbnail) : null;
