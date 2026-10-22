@@ -2210,7 +2210,7 @@ jobs:
             echo "::error::Debug app status $app_status; Mac2 host status $host_status"
             exit 1
           fi
-      - name: Open the Mac2 root-shell session
+      - name: Open the Mac2 notification settings session
         timeout-minutes: 3
         working-directory: candidate-clients
         env:
@@ -2244,7 +2244,7 @@ jobs:
           export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
-          jq -e '.total == 1 and .passed == 1 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+          jq -e '.total == 2 and .passed == 2 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
       - name: Save Appium Mac2 from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
