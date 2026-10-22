@@ -44,6 +44,22 @@ with tarfile.open(archive, 'w:gz') as tar:
         entry.type = tarfile.SYMTYPE
         entry.linkname = 'go/../../..'
         tar.addfile(entry)
+    elif kind == 'case-alias-link-chain':
+        directory('Voucha.xctestproducts/dir/')
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/s1')
+        entry.type = tarfile.SYMTYPE
+        entry.linkname = '..'
+        tar.addfile(entry)
+        entry = tarfile.TarInfo('Voucha.xctestproducts/dir/S1/s2')
+        entry.type = tarfile.SYMTYPE
+        entry.linkname = '../..'
+        tar.addfile(entry)
+    elif kind == 'case-collision':
+        file('Voucha.xctestproducts/SomeFile')
+        file('Voucha.xctestproducts/somefile')
+    elif kind == 'unicode-collision':
+        file('Voucha.xctestproducts/caf\u00e9')
+        file('Voucha.xctestproducts/cafe\u0301')
     elif kind == 'duplicate':
         file('Voucha.xctestproducts/same')
         file('Voucha.xctestproducts/same')
@@ -76,6 +92,9 @@ test('iOS test archive accepts internal framework links and rejects escaping ent
       ['absolute-link', false],
       ['hardlink-escape', false],
       ['symlink-chain', false],
+      ['case-alias-link-chain', false],
+      ['case-collision', false],
+      ['unicode-collision', false],
       ['duplicate', false],
       ['conflicting', false],
       ['device', false],
