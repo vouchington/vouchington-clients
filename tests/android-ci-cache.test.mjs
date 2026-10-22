@@ -47,7 +47,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   )
   assert.match(
     androidJob,
-    /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u,
+    /name: Select Gradle task-output cache path\n\s+if: matrix\.phase == 'app'\n\s+id: android-task-cache-path/u,
   )
   assert.match(
     androidJob,
@@ -56,7 +56,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   assert.match(androidJob, /select-gradle-task-cache\.mjs/u)
   assert.match(
     androidJob,
-    /name: Restore Gradle task-output cache\n\s+id: android-task-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
+    /name: Restore Gradle task-output cache\n\s+if: matrix\.phase == 'app'\n\s+id: android-task-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
   )
   assert.match(
     androidJob,
@@ -65,7 +65,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   assert.match(androidJob, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.cache-key \}\}/u)
   assert.match(
     androidJob,
-    /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
+    /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ matrix\.phase == 'app' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
   )
   assert.match(
     androidJob,

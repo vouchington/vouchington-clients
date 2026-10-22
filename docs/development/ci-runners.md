@@ -90,7 +90,8 @@ compilation and debug APK packaging. Test-library preparation finishes well insi
 The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
 task-output build cache is separate from its user home: local builds use the canonical Darwin
 temporary directory, while GitHub Actions uses a private stable runner-home path because cache
-archives retain absolute paths across hosts. The app phase restores both caches and uses the same
+archives retain absolute paths across hosts. Only the app phase restores the task-output cache:
+test-library validation uses SwiftPM without Gradle. The app uses the same
 checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
 the test-library phase saves the shared checksummed-download archive after SDK materialization,
 and the app phase saves its Gradle user home and bounded task-output cache after APK upload. The
