@@ -81,6 +81,24 @@ public sealed partial class MemberMcpSessionTests
     Assert.Equal(0, factory.Connections.Single().ToolCalls);
   }
 
+  [Fact]
+  public async Task WindowsProviderRejectsABlankClosedAnswer()
+  {
+    using var catalog = JsonDocument.Parse("""
+        {"tools":[{"name":"read_post","description":"Read","inputSchema":{"type":"object","required":["id"]}}]}
+        """);
+    var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    var runtime = new RecordingBuiltInRuntime { BuiltInText = """{"answer":"   "}""" };
+    var provider = new WindowsSystemLanguageModelProvider(runtime, mcpSession: session);
+
+    await Assert.ThrowsAsync<InvalidOperationException>(() => provider.GenerateAssistantContentAsync(
+        "hello", [], snapshot, TestContext.Current.CancellationToken));
+    Assert.Equal(0, factory.Connections.Single().ToolCalls);
+  }
+
   private sealed class RecordingBuiltInRuntime : IWindowsSystemLanguageModelRuntime, IWindowsBuiltInToolRuntime
   {
     public int PlainCalls { get; private set; }

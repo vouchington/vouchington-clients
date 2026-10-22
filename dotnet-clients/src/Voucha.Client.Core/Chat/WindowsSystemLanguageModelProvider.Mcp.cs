@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Voucha.Client.Core.Agent;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Chat;
 
@@ -43,17 +44,29 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
           return Task.CompletedTask;
         },
         () => mcpSession.IsCurrent(snapshot), null, cancellationToken).ConfigureAwait(false);
+    if (turn.Kind == WindowsBuiltInTurnKind.Answer) return AnswerResult(turn);
     return turn.Kind switch
     {
-      WindowsBuiltInTurnKind.Answer => new(turn.Answer ?? "", "windows_foundry", null,
-          turn.Receipt is null ? null : [turn.Receipt],
-          turn.RssItemReceipt is null ? null : [turn.RssItemReceipt]),
       WindowsBuiltInTurnKind.Retained => throw new WindowsBuiltInResultRetainedException(
           turn.Envelope!, turn.Receipt, turn.RssItemReceipt),
       WindowsBuiltInTurnKind.Stopped => throw new InvalidOperationException(
           "Windows built-in generation stopped with status " + turn.Status + "."),
       _ => throw new InvalidOperationException("Windows built-in prompt does not fit the model context."),
     };
+  }
+
+  private LocalChatGenerationResult AnswerResult(WindowsBuiltInTurn turn)
+  {
+    if (string.IsNullOrWhiteSpace(turn.Answer))
+    {
+      if (turn.Envelope is null)
+        throw new InvalidOperationException(localization.Localize(
+            UiMessageKey.NativeDotnetChatConversationLocalModelEmptyResponse));
+      throw new PossibleMcpToolSideEffectException();
+    }
+    return new(turn.Answer, "windows_foundry", null,
+        turn.Receipt is null ? null : [turn.Receipt],
+        turn.RssItemReceipt is null ? null : [turn.RssItemReceipt]);
   }
 
   private static bool HasTools(MemberMcpConnectedSnapshot? snapshot) =>

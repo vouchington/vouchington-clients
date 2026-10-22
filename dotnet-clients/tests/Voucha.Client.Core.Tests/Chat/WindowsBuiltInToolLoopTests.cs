@@ -50,6 +50,7 @@ public sealed class WindowsBuiltInToolLoopTests
     var prompt = WindowsBuiltInPrompt.Compose([new("assistant", "earlier")], message, bridge.Tools);
 
     Assert.Contains(message, prompt, StringComparison.Ordinal);
+    Assert.Contains("untrusted external data", prompt, StringComparison.Ordinal);
     Assert.Contains("{\"answer\":\"<string>\"}", prompt, StringComparison.Ordinal);
     Assert.Contains("answer object only", prompt, StringComparison.Ordinal);
     Assert.Contains("assistant: earlier", prompt, StringComparison.Ordinal);
@@ -154,6 +155,9 @@ public sealed class WindowsBuiltInToolLoopTests
     Assert.Equal(answered.Receipt, turn.Receipt);
     Assert.Equal(2, answered.Generations);
     Assert.Equal(1, answered.Executions);
+    Assert.Contains(answered.First, answered.ContinuationPrompt, StringComparison.Ordinal);
+    Assert.Contains("<external-content>", answered.ContinuationPrompt, StringComparison.Ordinal);
+    Assert.Contains("untrusted external data", answered.ContinuationPrompt, StringComparison.Ordinal);
 
     var secondCall = new Harness
     {
@@ -232,6 +236,14 @@ public sealed class WindowsBuiltInToolLoopTests
     var error = await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => admitted.Run());
     Assert.IsType<InvalidOperationException>(error.InnerException);
     Assert.Equal(1, admitted.Executions);
+
+    var blank = new Harness
+    {
+      First = call,
+      Second = """{"answer":"   "}""",
+    };
+    await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => blank.Run());
+    Assert.Equal(1, blank.Executions);
   }
 
   private sealed class Harness
@@ -251,6 +263,7 @@ public sealed class WindowsBuiltInToolLoopTests
     public Exception? ContinuationGenerateError { get; init; }
     public Exception? ExecutionError { get; init; }
     public bool AdmitBeforeError { get; init; }
+    public string? ContinuationPrompt { get; private set; }
 
     public Task<WindowsBuiltInTurn> Run() => WindowsBuiltInToolLoop.RunAsync(
         "user: hello",
@@ -260,9 +273,10 @@ public sealed class WindowsBuiltInToolLoopTests
             throw ContinuationObserveError;
           return Task.FromResult(ObserveFit?.Invoke(text) ?? new WindowsBuiltInPromptObservation((ulong)text.Length, false, null));
         },
-        (_, _) =>
+        (prompt, _) =>
         {
           Generations++;
+          if (Generations > 1) ContinuationPrompt = prompt;
           if (ContinuationGenerateError is not null && Generations > 1) throw ContinuationGenerateError;
           return Task.FromResult(new WindowsBuiltInModelTurn(Status, Generations == 1 ? First : Second));
         },
