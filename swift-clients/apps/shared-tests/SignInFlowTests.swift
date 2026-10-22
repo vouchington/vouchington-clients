@@ -36,20 +36,24 @@
             let emailField = app.textFields["Email address"]
             XCTAssertTrue(emailField.waitForExistence(timeout: 20))
             type(email, into: emailField)
-            let sendCode = app.buttons["Send Code"]
-            let enabled = NSPredicate(format: "isEnabled == true")
-            let becameEnabled = expectation(for: enabled, evaluatedWith: sendCode)
-            wait(for: [becameEnabled], timeout: 10)
-            sendCode.tap()
+            tapHittableButton("Send Code", in: app)
 
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
             let codeField = app.textFields["6-digit code"]
             XCTAssertTrue(codeField.waitForExistence(timeout: 20))
             type(code, into: codeField)
-            app.buttons["Verify Code"].tap()
+            tapHittableButton("Verify Code", in: app)
 
             XCTAssertTrue(signIn.waitForNonExistence(timeout: 20))
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
+        }
+
+        private func tapHittableButton(_ label: String, in app: XCUIApplication) {
+            let button = app.buttons.matching(
+                NSPredicate(format: "label == %@ AND isHittable == true AND isEnabled == true", label)
+            ).firstMatch
+            XCTAssertTrue(button.waitForExistence(timeout: 10))
+            button.tap()
         }
 
         private func type(_ text: String, into field: XCUIElement) {

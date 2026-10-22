@@ -17,11 +17,16 @@ struct EmailOTPCodeStep: View {
         }
         .padding(Spacing.lg)
         #if os(iOS)
-            .safeAreaInset(edge: .bottom, spacing: Spacing.md) {
-                // The number pad has no submit key and covers a centered button.
-                verifyCodeButton
-                    .padding(.horizontal, Spacing.xl)
-                    .padding(.bottom, Spacing.sm)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    // The number pad covers the centered Verify Code button.
+                    Button {
+                        Task { await viewModel.verifyCode() }
+                    } label: {
+                        Text(UiMessages.string(.nativeAuthVerifyCode, locale: locale))
+                    }
+                    .disabled(viewModel.code.isEmpty || viewModel.isLoading)
+                }
             }
         #endif
     }
@@ -65,9 +70,19 @@ struct EmailOTPCodeStep: View {
                     .foregroundStyle(Colors.negativeVote)
             }
 
-            #if !os(iOS)
-                verifyCodeButton
-            #endif
+            Button {
+                Task { await viewModel.verifyCode() }
+            } label: {
+                if viewModel.isLoading {
+                    ProgressView()
+                } else {
+                    Text(UiMessages.string(.nativeAuthVerifyCode, locale: locale))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(viewModel.code.isEmpty || viewModel.isLoading)
 
             Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
                 viewModel.step = .enterEmail
@@ -79,21 +94,5 @@ struct EmailOTPCodeStep: View {
             .font(Typography.subheadline)
         }
         .padding(.horizontal, Spacing.xl)
-    }
-
-    private var verifyCodeButton: some View {
-        Button {
-            Task { await viewModel.verifyCode() }
-        } label: {
-            if viewModel.isLoading {
-                ProgressView()
-            } else {
-                Text(UiMessages.string(.nativeAuthVerifyCode, locale: locale))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(viewModel.code.isEmpty || viewModel.isLoading)
     }
 }
