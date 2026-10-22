@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 export const defaultLimits = {
   entries: 150_000,
@@ -61,6 +61,44 @@ export function assertDebugLink(path, target) {
   }
 }
 
+const mirroredSwiftPath = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+\/src\/main\/swift\/(?:Packages\/)?[^/]+$/u
+
+// Skipstone 1.9.13 creates shallow absolute source and Packages links here.
+// Store their checkout-relative relationship, never the producer runner path.
+export function checkedMirroredLink(path, target, packageRoot, checkoutRoot, stagedRoot = null) {
+  if (!mirroredSwiftPath.test(path) || typeof target !== 'string' || target.length > 4096 ||
+      !target || isAbsolute(target) || target.includes('\\') || target.includes('\0')) {
+    throw new Error(`Unsafe Android state symlink: ${path}`)
+  }
+  const finalLink = join(packageRoot, path)
+  const finalTarget = resolve(dirname(finalLink), target)
+  const checkoutRelative = relative(checkoutRoot, finalTarget)
+  if (!checkoutRelative.startsWith(`swift-clients${sep}`) ||
+      checkoutRelative.split(sep).includes('..')) {
+    throw new Error(`Android state mirror target escaped candidate checkout: ${path}`)
+  }
+  const packageRelative = relative(packageRoot, finalTarget)
+  const stagedTarget = !packageRelative.startsWith(`..${sep}`) &&
+      packageRelative.startsWith(`.build${sep}`)
+    ? join(stagedRoot ?? packageRoot, packageRelative)
+    : finalTarget
+  const boundary = stagedTarget === finalTarget ? checkoutRoot : (stagedRoot ?? packageRoot)
+  const parts = relative(boundary, stagedTarget).split(sep)
+  if (parts.some(part => part === '..' || part === '')) {
+    throw new Error(`Android state mirror target escaped selected state: ${path}`)
+  }
+  let current = boundary
+  for (const part of parts) {
+    current = join(current, part)
+    const stat = lstatSync(current)
+    if (stat.isSymbolicLink() || (!stat.isDirectory() && current !== stagedTarget) ||
+        (current === stagedTarget && !stat.isDirectory() && !stat.isFile())) {
+      throw new Error(`Android state mirror target is unsafe: ${path}`)
+    }
+  }
+  return target
+}
+
 export function selectedRoots(packageRoot, cacheRoot) {
   return [
     { path: '.build', source: join(packageRoot, '.build') },
@@ -84,11 +122,20 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
     const stat = lstatSync(item.source)
     if (stat.isSymbolicLink()) {
       const target = readlinkSync(item.source)
-      assertDebugLink(item.path, target)
-      if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
-        throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+      if (isAbsolute(target)) {
+        const portable = relative(dirname(item.source), target)
+        checkedMirroredLink(item.path, portable, packageRoot, checkoutRoot)
+        entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
+      } else if (mirroredSwiftPath.test(item.path)) {
+        checkedMirroredLink(item.path, target, packageRoot, checkoutRoot)
+        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+      } else {
+        assertDebugLink(item.path, target)
+        if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
+          throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+        }
+        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
       }
-      entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
       continue
     }
     if ((stat.mode & 0o7000) !== 0) throw new Error(`Android state contains special permissions: ${item.path}`)

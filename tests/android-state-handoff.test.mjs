@@ -12,7 +12,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import test from 'node:test'
 import {
   inventoryState,
@@ -93,6 +93,63 @@ test('restores a generated Skip native SwiftPM scratch debug alias', async t => 
   await rm(join(state.packageRoot, '.build'), { recursive: true })
   await restoreState({ ...state, identity, limits })
   assert.equal(await readlink(join(scratch, 'debug')), 'aarch64-unknown-linux-android/debug')
+})
+
+test('rebases Skipstone absolute source and package links onto the exact consumer checkout', async t => {
+  const producer = await fixture(t)
+  const consumer = await fixture(t)
+  const swiftFolder =
+    '.build/plugins/outputs/skip-keychain/SkipKeychain/destination/skipstone/SkipKeychain/src/main/swift'
+  const producerLinks = join(producer.packageRoot, swiftFolder)
+  await mkdir(join(producerLinks, 'Packages'), { recursive: true })
+  await mkdir(join(producer.packageRoot, '.build/checkouts/skip-keychain/Sources'), {
+    recursive: true,
+  })
+  await mkdir(join(producer.checkoutRoot, 'swift-clients/core/Sources'), { recursive: true })
+  await symlink(
+    join(producer.packageRoot, '.build/checkouts/skip-keychain/Sources'),
+    join(producerLinks, 'Sources'),
+  )
+  await symlink(
+    join(producer.checkoutRoot, 'swift-clients/core'),
+    join(producerLinks, 'Packages/core'),
+  )
+  await packState({ ...producer, identity, limits: { ...limits, entries: 150 } })
+  await mkdir(join(consumer.checkoutRoot, 'swift-clients/core/Sources'), { recursive: true })
+  await rm(join(consumer.packageRoot, '.build'), { recursive: true })
+  await rm(join(consumer.packageRoot, 'Android/.gradle'), { recursive: true })
+  await rm(consumer.cacheRoot, { recursive: true })
+  await restoreState({
+    ...consumer,
+    artifactRoot: producer.artifactRoot,
+    identity,
+    limits: { ...limits, entries: 150 },
+  })
+  const links = join(consumer.packageRoot, swiftFolder)
+  assert.equal(
+    resolve(links, await readlink(join(links, 'Sources'))),
+    join(consumer.packageRoot, '.build/checkouts/skip-keychain/Sources'),
+  )
+  assert.equal(
+    resolve(join(links, 'Packages'), await readlink(join(links, 'Packages/core'))),
+    join(consumer.checkoutRoot, 'swift-clients/core'),
+  )
+  assert.equal((await stat(join(links, 'Sources'))).isDirectory(), true)
+  assert.equal((await stat(join(links, 'Packages/core'))).isDirectory(), true)
+})
+
+test('rejects a Skipstone mirror link outside the candidate checkout', async t => {
+  const state = await fixture(t)
+  const links = join(
+    state.packageRoot,
+    '.build/plugins/outputs/skip-keychain/SkipKeychain/destination/skipstone/SkipKeychain/src/main/swift',
+  )
+  await mkdir(links, { recursive: true })
+  await symlink('/etc', join(links, 'Sources'))
+  assert.throws(
+    () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
+    /mirror target escaped candidate checkout/u,
+  )
 })
 
 test('rejects an escaping SwiftPM debug alias', async t => {
