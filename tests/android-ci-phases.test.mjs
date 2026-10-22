@@ -78,7 +78,25 @@ test('APK phase needs no Android test runner and never packages test libraries',
     await f.gradle()
     const result = f.run(['--phase', 'app'])
     assert.equal(result.status, 0, result.stderr)
-    assert.deepEqual(await f.lines(), ['gradle :app:assembleDebug :app:assembleDebugAndroidTest'])
+    assert.deepEqual(await f.lines(), [
+      'gradle --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+    ])
+  } finally {
+    await f.clean()
+  }
+})
+
+test('a missing profile summary cannot change the Gradle build result', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const summary = join(f.root, 'summary.md')
+    const success = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary })
+    assert.equal(success.status, 0, success.stderr)
+    assert.match(success.stderr, /unable to summarize Android Gradle profile/u)
+    assert.match(await readFile(summary, 'utf8'), /Android Gradle timing/u)
+    const failure = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary, FAIL_APP: '42' })
+    assert.equal(failure.status, 42)
   } finally {
     await f.clean()
   }

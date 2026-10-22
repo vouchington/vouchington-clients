@@ -49,6 +49,9 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   const androidHostCompiler = read(
     'swift-clients/apps/android/tooling/verify-android-host-swift.sh',
   )
+  const androidHostEntrypoint = read(
+    'swift-clients/apps/android/tooling/run-android-host-swift-tests.sh',
+  )
   const androidPrePush = read('swift-clients/apps/android/tooling/pre-push.sh')
 
   assert.match(mise, /^swift = "6\.4\.0"$/mu)
@@ -70,8 +73,19 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
     androidJob,
     /setup-mise-toolchain[\s\S]*?client-root: candidate-clients[\s\S]*?tool: swift/u,
   )
-  assert.match(androidJob, /mise exec swift@6\.3\.3 -- swift test/u)
-  assert.match(androidJob, /verify-android-host-swift\.sh/u)
+  assert.match(
+    androidJob,
+    /run-android-host-swift-tests\.sh\s+--package-path swift-clients\/apps\/android\s+--filter VouchaAndroidTests/u,
+  )
+  assert.doesNotMatch(androidJob, /mise exec swift@6\.3\.3 -- swift test/u)
+  assert.match(
+    androidHostEntrypoint,
+    /verify-android-host-swift\.sh[\s\S]*MISE_EXEC_AUTO_INSTALL=false mise exec swift@6\.3\.3 -- swift test/u,
+  )
+  assert.match(androidHostEntrypoint, /--force-resolved-versions/u)
+  assert.match(androidHostEntrypoint, /--disable-dependency-cache/u)
+  assert.match(androidHostEntrypoint, /--disable-keychain/u)
+  assert.match(androidHostEntrypoint, /--disable-netrc/u)
   assert.match(androidHostCompiler, /mise install "swift@\$expected_version"/u)
   assert.match(
     androidHostCompiler,
@@ -80,8 +94,9 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   assert.match(androidHostCompiler, /mise exec "swift@\$expected_version" -- swift --version/u)
   assert.match(
     androidPrePush,
-    /verify-android-host-swift\.sh[\s\S]*mise exec swift@6\.3\.3 -- swift test/u,
+    /run-android-host-swift-tests\.sh[\s\S]*--package-path swift-clients\/apps\/android[\s\S]*--filter VouchaAndroidTests/u,
   )
+  assert.match(androidPrePush, /with-build-lock\.sh/u)
   assert.doesNotMatch(androidJob, /swiftly|Provision pinned job-scoped Swiftly/u)
   assert.match(macAndroid, /mise which swift/u)
   assert.match(macAndroid, /resolve-mise-swift-toolchain\.sh/u)

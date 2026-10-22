@@ -166,7 +166,7 @@ it('keeps native test execution opt-in, isolated, and informational', async () =
   assert.match(workflow, /needs\.native-swift-core-macos\.result/u)
   assert.match(
     android,
-    /swift test --package-path "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android"/u,
+    /run-android-host-swift-tests\.sh" --package-path "\$CLIENTS_CANDIDATE_ROOT\/swift-clients\/apps\/android" --filter VouchaAndroidTests/u,
   )
   assert.match(android, /pre-push\.sh" --phase app/u)
   const androidTestAssembly = android.indexOf(':app:assembleDebugAndroidTest')
