@@ -209,13 +209,14 @@ import XCTest
             let finished = group.wait(timeout: .now() + .seconds(timeout)) == .success
             if !finished {
                 process.terminate()
-                _ = group.wait(timeout: .now() + .seconds(15))
+                if group.wait(timeout: .now() + .seconds(15)) != .success { kill(process.processIdentifier, SIGKILL) }
             }
             try log.close()
             let output = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
-            let signal = finished && process.terminationReason == .uncaughtSignal ? process.terminationStatus : nil
+            let signal = finished && !process.isRunning && process.terminationReason == .uncaughtSignal
+                ? process.terminationStatus : nil
             return ProbeChild(
-                exitCode: process.terminationStatus,
+                exitCode: process.isRunning ? -1 : process.terminationStatus,
                 signal: signal,
                 timedOut: !finished,
                 tail: Self.scrub(output)
