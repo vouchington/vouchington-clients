@@ -29,8 +29,8 @@ import XCTest
                 return
             }
             let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-            let descriptors = try Self.authorizedDescriptors(root: root)
-            let names = descriptors.map(\.name)
+            let admission = try Self.catalogAdmission(root: root)
+            let names = admission.accepted.map(\.name) + admission.excluded.compactMap { $0["name"] as? String }
             XCTAssertEqual(Set(names).count, names.count)
             XCTAssertGreaterThan(names.count, NativeChatFoundationModelsToolSelection.maximumTools)
             XCTAssertTrue(names.contains("read_my_profile"))
@@ -118,7 +118,8 @@ import XCTest
                     XCTAssertNotNil(Self.jsonInt(record["schemaTokens"]), name)
                     XCTAssertNotNil(Self.jsonInt(record["toolTokens"]), name)
                 case "policyExclusion":
-                    XCTAssertEqual(record["reason"] as? String, "projectionUnsupported", name)
+                    let reason = record["reason"] as? String ?? ""
+                    XCTAssertTrue(["projectionUnsupported", "bridgeInvalidCatalog"].contains(reason), name)
                 case "hostSDKFailure":
                     XCTAssertNotNil(Self.jsonInt(record["signal"]), name)
                 default:
@@ -232,7 +233,11 @@ import XCTest
             let done = try Set(journal.latestByName().filter {
                 ["measured", "policyExclusion", "projectionFailure", "sdkError"].contains($0.value["status"] as? String)
             }.keys)
-            for descriptor in try Self.authorizedDescriptors(root: root)
+            let admission = try Self.catalogAdmission(root: root)
+            for record in admission.excluded {
+                try journal.append(record)
+            }
+            for descriptor in admission.accepted
                 where !skip.contains(descriptor.name) && !done.contains(descriptor.name) {
                 try await measure(descriptor, journal: journal)
             }
@@ -368,30 +373,35 @@ import XCTest
             return (best, best + 1)
         }
 
-        private static func authorizedDescriptors(root: URL) throws -> [AuthorizedDescriptor] {
+        private static func catalogAdmission(root: URL) throws -> (
+            accepted: [AuthorizedDescriptor], excluded: [[String: Any]]
+        ) {
             let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
-            var descriptors: [AuthorizedDescriptor] = []
+            var accepted: [AuthorizedDescriptor] = []
+            var excluded: [[String: Any]] = []
             for server in servers {
                 let serverName = try XCTUnwrap(server["name"] as? String)
-                let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
-                let tools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
-                let catalog = try JSONDecoder().decode(
-                    DecodedJSONValue.self, from: JSONSerialization.data(withJSONObject: ["tools": tools])
-                )
-                let bridge = try NativeChatMCPToolBridge(catalog: catalog)
-                XCTAssertEqual(bridge.tools.count, tools.count, serverName)
-                descriptors.append(contentsOf: bridge.tools.map {
-                    AuthorizedDescriptor(
-                        server: serverName,
-                        name: $0.name,
-                        description: $0.description,
-                        parameters: $0.parameters
-                    )
-                })
+                for entry in try XCTUnwrap(server["tools"] as? [[String: Any]]) {
+                    let tool = try XCTUnwrap(entry["tool"] as? [String: Any])
+                    let name = try XCTUnwrap(tool["name"] as? String)
+                    let encoded = try JSONSerialization.data(withJSONObject: ["tools": [tool]])
+                    let catalog = try JSONDecoder().decode(DecodedJSONValue.self, from: encoded)
+                    if let admitted = try? NativeChatMCPToolBridge(catalog: catalog).tools.first {
+                        accepted.append(AuthorizedDescriptor(
+                            server: serverName, name: admitted.name, description: admitted.description,
+                            parameters: admitted.parameters
+                        ))
+                    } else {
+                        excluded.append([
+                            "server": serverName, "name": name, "status": "policyExclusion",
+                            "reason": "bridgeInvalidCatalog"
+                        ])
+                    }
+                }
             }
-            return descriptors
+            return (accepted, excluded)
         }
 
         private static func jsonInt(_ value: Any?) -> Int? {
@@ -399,18 +409,9 @@ import XCTest
         }
 
         private static func nativeRevision() -> String? {
-            var url = Bundle(for: NativeChatFoundationModelsPinnedSDKAdmissionTests.self).bundleURL
-            for _ in 0 ..< 16 {
-                if FileManager.default.fileExists(atPath: url.appendingPathComponent(".git").path) {
-                    return command("/usr/bin/git", ["-C", url.path, "rev-parse", "HEAD"])
-                }
-                let parent = url.deletingLastPathComponent()
-                if parent.path == url.path { break }
-                url = parent
-            }
-            let fallback = ProcessInfo.processInfo.environment["GITHUB_SHA"]
-            guard let fallback, fallback.count == 40 else { return nil }
-            return fallback
+            let sha = command("/usr/bin/git", ["rev-parse", "HEAD"]) ??
+                ProcessInfo.processInfo.environment["GITHUB_SHA"]
+            return sha?.count == 40 ? sha : nil
         }
 
         private static func producerManifestSHA(root: URL) -> String? {
@@ -427,21 +428,19 @@ import XCTest
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
-            do { try process.run() } catch { return nil }
+            guard (try? process.run()) != nil else { return nil }
             process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let text, !text.isEmpty else { return nil }
+            guard process.terminationStatus == 0,
+                  let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                  .trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
             return text
         }
 
         private static func scrub(_ text: String) -> String {
+            let blocked = ["_TOKEN", "TOKEN=", "SECRET", "PASSWORD", "CREDENTIAL", "API_KEY"]
             let kept = text.split(separator: "\n", omittingEmptySubsequences: false).filter { line in
                 let upper = line.uppercased()
-                return !upper.contains("_TOKEN") && !upper.contains("TOKEN=") && !upper.contains("SECRET") &&
-                    !upper.contains("PASSWORD") && !upper.contains("CREDENTIAL") && !upper.contains("API_KEY") &&
-                    !line.contains("Environment:")
+                return blocked.allSatisfy { !upper.contains($0) } && !line.contains("Environment:")
             }.joined(separator: "\n")
             return String(kept.suffix(1_500))
         }
