@@ -57,3 +57,4 @@ Core-vs-App test split, the test file-length cap, and local coverage.
 - [Native CI test placement](../docs/development/native-ci-test-placement.md)
 - Native client strategy: Vouchington's [native-clients.md](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/native-clients.md)
 - [.NET deep-linking architecture](../docs/overview/architecture/dotnet-deep-linking.md)
+- [Native store billing](../docs/overview/architecture/native-store-billing.md)
