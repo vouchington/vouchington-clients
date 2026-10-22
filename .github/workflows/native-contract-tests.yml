@@ -1260,7 +1260,7 @@ jobs:
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
-          --no-restore
+          --no-restore -clp:PerformanceSummary
 
   dotnet-windows-image-preview:
     name: .NET Windows image preview
