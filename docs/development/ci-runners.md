@@ -74,27 +74,36 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ## Android validation
 
-Swift Android APK assembly and native test-library preparation run in parallel on separate
-macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
-they do not share a SwiftPM build directory. Each phase runs the planner-selected Android host
-source-test command, `run-android-host-swift-tests.sh --package-path swift-clients/apps/android
---filter VouchaAndroidTests`, on Xcode 26.6 with Swift 6.3.3. That command is source-test
-evidence. The Swift 6.4 Gradle APK build and the later emulator instrumentation are separate.
-The stable `Swift Android Skip` check requires both phases to succeed, and the aggregate `Tests`
-check requires that result. Local Android validation defaults to both phases; `pre-push.sh
---phase app` and `--phase test-libs` select individual phases for CI. This compiles the app and
-packages Android test libraries without a device; it does not claim device test execution.
-The shared job budget is 60 minutes so an app-phase Gradle user-home cache miss can finish Skip
-compilation and debug APK packaging. Test-library preparation finishes well inside that budget.
+Swift Android native compilation and APK assembly run as an exact-run producer and consumer on
+separate macOS VMs. Host Swift package tests and native test-library preparation run in parallel
+with the producer. The producer packages only bounded generated build state, tied to the verified
+candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
+identity before rehydration, then executes the original app and instrumentation APK task closure.
+The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
+document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
+Android SDK, and NDK toolchains are materialized independently in each job and never included in
+the artifact. The stable `Swift Android Skip` check requires producer, consumer, host tests,
+test libraries, and the cookie runtime proof to succeed; `Tests` still requires that result.
+Local Android validation continues to default to both original phases. Producer and consumer
+job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
+budgets are safety bounds, not evidence that the under-ten-minute target has been met.
+The dedicated host job runs the planner-selected source tests with
+`run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
+VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
+path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producer
+and consumer record pinned `--profile` summaries. The consumer selects the profile named by its
+own Gradle invocation because the verified state also contains the producer's prior profile.
+Reported task and category durations may overlap and are not a critical-path sum.
 
 The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
 task-output build cache is separate from its user home: local builds use the canonical Darwin
 temporary directory, while GitHub Actions uses a private stable runner-home path because cache
-archives retain absolute paths across hosts. Only the app phase restores the task-output cache:
-test-library validation uses SwiftPM without Gradle. The app uses the same
+archives retain absolute paths across hosts. The native producer and app consumer restore the
+task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
+that cache. Both Gradle jobs use the same
 checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
 the test-library phase saves the shared checksummed-download archive after SDK materialization,
-and the app phase saves its Gradle user home and bounded task-output cache after APK upload. The
+and the app consumer saves its Gradle user home and bounded task-output cache after APK upload. The
 task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
 30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
 checks remain required on hits.
@@ -108,6 +117,11 @@ a successful APK upload, it writes a bounded snapshot for the new revision if th
 There are no prefix restore keys. A missing or failed predecessor gives a cold build. The first
 default-branch entry can only be written by a successful `main` push, so an open pull request
 cannot establish warm-hit timing for this new key.
+
+The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
+sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle
+configuration on hosted runners. Only generated build outputs cross the exact-run artifact;
+stable package/download caches and job-scoped extracted toolchains keep their existing rules.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is

@@ -13,6 +13,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
+import { pathToFileURL } from 'node:url'
 import { inspectGradleBuildCache } from '../swift-clients/apps/android/tooling/check-gradle-build-cache.mjs'
 import { selectGradleTaskCache } from '../swift-clients/apps/android/tooling/select-gradle-task-cache.mjs'
 
@@ -25,6 +26,7 @@ const cacheCheck = join(
   repositoryRoot,
   'swift-clients/apps/android/tooling/check-gradle-build-cache.mjs',
 )
+const stateCli = join(repositoryRoot, 'swift-clients/apps/android/tooling/android-state-cli.mjs')
 
 const revisionA = 'a'.repeat(40)
 const revisionB = 'b'.repeat(40)
@@ -149,6 +151,21 @@ test('workflow and build select the same real Darwin task-output cache path', ()
     const ciCacheDir = join(realpathSync(runnerHome), '.cache/voucha/gradle-build-cache')
     assert.equal(selectedCi.stdout.trim(), ciCacheDir)
     assert.equal(statSync(ciCacheDir).mode & 0o777, 0o700)
+    const stateSelected = spawnSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `import { selectedBuildCacheRoot } from ${JSON.stringify(pathToFileURL(stateCli).href)}; process.stdout.write(selectedBuildCacheRoot())`,
+      ],
+      { env: ciEnv, encoding: 'utf8' },
+    )
+    assert.equal(stateSelected.status, 0, stateSelected.stderr)
+    assert.equal(
+      stateSelected.stdout,
+      ciCacheDir,
+      'exact-state codec must use the build cache path',
+    )
 
     rmSync(join(runnerHome, '.cache/voucha'), { recursive: true })
     symlinkSync(fixture, join(runnerHome, '.cache/voucha'))
