@@ -20,8 +20,7 @@
             app.launchArguments = [
                 "--ui-testing-feed-flow",
                 "-AppleLanguages", "(en)",
-                "-AppleLocale", "en_US",
-                "-ApplePersistenceIgnoreState", "YES"
+                "-AppleLocale", "en_US"
             ]
             app.launchEnvironment["VOUCHA_API_BASE_URL"] = "https://ui-testing.voucha.invalid"
             app.launchEnvironment["VOUCHA_DISABLE_APP_ATTEST"] = "1"
