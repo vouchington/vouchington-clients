@@ -1262,17 +1262,19 @@ jobs:
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore -t:Compile -clp:PerformanceSummary
       - name: Pack exact managed compile state
+        timeout-minutes: 2
         working-directory: candidate-clients
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           bash dotnet-clients/tooling/catalyst-compile-state.sh pack \
             "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT/app-${{ steps.rid.outputs.runtime_identifier }}" \
-            "$RUNNER_TEMP/catalyst-compile-state" "$CANDIDATE_REVISION" \
+            "$RUNNER_TEMP/catalyst-compile-state" . "$CANDIDATE_REVISION" \
             "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "${{ steps.rid.outputs.runtime_identifier }}" "$(dotnet --version)" \
             "$(dotnet workload --version)" "$(xcodebuild -version | head -n 1)"
           du -h "$RUNNER_TEMP/catalyst-compile-state/compile-state.tar.gz"
+          du -h "$RUNNER_TEMP/catalyst-compile-state/source-state.tar.gz"
       - name: Upload exact managed compile state
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -1381,13 +1383,14 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.run_id }}
       - name: Verify and restore exact managed compile state
+        timeout-minutes: 2
         working-directory: candidate-clients
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           bash dotnet-clients/tooling/catalyst-compile-state.sh unpack \
             "$VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT/app-${{ steps.rid.outputs.runtime_identifier }}" \
-            "$RUNNER_TEMP/catalyst-compile-state" "$CANDIDATE_REVISION" \
+            "$RUNNER_TEMP/catalyst-compile-state" . "$CANDIDATE_REVISION" \
             "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             "${{ steps.rid.outputs.runtime_identifier }}" "$(dotnet --version)" \
             "$(dotnet workload --version)" "$(xcodebuild -version | head -n 1)"

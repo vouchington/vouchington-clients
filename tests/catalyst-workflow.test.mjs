@@ -50,12 +50,15 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
   assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
   assert.match(mauiCompile, /name: Compile managed Mac Catalyst app[\s\S]*--no-restore -t:Compile/u)
   assert.match(mauiCompile, /name: Upload exact managed compile state/u)
+  assert.match(mauiCompile, /source-state\.tar\.gz/u)
+  assert.match(mauiCompile, /name: Pack exact managed compile state\n\s+timeout-minutes: 2/u)
   assert.match(maui, /needs: \[verify, dotnet-maui-compile\]/u)
   assert.match(jobBlock(workflow, 'tests'), /- dotnet-maui-compile\n\s+- dotnet-maui/u)
   assert.match(
     maui,
     /name: Verify and restore exact managed compile state[\s\S]*name: Build MAUI Mac Catalyst app/u,
   )
+  assert.match(maui, /name: Verify and restore exact managed compile state\n\s+timeout-minutes: 2/u)
   assert.doesNotMatch(maui, /name: Test rendered MAUI pages/u)
   assert.match(
     maui,

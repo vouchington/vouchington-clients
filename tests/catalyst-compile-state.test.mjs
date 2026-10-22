@@ -1,40 +1,54 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { it } from 'node:test'
 
 const script = new URL('../dotnet-clients/tooling/catalyst-compile-state.sh', import.meta.url)
-const revision = 'a'.repeat(40)
-const identity = [
-  revision,
-  '39700146375',
-  '1',
-  'maccatalyst-arm64',
-  '10.0.401',
-  '10.0.401',
-  'Xcode 26.6',
-]
+const sourceHelper = new URL(
+  '../dotnet-clients/tooling/catalyst-source-snapshot.py',
+  import.meta.url,
+)
 
-const invoke = (mode, root, state, fields = identity) =>
-  spawnSync('bash', [script.pathname, mode, root, state, ...fields], {
-    encoding: 'utf8',
-  })
+const run = (command, args, cwd) => spawnSync(command, args, { cwd, encoding: 'utf8' })
 
-it('rehydrates only matching exact-run managed compile outputs', async () => {
+const invoke = (mode, artifacts, state, candidate, revision, attempt = '1') =>
+  run(
+    'bash',
+    [
+      script.pathname,
+      mode,
+      artifacts,
+      state,
+      candidate,
+      revision,
+      '39700146375',
+      attempt,
+      'maccatalyst-arm64',
+      '10.0.401',
+      '10.0.401',
+      'Xcode 26.6',
+    ],
+    candidate,
+  )
+
+it('rehydrates only matching exact-run managed outputs and byte-identical source metadata', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'catalyst-compile-state-'))
-  const source = join(temp, 'source')
-  const destination = join(temp, 'destination')
+  const candidate = join(temp, 'candidate')
+  const consumer = join(temp, 'consumer')
+  const artifacts = join(temp, 'artifacts')
+  const restored = join(temp, 'restored')
   const state = join(temp, 'state')
   try {
-    const app = join(source, 'obj', 'Voucha.Client.App')
-    const core = join(source, 'obj', 'Voucha.Client.Core')
-    const coreBin = join(source, 'bin', 'Voucha.Client.Core')
+    const app = join(artifacts, 'obj', 'Voucha.Client.App')
+    const core = join(artifacts, 'obj', 'Voucha.Client.Core')
+    const coreBin = join(artifacts, 'bin', 'Voucha.Client.Core')
     await Promise.all([
       mkdir(join(app, 'release_net10.0-maccatalyst_maccatalyst-arm64'), { recursive: true }),
       mkdir(core, { recursive: true }),
       mkdir(coreBin, { recursive: true }),
+      mkdir(join(candidate, 'dotnet-clients', 'tooling'), { recursive: true }),
     ])
     await Promise.all([
       writeFile(join(app, 'project.assets.json'), '{}'),
@@ -44,19 +58,103 @@ it('rehydrates only matching exact-run managed compile outputs', async () => {
         'app',
       ),
       writeFile(join(coreBin, 'Voucha.Client.Core.dll'), 'core'),
+      writeFile(join(candidate, '.editorconfig'), 'root = true\n'),
+      writeFile(join(candidate, 'global.json'), '{}'),
+      writeFile(join(candidate, 'dotnet-clients', 'input.cs'), 'source'),
+      copyFile(
+        sourceHelper,
+        join(candidate, 'dotnet-clients', 'tooling', 'catalyst-source-snapshot.py'),
+      ),
     ])
-
-    assert.equal(invoke('pack', source, state).status, 0)
-    assert.notEqual(
-      invoke('unpack', destination, state, [revision, '39700146375', '2', ...identity.slice(3)])
-        .status,
+    assert.equal(run('git', ['init', '-q'], candidate).status, 0)
+    assert.equal(run('git', ['add', '-A'], candidate).status, 0)
+    assert.equal(
+      run(
+        'git',
+        [
+          '-c',
+          'user.name=Test',
+          '-c',
+          'user.email=test@example.invalid',
+          'commit',
+          '-qm',
+          'fixture',
+        ],
+        candidate,
+      ).status,
       0,
     )
-    assert.equal(invoke('unpack', destination, state).status, 0)
+    const revision = run('git', ['rev-parse', 'HEAD'], candidate).stdout.trim()
+    assert.equal(invoke('pack', artifacts, state, candidate, revision).status, 0)
+    assert.equal(run('git', ['clone', '-q', candidate, consumer], temp).status, 0)
+    const producerInput = join(candidate, 'dotnet-clients', 'input.cs')
+    const consumerInput = join(consumer, 'dotnet-clients', 'input.cs')
+    const producerMtime = (await stat(producerInput)).mtimeMs
+
+    const alterArchive = `
+import io, sys, tarfile
+source, destination, kind = sys.argv[1:]
+with tarfile.open(source, 'r:gz') as archive:
+    entries = [(member, archive.extractfile(member).read()) for member in archive]
+if kind == 'missing':
+    entries.pop()
+elif kind == 'duplicate':
+    entries.append(entries[0])
+elif kind == 'link':
+    entries[-1][0].type = tarfile.SYMTYPE
+    entries[-1][0].linkname = '../../outside'
+    entries[-1] = (entries[-1][0], b'')
+else:
+    member = tarfile.TarInfo('../escape' if kind == 'escape' else 'dotnet-clients/extra.cs')
+    entries.append((member, b'x'))
+with tarfile.open(destination, 'w:gz', format=tarfile.PAX_FORMAT) as archive:
+    for member, data in entries:
+        member.size = len(data)
+        archive.addfile(member, io.BytesIO(data))
+`
+    for (const kind of ['missing', 'extra', 'escape', 'duplicate', 'link']) {
+      const altered = join(temp, `${kind}.tar.gz`)
+      assert.equal(
+        run(
+          'python3',
+          ['-c', alterArchive, join(state, 'source-state.tar.gz'), altered, kind],
+          temp,
+        ).status,
+        0,
+      )
+      assert.notEqual(
+        run('python3', [sourceHelper.pathname, 'overlay', consumer, altered, revision], consumer)
+          .status,
+        0,
+      )
+      assert.equal(await readFile(join(consumer, 'dotnet-clients', 'input.cs'), 'utf8'), 'source')
+    }
+    const linkedConsumer = join(temp, 'linked-consumer')
+    assert.equal(run('git', ['clone', '-q', candidate, linkedConsumer], temp).status, 0)
+    const linkedInput = join(linkedConsumer, 'dotnet-clients', 'input.cs')
+    await rm(linkedInput)
+    await symlink(join(candidate, 'dotnet-clients', 'input.cs'), linkedInput)
+    assert.notEqual(
+      run(
+        'python3',
+        [
+          sourceHelper.pathname,
+          'overlay',
+          linkedConsumer,
+          join(state, 'source-state.tar.gz'),
+          revision,
+        ],
+        linkedConsumer,
+      ).status,
+      0,
+    )
+
+    assert.notEqual(invoke('unpack', restored, state, consumer, revision, '2').status, 0)
+    assert.equal(invoke('unpack', restored, state, consumer, revision).status, 0)
     assert.equal(
       await readFile(
         join(
-          destination,
+          restored,
           'obj',
           'Voucha.Client.App',
           'release_net10.0-maccatalyst_maccatalyst-arm64',
@@ -66,9 +164,29 @@ it('rehydrates only matching exact-run managed compile outputs', async () => {
       ),
       'app',
     )
+    assert.equal(await readFile(consumerInput, 'utf8'), await readFile(producerInput, 'utf8'))
+    assert.ok(Math.abs((await stat(consumerInput)).mtimeMs - producerMtime) < 1000)
+    assert.equal(
+      run(
+        'git',
+        ['diff', '--exit-code', 'HEAD', '--', 'dotnet-clients', '.editorconfig', 'global.json'],
+        consumer,
+      ).status,
+      0,
+    )
+
+    await writeFile(consumerInput, 'different')
+    assert.notEqual(
+      invoke('unpack', join(temp, 'wrong-source'), state, consumer, revision).status,
+      0,
+    )
+    assert.equal(await readFile(consumerInput, 'utf8'), 'different')
 
     await writeFile(join(state, 'compile-state.tar.gz'), 'corrupted')
-    assert.notEqual(invoke('unpack', join(temp, 'corrupt-destination'), state).status, 0)
+    assert.notEqual(
+      invoke('unpack', join(temp, 'corrupt-output'), state, candidate, revision).status,
+      0,
+    )
   } finally {
     await rm(temp, { recursive: true, force: true })
   }
