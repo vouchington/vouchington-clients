@@ -46,6 +46,8 @@ run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProduc
 of one job id, each with its own 9-minute cap: the root shell, the Videos tab, and the email OTP
 sign-in. Each leg finishes Node.js setup and unpacks the shared test products before booting its
 simulator, so neither the toolchain download nor the bundle extract competes with CoreSimulator.
+The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
+before job cleanup.
 Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result
 summary is still required, and a failed launch still uploads that summary plus a short simulator
 log. Each iPhone leg requires exactly one passed, non-skipped test. The sign-in fixture accepts
