@@ -37,6 +37,12 @@ archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
 
+The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
+`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
+still perform the same locked restore and tests on a cache miss; they do not upload a separate
+multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
+toolchain reuse.
+
 ## pnpm
 
 pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
@@ -70,13 +76,16 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 Swift Android APK assembly and native test-library preparation run in parallel on separate
 macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
-they do not share a SwiftPM build directory. The stable `Swift Android Skip` check requires
-both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
-validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
-individual phases for CI. This compiles the app and packages Android test libraries without
-a device; it does not claim device test execution. The shared job budget is 60 minutes so an
-app-phase Gradle user-home cache miss can finish Skip compilation and debug APK packaging.
-Test-library preparation finishes well inside that budget.
+they do not share a SwiftPM build directory. Each phase runs the planner-selected Android host
+source-test command, `run-android-host-swift-tests.sh --package-path swift-clients/apps/android
+--filter VouchaAndroidTests`, on Xcode 26.6 with Swift 6.3.3. That command is source-test
+evidence. The Swift 6.4 Gradle APK build and the later emulator instrumentation are separate.
+The stable `Swift Android Skip` check requires both phases to succeed, and the aggregate `Tests`
+check requires that result. Local Android validation defaults to both phases; `pre-push.sh
+--phase app` and `--phase test-libs` select individual phases for CI. This compiles the app and
+packages Android test libraries without a device; it does not claim device test execution.
+The shared job budget is 60 minutes so an app-phase Gradle user-home cache miss can finish Skip
+compilation and debug APK packaging. Test-library preparation finishes well inside that budget.
 
 The Android archive and Gradle caches restore by pinned input keys on every run. Only a
 `main` push writes a missing key: the test-library phase saves the shared
@@ -91,6 +100,13 @@ and reaps only its captured emulator child, including a child that ignores termi
 stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the
 owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
 replace emulator instrumentation.
+
+The app build uses pinned Gradle's local `--profile` report. CI writes its configuration,
+dependency, and task durations, plus bounded generated-state size measurements, to the existing
+job summary and log. Task durations can overlap and do not represent critical-path wall time.
+The report is diagnostic only: the same app and instrumentation tasks remain required, and a
+profiling-summary error cannot turn a failed build green. Generated build trees and extracted
+toolchains remain job-scoped; the summary does not publish or cache them.
 
 ## Event-driven orchestration
 

@@ -48,12 +48,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   passkey, and deep-link callbacks remain inside their platform app boundaries.
 - Direct media playback is native where a direct URL is available. Embed-only media keeps its
   explicit external-source action and does not launch a browser as an implicit playback route.
-- Subscription screens are status and plan presentation only; purchase, cancellation, billing,
-  and receipt validation remain outside this client repository.
+- Subscription screens are status and plan presentation only. Purchase, cancellation, and store
+  evidence submission are specified by [Native store billing](native-store-billing.md) and are not
+  implemented yet. Receipt validation stays on the server.
 
 ## Ownership boundaries
 
 Vouchington produces the shared API fixtures and localization contract consumed through the explicit
 `VOUCHA_FILAMENTS_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
 decisions. This repository owns the Swift/.NET implementation, native test harnesses, and the
-client-specific deep-linking behavior documented in [`.NET deep linking`](dotnet-deep-linking.md).
+client-specific deep-linking behavior documented in [`.NET deep linking`](dotnet-deep-linking.md)
+and the store billing behavior documented in [Native store billing](native-store-billing.md).

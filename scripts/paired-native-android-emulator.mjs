@@ -4,6 +4,7 @@ import { constants, createWriteStream } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
 import { validateNativeAbiEntries, verifyApkBundle } from './paired-native-test-evidence.mjs'
+import { ownedAvdName } from './paired-native-emulator-lineage.mjs'
 import { runAndroidSession } from './paired-native-android-session.mjs'
 
 const fail = message => {
@@ -125,7 +126,7 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
     ],
     { timeout: 600000 },
   )
-  const avdName = `paired-native-${runId}`
+  const avdName = ownedAvdName(runId)
   runCommand(
     'avdmanager',
     [
@@ -177,6 +178,7 @@ export async function runPairedAndroidEmulator(dependencies = {}) {
     saveFile,
     makeDirectory,
     sleep,
+    observeLineage: dependencies.observeLineage,
   })
 }
 

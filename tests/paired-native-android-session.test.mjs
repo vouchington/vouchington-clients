@@ -44,7 +44,7 @@ it('opens the emulator log before attaching it to a real child process', async (
 
     await runAndroidSession({
       emulatorPath: process.execPath,
-      avdName: 'paired-native-test',
+      avdName: 'paired-native-1234',
       runId: '1234',
       nativeTestProfile: 'pending-turn-recovery',
       clientsMergeSha: 'a'.repeat(40),
@@ -72,6 +72,21 @@ it('opens the emulator log before attaching it to a real child process', async (
       saveFile: writeFile,
       makeDirectory: mkdir,
       sleep: milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+      observeLineage: async ({ launcherPid, claimAbsent }) =>
+        claimAbsent
+          ? { state: 'observed', launcherPid, processes: [] }
+          : {
+              state: 'observed',
+              launcherPid,
+              processes: [
+                {
+                  pid: launcherPid,
+                  ppid: 1,
+                  pgid: launcherPid,
+                  command: 'emulator -avd paired-native-1234',
+                },
+              ],
+            },
     })
 
     await once(logStream, 'finish')
@@ -81,6 +96,8 @@ it('opens the emulator log before attaching it to a real child process', async (
       result.phases.map(phase => phase.method),
       androidPhases,
     )
+    assert.equal(result.cleanup.avdName, 'paired-native-1234')
+    assert.equal(result.cleanup.shutdown.state, 'observed')
   } finally {
     await rm(root, { recursive: true, force: true })
   }

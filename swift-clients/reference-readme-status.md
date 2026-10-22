@@ -7,8 +7,9 @@
 - **macOS**: Active native client with authenticated member, content, messaging, settings, media,
   and role-gated staff surfaces
 - **iOS/iPadOS**: Generated app shell sharing the macOS SwiftUI capability sources; CI compiles the
-  app for a generic iOS Simulator destination and runs the shared root-shell launch smoke on an
-  available iPhone Simulator. This does not exercise an iPad or a signed device build.
+  app for a generic iOS Simulator destination, runs the shared root-shell and canonical video-feed
+  launch smoke on an available iPhone Simulator, then runs only the root-shell launch smoke on an
+  available iPad Simulator. This does not exercise a signed device build.
 - **Android**: A [Skip Fuse 1.9+ shell](apps/android/README.md) cross-compiles with the Swift Android SDK,
   uses ML Kit Prompt API for explicit-download on-device generation, and stores endpoint secrets
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
@@ -45,7 +46,8 @@ cd swift-clients
 ./tooling/generate.sh iOS     # generate the iPhone/iPad project
 open apps/macOS/Voucha.xcodeproj
 open apps/iOS/Voucha.xcodeproj
-swift test --package-path apps/android
+# Host SwiftPM source tests need Xcode 26.6 and Swift 6.3.3. See apps/android/README.md#checks.
+# The Swift 6.4 SDK / Gradle path is separate from those host source tests:
 cd apps/android && skip android build --android-api-level 28
 ```
 
@@ -85,8 +87,9 @@ destination in `build-macos-app` and `build-ios-app` in
 and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitlements, using
 `VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell`,
 accepting only one passed test and no skips. The iOS job launches the unsigned app on an
-available iPhone Simulator and requires its root-shell and canonical video-feed UI tests to pass.
-CI also
+available iPhone Simulator and requires its root-shell and canonical video-feed UI tests to pass,
+then launches only the root-shell UI test on an available iPad Simulator and accepts that result
+only when exactly one test passed and none were skipped. CI also
 cross-compiles `core/` for Android in the Linux Docker
 `build-android-core` gate via `./tooling/harness.sh --checks build-android`.
 
