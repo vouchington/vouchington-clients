@@ -1617,13 +1617,13 @@ jobs:
       matrix:
         include:
           - shard: root-shell
-            only_testing: "-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell"
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
             expected_count: 1
           - shard: feed
-            only_testing: "-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation"
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation'
             expected_count: 1
           - shard: sign-in
-            only_testing: "-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl"
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
             expected_count: 1
     permissions:
       actions: read
