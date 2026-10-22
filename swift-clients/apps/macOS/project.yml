@@ -35,6 +35,7 @@ targets:
     info:
       path: Info.plist
       properties:
+        CFBundleDisplayName: Voucha
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'

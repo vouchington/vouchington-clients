@@ -32,13 +32,20 @@ if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then
-  bash "$SCRIPT_DIR/verify-android-host-swift.sh"
-  mise exec swift@6.3.3 -- swift test \
-    --package-path "$ANDROID_PACKAGE_DIR" \
-    --force-resolved-versions \
-    --disable-dependency-cache \
-    --disable-keychain \
-    --disable-netrc
+  repository_root="$(CDPATH='' cd -- "$ANDROID_PACKAGE_DIR/../../.." && pwd)"
+  host_test=(
+    bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
+    --package-path swift-clients/apps/android
+    --filter VouchaAndroidTests
+  )
+  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    (cd -- "$repository_root" && "${host_test[@]}")
+  else
+    (
+      cd -- "$repository_root" &&
+        bash swift-clients/tooling/with-build-lock.sh "${host_test[@]}"
+    )
+  fi
 fi
 
 SKIP_ARTIFACT_BIN_DIR="$ANDROID_PACKAGE_DIR/.build/artifacts/skip/skip/skip.artifactbundle/bin"
@@ -179,11 +186,11 @@ if [[ "$phase" != test-libs ]]; then
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
     if [[ "$phase" == app-consumer ]]; then
       consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
-      ./gradlew "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
+      ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
       echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
       grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$consumer_log" || true
     else
-      ./gradlew "${gradle_tasks[@]}"
+      ./gradlew --profile "${gradle_tasks[@]}"
     fi
   )
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
@@ -197,6 +204,9 @@ if [[ "$phase" != test-libs ]]; then
       # shellcheck disable=SC2016
       printf '| `%s` | %ss |\n' "${gradle_tasks[*]}" "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
+    if ! node "$SCRIPT_DIR/report-gradle-profile.mjs" | tee -a "$GITHUB_STEP_SUMMARY"; then
+      printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
+    fi
   fi
 fi
 

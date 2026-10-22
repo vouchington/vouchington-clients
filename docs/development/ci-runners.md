@@ -37,6 +37,12 @@ archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
 
+The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
+`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
+still perform the same locked restore and tests on a cache miss; they do not upload a separate
+multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
+toolchain reuse.
+
 ## pnpm
 
 pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
@@ -81,6 +87,12 @@ test libraries, and the cookie runtime proof to succeed; `Tests` still requires 
 Local Android validation continues to default to both original phases. Producer and consumer
 job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
 budgets are safety bounds, not evidence that the under-ten-minute target has been met.
+The dedicated host job runs the planner-selected source tests with
+`run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
+VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
+path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producer
+and consumer record pinned `--profile` summaries; reported task and category durations may
+overlap and are not a critical-path sum.
 
 The Android archive and Gradle caches restore by pinned input keys on every run. Only a
 `main` push writes a missing key: the test-library phase saves the shared
@@ -100,6 +112,13 @@ and reaps only its captured emulator child, including a child that ignores termi
 stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the
 owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
 replace emulator instrumentation.
+
+The app build uses pinned Gradle's local `--profile` report. CI writes its configuration,
+dependency, and task durations, plus bounded generated-state size measurements, to the existing
+job summary and log. Task durations can overlap and do not represent critical-path wall time.
+The report is diagnostic only: the same app and instrumentation tasks remain required, and a
+profiling-summary error cannot turn a failed build green. Generated build trees and extracted
+toolchains remain job-scoped; the summary does not publish or cache them.
 
 ## Event-driven orchestration
 

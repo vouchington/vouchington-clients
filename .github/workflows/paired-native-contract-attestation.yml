@@ -544,7 +544,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$VOUCHA_SKIP_SWIFT_HOME"
-          mise exec swift@6.3.3 -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android" --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
+          bash "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/tooling/run-android-host-swift-tests.sh" --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android" --filter VouchaAndroidTests
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$RUNNER_TEMP/swift-android-downloads"
           export PATH="$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/.build/artifacts/skip/skip/skip.artifactbundle/bin:$PATH"
           mise exec -- env VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS=600 bash "$CLIENTS_CANDIDATE_ROOT/swift-clients/apps/android/tooling/pre-push.sh" --phase app

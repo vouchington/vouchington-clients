@@ -16,6 +16,7 @@ import {
   validateInstrumentationResult,
 } from '../scripts/paired-native-test-runtime-result.mjs'
 import { runPairedAndroidEmulator } from '../scripts/paired-native-android-emulator.mjs'
+import { cleanupFixture } from './paired-native-cleanup-fixture.mjs'
 import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 
 it('binds an artifact to exact action metadata and the current run', () => {
@@ -152,6 +153,7 @@ it('requires every fixed restart phase exactly once and rejects source or run re
     apkSha256: 'b'.repeat(64),
     emulator,
     phases: androidPhases.map(method => ({ method, exitCode: 0, tests: 1 })),
+    cleanup: cleanupFixture({ runId: '42' }),
   }
   assert.equal(
     validateInstrumentationResult(value, {
@@ -346,6 +348,21 @@ async function runDriver({
       return child
     },
     sleep: async () => {},
+    observeLineage: async ({ launcherPid, claimAbsent }) =>
+      claimAbsent
+        ? { state: 'observed', launcherPid, processes: [] }
+        : {
+            state: 'observed',
+            launcherPid,
+            processes: [
+              {
+                pid: launcherPid,
+                ppid: 1,
+                pgid: launcherPid,
+                command: 'emulator -avd paired-native-7654',
+              },
+            ],
+          },
   }
   try {
     await runPairedAndroidEmulator(dependencies)
@@ -411,9 +428,13 @@ it('runs the fixed eight Android phases, force-stops between them, and emits val
         apkSha256: json.apkSha256,
         emulator: json.emulator,
         phases: json.phases,
+        cleanup: json.cleanup,
       }).runId,
       '7654',
     )
+    assert.equal(json.cleanup.avdName, 'paired-native-7654')
+    assert.equal(json.cleanup.launch.processes[0].command, 'emulator -avd paired-native-7654')
+    assert.deepEqual(json.cleanup.shutdown.processes, [])
     assert.equal(
       validateInstrumentationResult(json, {
         runId: '7654',
@@ -422,6 +443,11 @@ it('runs the fixed eight Android phases, force-stops between them, and emits val
         apkSha256: sha256(Buffer.from('verified app apk bytes')),
       }),
       true,
+    )
+    assert.ok(
+      execution.invocations.some(
+        ({ program, args }) => program === 'avdmanager' && args.includes('paired-native-7654'),
+      ),
     )
   } finally {
     await rm(execution.root, { recursive: true, force: true })
