@@ -368,48 +368,50 @@ test('rejects mismatched attempt, changed archive, external links and over-budge
   await assert.rejects(restoreState({ ...state, identity, limits }), /archive size mismatch/u)
 })
 
-test('rejects a forged out-of-range nanosecond timestamp before replacing state', async t => {
-  const state = await fixture(t)
-  await packState({ ...state, identity, limits })
-  const archivePath = join(state.artifactRoot, 'android-state.gz')
-  const manifestPath = join(state.artifactRoot, 'android-state.json')
-  const bytes = gunzipSync(await readFile(archivePath))
-  let offset = 5
-  let replaced = false
-  const chunks = [bytes.subarray(0, offset)]
-  while (offset < bytes.length) {
-    const length = bytes.readUInt32BE(offset)
-    if (length === 0) {
-      chunks.push(bytes.subarray(offset))
-      break
+for (const invalidTime of ['9999999999999999999', '0123456789012345678']) {
+  test(`rejects forged nanosecond timestamp ${invalidTime} before replacing state`, async t => {
+    const state = await fixture(t)
+    await packState({ ...state, identity, limits })
+    const archivePath = join(state.artifactRoot, 'android-state.gz')
+    const manifestPath = join(state.artifactRoot, 'android-state.json')
+    const bytes = gunzipSync(await readFile(archivePath))
+    let offset = 5
+    let replaced = false
+    const chunks = [bytes.subarray(0, offset)]
+    while (offset < bytes.length) {
+      const length = bytes.readUInt32BE(offset)
+      if (length === 0) {
+        chunks.push(bytes.subarray(offset))
+        break
+      }
+      const member = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
+      const next = offset + 4 + length + (member.type === 'file' ? member.size : 0)
+      if (!replaced && member.type === 'file') {
+        member.mtimeNs = invalidTime
+        const header = Buffer.from(JSON.stringify(member))
+        const headerLength = Buffer.alloc(4)
+        headerLength.writeUInt32BE(header.length)
+        chunks.push(headerLength, header, bytes.subarray(offset + 4 + length, next))
+        replaced = true
+      } else {
+        chunks.push(bytes.subarray(offset, next))
+      }
+      offset = next
     }
-    const member = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
-    const next = offset + 4 + length + (member.type === 'file' ? member.size : 0)
-    if (!replaced && member.type === 'file') {
-      member.mtimeNs = '9999999999999999999'
-      const header = Buffer.from(JSON.stringify(member))
-      const headerLength = Buffer.alloc(4)
-      headerLength.writeUInt32BE(header.length)
-      chunks.push(headerLength, header, bytes.subarray(offset + 4 + length, next))
-      replaced = true
-    } else {
-      chunks.push(bytes.subarray(offset, next))
-    }
-    offset = next
-  }
-  assert.equal(replaced, true)
-  const forged = gzipSync(Buffer.concat(chunks))
-  await writeFile(archivePath, forged)
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
-  manifest.compressedBytes = forged.length
-  manifest.sha256 = createHash('sha256').update(forged).digest('hex')
-  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`)
-  await assert.rejects(restoreState({ ...state, identity, limits }), /member type invalid/u)
-  assert.equal(
-    await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
-    'native',
-  )
-})
+    assert.equal(replaced, true)
+    const forged = gzipSync(Buffer.concat(chunks))
+    await writeFile(archivePath, forged)
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+    manifest.compressedBytes = forged.length
+    manifest.sha256 = createHash('sha256').update(forged).digest('hex')
+    await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`)
+    await assert.rejects(restoreState({ ...state, identity, limits }), /member type invalid/u)
+    assert.equal(
+      await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
+      'native',
+    )
+  })
+}
 
 test('exact timestamp helper rejects a symlinked parent', async t => {
   const state = await fixture(t)

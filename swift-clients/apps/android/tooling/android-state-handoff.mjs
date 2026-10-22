@@ -154,7 +154,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
           deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
-          typeof member.mtimeNs === 'string' && /^[0-9]{1,19}$/u.test(member.mtimeNs) &&
+          typeof member.mtimeNs === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(member.mtimeNs) &&
           BigInt(member.mtimeNs) <= maxTimestampNs) {
         observed.unpackedBytes += member.size
         if (observed.unpackedBytes > limits.unpackedBytes) throw new Error('Android state file-byte cap exceeded')

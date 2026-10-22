@@ -25,7 +25,7 @@ for count, line in enumerate(sys.stdin, start=1):
         or "\\" in path
         or any(part in ("", ".", "..") for part in path.split("/"))
         or not isinstance(timestamp, str)
-        or not re.fullmatch(r"[0-9]{1,19}", timestamp)
+        or not re.fullmatch(r"(?:0|[1-9][0-9]{0,18})", timestamp)
         or int(timestamp) > MAX_TIMESTAMP_NS
     ):
         raise ValueError("invalid Android state timestamp member")
