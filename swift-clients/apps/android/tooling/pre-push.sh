@@ -27,13 +27,20 @@ if [[ -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
 fi
 
 if [[ -z "${VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST:-}" ]]; then
-  bash "$SCRIPT_DIR/verify-android-host-swift.sh"
-  mise exec swift@6.3.3 -- swift test \
-    --package-path "$ANDROID_PACKAGE_DIR" \
-    --force-resolved-versions \
-    --disable-dependency-cache \
-    --disable-keychain \
-    --disable-netrc
+  repository_root="$(CDPATH='' cd -- "$ANDROID_PACKAGE_DIR/../../.." && pwd)"
+  host_test=(
+    bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
+    --package-path swift-clients/apps/android
+    --filter VouchaAndroidTests
+  )
+  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    (cd -- "$repository_root" && "${host_test[@]}")
+  else
+    (
+      cd -- "$repository_root" &&
+        bash swift-clients/tooling/with-build-lock.sh "${host_test[@]}"
+    )
+  fi
 fi
 
 SKIP_ARTIFACT_BIN_DIR="$ANDROID_PACKAGE_DIR/.build/artifacts/skip/skip/skip.artifactbundle/bin"

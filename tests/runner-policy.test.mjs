@@ -7,6 +7,9 @@ const repositoryRoot = resolve(import.meta.dirname, '..')
 const githubRoot = join(repositoryRoot, '.github')
 const workflowRoot = join(githubRoot, 'workflows')
 const allowedLabels = new Set(['ubuntu-slim', 'ubuntu-latest', 'macos-latest', 'windows-latest'])
+// The Android emulator is the one versioned hosted image this policy allows.
+// no-mistakes-disable-next-line test-no-dependency-pins
+const androidEmulatorRunner = 'ubuntu-24.04'
 
 async function readWorkflows() {
   const names = (await readdir(workflowRoot)).filter(name => name.endsWith('.yml')).sort()
@@ -55,7 +58,7 @@ describe('GitHub-hosted runner policy', () => {
         )
       }
       for (const label of labels) {
-        if (label === 'ubuntu-24.04') {
+        if (label === androidEmulatorRunner) {
           if (name === 'paired-native-contract-attestation.yml') {
             const emulator = jobBlock(workflow, 'native-android-emulator')
             assert.match(emulator, /runs-on: ubuntu-24\.04/u)
@@ -67,7 +70,7 @@ describe('GitHub-hosted runner policy', () => {
             assert.equal(
               name,
               'native-contract-tests.yml',
-              'ubuntu-24.04 is reserved for the native Android jobs',
+              `${androidEmulatorRunner} is reserved for the native Android jobs`,
             )
           }
         } else {
@@ -75,11 +78,11 @@ describe('GitHub-hosted runner policy', () => {
         }
       }
       if (name === 'paired-native-contract-attestation.yml')
-        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
+        assert.equal(labels.filter(label => label === androidEmulatorRunner).length, 1)
       if (name === 'native-contract-tests.yml') {
         // The Android emulator needs one pinned public Linux image; no other job may use it.
-        assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
-        assertRunner(workflow, 'test-swift-android-cookie', 'ubuntu-24.04')
+        assert.equal(labels.filter(label => label === androidEmulatorRunner).length, 1)
+        assertRunner(workflow, 'test-swift-android-cookie', androidEmulatorRunner)
         assert.equal(labels.filter(label => label === 'windows-latest').length, 3)
         const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
         assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)

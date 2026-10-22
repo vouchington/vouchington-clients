@@ -17,7 +17,11 @@ pnpm run test:plan:dotnet --base origin/main --head HEAD
 
 Pass one or more `--changed-file <path>` arguments instead of `--base`/`--head` when planning an
 uncommitted edit. The planner emits the canonical client harness commands; run those commands from
-this checkout so its host-lock and coverage policies apply.
+this checkout so its host-lock and coverage policies apply. Android host plans emit
+`swift-clients/apps/android/tooling/run-android-host-swift-tests.sh` instead of `swift test`.
+That entrypoint requires Xcode 26.6 and Swift 6.3.3 and stops before SwiftPM when they are absent.
+Wrap the emitted command with `swift-clients/tooling/with-build-lock.sh` locally. Hosted CI runs
+the same command without the lock. Swift 6.4 remains the Android SDK and Gradle toolchain.
 
 Vouchington remains the producer of the shared API fixture and localization inputs. Its durable
 references are the
