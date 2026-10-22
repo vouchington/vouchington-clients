@@ -1,4 +1,4 @@
-import { lineageReachesLauncher } from './paired-native-ownership.mjs'
+import { capturedLauncherCommand, lineageReachesLauncher } from './paired-native-ownership.mjs'
 
 const fail = message => {
   throw new Error(`Paired native test evidence rejected: ${message}`)
@@ -52,7 +52,7 @@ function validateLineageSnapshot(snapshot, avdName, label) {
       fail(`${label} command is malformed`)
     if (entry.command.includes(' -avd ') && !entry.command.endsWith(`-avd ${avdName}`))
       fail(`${label} is bound to another AVD`)
-    if (entry.pid === snapshot.launcherPid && entry.command !== `emulator -avd ${avdName}`)
+    if (entry.pid === snapshot.launcherPid && !capturedLauncherCommand(entry.command, avdName))
       fail(`${label} launcher identity is ambiguous`)
   }
   if (
@@ -99,6 +99,8 @@ export function validateCleanupShape(cleanup, expected) {
     fail('cleanup evidence AVD is not the run-owned identity')
   validateLineageSnapshot(cleanup.launch, cleanup.avdName, 'launch lineage')
   validateLineageSnapshot(cleanup.shutdown, cleanup.avdName, 'shutdown lineage')
+  if (cleanup.launch.launcherPid !== cleanup.shutdown.launcherPid)
+    fail('cleanup evidence launcher pid differs between launch and shutdown')
 }
 
 export function validateCleanupEvidence(cleanup, expected) {

@@ -42,10 +42,16 @@ function parentCycle(pid, byPid, limit) {
   return true
 }
 
+export function capturedLauncherCommand(command, avdName) {
+  return (
+    command === `emulator -avd ${avdName}` ||
+    command === `qemu-system-x86_64 -avd ${avdName}` ||
+    command === `qemu-system-x86_64-headless -avd ${avdName}`
+  )
+}
+
 function allowedCommand(command, avdName) {
-  if (command === `emulator -avd ${avdName}`) return true
-  if (command === `qemu-system-x86_64 -avd ${avdName}`) return true
-  if (command === `qemu-system-x86_64-headless -avd ${avdName}`) return true
+  if (capturedLauncherCommand(command, avdName)) return true
   return (
     command === 'qemu-system-x86_64' ||
     command === 'qemu-system-x86_64-headless' ||
@@ -149,7 +155,7 @@ export function selectOwnedLineage({
         launcherPid,
         reason: / -avd paired-native-[0-9]{1,20}$/u.test(command) ? 'ambiguous' : 'malformed',
       }
-    if (pid === launcherPid && command !== `emulator -avd ${avdName}`)
+    if (pid === launcherPid && !capturedLauncherCommand(command, avdName))
       return { state: 'unknown', launcherPid, reason: 'ambiguous' }
     processes.push({ pid, ppid: record.ppid, pgid: record.pgid, command })
   }

@@ -71,8 +71,11 @@ validates the fixed APK file set, source SHA, emulator properties, and every pha
 captured profile, then rechecks both live pull request snapshots. The runtime artifact also carries
 cleanup evidence for the run-owned `paired-native-<run id>` AVD: a bounded allowlisted snapshot of
 the captured launcher and its descendants at launch and shutdown. Observed launch evidence includes
-that launcher and only rows whose parent chain reaches it. A PID whose start time changed, and a
-scan that exceeds its time or byte bound, is `unknown` and does not extend the shutdown budgets.
+that launcher and only rows whose parent chain reaches it. The captured pid may be `emulator` or
+the QEMU backend that binary execs, either with the owned AVD. A command is recorded only when a
+second stat read still has the same pid, parent, group, and start time. Launch and shutdown must
+name that same launcher pid. A PID whose start time changed, and a scan that exceeds its time or
+byte bound, is `unknown` and does not extend the shutdown budgets.
 Missing, ambiguous, truncated, malformed, or bounded observations are recorded as `unknown`. The
 finalizer rejects cleanup evidence that does not match that same run, attempt, profile, candidate
 merge SHA, and runtime artifact ID and digest. The supplemental artifact is

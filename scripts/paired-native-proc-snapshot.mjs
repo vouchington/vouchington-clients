@@ -156,6 +156,17 @@ export async function observeOwnedEmulatorLineage({
           limits.maxCommandBytes + 1,
           signal,
         )
+        const stat = await readCapped(readFile, `/proc/${record.pid}/stat`, 1024, signal)
+        if (stat.length >= 1024) return unknown(launcherPid, 'malformed')
+        const again = parseProcStat(stat.toString('utf8'))
+        if (
+          !again ||
+          again.pid !== record.pid ||
+          again.ppid !== record.ppid ||
+          again.pgid !== record.pgid ||
+          again.startTime !== record.startTime
+        )
+          return unknown(launcherPid, again ? 'ambiguous' : 'malformed')
         withIdentity.push({
           ...record,
           identity: commandIdentity(command, avdName, limits.maxCommandBytes),

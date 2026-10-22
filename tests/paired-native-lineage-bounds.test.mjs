@@ -18,6 +18,15 @@ function record(pid, ppid, pgid, command, startTime) {
   return { pid, ppid, pgid, startTime, identity: { command } }
 }
 
+function statText(pid, ppid, pgid, startTime, comm = 'emulator') {
+  const fields = Array.from({ length: 20 }, () => '0')
+  fields[0] = 'S'
+  fields[1] = String(ppid)
+  fields[2] = String(pgid)
+  fields[19] = String(startTime)
+  return `${pid} (${comm}) ${fields.join(' ')}\n`
+}
+
 function select(records, options = {}) {
   return selectOwnedLineage({
     launcherPid: 200,
@@ -202,4 +211,85 @@ it('does not let a stalled lineage scan block emulator cleanup', async () => {
   assert.equal(result.cleanup.launch.reason, 'bounded')
   assert.equal(result.cleanup.shutdown.reason, 'bounded')
   assert.equal(Object.hasOwn(result.cleanup.launch, 'processes'), false)
+})
+
+it('accepts the execed qemu backend only at the captured launcher pid', () => {
+  const qemu = select([record(200, 10, 200, `qemu-system-x86_64 -avd ${avd}`, 200)])
+  assert.equal(qemu.state, 'observed')
+  assert.equal(qemu.processes[0].command, `qemu-system-x86_64 -avd ${avd}`)
+  const headless = select([record(200, 10, 200, `qemu-system-x86_64-headless -avd ${avd}`, 200)])
+  assert.equal(headless.state, 'observed')
+  assert.equal(select([record(200, 10, 200, 'qemu-system-x86_64', 200)]).reason, 'ambiguous')
+  assert.equal(select([record(200, 10, 200, 'crashpad_handler', 200)]).reason, 'ambiguous')
+  assert.equal(
+    validateCleanupEvidence(
+      cleanupFixture({
+        launch: {
+          state: 'observed',
+          launcherPid: 100,
+          processes: [
+            {
+              pid: 100,
+              ppid: 10,
+              pgid: 100,
+              command: 'qemu-system-x86_64 -avd paired-native-42',
+            },
+          ],
+        },
+      }),
+      cleanupBinding(),
+    ),
+    true,
+  )
+  assert.throws(
+    () =>
+      validateCleanupEvidence(
+        cleanupFixture({
+          shutdown: { state: 'observed', launcherPid: 101, processes: [] },
+        }),
+        cleanupBinding(),
+      ),
+    /launcher pid differs/u,
+  )
+})
+
+it('rejects a command read after the pid start time changes', async () => {
+  const stats = [statText(200, 10, 200, 200), statText(200, 1, 200, 900)]
+  let statReads = 0
+  const directory = async () => ({
+    async *[Symbol.asyncIterator]() {
+      yield { name: '200' }
+    },
+    async close() {},
+  })
+  const reused = await observeOwnedEmulatorLineage({
+    launcherPid: 200,
+    avdName: avd,
+    limits: lineageLimits,
+    now: () => 0,
+    opendir: directory,
+    readFile: async path => {
+      if (path.endsWith('/stat')) return Buffer.from(stats[statReads++] ?? stats.at(-1))
+      return Buffer.from(`qemu-system-x86_64\0-avd\0${avd}\0`)
+    },
+  })
+  assert.deepEqual(reused, { state: 'unknown', launcherPid: 200, reason: 'ambiguous' })
+  assert.equal(Object.hasOwn(reused, 'processes'), false)
+  assert.equal(statReads, 2)
+  const stableStats = [statText(200, 10, 200, 200), statText(200, 10, 200, 200)]
+  let stableReads = 0
+  const stable = await observeOwnedEmulatorLineage({
+    launcherPid: 200,
+    avdName: avd,
+    limits: lineageLimits,
+    now: () => 0,
+    opendir: directory,
+    readFile: async path => {
+      if (path.endsWith('/stat')) return Buffer.from(stableStats[stableReads++])
+      return Buffer.from(`qemu-system-x86_64\0-avd\0${avd}\0`)
+    },
+  })
+  assert.equal(stable.state, 'observed')
+  assert.equal(stable.processes[0].command, `qemu-system-x86_64 -avd ${avd}`)
+  assert.equal(stableReads, 2)
 })
