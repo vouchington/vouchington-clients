@@ -20,10 +20,20 @@ export function assertIdentity(identity) {
   }
 }
 
-export function assertCandidate(packageRoot, identity) {
-  const checkoutRoot = resolve(packageRoot, '../../..')
+export function assertCandidate(checkoutRoot, identity) {
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: checkoutRoot, encoding: 'utf8' }).trim()
   if (revision !== identity.revision) throw new Error('Android state candidate checkout identity mismatch')
+}
+
+export function assertPackageLayout(packageRoot, checkoutRoot) {
+  const parts = [checkoutRoot, join(checkoutRoot, 'swift-clients'), join(checkoutRoot, 'swift-clients/apps'), join(checkoutRoot, 'swift-clients/apps/android')]
+  if (parts.at(-1) !== resolve(packageRoot)) throw new Error('Unexpected Android package layout')
+  for (const path of parts) {
+    const stat = lstatSync(path)
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(`Android state package ancestor is unsafe: ${path}`)
+    }
+  }
 }
 
 export function assertMemberPath(path) {
@@ -51,7 +61,8 @@ export function selectedRoots(packageRoot, cacheRoot) {
   ]
 }
 
-export function inventoryState(packageRoot, cacheRoot, limits = defaultLimits) {
+export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = defaultLimits) {
+  assertPackageLayout(packageRoot, checkoutRoot)
   const started = Date.now()
   const pending = selectedRoots(packageRoot, cacheRoot)
   const entries = []

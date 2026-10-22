@@ -21,14 +21,17 @@ async function main() {
     throw new Error('Usage: android-state-cli.mjs pack|restore <package-root> <artifact-root>')
   }
   const packageRoot = resolve(packageRootArgument)
+  const workspaceRoot = process.env.GITHUB_WORKSPACE
+  if (!workspaceRoot) throw new Error('GITHUB_WORKSPACE is required for exact-run Android state')
+  const checkoutRoot = join(resolve(workspaceRoot), 'candidate-clients')
   const artifactRoot = resolve(artifactRootArgument)
   const cacheRoot = process.env.ANDROID_STATE_BUILD_CACHE_DIR ||
     join(realpathSync(execFileSync('getconf', ['DARWIN_USER_TEMP_DIR'], { encoding: 'utf8' }).trim()), 'gradle-build-cache')
   const identity = cliIdentity(packageRoot)
-  assertCandidate(packageRoot, identity)
+  assertCandidate(checkoutRoot, identity)
   const result = command === 'pack'
-    ? await packState({ packageRoot, cacheRoot, artifactRoot, identity })
-    : await restoreState({ packageRoot, cacheRoot, artifactRoot, identity })
+    ? await packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity })
+    : await restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity })
   process.stdout.write(`${command} Android exact state ${JSON.stringify(result)}\n`)
 }
 

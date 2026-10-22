@@ -8,17 +8,17 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
-import { assertIdentity, assertMemberPath, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
 const archiveName = 'android-state.gz'
 const manifestName = 'android-state.json'
 
-export async function packState({ packageRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
+export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
   assertIdentity(identity)
   mkdirSync(artifactRoot, { recursive: true })
-  const inventory = inventoryState(packageRoot, cacheRoot, limits)
+  const inventory = inventoryState(packageRoot, cacheRoot, checkoutRoot, limits)
   const archive = join(artifactRoot, archiveName)
   const started = Date.now()
   const deadline = started + limits.transferMs
@@ -78,8 +78,9 @@ function existingStat(path) {
   }
 }
 
-export async function restoreState({ packageRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
+export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
   assertIdentity(identity)
+  assertPackageLayout(packageRoot, checkoutRoot)
   const manifestPath = join(artifactRoot, manifestName)
   if (statSync(manifestPath).size > 8192) throw new Error('Android state manifest exceeds 8 KiB')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))

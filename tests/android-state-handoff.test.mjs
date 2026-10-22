@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict'
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -21,7 +31,8 @@ const limits = {
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'android-state-handoff-'))
   t.after(() => rm(root, { recursive: true, force: true }))
-  const packageRoot = join(root, 'package')
+  const packageRoot = join(root, 'checkout/swift-clients/apps/android')
+  const checkoutRoot = join(root, 'checkout')
   const cacheRoot = join(root, 'cache')
   const artifactRoot = join(root, 'artifact')
   await mkdir(join(packageRoot, '.build/plugins/outputs'), { recursive: true })
@@ -31,7 +42,7 @@ async function fixture(t) {
   await chmod(join(packageRoot, '.build/plugins/outputs/native.o'), 0o755)
   await writeFile(join(packageRoot, 'Android/.gradle/task-state'), 'task-state')
   await writeFile(join(cacheRoot, 'cache-entry'), 'cache')
-  return { packageRoot, cacheRoot, artifactRoot }
+  return { root, packageRoot, checkoutRoot, cacheRoot, artifactRoot }
 }
 
 test('packs and restores exact candidate state with bounded contents', async t => {
@@ -62,12 +73,19 @@ test('packs and restores exact candidate state with bounded contents', async t =
 test('rejects mismatched attempt, changed archive, external links and over-budget members', async t => {
   const state = await fixture(t)
   assert.throws(
-    () => inventoryState(state.packageRoot, state.cacheRoot, { ...limits, entries: 2 }),
+    () =>
+      inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, {
+        ...limits,
+        entries: 2,
+      }),
     /member cap/u,
   )
   const linked = join(state.packageRoot, '.build/plugins/outputs/external')
   await symlink('/etc/passwd', linked)
-  assert.throws(() => inventoryState(state.packageRoot, state.cacheRoot, limits), /symlink/u)
+  assert.throws(
+    () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
+    /symlink/u,
+  )
   await rm(linked)
   await packState({ ...state, identity, limits })
   await assert.rejects(
@@ -94,5 +112,34 @@ test('rejects a symlinked destination parent before replacing any generated stat
   assert.equal(
     await readFile(join(state.packageRoot, '.build/plugins/outputs/native.o'), 'utf8'),
     'native',
+  )
+})
+
+test('rejects a symlinked package ancestor outside the checkout', async t => {
+  const state = await fixture(t)
+  await packState({ ...state, identity, limits })
+  const external = join(state.root, 'outside')
+  await mkdir(external)
+  const swiftClients = join(state.root, 'checkout/swift-clients')
+  await rename(swiftClients, join(external, 'swift-clients'))
+  await symlink(join(external, 'swift-clients'), swiftClients)
+  await assert.rejects(restoreState({ ...state, identity, limits }), /package ancestor is unsafe/u)
+  assert.equal(
+    await readFile(
+      join(external, 'swift-clients/apps/android/.build/plugins/outputs/native.o'),
+      'utf8',
+    ),
+    'native',
+  )
+})
+
+test('rejects a relocated package even when its layout looks valid', async t => {
+  const state = await fixture(t)
+  await packState({ ...state, identity, limits })
+  const relocated = join(state.root, 'relocated/swift-clients/apps/android')
+  await mkdir(relocated, { recursive: true })
+  await assert.rejects(
+    restoreState({ ...state, packageRoot: relocated, identity, limits }),
+    /Unexpected Android package layout/u,
   )
 })
