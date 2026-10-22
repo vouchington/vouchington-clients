@@ -14,8 +14,6 @@ public static class WindowsBuiltInCommandParser
   public static WindowsBuiltInParsedCommand Parse(string text)
   {
     ArgumentNullException.ThrowIfNull(text);
-    if (text.Contains("```", StringComparison.Ordinal))
-      throw new InvalidDataException("Windows built-in command contains a code fence.");
     var utf8 = Encoding.UTF8.GetBytes(text);
     if (utf8.Length > MaximumCommandBytes)
       throw new InvalidDataException("Windows built-in command is too large.");

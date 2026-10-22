@@ -85,11 +85,20 @@ public static class WindowsBuiltInToolLoop
       throw new PossibleMcpToolSideEffectException(error);
     }
     if (!isCurrent()) throw new PossibleMcpToolSideEffectException();
-    var continuation = prompt + "\nresult:\n" + output.Envelope;
-    if (!WindowsBuiltInPrompt.Fits(continuation, await observe(continuation, cancellationToken).ConfigureAwait(false)))
-      return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete", output.RssItemReceipt);
-    var second = await generate(continuation, cancellationToken).ConfigureAwait(false);
-    RequireCurrent(isCurrent);
+    var continuation = string.Concat(prompt, "\nresult:\n", output.Envelope,
+        "\nReply with one answer object and do not call a tool.");
+    WindowsBuiltInModelTurn second;
+    try
+    {
+      if (!WindowsBuiltInPrompt.Fits(continuation, await observe(continuation, cancellationToken).ConfigureAwait(false)))
+        return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete", output.RssItemReceipt);
+      second = await generate(continuation, cancellationToken).ConfigureAwait(false);
+      if (!isCurrent()) throw new PossibleMcpToolSideEffectException();
+    }
+    catch (Exception error) when (error is not PossibleMcpToolSideEffectException)
+    {
+      throw new PossibleMcpToolSideEffectException(error);
+    }
     if (!string.Equals(second.Status, "Complete", StringComparison.Ordinal))
       return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, second.Status, output.RssItemReceipt);
     WindowsBuiltInParsedCommand continued;

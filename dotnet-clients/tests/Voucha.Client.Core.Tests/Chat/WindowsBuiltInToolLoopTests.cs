@@ -34,6 +34,8 @@ public sealed class WindowsBuiltInToolLoopTests
     var answer = WindowsBuiltInCommandParser.Parse("{\"answer\":\"kept\"}");
     Assert.Null(answer.ToolCall);
     Assert.Equal("kept", answer.Answer);
+    var fenced = WindowsBuiltInCommandParser.Parse("{\"answer\":\"use ```code```\"}");
+    Assert.Equal("use ```code```", fenced.Answer);
   }
 
   [Fact]
@@ -48,6 +50,8 @@ public sealed class WindowsBuiltInToolLoopTests
     var prompt = WindowsBuiltInPrompt.Compose([new("assistant", "earlier")], message, bridge.Tools);
 
     Assert.Contains(message, prompt, StringComparison.Ordinal);
+    Assert.Contains("{\"answer\":\"<string>\"}", prompt, StringComparison.Ordinal);
+    Assert.Contains("answer object only", prompt, StringComparison.Ordinal);
     Assert.Contains("assistant: earlier", prompt, StringComparison.Ordinal);
     Assert.Contains("{\"type\":\"object\",\"required\":[\"id\"]}", prompt, StringComparison.Ordinal);
     Assert.True(prompt.Length > message.Length);
@@ -180,6 +184,33 @@ public sealed class WindowsBuiltInToolLoopTests
     Assert.Equal(1, after.Executions);
   }
 
+  [Fact]
+  public async Task ContinuationFailureAfterDispatchDoesNotResend()
+  {
+    const string call = """{"call":{"id":"call-1","name":"read_post","arguments":{"id":"post"}}}""";
+    var observe = new Harness
+    {
+      First = call,
+      ContinuationObserveError = new InvalidOperationException("observe failed"),
+    };
+    var observed = await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => observe.Run());
+    Assert.IsType<InvalidOperationException>(observed.InnerException);
+    Assert.Equal(1, observe.Executions);
+
+    var generate = new Harness
+    {
+      First = call,
+      ContinuationGenerateError = new InvalidOperationException("generate failed"),
+    };
+    var generated = await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => generate.Run());
+    Assert.IsType<InvalidOperationException>(generated.InnerException);
+    Assert.Equal(1, generate.Executions);
+
+    var changed = new Harness { First = call, Second = """{"answer":"done"}""", CurrentUntilGeneration = 2 };
+    await Assert.ThrowsAsync<PossibleMcpToolSideEffectException>(() => changed.Run());
+    Assert.Equal(1, changed.Executions);
+  }
+
   private sealed class Harness
   {
     public int Generations { get; private set; }
@@ -193,13 +224,21 @@ public sealed class WindowsBuiltInToolLoopTests
     public Func<string, WindowsBuiltInPromptObservation>? ObserveFit { get; init; }
     public int CurrentUntilGeneration { get; init; } = int.MaxValue;
     public int CurrentUntilExecution { get; init; } = int.MaxValue;
+    public Exception? ContinuationObserveError { get; init; }
+    public Exception? ContinuationGenerateError { get; init; }
 
     public Task<WindowsBuiltInTurn> Run() => WindowsBuiltInToolLoop.RunAsync(
         "user: hello",
-        (text, _) => Task.FromResult(ObserveFit?.Invoke(text) ?? new WindowsBuiltInPromptObservation((ulong)text.Length, false, null)),
+        (text, _) =>
+        {
+          if (ContinuationObserveError is not null && text.Contains("result:", StringComparison.Ordinal))
+            throw ContinuationObserveError;
+          return Task.FromResult(ObserveFit?.Invoke(text) ?? new WindowsBuiltInPromptObservation((ulong)text.Length, false, null));
+        },
         (_, _) =>
         {
           Generations++;
+          if (ContinuationGenerateError is not null && Generations > 1) throw ContinuationGenerateError;
           return Task.FromResult(new WindowsBuiltInModelTurn(Status, Generations == 1 ? First : Second));
         },
         (_, _) =>

@@ -17,6 +17,11 @@ public readonly record struct WindowsBuiltInModelTurn(string Status, string? Tex
 
 public static class WindowsBuiltInPrompt
 {
+  private const string CommandContract =
+      "Reply with one JSON object and no surrounding text. "
+      + "Either {\"answer\":\"<string>\"} or one {\"call\":{\"id\":\"<id>\",\"name\":\"<name>\",\"arguments\":{}}}. "
+      + "After a tool result, reply with an answer object only.";
+
   public static bool Fits(string prompt, WindowsBuiltInPromptObservation observation)
   {
     ArgumentNullException.ThrowIfNull(prompt);
@@ -50,7 +55,8 @@ public static class WindowsBuiltInPrompt
     var schemas = Encoding.UTF8.GetString(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
     var prior = string.Join('\n', history.Select(item => item.Role + ": " + item.Content));
     var separator = prior.Length == 0 ? "" : "\n";
-    var prompt = string.Concat("tools: ", schemas, "\n", prior, separator, "user: ", message);
+    var prompt = string.Concat(
+        CommandContract, "\n", "tools: ", schemas, "\n", prior, separator, "user: ", message);
     return prompt;
   }
 }
