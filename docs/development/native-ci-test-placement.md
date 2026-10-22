@@ -42,16 +42,18 @@ The iOS build jobs compile the arm64 test bundle for an available iPhone Simulat
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
-`test-without-building`; neither launch job recompiles. The iPhone job requires exactly two passed,
-non-skipped root-shell and real Videos-tab tests. The iPad job requires exactly one passed,
-non-skipped root-shell test on an available iPad Simulator. The native `Tests` fan-in requires
-both device-family launches and the x86_64 compile. The DEBUG fixture restores its account
-through `SessionManager.refresh`; it does not prove sign-in, cookie persistence, or CAPTCHA
-behavior. Both jobs receive the complete fixture checkout explicitly through the generated scheme
-and fail closed when a fixture or Simulator is unavailable.
-Both launch jobs are required by the native workflow `Tests` fan-in; skipped cases and test retries are not
-accepted as feed-flow evidence. This is partial coverage of #77. iPad feed flow, sign-in, and
-Catalyst remain outstanding.
+`test-without-building`; neither launch job recompiles. The iPhone job requires exactly three
+passed, non-skipped tests: the root shell, the real Videos tab, and one email OTP sign-in
+(Sign In, Continue with Email, Send Code, and Verify Code). The sign-in fixture accepts only the
+typed email, code, and verification token, then `SessionManager.refresh` reads the canonical
+identity fixture. That token stands in for the Turnstile widget the simulator cannot complete.
+The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
+Simulator. The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
+These launches do not prove cookie persistence, a live CAPTCHA, or sign-in on another platform.
+Both jobs receive the complete fixture checkout explicitly through the generated scheme and fail
+closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
+as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
+iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
 
 The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`

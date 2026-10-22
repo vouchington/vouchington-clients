@@ -6,8 +6,8 @@ import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
-describe('iOS Simulator launch and feed-flow fan-in', () => {
-  it('runs the unsigned app shell and canonical feed flow and requires both to pass', () => {
+describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
+  it('runs the unsigned app shell, canonical feed flow, and email sign-in and requires all three to pass', () => {
     const workflow = readFileSync(
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
@@ -97,7 +97,11 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     )
     assert.match(
       iosJob,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
+      /-only-testing:VouchaLaunchSmokeTests\/SignInFlowTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
+    )
+    assert.match(
+      iosJob,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 3 and \.passedTests == 3 and \.failedTests == 0 and \.skippedTests == 0/u,
     )
     assert.match(
       iosJob,
