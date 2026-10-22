@@ -4,13 +4,13 @@ set -euo pipefail
 phase=all
 if [[ "$#" -gt 0 ]]; then
   if [[ "$#" -ne 2 || "$1" != --phase ]]; then
-    echo "Usage: $0 [--phase app|test-libs|all|app-native-producer|app-consumer]" >&2
+    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-consumer]" >&2
     exit 64
   fi
   phase="$2"
 fi
 case "$phase" in
-  app | test-libs | all | app-native-producer | app-consumer) ;;
+  app | test-libs | all | app-native-dependency | app-native-producer | app-consumer) ;;
   *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
 esac
 
@@ -159,7 +159,11 @@ if [[ "$phase" != test-libs ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
-  if [[ "$phase" == app-native-producer ]]; then
+  if [[ "$phase" == app-native-dependency ]]; then
+    # settings.gradle.kts runs Skip's pinned --prebuild while configuring Gradle.
+    # This creates the same generated package consumed by the native Gradle task.
+    gradle_tasks=(help)
+  elif [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
   elif [[ "$phase" == app-consumer ]]; then
     consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
@@ -195,6 +199,32 @@ if [[ "$phase" != test-libs ]]; then
       printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
     fi
   fi
+fi
+
+if [[ "$phase" == app-native-dependency ]]; then
+  generated_module="$ANDROID_PACKAGE_DIR/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid"
+  generated_package="$generated_module/src/main/swift"
+  generated_scratch="$generated_module/build/swift"
+  if [[ ! -f "$generated_package/Package.swift" ]]; then
+    echo "Skip prebuild did not create the native Gradle package: $generated_package" >&2
+    exit 1
+  fi
+  # Match :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug except for the
+  # SwiftPM selection. The original Gradle task still runs in the next phase.
+  skip android build \
+    -d "$generated_module/build/jni-libs" \
+    --package-path "$generated_package" \
+    --configuration debug \
+    --target SkipSwiftUI \
+    --scratch-path "$generated_scratch" \
+    --arch automatic \
+    -Xcc -fPIC \
+    -Xswiftc -DSKIP_BRIDGE \
+    -Xswiftc -DTARGET_OS_ANDROID \
+    -Xswiftc -Xfrontend \
+    -Xswiftc -no-clang-module-breadcrumbs \
+    -Xswiftc -module-cache-path \
+    -Xswiftc "$generated_scratch/module-cache/VouchaAndroid"
 fi
 
 if [[ "$phase" == test-libs || "$phase" == all ]]; then

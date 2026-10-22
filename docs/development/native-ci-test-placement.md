@@ -25,6 +25,13 @@ resource bundles, and SwiftPM test metadata. The test shard verifies the run, ca
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
 
+The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
+package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
+Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
+exact run, attempt, and candidate revision. The native producer still runs the original Gradle
+Swift package task; the app consumer still builds both APKs, verifies the native ABI, and passes
+those exact APKs to the cookie restart job.
+
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 

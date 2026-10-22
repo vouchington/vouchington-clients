@@ -103,3 +103,36 @@ test('Android caches restore on all runs and save only one completed main phase'
   )
   assert.doesNotMatch(coreJob, /restore-keys:/u)
 })
+
+test('native dependency handoff retains the original Gradle build and exact-run state boundary', async () => {
+  const workflow = await readFile(
+    new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
+    'utf8',
+  )
+  const script = await readFile(
+    new URL('../swift-clients/apps/android/tooling/pre-push.sh', import.meta.url),
+    'utf8',
+  )
+  const dependency = workflow
+    .split('  build-swift-android-dependency:\n')[1]
+    .split('  build-swift-android-native:\n')[0]
+  const native = workflow
+    .split('  build-swift-android-native:\n')[1]
+    .split('  build-swift-android:\n')[0]
+  assert.match(dependency, /ANDROID_BUILD_PHASE: app-native-dependency/u)
+  assert.match(
+    dependency,
+    /android-native-dependency-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+  )
+  assert.match(native, /needs: \[verify, build-swift-android-dependency\]/u)
+  assert.ok(
+    native.indexOf('Restore verified native dependency state') <
+      native.indexOf('Build the selected Android validation phase'),
+  )
+  assert.match(native, /ANDROID_BUILD_PHASE: app-native-producer/u)
+  assert.match(script, /gradle_tasks=\(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug\)/u)
+  assert.match(
+    script,
+    /--package-path "\$generated_package"[\s\S]*--target SkipSwiftUI[\s\S]*--scratch-path "\$generated_scratch"/u,
+  )
+})
