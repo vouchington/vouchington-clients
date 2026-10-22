@@ -8,6 +8,16 @@ checks:
   ignore:
     - 'Sourcery review'
 
+# v1 defaults drop both pre-v1 readiness holds. Pin them so a clean PR still
+# waits ten minutes before terminal handoff, and a pending Copilot review
+# still blocks draft-to-ready.
+iterate:
+  ready-delay-minutes: 10
+
+mark-ready:
+  blocking-reviewer-logins:
+    - copilot
+
 # pr-shepherd's bundled bot-noise classification rules.
 classify:
   standard:
