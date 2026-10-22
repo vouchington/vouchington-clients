@@ -8,7 +8,8 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
-import { assertDebugLink, assertIdentity, assertMemberPath, assertPackageLayout, checkedSkipstoneLink, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { assertDebugLink, checkedSkipstoneLink, resolveSkipstoneLink } from './android-state-links.mjs'
+import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, existingStat, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -67,15 +68,6 @@ function checkedDestination(root, path) {
   const target = join(root, path)
   if (!target.startsWith(`${root}${sep}`)) throw new Error(`Android state path escaped root: ${path}`)
   return target
-}
-
-function existingStat(path) {
-  try {
-    return lstatSync(path)
-  } catch (error) {
-    if (error.code === 'ENOENT') return null
-    throw error
-  }
 }
 
 export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
@@ -164,11 +156,14 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     }
     for (const { target, link, path, generated } of deferredLinks) {
       if (generated) {
-        checkedSkipstoneLink(path, link, packageRoot, checkoutRoot, staging)
+        checkedSkipstoneLink(path, link, packageRoot, checkoutRoot)
       } else if (!lstatSync(join(dirname(target), link)).isDirectory()) {
         throw new Error(`Android state debug symlink target is missing: ${target}`)
       }
       symlinkSync(link, target)
+    }
+    for (const { path, link, generated } of deferredLinks) {
+      if (generated) resolveSkipstoneLink(path, link, packageRoot, checkoutRoot, staging, deadline)
     }
     for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
       const stat = lstatSync(directory)

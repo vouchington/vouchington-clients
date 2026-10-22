@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink } from './android-state-links.mjs'
 
 export const defaultLimits = {
   entries: 150_000,
@@ -53,54 +54,13 @@ export function assertMemberPath(path) {
   }
 }
 
-export function assertDebugLink(path, target) {
-  if (path !== '.build/debug' || typeof target !== 'string' ||
-      !/^[A-Za-z0-9._-]+\/debug$/u.test(target) || target.split('/').includes('..')) {
-    throw new Error(`Unsafe Android state symlink: ${path}`)
+export function existingStat(path) {
+  try {
+    return lstatSync(path)
+  } catch (error) {
+    if (error.code === 'ENOENT') return null
+    throw error
   }
-}
-
-const skipstoneOutputPath = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+(?:\/[^/]+)*$/u
-
-// Skipstone 1.9.13 creates absolute source/resource links and relative module,
-// resource-alias and test links within its generated output. Preserve their
-// checkout-relative relationship, never the producer runner's absolute path.
-export function checkedSkipstoneLink(path, target, packageRoot, checkoutRoot, stagedRoot = null) {
-  const targetParts = typeof target === 'string' ? target.split(sep) : []
-  const firstDescendant = targetParts.findIndex(part => part !== '..')
-  if (!skipstoneOutputPath.test(path) || typeof target !== 'string' || target.length > 4096 ||
-      !target || isAbsolute(target) || target.includes('\\') || target.includes('\0') ||
-      firstDescendant < 0 || targetParts.some((part, index) =>
-        part === '' || part === '.' || (part === '..' && index >= firstDescendant))) {
-    throw new Error(`Unsafe Android state symlink: ${path}`)
-  }
-  const finalLink = join(packageRoot, path)
-  const finalTarget = resolve(dirname(finalLink), target)
-  const checkoutRelative = relative(checkoutRoot, finalTarget)
-  if (!checkoutRelative.startsWith(`swift-clients${sep}`) ||
-      checkoutRelative.split(sep).includes('..')) {
-    throw new Error(`Android state mirror target escaped candidate checkout: ${path}`)
-  }
-  const packageRelative = relative(packageRoot, finalTarget)
-  const stagedTarget = !packageRelative.startsWith(`..${sep}`) &&
-      packageRelative.startsWith(`.build${sep}`)
-    ? join(stagedRoot ?? packageRoot, packageRelative)
-    : finalTarget
-  const boundary = stagedTarget === finalTarget ? checkoutRoot : (stagedRoot ?? packageRoot)
-  const parts = relative(boundary, stagedTarget).split(sep)
-  if (parts.some(part => part === '..' || part === '')) {
-    throw new Error(`Android state mirror target escaped selected state: ${path}`)
-  }
-  let current = boundary
-  for (const part of parts) {
-    current = join(current, part)
-    const stat = lstatSync(current)
-    if (stat.isSymbolicLink() || (!stat.isDirectory() && current !== stagedTarget) ||
-        (current === stagedTarget && !stat.isDirectory() && !stat.isFile())) {
-      throw new Error(`Android state mirror target is unsafe: ${path}`)
-    }
-  }
-  return target
 }
 
 export function selectedRoots(packageRoot, cacheRoot) {
@@ -130,7 +90,7 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
         const portable = relative(dirname(item.source), target)
         checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
         entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
-      } else if (skipstoneOutputPath.test(item.path)) {
+      } else if (isSkipstoneOutputPath(item.path)) {
         checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
         entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
       } else {
@@ -175,5 +135,10 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
     }
   }
   entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+  for (const entry of entries) {
+    if (entry.type === 'symlink' && entry.path !== '.build/debug') {
+      resolveSkipstoneLink(entry.path, entry.target, packageRoot, checkoutRoot, null, started + limits.scanMs)
+    }
+  }
   return { entries, unpackedBytes, scanMs: Date.now() - started }
 }
