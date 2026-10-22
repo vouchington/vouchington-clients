@@ -579,11 +579,6 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Restore checksummed Swift Android archives
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/voucha/swift-android/downloads
-          key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', '.github/workflows/native-contract-tests.yml') }}
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -630,12 +625,11 @@ jobs:
             [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
           done
           rm -rf -- "$cache_root/extracted"
-      - name: Prefetch and materialize Skip Swift Android SDK
-        working-directory: candidate-clients
-        timeout-minutes: 12
-        run: |
-          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: ${{ matrix.phase == 'test-libs' }}
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -650,10 +644,38 @@ jobs:
           --filter VouchaAndroidTests
       - name: Restore Gradle user home
         if: matrix.phase == 'app'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: android-gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+      - name: Select Gradle task-output cache path
+        if: matrix.phase == 'app'
+        id: android-task-cache-path
+        shell: bash
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
+          TASK_CACHE_CONFIG_HASH: ${{ hashFiles('candidate-clients/.mise.toml', 'candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle.properties', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh', 'candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+        run: |
+          set -euo pipefail
+          cache_dir="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
+            "$cache_dir" "$GITHUB_OUTPUT"
+      - name: Restore Gradle task-output cache
+        if: matrix.phase == 'app'
+        id: android-task-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache-path.outputs.cache-key }}
+      - name: Restore prior main Gradle task-output cache
+        if: ${{ matrix.phase == 'app' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
@@ -690,6 +712,30 @@ jobs:
           path: ${{ runner.temp }}/android-cookie-apks
           if-no-files-found: error
           retention-days: 1
+      - name: Save Gradle user home from main
+        if: ${{ matrix.phase == 'app' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/voucha/gradle
+          key: ${{ steps.android-gradle-cache.outputs.cache-primary-key }}
+      - name: Bound Gradle task-output cache save
+        if: ${{ matrix.phase == 'app' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' }}
+        id: android-task-cache-save
+        shell: bash
+        env:
+          RESTORED_CACHE_PATH: ${{ steps.android-task-cache-path.outputs.path }}
+        run: |
+          set -euo pipefail
+          selected="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          [[ "$selected" == "$RESTORED_CACHE_PATH" ]]
+          node candidate-clients/swift-clients/apps/android/tooling/check-gradle-build-cache.mjs \
+            "$selected" "$GITHUB_OUTPUT"
+      - name: Save Gradle task-output cache from successful main APK build
+        if: ${{ steps.android-task-cache-save.outputs.save == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
   test-swift-android-cookie:
     name: Android cookie restart
     needs: [verify, build-swift-android]
