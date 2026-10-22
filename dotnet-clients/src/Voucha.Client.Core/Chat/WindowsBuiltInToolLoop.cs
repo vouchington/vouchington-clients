@@ -13,13 +13,23 @@ public sealed record WindowsBuiltInTurn(
     string? Envelope,
     McpFeedPostReceipt? Receipt,
     string? Status,
-    McpFeedRssItemReceipt? RssItemReceipt = null)
+    McpFeedRssItemReceipt? RssItemReceipt = null,
+    string? CallId = null)
 {
   public WindowsBuiltInTurn ForPersistenceRetry() =>
       Kind is WindowsBuiltInTurnKind.Answer or WindowsBuiltInTurnKind.Retained
           ? this with { }
           : throw new InvalidOperationException("Only a completed Windows built-in turn can be persisted again.");
 }
+
+public sealed record RetainedWindowsBuiltInToolResult(
+    string ConversationId,
+    string RequestText,
+    string AccountId,
+    string CallId,
+    string Envelope,
+    McpFeedPostReceipt? FeedPostReceipt,
+    McpFeedRssItemReceipt? RssItemReceipt);
 
 public sealed class WindowsBuiltInResultRetainedException : InvalidOperationException
 {
@@ -33,16 +43,19 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
       : base(message, innerException) => Envelope = "";
 
   public WindowsBuiltInResultRetainedException(
-      string envelope, McpFeedPostReceipt? receipt, McpFeedRssItemReceipt? rssItemReceipt = null) : base(DefaultMessage)
+      string envelope, McpFeedPostReceipt? receipt, McpFeedRssItemReceipt? rssItemReceipt = null,
+      string? callId = null) : base(DefaultMessage)
   {
     Envelope = envelope ?? throw new ArgumentNullException(nameof(envelope));
     Receipt = receipt;
     RssItemReceipt = rssItemReceipt;
+    CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? "";
   }
 
   public string Envelope { get; }
   public McpFeedPostReceipt? Receipt { get; }
   public McpFeedRssItemReceipt? RssItemReceipt { get; }
+  public string CallId { get; } = "";
 }
 
 public static class WindowsBuiltInToolLoop
@@ -94,7 +107,8 @@ public static class WindowsBuiltInToolLoop
     try
     {
       if (!WindowsBuiltInPrompt.Fits(continuation, await observe(continuation, cancellationToken).ConfigureAwait(false)))
-        return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete", output.RssItemReceipt);
+        return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete",
+            output.RssItemReceipt, call.Id);
       second = await generate(continuation, cancellationToken).ConfigureAwait(false);
       if (!isCurrent()) throw new PossibleMcpToolSideEffectException();
     }
@@ -103,7 +117,8 @@ public static class WindowsBuiltInToolLoop
       throw new PossibleMcpToolSideEffectException(error);
     }
     if (!string.Equals(second.Status, "Complete", StringComparison.Ordinal))
-      return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, second.Status, output.RssItemReceipt);
+      return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, second.Status,
+          output.RssItemReceipt, call.Id);
     WindowsBuiltInParsedCommand continued;
     try { continued = WindowsBuiltInCommandParser.Parse(second.Text ?? ""); }
     catch (Exception error) when (error is not PossibleMcpToolSideEffectException)

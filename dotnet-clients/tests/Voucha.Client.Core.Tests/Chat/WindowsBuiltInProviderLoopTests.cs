@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Chat;
+using Voucha.Client.Core.Tests.Chat;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Agent;
@@ -99,6 +100,60 @@ public sealed partial class MemberMcpSessionTests
     Assert.Equal(0, factory.Connections.Single().ToolCalls);
   }
 
+  [Fact]
+  public async Task RetainedWindowsToolResultSurvivesTheSendHandlerAndBlocksAnotherDispatch()
+  {
+    const string postId = "11111111-1111-1111-1111-111111111111";
+    using var catalog = JsonDocument.Parse("""
+        {"tools":[{"name":"read_feed","description":"Read","inputSchema":{"type":"object"}}]}
+        """);
+    using var structured = JsonDocument.Parse(
+        $$"""{"success":true,"results":[{"entity_id":"{{postId}}"}]}""");
+    using var content = JsonDocument.Parse("""[{"type":"text","text":"kept"}]""");
+    var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections.Single().ToolResult = new McpToolResult(
+        content.RootElement.Clone(), structured.RootElement.Clone(), false);
+    var runtime = new RecordingBuiltInRuntime
+    {
+      BuiltInText = """{"call":{"id":"call-1","name":"read_feed","arguments":{"option":"posts"}}}""",
+      UsablePromptIndex = prompt => prompt.Contains("result:", StringComparison.Ordinal) ? 0 : (ulong)prompt.Length,
+    };
+    var provider = new WindowsSystemLanguageModelProvider(runtime, mcpSession: session);
+    var service = new FakeChatService();
+    var viewModel = new ChatConversationViewModel(service, new StatusOnlyResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Show the feed", TestContext.Current.CancellationToken));
+
+    Assert.NotNull(viewModel.RetainedWindowsToolResult);
+    var retained = viewModel.RetainedWindowsToolResult;
+    Assert.Equal("conversation-1", retained.ConversationId);
+    Assert.Equal("Show the feed", retained.RequestText);
+    Assert.Equal("account-a", retained.AccountId);
+    Assert.Equal("call-1", retained.CallId);
+    Assert.Contains(postId, retained.Envelope, StringComparison.Ordinal);
+    Assert.Equal(postId, Assert.Single(retained.FeedPostReceipt!.PostIds));
+    Assert.Null(retained.RssItemReceipt);
+    Assert.Empty(viewModel.Messages);
+    Assert.Null(service.LastClientGeneratedChatBody);
+    Assert.Single(runtime.Generated);
+    Assert.Equal(1, factory.Connections.Single().ToolCalls);
+    Assert.True(viewModel.PossibleToolSideEffect);
+
+    Assert.False(await viewModel.TrySendAsync("Show the feed", TestContext.Current.CancellationToken));
+    Assert.Single(runtime.Generated);
+    Assert.Equal(1, factory.Connections.Single().ToolCalls);
+    Assert.Equal(retained.Envelope, viewModel.RetainedWindowsToolResult!.Envelope);
+    Assert.Equal(postId, Assert.Single(viewModel.RetainedWindowsToolResult.FeedPostReceipt!.PostIds));
+  }
+
+  private sealed class StatusOnlyResolver(ChatProviderStatus status) : IChatProviderResolver
+  {
+    public IReadOnlyList<ChatProviderStatus> GetProviderStatuses() => [status];
+    public ChatProviderStatus GetDefaultProviderStatus() => status;
+  }
+
   private sealed class RecordingBuiltInRuntime : IWindowsSystemLanguageModelRuntime, IWindowsBuiltInToolRuntime
   {
     public int PlainCalls { get; private set; }
@@ -106,6 +161,7 @@ public sealed partial class MemberMcpSessionTests
     public string BuiltInText { get; init; } = """{"answer":"kept"}""";
     public string Status { get; init; } = "Complete";
     public ulong? UsableIndex { get; init; }
+    public Func<string, ulong>? UsablePromptIndex { get; init; }
 
     public WindowsSystemLanguageModelState GetState() => new(WindowsSystemLanguageModelReadiness.Ready);
     public Task EnsureReadyAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
@@ -117,7 +173,8 @@ public sealed partial class MemberMcpSessionTests
       return Task.FromResult<string?>("plain");
     }
     public Task<WindowsBuiltInPromptObservation> ObservePromptAsync(string prompt, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new WindowsBuiltInPromptObservation(UsableIndex ?? (ulong)prompt.Length, false, null));
+        Task.FromResult(new WindowsBuiltInPromptObservation(
+            UsablePromptIndex?.Invoke(prompt) ?? UsableIndex ?? (ulong)prompt.Length, false, null));
     public Task<WindowsBuiltInModelTurn> GenerateBuiltInAsync(string prompt, CancellationToken cancellationToken = default)
     {
       Generated.Add(prompt);

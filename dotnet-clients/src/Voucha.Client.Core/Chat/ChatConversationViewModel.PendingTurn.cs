@@ -79,6 +79,9 @@ public sealed partial class ChatConversationViewModel
     if (blockedToolRetryText is not null &&
         !string.Equals(text?.Trim(), blockedToolRetryText, StringComparison.Ordinal))
       blockedToolRetryText = null;
+    if (retainedWindowsToolResult is { } retained &&
+        !string.Equals(text?.Trim(), retained.RequestText, StringComparison.Ordinal))
+      SetRetainedWindowsToolResult(null);
     if (pendingLocalTurn is { McpSnapshot: null } pending &&
         !string.Equals(text?.Trim(), pending.Body.Message, StringComparison.Ordinal))
     {
