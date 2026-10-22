@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { lstatSync, opendirSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 
 export const defaultLimits = {
   entries: 150_000,
@@ -53,6 +53,14 @@ export function assertMemberPath(path) {
   }
 }
 
+export function assertDebugLink(path, target) {
+  const nestedSwiftScratch = /^\.build\/plugins\/outputs\/[^/]+\/[^/]+\/destination\/skipstone\/[^/]+\/build\/swift\/debug$/u.test(path)
+  if ((path !== '.build/debug' && !nestedSwiftScratch) || typeof target !== 'string' ||
+      !/^[A-Za-z0-9._-]+\/debug$/u.test(target) || target.split('/').includes('..')) {
+    throw new Error(`Unsafe Android state symlink: ${path}`)
+  }
+}
+
 export function selectedRoots(packageRoot, cacheRoot) {
   return [
     { path: '.build', source: join(packageRoot, '.build') },
@@ -74,7 +82,15 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
     const item = pending.pop()
     assertMemberPath(item.path)
     const stat = lstatSync(item.source)
-    if (stat.isSymbolicLink()) throw new Error(`Android state contains a symlink: ${item.path}`)
+    if (stat.isSymbolicLink()) {
+      const target = readlinkSync(item.source)
+      assertDebugLink(item.path, target)
+      if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
+        throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+      }
+      entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+      continue
+    }
     if ((stat.mode & 0o7000) !== 0) throw new Error(`Android state contains special permissions: ${item.path}`)
     if (stat.isDirectory()) {
       entries.push({ path: item.path, type: 'directory', source: item.source, mode: stat.mode & 0o777 })

@@ -22,6 +22,7 @@ export async function* archiveChunks(entries, identity, deadline) {
       size: entry.size ?? 0,
       mode: entry.mode,
       mtimeMs: entry.mtimeMs ?? null,
+      target: entry.target ?? null,
     })
     if (entry.type === 'file') {
       let actual = 0

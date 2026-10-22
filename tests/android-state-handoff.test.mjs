@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readlink,
   rename,
   rm,
   stat,
@@ -68,6 +69,39 @@ test('packs and restores exact candidate state with bounded contents', async t =
     'task-state',
   )
   assert.equal(await readFile(join(state.cacheRoot, 'cache-entry'), 'utf8'), 'cache')
+})
+
+test('restores only the internal SwiftPM debug directory alias', async t => {
+  const state = await fixture(t)
+  await mkdir(join(state.packageRoot, '.build/arm64-apple-macosx/debug'), { recursive: true })
+  await symlink('arm64-apple-macosx/debug', join(state.packageRoot, '.build/debug'))
+  await packState({ ...state, identity, limits })
+  await rm(join(state.packageRoot, '.build'), { recursive: true })
+  await restoreState({ ...state, identity, limits })
+  assert.equal(await readlink(join(state.packageRoot, '.build/debug')), 'arm64-apple-macosx/debug')
+})
+
+test('restores a generated Skip native SwiftPM scratch debug alias', async t => {
+  const state = await fixture(t)
+  const scratch = join(
+    state.packageRoot,
+    '.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid/build/swift',
+  )
+  await mkdir(join(scratch, 'aarch64-unknown-linux-android/debug'), { recursive: true })
+  await symlink('aarch64-unknown-linux-android/debug', join(scratch, 'debug'))
+  await packState({ ...state, identity, limits })
+  await rm(join(state.packageRoot, '.build'), { recursive: true })
+  await restoreState({ ...state, identity, limits })
+  assert.equal(await readlink(join(scratch, 'debug')), 'aarch64-unknown-linux-android/debug')
+})
+
+test('rejects an escaping SwiftPM debug alias', async t => {
+  const state = await fixture(t)
+  await symlink('../../outside/debug', join(state.packageRoot, '.build/debug'))
+  assert.throws(
+    () => inventoryState(state.packageRoot, state.cacheRoot, state.checkoutRoot, limits),
+    /Unsafe Android state symlink/u,
+  )
 })
 
 test('rejects mismatched attempt, changed archive, external links and over-budget members', async t => {

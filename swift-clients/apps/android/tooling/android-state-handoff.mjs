@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto'
 import {
   chmodSync, createReadStream, createWriteStream, existsSync, lstatSync, mkdirSync,
-  readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync,
+  readFileSync, renameSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync,
 } from 'node:fs'
 import { dirname, join, sep } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip, createGzip } from 'node:zlib'
 import { archiveChunks, ByteReader, magic, sha256File } from './android-state-codec.mjs'
-import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
+import { assertDebugLink, assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -103,6 +103,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   mkdirSync(join(staging, 'Android'), { mode: 0o700 })
   const reader = new ByteReader(createReadStream(archive).pipe(createGunzip()), deadline, limits.unpackedBytes + 2 * 8192 * limits.entries)
   const observed = { entries: 0, unpackedBytes: 0 }
+  const deferredLinks = []
   try {
     if (!(await reader.read(magic.length)).equals(magic)) throw new Error('Android state magic mismatch')
     const archiveIdentity = await reader.header()
@@ -123,6 +124,9 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       }
       if (member.type === 'directory' && member.size === 0) {
         mkdirSync(target, { mode: 0o700 })
+      } else if (member.type === 'symlink' && member.size === 0) {
+        assertDebugLink(member.path, member.target)
+        deferredLinks.push({ target, link: member.target })
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
           Number.isFinite(member.mtimeMs) && member.mtimeMs >= 0) {
         observed.unpackedBytes += member.size
@@ -153,6 +157,12 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     await reader.end()
     if (observed.entries !== manifest.entries || observed.unpackedBytes !== manifest.unpackedBytes) {
       throw new Error('Android state unpacked inventory mismatch')
+    }
+    for (const { target, link } of deferredLinks) {
+      if (!lstatSync(join(dirname(target), link)).isDirectory()) {
+        throw new Error(`Android state debug symlink target is missing: ${target}`)
+      }
+      symlinkSync(link, target, 'dir')
     }
     for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
       const stat = lstatSync(directory)
