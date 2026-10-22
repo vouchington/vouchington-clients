@@ -326,12 +326,6 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.suspendResponse(path: pollPath) { firstPollCaptured.fulfill() }
         let rerun = Task { await viewModel.rerunAI(for: appeal) }
         await fulfillment(of: [firstPollCaptured], timeout: 5)
-        guard CannedFeedURLProtocol.hasSuspendedResponse(path: pollPath) else {
-            rerun.cancel()
-            CannedFeedURLProtocol.releaseResponse(path: pollPath)
-            await rerun.value
-            return
-        }
 
         rerun.cancel()
         CannedFeedURLProtocol.releaseResponse(path: pollPath)
