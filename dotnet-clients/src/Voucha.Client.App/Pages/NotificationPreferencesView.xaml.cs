@@ -3,6 +3,7 @@ namespace Voucha.Client.App.Pages;
 public sealed partial class NotificationPreferencesView : ContentView, Voucha.Client.Core.Localization.IUiLocaleChangeListener
 {
   private bool isSynchronizing;
+  private bool acceptControlEvents = true;
   private Voucha.Client.Core.Settings.NotificationPreferencesViewModel? model;
   private Voucha.Client.Core.Localization.IUiLocalization localization = Voucha.Client.Core.Localization.UiLocalization.English;
   private IDisposable? localeSubscription;
@@ -28,9 +29,13 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
   public void SynchronizeControls()
   {
     if (BindingContext is not Voucha.Client.Core.Settings.NotificationPreferencesViewModel model) return;
+    acceptControlEvents = false;
     isSynchronizing = true;
     try
     {
+#if MACCATALYST
+      UIKit.UIView.AnimationsEnabled = false;
+#endif
       EngagementSwitch.IsToggled = model.EngagementEmailsEnabled;
       ModerationSwitch.IsToggled = model.ModerationEmailsEnabled;
       NewsPicker.SelectedItem = Option(model.DigestOptions, model.NewsDigestFrequency);
@@ -42,6 +47,19 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
       SynchronizeDays(model);
     }
     finally { isSynchronizing = false; }
+    ReleaseControlEvents();
+  }
+
+  private void ReleaseControlEvents()
+  {
+    var dispatcher = Dispatcher ?? Application.Current?.Dispatcher;
+    if (dispatcher is null)
+    {
+      acceptControlEvents = true;
+      return;
+    }
+
+    dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(1), () => acceptControlEvents = true);
   }
   private void OnEngagementChanged(object? s, ToggledEventArgs e)
   {
@@ -78,7 +96,7 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
   private void OnDayClicked(object? s, EventArgs e) { if (s is Button { CommandParameter: string day } && int.TryParse(day, out var value)) Raise("day", value); }
   private void Raise(string field, object? value)
   {
-    if (!isSynchronizing && value is not null)
+    if (acceptControlEvents && !isSynchronizing && value is not null)
       PreferenceChanged?.Invoke(this, new(field, value));
   }
   private static string? Value(Picker picker) => (picker.SelectedItem as Voucha.Client.Core.Settings.SettingsOptionViewModel)?.Value;

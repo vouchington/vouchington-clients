@@ -60,11 +60,11 @@ public sealed partial class NotificationPreferencesViewTests
     _ = new Application { Resources = { ["Headline"] = new Style(typeof(Label)), ["Body"] = new Style(typeof(Label)) } };
     var model = new NotificationPreferencesViewModel(new SettingsService());
     var view = new NotificationPreferencesView { BindingContext = model };
-    var emitted = 0;
-    view.PreferenceChanged += (_, _) => emitted++;
+    var changes = new List<NotificationPreferenceChangedEventArgs>();
+    view.PreferenceChanged += (_, change) => changes.Add(change);
     await model.LoadAsync(TestContext.Current.CancellationToken);
     view.SynchronizeControls();
-    Assert.Equal(0, emitted);
+    Assert.Empty(changes);
 
     var engagement = Find<Switch>(view, "notification-engagement");
     engagement.IsToggled = !model.EngagementEmailsEnabled;
@@ -75,7 +75,8 @@ public sealed partial class NotificationPreferencesViewTests
     news.SelectedItem = selectedNews;
     Find<TimePicker>(view, "notification-time").Time =
         TimeSpan.Parse(model.ModerationEmailTimeOfDay, CultureInfo.InvariantCulture);
-    Assert.Equal(1, emitted);
+    Assert.Equal(["engagement"], changes.Select(change => change.Field));
+    Assert.Equal(!model.EngagementEmailsEnabled, changes[0].Value);
   }
 
   [Fact]

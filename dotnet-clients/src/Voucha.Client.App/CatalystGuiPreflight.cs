@@ -62,6 +62,8 @@ internal static class CatalystGuiPreflight
   {
 #if MACCATALYST
     UIKit.UIView.AnimationsEnabled = false;
+    foreach (var window in UIKit.UIApplication.SharedApplication.Windows)
+      window.Layer.RemoveAllAnimations();
 #endif
   }
 
@@ -106,6 +108,7 @@ internal static class CatalystGuiPreflight
   private static Task<string> NavigateAsync(IServiceProvider services, AppShell shell) =>
       MainThread.InvokeOnMainThreadAsync(async () =>
       {
+        DisablePreflightAnimations();
         await shell.OpenNativePathAsync(NotificationSettingsPath).ConfigureAwait(true);
         var location = shell.CurrentState?.Location.ToString() ?? "";
         if (!IsSettingsLocation(location))
