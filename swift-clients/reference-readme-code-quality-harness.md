@@ -118,8 +118,9 @@ not a supported UI compiler.
 This is a local/pre-push planning aid only. GitHub's native Swift workflow intentionally remains
 full-suite: it runs core, UI, and Android test/build coverage rather than consuming a narrowed
 planner result. The Core and UI LCOV reports are checked with `pnpm run coverage:swift`; its
-`.coverage-rules.yml` keeps app shells, package manifests, and opt-in integration tests exempt
-while requiring 90% patch coverage for all other Swift sources.
+`.coverage-rules.yml` keeps app shells, package manifests, opt-in integration tests, and the
+Apple Intelligence descriptor measurement exempt while requiring 90% patch coverage for all other
+Swift sources.
 
 `build/ui`, `periphery`, and `test/ui` are macOS-only until the UI package is Linux-portable.
 `build/core`, `test/core`, and `test/test-support` run on Linux. `build-android` is Linux-only and
