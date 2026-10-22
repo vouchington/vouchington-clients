@@ -52,6 +52,8 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
     /name: Build MAUI Mac Catalyst app[\s\S]*python3 dotnet-clients\/tooling\/catalyst-msbuild-reasons\.py --root \. --[\s\S]*dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--no-restore -clp:PerformanceSummary/u,
   )
   assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
+  assert.match(mauiCompile, /name: Verify all twelve committed NuGet locks/u)
+  assert.match(maui, /name: Verify all twelve committed NuGet locks/u)
   assert.match(
     mauiCompile,
     /name: Build managed Mac Catalyst CoreBuild closure[\s\S]*--no-restore -t:CoreBuild/u,
