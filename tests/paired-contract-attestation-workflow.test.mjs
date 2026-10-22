@@ -2,18 +2,10 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
 import { runPairedContractCommand } from '../scripts/paired-contract-attestation.mjs'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const workflowPath = '../.github/workflows/paired-native-contract-attestation.yml'
 const readWorkflow = () => readFile(new URL(workflowPath, import.meta.url), 'utf8')
-
-function jobBlock(workflow, name) {
-  const marker = `  ${name}:\n`
-  const start = workflow.indexOf(marker)
-  assert.notEqual(start, -1, `missing job ${name}`)
-  const remaining = workflow.slice(start + marker.length)
-  const next = remaining.search(/\n  [a-z][\w-]*:\n/u)
-  return workflow.slice(start, next === -1 ? undefined : start + marker.length + next)
-}
 
 function stepBlock(workflow, name) {
   const marker = `      - name: ${name}`
