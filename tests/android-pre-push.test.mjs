@@ -19,7 +19,7 @@ const gradleSettingsPath = join(
 test('builds only the Android app and instrumentation Gradle task closures', async () => {
   const prePush = await readFile(prePushPath, 'utf8')
   const qualifiedAssemble = prePush.indexOf(
-    './gradlew :app:assembleDebug :app:assembleDebugAndroidTest',
+    './gradlew --profile :app:assembleDebug :app:assembleDebugAndroidTest',
   )
   const unqualifiedAssemble = prePush.indexOf('./gradlew assembleDebug')
   const nativeTestBuild = prePush.indexOf('skip android build \\')
@@ -45,7 +45,7 @@ test('uses the materialized Swift SDK NDK for the Gradle and Skip test builds', 
   const ndkSelection = prePush.indexOf(
     'ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"',
   )
-  const gradleBuild = prePush.indexOf('./gradlew :app:assembleDebug')
+  const gradleBuild = prePush.indexOf('./gradlew --profile :app:assembleDebug')
   const skipTest = prePush.indexOf('skip android test \\')
 
   assert.ok(ndkVerification >= 0)

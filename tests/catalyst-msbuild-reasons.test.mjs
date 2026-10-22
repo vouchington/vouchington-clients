@@ -14,6 +14,9 @@ fifo = next(re.match(r'-flp:LogFile=([^;]+);Verbosity=diagnostic', arg).group(1)
             for arg in sys.argv if arg.startswith('-flp:'))
 project = sys.argv[1]
 with open(fifo, 'w') as stream:
+    stream.write(f'Target "GenerateTargetFrameworkMonikerAttribute: (TargetId:107)" in file "common.targets" from project "{project}" (target "BeforeCompile" depends on it):\n')
+    stream.write('Building target "GenerateTargetFrameworkMonikerAttribute" completely.\n')
+    stream.write('Input file "sdk.targets" is newer than output file "obj/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs".\n')
     stream.write(f'Target "CoreCompile: (TargetId:108)" in file "sdk.targets" from project "{project}" (target "Compile" depends on it):\n')
     stream.write('Building target "CoreCompile" completely.\n')
     stream.write('Input file "input.cs" is newer than output file "obj/output.dll".\n')
@@ -51,17 +54,18 @@ it('streams bounded target reasons with precompile mtimes and preserves the buil
       .split('\n')
       .filter(line => line.startsWith('{'))
       .map(JSON.parse)
-    assert.equal(records.length, 2, run.stdout)
+    assert.equal(records.length, 3, run.stdout)
     assert.deepEqual(
       records.map(record => record.target),
-      ['CoreCompile', 'XamlC'],
+      ['GenerateTargetFrameworkMonikerAttribute', 'CoreCompile', 'XamlC'],
     )
-    assert.equal(records[0].project, 'repo/Probe.csproj')
-    assert.equal(records[0].input, 'repo/input.cs')
-    assert.equal(records[0].output, 'repo/obj/output.dll')
-    assert.equal(records[0].input_newer_ns, 1_000_000_000)
-    assert.equal(records[1].reason, 'missing-output')
-    assert.equal(records[1].output_stat, null)
+    assert.equal(records[0].output, 'repo/obj/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs')
+    assert.equal(records[1].project, 'repo/Probe.csproj')
+    assert.equal(records[1].input, 'repo/input.cs')
+    assert.equal(records[1].output, 'repo/obj/output.dll')
+    assert.equal(records[1].input_newer_ns, 1_000_000_000)
+    assert.equal(records[2].reason, 'missing-output')
+    assert.equal(records[2].output_stat, null)
     assert.doesNotMatch(run.stdout, /wrong\.cs/u)
     assert.doesNotMatch(run.stdout, /x{100}/u)
   } finally {

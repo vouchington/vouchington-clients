@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 it('routes pull-request artifact identity through the tested candidate validator', async () => {
   const [workflow, validator] = await Promise.all([
     readFile(new URL('../.github/workflows/native-contract-tests.yml', import.meta.url), 'utf8'),
     readFile(new URL('../scripts/validate-native-contract-candidate.mjs', import.meta.url), 'utf8'),
   ])
-  const verifyStart = workflow.indexOf('  verify:')
-  assert.notEqual(verifyStart, -1)
-  const nextJob = workflow.slice(verifyStart).search(/\n {2}[A-Za-z0-9_-]+:/u)
-  const verify = workflow.slice(verifyStart, nextJob === -1 ? undefined : verifyStart + nextJob)
+  const verify = jobBlock(workflow, 'verify')
 
   assert.match(
     verify,

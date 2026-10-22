@@ -50,8 +50,7 @@ mise exec -- skip android sdk install --version swift-6.4.0-RELEASE_android
 mise exec -- skip checkup --native
 # Point this shell at an installed Xcode 26.6; adjust the app name if needed.
 export DEVELOPER_DIR="/Applications/Xcode_26.6.app/Contents/Developer"
-bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
-mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
+bash swift-clients/tooling/harness.sh --checks test-android-host
 mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh
 ```
 
@@ -68,12 +67,17 @@ artifact URL their SwiftPM resolution uses.
 It covers Swift, Kotlin bridge, manifest, and Gradle changes without requiring an attached device.
 CI installs the pinned Swift 6.4.0 toolchain with mise into `RUNNER_TEMP`; the wrapper exposes that
 verified toolchain to Skip's Xcode-style discovery path and keeps SwiftPM SDK state job-scoped.
-For local host-side SwiftPM tests, set `DEVELOPER_DIR` to an installed Xcode 26.6 developer
-directory; the verification script checks both Xcode and `xcrun` compiler paths without changing
-the machine's global Xcode selection. The Android package's host-side SwiftPM tests use mise Swift
-6.3.3, matched to the selected Xcode 26.6 compiler; SwiftPM 6.4 rejects duplicate static products
-in Skip's non-bridge macOS test graph.
-The Swift 6.4 compiler still builds the Android SDK and Gradle application. Host archives,
+Host-side SwiftPM source tests use one command everywhere: the planner, the local
+`test-android-host` host-lock check, and the macOS Android host CI job all run
+`bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter VouchaAndroidTests`.
+The local check wraps that argv with `with-build-lock.sh`. CI runs it directly. Point
+`DEVELOPER_DIR` at an installed Xcode 26.6; the entrypoint checks that selection and its Swift
+6.3.3 compiler, installs mise Swift 6.3.3, and exits before SwiftPM when the pair is absent. It
+does not change the machine's global Xcode selection. SwiftPM 6.4 rejects duplicate static products
+in Skip's non-bridge macOS test graph, so it is not the host source-test compiler.
+The Swift 6.4 compiler still builds the Android SDK and Gradle application. Those APK and
+instrumentation builds, the emulator cookie-restart job, and physical-device acceptance are
+separate from the host source tests. Host archives,
 including the Swift Android SDK, NDK, and `skip-macos.zip`, are reused from
 `$HOME/.cache/voucha/swift-android/downloads` after a checksum check via
 `cached-archive.sh`. Only these immutable, checksum-verified archives persist across jobs;

@@ -13,10 +13,10 @@ import tempfile
 import threading
 
 
-TARGET = re.compile(r'Target "(CoreCompile|XamlC): \(TargetId:\d+\)".* from project "([^"]+)"')
+TARGET = re.compile(r'Target "(CoreCompile|XamlC|GenerateTargetFrameworkMonikerAttribute): \(TargetId:\d+\)".* from project "([^"]+)"')
 NEWER = re.compile(r'Input file "([^"]+)" is newer than output file "([^"]+)"\.')
 MISSING = re.compile(r'Output file "([^"]+)" does not exist\.')
-TARGET_ACTION = re.compile(r'(?:Building|Skipping) target "(CoreCompile|XamlC)"')
+TARGET_ACTION = re.compile(r'(?:Building|Skipping) target "(CoreCompile|XamlC|GenerateTargetFrameworkMonikerAttribute)"')
 MAX_BYTES = 256 * 1024 * 1024
 MAX_LINE = 16 * 1024
 MAX_RECORDS = 8
@@ -146,7 +146,7 @@ class ReasonParser:
         if self.truncated:
             print(f"MSBuild diagnostic parser capped at {MAX_BYTES} bytes")
         elif not self.records:
-            print("No CoreCompile/XamlC incremental reason found in diagnostic stream")
+            print("No managed compile or target-framework attribute incremental reason found in diagnostic stream")
 
 
 def run(root, command):
