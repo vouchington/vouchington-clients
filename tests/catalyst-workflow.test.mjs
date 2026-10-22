@@ -47,6 +47,10 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
   assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
   assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
   assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
+  assert.match(
+    maui,
+    /name: Build MAUI Mac Catalyst app[\s\S]*python3 dotnet-clients\/tooling\/catalyst-msbuild-reasons\.py --root \. --[\s\S]*dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--no-restore -clp:PerformanceSummary/u,
+  )
   assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
   assert.match(
     mauiCompile,
