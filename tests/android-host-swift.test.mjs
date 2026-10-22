@@ -82,7 +82,7 @@ test('requires the Xcode-selected host compiler and matching mise Swift', async 
     workflow.indexOf('  build-swift-android:'),
     workflow.indexOf('  build-swift-ui-tests:'),
   )
-  assert.match(androidJob, /select-xcode\.sh 26\.6[\s\S]*?verify-android-host-swift\.sh/u)
+  assert.match(androidJob, /select-xcode\.sh 26\.6[\s\S]*?run-android-host-swift-tests\.sh/u)
   assert.doesNotMatch(androidJob, /DEVELOPER_DIR: \/Applications\/Xcode\.app/u)
 })
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
 const native = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -11,13 +12,6 @@ const validate = await readFile(
   new URL('../.github/workflows/validate.yml', import.meta.url),
   'utf8',
 )
-const jobBlock = (workflow, name) => {
-  const start = workflow.indexOf(`\n  ${name}:\n`)
-  assert.notEqual(start, -1)
-  const block = workflow.slice(start + 1)
-  const next = block.search(/\n {2}[\w-]+:/u)
-  return next === -1 ? block : block.slice(0, next)
-}
 const command = block => {
   const script = block.match(/        run: \|\n([\s\S]+)/u)?.[1]
   assert.ok(script, 'aggregate must retain its executable result checks')

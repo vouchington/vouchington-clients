@@ -39,17 +39,18 @@ only; sign-in and tab coverage stay on #80.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
-`.xctestproducts` bundle. The launch job downloads it, checks the run, attempt, candidate
-revision, Xcode, SDK, destination, and bundled product paths, then runs the shared UI launch-smoke
-target with `-testProductsPath` and `test-without-building` on the same model and runtime with
-signing disabled. The `Tests` fan-in requires both the x86_64 compile and the iPhone launch.
-It also exercises the real Videos tab using existing canonical identity and feed responses. The
-DEBUG fixture restores its account through `SessionManager.refresh`; it does not prove sign-in,
-cookie persistence, or CAPTCHA behavior. The test receives its complete fixture checkout explicitly
-through the generated scheme and fails closed when a fixture or the Simulator is unavailable.
-The job is required by the native workflow `Tests` fan-in; skipped cases and test retries are not
-accepted as feed-flow evidence. This is partial coverage of #77, with other flows and platforms
-still outstanding.
+`.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
+run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
+`test-without-building`; neither launch job recompiles. The iPhone job requires exactly two passed,
+non-skipped root-shell and real Videos-tab tests. The iPad job requires exactly one passed,
+non-skipped root-shell test on an available iPad Simulator. The native `Tests` fan-in requires
+both device-family launches and the x86_64 compile. The DEBUG fixture restores its account
+through `SessionManager.refresh`; it does not prove sign-in, cookie persistence, or CAPTCHA
+behavior. Both jobs receive the complete fixture checkout explicitly through the generated scheme
+and fail closed when a fixture or Simulator is unavailable.
+Both launch jobs are required by the native workflow `Tests` fan-in; skipped cases and test retries are not
+accepted as feed-flow evidence. This is partial coverage of #77. iPad feed flow, sign-in, and
+Catalyst remain outstanding.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,
