@@ -16,6 +16,9 @@ settings:
     VOUCHA_TURNSTILE_SITE_KEY: ''
     ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: YES
+  configs:
+    Debug:
+      VOUCHA_TURNSTILE_SITE_KEY: '1x00000000000000000000AA'
 
 packages:
   VouchaCore:
@@ -88,6 +91,13 @@ targets:
         PRODUCT_NAME: Voucha
         INFOPLIST_FILE: Info.plist
         CODE_SIGN_ENTITLEMENTS: Voucha.entitlements
+    preBuildScripts:
+      - name: Require explicit non-test Turnstile site key
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            "${SRCROOT}/../../tooling/turnstile-release-site-key.sh" "${VOUCHA_TURNSTILE_SITE_KEY}"
+          fi
     dependencies:
       - package: VouchaCore
         product: VouchaCore

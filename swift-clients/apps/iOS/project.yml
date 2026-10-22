@@ -15,6 +15,9 @@ settings:
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
     VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
     VOUCHA_TURNSTILE_SITE_KEY: ''
+  configs:
+    Debug:
+      VOUCHA_TURNSTILE_SITE_KEY: '1x00000000000000000000AA'
 
 packages:
   VouchaCore:
@@ -94,6 +97,13 @@ targets:
         INFOPLIST_FILE: Info.plist
         CODE_SIGN_ENTITLEMENTS: Voucha.entitlements
         TARGETED_DEVICE_FAMILY: '1,2'
+    preBuildScripts:
+      - name: Require explicit non-test Turnstile site key
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            "${SRCROOT}/../../tooling/turnstile-release-site-key.sh" "${VOUCHA_TURNSTILE_SITE_KEY}"
+          fi
     dependencies:
       - package: VouchaCore
         product: VouchaCore

@@ -50,7 +50,7 @@ public sealed class PackagedAppConfigTests
   }
 
   [Fact]
-  public void EmptyConfigurationUsesSafeProductionDefaultsAndMissingCaptchaFailsClosed()
+  public void EmptyConfigurationUsesProductionApiAndResolvesTurnstileForTheCompiledConfiguration()
   {
     var config = AppConfig.FromEnvironment(new Dictionary<string, string?>
     {
@@ -62,6 +62,11 @@ public sealed class PackagedAppConfigTests
     });
 
     Assert.Equal(new Uri(AppConfig.DefaultApiBaseUrl), config.ApiBaseUrl);
-    Assert.Throws<InvalidOperationException>(() => config.RequiredTurnstileSiteKey);
+#if DEBUG
+    Assert.Equal(TurnstileSiteKeys.AlwaysPassSiteKey, config.RequiredTurnstileSiteKey);
+#else
+    var exception = Assert.Throws<InvalidOperationException>(() => config.RequiredTurnstileSiteKey);
+    Assert.Equal(TurnstileSiteKeys.MissingReleaseKeyMessage, exception.Message);
+#endif
   }
 }

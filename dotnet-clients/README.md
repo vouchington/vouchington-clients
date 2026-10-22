@@ -167,17 +167,24 @@ Windows packaging can be built locally on Windows. CI compiles the actual Window
 ## Configuration
 
 Release builds default to `https://voucha.ai`. Set `VOUCHA_API_BASE_URL` and `VOUCHA_WEB_BASE_URL`
-for local development. Set `VOUCHA_TURNSTILE_SITE_KEY` when testing CAPTCHA-gated flows; app startup
-must remain safe when the key is absent.
+for local development. `VOUCHA_TURNSTILE_SITE_KEY` overrides
+`NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`, which overrides packaged assembly metadata.
+
+Debug and other non-Release builds use Cloudflare's always-pass visible test site key
+`1x00000000000000000000AA` when those inputs are absent. The widget then returns Cloudflare's
+dummy token `XXXX.DUMMY.TOKEN.XXXX`. That token verifies only against a server configured with
+Cloudflare's matching Turnstile test secret. Production secrets reject it, so a Debug app works
+with a local or staging server that uses the test secret and does not verify against production.
 
 The MAUI project embeds the public `VouchaApiBaseUrl` and `VouchaTurnstileSiteKey` MSBuild
-properties as assembly metadata. The properties accept `VOUCHA_API_BASE_URL` and
-`VOUCHA_TURNSTILE_SITE_KEY` from the build environment; the site key also accepts the producer's
-public `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` input. Runtime environment values override
-the packaged values, followed by production defaults. Pass the environment's public site key
-at Release build time; a development machine's runtime environment does not configure an
-installed app. Missing site keys remain empty and CAPTCHA-gated operations fail closed. No
-site key or credential is checked in, and this does not introduce a packaging/signing pipeline.
+properties as assembly metadata. `TurnstileSiteKey.targets` accepts `VOUCHA_TURNSTILE_SITE_KEY`
+and the producer's public `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`. A Release build fails when
+the resolved key is empty or is a Cloudflare test site or secret key. Runtime environment values
+override the packaged values. Pass an explicit non-test public site key with
+`-p:VouchaTurnstileSiteKey` for a Release build; a development machine's runtime environment does
+not configure an installed app. The Release runtime also rejects a missing or test key. The
+production site key stays outside this repository, and this does not introduce a packaging or
+signing pipeline.
 
 ## Agent rules
 
