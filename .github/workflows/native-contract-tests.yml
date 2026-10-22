@@ -1418,7 +1418,7 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Launch macOS root shell
+      - name: Launch macOS root shell and sidebar feed
         timeout-minutes: 15
         working-directory: candidate-clients
         env:
@@ -1432,8 +1432,8 @@ jobs:
             exit 1
           fi
           rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements"
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2

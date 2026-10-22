@@ -10,7 +10,7 @@ const jobBlock = (workflow, job) => {
   return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
 }
 
-test('macOS app smoke launches the root shell and rejects a missing GUI session', () => {
+test('macOS app smoke launches the root shell, navigates the sidebar feed, and rejects a missing GUI session', () => {
   const workflow = readFileSync(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
@@ -21,9 +21,10 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
     macJob.indexOf('- name: Build macOS app shell'),
   )
   const launch = macJob.slice(
-    macJob.indexOf('- name: Launch macOS root shell'),
+    macJob.indexOf('- name: Launch macOS root shell and sidebar feed'),
     macJob.indexOf('- name: Collect failed macOS launch diagnostics'),
   )
+  assert.match(launch, /timeout-minutes: 15/u)
 
   assert.match(macJob, /runs-on: macos-latest/u)
   assert.match(macJob, /^    timeout-minutes: 40$/mu)
@@ -37,7 +38,7 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
   )
   assert.ok(
     macJob.indexOf('- name: Build macOS app shell') <
-      macJob.indexOf('- name: Launch macOS root shell'),
+      macJob.indexOf('- name: Launch macOS root shell and sidebar feed'),
   )
   assert.match(macJob, /generate\.sh macOS/u)
   assert.match(macJob, /-destination 'platform=macOS' build/u)
@@ -46,12 +47,17 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
     launch,
     /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
   )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarFeedTests\/testVideoFeedSurvivesSidebarNavigation/u,
+  )
+  assert.match(launch, /VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u)
   assert.doesNotMatch(launch, /-only-testing:.*FeedFlowTests/u)
-  assert.doesNotMatch(launch, /testNotificationSettings|testFediverse/u)
+  assert.doesNotMatch(launch, /SignInFlowTests|testNotificationSettings|testFediverse/u)
   assert.match(launch, /platform:macOS/u)
   assert.match(
     launch,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(launch, /continue-on-error/u)
   assert.match(
