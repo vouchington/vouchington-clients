@@ -14,6 +14,9 @@ test('Android caches restore on all runs and save only one completed main phase'
   const producer = workflow
     .split('  build-swift-android-native:\n')[1]
     .split('  build-swift-android:\n')[0]
+  const dependency = workflow
+    .split('  build-swift-android-dependency:\n')[1]
+    .split('  build-swift-android-native:\n')[0]
   const app = workflow.split('  build-swift-android:\n')[1].split('  test-swift-android-libs:\n')[0]
   const libs = workflow
     .split('  test-swift-android-libs:\n')[1]
@@ -22,6 +25,14 @@ test('Android caches restore on all runs and save only one completed main phase'
     .split('  test-swift-android-host:\n')[1]
     .split('  test-swift-android-cookie:\n')[0]
   const coreJob = workflow.split('  build-android-core:\n')[1].split('  build-macos-app:\n')[0]
+
+  for (const job of [dependency, producer, app]) {
+    assert.match(
+      job,
+      /uses: \.\/\.github\/actions\/prepare-native-contract[\s\S]*?skip-candidate-install: true/u,
+    )
+    assert.doesNotMatch(job, /(?:pnpm|npm) (?:run|exec|install) /u)
+  }
 
   for (const job of [producer, app, libs, host]) {
     assert.match(job, /uses: \.\/\.github\/actions\/prepare-android-archives/u)
@@ -135,7 +146,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     .split('  build-swift-android-native:\n')[1]
     .split('  build-swift-android:\n')[0]
   const required = workflow
-    .split('  test-swift-android:\n')[1]
+    .split('  test-swift-android-cookie:\n')[1]
     .split('  build-swift-ui-tests:\n')[0]
   assert.match(dependency, /ANDROID_BUILD_PHASE: app-native-dependency/u)
   assert.doesNotMatch(dependency, /Restore Gradle user home|Restore Gradle task-output cache/u)
@@ -150,6 +161,8 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     /ANDROID_DEPENDENCY_RESULT: \$\{\{ needs\.build-swift-android-dependency\.result \}\}/u,
   )
   assert.match(required, /test "\$ANDROID_DEPENDENCY_RESULT" = success/u)
+  assert.match(required, /name: Swift Android Skip/u)
+  assert.match(required, /Prove checked encrypted storage survives Android process restarts/u)
   const ordered = [
     'Prepare checksummed Swift Android SDK and archives',
     'Download exact-run native dependency state',

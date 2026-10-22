@@ -583,6 +583,7 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -686,6 +687,7 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -839,6 +841,7 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |

@@ -82,6 +82,8 @@ separate macOS VMs. Host Swift package tests and native test-library preparation
 with the producer. The producer packages only bounded generated build state, tied to the verified
 candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
 identity before rehydration, then executes the original app and instrumentation APK task closure.
+These three serial jobs still verify the exact native contract but omit candidate pnpm installation;
+their candidate tooling uses Node builtins, shell, Swift, and Gradle without installed JS packages.
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
 document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
 Android SDK, and NDK toolchains are materialized independently in each job and never included in
