@@ -890,12 +890,6 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: false
-      - name: Resolve Android Swift package with shared artifact cache
-        working-directory: candidate-clients
-        run: |
-          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
-          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
-          ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Download exact-run generated Android state
         timeout-minutes: 5
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
@@ -915,6 +909,12 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Restore Gradle user home
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

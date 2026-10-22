@@ -76,6 +76,21 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Restore verified exact-run generated Android state') <
       app.indexOf('Restore Gradle task-output cache'),
   )
+  const appSteps = [
+    'Prepare checksummed Swift Android SDK and archives',
+    'Download exact-run generated Android state',
+    'Restore verified exact-run generated Android state',
+    'Resolve Android Swift package with shared artifact cache',
+    'Restore Gradle user home',
+    'Build the selected Android validation phase',
+    'Package exact candidate Android app and instrumentation APKs',
+  ]
+  for (const step of appSteps) assert.notEqual(app.indexOf(step), -1)
+  for (let index = 1; index < appSteps.length; index += 1) {
+    assert.ok(app.indexOf(appSteps[index - 1]) < app.indexOf(appSteps[index]))
+  }
+  assert.match(app, /! grep -E 'Downloading binary artifact' "\$resolve_log"/u)
+  assert.match(app, /echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "\$GITHUB_ENV"/u)
   assert.match(
     app,
     /name: Bound Gradle task-output cache save\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
