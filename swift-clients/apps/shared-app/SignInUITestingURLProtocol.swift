@@ -93,12 +93,11 @@ enum SignInUITestingLaunch {
 
         private func acceptedLogin() -> Data? {
             let body = jsonBody()
-            // verifyEmailOTP encodes a dictionary. convertToSnakeCase does not rewrite
-            // dictionary keys, so the email field stays emailAddress.
-            guard body["emailAddress"] == SignInUITestingLaunch.nonEmptyEnvironmentValue(
-                "VOUCHA_UI_TESTING_SIGN_IN_EMAIL"
-            ),
-                body["token"] == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_SIGN_IN_CODE")
+            // verifyEmailOTP encodes a dictionary. Some JSONEncoder versions leave
+            // dictionary keys as emailAddress; others rewrite them to email_address.
+            let email = body["emailAddress"] ?? body["email_address"]
+            guard email == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_SIGN_IN_EMAIL"),
+                  body["token"] == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_SIGN_IN_CODE")
             else { return nil }
             return Data(#"{"mfa_required":false}"#.utf8)
         }

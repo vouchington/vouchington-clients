@@ -44,7 +44,11 @@
             type(code, into: codeField)
             tapHittableButton("Verify Code", in: app)
 
-            XCTAssertTrue(signIn.waitForNonExistence(timeout: 20))
+            let signedOutControlGone = signIn.waitForNonExistence(timeout: 20)
+            if !signedOutControlGone {
+                let visible = app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label).joined(separator: " | ")
+                XCTFail("Sign In remained. Visible text: \(visible)")
+            }
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
         }
 
