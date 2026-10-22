@@ -119,20 +119,43 @@ test('native dependency handoff retains the original Gradle build and exact-run 
   const native = workflow
     .split('  build-swift-android-native:\n')[1]
     .split('  build-swift-android:\n')[0]
+  const required = workflow
+    .split('  test-swift-android:\n')[1]
+    .split('  build-swift-ui-tests:\n')[0]
   assert.match(dependency, /ANDROID_BUILD_PHASE: app-native-dependency/u)
+  assert.doesNotMatch(dependency, /Restore Gradle user home|Restore Gradle task-output cache/u)
   assert.match(
     dependency,
     /android-native-dependency-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
   )
   assert.match(native, /needs: \[verify, build-swift-android-dependency\]/u)
-  assert.ok(
-    native.indexOf('Restore verified native dependency state') <
-      native.indexOf('Build the selected Android validation phase'),
+  assert.match(required, /build-swift-android-dependency,/u)
+  assert.match(
+    required,
+    /ANDROID_DEPENDENCY_RESULT: \$\{\{ needs\.build-swift-android-dependency\.result \}\}/u,
   )
+  assert.match(required, /test "\$ANDROID_DEPENDENCY_RESULT" = success/u)
+  const ordered = [
+    'Prepare checksummed Swift Android SDK and archives',
+    'Download exact-run native dependency state',
+    'Restore verified native dependency state',
+    'Resolve Android Swift package with shared artifact cache',
+    'Restore Gradle user home',
+    'Build the selected Android validation phase',
+  ]
+  for (const step of ordered) assert.notEqual(native.indexOf(step), -1)
+  for (let index = 1; index < ordered.length; index += 1) {
+    assert.ok(native.indexOf(ordered[index - 1]) < native.indexOf(ordered[index]))
+  }
   assert.match(native, /ANDROID_BUILD_PHASE: app-native-producer/u)
   assert.match(script, /gradle_tasks=\(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug\)/u)
   assert.match(
     script,
     /--package-path "\$generated_package"[\s\S]*--target SkipSwiftUI[\s\S]*--scratch-path "\$generated_scratch"/u,
   )
+  assert.match(
+    script,
+    /skip plugin --prebuild --package-path "\$ANDROID_PACKAGE_DIR" --plugin-ref "\$plugin_ref"/u,
+  )
+  assert.doesNotMatch(script, /gradle_tasks=\(help\)/u)
 })

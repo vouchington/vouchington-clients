@@ -155,15 +155,11 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
-if [[ "$phase" != test-libs ]]; then
+if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
-  if [[ "$phase" == app-native-dependency ]]; then
-    # settings.gradle.kts runs Skip's pinned --prebuild while configuring Gradle.
-    # This creates the same generated package consumed by the native Gradle task.
-    gradle_tasks=(help)
-  elif [[ "$phase" == app-native-producer ]]; then
+  if [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
   elif [[ "$phase" == app-consumer ]]; then
     consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
@@ -202,6 +198,15 @@ if [[ "$phase" != test-libs ]]; then
 fi
 
 if [[ "$phase" == app-native-dependency ]]; then
+  # Match settings.gradle.kts's prebuild invocation directly. Skip 1.9.13 runs
+  # the host SwiftPM build that materializes the same native Gradle package.
+  plugin_ref="$(mktemp "${RUNNER_TEMP:?}/skip-plugin-path.XXXXXX")"
+  trap 'rm -f -- "$plugin_ref"' EXIT
+  skip plugin --prebuild --package-path "$ANDROID_PACKAGE_DIR" --plugin-ref "$plugin_ref"
+  if [[ "$(cat "$plugin_ref")" != "$ANDROID_PACKAGE_DIR/.build/Android/skip-gradle" ]]; then
+    echo "Skip prebuild returned an unexpected Gradle plugin path" >&2
+    exit 1
+  fi
   generated_module="$ANDROID_PACKAGE_DIR/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid"
   generated_package="$generated_module/src/main/swift"
   generated_scratch="$generated_module/build/swift"
@@ -225,6 +230,9 @@ if [[ "$phase" == app-native-dependency ]]; then
     -Xswiftc -no-clang-module-breadcrumbs \
     -Xswiftc -module-cache-path \
     -Xswiftc "$generated_scratch/module-cache/VouchaAndroid"
+  # The state handoff includes this Gradle-owned directory. No Gradle task has
+  # run in this stage; the original native Gradle task runs after restore.
+  mkdir -p -- "$ANDROID_PROJECT_DIR/.gradle"
 fi
 
 if [[ "$phase" == test-libs || "$phase" == all ]]; then

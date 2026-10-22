@@ -24,6 +24,17 @@ async function fixture() {
     `#!/bin/bash
 set -eu
 printf '%s\\n' "$*" >> "$PHASE_TRACE"
+if [[ "$1" == plugin ]]; then
+  if [[ "\${FAIL_PLUGIN:-0}" != 0 ]]; then exit "$FAIL_PLUGIN"; fi
+  while [[ "$1" != --plugin-ref ]]; do shift; done
+  plugin_ref="$2"
+  plugin_path="$PHASE_PACKAGE/.build/Android/skip-gradle"
+  generated="$PHASE_PACKAGE/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid/src/main/swift"
+  mkdir -p "$plugin_path" "$generated"
+  printf '%s' "$plugin_path" > "$plugin_ref"
+  printf '// generated fixture\\n' > "$generated/Package.swift"
+  exit 0
+fi
 if [[ "$2" == build ]]; then
   if [[ "\${FAIL_BUILD:-0}" != 0 ]]; then exit "$FAIL_BUILD"; fi
   products="$PHASE_PACKAGE/.build/out/Products/Debug-android-aarch64"
@@ -139,6 +150,30 @@ test('native producer uses its pinned task and consumer requires verified state'
   }
 })
 
+test('native dependency phase uses the pinned prebuild to generate the Gradle package', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const result = f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root })
+    assert.equal(result.status, 0, result.stderr)
+    const lines = await f.lines()
+    assert.equal(lines.length, 2)
+    assert.match(lines[0], /^plugin --prebuild --package-path .* --plugin-ref /u)
+    assert.match(
+      lines[1],
+      /android build .* --package-path .*\/src\/main\/swift --configuration debug --target SkipSwiftUI --scratch-path .*\/build\/swift --arch automatic /u,
+    )
+    assert.doesNotMatch(lines.join('\n'), /gradle /u)
+    assert.equal(
+      f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root, FAIL_PLUGIN: '37' })
+        .status,
+      37,
+    )
+  } finally {
+    await f.clean()
+  }
+})
+
 test('local default retains both phases and every failed phase fails validation', async () => {
   const f = await fixture()
   try {
@@ -180,6 +215,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     'utf8',
   )
   for (const job of [
+    'build-swift-android-dependency',
     'build-swift-android-native',
     'build-swift-android',
     'test-swift-android-libs',
@@ -192,7 +228,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(
     gate,
-    /needs:\n      \[\n        verify,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n        test-swift-android-cookie,\n      \]/u,
+    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n        test-swift-android-cookie,\n      \]/u,
   )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
@@ -200,6 +236,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   const script = run[1].replace(/^ {10}/gmu, '')
   const names = [
     'VERIFY_RESULT',
+    'ANDROID_DEPENDENCY_RESULT',
     'ANDROID_NATIVE_RESULT',
     'ANDROID_APP_RESULT',
     'ANDROID_LIBS_RESULT',
