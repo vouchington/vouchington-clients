@@ -10,6 +10,7 @@ import { finalizeNativeTestsCommand } from '../scripts/paired-native-test-finali
 import { sha256 } from '../scripts/paired-native-test-evidence.mjs'
 import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 import { startFakeGitHub } from './paired-contract-cli-test-support.mjs'
+import { cleanupFixture } from './paired-native-cleanup-fixture.mjs'
 
 function finalizerSnapshot(repository, number, baseSha, headSha, mergeSha) {
   return {
@@ -119,6 +120,11 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
           'google/sdk_gphone64_x86_64/emu64x:15/AB1A.240505.005/1234567:userdebug/test-keys',
       },
       phases: androidPhases.map(method => ({ method, exitCode: 0, tests: 1 })),
+      cleanup: cleanupFixture({
+        runId,
+        nativeTestProfile,
+        clientsMergeSha: clients.merge.sha,
+      }),
     }),
   )
 
@@ -188,6 +194,7 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     assert.equal(output.classification, 'untrusted-candidate-execution-informational')
     assert.equal(output.nativeTestProfile, nativeTestProfile)
     assert.equal(output.androidRuntime.phases.length, androidPhases.length)
+    assert.equal(output.androidRuntime.cleanup.avdName, `paired-native-${runId}`)
     assert.equal(output.livePairRechecked, true)
     process.env.INPUT_NATIVE_TEST_PROFILE = 'cookie-snapshot'
     await assert.rejects(
@@ -200,6 +207,16 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     await writeFile(join(evidenceRoot, 'paired-attestation.json'), JSON.stringify(changedManifest))
     await unlink(join(evidenceRoot, 'paired-native-test-evidence.json'))
     await assert.rejects(finalizeNativeTestsCommand(), /snapshots differ from the captured/u)
+    const runtimeResult = JSON.parse(
+      await readFile(join(runtimeRoot, 'runtime-result.json'), 'utf8'),
+    )
+    runtimeResult.cleanup.runId = '999'
+    await writeFile(join(runtimeRoot, 'runtime-result.json'), JSON.stringify(runtimeResult))
+    await writeFile(join(evidenceRoot, 'paired-attestation.json'), JSON.stringify(manifest))
+    await assert.rejects(
+      finalizeNativeTestsCommand(),
+      /cleanup evidence is bound to another workflow run/u,
+    )
   } finally {
     globalThis.fetch = originalFetch
     for (const [key, value] of saved)

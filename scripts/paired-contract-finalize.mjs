@@ -1,44 +1,18 @@
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
+import { decodeSnapshot, git, readJson } from './paired-contract-command-support.mjs'
 import {
   pairedRepositories,
   assertCheckoutMatchesSnapshot,
   assertPairSnapshotUnchanged,
+  fail,
+  requiredSha,
+  requiredString,
 } from './paired-contract-policy.mjs'
 import { createPairManifest } from './paired-contract-manifest.mjs'
 import { validatePairedExporterRuntimeEvidence } from './paired-exporter-runtime-evidence.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
 import { declaredFilamentsContractPaths } from './contracts.mjs'
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
-
-function requiredString(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
-  return value.trim()
-}
-
-function requiredSha(value, label) {
-  if (typeof value !== 'string' || !/^[0-9a-f]{40}$/u.test(value))
-    fail(`${label} must be a lowercase 40-character commit SHA`)
-  return value
-}
-
-function git(root, args) {
-  return execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim()
-}
-
-async function readJson(path, label) {
-  try {
-    const info = await lstat(path)
-    if (!info.isFile() || info.isSymbolicLink()) fail(`${label} must be a regular file`)
-    return JSON.parse(await readFile(path, 'utf8'))
-  } catch (error) {
-    fail(`cannot read ${label}: ${error.message}`)
-  }
-}
 
 async function assertNoSymlinkComponents(root, target, label) {
   const pathFromRoot = relative(root, target)
@@ -90,17 +64,6 @@ async function assertDirectoryTreesEqual(leftRoot, rightRoot, label, leftBase, r
   for (const [path, bytes] of left) {
     if (!right.has(path) || !bytes.equals(right.get(path)))
       fail(`${label} staged file differs from producer source: ${path}`)
-  }
-}
-
-function decodeSnapshot() {
-  const encoded = requiredString(process.env.PAIR_SNAPSHOT_BASE64, 'captured pair snapshot')
-  const bytes = Buffer.from(encoded, 'base64url')
-  if (bytes.toString('base64url') !== encoded) fail('captured pair snapshot encoding is invalid')
-  try {
-    return JSON.parse(bytes.toString('utf8'))
-  } catch (error) {
-    fail(`captured pair snapshot is invalid: ${error.message}`)
   }
 }
 
