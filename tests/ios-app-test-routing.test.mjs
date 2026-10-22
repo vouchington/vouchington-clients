@@ -97,9 +97,12 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     ]) {
       const launch = job.slice(job.indexOf(launchName))
       const installAt = launch.indexOf('xcrun simctl install "$simulator_id" "$app"')
+      const spawnAt = launch.indexOf('xcrun simctl launch "$simulator_id" "$bundle_id"')
+      const stopAt = launch.indexOf('xcrun simctl terminate "$simulator_id" "$bundle_id"')
       const testAt = launch.indexOf('xcodebuild -testProductsPath "$bundle"')
-      assert.ok(installAt >= 0 && testAt > installAt)
+      assert.ok(installAt >= 0 && spawnAt > installAt && stopAt > spawnAt && testAt > stopAt)
       assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
+      assert.match(launch, /Installed app did not start a process/u)
     }
     for (const job of [buildJob, x86Job, iosJob]) {
       assert.match(job, /\n    timeout-minutes: 9\n/u)

@@ -48,8 +48,10 @@ run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProduc
 of one job id, each with its own 9-minute cap: the root shell, the Videos tab, and the email OTP
 sign-in. Each leg finishes Node.js setup and unpacks the shared test products before booting its
 simulator, so neither the toolchain download nor the bundle extract competes with CoreSimulator.
-After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator before
-`xcodebuild`, so the test's launch window is not spent waiting for the install to start.
+After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
+`simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
+The Xcode launch timeout and a launch that reports no process id are the same readiness failure:
+the test's launch window ended before the app process existed.
 The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
 before job cleanup.
 Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result
@@ -64,7 +66,8 @@ The iPad job requires exactly one passed, non-skipped root-shell test on an avai
 Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
 approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
-The iPad launch then installs the same verified app before `xcodebuild`.
+The iPad launch then installs the same verified app, requires the same process id, and stops
+that process before `xcodebuild`.
 The x86_64 job stays one `xcodebuild` compile. Its 7-minute compile step is the whole
 app slice, so splitting it would not remove a second phase. The native `Tests` fan-in requires
 both device-family launches and the x86_64 compile.
