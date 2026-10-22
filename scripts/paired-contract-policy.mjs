@@ -8,16 +8,16 @@ const numberPattern = /^[1-9][0-9]{0,8}$/u
 const maintainerPermissions = new Set(['admin', 'maintain'])
 const nativeTestProfiles = new Set(['cookie-snapshot', 'pending-turn-recovery'])
 
-function fail(message) {
+export function fail(message) {
   throw new Error(`Paired contract attestation failed: ${message}`)
 }
 
-function requiredString(value, label) {
+export function requiredString(value, label) {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
   return value.trim()
 }
 
-function requiredSha(value, label) {
+export function requiredSha(value, label) {
   if (typeof value !== 'string' || !shaPattern.test(value))
     fail(`${label} must be a lowercase 40-character commit SHA`)
   return value

@@ -2,14 +2,20 @@ name: Dependabot Auto-merge
 
 on:
   pull_request_target:
-    types: [edited, opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]
+  workflow_call:
+    secrets:
+      DEPENDABOT_AUTOMERGE_TOKEN:
+        required: true
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  # Called workflows inherit github.workflow from the caller. Keep the original
+  # group so valid edited events still serialize with head/lifecycle events.
+  group: Dependabot Auto-merge-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:

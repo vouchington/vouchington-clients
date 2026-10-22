@@ -5,6 +5,7 @@ import {
   androidTestProfiles,
 } from '../scripts/paired-native-test-profiles.mjs'
 import { validateInstrumentationResult } from '../scripts/paired-native-test-runtime-result.mjs'
+import { cleanupFixture } from './paired-native-cleanup-fixture.mjs'
 
 const runId = '1234'
 const clientsMergeSha = 'a'.repeat(40)
@@ -27,6 +28,7 @@ function result(nativeTestProfile, methods) {
     apkSha256,
     emulator,
     phases: methods.map(method => ({ method, exitCode: 0, tests: 1 })),
+    cleanup: cleanupFixture({ runId, nativeTestProfile, clientsMergeSha }),
   }
 }
 

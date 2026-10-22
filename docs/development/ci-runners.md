@@ -8,8 +8,10 @@ the closed allowlist:
 - `ubuntu-latest` is used for Linux work that needs Docker, a tool container, or a full GitHub
   Ubuntu image.
 - `macos-latest` is used for macOS native build, test, and dead-code checks.
-- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests and the actual Windows
-  MAUI app compile check. These exercise Windows-only source and WinUI.
+- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests, the pinned Windows App SDK
+  language-model surface probe, and the actual Windows MAUI app compile check. These exercise
+  Windows-only source and WinUI. The surface probe reads restored package metadata and compiles the
+  projected admission APIs. It does not generate with the language model.
 
 Which native tests belong on each label, and when a second OS is forbidden, is documented in
 [native CI test placement](native-ci-test-placement.md).
@@ -23,7 +25,7 @@ The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the m
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
 required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
 
-Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The two
+Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.
 
 Hosted VMs are single-job and discarded after the run. Jobs check out the revision they execute and
@@ -34,6 +36,12 @@ Jobs may restore hash-keyed GitHub Actions caches for package stores and checksu
 archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached.
+
+The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
+`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
+still perform the same locked restore and tests on a cache miss; they do not upload a separate
+multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
+toolchain reuse.
 
 ## pnpm
 
@@ -68,17 +76,29 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 Swift Android APK assembly and native test-library preparation run in parallel on separate
 macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
-they do not share a SwiftPM build directory. The stable `Swift Android Skip` check requires
-both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
-validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
-individual phases for CI. This compiles the app and packages Android test libraries without
-a device; it does not claim device test execution.
+they do not share a SwiftPM build directory. Each phase runs the planner-selected Android host
+source-test command, `run-android-host-swift-tests.sh --package-path swift-clients/apps/android
+--filter VouchaAndroidTests`, on Xcode 26.6 with Swift 6.3.3. That command is source-test
+evidence. The Swift 6.4 Gradle APK build and the later emulator instrumentation are separate.
+The stable `Swift Android Skip` check requires both phases to succeed, and the aggregate `Tests`
+check requires that result. Local Android validation defaults to both phases; `pre-push.sh
+--phase app` and `--phase test-libs` select individual phases for CI. This compiles the app and
+packages Android test libraries without a device; it does not claim device test execution.
+The shared job budget is 60 minutes so an app-phase Gradle user-home cache miss can finish Skip
+compilation and debug APK packaging. Test-library preparation finishes well inside that budget.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is
 stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the
 owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
 replace emulator instrumentation.
+
+The app build uses pinned Gradle's local `--profile` report. CI writes its configuration,
+dependency, and task durations, plus bounded generated-state size measurements, to the existing
+job summary and log. Task durations can overlap and do not represent critical-path wall time.
+The report is diagnostic only: the same app and instrumentation tasks remain required, and a
+profiling-summary error cannot turn a failed build green. Generated build trees and extracted
+toolchains remain job-scoped; the summary does not publish or cache them.
 
 ## Event-driven orchestration
 
@@ -89,7 +109,7 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's eleven lockfiles, while
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's twelve lockfiles, while
 `dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
 enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
 base and fetch candidate dependency files as inert API data. They never check out or execute the

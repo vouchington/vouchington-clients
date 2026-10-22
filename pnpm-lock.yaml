@@ -27,8 +27,8 @@ importers:
         specifier: 6.32.3
         version: 6.32.3
       no-mistakes:
-        specifier: 0.53.2
-        version: 0.53.2
+        specifier: 0.94.0
+        version: 0.94.0
       oxfmt:
         specifier: 0.67.0
         version: 0.67.0
@@ -40,7 +40,7 @@ importers:
         version: 1.0.0(supports-color@7.2.0)
       vouchington-tooling:
         specifier: 0.48.0
-        version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4)
+        version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.94.0)(supports-color@7.2.0)(zod@4.5.4)
 
 packages:
 
@@ -1732,9 +1732,36 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  no-mistakes@0.53.2:
-    resolution: {integrity: sha512-3QLZnmzjRZpVmGuhVjjoN6U09oe/QqB65Fz1iKTi+eAO4x2PkNuhPLv3orR46B8fnFO4PQdnXM4l+8r/HQA0gA==}
+  no-mistakes-darwin-arm64@0.94.0:
+    resolution: {integrity: sha512-5Bfo8G+97Kr55TJaT0O5cWf5CSd2z2RbND0F8l3s52i/ehUOyt3NEF9sPPtw4qnjtIHOQy3f8Ky1ceKt2MsHDg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  no-mistakes-linux-arm64-gnu@0.94.0:
+    resolution: {integrity: sha512-At4aU8wYbijAJ8uofxT9lQE+HS+WythNigbMcs1N/BHQngJ+s6jDkRNN6KuCsf7mfYREspqdXTO8thw6W6EiwQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  no-mistakes-linux-x64-gnu@0.94.0:
+    resolution: {integrity: sha512-ZYsvxj2QM4vZ3bsaVqnH7zGEVIUnEI05Tt77foWjc2xwdvOWIVGd/i2dyJJ48+drkUKSM2DzeF9X0Aq3s4Jyog==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  no-mistakes-win32-x64-msvc@0.94.0:
+    resolution: {integrity: sha512-NxyXaug8UcHYjL83k7d3qwlIKsUW1mXyDy/jOfbsDRXbAy1om8jVSkHAdX219TUVmzW7izeiQ40tco43UalpjA==}
+    cpu: [x64]
+    os: [win32]
+
+  no-mistakes@0.94.0:
+    resolution: {integrity: sha512-KFUXAQfaDm74FN/kz2XW8RSLRBozpiIbDCxsW4VbwolSM5m1Ug5hVdg15DwovcsXngtj4sg9MtjDRYIFwCv3pQ==}
     hasBin: true
+    peerDependencies:
+      vitest: ^5.0.3
+    peerDependenciesMeta:
+      vitest:
+        optional: true
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -3863,7 +3890,24 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  no-mistakes@0.53.2: {}
+  no-mistakes-darwin-arm64@0.94.0:
+    optional: true
+
+  no-mistakes-linux-arm64-gnu@0.94.0:
+    optional: true
+
+  no-mistakes-linux-x64-gnu@0.94.0:
+    optional: true
+
+  no-mistakes-win32-x64-msvc@0.94.0:
+    optional: true
+
+  no-mistakes@0.94.0:
+    optionalDependencies:
+      no-mistakes-darwin-arm64: 0.94.0
+      no-mistakes-linux-arm64-gnu: 0.94.0
+      no-mistakes-linux-x64-gnu: 0.94.0
+      no-mistakes-win32-x64-msvc: 0.94.0
 
   object-assign@4.1.1: {}
 
@@ -4298,7 +4342,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)(zod@4.5.4):
+  vouchington-tooling@0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.94.0)(supports-color@7.2.0)(zod@4.5.4):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
@@ -4317,7 +4361,7 @@ snapshots:
       '@libpg-query/parser': 18.0.0
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       '@typescript/typescript6': 6.0.2
-      no-mistakes: 0.53.2
+      no-mistakes: 0.94.0
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - eslint

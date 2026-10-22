@@ -44,10 +44,6 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
         discovery = try MemberMCPOAuthDiscovery(siteOrigin: siteOrigin, protocolClasses: protocolClasses)
     }
 
-    public func connect(accountId: String) async throws -> DecodedJSONValue {
-        try await connect(accountId: accountId, presentationWindow: nil)
-    }
-
     public func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue {
         if let pendingDisconnect { try await pendingDisconnect.value }
         try Task.checkCancellation()
@@ -55,37 +51,41 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
         activeAccountId = accountId
         generation += 1
         let expectedGeneration = generation
-        let current: Context
-        do {
-            current = try await contextForAccount(accountId, generation: expectedGeneration)
-        } catch {
-            if generation == expectedGeneration, activeAccountId == accountId, context == nil {
-                activeAccountId = nil
-            }
-            throw error
-        }
+        let current = try await contextForAccount(accountId, generation: expectedGeneration)
         do {
             let tools = try await listAllTools(current.authorized, accountId: accountId, generation: expectedGeneration)
             try assertCurrent(accountId, generation: expectedGeneration)
             return tools
         } catch MemberMCPTokenManager.Failure.notAuthorized {
-            let request = try MemberMCPOAuthRequest(
-                siteOrigin: siteOrigin,
-                app: app,
-                issuerIdentifier: current.metadata.issuerIdentifier,
-                authorizationEndpoint: current.metadata.authorizationEndpoint,
-                redirectURI: siteOrigin.appendingPathComponent("oauth/native/\(app.rawValue)/callback")
+            return try await authorize(
+                accountId: accountId,
+                scope: "mcp.user:read",
+                presentationWindow: presentationWindow
             )
-            let code = try await browserCode(request, presentationWindow)
-            try assertCurrent(accountId, generation: expectedGeneration)
-            _ = try await current.tokens.redeem(
-                code: code, verifier: request.verifier, redirectURI: request.redirectURI
-            )
-            try assertCurrent(accountId, generation: expectedGeneration)
-            let tools = try await listAllTools(current.authorized, accountId: accountId, generation: expectedGeneration)
-            try assertCurrent(accountId, generation: expectedGeneration)
-            return tools
         }
+    }
+
+    /// An explicit consent request always opens the browser, even with a valid existing grant.
+    public func authorize(
+        accountId: String, scope: String, presentationWindow: AnyObject?
+    ) async throws -> DecodedJSONValue {
+        if let pendingDisconnect { try await pendingDisconnect.value }
+        try Task.checkCancellation()
+        guard activeAccountId == nil || activeAccountId == accountId else { throw Failure.accountMismatch }
+        activeAccountId = accountId
+        generation += 1
+        let expectedGeneration = generation
+        let current = try await contextForAccount(accountId, generation: expectedGeneration)
+        let request = try MemberMCPOAuthRequest(
+            siteOrigin: siteOrigin, app: app, issuerIdentifier: current.metadata.issuerIdentifier,
+            authorizationEndpoint: current.metadata.authorizationEndpoint,
+            redirectURI: siteOrigin.appendingPathComponent("oauth/native/\(app.rawValue)/callback"), scope: scope
+        )
+        let code = try await browserCode(request, presentationWindow)
+        try assertCurrent(accountId, generation: expectedGeneration)
+        _ = try await current.tokens.redeem(code: code, verifier: request.verifier, redirectURI: request.redirectURI)
+        try assertCurrent(accountId, generation: expectedGeneration)
+        return try await listAllTools(current.authorized, accountId: accountId, generation: expectedGeneration)
     }
 
     public func refreshTools(accountId: String) async throws -> DecodedJSONValue {
@@ -128,7 +128,11 @@ public final class NativeChatMCPNetworkService: NativeChatMCPServicing {
             guard context.accountId == accountId else { throw Failure.accountMismatch }
             return context
         }
-        let metadata = try await discovery.discover()
+        let metadata: MemberMCPOAuthMetadata
+        do { metadata = try await discovery.discover() } catch {
+            if self.generation == generation, activeAccountId == accountId, context == nil { activeAccountId = nil }
+            throw error
+        }
         try Task.checkCancellation()
         guard self.generation == generation, activeAccountId == accountId else { throw CancellationError() }
         let clientId = siteOrigin.appendingPathComponent("api/v1/oauth/native-clients/\(app.rawValue)")

@@ -33,6 +33,24 @@ public sealed partial class MemberMcpSessionTests
       bool failConnect, bool holdToolCall, bool failDisconnect, TaskCompletionSource? releaseCanceledConnect)
       : IMemberMcpSessionConnection
   {
+    public Exception? RefreshFailure { get; set; }
+    public bool DenyConsent { get; set; }
+    public bool CancelConsent { get; set; }
+    public List<string> ConsentScopes { get; } = [];
+    public Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken)
+    {
+      ConsentScopes.Add(scope);
+      if (DenyConsent)
+      {
+        var request = new MemberMcpOAuthRequest(new Uri("https://example.test"), MemberMcpApp.Windows,
+            "https://example.test/", new Uri("https://example.test/oauth/authorize"),
+            new Uri("http://127.0.0.1:12345/oauth/native/windows/callback"));
+        _ = request.CodeFromCallback(new Uri(request.RedirectUri + "?error=access_denied&state=" +
+            request.State + "&iss=" + Uri.EscapeDataString(request.IssuerIdentifier)));
+      }
+      if (CancelConsent) throw new OperationCanceledException("Browser canceled");
+      return ConsentScopes.Count == 1 ? ConnectAndListToolsAsync(cancellationToken) : ListToolsAsync(cancellationToken);
+    }
     public bool FailRefresh { get; set; }
     public bool UnauthorizedRefresh { get; set; }
     public bool RejectToolCall { get; set; }
@@ -69,6 +87,7 @@ public sealed partial class MemberMcpSessionTests
       RefreshEntered.TrySetResult();
       if (holdRefresh) await ReleaseRefresh.Task.WaitAsync(cancellationToken);
       if (UnauthorizedRefresh) throw new McpUnauthorizedException();
+      if (RefreshFailure is not null) throw RefreshFailure;
       if (FailRefresh) throw new IOException("Tool discovery failed");
       return Catalog ?? JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone();
     }
