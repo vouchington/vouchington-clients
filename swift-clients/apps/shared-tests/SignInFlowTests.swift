@@ -68,11 +68,16 @@
             field.tap()
             field.typeText(text)
             guard let value = field.value as? String, value != text else { return }
-            guard value.hasPrefix(text) else {
-                XCTFail("Typed \(value), expected \(text)")
+            if text.hasPrefix(value) {
+                field.typeText(String(text.dropFirst(value.count)))
+            } else if value.hasPrefix(text) {
+                let extra = value.count - text.count
+                field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: extra))
+            }
+            guard (field.value as? String) == text else {
+                XCTFail("Typed \(field.value ?? ""), expected \(text)")
                 return
             }
-            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count - text.count))
         }
 
         private func loadFixtures() throws -> (identity: String, providers: String) {
