@@ -1603,7 +1603,7 @@ jobs:
     name: Swift iOS Simulator launch smoke
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     permissions:
       actions: read
       contents: read
