@@ -74,6 +74,7 @@ public sealed partial class ChatConversationViewModel
   {
     pendingLocalTurn = null;
     blockedToolRetryText = null;
+    SetRetainedWindowsToolResult(null);
     _ = Interlocked.Increment(ref requestId);
     var cts = Interlocked.Exchange(ref streamingCts, null);
     if (cts is not null) { cts.Cancel(); cts.Dispose(); }
