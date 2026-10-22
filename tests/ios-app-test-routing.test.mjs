@@ -253,6 +253,7 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
         'build-android-core',
         'build-macos-app',
         'dotnet-maui',
+        'dotnet-catalyst-gui',
         'dotnet-windows-image-preview',
         'dotnet-windows-language-model-surface',
         'dotnet-windows-maui',
