@@ -29,8 +29,8 @@ import XCTest
                 return
             }
             let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-            let admission = try Self.catalogAdmission(root: root)
-            let names = admission.accepted.map(\.name) + admission.excluded.compactMap { $0["name"] as? String }
+            let inventory = try Self.catalogAdmission(root: root)
+            let names = inventory.accepted.map(\.name) + inventory.excluded.compactMap { $0["name"] as? String }
             XCTAssertEqual(Set(names).count, names.count)
             XCTAssertGreaterThan(names.count, NativeChatFoundationModelsToolSelection.maximumTools)
             XCTAssertTrue(names.contains("read_my_profile"))
