@@ -2,14 +2,9 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
+import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing workflow job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
+const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
 describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
   it('runs the unsigned app shell, canonical feed flow, and email sign-in and requires all three to pass', () => {

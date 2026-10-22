@@ -640,14 +640,12 @@ jobs:
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
-      - name: Verify Android host test compiler
-        working-directory: candidate-clients
-        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
       - name: Test Android Swift package
         working-directory: candidate-clients
         run: >-
-          mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
-          --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
+          bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
+          --package-path swift-clients/apps/android
+          --filter VouchaAndroidTests
       - name: Restore Gradle user home
         if: matrix.phase == 'app'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
