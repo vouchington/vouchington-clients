@@ -23,7 +23,8 @@ compatibility; the current Android NDK compiler is x86_64-only. `macos-latest` a
 
 The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the macOS SDK with
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
-required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
+required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green. The Mac Catalyst GUI preflight is a
+separate required job with a 10-minute limit. It does not add steps to the MAUI smoke job.
 
 Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.

@@ -2049,6 +2049,183 @@ jobs:
             ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
           key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
 
+  dotnet-catalyst-gui:
+    name: Mac Catalyst GUI preflight
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Restore Appium Mac2
+        id: catalyst-appium-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Select compatible Xcode
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Detect host Mac Catalyst RID
+        id: rid
+        shell: bash
+        run: |
+          case "$(uname -m)" in
+            arm64) rid=maccatalyst-arm64 ;;
+            x86_64) rid=maccatalyst-x64 ;;
+            *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Install Appium Mac2
+        timeout-minutes: 2
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          prefix="$CATALYST_APPIUM_PREFIX"
+          mkdir -p "$prefix/home"
+          if [[ ! -x "$prefix/node_modules/.bin/appium" ]]; then
+            npm init -y --prefix "$prefix" >/dev/null
+            npm install --prefix "$prefix" appium@3.8.0
+          fi
+          if [[ ! -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac" ]]; then
+            APPIUM_HOME="$prefix/home" "$prefix/node_modules/.bin/appium" driver install --source npm appium-mac2-driver@4.5.0
+          fi
+          test -x "$prefix/node_modules/.bin/appium"
+          test -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac"
+      - name: Restore the Debug Mac Catalyst graph
+        timeout-minutes: 2
+        working-directory: candidate-clients
+        run: |
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0-maccatalyst \
+            -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0 --locked-mode
+      - name: Build the Debug app and the Mac2 host
+        timeout-minutes: 6
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --prebuild-host &
+          host_pid=$!
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            --configuration Debug --framework net10.0-maccatalyst \
+            "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}" \
+            -p:CodesignEntitlements= \
+            --no-restore &
+          app_pid=$!
+          host_status=0
+          app_status=0
+          wait "$host_pid" || host_status=$?
+          wait "$app_pid" || app_status=$?
+          if [[ "$host_status" -ne 0 || "$app_status" -ne 0 ]]; then
+            echo "::error::Debug app status $app_status; Mac2 host status $host_status"
+            exit 1
+          fi
+      - name: Open the Mac2 root-shell session
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+          CATALYST_GUI_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+        run: |
+          set -euo pipefail
+          if ! pgrep -qx WindowServer; then
+            echo "::error::WindowServer is not running; refusing to skip the Mac Catalyst GUI preflight"
+            exit 1
+          fi
+          console_uid="$(stat -f %u /dev/console)"
+          current_uid="$(id -u)"
+          if [[ -z "$console_uid" || "$console_uid" != "$current_uid" ]]; then
+            echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
+            exit 1
+          fi
+          diagnostics="${{ runner.temp }}/catalyst-gui-diagnostics"
+          mkdir -p "$diagnostics"
+          find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name '*.app' >"$diagnostics/apps.txt" || true
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
+          if [[ -z "$app" || ! -d "$app" ]]; then
+            echo "::error::Debug Mac Catalyst app was not built"
+            exit 1
+          fi
+          test "$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' | wc -l | tr -d ' ')" -eq 1
+          staged="$PWD/$app/Contents/Resources/preflight-contract"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
+          export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
+          export CATALYST_GUI_RESULT="$diagnostics/result.json"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
+          jq -e '.total == 1 and .passed == 1 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+      - name: Save Appium Mac2 from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
+      - name: Upload failed Catalyst GUI diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-gui-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
+
   dotnet-windows-image-preview:
     name: .NET Windows image preview
     needs: verify
@@ -2276,6 +2453,7 @@ jobs:
       - build-ios-ipad
       - build-ios-x86
       - dotnet-maui
+      - dotnet-catalyst-gui
       - dotnet-windows-image-preview
       - dotnet-windows-language-model-surface
       - dotnet-windows-maui

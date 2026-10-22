@@ -16,6 +16,7 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | iOS Simulator app launch smoke                                                                       | `macos-latest`   | Generated Xcode project, iOS Simulator SDK, and actual app launch                  |
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
 | .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
+| Mac Catalyst GUI preflight                                                                           | `macos-latest`   | One Debug Appium Mac2 session; not the linked page tests                           |
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 | .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
@@ -56,6 +57,13 @@ Both jobs receive the complete fixture checkout explicitly through the generated
 closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
 as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
 iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
+
+The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
+the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
+argument and the canonical `swift.my.identity.default` fixture. The session counts only when the Debug preflight page's `root-shell` control is found and
+nothing was skipped. That page is not the production app shell. It does not exercise the eight
+notification controls, route focus, or the announcement. The existing MAUI job still builds Release and runs linked page
+tests; those are not this session.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,
