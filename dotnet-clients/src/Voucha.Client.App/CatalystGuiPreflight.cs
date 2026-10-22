@@ -32,7 +32,7 @@ internal static class CatalystGuiPreflight
       return TryReadFixtureBody(fixtures, fixtureRoot, SharedIdentityFixtureId, "/api/v1/my/identity", out identityBody) &&
           TryReadFixtureBody(fixtures, fixtureRoot, EmailPreferencesFixtureId, "/api/v1/my/email-preferences", out emailPreferencesBody);
     }
-    catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or ArgumentException)
+    catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
     {
       return false;
     }

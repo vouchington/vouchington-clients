@@ -42,7 +42,19 @@ function requiredFixture(root, expected) {
 }
 
 function requireGuiFixtures(root) {
-  return requiredFixtures.map(expected => requiredFixture(root, expected))
+  const bodyPaths = requiredFixtures.map(expected => requiredFixture(root, expected))
+  const preferencesIndex = requiredFixtures.findIndex(
+    expected => expected.id === 'native.my.email-preferences.default',
+  )
+  const preferences = JSON.parse(readFileSync(bodyPaths[preferencesIndex], 'utf8'))
+  if (
+    !preferences?.email_preferences ||
+    typeof preferences.email_preferences !== 'object' ||
+    Array.isArray(preferences.email_preferences)
+  ) {
+    throw new Error('email-preferences fixture body must contain an email_preferences object')
+  }
+  return bodyPaths
 }
 
 function stageFixture(destination) {

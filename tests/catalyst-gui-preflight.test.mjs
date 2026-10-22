@@ -156,11 +156,13 @@ describe('Mac Catalyst GUI preflight', () => {
       join(fixtureRoot, 'manifest.json'),
       JSON.stringify({ fixtures: [identityFixture] }),
     )
-    assert.throws(() =>
-      execFileSync(process.execPath, [script, '--check-fixture'], {
-        env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
-        stdio: 'pipe',
-      }),
+    assert.throws(
+      () =>
+        execFileSync(process.execPath, [script, '--check-fixture'], {
+          env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
+          stdio: 'pipe',
+        }),
+      /missing shared fixture native\.my\.email-preferences\.default/u,
     )
     assert.throws(() =>
       execFileSync(process.execPath, [script, '--check-fixture'], {
