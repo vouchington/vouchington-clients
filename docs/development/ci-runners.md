@@ -87,13 +87,22 @@ packages Android test libraries without a device; it does not claim device test 
 The shared job budget is 60 minutes so an app-phase Gradle user-home cache miss can finish Skip
 compilation and debug APK packaging. Test-library preparation finishes well inside that budget.
 
-The Android archive and Gradle caches restore by pinned input keys on every run. Only a
-`main` push writes a missing key: the test-library phase saves the shared
-checksummed-download archive after SDK materialization, and the app phase saves its Gradle
-user home after APK upload.
+The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
+task-output build cache is separate from its user home: local builds use the canonical Darwin
+temporary directory, while GitHub Actions uses a private stable runner-home path because cache
+archives retain absolute paths across hosts. The app phase restores both caches and uses the same
+checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+the test-library phase saves the shared checksummed-download archive after SDK materialization,
+and the app phase saves its Gradle user home and bounded task-output cache after APK upload. The
+task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
+30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
+checks remain required on hits.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
+The task-output key follows pinned Swift, Skip, and Gradle configuration. Its first
+default-branch entry can only be written by a successful `main` push, so an open pull request
+cannot establish warm-hit timing for this new key.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is
