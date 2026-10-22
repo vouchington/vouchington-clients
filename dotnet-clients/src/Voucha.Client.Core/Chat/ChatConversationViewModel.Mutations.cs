@@ -109,12 +109,10 @@ public sealed partial class ChatConversationViewModel
     if (currentRequest != Volatile.Read(ref requestId)) return false;
     messages.Clear();
     messages.AddRange(response.Results.Select(MapMessage));
-    if (localReceipt is
-      {
-        FeedPostReceipts.Count: > 0, McpSnapshot: { } snapshot,
-        McpProvider: { } provider
-      } && localReceipt.ConversationId == conversationId &&
-        provider.MatchesAccountEpoch(snapshot))
+    if (localReceipt is { McpSnapshot: { } snapshot, McpProvider: { } provider } &&
+        localReceipt.ConversationId == conversationId &&
+        provider.MatchesAccountEpoch(snapshot) &&
+        (localReceipt.FeedPostReceipts is { Count: > 0 } || localReceipt.RssItemReceipts is { Count: > 0 }))
     {
       var index = messages.FindIndex(message => message.Id == localReceipt.Body.AssistantMessageId &&
           message.IsAssistant);
@@ -123,6 +121,7 @@ public sealed partial class ChatConversationViewModel
         {
           Localization = localization,
           FeedPostReceipts = localReceipt.FeedPostReceipts,
+          RssItemReceipts = localReceipt.RssItemReceipts,
         };
     }
     HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;

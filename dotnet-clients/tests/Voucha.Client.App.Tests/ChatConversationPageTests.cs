@@ -69,6 +69,7 @@ public sealed class ChatConversationPageTests
     var content = labels[1];
     var error = labels[2];
     var feedFacts = Assert.Single(labels, label => label.AutomationId == "chat-feed-post-facts");
+    var rssFacts = Assert.Single(labels, label => label.AutomationId == "chat-feed-rss-item-facts");
 
     Assert.False(content.IsVisible);
     Assert.Equal(string.Empty, content.Text);
@@ -76,6 +77,8 @@ public sealed class ChatConversationPageTests
     Assert.Equal("The response was interrupted. Please try again.", error.Text);
     Assert.False(feedFacts.IsVisible);
     Assert.True(string.IsNullOrEmpty(feedFacts.Text));
+    Assert.False(rssFacts.IsVisible);
+    Assert.True(string.IsNullOrEmpty(rssFacts.Text));
   }
 
   private sealed class UnusedChatService : IChatService

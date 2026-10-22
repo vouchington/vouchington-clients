@@ -444,6 +444,7 @@ public sealed partial class ChatViewModelProviderTests
 
     public int Generations { get; private set; }
     public IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts { get; set; }
+    public IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts { get; set; }
     public Exception? Failure { get; set; }
     public Action? AfterGeneration { get; set; }
     public ChatProviderStatus Status { get; set; } = new(
@@ -488,7 +489,7 @@ public sealed partial class ChatViewModelProviderTests
       AfterGeneration?.Invoke();
       return Task.FromResult(new LocalChatGenerationResult(
           $"Reply from {generationSnapshot?.AccountId}", Status.ModelProvider!, Status.ModelName,
-          FeedPostReceipts));
+          FeedPostReceipts, RssItemReceipts));
     }
 
     private MemberMcpConnectedSnapshot MakeSnapshot(string accountId, long revision) =>

@@ -3,6 +3,7 @@ namespace Voucha.Client.App.Pages;
 public sealed partial class NotificationPreferencesView : ContentView, Voucha.Client.Core.Localization.IUiLocaleChangeListener
 {
   private bool isSynchronizing;
+  private bool acceptControlEvents = true;
   private Voucha.Client.Core.Settings.NotificationPreferencesViewModel? model;
   private Voucha.Client.Core.Localization.IUiLocalization localization = Voucha.Client.Core.Localization.UiLocalization.English;
   private IDisposable? localeSubscription;
@@ -28,6 +29,7 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
   public void SynchronizeControls()
   {
     if (BindingContext is not Voucha.Client.Core.Settings.NotificationPreferencesViewModel model) return;
+    acceptControlEvents = false;
     isSynchronizing = true;
     try
     {
@@ -42,18 +44,56 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
       SynchronizeDays(model);
     }
     finally { isSynchronizing = false; }
+    ReleaseControlEvents();
   }
-  private void OnEngagementChanged(object? s, ToggledEventArgs e) => Raise("engagement", e.Value);
-  private void OnModerationChanged(object? s, ToggledEventArgs e) => Raise("moderation", e.Value);
-  private void OnNewsChanged(object? s, EventArgs e) => Raise("news", Value(NewsPicker));
-  private void OnCommunityChanged(object? s, EventArgs e) => Raise("community", Value(CommunityPicker));
-  private void OnCadenceChanged(object? s, EventArgs e) => Raise("cadence", Value(CadencePicker));
-  private void OnTimeChanged(object? s, System.ComponentModel.PropertyChangedEventArgs e) { if (e.PropertyName == nameof(TimePicker.Time)) Raise("time", TimeControl.Time); }
-  private void OnTimezoneChanged(object? s, EventArgs e) => Raise("timezone", TimezonePicker.SelectedItem as string);
+
+  private void ReleaseControlEvents()
+  {
+    var dispatcher = Dispatcher ?? Application.Current?.Dispatcher;
+    if (dispatcher is null)
+    {
+      acceptControlEvents = true;
+      return;
+    }
+
+    dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(1), () => acceptControlEvents = true);
+  }
+  private void OnEngagementChanged(object? s, ToggledEventArgs e)
+  {
+    if (model?.EngagementEmailsEnabled == e.Value) return;
+    Raise("engagement", e.Value);
+  }
+
+  private void OnModerationChanged(object? s, ToggledEventArgs e)
+  {
+    if (model?.ModerationEmailsEnabled == e.Value) return;
+    Raise("moderation", e.Value);
+  }
+
+  private void OnNewsChanged(object? s, EventArgs e) => RaiseWhenChanged("news", Value(NewsPicker), model?.NewsDigestFrequency);
+  private void OnCommunityChanged(object? s, EventArgs e) => RaiseWhenChanged("community", Value(CommunityPicker), model?.CommunityDigestFrequency);
+  private void OnCadenceChanged(object? s, EventArgs e) => RaiseWhenChanged("cadence", Value(CadencePicker), model?.ModerationEmailCadence);
+
+  private void OnTimeChanged(object? s, System.ComponentModel.PropertyChangedEventArgs e)
+  {
+    if (e.PropertyName != nameof(TimePicker.Time) || TimeControl.Time is not { } time) return;
+    var text = time.ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture);
+    if (text == model?.ModerationEmailTimeOfDay) return;
+    Raise("time", time);
+  }
+
+  private void OnTimezoneChanged(object? s, EventArgs e) =>
+      RaiseWhenChanged("timezone", TimezonePicker.SelectedItem as string, model?.ModerationEmailTimezone);
+
+  private void RaiseWhenChanged(string field, object? value, object? current)
+  {
+    if (value is null || Equals(value, current)) return;
+    Raise(field, value);
+  }
   private void OnDayClicked(object? s, EventArgs e) { if (s is Button { CommandParameter: string day } && int.TryParse(day, out var value)) Raise("day", value); }
   private void Raise(string field, object? value)
   {
-    if (!isSynchronizing && value is not null)
+    if (acceptControlEvents && !isSynchronizing && value is not null)
       PreferenceChanged?.Invoke(this, new(field, value));
   }
   private static string? Value(Picker picker) => (picker.SelectedItem as Voucha.Client.Core.Settings.SettingsOptionViewModel)?.Value;
