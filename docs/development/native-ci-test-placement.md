@@ -56,7 +56,9 @@ summary is still required, and a failed launch still uploads that summary plus a
 log. Each iPhone leg requires exactly one passed, non-skipped test. The sign-in fixture accepts
 only the typed email, code, and verification token, then `SessionManager.refresh` reads the
 canonical identity fixture. That token stands in for the Turnstile widget the simulator cannot
-complete.
+complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the leading compact
+toolbar button rather than a grouped trailing action or another Sign In label, and still requires
+Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
 Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
 approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
