@@ -44,3 +44,4 @@ test, and generation checks. Local concurrent worktrees may wrap compiler-heavy 
 - [README.md](README.md) — commands, harness, gotchas
 - [Native CI test placement](../docs/development/native-ci-test-placement.md)
 - Native client strategy: Vouchington's [native-clients.md](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/native-clients.md)
+- [Native store billing](../docs/overview/architecture/native-store-billing.md)
