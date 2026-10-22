@@ -120,10 +120,11 @@ describe('cancellation-aware native reporting', () => {
     const keys = [...dependencies.matchAll(/^      - ([\w-]+)$/gmu)].map(m => m[1])
     assert.ok(keys.length > 0)
     const needs = Object.fromEntries(keys.map(key => [key, { result: 'success' }]))
-    const invoke = (results, preview = 'true', maui = 'true') =>
+    const invoke = (results, preview = 'true', maui = 'true', surface = 'true') =>
       execute(script, {
         NEEDS_JSON: JSON.stringify(results),
         WINDOWS_IMAGE_PREVIEW_ROUTE: preview,
+        WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: surface,
         WINDOWS_MAUI_ROUTE: maui,
       })
     assert.equal(invoke(needs), 0)
@@ -135,10 +136,12 @@ describe('cancellation-aware native reporting', () => {
     const optional = {
       ...needs,
       'dotnet-windows-image-preview': { result: 'skipped' },
+      'dotnet-windows-language-model-surface': { result: 'skipped' },
       'dotnet-windows-maui': { result: 'skipped' },
     }
-    assert.equal(invoke(optional, 'false', 'false'), 0)
-    assert.notEqual(invoke(optional, 'true', 'false'), 0)
-    assert.notEqual(invoke(optional, 'false', 'true'), 0)
+    assert.equal(invoke(optional, 'false', 'false', 'false'), 0)
+    assert.notEqual(invoke(optional, 'true', 'false', 'false'), 0)
+    assert.notEqual(invoke(optional, 'false', 'true', 'false'), 0)
+    assert.notEqual(invoke(optional, 'false', 'false', 'true'), 0)
   })
 })

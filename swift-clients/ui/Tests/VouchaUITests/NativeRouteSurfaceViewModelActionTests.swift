@@ -21,7 +21,7 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
                   "conversation_id": null,
                   "moderation_report_id": null,
                   "review_dispute_id": null,
-                  "user_warning_id": null,"copyright_notice_id":null,
+                  "user_warning_id": null,"copyright_notice_id":null,"household_id":null,
                   "actor_label": null,
                   "event_key": null,
                   "title": "Native notification",

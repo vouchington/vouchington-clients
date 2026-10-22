@@ -25,8 +25,16 @@
             <Label Text="{DynamicResource native.dotnet.chat.mcpConnectionFailed}" IsVisible="{Binding HasError}" />
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
             <HorizontalStackLayout Spacing="8">
+                <Label Text="{DynamicResource native.credentials.writeAction}" />
+                <Switch IsToggled="{Binding RequestWriteAccess}" IsEnabled="{Binding CanAuthorize}" />
+                <Button Text="{DynamicResource native.dotnet.csharpTags.viewPlans}"
+                        Clicked="OnViewPlansClicked" IsVisible="{Binding RequestWriteAccess}" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
                 <Button Text="{DynamicResource native.dotnet.chat.mcpConnect}"
                         Clicked="OnConnectClicked" IsVisible="{Binding CanConnect}" />
+                <Button Text="{DynamicResource native.credentials.chooseScopes}"
+                        Clicked="OnConnectClicked" IsVisible="{Binding IsConnected}" IsEnabled="{Binding CanAuthorize}" />
                 <Button Text="{DynamicResource native.dotnet.chat.mcpRefresh}"
                         Clicked="OnRefreshClicked" IsVisible="{Binding IsConnected}" />
                 <Button Text="{DynamicResource native.dotnet.chat.mcpDisconnect}"

@@ -11,6 +11,8 @@ public partial class ProfilePage
   private readonly Func<FileResult, Task<Stream>> openSelectedFile;
   private int avatarPreviewGeneration;
   private readonly AvatarPreviewCancellation avatarPreviewCancellation = new();
+  internal Func<Stream, CancellationToken, Task<LocalImageSelection>> readSelectedAvatarPreview =
+      LocalImagePreview.ReadSelectedBytesAsync;
 
   private void EndAvatarPreviewSession()
   {
@@ -50,7 +52,7 @@ public partial class ProfilePage
 
       await using var selection = await ImageSelectionLoader.LoadAsync(
           result, () => openSelectedFile(result), cancellation.Token);
-      var preview = await LocalImagePreview.ReadSelectedBytesAsync(selection.Content, cancellation.Token);
+      var preview = await readSelectedAvatarPreview(selection.Content, cancellation.Token);
       if (generation != avatarPreviewGeneration) return;
       AvatarLocalPreviewImage.Source = preview.PreviewBytes is { } thumbnail
           ? LocalImagePreview.SourceFromBytes(thumbnail) : null;
