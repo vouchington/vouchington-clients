@@ -240,3 +240,21 @@ test('native mise setup selects only its requested SDK and Swift runtime librari
   assert.match(gitleaksJob, /"\$gitleaks_dir\/gitleaks" git/u)
   assert.doesNotMatch(gitleaksJob, /mise exec/u)
 })
+
+test('pnpm bootstrap skips only npm advisory requests without changing package gates', () => {
+  for (const [path, expected] of [
+    ['.github/actions/prepare-native-contract/action.yml', 1],
+    ['.github/workflows/validate.yml', 2],
+    ['.github/workflows/native-contract-tests.yml', 1],
+  ]) {
+    const contents = read(path)
+    const scoped = [
+      ...contents.matchAll(
+        /uses: pnpm\/action-setup@[a-f0-9]{40}[^\n]*\n\s+env:\n\s+NPM_CONFIG_AUDIT: 'false'\n\s+with:\n\s+version: latest-12/gu,
+      ),
+    ]
+    assert.equal(scoped.length, expected, `${path} scopes every pnpm bootstrap`)
+    assert.equal(contents.split('NPM_CONFIG_AUDIT:').length - 1, expected)
+  }
+  assert.match(read('.github/workflows/validate.yml'), /pnpm install --frozen-lockfile/u)
+})
