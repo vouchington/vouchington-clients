@@ -1,18 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 const readWorkflow = name =>
   readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8')
 const readAction = name =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), 'utf8')
-
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
 
 const preparedCandidateInputs = [
   'candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}',
