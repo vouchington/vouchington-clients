@@ -168,7 +168,7 @@ if [[ "$phase" != test-libs ]]; then
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
-    ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+    ./gradlew --profile :app:assembleDebug :app:assembleDebugAndroidTest
   )
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
   echo "Android Gradle debug app and instrumentation APKs completed in ${gradle_elapsed_seconds}s"
@@ -181,6 +181,9 @@ if [[ "$phase" != test-libs ]]; then
       # shellcheck disable=SC2016
       printf '| `:app:assembleDebug :app:assembleDebugAndroidTest` | %ss |\n' "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
+    if ! node "$SCRIPT_DIR/report-gradle-profile.mjs" | tee -a "$GITHUB_STEP_SUMMARY"; then
+      printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
+    fi
   fi
 fi
 

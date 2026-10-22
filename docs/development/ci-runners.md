@@ -84,6 +84,13 @@ stopped. Cleanup preserves an earlier test failure and fails an otherwise succes
 owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
 replace emulator instrumentation.
 
+The app build uses pinned Gradle's local `--profile` report. CI writes its configuration,
+dependency, and task durations, plus bounded generated-state size measurements, to the existing
+job summary and log. Task durations can overlap and do not represent critical-path wall time.
+The report is diagnostic only: the same app and instrumentation tasks remain required, and a
+profiling-summary error cannot turn a failed build green. Generated build trees and extracted
+toolchains remain job-scoped; the summary does not publish or cache them.
+
 ## Event-driven orchestration
 
 Workflow dependencies must use GitHub events, job dependencies, or exact completion reports. Do
