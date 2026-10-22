@@ -80,10 +80,16 @@ describe('GitHub-hosted runner policy', () => {
         // The Android emulator needs one pinned public Linux image; no other job may use it.
         assert.equal(labels.filter(label => label === 'ubuntu-24.04').length, 1)
         assertRunner(workflow, 'test-swift-android-cookie', 'ubuntu-24.04')
-        assert.equal(labels.filter(label => label === 'windows-latest').length, 2)
+        assert.equal(labels.filter(label => label === 'windows-latest').length, 3)
         const windowsJob = jobBlock(workflow, 'dotnet-windows-image-preview')
         assert.match(windowsJob, /if: needs\.verify\.outputs\.windows-image-preview == 'true'/u)
         assert.match(windowsJob, /timeout-minutes: 15/u)
+        const surfaceJob = jobBlock(workflow, 'dotnet-windows-language-model-surface')
+        assert.match(
+          surfaceJob,
+          /if: needs\.verify\.outputs\.windows-language-model-surface == 'true'/u,
+        )
+        assert.match(surfaceJob, /timeout-minutes: 30/u)
         const mauiJob = jobBlock(workflow, 'dotnet-windows-maui')
         assert.match(mauiJob, /if: needs\.verify\.outputs\.windows-maui == 'true'/u)
         assert.match(mauiJob, /timeout-minutes: 30/u)
@@ -111,6 +117,11 @@ describe('GitHub-hosted runner policy', () => {
     assertRunner(
       workflows['native-contract-tests.yml'],
       'dotnet-windows-image-preview',
+      'windows-latest',
+    )
+    assertRunner(
+      workflows['native-contract-tests.yml'],
+      'dotnet-windows-language-model-surface',
       'windows-latest',
     )
     assertRunner(workflows['native-contract-tests.yml'], 'test-swift-core', 'macos-latest')

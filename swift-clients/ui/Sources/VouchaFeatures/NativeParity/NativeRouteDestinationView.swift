@@ -41,7 +41,8 @@ struct NativeRouteDestinationSurface: View {
                     client: viewModel.client,
                     routeMatch: routeMatch,
                     currentUserId: currentUserId,
-                    mcpSession: nativeChatMCPSession
+                    mcpSession: nativeChatMCPSession,
+                    onNavigate: onNavigateToTargetPath
                 )
             } else if isOwnerLandingPageManagementRoute {
                 landingPageManagementContent

@@ -138,7 +138,8 @@ public sealed record Notification(
     [property: JsonPropertyName("review_dispute_id")] string? ReviewDisputeId = null,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
     [property: JsonPropertyName("user_warning_id")] string? UserWarningId = null,
-    [property: JsonPropertyName("copyright_notice_id")] string? CopyrightNoticeId = null);
+    [property: JsonPropertyName("copyright_notice_id")] string? CopyrightNoticeId = null,
+    [property: JsonPropertyName("household_id")] string? HouseholdId = null);
 
 public sealed record NotificationsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

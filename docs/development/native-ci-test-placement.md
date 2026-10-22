@@ -17,6 +17,7 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
 | .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
+| .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
@@ -87,6 +88,14 @@ The isolated mise SDK does not install workloads, while the repository's `global
 workload manifest version. This workload-free project passes `MSBuildEnableWorkloadResolver=false`
 only to its locked restore and test commands so MSBuild does not fail while probing absent
 workload manifests; the Windows target and WinRT decoder tests still compile and run.
+
+The Windows language-model surface probe is a separate changed-file-routed test project. It
+restores the same `Microsoft.WindowsAppSDK` 1.8.260710003 pin as the app, compiles projection
+bindings for `GetUsablePromptLength`, `CreateContext`, `GenerateResponseAsync`, and
+`LanguageModelOptions`, and reads the restored `Microsoft.WindowsAppSDK.AI` 1.8.79 WinMD. The
+hosted job records prompt-length admission and the absence of an answer-token reservation member.
+It does not call the model, implement the member MCP loop, or stand in for supported-device
+generation. It uses the same workload-resolver opt-out as the decoder test.
 
 Do not add `strategy.matrix.os` (or a second job that runs the same `dotnet test` / `swift test`
 filter) unless the new OS compiles different source or links a different networking stack.

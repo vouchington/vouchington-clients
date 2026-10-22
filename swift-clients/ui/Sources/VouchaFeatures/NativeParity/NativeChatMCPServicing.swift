@@ -6,6 +6,7 @@ import VouchaModels
 public protocol NativeChatMCPServicing: AnyObject {
     func connect(accountId: String) async throws -> DecodedJSONValue
     func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
+    func authorize(accountId: String, scope: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
     func refreshTools(accountId: String) async throws -> DecodedJSONValue
     func callTool(accountId: String, name: String, arguments: DecodedJSONObject) async throws
         -> MemberMCPClient.ToolResult
@@ -13,6 +14,18 @@ public protocol NativeChatMCPServicing: AnyObject {
 }
 
 public extension NativeChatMCPServicing {
+    func connect(accountId: String) async throws -> DecodedJSONValue {
+        try await connect(accountId: accountId, presentationWindow: nil)
+    }
+
+    func authorize(
+        accountId _: String,
+        scope _: String,
+        presentationWindow _: AnyObject?
+    ) async throws -> DecodedJSONValue {
+        throw CancellationError()
+    }
+
     func connect(accountId: String, presentationWindow _: AnyObject?) async throws -> DecodedJSONValue {
         try await connect(accountId: accountId)
     }

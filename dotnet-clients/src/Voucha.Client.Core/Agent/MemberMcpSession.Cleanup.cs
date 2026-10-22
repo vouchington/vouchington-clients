@@ -24,6 +24,7 @@ public sealed partial class MemberMcpSession
       var next = args.Snapshot.Identity?.Id;
       if (next == accountId) return;
       var prior = accountId;
+      RequestWriteAccess = false;
       accountId = next;
       accountEpoch++;
       _ = QueueCleanup(prior);
