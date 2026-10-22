@@ -61,6 +61,17 @@ const reasonMap = xml => {
   )
 }
 
+const packageTarget = (source, name) => {
+  const marker = `\n            name: "${name}",`
+  const start = source.indexOf(marker)
+  assert.notEqual(start, -1, `missing package target ${name}`)
+  const from = start + marker.length
+  const nextTarget = source.indexOf('\n        .target(', from)
+  const nextTestTarget = source.indexOf('\n        .testTarget(', from)
+  const ends = [nextTarget, nextTestTarget].filter(index => index !== -1)
+  return source.slice(start, ends.length === 0 ? source.length : Math.min(...ends))
+}
+
 const walkSwift = directory => {
   const files = []
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -91,7 +102,7 @@ describe('Apple privacy manifests', () => {
       assert.match(project, /ITSAppUsesNonExemptEncryption: false/u)
       assert.match(project, /- path: PrivacyInfo\.xcprivacy\n {8}buildPhase: resources/u)
       assert.match(privacy, /<key>NSPrivacyTracking<\/key>\s*<false\/>/u)
-      assert.match(privacy, /<key>NSPrivacyTrackingDomains<\/key>\s*<array\/>/u)
+      assert.doesNotMatch(privacy, /<key>NSPrivacyTrackingDomains<\/key>/u)
       assert.deepEqual(reasonMap(privacy), appReasons)
       assert.deepEqual(
         [
@@ -110,8 +121,11 @@ describe('Apple privacy manifests', () => {
     assert.deepEqual(reasonMap(api), { NSPrivacyAccessedAPICategorySystemBootTime: ['35F9.1'] })
     assert.match(core, /<key>NSPrivacyCollectedDataTypes<\/key>\s*<array\/>/u)
     assert.match(api, /<key>NSPrivacyCollectedDataTypes<\/key>\s*<array\/>/u)
-    assert.match(packageSwift, /name: "VouchaCore"[\s\S]*\.copy\("PrivacyInfo\.xcprivacy"\)/u)
-    assert.match(packageSwift, /name: "VouchaAPI"[\s\S]*\.copy\("PrivacyInfo\.xcprivacy"\)/u)
+    assert.doesNotMatch(core, /<key>NSPrivacyTrackingDomains<\/key>/u)
+    assert.doesNotMatch(api, /<key>NSPrivacyTrackingDomains<\/key>/u)
+    for (const target of ['VouchaCore', 'VouchaAPI']) {
+      assert.match(packageTarget(packageSwift, target), /\.copy\("PrivacyInfo\.xcprivacy"\)/u)
+    }
   })
 
   it('fails when shipped Swift uses a required-reason symbol outside the inventory', () => {

@@ -62,7 +62,7 @@ Pins are the committed `Package.resolved` revisions.
 
 ## Collected data in the app manifests
 
-Both app manifests set `NSPrivacyTracking` to false and leave tracking domains empty.
+All four manifests set `NSPrivacyTracking` to false and omit `NSPrivacyTrackingDomains`.
 No App Tracking Transparency, advertising identifier, or third-party analytics SDK is
 linked. Package manifests declare no collected data types; collection is an app-level
 claim.
