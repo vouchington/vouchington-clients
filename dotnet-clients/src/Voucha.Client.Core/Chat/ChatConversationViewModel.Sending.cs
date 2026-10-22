@@ -133,7 +133,7 @@ public sealed partial class ChatConversationViewModel
       State = LoadState.Loaded;
       return true;
     }
-    catch (PossibleMcpToolSideEffectException)
+    catch (Exception error) when (error is PossibleMcpToolSideEffectException or WindowsBuiltInResultRetainedException)
     {
       HandlePossibleToolSideEffect(currentRequest, localAssistantMessageId,
           assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
