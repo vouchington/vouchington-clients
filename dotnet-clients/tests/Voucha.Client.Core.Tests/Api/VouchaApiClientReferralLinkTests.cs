@@ -66,11 +66,29 @@ public sealed partial class VouchaApiClientTests
 
     AssertRequest(handler, HttpMethod.Get, "/api/v1/my/referral-clicks?limit=25");
     Assert.Equal("referral-click-1", response.Results[0].Id);
-    Assert.Equal("https://voucha.ai/@alice", response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Null(response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Equal("https://voucha.ai/@alice/cards", response.Clicks["referral-click-2"].LandingUrl);
     Assert.NotNull(response.Clicks["referral-click-1"].SignedUpAt);
     Assert.Equal("newmember", response.Users["user-2"].Username);
     Assert.False(response.PageInfo.HasNextPage);
     Assert.Null(response.PageInfo.EndCursor);
+  }
+
+  [Fact]
+  public void ReferralClickResponseDecodesExplicitNullLandingUrl()
+  {
+    const string json = """
+        {"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":null,"signed_up_at":null,"user_id":null,"created_at":"2026-03-01T11:55:00Z"}},"users":{},"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}
+        """;
+
+    var response = JsonSerializer.Deserialize<ReferralClickLogResponse>(json);
+
+    Assert.NotNull(response);
+    Assert.Equal("click-1", Assert.Single(response.Results).Id);
+    Assert.True(response.Clicks.ContainsKey("click-1"));
+    Assert.Null(response.Clicks["click-1"].LandingUrl);
+    Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ReferralClickLogResponse>(
+        json.Replace("\"landing_url\":null,", string.Empty, StringComparison.Ordinal)));
   }
 
   [Fact]

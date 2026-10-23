@@ -163,8 +163,40 @@ final class UserFacingModelDecodingTests: XCTestCase {
             from: ApiFixtureLoader.data("native.referral-clicks.mine.default")
         )
         XCTAssertEqual(clickLog.results.first?.id, "referral-click-1")
-        XCTAssertEqual(clickLog.clicks["referral-click-1"]?.landingUrl, "https://voucha.ai/@alice")
+        XCTAssertNil(clickLog.clicks["referral-click-1"]?.landingUrl)
+        XCTAssertEqual(clickLog.clicks["referral-click-2"]?.landingUrl, "https://voucha.ai/@alice/cards")
         XCTAssertEqual(clickLog.users["user-2"]?.username, "newmember")
+    }
+
+    func testDecodesRetainedReferralClickWithClearedLandingUrl() throws {
+        let json = Data(
+            """
+            {
+              "results": [{"id": "click-1"}],
+              "clicks": {"click-1": {
+                "id": "click-1",
+                "landing_url": null,
+                "signed_up_at": null,
+                "user_id": null,
+                "created_at": "2026-03-01T11:55:00Z"
+              }},
+              "users": {},
+              "page_info": {"has_next_page": false, "start_cursor": null, "end_cursor": null}
+            }
+            """.utf8
+        )
+
+        let response = try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: json)
+
+        XCTAssertEqual(response.results.map(\.id), ["click-1"])
+        XCTAssertNotNil(response.clicks["click-1"])
+        XCTAssertNil(response.clicks["click-1"]?.landingUrl)
+
+        let omittedUrl = Data(
+            String(decoding: json, as: UTF8.self)
+                .replacingOccurrences(of: "\"landing_url\": null,", with: "").utf8
+        )
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: omittedUrl))
     }
 
     func testDecodesAppealsMessagingBookmarksAndMemberships() throws {
