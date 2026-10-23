@@ -28,6 +28,19 @@ test('native candidate setup provisions pnpm for the harness', async () => {
 
   assert.ok(setupIndex >= 0 && setupIndex < installIndex)
   assert.match(
+    action,
+    /name: Set up Node\.js\n\s+if: \$\{\{ inputs\.skip-candidate-install != 'true' \}\}\n\s+uses: actions\/setup-node@/u,
+  )
+  assert.match(
+    action,
+    /name: Set up pnpm\n\s+if: \$\{\{ inputs\.skip-candidate-install != 'true' \}\}\n\s+uses: pnpm\/action-setup@/u,
+  )
+  assert.match(
+    action,
+    /node_major="\$\(node -p 'Number\(process\.versions\.node\.split\("\."\)\[0\]\)'\)"/u,
+  )
+  assert.match(action, /test "\$node_major" -ge 22/u)
+  assert.match(
     action.slice(setupIndex, installIndex),
     /uses: pnpm\/action-setup@[0-9a-f]{40}[\s\S]*?version: [^\s]+/u,
   )

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <VouchaSentryDsn Condition="'$(VouchaSentryDsn)' == ''">$(VOUCHA_SENTRY_DSN)</VouchaSentryDsn>
+    <VouchaSentryDsn>$([System.String]::Copy('$(VouchaSentryDsn)').Trim())</VouchaSentryDsn>
+  </PropertyGroup>
+</Project>
