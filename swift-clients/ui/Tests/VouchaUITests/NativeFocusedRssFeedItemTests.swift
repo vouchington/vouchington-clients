@@ -73,7 +73,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             ApiFixtureLoader.data("native.rss-feed-item.detail.default"),
             200
         )
-        let viewModel = try makeFocusedViewModel(itemId: fixtureItemId)
+        let viewModel = try makeFocusedViewModel(itemId: fixtureItemId, isSignedIn: true)
 
         await viewModel.load()
         await settleProductSignals(viewModel)
@@ -98,7 +98,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
 
     func testFocusedItemFailureCanRetry() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/item-1"] = (Data("{}".utf8), 500)
-        let viewModel = try makeFocusedViewModel()
+        let viewModel = try makeFocusedViewModel(isSignedIn: true)
 
         await viewModel.load()
         await settleProductSignals(viewModel)
@@ -297,14 +297,16 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
 
     private func makeFocusedViewModel(
         client: APIClient? = nil,
-        itemId: String = "item-1"
+        itemId: String = "item-1",
+        isSignedIn: Bool = false
     ) throws -> NativeRouteSurfaceViewModel {
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/podcast-episodes"))
         return try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: client ?? makeClient(),
             routeMatch: route.match,
-            routeQuery: "rss_item=\(itemId)"
+            routeQuery: "rss_item=\(itemId)",
+            isSignedIn: isSignedIn
         )
     }
 

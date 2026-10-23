@@ -334,7 +334,8 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()
@@ -380,7 +381,8 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()

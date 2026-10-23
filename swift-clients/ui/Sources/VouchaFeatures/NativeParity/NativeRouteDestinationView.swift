@@ -163,7 +163,8 @@ extension NativeRouteDestinationSurface {
                 routeMatch: routeMatch,
                 routeQuery: routeQuery,
                 isAdministrator: isAdministrator,
-                isSiteModerator: isSiteModerator
+                isSiteModerator: isSiteModerator,
+                isSignedIn: isSignedIn
             )
         )
         _reviewQueueViewModel = State(

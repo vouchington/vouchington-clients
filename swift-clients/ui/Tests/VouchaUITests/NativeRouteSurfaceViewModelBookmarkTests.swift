@@ -178,7 +178,8 @@ final class NativeRouteSurfaceViewModelBookmarkTests: NativeRouteSurfaceViewMode
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: makeClient(),
-            routeMatch: route.match
+            routeMatch: route.match,
+            isSignedIn: true
         )
 
         await viewModel.load()

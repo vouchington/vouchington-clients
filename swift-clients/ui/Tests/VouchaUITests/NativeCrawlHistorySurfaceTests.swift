@@ -21,7 +21,8 @@ final class NativeCrawlHistorySurfaceTests: NativeRouteSurfaceViewModelTestCase 
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .sourceDetail),
             client: makeClient(),
-            routeMatch: route.match
+            routeMatch: route.match,
+            isSignedIn: true
         )
 
         await viewModel.load()

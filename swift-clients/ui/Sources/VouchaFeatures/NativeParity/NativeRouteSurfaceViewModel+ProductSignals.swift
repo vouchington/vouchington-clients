@@ -66,6 +66,7 @@ extension NativeRouteSurfaceViewModel {
     }
 
     private func dispatchProductSignal(_ endpoint: Endpoint, client: APIClient) {
+        guard isSignedIn else { return }
         productSignalTask = Task {
             do {
                 let _: EmptyResponse = try await client.send(endpoint)

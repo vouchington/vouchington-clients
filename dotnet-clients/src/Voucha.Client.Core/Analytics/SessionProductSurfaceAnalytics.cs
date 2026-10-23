@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Analytics;
 
@@ -17,9 +18,13 @@ public interface IProductSurfaceAnalytics
 public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
 {
   private readonly VouchaApiClient client;
+  private readonly ISessionStore sessionStore;
 
-  public SessionProductSurfaceAnalytics(VouchaApiClient client) =>
-      this.client = client ?? throw new ArgumentNullException(nameof(client));
+  public SessionProductSurfaceAnalytics(VouchaApiClient client, ISessionStore sessionStore)
+  {
+    this.client = client ?? throw new ArgumentNullException(nameof(client));
+    this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+  }
 
   internal Task LastDispatch { get; private set; } = Task.CompletedTask;
 
@@ -35,7 +40,15 @@ public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
   public void RecordRssFeedItemView(string itemId) =>
       Dispatch(VouchaApiEndpoints.RssFeedItemView(itemId));
 
-  private void Dispatch(ApiRequest request) => LastDispatch = SendAsync(request);
+  private void Dispatch(ApiRequest request)
+  {
+    if (!sessionStore.Current.IsAuthenticated)
+    {
+      return;
+    }
+
+    LastDispatch = SendAsync(request);
+  }
 
   [SuppressMessage(
       "Design",
