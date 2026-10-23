@@ -30,6 +30,10 @@ The Android host-test shard installs only the matching Swift 6.3.3 host compiler
 Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
 never installs the Android SDK, NDK, or Swift 6.4 cross-compiler. Frozen package resolution uses
 that same verified host compiler and rejects a binary-artifact download after preparation.
+Host-only archive seeding has its own small helper; the full Android materializer and its cache
+inputs stay independent of host setup edits. Both helpers use the same explicit Skip pins, checked
+by a regression. This duplicates four pin declarations to preserve the actual dependency boundary;
+it does not guarantee cache availability or an under-ten-minute APK job.
 The test-library shard retains the Swift 6.4 Android SDK and its pinned NDK, builds the Android
 test runner, verifies its compatibility link, and builds the test libraries and harness. It does
 not build an APK or launch an emulator, so it needs no Java or Android platform/build-tools setup.

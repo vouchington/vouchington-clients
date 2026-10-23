@@ -30,7 +30,7 @@ runs:
         set -euo pipefail
         export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
         if [[ "$HOST_ONLY" == true ]]; then
-          bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh --host-only
+          bash swift-clients/apps/android/tooling/materialize-skip-host.sh
         else
           mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
         fi

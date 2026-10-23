@@ -16,16 +16,16 @@ test('host-only materialization verifies and seeds both Skip URLs without native
   const home = join(root, 'home')
   const downloads = join(root, 'downloads')
   const bin = join(root, 'bin')
-  for (const path of [tooling, dirname(helper), home, downloads, bin])
+  for (const path of [tooling, dirname(helper), home, downloads, bin, join(root, 'skip-home')])
     await mkdir(path, { recursive: true })
   await copyFile(new URL('swift-clients/tooling/cached-archive.sh', repository), helper)
   const payload = 'verified fixture Skip archive'
   const checksum = createHash('sha256').update(payload).digest('hex')
   const source = await readFile(
-    new URL('swift-clients/apps/android/tooling/materialize-skip-sdk.sh', repository),
+    new URL('swift-clients/apps/android/tooling/materialize-skip-host.sh', repository),
     'utf8',
   )
-  const script = join(tooling, 'materialize-skip-sdk.sh')
+  const script = join(tooling, 'materialize-skip-host.sh')
   await writeFile(
     script,
     source.replace(/SKIP_MACOS_ZIP_SHA256="[a-f0-9]+"/u, `SKIP_MACOS_ZIP_SHA256="${checksum}"`),
@@ -45,7 +45,7 @@ test('host-only materialization verifies and seeds both Skip URLs without native
     VOUCHA_SKIP_SWIFT_HOME: join(root, 'skip-home'),
     VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR: downloads,
   }
-  const result = spawnSync('bash', [script, '--host-only'], { env, encoding: 'utf8' })
+  const result = spawnSync('bash', [script], { env, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stderr)
   const artifacts = join(home, 'Library/Caches/org.swift.swiftpm/artifacts')
   const files = await readdir(artifacts)
@@ -57,7 +57,7 @@ test('host-only materialization verifies and seeds both Skip URLs without native
   assert.deepEqual(await readdir(join(root, 'skip-home')), [])
 
   await writeFile(archive, 'corrupted archive')
-  const corrupted = spawnSync('bash', [script, '--host-only'], { env, encoding: 'utf8' })
+  const corrupted = spawnSync('bash', [script], { env, encoding: 'utf8' })
   assert.notEqual(corrupted.status, 0)
   assert.match(corrupted.stderr, /unexpected native provisioning/u)
   const invalid = spawnSync('bash', [script, '--unknown'], { env, encoding: 'utf8' })
@@ -143,4 +143,29 @@ test('host-only archive preparation never transfers the unused SDK and NDK cache
     /name: Restore checksummed Swift Android archives\n\s+if: \$\{\{ inputs\.host-only != 'true' \}\}/u,
   )
   assert.match(action, /inputs\.host-only != 'true' && inputs\.save-cache == 'true'/u)
+})
+
+// Keep the small host helper independent while enforcing the canonical Skip pin.
+test('host materializer pins match the full Android materializer', async () => {
+  const load = name =>
+    readFile(new URL(`swift-clients/apps/android/tooling/${name}`, repository), 'utf8')
+  const full = await load('materialize-skip-sdk.sh')
+  const host = await load('materialize-skip-host.sh')
+  for (const key of [
+    'SKIP_VERSION',
+    'SKIP_MACOS_ZIP_URL',
+    'SKIP_MACOS_GITHUB_ZIP_URL',
+    'SKIP_MACOS_ZIP_SHA256',
+  ]) {
+    const assignment = new RegExp(`^${key}="([^"\\n]+)"$`, 'mu')
+    assert.equal(host.match(assignment)?.[1], full.match(assignment)?.[1], key)
+    assert.ok(host.match(assignment), `${key} must remain explicit`)
+  }
+  assert.doesNotMatch(host, /ANDROID_NDK|SWIFT_ANDROID_SDK|resolve-mise|mise which|sdk install/u)
+  assert.doesNotMatch(full, /host.only/u)
+  const action = await readFile(
+    new URL('.github/actions/prepare-android-archives/action.yml', repository),
+    'utf8',
+  )
+  assert.match(action, /bash swift-clients\/apps\/android\/tooling\/materialize-skip-host\.sh/u)
 })
