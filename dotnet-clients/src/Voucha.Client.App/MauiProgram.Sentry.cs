@@ -104,7 +104,11 @@ public static partial class MauiProgram
     {
       foreach (var key in extra.Keys.ToArray())
       {
-        if (SentryEventScrubber.DropsExtra(key))
+        if (scrubbed.Extras is not null && scrubbed.Extras.TryGetValue(key, out var value))
+        {
+          extra[key] = value;
+        }
+        else if (extra[key] is string || SentryEventScrubber.DropsExtra(key))
         {
           extra.Remove(key);
         }

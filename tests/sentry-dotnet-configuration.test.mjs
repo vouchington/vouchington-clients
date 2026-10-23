@@ -19,5 +19,6 @@ describe('dotnet Sentry configuration', () => {
     assert.match(projection, /ScrubAddress\(span\.Description\) \?\? ""/u)
     assert.match(projection, /QueryString = null/u)
     assert.match(projection, /KeepsNumber\(key\)/u)
+    assert.match(options, /extra\[key\] = value/u)
   })
 })
