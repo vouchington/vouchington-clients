@@ -11,8 +11,14 @@ public sealed record ScopeCatalogEntry(
     [property: JsonPropertyName("description_key")] string? DescriptionKey,
     [property: JsonPropertyName("requires")] string? Requires);
 
+public sealed record ScopeCatalogAudience(
+    [property: JsonPropertyName("audience")] string Audience,
+    [property: JsonPropertyName("accepts_api_keys")] bool AcceptsApiKeys,
+    [property: JsonPropertyName("requires_administrator")] bool RequiresAdministrator);
+
 public sealed record ScopeCatalogResponse(
-    [property: JsonPropertyName("scopes")] IReadOnlyList<ScopeCatalogEntry> Scopes);
+    [property: JsonPropertyName("scopes")] IReadOnlyList<ScopeCatalogEntry> Scopes,
+    [property: JsonPropertyName("audiences")] IReadOnlyList<ScopeCatalogAudience>? Audiences = null);
 
 public sealed record OAuthGrantClient(
     [property: JsonPropertyName("id")] string Id,

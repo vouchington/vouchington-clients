@@ -78,8 +78,48 @@ public struct CredentialScope: Codable, Identifiable, Sendable {
     }
 }
 
+public struct ScopeCatalogAudience: Codable, Sendable {
+    public let audience: String
+    public let acceptsApiKeys: Bool
+    public let requiresAdministrator: Bool
+
+    public init(audience: String, acceptsApiKeys: Bool, requiresAdministrator: Bool) {
+        self.audience = audience
+        self.acceptsApiKeys = acceptsApiKeys
+        self.requiresAdministrator = requiresAdministrator
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case audience
+        case acceptsApiKeys = "accepts_api_keys"
+        case requiresAdministrator = "requires_administrator"
+    }
+}
+
 public struct ScopeCatalogResponse: Codable, Sendable {
+    public let audiences: [ScopeCatalogAudience]
     public let scopes: [CredentialScope]
+
+    public init(audiences: [ScopeCatalogAudience] = [], scopes: [CredentialScope]) {
+        self.audiences = audiences
+        self.scopes = scopes
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        audiences = try container.decodeIfPresent([ScopeCatalogAudience].self, forKey: .audiences) ?? []
+        scopes = try container.decode([CredentialScope].self, forKey: .scopes)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(audiences, forKey: .audiences)
+        try container.encode(scopes, forKey: .scopes)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case audiences, scopes
+    }
 }
 
 public struct OAuthGrantClient: Codable, Sendable {
