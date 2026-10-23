@@ -70,18 +70,40 @@ async function fixture(t) {
 
 async function androidSourcesFixture(t) {
   const state = await fixture(t)
-  const source = join(state.checkoutRoot, 'swift-clients/apps/android/Sources/VouchaAndroid/Feature.swift')
-  const asset = join(state.checkoutRoot,
-    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets/Contents.json')
-  await mkdir(join(state.checkoutRoot,
-    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets'), { recursive: true })
+  const source = join(
+    state.checkoutRoot,
+    'swift-clients/apps/android/Sources/VouchaAndroid/Feature.swift',
+  )
+  const asset = join(
+    state.checkoutRoot,
+    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets/Contents.json',
+  )
+  await mkdir(
+    join(
+      state.checkoutRoot,
+      'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets',
+    ),
+    { recursive: true },
+  )
   await writeFile(source, 'public let feature = 1\n')
   await writeFile(asset, '{"info":{"version":1}}\n')
   git(state.checkoutRoot, 'add', 'swift-clients/apps/android/Sources')
-  git(state.checkoutRoot, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
-    'commit', '-qm', 'source fixture')
-  return { ...state, source, asset, identity: { ...state.identity,
-    revision: git(state.checkoutRoot, 'rev-parse', 'HEAD') } }
+  git(
+    state.checkoutRoot,
+    '-c',
+    'user.name=Test',
+    '-c',
+    'user.email=test@example.invalid',
+    'commit',
+    '-qm',
+    'source fixture',
+  )
+  return {
+    ...state,
+    source,
+    asset,
+    identity: { ...state.identity, revision: git(state.checkoutRoot, 'rev-parse', 'HEAD') },
+  }
 }
 
 test('restores exact source nanoseconds only after identical tracked bytes', async t => {
@@ -207,8 +229,10 @@ test('rejects identity, malformed metadata, and caps before touching files', asy
 test('restores genuine Android source directory nanoseconds across checkouts', async t => {
   const state = await androidSourcesFixture(t)
   const rootDirectory = join(state.checkoutRoot, 'swift-clients/apps/android/Sources')
-  const assetDirectory = join(state.checkoutRoot,
-    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets')
+  const assetDirectory = join(
+    state.checkoutRoot,
+    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets',
+  )
   exactTime(rootDirectory, '1792634209267950316')
   exactTime(assetDirectory, '1792634209267950317')
   const metadata = await inventoryTrackedSourceMetadata(state)
@@ -220,8 +244,10 @@ test('restores genuine Android source directory nanoseconds across checkouts', a
   t.after(() => rm(clone, { recursive: true, force: true }))
   git(clone, 'clone', '-q', '--no-hardlinks', state.checkoutRoot, '.')
   const cloneRoot = join(clone, 'swift-clients/apps/android/Sources')
-  const cloneAsset = join(clone,
-    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets')
+  const cloneAsset = join(
+    clone,
+    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets',
+  )
   exactAccessAndModificationTime(cloneRoot, '2000000000000000000', '1792634209267950416')
   exactAccessAndModificationTime(cloneAsset, '2000000000000000001', '1792634209267950417')
   await restoreTrackedSourceTimes({ ...state, checkoutRoot: clone, metadata })
@@ -229,17 +255,24 @@ test('restores genuine Android source directory nanoseconds across checkouts', a
   assert.equal((await stat(cloneAsset, { bigint: true })).mtimeNs.toString(), '1792634209267950317')
   assert.equal((await stat(cloneRoot, { bigint: true })).atimeNs.toString(), '2000000000000000000')
   assert.equal((await stat(cloneAsset, { bigint: true })).atimeNs.toString(), '2000000000000000001')
-  assert.equal((await stat(join(clone, 'swift-clients/apps/android/Sources/VouchaAndroid/Feature.swift'),
-    { bigint: true })).mtimeNs.toString(),
-  metadata.entries.find(entry => entry.path.endsWith('/Feature.swift')).mtimeNs)
+  assert.equal(
+    (
+      await stat(join(clone, 'swift-clients/apps/android/Sources/VouchaAndroid/Feature.swift'), {
+        bigint: true,
+      })
+    ).mtimeNs.toString(),
+    metadata.entries.find(entry => entry.path.endsWith('/Feature.swift')).mtimeNs,
+  )
 })
 
 test('late untracked child or changed source directory leaves earlier file and directory times untouched', async t => {
   const state = await androidSourcesFixture(t)
   const metadata = await inventoryTrackedSourceMetadata(state)
   const rootDirectory = join(state.checkoutRoot, 'swift-clients/apps/android/Sources')
-  const assetDirectory = join(state.checkoutRoot,
-    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets')
+  const assetDirectory = join(
+    state.checkoutRoot,
+    'swift-clients/apps/android/Sources/VouchaAndroid/Resources/Module.xcassets',
+  )
   exactTime(state.second, '1792634209267950416')
   exactTime(rootDirectory, '1792634209267950417')
   const beforeFile = (await stat(state.second, { bigint: true })).mtimeNs
@@ -266,17 +299,34 @@ test('source directory graph rejects symlink, missing member, and malformed meta
   const metadata = await inventoryTrackedSourceMetadata(state)
   exactTime(state.second, '1792634209267950416')
   const before = (await stat(state.second, { bigint: true })).mtimeNs
-  const changed = { ...metadata, directories: metadata.directories.map((entry, index) =>
-    index === 0 ? { ...entry, childrenSha256: '0'.repeat(64) } : entry) }
-  await assert.rejects(restoreTrackedSourceTimes({ ...state, metadata: changed }), /graph or metadata invalid/)
+  const changed = {
+    ...metadata,
+    directories: metadata.directories.map((entry, index) =>
+      index === 0 ? { ...entry, childrenSha256: '0'.repeat(64) } : entry,
+    ),
+  }
+  await assert.rejects(
+    restoreTrackedSourceTimes({ ...state, metadata: changed }),
+    /graph or metadata invalid/,
+  )
   const old = { ...metadata, version: 1 }
   await assert.rejects(restoreTrackedSourceTimes({ ...state, metadata: old }), /schema/)
-  const invalidPath = { ...metadata, directories: metadata.directories.map((entry, index) =>
-    index === 0 ? { ...entry, path: '../Sources' } : entry) }
-  await assert.rejects(restoreTrackedSourceTimes({ ...state, metadata: invalidPath }), /graph or metadata invalid/)
+  const invalidPath = {
+    ...metadata,
+    directories: metadata.directories.map((entry, index) =>
+      index === 0 ? { ...entry, path: '../Sources' } : entry,
+    ),
+  }
+  await assert.rejects(
+    restoreTrackedSourceTimes({ ...state, metadata: invalidPath }),
+    /graph or metadata invalid/,
+  )
   const asset = state.asset
   await rm(asset)
-  await assert.rejects(restoreTrackedSourceTimes({ ...state, metadata }), /No such file or directory/)
+  await assert.rejects(
+    restoreTrackedSourceTimes({ ...state, metadata }),
+    /No such file or directory/,
+  )
   await symlink(state.second, asset)
   await assert.rejects(restoreTrackedSourceTimes({ ...state, metadata }), /symbolic links/)
   assert.equal((await stat(state.second, { bigint: true })).mtimeNs, before)
