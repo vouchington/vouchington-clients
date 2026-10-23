@@ -837,6 +837,7 @@ jobs:
             --output "$RUNNER_TEMP/android-swift-diagnostics/producer.json"
       - name: Upload bounded producer SwiftPM input diagnosis
         if: ${{ always() }}
+        timeout-minutes: 1
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -1068,6 +1069,7 @@ jobs:
           key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
       - name: Upload bounded consumer SwiftPM input diagnosis
         if: ${{ always() }}
+        timeout-minutes: 1
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
