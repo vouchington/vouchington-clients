@@ -122,6 +122,7 @@ extension RootView {
                                 showingSignIn = true
                             }
                             .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier(Self.signedOutSignInAccessibilityIdentifier)
                         }
                     }
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)

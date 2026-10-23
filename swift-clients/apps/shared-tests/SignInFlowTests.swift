@@ -25,9 +25,9 @@
             app.launch()
 
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
-            let signIn = app.buttons["Sign In"]
+            let signIn = app.buttons["signed-out-sign-in"]
             XCTAssertTrue(signIn.waitForExistence(timeout: 20))
-            signIn.tap()
+            tapHittableButton("Sign In", identifier: "signed-out-sign-in", in: app, timeout: 20)
 
             let continueWithEmail = app.buttons["Continue with Email"]
             XCTAssertTrue(continueWithEmail.waitForExistence(timeout: 20))
@@ -53,15 +53,23 @@
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
         }
 
-        private func tapHittableButton(_ label: String, in app: XCUIApplication) {
-            let matches = app.buttons.matching(NSPredicate(format: "label == %@", label))
+        @discardableResult
+        private func tapHittableButton(
+            _ label: String,
+            identifier: String? = nil,
+            in app: XCUIApplication,
+            timeout: TimeInterval = 10
+        ) -> XCUIElement {
+            let matches = identifier.map { app.buttons.matching(identifier: $0) }
+                ?? app.buttons.matching(NSPredicate(format: "label == %@", label))
             let ready = NSPredicate { _, _ in
-                matches.allElementsBoundByIndex.contains { $0.isHittable && $0.isEnabled }
+                matches.allElementsBoundByIndex.contains { $0.isHittable && $0.isEnabled && $0.label == label }
             }
-            wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: 10)
-            let button = matches.allElementsBoundByIndex.first { $0.isHittable && $0.isEnabled }
+            wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
+            let button = matches.allElementsBoundByIndex.first { $0.isHittable && $0.isEnabled && $0.label == label }
             XCTAssertNotNil(button)
             button?.tap()
+            return button ?? app.buttons[label]
         }
 
         private func type(_ text: String, into field: XCUIElement) {

@@ -56,8 +56,15 @@ app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a port
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
 `test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
 of one job id, each with its own 9-minute cap: the root shell, the Videos tab, and the email OTP
-sign-in. Each leg finishes Node.js setup and unpacks the shared test products before booting its
-simulator, so neither the toolchain download nor the bundle extract competes with CoreSimulator.
+sign-in. Each leg boots the manifest's simulator before contract setup, then waits for
+`bootstatus` before unpacking, so the bundle extract does not compete with CoreSimulator.
+After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
+`simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
+That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed
+before the cap finished in under two minutes, and a longer gate pushed the sign-in leg past its
+9-minute job cap after the test had already passed. A launch that returns no process id still
+fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
+failure: the test's launch window ended before the app process existed.
 The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
 before job cleanup.
 Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result
@@ -65,11 +72,15 @@ summary is still required, and a failed launch still uploads that summary plus a
 log. Each iPhone leg requires exactly one passed, non-skipped test. The sign-in fixture accepts
 only the typed email, code, and verification token, then `SessionManager.refresh` reads the
 canonical identity fixture. That token stands in for the Turnstile widget the simulator cannot
-complete.
+complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the leading compact
+toolbar button rather than a grouped trailing action or another Sign In label, and still requires
+Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
 Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
 approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
+The iPad launch then installs the same verified app, requires the same process id, and stops
+that process before `xcodebuild`, with the same 150-second gate.
 The x86_64 job stays one `xcodebuild` compile. Its 7-minute compile step is the whole
 app slice, so splitting it would not remove a second phase. The native `Tests` fan-in requires
 both device-family launches and the x86_64 compile.

@@ -131,3 +131,16 @@ struct SectionDetailView: View {
         _profileVM = State(initialValue: factory.makeProfileViewModel())
     }
 }
+
+extension SectionDetailView {
+    // Leading, so iOS does not group this tap target with the trailing Customize action.
+    #if os(iOS)
+        var signInToolbarPlacement: ToolbarItemPlacement {
+            .topBarLeading
+        }
+    #else
+        var signInToolbarPlacement: ToolbarItemPlacement {
+            .primaryAction
+        }
+    #endif
+}
