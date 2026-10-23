@@ -86,7 +86,7 @@ public static class SentryEventScrubber
     ArgumentNullException.ThrowIfNull(outbound);
     var extras = outbound.Extras?
         .Where(pair => !DropsExtra(pair.Key))
-        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        .ToDictionary(pair => pair.Key, pair => Retain(pair.Key, pair.Value), StringComparer.Ordinal);
     return outbound with
     {
       AccountId = Trimmed(outbound.AccountId),
@@ -131,7 +131,7 @@ public static class SentryEventScrubber
             pair => pair.Key,
             pair => pair.Key.Contains("url", StringComparison.OrdinalIgnoreCase) ? StripQuery(pair.Value) ?? pair.Value : pair.Value,
             StringComparer.Ordinal);
-    return breadcrumb with { Data = data };
+    return breadcrumb with { Message = StripQuery(breadcrumb.Message), Data = data };
   }
 
   private static Dictionary<string, string>? ScrubHeaders(IReadOnlyDictionary<string, string>? headers) =>
@@ -140,14 +140,15 @@ public static class SentryEventScrubber
           pair => IsCredentialHeader(pair.Key) ? Filtered : pair.Value,
           StringComparer.Ordinal);
 
-  private static bool IsSeparateRequestPart(string name)
-  {
-    var key = name.Trim();
-    return key.Equals("http.query", StringComparison.OrdinalIgnoreCase) ||
-        key.Equals("http.fragment", StringComparison.OrdinalIgnoreCase) ||
-        key.Equals("query", StringComparison.OrdinalIgnoreCase) ||
-        key.Equals("fragment", StringComparison.OrdinalIgnoreCase);
-  }
+  private static bool IsSeparateRequestPart(string name) =>
+      name.Split(['.', '_', '-', ' '], StringSplitOptions.RemoveEmptyEntries).Any(token =>
+          token.StartsWith("query", StringComparison.OrdinalIgnoreCase) ||
+          token.StartsWith("fragment", StringComparison.OrdinalIgnoreCase));
+
+  private static string Retain(string key, string value) =>
+      key.Contains("url", StringComparison.OrdinalIgnoreCase) || value.Contains("://", StringComparison.Ordinal)
+          ? StripQuery(value) ?? value
+          : value;
 
   private static bool IsCredentialHeader(string name)
   {

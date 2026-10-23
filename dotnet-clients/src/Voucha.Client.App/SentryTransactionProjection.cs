@@ -11,6 +11,7 @@ internal static class SentryTransactionProjection
     ScrubRequest(transaction.Request);
     ScrubUser(transaction.User);
     ScrubData(transaction.Data);
+    ScrubTags(transaction);
     foreach (var span in transaction.Spans)
     {
       span.Description = SentryTelemetryFields.ScrubAddress(span.Description) ?? "";
@@ -18,6 +19,22 @@ internal static class SentryTransactionProjection
     }
 
     return transaction;
+  }
+
+  private static void ScrubTags(SentryTransaction transaction)
+  {
+    foreach (var key in transaction.Tags.Keys.ToArray())
+    {
+      var kept = SentryTelemetryFields.ScrubField(key, transaction.Tags[key]);
+      if (kept is null)
+      {
+        transaction.UnsetTag(key);
+      }
+      else
+      {
+        transaction.SetTag(key, kept);
+      }
+    }
   }
 
   private static void ScrubRequest(SentryRequest request)

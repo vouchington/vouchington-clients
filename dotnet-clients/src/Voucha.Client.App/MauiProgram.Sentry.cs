@@ -68,6 +68,26 @@ public static partial class MauiProgram
     sentryEvent.User.Email = null;
     sentryEvent.User.Username = null;
     sentryEvent.User.IpAddress = null;
+    foreach (var key in sentryEvent.User.Other.Keys.ToArray())
+    {
+      if (!string.Equals(key, SentryAccountSync.AccountMarker, StringComparison.Ordinal))
+      {
+        sentryEvent.User.Other.Remove(key);
+      }
+    }
+
+    foreach (var key in sentryEvent.Tags.Keys.ToArray())
+    {
+      var kept = sentryEvent.Tags[key] is string text ? SentryTelemetryFields.ScrubField(key, text) : null;
+      if (kept is null)
+      {
+        sentryEvent.UnsetTag(key);
+      }
+      else
+      {
+        sentryEvent.SetTag(key, kept);
+      }
+    }
     sentryEvent.Request.Url = scrubbed.RequestTarget;
     sentryEvent.Request.QueryString = null;
     sentryEvent.Request.Cookies = scrubbed.Cookies;

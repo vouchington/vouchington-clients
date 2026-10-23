@@ -91,8 +91,8 @@ public struct ScopeCatalogAudience: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case audience
-        case acceptsApiKeys = "accepts_api_keys"
-        case requiresAdministrator = "requires_administrator"
+        case acceptsApiKeys
+        case requiresAdministrator
     }
 }
 
