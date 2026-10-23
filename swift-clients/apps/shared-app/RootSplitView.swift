@@ -45,6 +45,7 @@ struct RootSplitView: View {
             if !viewModelFactory.sessionManager.isSignedIn {
                 ToolbarItem(placement: .primaryAction) {
                     Button(UiMessages.string(.nativeAuthSignIn, locale: locale), action: showSignIn)
+                        .accessibilityIdentifier(RootView.signedOutSignInAccessibilityIdentifier)
                 }
             }
             ToolbarItem(placement: .primaryAction) {
@@ -97,6 +98,7 @@ struct RootSplitView: View {
             } actions: {
                 Button(UiMessages.string(.nativeAuthSignIn, locale: locale), action: showSignIn)
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier(RootView.signedOutSignInAccessibilityIdentifier)
             }
         } else if selectedSection == nil {
             Text(UiMessages.string(.nativeNavigationSelectSection, locale: locale))
