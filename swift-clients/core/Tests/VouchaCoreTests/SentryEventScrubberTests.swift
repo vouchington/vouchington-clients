@@ -113,6 +113,12 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertFalse(data.values.contains("mcp-session-secret"))
     }
 
+    func testMcpSessionIdIsDroppedFromNetworkSpanFields() {
+        XCTAssertNil(SentryEventScrubber.scrubField(key: "Mcp-Session-Id", value: "mcp-session-secret"))
+        XCTAssertNil(SentryEventScrubber.scrubField(key: "MCP-SESSION-ID", value: "mcp-session-secret"))
+        XCTAssertEqual(SentryEventScrubber.scrubField(key: "method", value: "POST"), "POST")
+    }
+
     func testSpanAddressAndQueryFieldsAreScrubbed() {
         XCTAssertEqual(
             SentryEventScrubber.scrubAddress("GET https://voucha.ai/search?q=private#token"),
