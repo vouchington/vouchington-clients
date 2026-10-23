@@ -673,9 +673,6 @@ jobs:
     needs: [verify, build-swift-android-dependency]
     runs-on: macos-latest
     timeout-minutes: 30
-    env:
-      # TEMPORARY cold-run diagnostic; remove before the final feature head.
-      VOUCHA_ANDROID_COLD_DIAGNOSTIC: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -768,7 +765,6 @@ jobs:
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Restore Gradle user home
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -788,29 +784,17 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
             "$cache_dir" "$GITHUB_OUTPUT"
       - name: Restore Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-task-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
       - name: Restore prior main Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.previous-key }}
-      - name: Prove cold Gradle user home before original build
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle_home="${GRADLE_USER_HOME:-$HOME/.cache/voucha/gradle}"
-          [[ "$gradle_home" == /* ]] || { echo "Gradle user home must be absolute: $gradle_home" >&2; exit 1; }
-          [[ ! -e "$gradle_home" && ! -L "$gradle_home" ]] || {
-            echo "Cold diagnostic requires an absent Gradle user home: $gradle_home" >&2
-            exit 1
-          }
-          echo "COLD_GRADLE_HOME_ABSENT=1 path=$gradle_home"
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
@@ -843,9 +827,6 @@ jobs:
     needs: [verify, build-swift-android-native]
     runs-on: macos-latest
     timeout-minutes: 30
-    env:
-      # TEMPORARY cold-run diagnostic; remove before the final feature head.
-      VOUCHA_ANDROID_COLD_DIAGNOSTIC: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -920,7 +901,6 @@ jobs:
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-native-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
       - name: Restore Gradle user home
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -940,29 +920,17 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
             "$cache_dir" "$GITHUB_OUTPUT"
       - name: Restore Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-task-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
       - name: Restore prior main Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.previous-key }}
-      - name: Prove cold Gradle user home before original build
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle_home="${GRADLE_USER_HOME:-$HOME/.cache/voucha/gradle}"
-          [[ "$gradle_home" == /* ]] || { echo "Gradle user home must be absolute: $gradle_home" >&2; exit 1; }
-          [[ ! -e "$gradle_home" && ! -L "$gradle_home" ]] || {
-            echo "Cold diagnostic requires an absent Gradle user home: $gradle_home" >&2
-            exit 1
-          }
-          echo "COLD_GRADLE_HOME_ABSENT=1 path=$gradle_home"
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
@@ -994,9 +962,6 @@ jobs:
     needs: [verify, build-swift-android-jvm]
     runs-on: macos-latest
     timeout-minutes: 30
-    env:
-      # TEMPORARY cold-run diagnostic; remove before the final feature head.
-      VOUCHA_ANDROID_COLD_DIAGNOSTIC: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1089,7 +1054,6 @@ jobs:
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Restore Gradle user home
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -1109,29 +1073,17 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
             "$cache_dir" "$GITHUB_OUTPUT"
       - name: Restore Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' }}
         id: android-task-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
       - name: Restore prior main Gradle task-output cache
-        if: ${{ env.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.previous-key }}
-      - name: Prove cold Gradle user home before original build
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle_home="${GRADLE_USER_HOME:-$HOME/.cache/voucha/gradle}"
-          [[ "$gradle_home" == /* ]] || { echo "Gradle user home must be absolute: $gradle_home" >&2; exit 1; }
-          [[ ! -e "$gradle_home" && ! -L "$gradle_home" ]] || {
-            echo "Cold diagnostic requires an absent Gradle user home: $gradle_home" >&2
-            exit 1
-          }
-          echo "COLD_GRADLE_HOME_ABSENT=1 path=$gradle_home"
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:

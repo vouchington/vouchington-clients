@@ -1,62 +1,6 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-
-test('temporary cold diagnostic skips cache reads and rejects warm or symlinked Gradle homes', async () => {
-  const workflow = await readFile(
-    new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
-    'utf8',
-  )
-  const jobs = [
-    workflow.split('  build-swift-android-native:\n')[1].split('  build-swift-android-jvm:\n')[0],
-    workflow.split('  build-swift-android-jvm:\n')[1].split('  build-swift-android:\n')[0],
-    workflow.split('  build-swift-android:\n')[1].split('  test-swift-android-libs:\n')[0],
-  ]
-  const root = await mkdtemp(join(tmpdir(), 'voucha-android-cold-home-'))
-  const home = join(root, 'home')
-  const gradleHome = join(home, '.cache/voucha/gradle')
-  await mkdir(home)
-  try {
-    for (const job of jobs) {
-      assert.match(job, /VOUCHA_ANDROID_COLD_DIAGNOSTIC: '1'/u)
-      for (const step of ['Restore Gradle user home', 'Restore Gradle task-output cache']) {
-        assert.match(
-          job,
-          new RegExp(
-            `name: ${step}\\n\\s+if: \\$\\{\\{ env\\.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' \\}\\}`,
-            'u',
-          ),
-        )
-      }
-      assert.match(
-        job,
-        /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ env\.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' &&/u,
-      )
-      const proof = job
-        .split('      - name: Prove cold Gradle user home before original build\n')[1]
-        .split('      - name: Build the selected Android validation phase\n')[0]
-      const script = proof
-        .match(/        run: \|\n((?: {10}[^\n]*\n)+)/u)?.[1]
-        ?.replace(/^ {10}/gmu, '')
-      assert.ok(script)
-      const env = { ...process.env, HOME: home }
-      delete env.GRADLE_USER_HOME
-      const run = () => spawnSync('bash', ['-e', '-c', script], { env, encoding: 'utf8' })
-      assert.equal(run().status, 0)
-      await mkdir(gradleHome, { recursive: true })
-      assert.notEqual(run().status, 0)
-      await rm(gradleHome, { recursive: true })
-      await symlink(home, gradleHome)
-      assert.notEqual(run().status, 0)
-      await rm(gradleHome)
-    }
-  } finally {
-    await rm(root, { recursive: true, force: true })
-  }
-})
 
 test('Android caches restore on all runs and save only one completed main phase', async () => {
   const workflow = await readFile(
@@ -107,10 +51,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     archives,
     /inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
   )
-  assert.match(
-    app,
-    /if: \$\{\{ env\.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' \}\}\n\s+id: android-gradle-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
-  )
+  assert.match(app, /id: android-gradle-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u)
   assert.match(
     app,
     /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-gradle-cache\.outputs\.cache-hit != 'true'/u,
@@ -129,7 +70,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.match(job, /select-gradle-task-cache\.mjs/u)
     assert.match(
       job,
-      /name: Restore Gradle task-output cache\n\s+if: \$\{\{ env\.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' \}\}\n\s+id: android-task-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
+      /name: Restore Gradle task-output cache\n\s+id: android-task-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u,
     )
     assert.match(
       job,
@@ -138,7 +79,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.cache-key \}\}/u)
     assert.match(
       job,
-      /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ env\.VOUCHA_ANDROID_COLD_DIAGNOSTIC != '1' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
+      /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
     )
     assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.previous-key \}\}/u)
     assert.doesNotMatch(job, /restore-keys:/u)
