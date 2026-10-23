@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+host_only=false
+if [[ "$#" -gt 0 ]]; then
+  if [[ "$#" != 1 || "$1" != --host-only ]]; then
+    echo "Usage: $0 [--host-only]" >&2
+    exit 64
+  fi
+  host_only=true
+fi
+
 SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=swift-clients/tooling/cached-archive.sh
 source "$SCRIPT_DIR/../../../tooling/cached-archive.sh"
@@ -49,6 +58,34 @@ SDK_TAR_PATH="$DOWNLOAD_DIR/${SWIFT_ANDROID_SDK_ID}.artifactbundle.tar.gz"
 NDK_ZIP_PATH="$DOWNLOAD_DIR/android-ndk-${ANDROID_NDK_VERSION}-darwin.zip"
 SKIP_MACOS_ZIP_PATH="$DOWNLOAD_DIR/skip-macos-${SKIP_VERSION}.zip"
 
+ensure_cached_archive \
+  "$SKIP_MACOS_ZIP_URL" \
+  "$SKIP_MACOS_ZIP_PATH" \
+  sha256 \
+  "$SKIP_MACOS_ZIP_SHA256" \
+  "Using cached Skip macOS binary zip at $SKIP_MACOS_ZIP_PATH"
+seed_swiftpm_binary_artifact \
+  "$SKIP_MACOS_ZIP_PATH" \
+  "$RUNNER_SWIFTPM_CACHE" \
+  "$SKIP_MACOS_ZIP_URL" \
+  sha256 \
+  "$SKIP_MACOS_ZIP_SHA256"
+seed_swiftpm_binary_artifact \
+  "$SKIP_MACOS_ZIP_PATH" \
+  "$RUNNER_SWIFTPM_CACHE" \
+  "$SKIP_MACOS_GITHUB_ZIP_URL" \
+  sha256 \
+  "$SKIP_MACOS_ZIP_SHA256"
+require_swiftpm_binary_artifact "$RUNNER_SWIFTPM_CACHE" "$SKIP_MACOS_ZIP_URL"
+require_swiftpm_binary_artifact "$RUNNER_SWIFTPM_CACHE" "$SKIP_MACOS_GITHUB_ZIP_URL"
+
+
+# Host SwiftPM uses the Skip transpiler, but never cross-compiles for Android.
+# Seed the same verified binary without installing the native SDK or NDK.
+if [[ "$host_only" == true ]]; then
+  exit 0
+fi
+
 TOOLCHAIN_DIR="$HOME/toolchains/${SWIFT_TOOLCHAIN_ID}.xctoolchain"
 SDK_BUNDLE="$HOME/Library/org.swift.swiftpm/swift-sdks/${SWIFT_ANDROID_SDK_ID}.artifactbundle"
 SDK_ROOT="$SDK_BUNDLE/swift-android"
@@ -87,26 +124,6 @@ ensure_cached_archive \
   "$ANDROID_NDK_SHA1" \
   "Using cached Darwin Android NDK archive at $NDK_ZIP_PATH"
 
-ensure_cached_archive \
-  "$SKIP_MACOS_ZIP_URL" \
-  "$SKIP_MACOS_ZIP_PATH" \
-  sha256 \
-  "$SKIP_MACOS_ZIP_SHA256" \
-  "Using cached Skip macOS binary zip at $SKIP_MACOS_ZIP_PATH"
-seed_swiftpm_binary_artifact \
-  "$SKIP_MACOS_ZIP_PATH" \
-  "$RUNNER_SWIFTPM_CACHE" \
-  "$SKIP_MACOS_ZIP_URL" \
-  sha256 \
-  "$SKIP_MACOS_ZIP_SHA256"
-seed_swiftpm_binary_artifact \
-  "$SKIP_MACOS_ZIP_PATH" \
-  "$RUNNER_SWIFTPM_CACHE" \
-  "$SKIP_MACOS_GITHUB_ZIP_URL" \
-  sha256 \
-  "$SKIP_MACOS_ZIP_SHA256"
-require_swiftpm_binary_artifact "$RUNNER_SWIFTPM_CACHE" "$SKIP_MACOS_ZIP_URL"
-require_swiftpm_binary_artifact "$RUNNER_SWIFTPM_CACHE" "$SKIP_MACOS_GITHUB_ZIP_URL"
 
 skip_toolchain_files_ready() {
   [[ -x "$TOOLCHAIN_SWIFT" && -f "$SDK_INFO" && -f "$NDK_SENTINEL" ]]

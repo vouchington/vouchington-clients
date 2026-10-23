@@ -26,6 +26,14 @@ resource bundles, and SwiftPM test metadata. The test shard verifies the run, ca
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
 
+The Android host-test shard installs only the matching Swift 6.3.3 host compiler after verifying
+Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
+never installs the Android SDK, NDK, or Swift 6.4 cross-compiler. Frozen package resolution uses
+that same verified host compiler and rejects a binary-artifact download after preparation.
+The test-library shard retains the Swift 6.4 Android SDK and its pinned NDK, builds the Android
+test runner, verifies its compatibility link, and builds the test libraries and harness. It does
+not build an APK or launch an emulator, so it needs no Java or Android platform/build-tools setup.
+
 The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
 package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
 Swift Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the

@@ -962,43 +962,12 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
+          skip-candidate-install: true
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -1048,43 +1017,27 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+          skip-candidate-install: true
+      - name: Install mise for the pinned host compiler
+        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
         with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-      - name: Set up mise-managed Swift compiler
-        uses: ./.github/actions/setup-mise-toolchain
-        with:
-          client-root: candidate-clients
-          tool: swift
+          cache: false
+          install: false
+      - name: Configure isolated host compiler installation
+        working-directory: candidate-clients
+        run: |
+          {
+            echo "MISE_DATA_DIR=$RUNNER_TEMP/mise-data"
+            echo "MISE_CACHE_DIR=$RUNNER_TEMP/mise-cache"
+            echo 'MISE_DISABLE_TOOLS=actionlint,dotnet,shellcheck,github:boyter/scc,zizmor,aqua:gitleaks/gitleaks,aqua:lycheeverse/lychee,swiftformat'
+          } >> "$GITHUB_ENV"
+          mise trust "$PWD/.mise.toml"
       - name: Select Xcode 26.6 for Android host SwiftPM tests
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Install and verify pinned host Swift compiler
+        working-directory: candidate-clients
+        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -1099,11 +1052,12 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: false
+          host-only: true
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
-          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          env MISE_EXEC_AUTO_INSTALL=false mise exec swift@6.3.3 -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Test Android Swift package
         working-directory: candidate-clients
