@@ -87,11 +87,9 @@ original app and instrumentation APK task closure. These four serial jobs still 
 native contract but omit candidate pnpm installation; their candidate tooling uses Node builtins,
 shell, Swift, and Gradle without installed JS packages.
 
-The JVM phase alone supplies 2 GiB maximum heaps to Gradle and the Kotlin daemon for a bounded hosted
-experiment; native and app phases retain their configured defaults. Heap ceilings are not measured
-resident memory or proof of a performance improvement. Temporary CI telemetry records at most 180
-five-second samples of Java PID/PPID/RSS/command names, VM page counters and swap usage; it preserves
-the original build exit and is removed after this single measurement.
+The JVM phase alone supplies 2 GiB maximum heaps to Gradle and the Kotlin daemon; native and app
+phases retain their configured defaults. Heap ceilings are not measured resident memory or proof of
+a performance improvement.
 
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
 document an `UP-TO-DATE` outcome as its correctness condition. The JVM phase sets up the host Swift

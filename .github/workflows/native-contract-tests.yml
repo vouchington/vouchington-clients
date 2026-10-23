@@ -939,18 +939,7 @@ jobs:
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
           ANDROID_BUILD_PHASE: app-jvm-producer
         run: |
-          bash swift-clients/apps/android/tooling/measure-jvm-memory.sh \
-            mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
-      - name: Upload temporary bounded JVM memory measurements
-        if: ${{ always() }}
-        continue-on-error: true
-        timeout-minutes: 1
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
-        with:
-          name: android-jvm-memory-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/android-jvm-memory.log
-          if-no-files-found: warn
-          retention-days: 1
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
       - name: Pack bounded exact-run generated Android state
         timeout-minutes: 4
         env:
