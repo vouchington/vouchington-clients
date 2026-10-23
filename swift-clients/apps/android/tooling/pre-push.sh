@@ -157,13 +157,15 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
-if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
+if [[ "$phase" == app-native-producer ]]; then
+  bash "$SCRIPT_DIR/build-native-product.sh" "$ANDROID_PACKAGE_DIR"
+fi
+
+if [[ "$phase" != test-libs && "$phase" != app-native-dependency && "$phase" != app-native-producer ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
-  if [[ "$phase" == app-native-producer ]]; then
-    gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
-  elif [[ "$phase" == app-consumer ]]; then
+  if [[ "$phase" == app-consumer ]]; then
     consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
   fi
   (
@@ -217,7 +219,7 @@ if [[ "$phase" == app-native-dependency ]]; then
     exit 1
   fi
   # Match :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug except for the
-  # SwiftPM selection. The original Gradle task still runs in the next phase.
+  # SwiftPM selection. The original Gradle task still runs in the APK phase.
   skip android build \
     -d "$generated_module/build/jni-libs" \
     --package-path "$generated_package" \
@@ -233,7 +235,7 @@ if [[ "$phase" == app-native-dependency ]]; then
     -Xswiftc -module-cache-path \
     -Xswiftc "$generated_scratch/module-cache/VouchaAndroid"
   # The state handoff includes this Gradle-owned directory. No Gradle task has
-  # run in this stage; the original native Gradle task runs after restore.
+  # run in this stage; the original native Gradle task runs in the APK phase.
   mkdir -p -- "$ANDROID_PROJECT_DIR/.gradle"
 fi
 

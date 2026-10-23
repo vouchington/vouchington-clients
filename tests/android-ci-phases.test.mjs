@@ -13,9 +13,23 @@ async function fixture() {
   const bin = join(root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
   await mkdir(tooling, { recursive: true })
   await mkdir(bin, { recursive: true })
-  for (const name of ['pre-push.sh', 'link-swift64-android-test-runner.sh']) {
+  for (const name of [
+    'pre-push.sh',
+    'link-swift64-android-test-runner.sh',
+    'build-native-product.sh',
+  ]) {
     await copyFile(new URL(name, sourceRoot), join(tooling, name))
   }
+  const module = join(
+    root,
+    '.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid',
+  )
+  await mkdir(join(module, 'src/main/swift'), { recursive: true })
+  await writeFile(join(module, 'src/main/swift/Package.swift'), '// generated fixture')
+  await copyFile(
+    new URL('fixtures/android-native-gradle-task.gradle.kts', import.meta.url),
+    join(module, 'build.gradle.kts'),
+  )
   const trace = join(root, 'trace')
   await writeFile(trace, '')
   await writeFile(join(bin, 'java'), '#!/bin/sh\nexit 0\n')
@@ -130,14 +144,15 @@ test('test-library phase succeeds in a fresh workspace with no Gradle project ou
   }
 })
 
-test('native producer uses its pinned task and consumer requires verified state', async () => {
+test('native producer builds its product directly and consumer requires verified state', async () => {
   const f = await fixture()
   try {
     await f.gradle()
     assert.equal(f.run(['--phase', 'app-native-producer']).status, 0)
-    assert.deepEqual(await f.lines(), [
-      'gradle --profile :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug',
-    ])
+    const lines = await f.lines()
+    assert.equal(lines.length, 1)
+    assert.match(lines[0], /android build .* --product VouchaAndroid /u)
+    assert.doesNotMatch(lines[0], /gradle/u)
     assert.equal(f.run(['--phase', 'app-consumer']).status, 1)
     const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
     assert.equal(f.run(['--phase', 'app-consumer'], verified).status, 0)

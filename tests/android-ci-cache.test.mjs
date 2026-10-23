@@ -176,7 +176,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     assert.ok(native.indexOf(ordered[index - 1]) < native.indexOf(ordered[index]))
   }
   assert.match(native, /ANDROID_BUILD_PHASE: app-native-producer/u)
-  assert.match(script, /gradle_tasks=\(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug\)/u)
+  assert.match(script, /bash "\$SCRIPT_DIR\/build-native-product\.sh" "\$ANDROID_PACKAGE_DIR"/u)
   assert.match(
     script,
     /--package-path "\$generated_package"[\s\S]*--target SkipSwiftUI[\s\S]*--scratch-path "\$generated_scratch"/u,
