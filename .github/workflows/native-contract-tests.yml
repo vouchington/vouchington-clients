@@ -1791,10 +1791,9 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-          candidate-fetch-depth: 1
+          skip-candidate-checkout: true
       - name: Wait for iPhone Simulator readiness
         timeout-minutes: 4
-        working-directory: candidate-clients
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
@@ -1809,7 +1808,6 @@ jobs:
           test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
           test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
           test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
-          test "$(jq -r '.revision' "$manifest")" = "$(git -C candidate-clients rev-parse HEAD)"
           test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
@@ -1857,7 +1855,6 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
       - name: Launch iOS app on Simulator
         timeout-minutes: 7
-        working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
@@ -1923,7 +1920,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-          candidate-fetch-depth: 1
+          skip-candidate-checkout: true
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
       - name: Start iPad Simulator for root-shell launch
@@ -1972,7 +1969,6 @@ jobs:
           test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
           test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
           test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
-          test "$(jq -r '.revision' "$manifest")" = "$(git -C candidate-clients rev-parse HEAD)"
           test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
@@ -2025,7 +2021,6 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
       - name: Launch iPad root shell on Simulator
         timeout-minutes: 9
-        working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"

@@ -9,10 +9,6 @@ inputs:
     description: Trusted repository recorded in the producer artifact
     required: false
     default: vouchington/vouchington
-  candidate-fetch-depth:
-    description: Commits of history to fetch for the candidate checkout; 0 fetches all branches and tags
-    required: false
-    default: '0'
   github-token:
     description: Read-only token used to download the producer artifact
     required: true
@@ -22,6 +18,10 @@ inputs:
   producer-run-id:
     description: Producer workflow run ID
     required: true
+  skip-candidate-checkout:
+    description: Skip the candidate checkout when the job only needs the verified artifact and prebuilt products
+    required: false
+    default: 'false'
   skip-candidate-install:
     description: Skip Node, pnpm, and the candidate install when the job only verifies the contract
     required: false
@@ -82,9 +82,10 @@ runs:
           --expected-producer-run-attempt "$EXPECTED_PRODUCER_RUN_ATTEMPT" \
           --expected-revision-sha "$EXPECTED_REVISION_SHA"
     - name: Check out exact candidate revision
+      if: ${{ inputs.skip-candidate-checkout != 'true' }}
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
-        fetch-depth: ${{ inputs.candidate-fetch-depth }}
+        fetch-depth: 0
         ref: ${{ inputs.candidate-revision-sha }}
         path: candidate-clients
         persist-credentials: false
