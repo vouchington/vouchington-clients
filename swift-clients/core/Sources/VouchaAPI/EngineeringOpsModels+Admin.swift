@@ -27,15 +27,6 @@ public struct EngineeringPartitionTable: Codable, Identifiable, Sendable, Hashab
     }
 }
 
-public struct EngineeringPartitionInfo: Codable, Identifiable, Sendable, Hashable {
-    public let name: String
-    public let sizeBytes: Int
-
-    public var id: String {
-        name
-    }
-}
-
 public struct ArticleSyncTriggerResponse: Codable, Sendable {
     public let jobId: String
 }

@@ -103,6 +103,20 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
     public let scopes: [String]
     public let consentedAt: Date
     public let lastUsedAt: Date?
+    public let attestationStatus: String?
+    public let sessionId: String?
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        client = try container.decode(OAuthGrantClient.self, forKey: .client)
+        resource = try container.decode(String.self, forKey: .resource)
+        scopes = try container.decode([String].self, forKey: .scopes)
+        consentedAt = try container.decode(Date.self, forKey: .consentedAt)
+        lastUsedAt = try container.decode(Date?.self, forKey: .lastUsedAt)
+        attestationStatus = try container.decode(String?.self, forKey: .attestationStatus)
+        sessionId = try container.decode(String?.self, forKey: .sessionId)
+    }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -112,9 +126,11 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
         try container.encode(scopes, forKey: .scopes)
         try container.encode(consentedAt, forKey: .consentedAt)
         try container.encode(lastUsedAt, forKey: .lastUsedAt)
+        try container.encode(attestationStatus, forKey: .attestationStatus)
+        try container.encode(sessionId, forKey: .sessionId)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, client, resource, scopes, consentedAt, lastUsedAt
+        case id, client, resource, scopes, consentedAt, lastUsedAt, attestationStatus, sessionId
     }
 }

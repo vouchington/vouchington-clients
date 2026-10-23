@@ -65,7 +65,7 @@ final class EngineeringOpsModelCoverageTests: XCTestCase {
               "partition_count": 2,
               "total_size_bytes": 123,
               "partitions": [
-                { "name": "posts_2026_07", "size_bytes": 100 }
+                { "name": "posts_2026_07", "size_bytes": 100, "drop_refusal": null }
               ]
             }
           ]
