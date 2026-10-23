@@ -48,7 +48,7 @@ private struct NativeReferralClickRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(click.landingUrl)
+            Text(verbatim: click.landingUrl ?? "—")
                 .font(.body)
             Text(NativeReferralClickRows.timestamp(
                 click,

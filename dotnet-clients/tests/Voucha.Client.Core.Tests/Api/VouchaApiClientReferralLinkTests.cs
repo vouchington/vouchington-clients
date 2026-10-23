@@ -74,6 +74,23 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public void ReferralClickResponseDecodesExplicitNullLandingUrl()
+  {
+    const string json = """
+        {"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":null,"signed_up_at":null,"user_id":null,"created_at":"2026-03-01T11:55:00Z"}},"users":{},"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}
+        """;
+
+    var response = JsonSerializer.Deserialize<ReferralClickLogResponse>(json);
+
+    Assert.NotNull(response);
+    Assert.Equal("click-1", Assert.Single(response.Results).Id);
+    Assert.True(response.Clicks.ContainsKey("click-1"));
+    Assert.Null(response.Clicks["click-1"].LandingUrl);
+    Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ReferralClickLogResponse>(
+        json.Replace("\"landing_url\":null,", string.Empty, StringComparison.Ordinal)));
+  }
+
+  [Fact]
   public async Task ApiReferralLinksServiceFetchesClicksAndFiltersReferralPrograms()
   {
     var (client, handler) = CreateClient(
