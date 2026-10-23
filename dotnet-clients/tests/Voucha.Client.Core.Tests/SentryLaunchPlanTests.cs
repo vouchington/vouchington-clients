@@ -53,4 +53,18 @@ public sealed class SentryLaunchPlanTests
     Assert.Equal(SentryAccountAction.Clear, signedOut.Action);
     Assert.Null(signedOut.AccountId);
   }
+
+  [Fact]
+  public void InvalidDsnDisablesSdk()
+  {
+    var plan = SentryLaunchPlan.Resolve(
+        new Dictionary<string, string?> { ["VOUCHA_SENTRY_DSN"] = "not-a-dsn" },
+        null,
+        releaseConfiguration: false,
+        "1.0+1",
+        null);
+
+    Assert.False(plan.StartsSdk);
+    Assert.Null(plan.Dsn);
+  }
 }

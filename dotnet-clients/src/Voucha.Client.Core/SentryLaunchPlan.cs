@@ -19,7 +19,8 @@ public sealed record SentryLaunchPlan(
       string releaseName,
       string? accountId)
   {
-    var dsn = Trimmed(Read(environment, "VOUCHA_SENTRY_DSN") ?? Read(packagedConfiguration, "VOUCHA_SENTRY_DSN"));
+    var dsn = ValidDsn(Trimmed(
+        Read(environment, "VOUCHA_SENTRY_DSN") ?? Read(packagedConfiguration, "VOUCHA_SENTRY_DSN")));
     return new SentryLaunchPlan(
         dsn,
         releaseName,
@@ -32,6 +33,24 @@ public sealed record SentryLaunchPlan(
   private static string? Read(IReadOnlyDictionary<string, string?>? values, string key)
   {
     if (values is null || !values.TryGetValue(key, out var value))
+    {
+      return null;
+    }
+
+    return value;
+  }
+
+  private static string? ValidDsn(string? value)
+  {
+    if (value is null || !Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+        string.IsNullOrWhiteSpace(uri.UserInfo) ||
+        string.IsNullOrWhiteSpace(uri.UserInfo.Split(':')[0]))
+    {
+      return null;
+    }
+
+    var lastSlash = uri.AbsoluteUri.LastIndexOf('/');
+    if (lastSlash < 0 || string.IsNullOrWhiteSpace(uri.AbsoluteUri[(lastSlash + 1)..]))
     {
       return null;
     }

@@ -14,6 +14,9 @@ public sealed class FinancialScopeContractTests
   {
     var catalog = JsonSerializer.Deserialize<ScopeCatalogResponse>(
         ApiFixtureLoader.LoadResponse("shared.scopes.catalog"), VouchaApiJson.Options)!;
+    var userAudience = Assert.Single(catalog.Audiences!, item => item.Audience == "user");
+    Assert.True(userAudience.AcceptsApiKeys);
+    Assert.False(userAudience.RequiresAdministrator);
     var expected = new (string Scope, string DescriptionKey, string? Requires)[]
     {
       ("financial-profile:read", "financial_profile_read", null),

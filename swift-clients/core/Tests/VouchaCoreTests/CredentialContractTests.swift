@@ -39,6 +39,9 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(response.apiKey.permissions, selection.permissions)
         XCTAssertEqual(response.rawKey, "fixture-raw-api-key")
         XCTAssertEqual(response.apiKey.type, .mcp)
+        let user = try XCTUnwrap(catalog.audiences.first { $0.audience == "user" })
+        XCTAssertTrue(user.acceptsApiKeys)
+        XCTAssertFalse(user.requiresAdministrator)
     }
 
     func testStagedFinancialScopesNeedExactSelectionAndTheirOwnReadPrerequisites() throws {

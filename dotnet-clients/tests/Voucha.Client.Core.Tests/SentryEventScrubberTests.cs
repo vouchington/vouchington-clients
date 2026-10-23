@@ -96,6 +96,7 @@ public sealed class SentryEventScrubberTests
         "https://voucha.ai/search",
         SentryTelemetryFields.ScrubField("url", "https://voucha.ai/search?q=private-search"));
     Assert.Equal("GET", SentryTelemetryFields.ScrubField("method", "GET"));
+    Assert.Equal("https://voucha.ai/x", SentryTelemetryFields.ScrubField("from", "https://voucha.ai/x?otp=123456"));
     Assert.True(SentryTelemetryFields.KeepsNumber("status_code"));
     Assert.True(SentryTelemetryFields.KeepsNumber("http.response.status_code"));
     Assert.False(SentryTelemetryFields.KeepsNumber("http.query"));
