@@ -29,4 +29,11 @@ describe('Swift Sentry configuration', () => {
       }
     })
   }
+
+  it('pins sentry-cocoa in the generated app package lock', async () => {
+    const generator = await readFile(join(root, 'swift-clients/tooling/generate.sh'), 'utf8')
+    assert.match(generator, /sentry-cocoa/u)
+    assert.match(generator, /2f64c77f77514acd01780d1aac86ae75b7fccd04/u)
+    assert.match(generator, /9\.31\.0/u)
+  })
 })
