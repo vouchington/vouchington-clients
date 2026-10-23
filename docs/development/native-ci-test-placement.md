@@ -26,6 +26,13 @@ resource bundles, and SwiftPM test metadata. The test shard verifies the run, ca
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
 
+The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
+package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
+Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
+exact run, attempt, and candidate revision. The native producer still runs the original Gradle
+Swift package task; the app consumer still builds both APKs, verifies the native ABI, and passes
+those exact APKs to the cookie restart job.
+
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
@@ -35,10 +42,11 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly three passed tests with nothing skipped: the root shell, one sidebar
+requires exactly four passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
-shared `--ui-testing-feed-flow` fixture, and one email OTP sign-in that removes the signed-out
-control. #80 stays open for the news, podcasts, and posts tabs.
+shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
+News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, and one
+email OTP sign-in that removes the signed-out control. #80 stays open for the news and posts tabs.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
