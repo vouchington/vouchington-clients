@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.ModerationIntegrity;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -9,6 +10,7 @@ public abstract class IntegrityFlagQueuePageBase<TViewModel> : ContentPage
     where TViewModel : class, IIntegrityFlagQueueModel, INotifyPropertyChanged
 {
   protected readonly TViewModel viewModel;
+  private readonly string automationPrefix;
   protected readonly Picker statusPicker;
   protected readonly VerticalStackLayout queue = new() { Spacing = 12 };
   protected readonly Label errorLabel = new() { TextColor = Colors.IndianRed };
@@ -26,6 +28,7 @@ public abstract class IntegrityFlagQueuePageBase<TViewModel> : ContentPage
       string automationPrefix)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+    this.automationPrefix = automationPrefix;
     SetDynamicResource(TitleProperty, titleKey.Value);
     BindingContext = viewModel;
     statusPicker = UiCopy.Bind(
@@ -69,6 +72,40 @@ public abstract class IntegrityFlagQueuePageBase<TViewModel> : ContentPage
   {
     viewModel.PropertyChanged += (_, _) => render();
     render();
+  }
+
+  protected void RenderQueue(int itemCount, Action renderItems)
+  {
+    errorLabel.Text = viewModel.ErrorMessage;
+    retryButton.IsVisible = viewModel.State == LoadState.Error;
+    statusPicker.IsEnabled = !viewModel.IsLoading;
+    loadMoreButton.IsVisible = viewModel.HasMore;
+    loadMoreButton.IsEnabled = viewModel.CanLoadMore;
+    applyingStatus = true;
+    statusPicker.ItemsSource = viewModel.AvailableStatuses.Select(StatusLabel).ToArray();
+    statusPicker.SelectedIndex = Array.IndexOf(
+        viewModel.AvailableStatuses.ToArray(),
+        viewModel.Status);
+    applyingStatus = false;
+    queue.Children.Clear();
+    if (viewModel.IsLoading && itemCount == 0)
+    {
+      queue.Children.Add(new ActivityIndicator
+      {
+        IsRunning = true,
+        AutomationId = $"{automationPrefix}-loading",
+      });
+      return;
+    }
+    if (viewModel.IsEmpty)
+    {
+      queue.Children.Add(UiCopy.Bind(
+          new Label { AutomationId = $"{automationPrefix}-empty" },
+          Label.TextProperty,
+          UiMessageKey.NativeSwiftIntegrityNoFlagsMessage));
+      return;
+    }
+    renderItems();
   }
 
   protected override async void OnAppearing()

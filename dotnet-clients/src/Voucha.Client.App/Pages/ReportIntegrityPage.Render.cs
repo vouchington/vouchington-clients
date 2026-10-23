@@ -5,38 +5,10 @@ namespace Voucha.Client.App.Pages;
 
 public sealed partial class ReportIntegrityPage
 {
-  private void Render()
+  private void Render() => RenderQueue(viewModel.Items.Count, () =>
   {
-    errorLabel.Text = viewModel.ErrorMessage;
-    retryButton.IsVisible = viewModel.State == Voucha.Client.Core.Support.LoadState.Error;
-    statusPicker.IsEnabled = !viewModel.IsLoading;
-    loadMoreButton.IsVisible = viewModel.HasMore;
-    loadMoreButton.IsEnabled = viewModel.CanLoadMore;
-    applyingStatus = true;
-    statusPicker.ItemsSource = viewModel.AvailableStatuses.Select(StatusLabel).ToArray();
-    statusPicker.SelectedIndex = Array.IndexOf(
-        viewModel.AvailableStatuses.ToArray(),
-        viewModel.Status);
-    applyingStatus = false;
-    queue.Children.Clear();
-    if (viewModel.IsLoading && viewModel.Items.Count == 0)
-    {
-      queue.Children.Add(new ActivityIndicator
-      {
-        IsRunning = true,
-        AutomationId = "report-integrity-loading",
-      });
-      return;
-    }
-    if (viewModel.IsEmpty)
-    {
-      queue.Children.Add(UiCopy.Bind(
-          new Label { AutomationId = "report-integrity-empty" }, Label.TextProperty,
-          UiMessageKey.NativeSwiftIntegrityNoFlagsMessage));
-      return;
-    }
     foreach (var row in viewModel.Items) queue.Children.Add(FlagCard(row));
-  }
+  });
 
   private View FlagCard(ReportIntegrityRow row)
   {
