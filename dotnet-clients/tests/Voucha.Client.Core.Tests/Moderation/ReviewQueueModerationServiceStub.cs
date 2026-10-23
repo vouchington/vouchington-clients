@@ -20,6 +20,9 @@ internal abstract class ReviewQueueModerationServiceStub : IModerationService
   public virtual Task<ModerationReportJudgementResponse> RerunReportJudgementAsync(string reportId, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  public virtual Task<ModerationReportJudgementRunResponse> GetReportJudgementRunAsync(string reportId, string runId, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
   public virtual Task<AdminUserWarningResponse> IssueWarningAsync(IssueAdminWarningRequest request, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 

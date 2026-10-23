@@ -175,6 +175,7 @@ public sealed class ModerationReportsViewModelTests
         new RecordedResponse(reports),
         Fixture("native.moderation.report-resolution.reviewed"),
         Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+        Fixture("native.moderation.report-judgement-run.pending"),
         Fixture("native.moderation.admin-warning.report", HttpStatusCode.Created),
         new RecordedResponse("null", HttpStatusCode.NoContent),
         new RecordedResponse("null", HttpStatusCode.NoContent));
@@ -190,10 +191,16 @@ public sealed class ModerationReportsViewModelTests
     Assert.True(await viewModel.DismissBanEvasionAsync("dismiss", TestContext.Current.CancellationToken));
 
     Assert.Equal(HttpMethod.Patch, handler.Requests[1].Method);
+    Assert.Equal(HttpMethod.Post, handler.Requests[2].Method);
     Assert.EndsWith("/judgements", handler.Requests[2].PathAndQuery, StringComparison.Ordinal);
-    Assert.Equal("/api/v1/admin/warnings", handler.Requests[3].PathAndQuery);
-    Assert.Equal(HttpMethod.Post, handler.Requests[4].Method);
-    Assert.Equal(HttpMethod.Delete, handler.Requests[5].Method);
+    Assert.Equal(HttpMethod.Get, handler.Requests[3].Method);
+    Assert.EndsWith(
+        "/judgements/00000000-0000-7000-8000-000000000303",
+        handler.Requests[3].PathAndQuery,
+        StringComparison.Ordinal);
+    Assert.Equal("/api/v1/admin/warnings", handler.Requests[4].PathAndQuery);
+    Assert.Equal(HttpMethod.Post, handler.Requests[5].Method);
+    Assert.Equal(HttpMethod.Delete, handler.Requests[6].Method);
     Assert.Empty(viewModel.RowErrors);
   }
 
@@ -244,10 +251,18 @@ public sealed class ModerationReportsViewModelTests
   }
 
   private static ModerationReportsViewModel ViewModel(RecordingHandler handler, params string[] roles) =>
-      new(new ApiModerationService(Client(handler)), new NavigationViewer(true, roles));
+      new(
+          new ApiModerationService(Client(handler)),
+          new NavigationViewer(true, roles),
+          judgementRunReads: 1,
+          judgementRunDelay: static _ => Task.CompletedTask);
 
   private static ModerationReportsViewModel ViewModel(HttpMessageHandler handler, params string[] roles) =>
-      new(new ApiModerationService(Client(handler)), new NavigationViewer(true, roles));
+      new(
+          new ApiModerationService(Client(handler)),
+          new NavigationViewer(true, roles),
+          judgementRunReads: 1,
+          judgementRunDelay: static _ => Task.CompletedTask);
 
   private static VouchaApiClient Client(HttpMessageHandler handler) =>
       new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });

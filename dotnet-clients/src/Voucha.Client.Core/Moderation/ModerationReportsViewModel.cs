@@ -18,6 +18,8 @@ public sealed partial class ModerationReportsViewModel :
   private readonly HashSet<string> successfulReportIds = new(StringComparer.Ordinal);
   private readonly Dictionary<string, string> rowErrors = new(StringComparer.Ordinal);
   private readonly IDisposable? localeSubscription;
+  private readonly int judgementRunReads;
+  private readonly Func<CancellationToken, Task> judgementRunDelay;
   private CancellationTokenSource? loadCancellation;
   private IReadOnlyList<StaffModerationReport> staffReports = [];
   private IReadOnlyList<MemberModerationReport> memberReports = [];
@@ -38,15 +40,21 @@ public sealed partial class ModerationReportsViewModel :
   public ModerationReportsViewModel(
       IModerationService service,
       NavigationViewer viewer,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      int judgementRunReads = ReportJudgementRunReconciliation.DefaultReadCount,
+      Func<CancellationToken, Task>? judgementRunDelay = null)
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     ArgumentNullException.ThrowIfNull(viewer);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(judgementRunReads);
     IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
     IsStaff = IsAdministrator || viewer.Roles.Contains("moderator", StringComparer.Ordinal);
     mode = IsStaff ? ModerationReportsMode.Grouped : ModerationReportsMode.Flat;
     sort = IsStaff ? ModerationReportSort.Severity : ModerationReportSort.CreatedAtDesc;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    this.judgementRunReads = judgementRunReads;
+    this.judgementRunDelay = judgementRunDelay
+        ?? (token => Task.Delay(ReportJudgementRunReconciliation.ReadSpacing, token));
   }
 
   public bool IsStaff { get; }
