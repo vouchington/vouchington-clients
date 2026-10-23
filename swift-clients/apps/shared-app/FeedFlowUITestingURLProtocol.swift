@@ -53,6 +53,12 @@
             case "/api/v1/feeds/rss_feed_items/any":
                 guard let responseKey = feedResponseEnvironmentKey(components) else { return nil }
                 key = responseKey
+            case "/api/v1/feeds/posts/any":
+                guard components.queryItems?.count == 2,
+                      components.queryItems?.contains(URLQueryItem(name: "limit", value: "20")) == true,
+                      components.queryItems?.contains(URLQueryItem(name: "sort", value: "hot")) == true
+                else { return nil }
+                key = "VOUCHA_UI_TESTING_POSTS_FEED_RESPONSE_BASE64"
             default:
                 return nil
             }

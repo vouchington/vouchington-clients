@@ -68,10 +68,21 @@ public final class ModerationReportsViewModel {
     var activeReportPageRequest: CursorPageRequest?
     var groupedLoadedPageCount = 0
     private var evictedReportIds: Set<String> = []
+    let judgementRunReads: Int
+    let judgementRunDelay: @Sendable () async throws -> Void
 
-    public init(client: APIClient?, viewerTier: ModerationReportsViewerTier) {
+    public init(
+        client: APIClient?,
+        viewerTier: ModerationReportsViewerTier,
+        judgementRunReads: Int = 20,
+        judgementRunDelay: @escaping @Sendable () async throws -> Void = {
+            try await Task.sleep(for: .seconds(3))
+        }
+    ) {
         self.client = client
         self.viewerTier = viewerTier
+        self.judgementRunReads = judgementRunReads
+        self.judgementRunDelay = judgementRunDelay
         mode = viewerTier.isStaff ? .grouped : .flat
         sort = viewerTier.isStaff ? .severity : .createdAtDesc
     }
@@ -95,16 +106,6 @@ public final class ModerationReportsViewModel {
         } else {
             selectedReportIds.insert(reportId)
         }
-    }
-
-    public func replaceSelectionWithActiveRemovableReports(
-        in duplicateCluster: StaffModerationReportDuplicateCluster
-    ) {
-        guard viewerTier.canRemove, !isQueueActionInProgress else { return }
-        let reports = duplicateCluster.clusters.flatMap(\.reports).filter {
-            isActive($0) && actionIsAllowed(.removeTarget, for: $0)
-        }
-        selectedReportIds = Set(reports.map(\.id))
     }
 
     func report(id: String) -> StaffModerationReport? {
@@ -177,7 +178,7 @@ public final class ModerationReportsViewModel {
         activeReportPageRequest = nil
     }
 
-    private func isActive(_ report: StaffModerationReport) -> Bool {
+    func isActive(_ report: StaffModerationReport) -> Bool {
         !evictedReportIds.contains(report.id)
     }
 

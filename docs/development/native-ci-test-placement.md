@@ -42,11 +42,13 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly four passed tests with nothing skipped: the root shell, one sidebar
+requires exactly five passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
 shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
-News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, and one
-email OTP sign-in that removes the signed-out control. #80 stays open for the news and posts tabs.
+News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, one
+sidebar navigation that opens Posts, leaves for News, and returns to the canonical post from
+`swift.posts.feed.default`, and one email OTP sign-in that removes the signed-out control. #80
+stays open for the news tab.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
@@ -92,9 +94,10 @@ The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
 argument, the canonical `swift.my.identity.default` fixture, and
 `native.my.email-preferences.default`. The session opens the production app shell, routes to
-`/my/notification-settings`, toggles the engagement switch, and requires the news-digest picker to
-be enabled. It counts only when both checks pass and nothing was skipped. The other six notification
-controls, route focus, and the one-announcement proof remain open. The Debug fixture transport is
+`/my/notification-settings`, requires the moderation switch to be enabled and on, toggles the
+engagement switch, and requires the news-digest picker to be enabled. It counts only when all three
+checks pass and nothing was skipped. The other five notification controls, route focus, and the
+one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
 compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
 those are not this session.
 

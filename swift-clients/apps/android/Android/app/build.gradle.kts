@@ -14,6 +14,15 @@ val configuredTurnstileSiteKey = providers.gradleProperty("VOUCHA_TURNSTILE_SITE
     ?: providers.gradleProperty("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
     ?: providers.environmentVariable("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
     ?: ""
+val turnstileTestSiteKeys = file("../../../../tooling/turnstile-test-site-keys.txt")
+    .readLines()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+    .toSet()
+val alwaysPassTurnstileSiteKey = "1x00000000000000000000AA"
+require(alwaysPassTurnstileSiteKey in turnstileTestSiteKeys) {
+    "Cloudflare always-pass site key is missing from turnstile-test-site-keys.txt"
+}
 
 skip {
 }
@@ -63,7 +72,8 @@ android {
         // versionCode = CURRENT_PROJECT_VERSION
         // versionName = MARKETING_VERSION
         manifestPlaceholders["VOUCHA_API_BASE_URL"] = configuredApiBaseUrl
-        manifestPlaceholders["VOUCHA_TURNSTILE_SITE_KEY"] = configuredTurnstileSiteKey
+        manifestPlaceholders["VOUCHA_TURNSTILE_SITE_KEY"] =
+            configuredTurnstileSiteKey.trim().ifBlank { alwaysPassTurnstileSiteKey }
     }
 
     buildFeatures {
@@ -111,7 +121,13 @@ android {
 }
 
 gradle.taskGraph.whenReady {
-    if (allTasks.any { it.name.contains("Release", ignoreCase = true) } && !file("keystore.properties").isFile) {
-        error("keystore.properties is required for release builds")
+    if (allTasks.any { it.name.contains("Release", ignoreCase = true) }) {
+        val releaseSiteKey = configuredTurnstileSiteKey.trim()
+        if (releaseSiteKey.isEmpty() || releaseSiteKey in turnstileTestSiteKeys) {
+            error("Release builds require an explicit non-test VOUCHA_TURNSTILE_SITE_KEY.")
+        }
+        if (!file("keystore.properties").isFile) {
+            error("keystore.properties is required for release builds")
+        }
     }
 }

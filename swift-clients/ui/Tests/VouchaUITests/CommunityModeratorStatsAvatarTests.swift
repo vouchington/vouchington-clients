@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import ViewInspector
 @testable import VouchaAPI
 @testable import VouchaCore
@@ -73,6 +74,28 @@ final class CommunityModeratorStatsAvatarTests: NativeRouteSurfaceViewModelTestC
         XCTAssertTrue(rows.contains { $0.title == "Pending reports" })
     }
 
+    func testMissingWithheldDeletedAndAnonymousModeratorStatsHidePlacement() async throws {
+        let legacyImageId = "00000000-0000-7000-8000-000000000201"
+        try await assertHiddenModeratorStat(title: "testuser") { _ in }
+        try await assertHiddenModeratorStat(
+            title: "testuser",
+            retainedLegacyImageId: legacyImageId
+        ) { users in
+            users["user-1"]?["profile_image_id"] = legacyImageId
+        }
+        try await assertHiddenModeratorStat(title: "user-1") { users in
+            users.removeValue(forKey: "user-1")
+        }
+        try await assertHiddenModeratorStat(
+            title: "user-1",
+            retainedLegacyImageId: legacyImageId
+        ) { users in
+            users["user-1"]?["name"] = NSNull()
+            users["user-1"]?["username"] = NSNull()
+            users["user-1"]?["profile_image_id"] = legacyImageId
+        }
+    }
+
     func testForbiddenStatsStillLoadsPendingQueueRows() async throws {
         registerModerationResponses(stats: Data(#"{"error":"forbidden"}"#.utf8), statsStatus: 403)
         let viewModel = try CommunityDetailViewModel(
@@ -86,6 +109,53 @@ final class CommunityModeratorStatsAvatarTests: NativeRouteSurfaceViewModelTestC
         XCTAssertFalse(rows.contains { $0.id == "user-1" })
         XCTAssertTrue(rows.contains { $0.title == "Pending posts" })
         XCTAssertTrue(rows.contains { $0.title == "Pending reports" })
+    }
+
+    private func assertHiddenModeratorStat(
+        title: String,
+        retainedLegacyImageId: String? = nil,
+        mutate: (inout [String: [String: Any]]) -> Void
+    ) async throws {
+        let stats = try moderatorStatsFixture(
+            retainedLegacyImageId: retainedLegacyImageId,
+            mutate: mutate
+        )
+        registerModerationResponses(stats: stats)
+        let client = try makeImageHostClient()
+        let viewModel = CommunityDetailViewModel(
+            client: client,
+            slug: "builders",
+            initialTab: .moderation
+        )
+
+        let rows = try await viewModel.loadRows(client: client)
+        let row = try XCTUnwrap(rows.first { $0.id == "user-1" })
+        XCTAssertNil(row.avatarURL)
+        XCTAssertEqual(row.title, title)
+        XCTAssertEqual(row.detail, "3")
+        let rendered = try NativeSurfaceRow(row: row)
+            .environment(\.locale, Locale(identifier: "en"))
+            .inspect()
+        XCTAssertTrue(rendered.findAll(ViewType.View<AsyncImageView>.self).isEmpty)
+        XCTAssertNoThrow(try rendered.find(ViewType.Image.self))
+        XCTAssertNoThrow(try rendered.find(text: title))
+        XCTAssertNoThrow(try rendered.find(text: "3"))
+    }
+
+    private func moderatorStatsFixture(
+        retainedLegacyImageId: String? = nil,
+        mutate: (inout [String: [String: Any]]) -> Void
+    ) throws -> Data {
+        var stats = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("web.communities.moderator-stats.default")
+        ) as? [String: Any])
+        var users = try XCTUnwrap(stats["users"] as? [String: [String: Any]])
+        mutate(&users)
+        if let retainedLegacyImageId {
+            XCTAssertEqual(users["user-1"]?["profile_image_id"] as? String, retainedLegacyImageId)
+        }
+        stats["users"] = users
+        return try JSONSerialization.data(withJSONObject: stats)
     }
 
     private func registerModerationResponses(stats: Data, statsStatus: Int = 200) {

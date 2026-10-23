@@ -1558,8 +1558,8 @@ jobs:
             exit 1
           fi
           rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -2205,6 +2205,7 @@ jobs:
         run: >-
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore -clp:PerformanceSummary
       - name: Save NuGet packages from main
@@ -2378,7 +2379,7 @@ jobs:
           export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
-          jq -e '.total == 2 and .passed == 2 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+          jq -e '.total == 3 and .passed == 3 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
       - name: Save Appium Mac2 from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
@@ -2529,6 +2530,7 @@ jobs:
         run: >-
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-windows10.0.26100.0 --no-restore
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
   dotnet-windows-language-model-surface:

@@ -14,6 +14,8 @@ public interface IModerationService
 
   Task<ModerationReportJudgementResponse> RerunReportJudgementAsync(string reportId, CancellationToken cancellationToken = default);
 
+  Task<ModerationReportJudgementRunResponse> GetReportJudgementRunAsync(string reportId, string runId, CancellationToken cancellationToken = default);
+
   Task<AdminUserWarningResponse> IssueWarningAsync(IssueAdminWarningRequest request, CancellationToken cancellationToken = default);
 
   Task ConfirmBanEvasionAsync(string communityIdOrSlug, string userId, CancellationToken cancellationToken = default);

@@ -24,9 +24,9 @@
   <PropertyGroup>
     <VouchaApiBaseUrl Condition="'$(VouchaApiBaseUrl)' == ''">$(VOUCHA_API_BASE_URL)</VouchaApiBaseUrl>
     <VouchaApiBaseUrl Condition="'$(VouchaApiBaseUrl)' == ''">https://voucha.ai</VouchaApiBaseUrl>
-    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(VOUCHA_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
-    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
   </PropertyGroup>
+
+  <Import Project="TurnstileSiteKey.targets" />
 
   <ItemGroup>
     <AssemblyMetadata Include="VOUCHA_API_BASE_URL" Value="$(VouchaApiBaseUrl)" />
