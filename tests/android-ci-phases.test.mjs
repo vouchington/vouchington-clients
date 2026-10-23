@@ -80,6 +80,9 @@ printf 'gradle %s\\n' "$*" >> "$PHASE_TRACE"
 if [ "\${NATIVE_REUSED:-0}" = 1 ]; then
   printf '%s\\n' '> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug UP-TO-DATE'
 fi
+if [ -n "\${PHASE_PROFILE:-}" ]; then
+  printf 'See the profiling report at: file://%s\\n' "$PHASE_PROFILE"
+fi
 exit "\${FAIL_APP:-0}"
 `,
       )
@@ -163,6 +166,45 @@ test('native producer uses its pinned task and consumer requires verified state'
     assert.equal(reused.status, 0)
     assert.match(reused.stdout, /buildAndroidSwiftPackageDebug UP-TO-DATE/u)
     assert.equal(f.run(['--phase', 'app-consumer'], { ...verified, FAIL_APP: '13' }).status, 13)
+  } finally {
+    await f.clean()
+  }
+})
+
+test('JVM summary selects its current profile after native profile handoff', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const profileRoot = join(f.root, '.build/Android/app/reports/profile')
+    await mkdir(profileRoot, { recursive: true })
+    const currentProfile = join(profileRoot, 'profile-current.html')
+    await writeFile(join(profileRoot, 'profile-restored.html'), 'restored native profile')
+    await writeFile(currentProfile, 'current JVM profile')
+    const reporter = new URL('report-gradle-profile.mjs', sourceRoot).href
+    await writeFile(
+      join(f.root, 'tooling/report-gradle-profile.mjs'),
+      `
+import { readFileSync } from 'node:fs'
+import { profileFiles, selectProfilePath } from ${JSON.stringify(reporter)}
+const root = process.env.PHASE_PACKAGE
+const selected = selectProfilePath(profileFiles(root + '/.build/Android', root), process.env.ANDROID_GRADLE_PROFILE_PATH)
+process.stdout.write(readFileSync(selected, 'utf8'))
+`,
+    )
+    const summary = join(f.root, 'summary.md')
+    const env = {
+      VOUCHA_ANDROID_STATE_VERIFIED: '1',
+      RUNNER_TEMP: f.root,
+      GITHUB_STEP_SUMMARY: summary,
+      PHASE_PROFILE: currentProfile,
+    }
+    const result = f.run(['--phase', 'app-jvm-producer'], env)
+    assert.equal(result.status, 0, result.stderr)
+    assert.doesNotMatch(result.stderr, /unable to summarize/u)
+    assert.match(await readFile(summary, 'utf8'), /current JVM profile/u)
+    assert.doesNotMatch(await readFile(summary, 'utf8'), /restored native profile/u)
+    const failed = f.run(['--phase', 'app-jvm-producer'], { ...env, FAIL_APP: '19' })
+    assert.equal(failed.status, 19)
   } finally {
     await f.clean()
   }
@@ -272,7 +314,10 @@ test('native producer retains Skip source hashes only after verified state resto
     )
     assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')
     assert.equal(
-      f.run(['--phase', 'app-jvm-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
+      f.run(['--phase', 'app-jvm-producer'], {
+        VOUCHA_ANDROID_STATE_VERIFIED: '1',
+        RUNNER_TEMP: f.root,
+      }).status,
       0,
     )
     assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')

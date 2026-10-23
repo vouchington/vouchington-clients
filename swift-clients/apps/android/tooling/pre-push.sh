@@ -174,23 +174,26 @@ fi
 
 if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_started_at=$SECONDS
-  consumer_log=""
+  gradle_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
   if [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
   elif [[ "$phase" == app-jvm-producer ]]; then
     gradle_tasks=(:app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug)
+    gradle_log="${RUNNER_TEMP:?}/android-jvm-gradle.log"
   elif [[ "$phase" == app-consumer ]]; then
-    consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
+    gradle_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
   fi
   (
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
-    if [[ "$phase" == app-consumer ]]; then
-      ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
-      echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
-      grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$consumer_log" || true
+    if [[ -n "$gradle_log" ]]; then
+      ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$gradle_log"
+      if [[ "$phase" == app-consumer ]]; then
+        echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
+        grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$gradle_log" || true
+      fi
     else
       ./gradlew --profile "${gradle_tasks[@]}"
     fi
@@ -207,8 +210,8 @@ if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
       printf '| `%s` | %ss |\n' "${gradle_tasks[*]}" "$gradle_elapsed_seconds"
     } >> "$GITHUB_STEP_SUMMARY" || printf 'Warning: unable to write GitHub step summary: %s\n' "$GITHUB_STEP_SUMMARY" >&2
     current_profile=""
-    if [[ -n "$consumer_log" ]]; then
-      current_profile="$(sed -n 's@^See the profiling report at: file://@@p' "$consumer_log" | tail -n 1)"
+    if [[ -n "$gradle_log" ]]; then
+      current_profile="$(sed -n 's@^See the profiling report at: file://@@p' "$gradle_log" | tail -n 1)"
     fi
     if ! ANDROID_GRADLE_PROFILE_PATH="$current_profile" node "$SCRIPT_DIR/report-gradle-profile.mjs" | tee -a "$GITHUB_STEP_SUMMARY"; then
       printf 'Warning: unable to summarize Android Gradle profile; build result remains authoritative.\n' >&2
