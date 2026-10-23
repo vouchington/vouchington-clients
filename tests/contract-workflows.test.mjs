@@ -54,7 +54,8 @@ describe('native contract workflow boundary', () => {
     ])
       assert.match(action, new RegExp(`inputs\\.${input}`, 'u'))
     for (const expectation of [
-      /fetch-depth: 0/u,
+      /fetch-depth: \$\{\{ inputs\.candidate-fetch-depth \}\}/u,
+      /candidate-fetch-depth:[\s\S]*?default: '0'/u,
       /ref: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /path: candidate-clients/u,
       /persist-credentials: false/u,
@@ -68,6 +69,7 @@ describe('native contract workflow boundary', () => {
       assert.match(action, expectation)
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
+    assert.equal(workflow.split('candidate-fetch-depth: 1').length - 1, 2)
 
     for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 24)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
