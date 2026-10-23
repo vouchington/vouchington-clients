@@ -13,10 +13,11 @@ test('Android caches restore on all runs and save only one completed main phase'
   )
   const producer = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-jvm:\n')[0]
   const dependency = workflow
     .split('  build-swift-android-dependency:\n')[1]
     .split('  build-swift-android-native:\n')[0]
+  const jvm = workflow.split('  build-swift-android-jvm:\n')[1].split('  build-swift-android:\n')[0]
   const app = workflow.split('  build-swift-android:\n')[1].split('  test-swift-android-libs:\n')[0]
   const libs = workflow
     .split('  test-swift-android-libs:\n')[1]
@@ -26,7 +27,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     .split('  test-swift-android-cookie:\n')[0]
   const coreJob = workflow.split('  build-android-core:\n')[1].split('  build-macos-app:\n')[0]
 
-  for (const job of [dependency, producer, app]) {
+  for (const job of [dependency, producer, jvm, app]) {
     assert.match(
       job,
       /uses: \.\/\.github\/actions\/prepare-native-contract[\s\S]*?skip-candidate-install: true/u,
@@ -60,7 +61,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Save Gradle user home from main'),
   )
-  for (const job of [producer, app]) {
+  for (const job of [producer, jvm, app]) {
     assert.match(job, /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u)
     assert.match(
       job,
@@ -84,13 +85,13 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.doesNotMatch(job, /restore-keys:/u)
   }
   assert.ok(
-    app.indexOf('Restore verified exact-run generated Android state') <
+    app.indexOf('Restore verified exact-run JVM-prepared Android state') <
       app.indexOf('Restore Gradle task-output cache'),
   )
   const appSteps = [
     'Prepare checksummed Swift Android SDK and archives',
-    'Download exact-run generated Android state',
-    'Restore verified exact-run generated Android state',
+    'Download exact-run JVM-prepared Android state',
+    'Restore verified exact-run JVM-prepared Android state',
     'Resolve Android Swift package with shared artifact cache',
     'Restore Gradle user home',
     'Build the selected Android validation phase',
@@ -101,6 +102,26 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.ok(app.indexOf(appSteps[index - 1]) < app.indexOf(appSteps[index]))
   }
   assert.match(app, /! grep -E 'Downloading binary artifact' "\$resolve_log"/u)
+  assert.match(jvm, /needs: \[verify, build-swift-android-native\]/u)
+  assert.match(app, /needs: \[verify, build-swift-android-jvm\]/u)
+  assert.match(
+    jvm,
+    /android-generated-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+  )
+  assert.match(
+    jvm,
+    /android-jvm-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+  )
+  assert.match(
+    app,
+    /android-jvm-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+  )
+  assert.match(jvm, /ANDROID_BUILD_PHASE: app-jvm-producer/u)
+  assert.doesNotMatch(jvm, /prepare-android-archives|actions\/cache\/save@/u)
+  assert.ok(
+    jvm.indexOf('Restore verified native producer state') <
+      jvm.indexOf('Build the selected Android validation phase'),
+  )
   assert.match(app, /echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "\$GITHUB_ENV"/u)
   assert.match(
     app,
@@ -119,7 +140,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.doesNotMatch(job, /Select Gradle task-output cache path/u)
     assert.doesNotMatch(job, /Restore Gradle task-output cache/u)
   }
-  for (const job of [producer, libs, host])
+  for (const job of [producer, jvm, libs, host])
     assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
   assert.match(coreJob, /uses: actions\/cache@[0-9a-f]{40}/u)
   assert.match(coreJob, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
@@ -144,7 +165,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     .split('  build-swift-android-native:\n')[0]
   const native = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-jvm:\n')[0]
   const required = workflow
     .split('  test-swift-android-cookie:\n')[1]
     .split('  build-swift-ui-tests:\n')[0]

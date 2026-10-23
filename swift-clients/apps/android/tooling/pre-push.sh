@@ -4,13 +4,13 @@ set -euo pipefail
 phase=all
 if [[ "$#" -gt 0 ]]; then
   if [[ "$#" -ne 2 || "$1" != --phase ]]; then
-    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-consumer]" >&2
+    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-jvm-producer|app-consumer]" >&2
     exit 64
   fi
   phase="$2"
 fi
 case "$phase" in
-  app | test-libs | all | app-native-dependency | app-native-producer | app-consumer) ;;
+  app | test-libs | all | app-native-dependency | app-native-producer | app-jvm-producer | app-consumer) ;;
   *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
 esac
 
@@ -20,13 +20,13 @@ ANDROID_PROJECT_DIR="$ANDROID_PACKAGE_DIR/Android"
 TEST_LIBRARIES_DIR="$ANDROID_PACKAGE_DIR/.build/pre-push-test-libs"
 SKIPSTONE_OUTPUTS_DIR="$ANDROID_PACKAGE_DIR/.build/plugins/outputs"
 
-if [[ "$phase" == app-consumer && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
-  echo 'Android consumer requires a verified exact-run generated-state handoff.' >&2
+if [[ ( "$phase" == app-consumer || "$phase" == app-jvm-producer ) && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+  echo 'Android Gradle phase requires a verified exact-run generated-state handoff.' >&2
   exit 1
 fi
 
 if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
-  if [[ "$phase" != app-native-producer || "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+  if [[ ( "$phase" != app-native-producer && "$phase" != app-jvm-producer ) || "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
     while IFS= read -r -d '' source_hash; do
       rm -f -- "$source_hash"
     done < <(find "$SKIPSTONE_OUTPUTS_DIR" -type f -name '.*.sourcehash' -print0)
@@ -109,34 +109,36 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   SKIP_SWIFT_SDK_INFO="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/info.json"
   SKIP_NDK_SENTINEL="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/android-ndk-r30/.extraction-complete"
   SKIP_NDK_SYSROOT="$HOME/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/swift-android/ndk-sysroot/usr/lib/aarch64-linux-android"
-  if [[ ! -x "$SKIP_SWIFT_TOOLCHAIN/usr/bin/swift" || \
+  if [[ "$phase" != app-jvm-producer && ( ! -x "$SKIP_SWIFT_TOOLCHAIN/usr/bin/swift" || \
     ! -f "$SKIP_SWIFT_SDK_INFO" || \
     ! -f "$SKIP_NDK_SENTINEL" || \
-    ! -d "$SKIP_NDK_SYSROOT" ]]; then
+    ! -d "$SKIP_NDK_SYSROOT" ) ]]; then
     bash "$SCRIPT_DIR/materialize-skip-sdk.sh"
   fi
   if [[ ! -x "$SKIP_SWIFT_TOOLCHAIN/usr/bin/swift" ]]; then
     echo "Skip Swift toolchain is missing or not executable: $SKIP_SWIFT_TOOLCHAIN/usr/bin/swift" >&2
     exit 1
   fi
-  if [[ ! -f "$SKIP_SWIFT_SDK_INFO" ]]; then
+  if [[ "$phase" != app-jvm-producer && ! -f "$SKIP_SWIFT_SDK_INFO" ]]; then
     echo "Skip Swift Android SDK metadata is missing: $SKIP_SWIFT_SDK_INFO" >&2
     exit 1
   fi
-  if [[ ! -f "$SKIP_NDK_SENTINEL" ]]; then
+  if [[ "$phase" != app-jvm-producer && ! -f "$SKIP_NDK_SENTINEL" ]]; then
     echo "Skip Android NDK sentinel is missing: $SKIP_NDK_SENTINEL" >&2
     exit 1
   fi
-  if [[ ! -d "$SKIP_NDK_SYSROOT" ]]; then
+  if [[ "$phase" != app-jvm-producer && ! -d "$SKIP_NDK_SYSROOT" ]]; then
     echo "Skip Android NDK sysroot is missing: $SKIP_NDK_SYSROOT" >&2
     exit 1
   fi
 
   # Swift Build otherwise discovers the runner's Android SDK NDK, which may be
   # older than the NDK used to build this Swift Android SDK's runtime libraries.
-  ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"
-  ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
-  export ANDROID_NDK_ROOT ANDROID_NDK_HOME
+  if [[ "$phase" != app-jvm-producer ]]; then
+    ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"
+    ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+    export ANDROID_NDK_ROOT ANDROID_NDK_HOME
+  fi
 
   # Skip's Gradle bridge discovers host toolchains only through the conventional
   # macOS path. Keep that path as a real directory and link only the verified
@@ -163,6 +165,8 @@ if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
   if [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
+  elif [[ "$phase" == app-jvm-producer ]]; then
+    gradle_tasks=(:app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug)
   elif [[ "$phase" == app-consumer ]]; then
     consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
   fi

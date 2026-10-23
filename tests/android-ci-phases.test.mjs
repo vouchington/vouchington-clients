@@ -138,6 +138,13 @@ test('native producer uses its pinned task and consumer requires verified state'
     assert.deepEqual(await f.lines(), [
       'gradle --profile :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug',
     ])
+    assert.equal(f.run(['--phase', 'app-jvm-producer']).status, 1)
+    const jvmVerified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
+    assert.equal(f.run(['--phase', 'app-jvm-producer'], jvmVerified).status, 0)
+    assert.equal(
+      (await f.lines()).at(-1),
+      'gradle --profile :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
+    )
     assert.equal(f.run(['--phase', 'app-consumer']).status, 1)
     const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
     assert.equal(f.run(['--phase', 'app-consumer'], verified).status, 0)
@@ -174,6 +181,11 @@ test('native producer retains Skip source hashes only after verified state resto
     await writeFile(marker, 'restored dependency marker')
     assert.equal(
       f.run(['--phase', 'app-native-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
+      0,
+    )
+    assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')
+    assert.equal(
+      f.run(['--phase', 'app-jvm-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
       0,
     )
     assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')
@@ -269,6 +281,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   for (const job of [
     'build-swift-android-dependency',
     'build-swift-android-native',
+    'build-swift-android-jvm',
     'build-swift-android',
     'test-swift-android-libs',
     'test-swift-android-host',
@@ -282,7 +295,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(
     gate,
-    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
+    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android-jvm,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
   )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
@@ -292,6 +305,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     'VERIFY_RESULT',
     'ANDROID_DEPENDENCY_RESULT',
     'ANDROID_NATIVE_RESULT',
+    'ANDROID_JVM_RESULT',
     'ANDROID_APP_RESULT',
     'ANDROID_LIBS_RESULT',
     'ANDROID_HOST_RESULT',

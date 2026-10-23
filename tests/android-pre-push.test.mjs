@@ -42,7 +42,9 @@ test('builds only the Android app and instrumentation Gradle task closures', asy
 
 test('uses the materialized Swift SDK NDK for the Gradle and Skip test builds', async () => {
   const prePush = await readFile(prePushPath, 'utf8')
-  const ndkVerification = prePush.indexOf('if [[ ! -f "$SKIP_NDK_SENTINEL" ]]')
+  const ndkVerification = prePush.indexOf(
+    'if [[ "$phase" != app-jvm-producer && ! -f "$SKIP_NDK_SENTINEL" ]]',
+  )
   const ndkSelection = prePush.indexOf(
     'ANDROID_NDK_ROOT="${SKIP_NDK_SENTINEL%/.extraction-complete}"',
   )
@@ -57,7 +59,7 @@ test('uses the materialized Swift SDK NDK for the Gradle and Skip test builds', 
   assert.ok(skipTest > gradleBuild)
   assert.match(
     prePush,
-    /ANDROID_NDK_HOME="\$ANDROID_NDK_ROOT"\n  export ANDROID_NDK_ROOT ANDROID_NDK_HOME/u,
+    /if \[\[ "\$phase" != app-jvm-producer \]\]; then\n    ANDROID_NDK_ROOT="\$\{SKIP_NDK_SENTINEL%\/\.extraction-complete\}"\n    ANDROID_NDK_HOME="\$ANDROID_NDK_ROOT"\n    export ANDROID_NDK_ROOT ANDROID_NDK_HOME/u,
   )
 })
 

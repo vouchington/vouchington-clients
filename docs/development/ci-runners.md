@@ -77,18 +77,21 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ## Android validation
 
-Swift Android native compilation and APK assembly run as an exact-run producer and consumer on
-separate macOS VMs. Host Swift package tests and native test-library preparation run in parallel
-with the producer. The producer packages only bounded generated build state, tied to the verified
-candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
-identity before rehydration, then executes the original app and instrumentation APK task closure.
-These three serial jobs still verify the exact native contract but omit candidate pnpm installation;
-their candidate tooling uses Node builtins, shell, Swift, and Gradle without installed JS packages.
+Swift Android native compilation, selected JVM and dex tasks, and APK assembly run as
+serial exact-run phases on separate macOS VMs. Host Swift package tests and native test-library
+preparation run in parallel with the producers. Each producer packages the whole bounded generated
+build state, tied to the verified candidate revision, run, attempt, and pinned Gradle version. The
+JVM phase restores native state, runs the selected Kotlin, Java, and dex tasks, and repacks it. The
+app consumer verifies the JVM archive hash and identity before rehydration, then executes the
+original app and instrumentation APK task closure. These four serial jobs still verify the exact
+native contract but omit candidate pnpm installation; their candidate tooling uses Node builtins,
+shell, Swift, and Gradle without installed JS packages.
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
-document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
-Android SDK, and NDK toolchains are materialized independently in each job and never included in
-the artifact. The existing cookie runtime job also reports the stable `Swift Android Skip` check:
-it first requires the dependency and native producers, consumer, host tests, and test libraries to
+document an `UP-TO-DATE` outcome as its correctness condition. The JVM phase sets up the host Swift
+compiler and Android SDK but skips Android Swift SDK/NDK archive materialization. The original
+native and app phases still materialize those archives; toolchains never enter the handoff artifact.
+The existing cookie runtime job also reports the stable `Swift Android Skip` check: it first
+requires the dependency, native and JVM producers, consumer, host tests, and test libraries to
 succeed, then runs the full cookie restart proof. `Tests` requires that job's result directly.
 Local Android validation continues to default to both original phases. Producer and consumer
 job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
@@ -96,7 +99,7 @@ budgets are safety bounds, not evidence that the under-ten-minute target has bee
 The dedicated host job runs the planner-selected source tests with
 `run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
 VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
-path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producer
+path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producers
 and consumer record pinned `--profile` summaries. The consumer selects the profile named by its
 own Gradle invocation because the verified state also contains the producer's prior profile.
 Reported task and category durations may overlap and are not a critical-path sum.
@@ -104,10 +107,9 @@ Reported task and category durations may overlap and are not a critical-path sum
 The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
 task-output build cache is separate from its user home: local builds use the canonical Darwin
 temporary directory, while GitHub Actions uses a private stable runner-home path because cache
-archives retain absolute paths across hosts. The native producer and app consumer restore the
-task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
-that cache. Both Gradle jobs use the same
-checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+archives retain absolute paths across hosts. The native and JVM producers and app consumer restore
+the task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
+that cache. All three Gradle jobs use the same checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
 the test-library phase saves the shared checksummed-download archive after SDK materialization,
 and the app consumer saves its Gradle user home and bounded task-output cache after APK upload. The
 task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
