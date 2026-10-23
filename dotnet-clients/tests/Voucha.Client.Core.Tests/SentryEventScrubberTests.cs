@@ -42,6 +42,7 @@ public sealed class SentryEventScrubberTests
           ["Authorization"] = "Bearer secret",
           ["X-App-Attest-Assertion"] = "assertion",
           ["Accept"] = "application/json",
+          ["Referer"] = "https://voucha.ai/reset?otp=123456",
         },
         "dt=device; st=session",
         """{"code":"123456"}""",
@@ -71,6 +72,7 @@ public sealed class SentryEventScrubberTests
     Assert.Equal(SentryEventScrubber.Filtered, sent.Headers?["Authorization"]);
     Assert.Equal(SentryEventScrubber.Filtered, sent.Headers?["X-App-Attest-Assertion"]);
     Assert.Equal("application/json", sent.Headers?["Accept"]);
+    Assert.Equal("https://voucha.ai/reset", sent.Headers?["Referer"]);
     Assert.Equal(SentryEventScrubber.Filtered, sent.Cookies);
     Assert.Null(sent.Body);
     Assert.Equal("session", sent.Extras?["screen"]);

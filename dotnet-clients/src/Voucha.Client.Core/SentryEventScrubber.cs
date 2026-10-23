@@ -137,7 +137,7 @@ public static class SentryEventScrubber
   private static Dictionary<string, string>? ScrubHeaders(IReadOnlyDictionary<string, string>? headers) =>
       headers?.ToDictionary(
           pair => pair.Key,
-          pair => IsCredentialHeader(pair.Key) ? Filtered : pair.Value,
+          pair => IsCredentialHeader(pair.Key) ? Filtered : Retain(pair.Key, pair.Value),
           StringComparer.Ordinal);
 
   private static bool IsSeparateRequestPart(string name) =>
