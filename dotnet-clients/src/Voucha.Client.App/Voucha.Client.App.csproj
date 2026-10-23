@@ -48,6 +48,11 @@
     <PackageReference Include="Microsoft.Maui.Controls" />
   </ItemGroup>
 
+  <!-- The System-only interop seam is linked separately into portable tests. -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'">
+    <Compile Remove="WindowsPasskey*.cs" />
+  </ItemGroup>
+
   <!-- CI or trusted local build injection only; neither credential has a repository value. -->
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <PackageReference Include="Microsoft.WindowsAppSDK" />
